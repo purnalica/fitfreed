@@ -3,7 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
-import { LongitudinalInsightsPanel } from "./LongitudinalInsightsPanel";
+import type { AnalyticalChartModel } from "./analytical-chart";
+import {
+  buildLongitudinalChartModel,
+  LongitudinalInsightsPanel,
+} from "./LongitudinalInsightsPanel";
 import type {
   LongitudinalComparison,
   LongitudinalDayInsight,
@@ -14,13 +18,23 @@ import type { RecoverySeriesSummary } from "./recovery-insights";
 import type { SleepSeriesSummary } from "./sleep-insights";
 import type { TrainingSeriesSummary } from "./training-insights";
 
-const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  invoke: vi.fn(),
+  chartModels: [] as AnalyticalChartModel[],
+}));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
+vi.mock("./AnalyticalChart", () => ({
+  AnalyticalChart: ({ model }: { model: AnalyticalChartModel }) => {
+    mocks.chartModels.push(model);
+    return <div role="img" aria-label={model.accessibleName} />;
+  },
+}));
 
 afterEach(() => {
   cleanup();
   mocks.invoke.mockReset();
+  mocks.chartModels.length = 0;
 });
 
 function activitySummary(
@@ -227,6 +241,44 @@ function renderPanel(overrides: {
 }
 
 describe("LongitudinalInsightsPanel", () => {
+  it("uses a zoomable canvas for the maximum supported history and rejects invalid dates", () => {
+    const denseSeries = structuredClone(overview().series[0]);
+    denseSeries.days = Array.from({ length: 366 }, (_, index) => day({
+      localDate: new Date(Date.UTC(2025, 0, index + 1)).toISOString().slice(0, 10),
+    }));
+    const labels = {
+      accessibleName: "Aligned four-domain history",
+      accessibleDescription: "Four histories aligned without causal interpretation.",
+      date: "Date",
+      activity: "Activity",
+      steps: "Steps",
+      training: "Training",
+      trainingDuration: "Training duration",
+      sleep: "Sleep",
+      sleepDuration: "Asleep duration",
+      recovery: "Recovery",
+      recoveryInterval: "Beat-to-beat interval",
+    };
+
+    const model = buildLongitudinalChartModel(denseSeries, "en-US", labels);
+
+    expect(model).toMatchObject({
+      renderer: "canvas",
+      interaction: { pointSelection: false, zoom: true },
+      coordinate: {
+        domain: {
+          minimum: Date.UTC(2025, 0, 1),
+          maximum: Date.UTC(2026, 0, 1),
+        },
+      },
+    });
+    expect(model?.series).toHaveLength(4);
+    expect(model?.series.every((series) => series.points.length === 366)).toBe(true);
+
+    denseSeries.days[365] = day({ localDate: "2026-02-30" });
+    expect(buildLongitudinalChartModel(denseSeries, "en-US", labels)).toBeNull();
+  });
+
   it("leads with the aligned visual and discloses controls and exact days on request", async () => {
     mocks.invoke.mockResolvedValue(overview());
     const user = userEvent.setup();
@@ -241,6 +293,39 @@ describe("LongitudinalInsightsPanel", () => {
     });
     await waitFor(() => expect(heading).toHaveFocus());
     expect(within(answer).getByText("Aligned four-domain history")).toBeVisible();
+    expect(within(answer).getByRole("img", {
+      name: "Aligned four-domain history",
+    })).toBeVisible();
+    const chart = mocks.chartModels.at(-1);
+    expect(chart).toMatchObject({
+      layout: { kind: "stacked-lanes" },
+      coordinate: {
+        ref: "opaque-origin-alpha:local-date",
+        label: "Date",
+        domain: {
+          minimum: Date.UTC(2026, 2, 28),
+          maximum: Date.UTC(2026, 2, 30),
+        },
+        format: { kind: "local-date" },
+      },
+      axes: [
+        { label: "Steps", unit: "" },
+        { label: "Training duration", unit: "" },
+        { label: "Asleep duration", unit: "" },
+        { label: "Beat-to-beat interval", unit: "ms" },
+      ],
+      interaction: { pointSelection: false, zoom: false },
+    });
+    expect(chart?.series[0].points).toEqual([
+      expect.objectContaining({ value: 12_000, gapBefore: false }),
+      expect.objectContaining({ value: null, gapBefore: false }),
+      expect.objectContaining({ value: null, gapBefore: false }),
+    ]);
+    expect(chart?.series[1].points.map((point) => point.value)).toEqual([
+      3_600_000,
+      0,
+      1_800_000,
+    ]);
     expect(within(answer).getByText(
       /does not establish cause, diagnosis, readiness, or advice/,
     )).toBeVisible();

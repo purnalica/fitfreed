@@ -1600,6 +1600,8 @@
     "of": "of",
     "days": "dates",
     "visual": "Aligned four-domain history",
+    "analyticalChartLoading": "Drawing the aligned history…",
+    "analyticalChartUnavailable": "The aligned chart could not be drawn. The exact daily history remains available.",
     "exactTable": "Exact longitudinal history",
     "date": "Date",
     "steps": "Steps",

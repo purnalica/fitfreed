@@ -694,6 +694,12 @@ requireRule(
   [/height:\s*clamp\(300px,\s*42vh,\s*480px\)/],
   "a prominent but laptop-bounded signal workbench chart",
 );
+requireRule(
+  stylesheet,
+  ".longitudinal-answer-visual > .analytical-chart-canvas",
+  [/height:\s*clamp\(420px,\s*54vh,\s*540px\)/],
+  "a prominent but laptop-bounded four-domain history chart",
+);
 for (const [laneCount, expectedHeight] of [
   ["2", /height:\s*clamp\(300px,\s*42vh,\s*360px\)/],
   ["3", /height:\s*clamp\(360px,\s*50vh,\s*440px\)/],
@@ -712,6 +718,8 @@ for (const obsoleteRendererSelector of [
   ".training-signal-workbench-plot polyline",
   ".training-cross-signal-lanes svg",
   ".training-cross-signal-lanes polyline",
+  ".longitudinal-chart",
+  ".longitudinal-lanes",
 ]) {
   if (stylesheet.includes(obsoleteRendererSelector)) {
     throw new Error(`analytical chart CSS must not depend on renderer internals: ${obsoleteRendererSelector}`);
@@ -739,6 +747,8 @@ for (const zoom of ["175", "200"]) {
     `:root[data-content-zoom="${zoom}"] .training-signal-workbench-plot > .analytical-chart-canvas`,
   ) || !stylesheet.includes(
     `:root[data-content-zoom="${zoom}"] .training-cross-signal-chart > .analytical-chart-canvas`,
+  ) || !stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .longitudinal-answer-visual > .analytical-chart-canvas`,
   )) {
     throw new Error(`analytical charts must reserve zoom-responsive height at ${zoom}% content zoom`);
   }

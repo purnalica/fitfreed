@@ -190,8 +190,14 @@ describe("compileEChartsAnalyticalChart", () => {
     });
 
     expect(compiled.option.grid).toEqual([
-      expect.objectContaining({ containLabel: true }),
-      expect.objectContaining({ containLabel: true }),
+      expect.objectContaining({
+        outerBoundsMode: "same",
+        outerBoundsContain: "axisLabel",
+      }),
+      expect.objectContaining({
+        outerBoundsMode: "same",
+        outerBoundsContain: "axisLabel",
+      }),
     ]);
     expect(compiled.option.xAxis).toEqual([
       expect.objectContaining({ gridIndex: 0, min: 0, max: 3_000 }),
@@ -212,6 +218,47 @@ describe("compileEChartsAnalyticalChart", () => {
       expect.objectContaining({ xAxisIndex: [0, 1] }),
       expect.objectContaining({ xAxisIndex: [0, 1] }),
     ]);
+  });
+
+  it("formats a longitudinal coordinate as a localized calendar date", () => {
+    const longitudinal = model();
+    longitudinal.locale = "es-ES";
+    longitudinal.coordinate = {
+      ref: "history-1:local-date",
+      label: "Fecha",
+      unit: "",
+      domain: {
+        minimum: Date.UTC(2026, 2, 28),
+        maximum: Date.UTC(2026, 2, 30),
+      },
+      format: { kind: "local-date" },
+    };
+    longitudinal.series[0].coordinateRef = longitudinal.coordinate.ref;
+    longitudinal.series[0].points = [
+      {
+        id: "activity:2026-03-28",
+        coordinate: Date.UTC(2026, 2, 28),
+        value: 12_000,
+        gapBefore: false,
+      },
+    ];
+
+    const compiled = compileEChartsAnalyticalChart(longitudinal, {
+      accent: "#336655",
+      accentSoft: "rgba(51, 102, 85, 0.18)",
+      ink: "#17211b",
+      muted: "#657068",
+      line: "#d1d8d2",
+      surface: "#ffffff",
+      baseFontSize: 16,
+      fontFamily: "Inter",
+    });
+    expect(Array.isArray(compiled.option.xAxis)).toBe(false);
+    if (Array.isArray(compiled.option.xAxis)) {
+      throw new Error("overlay charts must compile one calendar axis");
+    }
+    expect(compiled.option.xAxis.axisLabel.formatter(Date.UTC(2026, 2, 28)))
+      .toBe("28 mar 2026");
   });
 
   it("inherits zoomed application typography and reserves matching label space", () => {

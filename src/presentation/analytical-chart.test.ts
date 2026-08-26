@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   analyticalCoordinateFromDecimal,
+  analyticalCoordinateFromLocalDate,
   type AnalyticalChartModel,
   validateAnalyticalChartModel,
 } from "./analytical-chart";
@@ -53,6 +54,14 @@ describe("validateAnalyticalChartModel", () => {
     expect(analyticalCoordinateFromDecimal("-1")).toBeNull();
     expect(analyticalCoordinateFromDecimal("9007199254740992")).toBeNull();
     expect(analyticalCoordinateFromDecimal("not-a-coordinate")).toBeNull();
+  });
+
+  it("accepts only exact calendar dates as stable UTC chart coordinates", () => {
+    expect(analyticalCoordinateFromLocalDate("2026-03-28"))
+      .toBe(Date.UTC(2026, 2, 28));
+    expect(analyticalCoordinateFromLocalDate("2026-02-29")).toBeNull();
+    expect(analyticalCoordinateFromLocalDate("2026-3-28")).toBeNull();
+    expect(analyticalCoordinateFromLocalDate("not-a-date")).toBeNull();
   });
 
   it("accepts ordered finite evidence with explicit gaps and annotations", () => {

@@ -15,6 +15,8 @@ vi.mock("./echarts-analytical-chart-adapter", () => ({
 }));
 
 let observedResize: ResizeObserverCallback | undefined;
+let hostWidth = 640;
+let hostHeight = 320;
 
 class TestResizeObserver implements ResizeObserver {
   constructor(callback: ResizeObserverCallback) {
@@ -71,11 +73,18 @@ beforeEach(() => {
     dispose: adapter.dispose,
   });
   observedResize = undefined;
+  hostWidth = 640;
+  hostHeight = 320;
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get")
+    .mockImplementation(() => hostWidth);
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get")
+    .mockImplementation(() => hostHeight);
   vi.stubGlobal("ResizeObserver", TestResizeObserver);
 });
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -95,6 +104,25 @@ describe("EChartsAnalyticalChart", () => {
 
     act(() => window.dispatchEvent(new Event("resize")));
     expect(adapter.resize).toHaveBeenCalledTimes(2);
+
+    unmount();
+    expect(adapter.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for visible geometry before mounting the renderer", () => {
+    hostWidth = 0;
+    hostHeight = 0;
+    const { unmount } = render(<EChartsAnalyticalChart model={model()} />);
+
+    expect(adapter.mount).not.toHaveBeenCalled();
+
+    hostWidth = 640;
+    hostHeight = 320;
+    act(() => observedResize?.([], {} as ResizeObserver));
+    expect(adapter.mount).toHaveBeenCalledTimes(1);
+
+    act(() => observedResize?.([], {} as ResizeObserver));
+    expect(adapter.resize).toHaveBeenCalledTimes(1);
 
     unmount();
     expect(adapter.dispose).toHaveBeenCalledTimes(1);

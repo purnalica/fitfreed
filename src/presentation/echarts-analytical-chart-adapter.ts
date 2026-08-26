@@ -26,6 +26,7 @@ import type {
 import {
   analyticalAxisNumberFormatter,
   formatAnalyticalDuration,
+  mediumDateFormatter,
 } from "./presentation-format";
 
 use([
@@ -124,7 +125,8 @@ interface CompiledGrid {
   top: number | string;
   bottom?: number;
   height?: string;
-  containLabel: true;
+  outerBoundsMode: "same";
+  outerBoundsContain: "axisLabel";
 }
 
 export interface CompiledEChartsOption {
@@ -176,6 +178,10 @@ export interface EChartsAnalyticalChartHandle {
 function valueFormatter(format: AnalyticalChartValueFormat, locale: AnalyticalChartModel["locale"]) {
   if (format.kind === "duration-milliseconds") {
     return (value: number) => formatAnalyticalDuration(value, locale);
+  }
+  if (format.kind === "local-date") {
+    const formatter = mediumDateFormatter(locale);
+    return (value: number) => formatter.format(new Date(value));
   }
   const formatter = analyticalAxisNumberFormatter(locale, format.maximumFractionDigits);
   return (value: number) => formatter.format(value);
@@ -289,7 +295,8 @@ function stackedGrids(
     right: scaledPixels(28, palette),
     top: `${top + index * (height + gap)}%`,
     height: `${height}%`,
-    containLabel: true,
+    outerBoundsMode: "same",
+    outerBoundsContain: "axisLabel",
   }));
 }
 
@@ -430,7 +437,8 @@ export function compileEChartsAnalyticalChart(
           right: axisSideSpace(model.axes.length, 1, palette),
           top: scaledPixels(model.series.length > 1 ? 50 : 28, palette),
           bottom: scaledPixels(model.interaction.zoom ? 74 : 52, palette),
-          containLabel: true,
+          outerBoundsMode: "same",
+          outerBoundsContain: "axisLabel",
         },
       legend: {
         show: model.series.length > 1,

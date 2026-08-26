@@ -9,6 +9,14 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
+import {
+  analyticalCoordinateFromDecimal,
+  analyticalCoordinateFromLocalDate,
+  type AnalyticalChartModel,
+  type AnalyticalChartPoint,
+  type AnalyticalChartValueFormat,
+} from "./analytical-chart";
+import { AnalyticalChart } from "./AnalyticalChart";
 import { commandErrorCode } from "./command-error";
 import {
   DataTable,
@@ -28,7 +36,6 @@ import type {
 } from "./longitudinal-insights";
 import {
   formatRecoveryMilliseconds,
-  recoveryBarWidth,
   recoveryLocalDate,
   recoveryRangeIsValid,
 } from "./recovery-format";
@@ -60,6 +67,146 @@ interface LongitudinalInsightsPanelProps {
 interface SelectedDay {
   seriesRef: string;
   localDate: string;
+}
+
+interface LongitudinalChartLabels {
+  accessibleName: string;
+  accessibleDescription: string;
+  date: string;
+  activity: string;
+  steps: string;
+  training: string;
+  trainingDuration: string;
+  sleep: string;
+  sleepDuration: string;
+  recovery: string;
+  recoveryInterval: string;
+}
+
+interface LongitudinalLaneInput {
+  id: string;
+  label: string;
+  axisLabel: string;
+  unit: string;
+  format: AnalyticalChartValueFormat;
+  values: Array<string | null>;
+}
+
+function longitudinalValue(value: string | null): number | null | undefined {
+  return value === null ? null : analyticalCoordinateFromDecimal(value) ?? undefined;
+}
+
+function longitudinalPoints(
+  laneId: string,
+  dates: Array<{ localDate: string; coordinate: number }>,
+  values: Array<string | null>,
+): AnalyticalChartPoint[] | null {
+  const converted = values.map(longitudinalValue);
+  if (converted.some((value) => value === undefined)) return null;
+  return dates.map((date, index) => ({
+    id: `${laneId}:${date.localDate}`,
+    coordinate: date.coordinate,
+    value: converted[index] ?? null,
+    gapBefore: index > 0
+      && converted[index] !== null
+      && converted[index - 1] === null,
+  }));
+}
+
+export function buildLongitudinalChartModel(
+  series: LongitudinalSeriesOverview,
+  locale: Locale,
+  labels: LongitudinalChartLabels,
+): AnalyticalChartModel | null {
+  const dates = series.days.map((day) => {
+    const coordinate = analyticalCoordinateFromLocalDate(day.localDate);
+    return coordinate === null ? null : { localDate: day.localDate, coordinate };
+  });
+  if (dates.length === 0 || dates.some((date) => date === null)) return null;
+  const validDates = dates.filter((date): date is NonNullable<typeof date> => date !== null);
+  const lanes: LongitudinalLaneInput[] = [{
+    id: "activity",
+    label: labels.activity,
+    axisLabel: labels.steps,
+    unit: "",
+    format: { kind: "number", maximumFractionDigits: 0 },
+    values: series.days.map((day) => day.activity.stepCount),
+  }, {
+    id: "training",
+    label: labels.training,
+    axisLabel: labels.trainingDuration,
+    unit: "",
+    format: { kind: "duration-milliseconds" },
+    values: series.days.map((day) => day.training.totalDurationMilliseconds),
+  }, {
+    id: "sleep",
+    label: labels.sleep,
+    axisLabel: labels.sleepDuration,
+    unit: "",
+    format: { kind: "duration-milliseconds" },
+    values: series.days.map((day) => day.sleep.asleepMilliseconds),
+  }, {
+    id: "recovery",
+    label: labels.recovery,
+    axisLabel: labels.recoveryInterval,
+    unit: "ms",
+    format: { kind: "number", maximumFractionDigits: 0 },
+    values: series.days.map((day) => day.recovery.beatToBeatIntervalMilliseconds),
+  }];
+  const lanePoints = lanes.map((lane) => longitudinalPoints(
+    lane.id,
+    validDates,
+    lane.values,
+  ));
+  if (lanePoints.some((points) => points === null)) return null;
+  const validLanePoints = lanePoints.filter(
+    (points): points is AnalyticalChartPoint[] => points !== null,
+  );
+  const coordinateRef = `${series.seriesRef}:local-date`;
+
+  return {
+    accessibleName: labels.accessibleName,
+    accessibleDescription: labels.accessibleDescription,
+    locale,
+    renderer: series.days.length * lanes.length > 1_000 ? "canvas" : "svg",
+    layout: { kind: "stacked-lanes" },
+    coordinate: {
+      ref: coordinateRef,
+      label: labels.date,
+      unit: "",
+      domain: {
+        minimum: validDates[0].coordinate,
+        maximum: validDates.at(-1)?.coordinate ?? validDates[0].coordinate,
+      },
+      format: { kind: "local-date" },
+    },
+    axes: lanes.map((lane, index) => {
+      const values = validLanePoints[index].flatMap(
+        (point) => point.value === null ? [] : [point.value],
+      );
+      return {
+        id: `${series.seriesRef}:${lane.id}:axis`,
+        label: lane.axisLabel,
+        unit: lane.unit,
+        domain: values.length === 0
+          ? { minimum: 0, maximum: 0 }
+          : { minimum: Math.min(...values), maximum: Math.max(...values) },
+        direction: "higher-at-top" as const,
+        format: lane.format,
+      };
+    }),
+    series: lanes.map((lane, index) => ({
+      id: `${series.seriesRef}:${lane.id}`,
+      label: lane.label,
+      coordinateRef,
+      axisId: `${series.seriesRef}:${lane.id}:axis`,
+      points: validLanePoints[index],
+    })),
+    interaction: {
+      zoom: series.days.length > 45,
+      pointSelection: false,
+    },
+  };
 }
 
 export function LongitudinalInsightsPanel({
@@ -522,12 +669,22 @@ function LongitudinalSeries({
 }) {
   const copy = messages.longitudinal;
   const [exactOpen, setExactOpen] = useState(false);
-  const maxima = {
-    activity: maximum(series.days.map((day) => day.activity.stepCount)),
-    training: maximum(series.days.map((day) => day.training.totalDurationMilliseconds)),
-    sleep: maximum(series.days.map((day) => day.sleep.asleepMilliseconds)),
-    recovery: maximum(series.days.map((day) => day.recovery.beatToBeatIntervalMilliseconds)),
-  };
+  const accessibleName = seriesCount === 1
+    ? copy.visual
+    : `${copy.visual} · ${copy.series} ${number.format(seriesIndex + 1)}`;
+  const chartModel = buildLongitudinalChartModel(series, locale, {
+    accessibleName,
+    accessibleDescription: `${copy.visual}. ${copy.associationNotice}`,
+    date: copy.date,
+    activity: copy.activity,
+    steps: copy.steps,
+    training: copy.training,
+    trainingDuration: copy.trainingDuration,
+    sleep: copy.sleep,
+    sleepDuration: copy.sleepDuration,
+    recovery: copy.recovery,
+    recoveryInterval: copy.recoveryInterval,
+  });
 
   return (
     <section className="longitudinal-series">
@@ -537,21 +694,23 @@ function LongitudinalSeries({
           <h3>{answerHeading}</h3>
         </div>
       )}
-      <figure className="longitudinal-answer-visual">
+      <figure
+        className="longitudinal-answer-visual"
+        data-longitudinal-date-count={series.days.length}
+        data-first-date={series.days[0]?.localDate ?? ""}
+      >
         <figcaption>{copy.visual}</figcaption>
-        <ol className="longitudinal-chart" aria-hidden="true">
-          {series.days.map((day) => (
-            <li key={day.localDate}>
-              <time dateTime={day.localDate}>{date.format(recoveryLocalDate(day.localDate))}</time>
-              <div className="longitudinal-lanes">
-                <Lane label={copy.activity} value={day.activity.stepCount} maximum={maxima.activity} className="activity" />
-                <Lane label={copy.training} value={day.training.totalDurationMilliseconds} maximum={maxima.training} className="training" />
-                <Lane label={copy.sleep} value={day.sleep.asleepMilliseconds} maximum={maxima.sleep} className="sleep" />
-                <Lane label={copy.recovery} value={day.recovery.beatToBeatIntervalMilliseconds} maximum={maxima.recovery} className="recovery" />
-              </div>
-            </li>
-          ))}
-        </ol>
+        {chartModel === null ? (
+          <p className="analytical-chart-status" role="status">
+            {copy.analyticalChartUnavailable}
+          </p>
+        ) : (
+          <AnalyticalChart
+            model={chartModel}
+            loadingMessage={copy.analyticalChartLoading}
+            unavailableMessage={copy.analyticalChartUnavailable}
+          />
+        )}
       </figure>
       <details
         className="answer-exact-values longitudinal-exact-evidence"
@@ -608,36 +767,5 @@ function LongitudinalSeries({
         )}
       </details>
     </section>
-  );
-}
-
-function maximum(values: Array<string | null>): bigint {
-  return values.reduce<bigint>((current, value) => {
-    const candidate = value === null ? 0n : BigInt(value);
-    return candidate > current ? candidate : current;
-  }, 1n);
-}
-
-function Lane({
-  label,
-  value,
-  maximum,
-  className,
-}: {
-  label: string;
-  value: string | null;
-  maximum: bigint;
-  className: string;
-}) {
-  return (
-    <span className={`longitudinal-lane${value === null ? " missing" : ""}`}>
-      <span>{label}</span>
-      <span className="track">
-        <span
-          className={`bar ${className}`}
-          style={{ width: recoveryBarWidth(value, maximum) }}
-        />
-      </span>
-    </span>
   );
 }

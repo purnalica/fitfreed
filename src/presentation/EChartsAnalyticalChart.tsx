@@ -20,17 +20,25 @@ export default function EChartsAnalyticalChart({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const chart = mountEChartsAnalyticalChart(container, model, onSelection);
-    const resize = () => chart.resize();
+    let chart: ReturnType<typeof mountEChartsAnalyticalChart> | undefined;
+    const renderAtCurrentSize = () => {
+      if (container.clientWidth <= 0 || container.clientHeight <= 0) return;
+      if (chart) {
+        chart.resize();
+      } else {
+        chart = mountEChartsAnalyticalChart(container, model, onSelection);
+      }
+    };
     const observer = typeof ResizeObserver === "undefined"
       ? undefined
-      : new ResizeObserver(resize);
+      : new ResizeObserver(renderAtCurrentSize);
     observer?.observe(container);
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", renderAtCurrentSize);
+    renderAtCurrentSize();
     return () => {
       observer?.disconnect();
-      window.removeEventListener("resize", resize);
-      chart.dispose();
+      window.removeEventListener("resize", renderAtCurrentSize);
+      chart?.dispose();
     };
   }, [model, onSelection]);
 

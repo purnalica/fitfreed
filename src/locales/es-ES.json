@@ -1600,6 +1600,8 @@
     "of": "de",
     "days": "fechas",
     "visual": "Historial alineado de los cuatro dominios",
+    "analyticalChartLoading": "Representando el historial alineado…",
+    "analyticalChartUnavailable": "No se ha podido dibujar el gráfico alineado. El historial diario exacto sigue disponible.",
     "exactTable": "Historial longitudinal exacto",
     "date": "Fecha",
     "steps": "Pasos",

@@ -2828,8 +2828,8 @@ feature-limited Plotters 0.3.7 for authorized static SVG. [ADR 0032](../architec
 records the accepted mixed rendering boundary; dependency introduction and production migration remain.
 
 **Current implementation checkpoint (2026-08-26):** the exact ECharts dependency, renderer-neutral presentation
-model, validated adapter, lazy React boundary, localized failure states, and the `TrainingSignalPlot` and cross-signal
-lane migrations are implemented. Both charts inherit the application palette, typography, and content zoom; keep
+model, validated adapter, lazy React boundary, localized failure states, and the `TrainingSignalPlot`, cross-signal,
+and longitudinal-history migrations are implemented. These charts inherit the application palette, typography, and content zoom; keep
 exact values available through existing semantic alternatives; and retain authoritative coordinate, range,
 selection, and gap meaning. The cross-signal projection gives two through four independent scales separate labelled
 grids over one stable elapsed domain, with linked cursor and zoom behavior and no normalization or causal claim. The
@@ -2837,12 +2837,15 @@ former structural tests now verify those contracts through the renderer-neutral 
 their original purposes were traced through repository history. TypeScript compilation, dependency audit,
 localization, presentation inventory, architecture, UI-contract, and documentation checks pass. Obsolete renderer-
 internal CSS selectors have been removed, and the automated architecture guard enforces ECharts as a single
-presentation-adapter dependency. A separate timing defect found by the complete suite was fixed and committed as
-`77101cc`. The fresh complete presentation suite passes with 411 tests across 62 files, and the production build
-keeps ECharts outside the initial graph in one lazily loaded 205.14-kilobyte gzip chunk. The live boundary and both
-signal migrations are documented in the current architecture, developer, and user guides. The remaining live
-analytical migrations, static report rendering, route-relative zoom bounds, and complete X7-R4 acceptance gates
-remain.
+presentation-adapter dependency. Longitudinal history now uses four independently scaled lanes over one exact
+local-date coordinate, retains missing values as gaps and zero training as zero, uses canvas plus zoom for the
+maximum 366-day view, and keeps its exact accessible table. A separate timing defect found by the complete suite
+was fixed and committed as `77101cc`. The current complete presentation suite passes with 415 tests across 62
+files. TypeScript, automation, localization, presentation-inventory, architecture, UI-contract, documentation,
+and production-build gates pass without renderer warnings. The production build keeps ECharts outside the initial
+graph in one lazily loaded 205.23-kilobyte gzip chunk. The live boundary and completed migrations are documented in
+the current architecture, developer, testing, performance, and user guides. The remaining live analytical
+migrations, static report rendering, route-relative zoom bounds, and complete X7-R4 acceptance gates remain.
 
 1. Supersede ADR 0013 only after a focused production-shaped comparison of Apache ECharts, uPlot, Observable Plot,
    and Vega-Lite, or a better candidate discovered during the review. Use official source, licence, release, security,

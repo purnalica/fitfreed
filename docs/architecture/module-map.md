@@ -45,12 +45,15 @@ The application owns provider-neutral activity, training, sleep, and recovery In
 
 Under [ADR 0007](decisions/0007-compose-longitudinal-insights-by-origin-and-date.md), the application composes those four authoritative read models into a disposable longitudinal projection. It derives one global date range and ordered union of opaque origins, supplies the same bounded range and origin catalog to every domain use case, validates exact series and day alignment, and exposes only the daily values needed for the integrated view. Training remains an event count, activity retains unavailable versus missing, and sleep and recovery retain their source-assigned dates. The composition neither persists a dashboard cache nor creates a competing calculation path. Its comparison delegates to the existing domain comparison rules, and its transport preserves exact integers as decimal text.
 
-React renders that projection as a result-first Answer Canvas: one four-lane calendar per opaque origin,
-followed by deliberate exact-evidence and range-control disclosures. It formats only values supplied by the
-projection, keeps missing domain evidence distinct from a zero training count, and routes an exact date to
-the existing typed domain destinations. Its comparison canvas presents the four delegated aggregates
-without combining origins or inferring causation, health, or readiness. Contextual retrieval failure retains
-the last valid answer and periods, while successful range and comparison operations focus the new answer.
+React renders that projection as a result-first Answer Canvas: one provider-neutral analytical chart per
+opaque origin, followed by deliberate exact-evidence and range-control disclosures. The chart places activity,
+training, sleep, and recovery on independently scaled labelled lanes over the same exact local-date coordinate;
+missing evidence is a gap, a zero training duration remains zero, and dense periods expose linked navigation
+and bounded zoom. It formats only values supplied by the projection, keeps every origin separate, and routes
+an exact table date to the existing typed domain destinations. Its comparison canvas presents the four
+delegated aggregates without combining origins or inferring causation, health, or readiness. Contextual
+retrieval failure retains the last valid answer and periods, while successful range and comparison operations
+focus the new answer.
 
 The application composes a provider-neutral Library Home from the four default overview use cases, complete sport discovery, bounded session discovery, a host calendar, and, only when explicitly correlated, the latest completed import outcome. One opaque outer revision and one shared training snapshot prevent mixed evidence; one observed change retries the complete composition and a repeated change fails closed. Home exposes complete training identity, bounded recent sessions, one conservative recent comparison or historical fallback, bounded measurement coverage, and question-to-explorer routes. Its temporal projection separates recorded evidence, usable measurements, and one explicitly scoped primary range, so a boundary from one domain cannot be presented as another domain's history. Recognized names, ambiguity, unknown evidence, personal precedence, and unavailable sport evidence retain exact distinct states; unresolved profiles keep separate safe presentation capabilities that target the existing classification use case without exposing provider identifiers or creating another mutation path. Home contains no provider diagnostic, recommendation, score, or duplicate report calculation. Its current normative fields and availability rules live in the [Library Home version 5 contract](../data-formats/insights/library-home-v5.md); [versions 1 through 4](../data-formats/insights/library-home-v4.md) remain immutable historical contract evidence.
 

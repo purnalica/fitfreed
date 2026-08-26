@@ -25,9 +25,13 @@ or resumable exploration retains its exact return origin; a later launch safely 
 exploration destination or returns to Home. Activity, training, sleep, recovery, and longitudinal views load
 only when selected, and **Back to Home** clears the durable destination without persisting disposable filters,
 details, or comparisons. The
-longitudinal dashboard aligns domains without merging sources or implying causation. Activity, sleep,
-recovery, and aligned history each separate their history from **Compare periods**; an exact day or night
-temporarily replaces the history list, and returning restores the point from which it was opened.
+longitudinal dashboard aligns domains without merging sources or implying causation. Its analytical chart
+places steps, training duration, asleep duration, and recovery interval in four labelled lanes over the same
+dates. Each lane keeps its own scale, missing measurements remain visible gaps, and recorded zero training
+remains zero; dense periods can be navigated and zoomed. **Review exact days and measurements** keeps the exact
+localized values and day actions available without crowding the primary view. Activity, sleep, recovery, and
+aligned history each separate their history from **Compare periods**; an exact day or night temporarily
+replaces the history list, and returning restores the point from which it was opened.
 Daily Activity shows its visual history and day actions first. **Review exact daily values** opens the complete
 gap-aware table only when needed. **Change activity period** follows the answer rather than preceding it and closes
 after applying a new period; changing language or the selected period keeps an open exact-value review coherent.

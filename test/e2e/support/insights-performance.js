@@ -999,7 +999,7 @@ async function applyLongitudinalRange(from, through) {
   const input = {
     from,
     through,
-    expectedRows: inclusiveDays(from, through),
+    expectedDateCount: inclusiveDays(from, through),
     expectedFirstDate: from,
   };
   const result = await browser.executeAsync((expected, done) => {
@@ -1016,9 +1016,11 @@ async function applyLongitudinalRange(from, through) {
     const started = window.performance.now();
     document.querySelector(".longitudinal-filter button[type='submit']").click();
     function observeResult() {
-      const rows = document.querySelectorAll(".longitudinal-chart > li");
-      const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
-      if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
+      const visual = document.querySelector(".longitudinal-answer-visual");
+      const renderedDateCount = Number(visual?.getAttribute("data-longitudinal-date-count"));
+      const renderedFirstDate = visual?.getAttribute("data-first-date");
+      if (renderedDateCount === expected.expectedDateCount
+        && renderedFirstDate === expected.expectedFirstDate) {
         document.documentElement.getBoundingClientRect();
         setTimeout(() => done({
           duration: window.performance.now() - started,
