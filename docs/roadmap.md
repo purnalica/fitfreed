@@ -4,7 +4,19 @@
 
 Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. D0 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication capability boundaries; P1 published the truthful canonical product site; E1 through E5 and the previously planned E6 corrections retain complete local and hosted engineering evidence. The subsequent [independent product-experience audit](research/mvp-product-experience-audit.md) invalidated product-experience acceptance. PX-03 is resolved by the accepted dense-history gate and compact recoverable schema, but the 2026-08-21 product-owner disposition confirmed a systemic experience-design failure that cannot be closed by treating the remaining findings as isolated presentation defects.
 
-The active stage is the production migration defined by the accepted [UI and UX redesign plan](plans/ui-redesign.md) and [MVP redesign production migration plan](plans/mvp-redesign-production-migration.md). X3 is accepted, X4 converted the contract into functional vertical increments, and X5-R1 through X5-R10 retain their engineering evidence. The renewed [X6 product-experience reaudit](research/mvp-product-experience-reaudit.md) has no unresolved critical or major machine-assisted finding. A revision-isolated native review profile corrected the invalid first human launch, but the restarted valid [human evaluation](research/x6-product-experience-human-evaluation.md) rejects source `41ffad2` during its first-value journey. X6-C1 has a verified temporal correction and provider-neutral sport-identity foundation through SQLite schema 28, but it remains open because no authenticated, lawfully redistributable Polar catalogue or reviewed local-only acquisition path exists. X6-C2 has complete automation for owned native destination opening, visible outcomes, and archive-selection spatial continuity; actual default-browser appearance remains its human gate. X6-C3 has complete evidence for calm package classification, primary recovery, real reconciliation progress, delayed-work explanation, cancellation, retry, repeat, extension, and restart. X6-C4 has complete evidence for shell-owned import continuity, truthful History restrictions and recovery, and actionable Home session and sport summaries with exact return. X6-C5 has complete role-based measure, responsive form, and packaged WebKit geometry evidence. Exact [repository safety](https://github.com/purnalica/fitfreed/actions/runs/32904901418) and [hosted verification](https://github.com/purnalica/fitfreed/actions/runs/32904901151) pass for corrected source `31751b2`. Functional growth and public-candidate preparation remain frozen while the X6 provider-catalogue, native-browser, and repeated human gates remain open. The production application remains the only implementation and the [MVP experience delivery plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline. Milestone 3 resumes only after the corrective loop and repeated X6 gate pass.
+The active stage is the production migration defined by the accepted [UI and UX redesign
+plan](plans/ui-redesign.md) and [MVP redesign production migration
+plan](plans/mvp-redesign-production-migration.md). X3 is accepted, X4 converted the contract into functional vertical
+increments, and X5-R1 through X5-R10 retain their engineering evidence. The renewed machine-assisted X6 audit has no
+unresolved material finding, but the completed repeated [production-native human
+evaluation](research/x6-product-experience-human-evaluation.md) rejects the product experience. The review reopened
+first-use trust, import responsiveness, sport recognition, natural drill-down, comparison defaults, data precision
+and density, tabular alignment, charting, route zoom, structured training intent, Settings actions, and reusable
+report starts. X7 in the active migration plan owns their ordered correction. External-tile cartography, additional
+providers, public-candidate preparation, and advanced personalization remain outside that loop. The production
+application remains the only implementation and the [MVP experience delivery
+plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline. Milestone 3 resumes only after the
+X7 corrective loop and repeated X6 gate pass.
 
 ## Purpose
 
@@ -90,7 +102,7 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Dependency:** Milestone 1 capabilities required by the agreed MVP journey.
 
-**Scope:** the complete journey in `requirements.md`: Polar Flow ZIP import; coverage reporting; provider-neutral local persistence; activity, training, sleep, and recovery exploration; period filtering and comparison; idempotent and cumulative reimport; actionable recovery; both initial locales; complete specifications for every provider and FitFreed data representation implemented by the MVP; user documentation; a privately distributed unsigned macOS alpha package; and safe notification and cryptographic verification of private alpha updates.
+**Scope:** the complete journey in `requirements.md`: Polar Flow ZIP import; coverage reporting; provider-neutral local persistence; activity, training, sleep, recovery, and structured training-intent exploration; period filtering and comparison; mature analytical charts and exact alternatives; result-first reports with curated examples, independent duplication, and export; idempotent and cumulative reimport; actionable recovery; both initial locales; complete specifications for every provider and FitFreed data representation implemented by the MVP; user documentation; a privately distributed unsigned macOS alpha package; and safe notification and cryptographic verification of private alpha updates.
 
 **Exit criteria:** the confirmed MVP journey and applicable acceptance criteria in `requirements.md` pass through real entry points and the budgets in `quality-targets.md` are satisfied. Capability implementation may hand off to Milestone 3 before external authority and participant-evaluation gates close; those gates remain visible and must pass before an accepted distribution.
 
@@ -118,9 +130,9 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Dependency:** the D0 capability boundaries and retained engineering baseline. Production presentation implementation additionally depends on acceptance of the experience model, information and state architecture, and one coherent interaction direction under the [UI and UX redesign plan](plans/ui-redesign.md).
 
-**Included:** first-run acquisition and settings; result-led recognizable Home; import-to-value handoff; origin-aware navigation; sport and full-history session discovery; user-authored sport classification; the accepted routed and non-routed session evidence verticals; reusable segment criteria; ordered personal evidence reports; deterministic self-contained HTML export; accessibility, localization, performance, documentation, and release-shaped regression evidence; and the truthful canonical GitHub Pages product site.
+**Included:** first-run acquisition and settings; result-led recognizable Home; import-to-value handoff; origin-aware navigation; sport and full-history session discovery; evidence-backed sport recognition and user-authored classification; the accepted routed and non-routed session evidence verticals; structured training objectives, phases, and blocks; reusable segment criteria; mature analytical charts with exact alternatives; ordered personal evidence reports; curated report examples and independent duplication; deterministic self-contained HTML export; accessibility, localization, performance, documentation, and release-shaped regression evidence; and the truthful canonical GitHub Pages product site.
 
-**Boundary:** FR-005, FR-025, and FR-026 define the accepted MVP limits. Broader sample families, external cartography, a free-form publishing system, additional providers, connected APIs, MCP, and new platforms remain outside this intervention. The product site may be published before the application, but it cannot expose a supported-download action until the Milestone 3 release gate passes.
+**Boundary:** FR-005, FR-025, FR-026, and FR-027 define the accepted MVP limits. Broader sample families, external cartography, a free-form publishing system, community report-template exchange, additional providers, connected APIs, MCP, advanced personalization, and new platforms remain outside this intervention. The product site may be published before the application, but it cannot expose a supported-download action until the Milestone 3 release gate passes.
 
 **Execution:** X0 through X3 produced and validated the accepted experience model and design contract. X4 derived the replacement increments and X5 implements them through the ordinary application with TDD and complete lower-layer, UI, test, documentation, and independent product-experience evidence. The implementation status and gates are canonical in the [MVP redesign production migration plan](plans/mvp-redesign-production-migration.md); the earlier E1 through E6 sequence remains the implementation and evidence baseline it supersedes for presentation direction.
 
@@ -132,9 +144,10 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 ## Evolution tracks after the MVP
 
-Structured training objectives, phases, and blocks are a high-priority product requirement under FR-027. Their exact
-delivery boundary and relationship to first-MVP acceptance will be set during the post-X6 review consolidation; they
-must not be reduced to a presentation-only enhancement or silently treated as absent provider data.
+Structured training objectives, phases, and blocks are a high-priority first-MVP product requirement under FR-027.
+X7 implements their provider, canonical, persistence, application, presentation, portable, documentation, and
+lifecycle boundaries without reducing them to presentation-only decoration or silently treating exported data as
+absent.
 
 ### Platform track
 
@@ -165,11 +178,13 @@ first MVP evaluation closes. Post-MVP cartography must not become an implicit pr
 
 ### Experience-personalization track
 
-1. Introduce several curated, clearly differentiated themes without requiring a complex editor.
+1. Introduce several curated, clearly differentiated themes after the first-MVP experience gate, without requiring a
+   complex editor.
 2. Extend personalization capabilities in later product evolution according to validated user needs.
 
 Every stage preserves readability, accessibility, localization, visual hierarchy, and cross-platform coherence. The
-post-X6 plan will establish delivery placement; advanced personalization is not a first-MVP prerequisite.
+system, light, and dark appearance remain the first-MVP contract; curated themes and advanced personalization are not
+first-MVP prerequisites.
 
 ### Horizon 2 — Mature personal analytics
 

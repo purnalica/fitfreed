@@ -28,11 +28,13 @@ that boundary. Exact [repository-safety run
 `32827945310`](https://github.com/purnalica/fitfreed/actions/runs/32827945310) and [hosted campaign
 `32827945185`](https://github.com/purnalica/fitfreed/actions/runs/32827945185) pass for source `41ffad2`.
 
-The restarted valid [human evaluation](../research/x6-product-experience-human-evaluation.md) nevertheless rejects
-that source. It found one critical and several major defects before the broader History, session, report, Settings,
-keyboard, VoiceOver, appearance, and reduced-motion coverage could begin. The findings contradict product-experience
-acceptance without invalidating lower-layer safety, performance, lifecycle, or data-preservation evidence. X6-C1
-through X6-C5 below now own the corrective loop; functional growth remains frozen.
+The completed repeated [production-native human evaluation](../research/x6-product-experience-human-evaluation.md)
+still rejects the product experience. X6-C1 through X6-C5 retain their verified engineering corrections, but real use
+reopened external destination completion, resource-limit explanations, progress responsiveness, sport recognition,
+and sport-level drill-down. The wider review also established material Settings, empty-state, number grouping,
+duration precision, comparison-default, route-zoom, structured-training, table-alignment, information-density,
+charting, and report-reuse findings. These findings contradict product-experience acceptance without invalidating
+lower-layer safety, data-preservation, lifecycle, or already measured performance evidence.
 
 The first exact hosted campaign after those corrections reached every native product gate for source `23631be` before
 the Insights benchmark rejected self-contained maximum-route HTML export at 2,057.706 milliseconds p95 against the
@@ -52,8 +54,10 @@ resolution measured 766.714 milliseconds p95, self-contained export 698.089 mill
 10.784 milliseconds p95. The portable job completed in 4 minutes and 23 seconds, the macOS job in 53 minutes and
 20 seconds, and the immutable marker records executable-input fingerprint
 `81de4cd9104612488f7eab6c84bfa95cb5a3afdb0a801b237f44cf6e77d4e793`. This closes the corrected exact-source
-automation gate without changing a product budget; the provider-catalogue, native-browser, and repeated human gates
-remain open.
+automation gate without changing a product budget. It does not close findings that the hosted campaign did not
+exercise or make perceptible to a person. X7 below owns the post-review corrective sequence, including the newly
+confirmed FR-027 structured-training vertical and FR-005 report-example and duplication contracts. External-tile
+cartography, additional providers, advanced personalization, and public-candidate work stay outside this sequence.
 
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
@@ -107,8 +111,12 @@ boundary is verified.
   explorable regular signals otherwise, source structure, zones, provenance, exact alternatives,
   partial sessions, and non-routed sessions.
 - Reusable personal segmentation and session-owned, user-named contiguous ranges.
-- Result-first report library, contextual creation, composition, deliberate refresh, privacy review,
-  deterministic self-contained HTML export, and deletion.
+- Result-first report library, curated evidence-aware examples, contextual creation, independent duplication,
+  composition, deliberate refresh, privacy review, deterministic self-contained HTML export, and deletion.
+- Imported structured training objectives, phases, blocks, repetitions, and constraints, kept distinct from recorded,
+  calculated, and user-authored session structure.
+- A shared data-presentation contract for precision, grouping, tabular alignment, progressive disclosure, and mature
+  offline analytical charts with exact accessible alternatives.
 - `en-US` and `es-ES`, system/light/dark appearance, 100%–200% content zoom, reduced motion, WCAG 2.2
   AA and WCAG2ICT behavior, privacy, performance, documentation, packaging, and update regressions.
 - Early truthful renewal of the public product site and repository entrance.
@@ -121,9 +129,11 @@ boundary is verified.
   current device.
 - Invented place names, inferred samples, hidden interpolation, provider-sport guesses, medical
   conclusions, recommendations, gamification, or promotional claims unsupported by the library.
-- A free-form publishing system, generic dashboard builder, reusable route-segmentation rules, or a
-  second saved-view/saved-answer library.
-- Functional expansion beyond the accepted FR-005, FR-025, and FR-026 boundaries.
+- A free-form publishing system, generic dashboard builder, community report-template exchange, reusable
+  route-segmentation rules, or a second saved-view/saved-answer library.
+- Curated themes beyond system, light, and dark appearance, and advanced appearance personalization. These remain on
+  the post-MVP experience-personalization track.
+- Functional expansion beyond the accepted FR-005, FR-025, FR-026, and FR-027 boundaries.
 
 ## Verified production baseline and missing contracts
 
@@ -138,11 +148,16 @@ increment must verify the named lower layers again before changing its surface.
 | Recognizable Home | Library Home v1 coverage, questions, post-import reveal, resumable destination | Recent recognizable sessions and sports, one bounded answer, and honest historical fallback | Application composition |
 | Contextual answers | Four authoritative Insights models and longitudinal composition | Accepted Answer Canvas hierarchy and origin restoration | Presentation |
 | Full-history discovery | Search, selectors, sorting, calendar, comparison selection, durable workspace, and sport classification | Results-first composition, coherent icons, structured refinements, and accepted navigation | Presentation |
+| Evidence-backed sport identity | Versioned provider-catalogue aggregate, recognition precedence, durable personal override, and opaque source references | Import the available source vocabulary, establish only authoritative joins, keep unresolved granularity honest, and open represented sessions from every sport summary | Source adapter, application composition, then presentation |
 | Outdoor session investigation | Independent structure, route, signal, zone, segmentation, and provenance queries | One revision-coherent session-story projection with conditional exact-recorded route/signal interaction and explicit separation otherwise | Application composition, then presentation |
 | Partial and non-routed sessions | Explicit unavailable, absent, empty, populated, unsupported, and gap states | Evidence-dependent page composition rather than empty visual placeholders | Application projection and presentation |
 | Reusable segmentation | Versioned `SegmentCriterion`, commands, SQLite persistence, and derived sections | Integration into the map-led workbench without merging source and authored identity | Presentation |
 | Session-owned ranges | Version-2 exercise-owned domain aggregate, application transitions, SQLite schema 26, and desktop transport | Revision-coherent Range Summary, production interaction, and reusable-criteria integration | Application composition, then presentation |
 | Result-first reports | Versioned definitions, typed blocks, multi-origin resolution, staleness, refresh, persistence, privacy review, and deterministic HTML export | Meaningful library projection, report deletion, optional narrative invariant, accepted result-first composition | Domain, application, persistence, presentation |
+| Reusable report starts | Contextual report preparation and independent report identities | Versioned built-in example descriptors, prerequisite resolution, use-as-basis, and independent duplication with fresh report and block identities | Application, domain, persistence, presentation |
+| Structured training intent | Unsupported source-artifact classification plus recorded exercise, lap, calculated-segment, and personal-range models | Provider mapping, provider-neutral planned-training aggregate, reconciliation, persistence, queries, session relationship rules, result-led presentation, report/export, and complete format contracts | Source adapter, domain, application, persistence, presentation |
+| Mature analytical visualization | Semantic HTML charts and local Leaflet route geometry | Reviewed OSS charting dependency, axes, units, scales, gaps, selection, exact alternative, shared-coordinate overlays, bounded route zoom, deterministic report rendering, and accessibility | Architecture decision, presentation adapters, report export |
+| Coherent data presentation | Localized formatting helpers and live data tables | Context-specific precision, forced grouping where counts require it, numeric alignment, set-level attribution, and global progressive disclosure | Presentation system, then every live consumer |
 | Public entrance | Generated localized Pages artifact, automatic locale selection, manual locale control, and truthful product-status source | Accepted sincere product narrative and new visual hierarchy | Product surfaces |
 
 No field or control may be added on the assumption that the corresponding missing contract will be
@@ -241,6 +256,15 @@ flowchart TD
     R8 --> R10
     R9 --> R10
     R10 --> A[X6 independent product-experience audit]
+    A --> P7[X7-P0 post-review contract]
+    P7 --> C71[X7-R1 trustworthy responsive import]
+    C71 --> C72[X7-R2 recognizable navigable history]
+    C72 --> C73[X7-R3 coherent data presentation]
+    C73 --> C74[X7-R4 mature visualization]
+    C74 --> C75[X7-R5 structured training intent]
+    C75 --> C76[X7-R6 reusable report starts]
+    C76 --> C77[X7-R7 whole-product falsification]
+    C77 --> A2[repeated X6 human gate]
 ```
 
 Execution is sequential by default so each increment receives complete local and hosted evidence and
@@ -264,12 +288,20 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
 | X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
-| X6 | Rejected for source `41ffad2` — native profile and exact hosted campaign pass, but the valid human session found one critical and several major product defects | Independent audit has no unresolved material finding |
-| X6-C1 | Human-gated — temporal meaning and the provider-neutral identity foundation have exact hosted evidence; real provider-catalogue acquisition remains unavailable | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
-| X6-C2 | Human-gated — owned native opening, local outcomes, spatial transitions, and exact hosted evidence pass; real browser appearance remains unreviewed | Every successful or failed acquisition action produces a visible, reachable result |
-| X6-C3 | Complete — classification, real progress, primary recovery, watchdog, packaged regressions, and exact hosted evidence pass; production-native human re-evaluation remains in the repeated X6 gate | Import recovery is calm and specific, and long work remains perceptibly active |
-| X6-C4 | Complete — shell, Home, History, packaged navigation, and exact hosted evidence passed 2026-08-26 | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
-| X6-C5 | Complete — role-based measure, form geometry, packaged WebKit, and exact hosted evidence passed 2026-08-26 | Text and forms use the desktop workspace coherently through 200% content zoom |
+| X6 | Rejected — the completed production-native review reopened material behavior through XH-23 | Independent audit has no unresolved material finding |
+| X6-C1 | Reopened by XH-08 — temporal meaning and provider-neutral identity infrastructure remain valid, but an ordinary archive still yields unknown sports | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
+| X6-C2 | Reopened by XH-01 — visible local outcomes remain valid, but accepted delegation does not prove default-browser appearance | Every successful or failed acquisition action produces a visible, reachable result |
+| X6-C3 | Reopened by XH-03 and XH-06 — classification and progress units exist, but resource-limit meaning and runtime responsiveness fail in real use | Import recovery is calm and specific, and long work remains perceptibly active |
+| X6-C4 | Reopened by XH-09 — shell operation truth remains valid, but represented sport collections still contain dead ends | Prominent summaries and collections open useful evidence |
+| X6-C5 | Reopened by XH-12 through XH-22 — the geometry correction remains valid but does not constitute a coherent data-presentation system | Data is concise, aligned, precise, visual, and progressively disclosed |
+| X7-P0 | Complete in working tree — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
+| X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
+| X7-R2 | Pending | Sports are evidence-backed and every represented collection opens its exact sessions |
+| X7-R3 | Pending | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
+| X7-R4 | Pending | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
+| X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
+| X7-R6 | Pending | Relevant built-in examples and duplication make reports understandable and reusable |
+| X7-R7 | Pending | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2219,13 +2251,22 @@ invalidate X6; later workspaces cannot repair a failed first-value journey.
 
 | Findings | Root cause established before correction | Owning increment |
 |---|---|---|
-| XH-08 | Training mapping preserves exact provider sport references, but sport discovery deliberately exposes them only as user-authored unknown classifications. The takeout does not contain the separately managed identifier-to-name catalogue; the current unsupported sport-profile artifact does not supply that join. The product therefore delegated basic recognition to the user by design. | X6-C1 |
+| XH-08 | Training mapping preserves an opaque numeric sport reference. The export's sport-profile artifact carries stable sport codes but no numeric session identifier, and its array order does not correspond to the numeric values present in sessions. Training targets can carry a stable sport code, but only some targets share an exact scheduled timestamp with a recorded session, and one opaque numeric value can occur with more than one detailed target sport. A global numeric lookup or profile-array positional join would therefore invent identity. The importer currently ignores every available source-side naming artifact and delegates all recognition to the user. | X7-R2 |
 | XH-10 | Home combines the minimum and maximum dates of all domains. Activity persistence can retain a source day even when its supported measurement is unavailable, so a placeholder observation can define the prominent global boundary without explaining its domain or usability. | X6-C1 |
-| XH-01, XH-04 | In-application guidance and archive reselection change state below or above the retained viewport. Focus alone does not establish a visible spatial transition. External-link failures are reported in a distant operation-error region, and current tests replace rather than exercise the native opener. | X6-C2 |
-| XH-03 | Archive validation assigns the same unsafe-member result to directories, nested paths, links, encrypted members, absolute paths, and traversal. It performs this classification before establishing whether the ZIP resembles a supported export, while presentation hides the specific reason behind a closed disclosure. An ordinary wrong ZIP can therefore receive a security-shaped diagnosis. | X6-C3 |
-| XH-06, XH-07 | Import reports 100% when decode finishes, then performs reconciliation, a second training decode, persistence loops, and transaction commit without intermediate work units. Operation state is rendered only inside Sources, while shell destinations depend on the last completed Home projection and do not explain an active write boundary. | X6-C3 and X6-C4 |
-| XH-09 | Home renders session and sport aggregates as prominent compact badges using non-interactive elements. The visual affordance has no navigation contract even though matching History destinations already exist. | X6-C4 |
-| XH-05, XH-11 | Repeated fixed character measures and nested grid tracks apply reading-copy constraints to task copy and controls. The sport editor aligns two independently sized field blocks rather than shared label, control, help, and validation rows; its high-zoom rule collapses only at a narrow allocation, not when content zoom makes the two-column rhythm invalid. | X6-C5 |
+| XH-01, XH-04 | The application-owned opener reports success after spawning a detached operating-system process; it does not observe whether that process accepted the destination or whether the default browser appeared. Spatial transitions inside Sources remain a separate focus-and-scroll contract. | X7-R1 |
+| XH-03 | Resource-limit validation distinguishes entry count, member size, total expansion, compression ratio, and read bounds internally, then collapses them into one terminal code and one vague processing-limit sentence. The stable presentation contract has discarded the reason needed for a useful recovery action. | X7-R1 |
+| XH-06, XH-07 | Reconciliation now emits one progress event per canonical item through a Tauri channel and React state update. Large libraries can therefore saturate the renderer with thousands of updates. Outside Sources, the shell strips the numeric progress and retains only a static phase label, so navigation appears stuck even when work continues. | X7-R1 |
+| XH-09 | Home sport cards and History sport summaries remain facts with classification actions, while the session library already supports an exact sport refinement. Navigation lacks a typed represented-sport-to-filtered-sessions route with origin and focus restoration. | X7-R2 |
+| XH-05, XH-11, XH-19, XH-20 | Role-based line measures and one corrected form do not supply a global presentation system. Live surfaces still expose exhaustive detail, repeated set-level attribution, inconsistent numeric alignment, and task controls before conclusions. | X7-R3 |
+| XH-12 | Settings mixes an immediately persisted reset with a local preview discard and a later save. The labels and separated action geometry expose two incompatible transaction models. | X7-R3 |
+| XH-13 | Empty-state privacy copy reuses the populated-library promise and therefore names an archive and library that do not yet exist. | X7-R1 |
+| XH-14, XH-15 | Direct `Intl.NumberFormat` calls inherit locale-specific minimum grouping for four-digit counts, while one shared duration formatter always emits every non-zero unit through milliseconds regardless of presentation purpose. | X7-R3 |
+| XH-16 | The local Leaflet adapter sets no route-relative minimum zoom, allowing a session route to shrink to a meaningless continental or planetary scale. External-tile cartography remains a separate post-MVP capability. | X7-R4 |
+| XH-17 | Training, sleep, recovery, and longitudinal comparison forms initialize both sides from the same range; only activity computes adjacent periods. There is no shared period-preset contract anchored to available evidence. | X7-R2 |
+| XH-18 | The artifact registry explicitly classifies training targets as unsupported. The source files contain named objectives, exercise sports, ordered phases, goals, intensity bounds, transitions, jumps, and repetitions, but no provider-neutral planned-training model or authoritative completed-session relationship exists. | X7-R5 |
+| XH-21 | System, light, and dark appearance meet the first-MVP setting contract. Curated visual themes are a confirmed evolution direction but are not required to correct the rejected evidence experience. | Post-MVP experience-personalization track |
+| XH-22 | ADR 0013 deliberately chose semantic HTML for bounded early visuals and defines richer interaction as a reconsideration trigger. Multi-series analytical comparison, axes, scale, gaps, selection, and reusable report graphics now cross that trigger; the application is recreating chart-engine behavior without a viable general foundation. | X7-R4 |
+| XH-23 | Report definitions already have independent identities and complete persistence, but the application exposes neither versioned built-in example descriptors nor an application use case that deep-copies a definition into fresh report and block identities. | X7-R6 |
 
 This table records causes, not implementation permission to weaken safety, evidence provenance, privacy, or
 accessibility. Each correction must change the owning contract and preserve every valid passing behavior.
@@ -2265,13 +2306,16 @@ revision semantics through application, persistence, transport, Home, History, s
 HTML projections without exposing provider identifiers. The complete contributor lane, production build, strict
 Rust lint and formatting gates, and packaged macOS journeys pass with independently constructed synthetic catalogue
 evidence, including reimport, process restart, adaptive session composition, accessibility, and the unchanged
-performance budgets. Official-source review on 2026-08-25 confirmed that the complete Polar catalogue
-requires authenticated `sports:read` access and found no GPL-compatible redistribution grant; the official BLE SDK
-contains only four device-recording values and does not establish their equivalence to takeout identifiers. A second
-review of the public AccessLink v3 vocabulary found named `detailed_sport_info` values but no authoritative join to
-the numeric takeout identifiers. No real catalogue is bundled, so an ordinary Polar archive remains unknown unless
-the person supplies an override. X6-C1 cannot close until retrieval authority and lawful redistribution or a reviewed
-local-only acquisition path exists.
+performance budgets. Official-source review on 2026-08-25 confirmed that the complete authenticated sports endpoint
+has no established GPL-compatible redistribution path; the official BLE SDK supplies only a narrow numeric
+vocabulary, and AccessLink v3 supplies stable detailed-sport codes without joining them to the numeric references in
+the archive's recorded sessions. Post-review export analysis then established a more precise boundary: the
+sport-profile artifact itself contains stable detailed-sport codes but no numeric session identifier, while training
+targets contain codes only for the planned exercises they describe. Neither source authorizes an archive-wide numeric
+lookup, profile-array positional join, or inference from route and measurements. The provider-neutral foundation
+remains valid, but the ordinary archive still appears entirely unknown because its available naming evidence is
+ignored. X7-R2 must import that evidence, attach exact per-record recognition where source relationships establish it,
+retain ambiguity where they do not, and document any additional versioned correlation evidence before activation.
 
 **Rejection conditions:** inferred sport from route or measurements; an unexplained value table; provider taxonomy in
 the canonical domain; user choices overwritten by catalogue refresh; an early date suppressed without retaining its
@@ -2408,27 +2452,360 @@ form could begin beneath the persistent navigation; the shared reveal offset and
 before closure. Reduced-motion behavior remains enforced by the existing motion-policy contract and requires the
 system-setting observation in the repeated human profile.
 
-### Corrective execution and repeat gate
+## X7 — Correct the complete repeated-review result
 
-Execution is value-first: X6-C1 begins immediately, X6-C2 and X6-C3 follow as the first-run path, X6-C4 closes the
-activation loop, and X6-C5 audits the shared presentation after the corrected compositions exist. Each increment uses
-the standard lower-layer-first TDD order, updates its canonical contracts and user/developer documentation, passes its
-focused and complete applicable gates, and lands as a focused commit. Work that does not share runtime inputs may be
-prepared while a hosted campaign runs, but no evidence is attributed to a different source revision.
+X7 is the only post-review implementation sequence. It does not add isolated patches to reviewed screens. Each
+increment corrects the lowest contract that caused the observed failure and then carries that change through the
+ordinary application, persisted library, export boundary, documentation, and release-shaped evidence that consume
+it. X7-P0 freezes this sequence; X7-R1 through X7-R6 deliver value in dependency order; X7-R7 falsifies the complete
+result before another human handoff.
 
-After X6-C1 through X6-C5 pass, build a new revision-isolated production-native package and restart the complete X6
-profile from clean first use. The prior human findings are regression prompts, not the whole acceptance test. The
-broader History, outdoor and indoor session, range, report, export, Settings, localization, appearance, keyboard,
-VoiceOver, scaling, reduced-motion, factual tone, continued-use, and product-value coverage remains mandatory.
+The sequence deliberately separates three kinds of work:
 
-### Topics for the next UX evaluation
+1. **correctness and trust** — opening, import meaning, progress, sport identity, navigation, precision, and
+   provenance;
+2. **comprehension and analytical power** — progressive disclosure, aligned tables, mature charts, route navigation,
+   and structured training intent; and
+3. **reuse and exit** — report examples, duplication, result-first review, and deterministic portable output.
 
-- [x] Appearance-personalization themes: the product owner confirmed that FitFreed will offer several curated themes
-  beyond system, light, and dark appearance. They must create a perceptible change without requiring a complex editor
-  or weakening readability, accessibility, visual hierarchy, localization, or cross-platform coherence. Delivery
-  placement remains part of the post-session plan.
+System, light, and dark appearance remain the first-MVP contract. Several curated themes are confirmed for the
+post-MVP experience-personalization track, where they can be evaluated without delaying correction of the rejected
+evidence experience. External-tile cartography likewise remains post-MVP: X7 bounds and improves the exact local
+route workbench but does not make network, attribution, caching, or location-privacy decisions by accident.
 
-These are evaluation prompts, not confirmed MVP implementation scope.
+### X7-P0 — Freeze the post-review contract and causal plan
+
+**User outcome:** every review observation has one accountable increment, and implementation can proceed without
+reinterpreting feedback, hiding new functionality inside presentation work, or repeatedly requesting routine product
+decisions.
+
+1. Reconcile requirements, roadmap, this plan, and the immutable human record. FR-027 and the expanded FR-005 report
+   boundary enter the first-MVP path explicitly; cartography, community template exchange, curated themes, additional
+   providers, connected APIs, and MCP do not.
+2. Record the established causal chain for every XH finding. A test or implementation may refine a cause with stronger
+   evidence, but it may not silently replace the product requirement or weaken a passing invariant.
+3. Keep the observed personal archive local. Only independently constructed schemas, synthetic fixtures, aggregate
+   format facts, public authoritative references, and non-identifying evidence enter the repository.
+4. Retain one active implementation plan, one requirements source, one roadmap, and one immutable review record.
+
+**Exit evidence:** documentation, link, repository-content, privacy, secret, and diff checks; one focused commit and
+normal push. No hosted executable campaign runs for a documentation-only fingerprint.
+
+### X7-R1 — Make acquisition and import trustworthy and responsive
+
+**Findings:** XH-01, XH-03, XH-06, XH-07, XH-13, and the import-facing part of XH-14.
+
+**User outcome:** official guidance either appears in the real default browser or reports a verified failure beside
+the initiating action; every rejected archive states the actual bounded reason and recovery; a large import remains
+navigable and visibly advances from selection through refreshed library without fabricating progress.
+
+**Lower-layer work:**
+
+1. Replace detached fire-and-forget destination delegation with an application-owned native launch result whose
+   production adapter observes the platform launcher exit status. Keep the allowlisted URL and provider-neutral port.
+   Distinguish request rejection, launcher failure, and accepted browser delegation without claiming that a particular
+   browser rendered a page before human observation.
+2. Replace `ResourceLimit(String)` and the single `archive-safety-limit` presentation code with a typed resource-limit
+   reason covering entry count, expanded member size, total expanded size, compression ratio, and bounded read
+   exhaustion. Persist only safe categories and bounded facts; never retain member paths or personal values in the
+   user-facing outcome.
+3. Coalesce reconciliation events before they cross the Tauri channel. The producer emits the first update, bounded
+   time- or item-based changes, cancellation boundaries, and the terminal update; the React shell renders at most one
+   current operation projection and cannot schedule one full application render per canonical item. Progress remains
+   monotonic and exact at completion.
+4. Preserve the existing transaction boundary: cancellation remains effective before commit, final atomic commit is
+   not given a false count, and projection refresh remains a distinct operation. Instrument duration and event count
+   without logging personal data.
+
+**Presentation work:**
+
+1. Put numeric processed/total progress and the current phase in the global shell status, with locale-consistent
+   grouping on both sides of a ratio and a route back to Sources. Navigation remains operable during cancellable
+   reconciliation; a destination that truly depends on the new projection explains that boundary locally.
+2. State resource-limit failures in plain language: what kind of limit was reached, that the existing library was not
+   changed, and what safe next action is available. Do not call ordinary incompatibility unsafe and do not hide the
+   only explanation in a disclosure.
+3. Make local-first copy state-aware. Before selection it explains that a chosen archive will be processed on the
+   current device and nothing is uploaded; after import it can truthfully state that the local library remains there.
+4. Retain spatial transitions for `Show me how`, selection, cancellation, retry, and result replacement. Browser and
+   archive actions each keep their result adjacent to the action that produced it.
+
+**Verification:** failing use-case and adapter tests first; real process success and failure for the platform launcher;
+typed import-outcome compatibility tests; synthetic small and dense archives; bounded progress-event and render-count
+tests; route-away and route-back during reconciliation; cancellation, immediate retry, exact repeat, cumulative
+extension, projection refresh, restart, both locales, 100%–200% zoom, keyboard, VoiceOver semantics, performance,
+and the revision-isolated production-native browser observation.
+
+**Rejection conditions:** accepting process spawn as browser success; one generic resource-limit sentence; throttling
+that loses cancellation or terminal state; a spinner without phase or count during countable work; disabling all
+navigation to mask renderer starvation; or a test-only import path.
+
+### X7-R2 — Make history recognizable and every collection navigable
+
+**Findings:** XH-08, XH-09, XH-17, and the unresolved identity consequence in XH-18.
+
+**User outcome:** trustworthy source evidence names every session it can actually identify, unresolved records remain
+honest rather than collapsed, every sport summary opens its represented sessions, and comparisons begin with a useful
+contrast while preserving manual control.
+
+**Source and identity work:**
+
+1. Promote sport-profile and training-target artifacts from ignored naming evidence to parsed adapter inputs. Document
+   their stable sport-code vocabulary, export versions, missing identifiers, and exact relationship limitations. Stable
+   source codes map to provider-neutral localized names and visual identifiers behind the existing catalogue port.
+2. Establish recognition per evidence scope, not by appearance. A source-authored detailed code attached to one
+   training target may identify an exactly related session when the adapter proves a unique relationship. It does not
+   label every session sharing an opaque numeric `sport.id`. Array position, frequency, route, device, pace, heart
+   rate, and user history are never sport identity.
+3. Evaluate versioned correlation sources structurally: independently reproducible export relationships, official
+   public vocabularies, and reviewed synthetic fixtures may become an activated mapping revision with provenance.
+   Conflicting candidates remain ambiguous. A user override still wins without deleting source recognition.
+4. Reimporting identical bytes after a mapping revision reassesses and enriches existing sessions atomically without
+   duplicating their identities. Sport-profile and target coverage becomes explicit in Sources and format docs.
+
+**Navigation and comparison work:**
+
+1. Add a typed filtered-session destination carrying the represented local sport identity, disposable search state,
+   and exact origin. Home and History sport cards expose a primary `View sessions` action; nested classification
+   remains a separate control. Counts and headings that look actionable use the same route. Back restores the exact
+   card, tab, scroll position, and prior filters.
+2. Audit every visible bounded collection, count, period, sport, session group, report result, and evidence set against
+   the natural-drill-down requirement. If no meaningful destination exists, remove control styling rather than adding
+   a dead action.
+3. Introduce one provider-neutral period-preset value object and presentation control for current versus previous
+   week, month, and year, plus manual ranges at all times. Presets anchor to the latest usable evidence when the
+   library does not cover the current calendar period and name that fact honestly. Baseline and comparison never
+   default to the same interval.
+
+**Verification:** synthetic multi-sport archives with recognized, conflicting, unresolved, unavailable, and
+personally overridden records; exact and extended reimport; mapping upgrade; restart; filters; direct entry; every
+sport-card and count destination; nested edit action; origin return; current/previous presets at calendar boundaries,
+leap years, sparse history, stale history, and manual validation; both locales and supported zooms; report and portable
+export identity projections.
+
+**Rejection conditions:** one global opaque-number lookup without evidence scope; array-index joins; inferring sport
+from measurements; collapsing several unknown values; a whole-card click that traps the nested edit control; a preset
+whose labels misdescribe stale evidence; or losing a person's mounted discovery state.
+
+### X7-R3 — Establish one coherent data-presentation and Settings system
+
+**Findings:** XH-05, XH-11, XH-12, XH-14, XH-15, XH-19, and XH-20.
+
+**User outcome:** primary screens answer before they enumerate, totals use meaningful precision, tables support visual
+comparison, exact evidence appears on demand, and Settings behaves as one understandable save transaction.
+
+**Shared contracts:**
+
+1. Define presentation roles for conclusion, visual explanation, essential metric, supporting detail, exact evidence,
+   provenance, limitation, and action. Build reusable result sections, metric groups, disclosure summaries, and data
+   tables from those roles. Feature components provide meaning; they do not reimplement spacing, alignment, or
+   disclosure policy independently.
+2. Replace the universal duration formatter with explicit summary, detail, and exact-evidence policies. Summaries round
+   at a scale appropriate to the magnitude; ordinary session detail may include seconds; milliseconds appear only in
+   an exact context where source resolution or a boundary calculation makes them material. Underlying values and
+   exports remain exact.
+3. Centralize integer, decimal, ratio, date, duration, distance, pace, energy, and percentage formatting. Count ratios
+   force grouping consistently when either side requires it; all policies remain locale- and unit-aware. Static checks
+   prevent direct ad hoc formatters from returning to product surfaces.
+4. Define numeric table columns with tabular figures, consistent unit placement, semantic header association, and
+   alignment chosen by value type. Move repeated attribution to the containing evidence-set explanation. Tables remain
+   responsive without turning each row into an unreadable label/value grid.
+5. Audit Home, History, Activity, Training, Sleep, Recovery, Longitudinal, session evidence, ranges, and Reports.
+   Primary surfaces retain the conclusion, best visual, and few decision-relevant values; exhaustive rows, raw
+   timestamps, provenance, and calculation detail move behind explicit, labelled disclosure without becoming hidden
+   from keyboard or assistive technology.
+
+**Settings transaction:**
+
+1. `Restore defaults` changes the mounted draft and live preview only. `Cancel changes` restores the last persisted
+   preferences and exits or resets editing without a write. `Save changes` performs the one durable write. Unsaved
+   navigation uses the established guard rather than a competing `Discard preview` concept.
+2. Place the actions in one ordered group with a clear primary action and stable keyboard order at every supported
+   width and zoom. Keep language, system/light/dark appearance, zoom, validation, invalid-value recovery, restart, and
+   future extensibility on the existing application and persistence ports.
+
+**Verification:** formatter boundary and property tests; locale placeholder and grouping contracts; semantic-table
+tests; visual-regression states with large positive and negative values, sparse and dense evidence, long labels,
+milliseconds at exact boundaries, and no data; Settings entry, change, reset-draft, cancel, save, validation, reload,
+and multiple sequential edits; full pointer, keyboard, screen-reader, reduced-motion, both-locale, appearance, and
+100%–200% zoom matrix; an independent screen-by-screen density review before closure.
+
+**Rejection conditions:** truncating exact stored data; one precision rule for every context; hiding limitations or
+provenance entirely; replacing one giant table with dozens of equally noisy cards; immediate persistence from reset;
+CSS-only alignment applied to a single screenshot; or deleting behavior assertions when composition changes.
+
+### X7-R4 — Adopt a mature analytical visualization foundation
+
+**Findings:** XH-16 and XH-22.
+
+**User outcome:** charts state scale, units, series, gaps, and selection clearly; several signals can be compared when
+their coordinate is authoritative; exact values remain accessible; and a route cannot be zoomed into meaningless
+planetary context.
+
+**Decision spike:**
+
+1. Supersede ADR 0013 only after a focused production-shaped comparison of Apache ECharts, uPlot, Observable Plot,
+   and Vega-Lite, or a better candidate discovered during the review. Use official source, licence, release, security,
+   and maintenance evidence. Verify GPL-3.0 compatibility, offline bundling, tree-shaking, contributor ergonomics,
+   macOS WebKit behavior, deterministic output, accessibility, localization, theming, replaceability, and long-term
+   project health.
+2. Exercise the actual required shapes: sparse daily series, dense exercise signals with gaps, multiple axes and
+   units, exact cursor/selection, keyboard-accessible alternatives, two synchronized charts, a report graphic, dark
+   appearance, both locales, 200% content zoom, and representative dense data. Measure load, render, interaction,
+   memory, and export budgets before selecting.
+3. Keep a FitFreed chart port and evidence-series DTO between application meaning and library configuration. Domain,
+   application, persistence, and portable schemas never depend on library option objects.
+
+**Migration:**
+
+1. Replace live ad hoc analytical charts by question, not by CSS resemblance. Every migrated chart has a title or
+   adjacent question, labelled axes and units, scale and domain, series legend where needed, visible missing data,
+   restrained interaction, exact accessible alternative, and empty/partial/error states.
+2. Allow multi-signal overlay or linked cursors only when the importer and canonical series establish the same exact
+   coordinate. Independent signals remain separate and never imply alignment or causation. Route synchronization
+   continues through the exact range-interaction contract rather than chart-library state.
+3. Extend deterministic self-contained report export with a reviewed static rendering strategy that performs no
+   external request and does not embed executable third-party scripts. Export visuals and their exact tables derive
+   from the same resolved evidence.
+4. After fitting a recorded route, derive a sensible route-relative minimum zoom and a reviewed maximum zoom, including
+   single-point and degenerate bounds. Buttons, keyboard controls, announced level, and programmatic requests honor the
+   same bounds. No basemap or network request enters this increment.
+
+**Verification:** dependency and licence automation; adapter and interaction unit tests; WebKit component tests;
+missing-data, multiple-axis, cursor, keyboard, screen-reader, reduced-motion, locale, theme, zoom, and exact-alternative
+tests; dense-series and report-export benchmarks; route fit and zoom-bound tests; packaged routed, non-routed,
+signal-only, partial, and report journeys; visual review at short laptop, wide, compact, and narrow supported windows.
+
+**Rejection conditions:** library objects crossing inward architecture boundaries; canvas-only meaning without an
+accessible alternative; fabricated shared coordinates; external requests; unbounded bundle or render cost; static
+screenshots as report data; or a route zoom bound chosen as one arbitrary global constant.
+
+### X7-R5 — Import and explain structured training intent
+
+**Finding:** XH-18 and FR-027.
+
+**User outcome:** exported objectives, phases, blocks, repetitions, transitions, and intensity constraints survive in
+FitFreed and become understandable without being confused with what the person actually recorded or later authored.
+
+**Model and import:**
+
+1. Document training-target and favourite-target source grammars with synthetic examples. Map source name,
+   description, scheduled time, completion state, exercise order, sport code, phase order, phase name, change type,
+   goal type and bound, intensity type and bounds, jump/repeat semantics, units, export version, and unsupported fields.
+2. Introduce a provider-neutral planned-training aggregate with stable target, exercise, phase, and transition
+   identities. Keep authored intent separate from recorded `TrainingSession`, source laps, automatic laps,
+   FitFreed-calculated segments, personal ranges, and reusable criteria. Provider enums stop at the adapter.
+3. Define deterministic exact, ambiguous, and absent target-to-session relationship states. A unique source composite
+   may establish a link only after format evidence and conflict tests prove it; a matching date, name, duration, sport
+   family, or measurement pattern alone is not sufficient. Unlinked completed targets remain useful planned history.
+4. Reconcile unchanged, amended, removed-from-later-export, duplicate, and extended targets transactionally. A mapping
+   revision can enrich canonical intent without duplicating targets or rewriting recorded session evidence. Add schema,
+   migration, portable backup, open normalized export, provenance, coverage, and compatibility contracts together.
+
+**Application and presentation:**
+
+1. Add query use cases for planned-training chronology, target detail, and the target relationship of a completed
+   session. Compose phases visually as an ordered workout plan with work/recovery identity, repetitions, transitions,
+   duration or distance goals, and intensity ranges. Lead with the plan's shape and purpose; put the exhaustive phase
+   table and source details behind disclosure.
+2. When a session is exactly linked, compare planned structure with recorded evidence without claiming compliance or
+   causation. When it is not linked, state that separately and never substitute calculated equal segments for the
+   provider-authored plan.
+3. Make structured intent available to report blocks, curated report examples, deterministic HTML export, exact data
+   exit, user documentation, and provider/canonical format reference.
+
+**Verification:** domain invariants for order, nesting, transition graphs, repetitions, bounds, units, and identities;
+adapter fixtures for duration, distance, intensity, repeat, optional, malformed, partial, and unknown variants;
+reimport, amendment, mapping upgrade, ambiguity, rollback, migration, backup/restore, restart, report, and export;
+visual and accessible planned-versus-recorded journeys in both locales and at supported zooms; performance against a
+synthetic long history of phased targets.
+
+**Rejection conditions:** flattening phases until repeat meaning is lost; treating scheduled intent as recorded fact;
+linking by a heuristic; converting provider phases into personal ranges; showing a giant raw table as the primary
+experience; silently discarding unsupported fields; or implementing only a session component without durable lower
+layers.
+
+### X7-R6 — Make reports understandable and reusable from the first visit
+
+**Finding:** XH-23 and the retained Alpha report direction.
+
+**User outcome:** Reports opens with relevant examples that demonstrate real supported value; a person can use one as
+the basis of a report, duplicate an existing report, review the result first, refine it deliberately, and export it
+without locking data inside FitFreed.
+
+**Built-in examples:**
+
+1. Define versioned provider-neutral example descriptors in application code, with stable identifier, localized
+   purpose, question, required evidence capabilities, parameter requirements, block recipe, and explanation for unmet
+   prerequisites. They are not persisted report rows and contain no synthetic personal result.
+2. Start with a small curated set that demonstrates distinct value rather than every block: training volume and
+   consistency across adjacent periods; one session's visual story; an outdoor route investigation when route evidence
+   exists; and planned-versus-recorded training when an exact structured-intent relationship exists. The final set may
+   change only if the same capability breadth and prerequisite honesty remain.
+3. `Use as basis` resolves the person's current evidence and opens an unsaved draft with fresh report and block
+   identities. It never mutates the descriptor, silently chooses among ambiguous sessions, or writes before explicit
+   save. Missing prerequisites explain what evidence is needed and offer the natural route to it.
+
+**Duplication:**
+
+1. Add an application `duplicate report` use case and typed desktop command. It loads one exact source revision,
+   validates a requested new title, creates a fresh report identity and fresh identity for every block, copies content,
+   locale, underlying origin, queries, authorship, and the reviewed source snapshot, resets report revision to one,
+   persists atomically, and returns the new result. The source report remains byte-for-byte unchanged.
+2. The duplicate has no runtime dependency on the source report and survives source edit or deletion. Because it
+   initially retains the same reviewed source snapshot, it initially has the same stale/fresh relationship; refresh is
+   still deliberate and independent. A title prefilled from localized presentation is editable before the command and
+   is not generated inside the domain.
+3. Expose `Duplicate report` from a saved result and library item with confirmation only where overwrite or deletion
+   risk exists; duplication itself is non-destructive. On success open the duplicate result, announce it, and make
+   returning to the report library predictable.
+
+**Result-first refinement and export:**
+
+1. Re-audit report Library, Result, Edit, Preview, Refresh review, privacy review, Export, and Delete as separate tasks.
+   Opening and duplication lead to the result. Editing never pushes a result below a long list or leaves the person
+   unsure whether changes are saved.
+2. Example-based and duplicated reports use the same domain, persistence, staleness, refresh, privacy, and export paths
+   as any other report. Self-contained HTML remains deterministic, script-free, external-request-free, factual, and
+   complete with exact evidence alternatives and data exit.
+
+**Verification:** descriptor and prerequisite tests; current evidence, missing evidence, ambiguity, and empty library;
+use-as-basis cancellation and save; duplicate validation, fresh identities, copied content, revision one, unchanged
+source, duplicate refresh, source edit/delete independence, persistence, restart, migration, backup/restore, export,
+multiple items, keyboard, focus, both locales, 200% zoom, accessibility, and packaged E2E through real commands.
+
+**Rejection conditions:** preloading fake report results; storing built-in examples as undeletable user rows; shallow
+copy with reused block identities; auto-saving an example click; duplicating only presentation state; opening in edit
+mode; or introducing community exchange before the local contract is accepted.
+
+### X7-R7 — Falsify the complete corrected product before handoff
+
+**User outcome:** the next review build is a credible product candidate for the agreed private macOS alpha journey,
+not a collection of individually green corrections.
+
+1. Perform a live-surface inventory and verify that every production command, DTO, use case, persistence path, state,
+   and control introduced or affected by X7 has one real reachable surface and one complete behavior test. Remove no
+   assertion merely because a component moved; preserve its behavior through the new route.
+2. Run an independent screen-by-screen audit from clean first use through acquisition, wrong archive, resource limit,
+   import, navigation during reconciliation, first value, sports, filters, comparisons, routed and non-routed sessions,
+   exact evidence, structured intent, personal ranges, report example, save, duplicate, refresh, export, Settings,
+   cancellation, retry, reimport, extension, restart, and recovery.
+3. Challenge wide and short laptop, compact desktop, and narrow supported windows at 100%, 175%, and 200% zoom;
+   English/light and Spanish/dark; longest realistic localized and user-authored content; pointer, keyboard, VoiceOver,
+   reduced motion, focus/scroll/return, empty/loading/partial/stale/invalid/failure states, and visual hierarchy. Capture
+   no personal data.
+4. Run focused performance gates for import event volume, dense history, charts, structured targets, report resolution,
+   and HTML export. Run the complete fast lane, production build, strict Rust lint and format, architecture, contracts,
+   localization, docs, repository safety, packaged functional/accessibility/restart/adaptive journeys, migration,
+   backup/restore, install/update/recovery, and exact hosted campaign selected by executable-input fingerprint.
+5. Build one revision-isolated production-native review package only after every machine-assisted critical or major
+   finding is corrected and exact-source evidence passes. Scan it to exclude E2E features and mocked native boundaries.
+   Do not publish it.
+
+The repeated human profile uses prior findings as regression prompts but is not limited to them. It must still assess
+five-second comprehension, trust, time to recognizable value, natural navigation, outdoor and indoor analytical power,
+progressive detail, report usefulness, data exit, Settings clarity, localization, accessibility, factual tone, and a
+credible reason to continue using FitFreed. Any unresolved critical or major finding reopens its owning X7 increment.
 
 ## Traceability to the retained D0–E6 baseline
 
@@ -2443,6 +2820,7 @@ These are evaluation prompts, not confirmed MVP implementation scope.
 | E5 reports and export | X5-R9 replaces report hierarchy and adds the accepted missing lifecycle contracts |
 | E6 hardening | X5-R10 reruns it against the redesigned product rather than reusing obsolete experience evidence |
 | Independent audit | X6 repeats it from clean first use and may reopen any increment |
+| Repeated-review corrections | X7-P0 through X7-R7 own the accepted post-review causes, new vertical contracts, and exact repeat gate |
 
 ## Documentation ownership
 
@@ -2468,7 +2846,7 @@ evidence.
 
 ## Autonomous execution and human intervention
 
-Execution continues through X5-R1 to X5-R10 without routine confirmation. Each verified increment is
+Execution continues through X7-R1 to X7-R7 without routine confirmation. Each verified increment is
 committed and pushed under the repository's standing authority. If SSH approval is unavailable, the
 bounded push stops and later local increments continue; synchronization is retried when possible.
 
@@ -2479,7 +2857,7 @@ Human intervention is required only for:
 - destructive operations on a real personal library;
 - Apple credentials, signing, notarization, tags, releases, public application downloads, or
   production update-channel authority; or
-- the final product-owner usability/accessibility gate after X6.
+- the final product-owner usability/accessibility gate after X7-R7 repeats X6.
 
 Pages content publication within the existing authorized workflow remains autonomous. Alpha review
 findings for reports or personal ranges are documented and corrected when they are critical or major;
@@ -2487,7 +2865,8 @@ they do not create routine approval stops.
 
 ## Completion rule
 
-This plan is complete only when X5-R1 through X5-R10 pass, X6 has no unresolved critical or major
+This plan is complete only when X5-R1 through X5-R10 retain their evidence, X7-P0 through X7-R7 pass, X6 is repeated
+and has no unresolved critical or major
 finding, every user-visible capability has verified lower-layer support, all affected documentation is
 current, all provider and FitFreed-owned formats remain fully specified, one exact release-shaped source
 fingerprint passes its applicable gates, and the final human gate accepts the complete experience.

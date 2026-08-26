@@ -412,8 +412,8 @@ All user-facing features included in the first release will be available in Engl
 - Initial preferences will include interface language, default content zoom from 100% through 200%, and system, light, or dark appearance.
 - Product evolution will offer several curated visual themes that create a perceptible change while preserving the
   application's sober, elegant character. Theme selection remains distinct from system, light, or dark appearance;
-  an arbitrary theme editor is not required. The post-X6 plan will place this confirmed direction without weakening
-  readability, accessibility, localization, or cross-platform coherence.
+  an arbitrary theme editor is not required. Curated themes follow the accepted first-MVP experience gate and must not
+  weaken readability, accessibility, localization, or cross-platform coherence.
 - Preferences will have safe defaults, explain their effect, survive restart, recover from invalid or obsolete values, and provide an explicit way to restore defaults.
 - Settings will distinguish preferences from data-library operations and group future controls by user outcome, including accessibility, imports, data and privacy, updates, and application information.
 
@@ -498,19 +498,25 @@ The MVP is a private unsigned macOS alpha that provides one complete user journe
 5. Explore a longitudinal dashboard covering daily activity, training sessions, sleep, and recovery.
 6. Find a remembered session through sport, chronology, search, or filtering and return to the exact originating exploration state.
 7. Inspect one routed and one non-routed session through supported structure, signals, exact evidence, provenance, limitations, and reusable user segmentation.
-8. Compose, save, reopen, deliberately refresh, preview, and export an ordered evidence report as self-contained HTML.
-9. Reimport the same archive without duplicates and import a later overlapping archive cumulatively.
-10. Receive actionable guidance for invalid, partial, unsupported, interrupted, or failed imports.
+8. Explore imported training objectives, phases, blocks, repetitions, and constraints without confusing planned intent
+   with recorded, calculated, or user-authored session structure.
+9. Start from a relevant built-in example or an existing report, compose an independently owned report, save,
+   reopen, deliberately refresh, duplicate, preview, and export it as self-contained HTML.
+10. Reimport the same archive without duplicates and import a later overlapping archive cumulatively.
+11. Receive actionable guidance for invalid, partial, unsupported, interrupted, or failed imports.
 
 The MVP also publishes the Polar Flow export-format reference required by FR-019 for every file family evaluated by the importer, including explicit gaps and unsupported structures. It publishes the FitFreed specifications required by FR-020 for every canonical concept, mapping, persisted schema, migration, and portable representation implemented by the MVP.
 
-The accepted report, deep-session, segmentation, and sport-classification boundaries are defined by FR-005, FR-025, and FR-026. Their architecture is recorded in ADRs 0021 and 0022, and their production sequence is E3 through E5 of the MVP experience delivery plan.
+The accepted report, deep-session, segmentation, sport-classification, and structured-training boundaries are defined
+by FR-005, FR-025, FR-026, and FR-027. Existing architecture is recorded in ADRs 0021 and 0022. The active production
+sequence is owned by the MVP redesign production migration plan; it must add or supersede structural decisions when
+the report-template, duplication, training-intent, or charting contracts require them.
 
 The MVP explicitly excludes:
 
 - External-tile cartography, route atlases, route search, and geospatial analysis beyond the local session route. This
   is a first-MVP boundary; cartographic context remains an explicit post-MVP direction.
-- Sample families and provider-specific training structures outside the verified FR-025 set.
+- Sample families and provider-specific training structures outside the verified FR-025 and FR-027 sets.
 - Free-form report layout, formulas, arbitrary queries, native PDF generation, cloud collaboration, and scheduled reports.
 - Additional source providers.
 - Linux and Windows packages.
