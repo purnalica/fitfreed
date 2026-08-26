@@ -10,6 +10,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { LongitudinalComparisonPanel } from "./LongitudinalComparisonPanel";
@@ -562,16 +567,18 @@ function LongitudinalSeries({
               <li><span>{copy.sleep}</span><strong>{formatSleepDuration(series.sleep.averageAsleepMilliseconds, locale, messages.training.durationUnits, messages.unavailable)}</strong><small>{copy.averageSleep} · {coverage(series.sleep.observedNights, series.sleep.calendarDays)}</small></li>
               <li><span>{copy.recovery}</span><strong>{formatRecoveryMilliseconds(series.recovery.averageBeatToBeatIntervalMilliseconds, locale, messages.unavailable)}</strong><small>{copy.averageRecovery} · {coverage(series.recovery.observedNights, series.recovery.calendarDays)}</small></li>
             </ul>
-            <div className="longitudinal-table-scroll" tabIndex={0}>
-              <table aria-label={copy.exactTable}>
-                <caption className="sr-only">{copy.exactTable}</caption>
+            <DataTable
+              accessibleName={copy.exactTable}
+              scrollAccessibleName={`${copy.exactTable} · ${copy.series} ${number.format(seriesIndex + 1)}`}
+              scrollClassName="longitudinal-table-scroll"
+            >
                 <thead>
                   <tr>
                     <th scope="col">{copy.date}</th>
-                    <th scope="col">{copy.steps}</th>
-                    <th scope="col">{copy.trainingDuration}</th>
-                    <th scope="col">{copy.sleepDuration}</th>
-                    <th scope="col">{copy.recoveryInterval}</th>
+                    <NumericTableHeader scope="col">{copy.steps}</NumericTableHeader>
+                    <NumericTableHeader scope="col">{copy.trainingDuration}</NumericTableHeader>
+                    <NumericTableHeader scope="col">{copy.sleepDuration}</NumericTableHeader>
+                    <NumericTableHeader scope="col">{copy.recoveryInterval}</NumericTableHeader>
                     <th scope="col"><span className="sr-only">{copy.details}</span></th>
                   </tr>
                 </thead>
@@ -579,10 +586,10 @@ function LongitudinalSeries({
                   {series.days.map((day) => (
                     <tr key={day.localDate}>
                       <th scope="row"><time dateTime={day.localDate}>{date.format(recoveryLocalDate(day.localDate))}</time></th>
-                      <td>{day.activity.stepCount === null ? activityStatus(day) : formatSteps(day.activity.stepCount)}</td>
-                      <td>{formatSummaryDuration(day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</td>
-                      <td>{formatSleepDuration(day.sleep.asleepMilliseconds, locale, messages.training.durationUnits, copy.missing)}</td>
-                      <td>{formatRecoveryMilliseconds(day.recovery.beatToBeatIntervalMilliseconds, locale, copy.missing)}</td>
+                      <NumericTableCell>{day.activity.stepCount === null ? activityStatus(day) : formatSteps(day.activity.stepCount)}</NumericTableCell>
+                      <NumericTableCell>{formatSummaryDuration(day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
+                      <NumericTableCell>{formatSleepDuration(day.sleep.asleepMilliseconds, locale, messages.training.durationUnits, copy.missing)}</NumericTableCell>
+                      <NumericTableCell>{formatRecoveryMilliseconds(day.recovery.beatToBeatIntervalMilliseconds, locale, copy.missing)}</NumericTableCell>
                       <td>
                         <button
                           type="button"
@@ -596,8 +603,7 @@ function LongitudinalSeries({
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </DataTable>
           </>
         )}
       </details>

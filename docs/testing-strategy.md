@@ -57,8 +57,10 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
 - Training workspace and session-detail navigation, semantic current-location state, focused reveal below persistent navigation, enforced progressive-disclosure boundaries, and the single route → signal → structure → zone evidence-layout matrix for complete, partial, unsupported-only, and summary-only stories.
-- Shared exact-evidence table naming, keyboard-scroll boundaries, explicit numeric-column semantics, and
-  closed-by-default segment and zone tables without row-level attribution duplication.
+- Shared production-table naming, distinct nested scroll-region labels, keyboard-scroll boundaries, explicit
+  numeric-column semantics, and closed-by-default segment and zone tables without row-level attribution
+  duplication. The UI contract rejects direct production `<table>` ownership outside `DataTable` and CSS that
+  assigns table alignment from first, last, or ordinal column position.
 - Personal-range creation, selection, exact elapsed validation, rename, immutable-coordinate adjustment, legacy anchoring, reimport review, optimistic-conflict draft retention, guarded removal, remount restoration, concise summary disclosure, both locales, and opaque-capability exclusion.
 - Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail replacement, and progressive-disclosure boundaries.
 - Report Library, Compose, Preview, stale-evidence review, and export-review boundaries, including preserved mounted drafts and inaccessible inactive stages.

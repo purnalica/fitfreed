@@ -387,8 +387,7 @@ progress { width: 100%; height: 14px; accent-color: var(--success); }
 .family-coverage-table thead th { color: var(--muted); font-size: .78rem; }
 .family-coverage-table th:nth-child(1) { width: 20%; }
 .family-coverage-table th:nth-child(2) { width: 16%; }
-.family-coverage-table th:nth-child(3) { width: 10%; text-align: right; }
-.family-coverage-table td:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; }
+.family-coverage-table th:nth-child(3) { width: 10%; }
 .family-coverage-table td p { margin: 0; font-size: .86rem; }
 .family-coverage-table td p + p { margin-top: 6px; }
 section[aria-labelledby="activity-heading"],
@@ -444,7 +443,6 @@ table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .history-grid table th:nth-child(3) { width: 51%; }
 .history-grid table th, .history-grid table td { overflow-wrap: anywhere; }
 th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
-th:last-child, td:last-child { text-align: right; }
 .data-table-scroll { max-width: 100%; overflow-x: auto; }
 .data-table { width: 100%; margin: 0; }
 .data-table th, .data-table td { vertical-align: top; text-align: left; }
@@ -515,10 +513,8 @@ th:last-child, td:last-child { text-align: right; }
 .answer-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .answer-exact-values { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 .answer-exact-values > p { margin: 0; padding: 14px 16px 0; color: var(--muted); }
-.answer-exact-values > table { border: 0; background: transparent; }
-.activity-comparison-series table { padding: 14px; table-layout: fixed; }
+.activity-comparison-series .data-table { padding: 14px; border: 0; background: transparent; table-layout: fixed; }
 .activity-comparison-series th, .activity-comparison-series td { width: 25%; overflow-wrap: anywhere; }
-.activity-comparison-series thead th:not(:first-child), .activity-comparison-series td { text-align: right; }
 .activity-comparison-series thead span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 500; }
 .activity-comparison-series tbody th { text-align: left; }
 .training-insights { display: grid; gap: 12px; }
@@ -674,7 +670,6 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-comparison-table { max-width: 100%; margin-top: 14px; overflow-x: auto; }
 .training-session-comparison table { min-width: 620px; padding: 14px; table-layout: fixed; }
 .training-session-comparison th, .training-session-comparison td { overflow-wrap: anywhere; }
-.training-session-comparison th:not(:first-child), .training-session-comparison td { text-align: right; }
 .training-session-comparison-identity { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
 .training-session-comparison-identity .sport-family-icon { flex: 0 0 30px; width: 30px; height: 30px; padding: 5px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .training-session-comparison-identity > span { min-width: 0; }
@@ -1247,7 +1242,6 @@ th:last-child, td:last-child { text-align: right; }
 .training-comparison-series h4 { margin: 0 0 12px; font-size: 1rem; }
 .training-comparison-series table { padding: 14px; table-layout: fixed; }
 .training-comparison-series th, .training-comparison-series td { width: 25%; overflow-wrap: anywhere; }
-.training-comparison-series thead th:not(:first-child), .training-comparison-series td { text-align: right; }
 .training-comparison-series thead span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 500; }
 .training-comparison-series tbody th { text-align: left; }
 .training-comparison-series .training-table-scroll { border: 0; border-radius: 0; }
@@ -1322,7 +1316,6 @@ th:last-child, td:last-child { text-align: right; }
 .sleep-comparison-series h4 { margin: 0 0 12px; font-size: 1rem; }
 .sleep-comparison-series table { padding: 14px; table-layout: fixed; }
 .sleep-comparison-series th, .sleep-comparison-series td { width: 25%; overflow-wrap: anywhere; }
-.sleep-comparison-series thead th:not(:first-child), .sleep-comparison-series td { text-align: right; }
 .sleep-comparison-series thead span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 500; }
 .sleep-comparison-series tbody th { text-align: left; }
 .sleep-comparison-series .sleep-table-scroll { border: 0; border-radius: 0; }
@@ -1387,7 +1380,6 @@ th:last-child, td:last-child { text-align: right; }
 .recovery-comparison-series h4 { margin: 0 0 12px; font-size: 1rem; }
 .recovery-comparison-series table { padding: 14px; table-layout: fixed; }
 .recovery-comparison-series th, .recovery-comparison-series td { width: 25%; overflow-wrap: anywhere; }
-.recovery-comparison-series thead th:not(:first-child), .recovery-comparison-series td { text-align: right; }
 .recovery-comparison-series thead span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 500; }
 .recovery-comparison-series tbody th { text-align: left; }
 .recovery-comparison-series .recovery-table-scroll { border: 0; border-radius: 0; }
@@ -1471,7 +1463,6 @@ th:last-child, td:last-child { text-align: right; }
 .longitudinal-comparison-metrics > section:nth-child(4) .bar { background: #27725a; }
 .longitudinal-comparison-series table { min-width: 640px; padding: 14px; table-layout: fixed; }
 .longitudinal-comparison-series th, .longitudinal-comparison-series td { width: 25%; overflow-wrap: anywhere; }
-.longitudinal-comparison-series thead th:not(:first-child), .longitudinal-comparison-series td { text-align: right; }
 .longitudinal-comparison-series thead span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 500; }
 .longitudinal-comparison-series tbody th { text-align: left; }
 .reports-panel { display: grid; gap: 22px; }
@@ -1604,7 +1595,6 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 .report-analysis-series h4 { margin: 0; font-size: .88rem; }
 .report-analysis-table { min-width: 620px; }
 .report-analysis-table th, .report-analysis-table td { padding: 9px; }
-.report-analysis-table thead th:not(:first-child), .report-analysis-table td { text-align: right; }
 .report-analysis-table.compact { min-width: 520px; }
 .report-analysis-bars { display: grid; gap: 9px; padding: 14px; background: var(--surface-soft); border-radius: 10px; }
 .report-analysis-bars > div { display: grid; grid-template-columns: minmax(90px, .35fr) minmax(120px, 1fr) minmax(130px, .55fr); gap: 10px; align-items: center; }
@@ -1940,7 +1930,6 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .family-coverage-table tbody tr { padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
   .family-coverage-table tbody th, .family-coverage-table tbody td { display: grid; grid-template-columns: minmax(7.5rem, 35%) minmax(0, 1fr); gap: 10px; padding: 7px; border: 0; text-align: left; }
   .family-coverage-table tbody th::before, .family-coverage-table tbody td::before { content: attr(data-label); color: var(--muted); font-size: .78rem; font-weight: 700; }
-  .family-coverage-table td:nth-child(3) { text-align: left; }
   .chart li { grid-template-columns: minmax(0, 1fr) auto; }
   .chart .track { grid-column: 1 / 3; grid-row: 2; }
   .chart strong { grid-column: 2; grid-row: 1; }

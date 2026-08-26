@@ -4,6 +4,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { chooseReportDestination } from "../infrastructure/report-destination";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
@@ -1222,31 +1227,38 @@ export function ReportsPanel({
   function renderExactComparisonTable(
     series: TrainingSeriesComparison,
     metrics: ReportTrainingMetric[],
+    sourceIndex: number,
     compact = false,
   ) {
+    const sourceLabel = interpolate(copy.analysis.sourceLabel, {
+      number: number.format(sourceIndex + 1),
+    });
     return (
-      <div className="table-scroll">
-        <table className={compact ? "report-analysis-table compact" : "report-analysis-table"}>
+      <DataTable
+        accessibleName={copy.analysis.blocks["training-exact-table"].heading}
+        className={compact ? "report-analysis-table compact" : "report-analysis-table"}
+        scrollAccessibleName={`${copy.analysis.blocks["training-exact-table"].heading} · ${sourceLabel}`}
+        scrollClassName="table-scroll"
+      >
           <thead>
             <tr>
               <th scope="col">{copy.analysis.metric}</th>
-              <th scope="col">{copy.analysis.baseline}</th>
-              <th scope="col">{copy.analysis.comparison}</th>
-              <th scope="col">{copy.analysis.change}</th>
+              <NumericTableHeader scope="col">{copy.analysis.baseline}</NumericTableHeader>
+              <NumericTableHeader scope="col">{copy.analysis.comparison}</NumericTableHeader>
+              <NumericTableHeader scope="col">{copy.analysis.change}</NumericTableHeader>
             </tr>
           </thead>
           <tbody>
             {metrics.map((metric) => (
-              <tr key={metric}>
-                <th scope="row">{copy.analysis.metrics[metric]}</th>
-                <td>{trainingMetricValue(series.baseline, metric)}</td>
-                <td>{trainingMetricValue(series.comparison, metric)}</td>
-                <td>{trainingMetricChange(series, metric)}</td>
-              </tr>
+                <tr key={metric}>
+                  <th scope="row">{copy.analysis.metrics[metric]}</th>
+                  <NumericTableCell>{trainingMetricValue(series.baseline, metric)}</NumericTableCell>
+                  <NumericTableCell>{trainingMetricValue(series.comparison, metric)}</NumericTableCell>
+                  <NumericTableCell>{trainingMetricChange(series, metric)}</NumericTableCell>
+                </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </DataTable>
     );
   }
 
@@ -1260,7 +1272,7 @@ export function ReportsPanel({
         <h4>{interpolate(copy.analysis.sourceLabel, {
           number: number.format(sourceIndex + 1),
         })}</h4>
-        {renderExactComparisonTable(series, metrics)}
+        {renderExactComparisonTable(series, metrics, sourceIndex)}
       </div>
     );
   }
@@ -1340,7 +1352,7 @@ export function ReportsPanel({
                     </div>
                   ))}
                 </div>
-                {renderExactComparisonTable(series, [block.metric], true)}
+                {renderExactComparisonTable(series, [block.metric], index, true)}
               </div>
             );
           })}

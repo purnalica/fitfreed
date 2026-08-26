@@ -3,6 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
@@ -425,14 +430,15 @@ export function RecoveryInsightsPanel({
                         <li><strong>{coverage(series.summary.guidanceNightCount, series.summary.observedNights)}</strong><span>{copy.guidanceCoverage}</span></li>
                         <li><strong>{number.format(series.summary.missingNights)}</strong><span>{copy.missingNights}</span></li>
                       </ul>
-                      <div className="recovery-table-scroll" tabIndex={0}>
-                        <table aria-label={exactNightsLabel(seriesIndex)}>
-                      <caption className="sr-only">{exactNightsLabel(seriesIndex)}</caption>
+                      <DataTable
+                        accessibleName={exactNightsLabel(seriesIndex)}
+                        scrollClassName="recovery-table-scroll"
+                      >
                       <thead>
                         <tr>
                           <th scope="col">{copy.recoveryDate}</th>
-                          <th scope="col">{copy.beatToBeat}</th>
-                          <th scope="col">{copy.rmssd}</th>
+                          <NumericTableHeader scope="col">{copy.beatToBeat}</NumericTableHeader>
+                          <NumericTableHeader scope="col">{copy.rmssd}</NumericTableHeader>
                           <th scope="col">{copy.sourceAssessment}</th>
                           <th scope="col"><span className="sr-only">{copy.details}</span></th>
                         </tr>
@@ -453,8 +459,7 @@ export function RecoveryInsightsPanel({
                           />
                         ))}
                       </tbody>
-                        </table>
-                      </div>
+                      </DataTable>
                     </details>
                   </section>
                 );
@@ -649,15 +654,15 @@ function RecoveryDayRow({
       <td><time dateTime={day.recoveryDate}>{dateLabel}</time></td>
       {day.recovery === null ? (
         <>
-          <td>{copy.missing}</td>
-          <td>{messages.unavailable}</td>
+          <NumericTableCell>{copy.missing}</NumericTableCell>
+          <NumericTableCell>{messages.unavailable}</NumericTableCell>
           <td>{messages.unavailable}</td>
           <td />
         </>
       ) : (
         <>
-          <td>{formatRecoveryMilliseconds(day.recovery.beatToBeatIntervalMilliseconds, locale, messages.unavailable)}</td>
-          <td>{formatRecoveryMilliseconds(day.recovery.heartRateVariabilityRmssdMilliseconds, locale, messages.unavailable)}</td>
+          <NumericTableCell>{formatRecoveryMilliseconds(day.recovery.beatToBeatIntervalMilliseconds, locale, messages.unavailable)}</NumericTableCell>
+          <NumericTableCell>{formatRecoveryMilliseconds(day.recovery.heartRateVariabilityRmssdMilliseconds, locale, messages.unavailable)}</NumericTableCell>
           <td>{statusLabel}</td>
           <td>
             <button

@@ -3,6 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { SportClassificationTask } from "./SportClassificationTask";
@@ -1376,31 +1381,36 @@ export function TrainingSessionLibraryPanel({
     return restoreFocusAfterReveal(target ?? null);
   }, [contextSportRef]);
 
-  function lapRows(laps: TrainingLapStructure[] | null, heading: string) {
+  function lapRows(
+    laps: TrainingLapStructure[] | null,
+    heading: string,
+    exerciseLabel: string,
+  ) {
     return (
       <section className="training-structure-collection">
         <h5>{heading}</h5>
         {laps === null ? <p>{copy.structureNotProvided}</p> : laps.length === 0
           ? <p>{copy.structureProvidedEmpty}</p>
           : (
-            <div className="training-table-scroll" tabIndex={0}>
-              <table>
+            <DataTable
+              accessibleName={`${exerciseLabel} · ${heading}`}
+              scrollClassName="training-table-scroll"
+            >
                 <thead><tr>
-                  <th scope="col">{copy.structureNumber}</th>
-                  <th scope="col">{copy.structureSplit}</th>
-                  <th scope="col">{messages.training.duration}</th>
-                  <th scope="col">{messages.training.distance}</th>
+                  <NumericTableHeader scope="col">{copy.structureNumber}</NumericTableHeader>
+                  <NumericTableHeader scope="col">{copy.structureSplit}</NumericTableHeader>
+                  <NumericTableHeader scope="col">{messages.training.duration}</NumericTableHeader>
+                  <NumericTableHeader scope="col">{messages.training.distance}</NumericTableHeader>
                 </tr></thead>
                 <tbody>{laps.map((lap) => (
                   <tr key={lap.lapRef}>
-                    <th scope="row">{number.format(lap.ordinal + 1)}</th>
-                    <td>{formatDetailDuration(lap.splitTimeMilliseconds, locale, messages.training.durationUnits)}</td>
-                    <td>{formatDetailDuration(lap.durationMilliseconds, locale, messages.training.durationUnits)}</td>
-                    <td>{formatDistance(lap.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</td>
+                    <NumericTableHeader scope="row">{number.format(lap.ordinal + 1)}</NumericTableHeader>
+                    <NumericTableCell>{formatDetailDuration(lap.splitTimeMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
+                    <NumericTableCell>{formatDetailDuration(lap.durationMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
+                    <NumericTableCell>{formatDistance(lap.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</NumericTableCell>
                   </tr>
                 ))}</tbody>
-              </table>
-            </div>
+            </DataTable>
           )}
       </section>
     );
@@ -1607,14 +1617,17 @@ export function TrainingSessionLibraryPanel({
                   locale={locale}
                   messages={messages}
                 />
-                <div className="training-table-scroll" tabIndex={0}>
-                  <table>
+                <DataTable
+                  accessibleName={copy.exactRouteHeading}
+                  scrollAccessibleName={copy.exactRouteTable}
+                  scrollClassName="training-table-scroll"
+                >
                     <thead><tr>
-                      <th scope="col">{copy.routePointNumber}</th>
-                      <th scope="col">{copy.routeLatitude}</th>
-                      <th scope="col">{copy.routeLongitude}</th>
-                      <th scope="col">{copy.routeAltitude}</th>
-                      <th scope="col">{copy.routeElapsed}</th>
+                      <NumericTableHeader scope="col">{copy.routePointNumber}</NumericTableHeader>
+                      <NumericTableHeader scope="col">{copy.routeLatitude}</NumericTableHeader>
+                      <NumericTableHeader scope="col">{copy.routeLongitude}</NumericTableHeader>
+                      <NumericTableHeader scope="col">{copy.routeAltitude}</NumericTableHeader>
+                      <NumericTableHeader scope="col">{copy.routeElapsed}</NumericTableHeader>
                     </tr></thead>
                     <tbody>{exactRoutePoints.points.map((point) => {
                       const target = exactRouteTarget?.sourceRef === route.routeRef
@@ -1629,23 +1642,22 @@ export function TrainingSessionLibraryPanel({
                             ? "training-exact-selected-row training-result-focus-target"
                             : undefined}
                         >
-                          <th scope="row">
+                          <NumericTableHeader scope="row">
                             {number.format(point.ordinal + 1)}
                             {target && <span className="sr-only"> · {copy.selectedRouteEvidence}</span>}
-                          </th>
-                          <td>{coordinate.format(point.latitudeDegrees)}</td>
-                          <td>{coordinate.format(point.longitudeDegrees)}</td>
-                          <td>{point.altitudeMeters === null
+                          </NumericTableHeader>
+                          <NumericTableCell>{coordinate.format(point.latitudeDegrees)}</NumericTableCell>
+                          <NumericTableCell>{coordinate.format(point.longitudeDegrees)}</NumericTableCell>
+                          <NumericTableCell>{point.altitudeMeters === null
                             ? copy.metricUnavailable
-                            : `${coordinate.format(point.altitudeMeters)} ${messages.training.units.meters}`}</td>
-                          <td>{point.elapsedMilliseconds === null
+                            : `${coordinate.format(point.altitudeMeters)} ${messages.training.units.meters}`}</NumericTableCell>
+                          <NumericTableCell>{point.elapsedMilliseconds === null
                             ? copy.metricUnavailable
-                            : formatExactDuration(point.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                            : formatExactDuration(point.elapsedMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
                         </tr>
                       );
                     })}</tbody>
-                  </table>
-                </div>
+                </DataTable>
                 <div className="training-route-pagination">
                   <button
                     type="button"
@@ -1906,12 +1918,15 @@ export function TrainingSessionLibraryPanel({
                   locale={locale}
                   messages={messages}
                 />
-                <div className="training-table-scroll" tabIndex={0}>
-                  <table>
+                <DataTable
+                  accessibleName={exactHeading}
+                  scrollAccessibleName={interpolate(copy.exactSignalTable, { kind })}
+                  scrollClassName="training-table-scroll"
+                >
                     <thead><tr>
-                      <th scope="col">{copy.signalSampleNumber}</th>
-                      <th scope="col">{copy.signalElapsed}</th>
-                      <th scope="col">{copy.signalValue}</th>
+                      <NumericTableHeader scope="col">{copy.signalSampleNumber}</NumericTableHeader>
+                      <NumericTableHeader scope="col">{copy.signalElapsed}</NumericTableHeader>
+                      <NumericTableHeader scope="col">{copy.signalValue}</NumericTableHeader>
                     </tr></thead>
                     <tbody>{exactSignalSamples.samples.map((sample) => {
                       const target = exactSignalTarget?.sourceRef === signal.signalRef
@@ -1926,19 +1941,18 @@ export function TrainingSessionLibraryPanel({
                             ? "training-exact-selected-row training-result-focus-target"
                             : undefined}
                         >
-                          <th scope="row">
+                          <NumericTableHeader scope="row">
                             {number.format(sample.ordinal + 1)}
                             {target && <span className="sr-only"> · {copy.selectedSignalEvidence}</span>}
-                          </th>
-                          <td>{formatExactDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
-                          <td>{sample.value === null
+                          </NumericTableHeader>
+                          <NumericTableCell>{formatExactDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
+                          <NumericTableCell>{sample.value === null
                             ? copy.metricUnavailable
-                            : `${coordinate.format(sample.value)} ${unit}`}</td>
+                            : `${coordinate.format(sample.value)} ${unit}`}</NumericTableCell>
                         </tr>
                       );
                     })}</tbody>
-                  </table>
-                </div>
+                </DataTable>
                 <div className="training-signal-pagination">
                   <button
                     type="button"
@@ -2873,8 +2887,11 @@ export function TrainingSessionLibraryPanel({
                 unit: sessionUnit(comparison.length),
               })}</p>
               {comparison.length >= 2 && (
-                <div className="training-session-comparison-table">
-                  <table>
+                <DataTable
+                  accessibleName={copy.comparisonHeading}
+                  scrollAccessibleName={copy.comparisonTable}
+                  scrollClassName="training-session-comparison-table"
+                >
                     <thead>
                       <tr>
                         <th scope="col">{copy.comparisonSession}</th>
@@ -2900,42 +2917,41 @@ export function TrainingSessionLibraryPanel({
                     <tbody>
                       <tr>
                         <th scope="row">{messages.training.duration}</th>
-                        {comparison.map((session) => <td key={session.sessionRef}>{formatDetailDuration(
+                        {comparison.map((session) => <NumericTableCell key={session.sessionRef}>{formatDetailDuration(
                           session.durationMilliseconds,
                           locale,
                           messages.training.durationUnits,
-                        )}</td>)}
+                        )}</NumericTableCell>)}
                       </tr>
                       <tr>
                         <th scope="row">{messages.training.distance}</th>
-                        {comparison.map((session) => <td key={session.sessionRef}>{formatDistance(
+                        {comparison.map((session) => <NumericTableCell key={session.sessionRef}>{formatDistance(
                           session.distanceMeters,
                           locale,
                           copy.metricUnavailable,
                           messages.training.units.meters,
-                        )}</td>)}
+                        )}</NumericTableCell>)}
                       </tr>
                       <tr>
                         <th scope="row">{messages.training.energy}</th>
-                        {comparison.map((session) => <td key={session.sessionRef}>{formatExactMetric(
+                        {comparison.map((session) => <NumericTableCell key={session.sessionRef}>{formatExactMetric(
                           session.energyKilocalories,
                           locale,
                           copy.metricUnavailable,
                           messages.training.units.kilocalories,
-                        )}</td>)}
+                        )}</NumericTableCell>)}
                       </tr>
                       <tr>
                         <th scope="row">{messages.training.averageHeartRate}</th>
-                        {comparison.map((session) => <td key={session.sessionRef}>{formatExactMetric(
+                        {comparison.map((session) => <NumericTableCell key={session.sessionRef}>{formatExactMetric(
                           session.averageHeartRateBpm,
                           locale,
                           copy.metricUnavailable,
                           messages.training.units.beatsPerMinute,
-                        )}</td>)}
+                        )}</NumericTableCell>)}
                       </tr>
                     </tbody>
-                  </table>
-                </div>
+                </DataTable>
               )}
             </section>
           )}
@@ -3151,29 +3167,44 @@ export function TrainingSessionLibraryPanel({
                   locale={locale}
                   messages={messages}
                 />
-                {lapRows(exercise.manualLaps, copy.manualLaps)}
-                {lapRows(exercise.automaticLaps, copy.automaticLaps)}
+                {lapRows(
+                  exercise.manualLaps,
+                  copy.manualLaps,
+                  interpolate(copy.exerciseHeading, {
+                    number: number.format(exercise.ordinal + 1),
+                  }),
+                )}
+                {lapRows(
+                  exercise.automaticLaps,
+                  copy.automaticLaps,
+                  interpolate(copy.exerciseHeading, {
+                    number: number.format(exercise.ordinal + 1),
+                  }),
+                )}
                 <section className="training-structure-collection">
                   <h5>{copy.pauses}</h5>
                   {exercise.pauses === null ? <p>{copy.structureNotProvided}</p>
                     : exercise.pauses.length === 0 ? <p>{copy.structureProvidedEmpty}</p>
                     : (
-                      <div className="training-table-scroll" tabIndex={0}>
-                        <table>
+                      <DataTable
+                        accessibleName={`${interpolate(copy.exerciseHeading, {
+                          number: number.format(exercise.ordinal + 1),
+                        })} · ${copy.pauses}`}
+                        scrollClassName="training-table-scroll"
+                      >
                           <thead><tr>
-                            <th scope="col">{copy.structureNumber}</th>
+                            <NumericTableHeader scope="col">{copy.structureNumber}</NumericTableHeader>
                             <th scope="col">{messages.training.startedAt}</th>
                             <th scope="col">{messages.training.stoppedAt}</th>
                           </tr></thead>
                           <tbody>{exercise.pauses.map((pause) => (
                             <tr key={pause.pauseRef}>
-                              <th scope="row">{number.format(pause.ordinal + 1)}</th>
+                              <NumericTableHeader scope="row">{number.format(pause.ordinal + 1)}</NumericTableHeader>
                               <td>{formatTrainingDateTime(pause.startedAtLocal, locale)}</td>
                               <td>{formatTrainingDateTime(pause.endedAtLocal, locale)}</td>
                             </tr>
                           ))}</tbody>
-                        </table>
-                      </div>
+                      </DataTable>
                     )}
                 </section>
               </article>

@@ -28,6 +28,11 @@ import type {
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
 import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./presentation/DataTable";
+import {
   integerCountFormatter,
   mediumDateFormatter,
 } from "./presentation/presentation-format";
@@ -1673,12 +1678,14 @@ function App() {
                       ))}
                     </ol>
                   </figure>
-                  <table>
-                    <caption className="sr-only">{messages.activity.heading}</caption>
+                  <DataTable
+                    accessibleName={messages.activity.heading}
+                    scrollAccessibleName={messages.activity.exactTable}
+                  >
                     <thead>
                       <tr>
                         <th scope="col">{messages.date}</th>
-                        <th scope="col">{messages.steps}</th>
+                        <NumericTableHeader scope="col">{messages.steps}</NumericTableHeader>
                         <th scope="col">{messages.activity.availability}</th>
                       </tr>
                     </thead>
@@ -1698,12 +1705,12 @@ function App() {
                               <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
                             </button>
                           </td>
-                          <td>{formatStepCount(day.stepCount)}</td>
+                          <NumericTableCell>{formatStepCount(day.stepCount)}</NumericTableCell>
                           <td>{activityAvailability(day.availability)}</td>
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </DataTable>
                 </div>
               </section>
             ))}

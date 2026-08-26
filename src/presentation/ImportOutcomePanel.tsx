@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 
 import type { catalogs, Locale } from "../locales/catalogs";
+import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
 import { integerCountFormatter, pluralRules } from "./presentation-format";
 
 export interface ImportReport {
@@ -261,19 +266,16 @@ export function ImportOutcomePanel({
           {outcome.artifactFamilies.length > 0 && (
             <section>
               <h3 id="family-coverage-heading">{messages.familyCoverageHeading}</h3>
-              <div
-                className="family-coverage-scroll"
-                role="region"
-                aria-labelledby="family-coverage-heading"
-                tabIndex={0}
+              <DataTable
+                accessibleName={messages.familyCoverageHeading}
+                className="family-coverage-table"
+                scrollClassName="family-coverage-scroll"
               >
-                <table className="family-coverage-table">
-                  <caption className="sr-only">{messages.familyCoverageHeading}</caption>
                   <thead>
                     <tr>
                       <th scope="col">{messages.familyColumn}</th>
                       <th scope="col">{messages.classificationColumn}</th>
-                      <th scope="col">{messages.artifactCountColumn}</th>
+                      <NumericTableHeader scope="col">{messages.artifactCountColumn}</NumericTableHeader>
                       <th scope="col">{messages.explanationColumn}</th>
                     </tr>
                   </thead>
@@ -291,9 +293,9 @@ export function ImportOutcomePanel({
                           <td data-label={messages.classificationColumn}>
                             {messages.familyClassifications[family.classification]}
                           </td>
-                          <td data-label={messages.artifactCountColumn}>
+                          <NumericTableCell data-label={messages.artifactCountColumn}>
                             {number.format(family.artifactCount)}
-                          </td>
+                          </NumericTableCell>
                           <td data-label={messages.explanationColumn}>
                             <p><strong>{messages.reasonLabel}:</strong> {explanation.reason}</p>
                             <p><strong>{messages.nextActionLabel}:</strong> {explanation.action}</p>
@@ -302,8 +304,7 @@ export function ImportOutcomePanel({
                       );
                     })}
                   </tbody>
-                </table>
-              </div>
+              </DataTable>
             </section>
           )}
         </div>

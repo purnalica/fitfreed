@@ -10,7 +10,11 @@ import {
 describe("DataTable", () => {
   it("provides one labelled scroll boundary and explicit numeric alignment semantics", () => {
     render(
-      <DataTable accessibleName="Recorded intervals">
+      <DataTable
+        accessibleName="Recorded intervals"
+        scrollAccessibleName="Scrollable recorded interval values"
+        scrollClassName="recorded-intervals-table"
+      >
         <thead>
           <tr>
             <th scope="col">Interval</th>
@@ -26,7 +30,10 @@ describe("DataTable", () => {
       </DataTable>,
     );
 
-    const region = screen.getByRole("region", { name: "Recorded intervals" });
+    const region = screen.getByRole("region", {
+      name: "Scrollable recorded interval values",
+    });
+    expect(region).toHaveClass("data-table-scroll", "recorded-intervals-table");
     const table = within(region).getByRole("table", { name: "Recorded intervals" });
     expect(within(table).getByRole("columnheader", { name: "Duration" }))
       .toHaveClass("data-table-number");

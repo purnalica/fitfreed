@@ -8,18 +8,26 @@ interface DataTableProps {
   accessibleName: string;
   children: ReactNode;
   className?: string;
+  scrollAccessibleName?: string;
+  scrollClassName?: string;
 }
 
 function classNames(...values: Array<string | undefined>): string {
   return values.filter((value): value is string => Boolean(value)).join(" ");
 }
 
-export function DataTable({ accessibleName, children, className }: DataTableProps) {
+export function DataTable({
+  accessibleName,
+  children,
+  className,
+  scrollAccessibleName = accessibleName,
+  scrollClassName,
+}: DataTableProps) {
   return (
     <div
-      className="data-table-scroll"
+      className={classNames("data-table-scroll", scrollClassName)}
       role="region"
-      aria-label={accessibleName}
+      aria-label={scrollAccessibleName}
       tabIndex={0}
     >
       <table className={classNames("data-table", className)}>

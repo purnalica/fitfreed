@@ -5,6 +5,11 @@ import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { ComparisonPeriodPresets } from "./ComparisonPeriodPresets";
 import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
+import {
   initialComparisonRanges,
   type ComparisonPeriodSelection,
 } from "./comparison-period-preset";
@@ -317,15 +322,17 @@ export function RecoveryComparisonPanel({
                 <details className="answer-exact-values">
                   <summary>{copy.exactValues}</summary>
                   <p>{copy.coverageCaution}</p>
-                  <div className="recovery-table-scroll" tabIndex={0}>
-                    <table aria-label={copy.resultHeading}>
-                      <caption className="sr-only">{copy.resultHeading}</caption>
+                  <DataTable
+                    accessibleName={copy.resultHeading}
+                    scrollAccessibleName={`${copy.exactValues} · ${messages.recovery.series} ${number.format(index + 1)}`}
+                    scrollClassName="recovery-table-scroll"
+                  >
                       <thead>
                         <tr>
                           <th scope="col">{copy.metric}</th>
-                          <th scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></th>
-                          <th scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></th>
-                          <th scope="col">{copy.change}</th>
+                          <NumericTableHeader scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></NumericTableHeader>
+                          <NumericTableHeader scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></NumericTableHeader>
+                          <NumericTableHeader scope="col">{copy.change}</NumericTableHeader>
                         </tr>
                       </thead>
                       <tbody>
@@ -333,15 +340,14 @@ export function RecoveryComparisonPanel({
                           ([metric, baseline, current, change]) => (
                             <tr key={metric}>
                               <th scope="row">{metric}</th>
-                              <td>{baseline}</td>
-                              <td>{current}</td>
-                              <td>{change}</td>
+                              <NumericTableCell>{baseline}</NumericTableCell>
+                              <NumericTableCell>{current}</NumericTableCell>
+                              <NumericTableCell>{change}</NumericTableCell>
                             </tr>
                           ),
                         )}
                       </tbody>
-                    </table>
-                  </div>
+                  </DataTable>
                 </details>
               </section>
             );

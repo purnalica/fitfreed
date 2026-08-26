@@ -111,6 +111,10 @@ occurred or treating source bands as personal segments. The distribution remains
 duration, distance, and load table opens only on explicit request. Personal segmentation follows the same
 hierarchy: the timeline answers first, exact boundaries are disclosed on request, and authorship is explained
 once for the criterion set instead of repeated in every row.
+Every tabular view uses the same keyboard-reachable horizontal-scroll behavior and semantic caption. Numeric
+measurements use tabular figures and align by value type, while dates, identities, statuses, explanations, and
+actions retain text alignment. Column position never changes that meaning, and exact stored or exported values
+remain unchanged by presentation alignment.
 Supported recorded heart-rate, speed, and power zones preserve
 their exact bounds and applicable aggregates without implying a timeline. Session provenance loads only on
 request and distinguishes source revision time, local import time, interpretation versions, and reconciliation

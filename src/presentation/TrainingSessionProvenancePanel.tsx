@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
+import {
+  DataTable,
+  NumericTableHeader,
+} from "./DataTable";
 import type {
   TrainingProvenanceEvent,
   TrainingSessionProvenanceResult,
@@ -174,10 +178,12 @@ export function TrainingSessionProvenancePanel({
               <section className="training-provenance-history">
                 <h5>{copy.provenanceHistoryHeading}</h5>
                 <p>{copy.provenanceHistoryIntro}</p>
-                <div className="training-table-scroll" tabIndex={0}>
-                  <table>
+                <DataTable
+                  accessibleName={copy.provenanceHistoryHeading}
+                  scrollClassName="training-table-scroll"
+                >
                     <thead><tr>
-                      <th scope="col">{copy.provenanceEvent}</th>
+                      <NumericTableHeader scope="col">{copy.provenanceEvent}</NumericTableHeader>
                       <th scope="col">{copy.provenanceObservedAt}</th>
                       <th scope="col">{copy.provenanceSourceRevision}</th>
                       <th scope="col">{copy.provenanceOutcome}</th>
@@ -186,7 +192,7 @@ export function TrainingSessionProvenancePanel({
                     </tr></thead>
                     <tbody>{result.events.map((event) => (
                       <tr key={event.ordinal}>
-                        <th scope="row">{number.format(event.ordinal + 1)}</th>
+                        <NumericTableHeader scope="row">{number.format(event.ordinal + 1)}</NumericTableHeader>
                         <td><time dateTime={event.observedAtUtc}>{formatUtc(event.observedAtUtc)}</time></td>
                         <td><time dateTime={event.sourceModifiedAtUtc}>{formatUtc(event.sourceModifiedAtUtc)}</time></td>
                         <td>{copy.provenanceDecisions[event.decision]}</td>
@@ -198,8 +204,7 @@ export function TrainingSessionProvenancePanel({
                         </td>
                       </tr>
                     ))}</tbody>
-                  </table>
-                </div>
+                </DataTable>
                 <p className="training-provenance-page" aria-live="polite">
                   {interpolate(copy.provenancePage, {
                     from: number.format(pageFrom),

@@ -3,6 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
@@ -424,10 +429,11 @@ export function SleepInsightsPanel({
                         <li><strong>{coverage(series.summary.stageTimelineNightCount, series.summary.observedNights)}</strong><span>{copy.timelineCoverage}</span></li>
                         <li><strong>{coverage(series.summary.powerStatusNightCount, series.summary.observedNights)}</strong><span>{copy.powerCoverage} · {number.format(series.summary.powerLossNightCount)} {copy.powerLoss}</span></li>
                       </ul>
-                      <div className="sleep-table-scroll" tabIndex={0}>
-                        <table aria-label={exactNightsLabel(seriesIndex)}>
-                          <caption className="sr-only">{exactNightsLabel(seriesIndex)}</caption>
-                          <thead><tr><th scope="col">{copy.sleepDate}</th><th scope="col">{copy.asleep}</th><th scope="col">{copy.efficiency}</th><th scope="col">{copy.score}</th><th scope="col"><span className="sr-only">{copy.details}</span></th></tr></thead>
+                      <DataTable
+                        accessibleName={exactNightsLabel(seriesIndex)}
+                        scrollClassName="sleep-table-scroll"
+                      >
+                          <thead><tr><th scope="col">{copy.sleepDate}</th><NumericTableHeader scope="col">{copy.asleep}</NumericTableHeader><NumericTableHeader scope="col">{copy.efficiency}</NumericTableHeader><NumericTableHeader scope="col">{copy.score}</NumericTableHeader><th scope="col"><span className="sr-only">{copy.details}</span></th></tr></thead>
                           <tbody>
                             {series.days.map((day) => <SleepDayRow
                               key={day.sleepDate}
@@ -441,8 +447,7 @@ export function SleepInsightsPanel({
                               )}
                             />)}
                           </tbody>
-                        </table>
-                      </div>
+                      </DataTable>
                     </details>
                   </section>
                 );
@@ -587,12 +592,12 @@ function SleepDayRow({
     <tr>
       <td><time dateTime={day.sleepDate}>{dateLabel}</time></td>
       {day.period === null ? (
-        <><td>{copy.missing}</td><td>{messages.unavailable}</td><td>{messages.unavailable}</td><td /></>
+        <><NumericTableCell>{copy.missing}</NumericTableCell><NumericTableCell>{messages.unavailable}</NumericTableCell><NumericTableCell>{messages.unavailable}</NumericTableCell><td /></>
       ) : (
         <>
-          <td>{formatSleepDuration(day.period.asleepMilliseconds, locale, copy.durationUnits, messages.unavailable)}</td>
-          <td>{formatDecimal(day.period.efficiencyPercent, locale, messages.unavailable, "%")}</td>
-          <td>{formatDecimal(day.period.scoreOverall, locale, messages.unavailable)}</td>
+          <NumericTableCell>{formatSleepDuration(day.period.asleepMilliseconds, locale, copy.durationUnits, messages.unavailable)}</NumericTableCell>
+          <NumericTableCell>{formatDecimal(day.period.efficiencyPercent, locale, messages.unavailable, "%")}</NumericTableCell>
+          <NumericTableCell>{formatDecimal(day.period.scoreOverall, locale, messages.unavailable)}</NumericTableCell>
           <td><button type="button" className="detail-button" aria-label={`${copy.viewDetails} ${dateLabel}`} onClick={(event) => onOpen(event.currentTarget)}>{copy.details}</button></td>
         </>
       )}
@@ -628,9 +633,9 @@ function SleepTimeline({ detail, locale, messages }: { detail: SleepPeriodDetail
     <section className="sleep-subdetail" aria-labelledby="sleep-timeline-heading">
       <h3 id="sleep-timeline-heading">{copy.timelineHeading}</h3>
       <div className="sleep-timeline" aria-hidden="true">{segments.map((transition, index) => <span key={`${transition.offsetMilliseconds}:${index}`} className={`stage-${transition.stage}`} style={{ width: transition.width }} />)}</div>
-      <div className="sleep-table-scroll" tabIndex={0} aria-label={copy.timelineTable}>
-        <table><caption className="sr-only">{copy.timelineTable}</caption><thead><tr><th scope="col">{copy.stageOffset}</th><th scope="col">{copy.stage}</th></tr></thead><tbody>{detail.stageTransitions.map((transition, index) => <tr key={`${transition.offsetMilliseconds}:${index}`}><td>{formatSleepDuration(transition.offsetMilliseconds, locale, copy.durationUnits, messages.unavailable)}</td><td>{copy.stages[transition.stage]}</td></tr>)}</tbody></table>
-      </div>
+      <DataTable accessibleName={copy.timelineTable} scrollClassName="sleep-table-scroll">
+        <thead><tr><NumericTableHeader scope="col">{copy.stageOffset}</NumericTableHeader><th scope="col">{copy.stage}</th></tr></thead><tbody>{detail.stageTransitions.map((transition, index) => <tr key={`${transition.offsetMilliseconds}:${index}`}><NumericTableCell>{formatSleepDuration(transition.offsetMilliseconds, locale, copy.durationUnits, messages.unavailable)}</NumericTableCell><td>{copy.stages[transition.stage]}</td></tr>)}</tbody>
+      </DataTable>
     </section>
   );
 }

@@ -188,6 +188,10 @@ const canonicalFormatterPath = path.join(
   presentationDirectory,
   "presentation-format.ts",
 );
+const canonicalDataTablePath = path.join(
+  presentationDirectory,
+  "DataTable.tsx",
+);
 const adHocFormatterConsumers = sourceFiles(applicationSourceDirectory).filter((sourcePath) => {
   if (sourcePath === canonicalFormatterPath || /\.test\.[cm]?[jt]sx?$/.test(sourcePath)) {
     return false;
@@ -202,6 +206,23 @@ if (adHocFormatterConsumers.length > 0) {
       .map((sourcePath) => path.relative(repositoryRoot, sourcePath))
       .join(", ")}`,
   );
+}
+
+const rawDataTableConsumers = sourceFiles(applicationSourceDirectory).filter((sourcePath) => {
+  if (sourcePath === canonicalDataTablePath || /\.test\.[cm]?[jt]sx?$/.test(sourcePath)) {
+    return false;
+  }
+  return /<table(?:\s|>)/.test(readFileSync(sourcePath, "utf8"));
+});
+if (rawDataTableConsumers.length > 0) {
+  throw new Error(
+    `application presentation sources must use DataTable for semantic labelling, scrolling, and alignment: ${rawDataTableConsumers
+      .map((sourcePath) => path.relative(repositoryRoot, sourcePath))
+      .join(", ")}`,
+  );
+}
+if (/(?:th|td):(?:last-child|first-child|nth-child\([^)]*\)|not\(:first-child\))[^{}]*\{[^}]*text-align\s*:/.test(stylesheet)) {
+  throw new Error("table alignment must follow value semantics rather than column position");
 }
 
 if (/\bfallback=\{null\}/.test(application)) {
@@ -1031,5 +1052,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, roleBasedLineMeasure: true, alignedClassificationForm: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, personalRanges: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, centralizedFormatting: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, roleBasedLineMeasure: true, alignedClassificationForm: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, personalRanges: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, centralizedFormatting: true, semanticDataTables: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

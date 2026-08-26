@@ -2747,8 +2747,15 @@ table composition, responsive alignment, and the independent density review rema
 distributions now answer before their complete values enumerate. Native disclosures retain every exact row for
 keyboard and assistive-technology use, while one shared `DataTable` owns the labelled scroll boundary and explicit
 tabular numeric alignment. Segment authorship and calculation attribution remain in the containing explanation and
-were removed from the repeated row schema. The remaining table families and primary screens still require migration
-and independent review before X7-R3 can close.
+were removed from the repeated row schema.
+
+**Execution checkpoint — one production table contract:** activity, import coverage, domain comparisons, exact
+daily evidence, report analysis, training laps, pauses, route points, signal samples, session comparisons, and
+source history now enter the same semantic `DataTable` boundary as segments and zones. Each numeric header and cell
+declares its alignment explicitly; dates, identities, statuses, explanations, and actions remain text-aligned.
+Nested task regions and their scroll boundaries have distinct localized names. The UI-contract scan rejects direct
+production table ownership and positional CSS alignment, while component tests preserve the established table names
+and task landmarks. Primary-screen disclosure and the independent density review remain open within X7-R3.
 
 ### X7-R4 — Adopt a mature analytical visualization foundation
 
