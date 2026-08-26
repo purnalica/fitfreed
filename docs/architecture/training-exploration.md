@@ -271,8 +271,9 @@ detail iterate the composed exercises rather than using source structure as an a
 signal-only or route-only exercise therefore remains inspectable. Overview and on-demand source history are
 always available.
 
-[ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) defines the one spatial exception
-to the semantic-HTML visualization policy. A lazily loaded presentation adapter uses stable Leaflet 1.x
+[ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) defines the spatial rendering boundary,
+while [ADR 0032](decisions/0032-use-specialized-analytical-visualization-engines.md) defines the sibling analytical
+boundary. A lazily loaded presentation adapter uses stable Leaflet 1.x
 only for a local vector viewport: projection, pan, zoom, fit, resize, pointer coordinates, and metric scale.
 It receives one bounded `SessionStory`, creates no independent query, and exposes no Leaflet type outside
 presentation. FitFreed continues to own selected source ordinal, elapsed traversal, route roles and gaps,
@@ -474,7 +475,7 @@ and persistence specifications.
 
 ## Privacy boundary
 
-Route geometry, physiological or performance signals, and their recorded zone aggregates are local sensitive data. The first renderers use
-local SVG and no external visualization service. Route or signal export, MCP access, and future remote
+Route geometry, physiological or performance signals, and their recorded zone aggregates are local sensitive data. Packaged local renderers make
+no external request and use no visualization service. Route or signal export, MCP access, and future remote
 cartography each require their own explicit permission or privacy boundary; the existence of evidence in the
 library grants none of them.

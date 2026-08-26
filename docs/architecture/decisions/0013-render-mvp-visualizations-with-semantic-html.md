@@ -1,6 +1,6 @@
 # ADR 0013: Render MVP visualizations with semantic HTML
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0032](0032-use-specialized-analytical-visualization-engines.md)
 - **Date:** 2026-08-17
 - **Decision owners:** FitFreed maintainers
 - **Related requirements:** [Product requirements](../../requirements.md)

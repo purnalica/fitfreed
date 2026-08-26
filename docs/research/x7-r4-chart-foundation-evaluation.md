@@ -2,10 +2,10 @@
 
 ## Status
 
-The production-shaped decision spike completed on 2026-08-26. It recommends Apache ECharts 6.1.0 as the
-presentation-only analytical chart engine. The recommendation is not yet an architecture decision or a production
-dependency: the next X7-R4 step is to record the boundary in an ADR, update current architecture, and then introduce
-the dependency behind a FitFreed-owned chart port.
+The production-shaped decision spike completed on 2026-08-26. It selected Apache ECharts 6.1.0 as the
+presentation-only live analytical chart engine. A subsequent export-boundary review selected Plotters 0.3.7 for
+authorized static SVG inside the Rust report adapter. [ADR 0032](../architecture/decisions/0032-use-specialized-analytical-visualization-engines.md)
+records the accepted mixed rendering boundary; production migration remains in progress.
 
 This document is the canonical selection evidence for the X7-R4 decision spike. Raw builds, screenshots, process
 measurements, and candidate lockfiles remain ignored local artifacts under the repository-content policy.
@@ -78,6 +78,13 @@ Apache ECharts also has the strongest match for long-term project stewardship in
 Apache project with published releases, a security policy, documented tree-shakable imports, and maintained Canvas,
 SVG, server-rendering, and accessibility guidance.
 
+The report exporter cannot safely reuse browser output: its Rust application port authorizes exact evidence and its
+infrastructure adapter owns deterministic atomic output without accepting presentation markup. Plotters 0.3.7 was
+therefore reviewed as a separate static-runtime decision. Its MIT-licensed official API provides Cartesian chart
+construction and an SVG backend that writes into a string, while disabled default features avoid bitmap encoding,
+font discovery, and unrelated rendering backends. This keeps static chart mechanics in maintained OSS without adding
+a JavaScript runtime or moving export authority into React.
+
 Primary sources:
 
 - [Apache ECharts Canvas and SVG guidance](https://echarts.apache.org/handbook/en/best-practices/canvas-vs-svg/)
@@ -90,25 +97,27 @@ Primary sources:
 - [Observable Plot pointer interaction](https://observablehq.com/plot/interactions/pointer)
 - [Observable Plot interaction boundaries](https://observablehq.com/plot/features/interactions)
 - [Vega CSP interpreter](https://vega.github.io/vega/usage/interpreter/)
+- [Plotters repository and feature boundary](https://github.com/plotters-rs/plotters)
+- [Plotters string-backed SVG API](https://docs.rs/plotters/latest/plotters/backend/struct.SVGBackend.html)
+- [Plotters Cartesian chart builder](https://docs.rs/plotters/latest/plotters/chart/struct.ChartBuilder.html)
 - [GNU licence compatibility](https://www.gnu.org/licenses/license-compatibility.en.html)
 - [GNU licence list](https://www.gnu.org/philosophy/license-list.html)
 
 ## Recommendation and continuation point
 
-Select Apache ECharts behind a FitFreed-owned analytical-chart port and evidence DTO. Load it only on analytical
+Use Apache ECharts behind a FitFreed-owned live analytical-chart port and evidence DTO. Load it only on analytical
 surfaces, import only the required charts, components, and renderers, and preserve native controls and exact tables as
-the keyboard and assistive-technology contract. Use Canvas for dense live signals and SVG where sparse or static
-vector output is the better fit. No ECharts object may cross inward from presentation.
+the keyboard and assistive-technology contract. Use Canvas for dense live signals and SVG where sparse live vector
+output is the better fit. Use feature-limited Plotters inside the Rust report adapter for deterministic static SVG.
+No renderer object may cross inward from its presentation or infrastructure edge.
 
 The continuation sequence is:
 
-1. accept a new ADR that supersedes ADR 0013's blanket semantic-HTML choice with a mixed strategy;
-2. update the thematic application architecture and the ADR index;
-3. add the exact ECharts dependency and automated licence boundary;
-4. introduce the provider-neutral chart port and adapter through TDD;
-5. migrate analytical exercise, linked route-signal, longitudinal, and report graphics while retaining exact
+1. add the exact ECharts and feature-limited Plotters dependencies plus automated licence boundaries;
+2. introduce the provider-neutral live chart port and both renderer adapters through TDD;
+3. migrate analytical exercise, linked route-signal, longitudinal, and report graphics while retaining exact
    alternatives; and
-6. implement and verify route-relative zoom bounds before completing X7-R4.
+4. implement and verify route-relative zoom bounds before completing X7-R4.
 
 Simple bounded categorical summaries may remain semantic HTML when that is clearer and more accessible. Leaflet
 remains the local route-workbench renderer. The decision does not authorize external tiles, network requests,

@@ -166,7 +166,7 @@ revisions.
 
 ## Export boundary
 
-The first normative output is a self-contained semantic HTML document with embedded styles and graphics, no script, and no external request. Export is local, cancellable across paginated resolution and staged output, deterministic for the same resolved input, and atomic. Failure or cancellation leaves no file that can be mistaken for a completed report.
+The first normative output is a self-contained semantic HTML document with embedded styles and graphics, no script, and no external request. Export is local, cancellable across paginated resolution and staged output, deterministic for the same resolved input, and atomic. Failure or cancellation leaves no file that can be mistaken for a completed report. [ADR 0032](decisions/0032-use-specialized-analytical-visualization-engines.md) requires the current CSS analytical bars to migrate to feature-limited Plotters SVG rendered from the already authorized projection inside this infrastructure adapter; React will supply neither markup nor renderer state.
 
 Sensitive-content review is an application decision before rendering. Review can remove physiological context allowed by the saved definition, omit each route, or increase its endpoint redaction. It cannot add excluded physiology, introduce another route, or reduce the saved location protection. Exact choices are bound to block identities before the adapter runs.
 

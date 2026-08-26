@@ -25,7 +25,7 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0010: Run update recovery from the preserved application](0010-run-update-recovery-from-the-preserved-application.md) — Accepted on 2026-08-17.
 - [ADR 0011: Schedule update discovery in the desktop host](0011-schedule-update-discovery-in-the-desktop-host.md) — Accepted on 2026-08-17.
 - [ADR 0012: Publish two-dimensional upgrade support](0012-publish-two-dimensional-upgrade-support.md) — Accepted on 2026-08-17.
-- [ADR 0013: Render MVP visualizations with semantic HTML](0013-render-mvp-visualizations-with-semantic-html.md) — Accepted on 2026-08-17.
+- [ADR 0013: Render MVP visualizations with semantic HTML](0013-render-mvp-visualizations-with-semantic-html.md) — Superseded by ADR 0032 on 2026-08-26.
 - [ADR 0014: Drive packaged macOS E2E with WebdriverIO](0014-drive-packaged-macos-e2e-with-webdriverio.md) — Accepted on 2026-08-17.
 - [ADR 0015: Qualify performance evidence by execution environment](0015-qualify-performance-evidence-by-execution-environment.md) — Accepted on 2026-08-17.
 - [ADR 0016: Support Apple Silicon on macOS 15 or later](0016-support-apple-silicon-on-macos-15-or-later.md) — Accepted on 2026-08-17.
@@ -44,5 +44,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0029: Separate package identity, compatibility, and safety](0029-separate-package-identity-compatibility-and-safety.md) — Accepted on 2026-08-25.
 - [ADR 0030: Preserve typed archive resource limits](0030-preserve-typed-archive-resource-limits.md) — Accepted on 2026-08-26.
 - [ADR 0031: Scope training-target sport evidence to one session](0031-scope-training-target-sport-evidence-to-one-session.md) — Accepted on 2026-08-26.
+- [ADR 0032: Use specialized analytical visualization engines](0032-use-specialized-analytical-visualization-engines.md) — Accepted on 2026-08-26.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

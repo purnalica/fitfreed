@@ -13,7 +13,7 @@ Current architecture after [ADR 0001](decisions/0001-select-tauri-application-st
 | Source and infrastructure adapters | Rust | Provider decoding, ZIP and JSON access, persistence, migrations, backup, update service, and operating-system integrations |
 | Storage | Bundled SQLite through a Rust adapter | Authoritative local library, migrations, backup, indexes, and rebuildable projections |
 | Desktop host | Tauri 2 | Process lifecycle, windowing, native dialogs, capabilities, command registration, packaging, and update integration |
-| Presentation | TypeScript and React with semantic HTML and CSS visualizations | Localized interaction, accessible visualization, view state, and command invocation |
+| Presentation | TypeScript and React with semantic HTML and the Leaflet route adapter; ECharts is the accepted analytical migration target | Localized interaction, accessible visualization, view state, and command invocation |
 
 The current physical modules and compile-time boundaries are documented in the [module map](module-map.md).
 
@@ -92,4 +92,4 @@ The host writes only a closed JSON object containing its fixed event contract, a
 
 The repository will pin supported Rust and Node versions and expose one documented command for each fast check, full verification, application launch, package build, and release-shaped test. A clean clone must not require private data, proprietary services, or undocumented global tooling.
 
-Storage is defined by [ADR 0002](decisions/0002-select-sqlite-storage.md). Update trust is defined by [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). [ADR 0013](decisions/0013-render-mvp-visualizations-with-semantic-html.md) owns the MVP visualization boundary, and [ADR 0014](decisions/0014-drive-packaged-macos-e2e-with-webdriverio.md) owns packaged macOS behavioral automation.
+Storage is defined by [ADR 0002](decisions/0002-select-sqlite-storage.md). Update trust is defined by [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). [ADR 0032](decisions/0032-use-specialized-analytical-visualization-engines.md) owns the mixed analytical visualization boundary, [ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) owns spatial rendering, and [ADR 0014](decisions/0014-drive-packaged-macos-e2e-with-webdriverio.md) owns packaged macOS behavioral automation.
