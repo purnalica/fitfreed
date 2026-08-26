@@ -42,6 +42,7 @@ interface SourcesPanelProps {
   activeDelayedMessage?: string;
   errorMessage?: string;
   archivePath: string | undefined;
+  hasLocalLibrary?: boolean;
   importReady: boolean;
   busy: boolean;
   cancellable: boolean;
@@ -79,6 +80,7 @@ export function SourcesPanel({
   activeDelayedMessage,
   errorMessage,
   archivePath,
+  hasLocalLibrary = false,
   importReady,
   cancellable,
   updateInstalling,
@@ -162,6 +164,11 @@ export function SourcesPanel({
   const constraints = messages.constraints as Record<string, string>;
   const troubleshooting = messages.troubleshooting as Record<string, string>;
   const archiveName = archivePath?.split(/[\\/]/).filter(Boolean).at(-1);
+  const localBoundary = hasLocalLibrary
+    ? messages.localLibrary
+    : archivePath
+      ? messages.localSelected
+      : messages.localBeforeSelection;
 
   async function openLink(purpose: OfficialSourceLinkPurpose, url: string) {
     if (linkOperation) return;
@@ -208,7 +215,7 @@ export function SourcesPanel({
         {mode === "ready" && (
           <>
             <p>{messages.intro}</p>
-            <p className="sources-local-note">{messages.localOnly}</p>
+            <p className="sources-local-note">{localBoundary}</p>
           </>
         )}
       </header>

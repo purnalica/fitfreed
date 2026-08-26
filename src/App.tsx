@@ -1346,6 +1346,8 @@ function App() {
                   ? errorMessages[sourceErrorCode] ?? messages.errors.unexpected
                   : undefined}
                 archivePath={archivePath}
+                hasLocalLibrary={libraryHome?.usableRange !== null
+                  && libraryHome?.usableRange !== undefined}
                 importReady={libraryReady}
                 busy={busy}
                 cancellable={progress?.cancellable ?? false}

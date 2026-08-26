@@ -63,6 +63,48 @@ afterEach(() => {
 });
 
 describe("SourcesPanel", () => {
+  it("describes the local boundary according to the actual source state", () => {
+    const common = {
+      locale: "en-US" as const,
+      messages: catalogs["en-US"].sources,
+      importMessages,
+      guide,
+      guideLoading: false,
+      importReady: true,
+      busy: false,
+      cancellable: false,
+      updateInstalling: false,
+      cancelRequested: false,
+      onChooseArchive: vi.fn().mockResolvedValue(null),
+      onArchiveError: vi.fn(),
+      onImport: vi.fn().mockResolvedValue(undefined),
+      onCancel: vi.fn().mockResolvedValue(undefined),
+      onOpenOfficialLink: vi.fn(),
+      onLinkError: vi.fn(),
+    };
+    const view = render(
+      <SourcesPanel {...common} archivePath={undefined} hasLocalLibrary={false} />,
+    );
+
+    expect(screen.getByText(
+      "A ZIP you choose will be processed on this device. Nothing is uploaded, and FitFreed does not ask for provider credentials.",
+    )).toBeVisible();
+
+    view.rerender(
+      <SourcesPanel {...common} archivePath="/synthetic/export.zip" hasLocalLibrary={false} />,
+    );
+    expect(screen.getByText(
+      "The selected ZIP will be processed on this device. It will not be uploaded, and FitFreed does not ask for provider credentials.",
+    )).toBeVisible();
+
+    view.rerender(
+      <SourcesPanel {...common} archivePath="/synthetic/export.zip" hasLocalLibrary />,
+    );
+    expect(screen.getByText(
+      "Your local library and any ZIP you choose remain on this device. FitFreed does not upload them or ask for provider credentials.",
+    )).toBeVisible();
+  });
+
   it("exercises both first-run paths and every official destination", async () => {
     const user = userEvent.setup();
     const onChooseArchive = vi.fn().mockResolvedValue("/synthetic/export.zip");

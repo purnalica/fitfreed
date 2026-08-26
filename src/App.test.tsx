@@ -1017,7 +1017,7 @@ describe("FitFreed import interface", () => {
     }))
       .toBeVisible();
     expect(screen.getByText(
-      "No account. No upload. The archive and library stay on this device.",
+      "No account is required. Nothing has been uploaded. Choose an archive to create a library that will stay on this device.",
     ))
       .toBeVisible();
 

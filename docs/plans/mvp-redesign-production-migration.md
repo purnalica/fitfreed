@@ -2552,6 +2552,10 @@ item, byte, and time thresholds while always preserving first, phase, cancellati
 events. Same-phase regressions are not delivered. A dense 12,000-item synthetic reconciliation is bounded to 50
 channel events in the no-time-advance profile, and the shell now displays the localized phase and grouped numeric
 progress while the user works outside Sources.
+**Execution checkpoint — factual local-state copy:** first-run Home no longer claims that an archive or library already
+remains on the device. Sources distinguishes the state before selection, after local ZIP selection, and after a usable
+library exists. Each state says only what has happened or will happen and retains the no-upload and no-credential
+boundary in both locales.
 Process creation still maps permission, missing-launcher, and operating-system failures to stable application
 categories; a non-successful exit maps to delegation failure. Focused tests cover the exact invocation and every
 result without granting presentation arbitrary URL authority. Actual default-browser appearance remains the
