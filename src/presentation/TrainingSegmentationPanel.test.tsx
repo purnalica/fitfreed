@@ -179,11 +179,16 @@ describe("TrainingSegmentationPanel", () => {
     expect(within(fiveMinuteCard!).getByRole("img", {
       name: "Five-minute blocks: 2 FitFreed-derived segments across the exercise timeline.",
     })).toBeVisible();
+    expect(within(fiveMinuteCard!).getByRole("table")).not.toBeVisible();
+    await userEvent.click(within(fiveMinuteCard!).getByText("Exact segment timings"));
     const table = within(fiveMinuteCard!).getByRole("table");
     expect(within(table).getAllByRole("row")).toHaveLength(3);
+    expect(within(table).queryByRole("columnheader", { name: "Attribution" }))
+      .not.toBeInTheDocument();
     expect(table).toHaveTextContent("0 min");
     expect(table).toHaveTextContent("5 min");
     expect(table).toHaveTextContent("10 min");
+    expect(screen.getByText("Authorship stays visible")).toBeVisible();
 
     const heartRateCard = screen.getByRole("heading", { name: "Tempo range" })
       .closest("article");

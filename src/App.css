@@ -445,6 +445,14 @@ table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .history-grid table th, .history-grid table td { overflow-wrap: anywhere; }
 th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 th:last-child, td:last-child { text-align: right; }
+.data-table-scroll { max-width: 100%; overflow-x: auto; }
+.data-table { width: 100%; margin: 0; }
+.data-table th, .data-table td { vertical-align: top; text-align: left; }
+.data-table .data-table-number {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 .activity-detail { margin-top: 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .activity-detail-heading { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
 .activity-detail-heading h2 { margin: 0 0 5px; }

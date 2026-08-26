@@ -1,6 +1,11 @@
 import { type Ref, useMemo } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
+import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
 import { exactDecimalFormatter, formatDetailDuration } from "./presentation-format";
 import { formatDistance } from "./training-format";
 import type {
@@ -158,32 +163,33 @@ export function TrainingSessionZonesPanel({
             );
           })}
         </div>
-        <div className="training-table-scroll" tabIndex={0}>
-          <table>
+        <details className="answer-exact-values training-zone-exact">
+          <summary>{copy.zoneExactValues}</summary>
+          <DataTable accessibleName={`${heading} · ${copy.zoneExactValues}`}>
             <thead><tr>
-              <th scope="col">{copy.zoneNumber}</th>
-              <th scope="col">{copy.zoneRange}</th>
-              <th scope="col">{copy.zoneTime}</th>
-              <th scope="col">{copy.zoneDistance}</th>
-              <th scope="col">{copy.zoneMuscleLoad}</th>
+              <NumericTableHeader scope="col">{copy.zoneNumber}</NumericTableHeader>
+              <NumericTableHeader scope="col">{copy.zoneRange}</NumericTableHeader>
+              <NumericTableHeader scope="col">{copy.zoneTime}</NumericTableHeader>
+              <NumericTableHeader scope="col">{copy.zoneDistance}</NumericTableHeader>
+              <NumericTableHeader scope="col">{copy.zoneMuscleLoad}</NumericTableHeader>
             </tr></thead>
             <tbody>{group.zones.map((zone) => (
               <tr key={zone.zoneRef}>
-                <th scope="row">{number.format(zone.ordinal + 1)}</th>
-                <td>{number.format(zone.lowerLimit)}–{number.format(zone.higherLimit)} {unit}</td>
-                <td>{zone.timeInZoneMilliseconds === null
+                <NumericTableHeader scope="row">{number.format(zone.ordinal + 1)}</NumericTableHeader>
+                <NumericTableCell>{number.format(zone.lowerLimit)}–{number.format(zone.higherLimit)} {unit}</NumericTableCell>
+                <NumericTableCell>{zone.timeInZoneMilliseconds === null
                   ? copy.zoneNotRecorded
                   : formatDetailDuration(
                     zone.timeInZoneMilliseconds,
                     locale,
                     messages.training.durationUnits,
-                  )}</td>
-                <td>{distance(zone, group)}</td>
-                <td>{muscleLoad(zone, group)}</td>
+                  )}</NumericTableCell>
+                <NumericTableCell>{distance(zone, group)}</NumericTableCell>
+                <NumericTableCell>{muscleLoad(zone, group)}</NumericTableCell>
               </tr>
             ))}</tbody>
-          </table>
-        </div>
+          </DataTable>
+        </details>
       </section>
     );
   }

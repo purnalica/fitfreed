@@ -4,6 +4,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import {
+  DataTable,
+  NumericTableCell,
+  NumericTableHeader,
+} from "./DataTable";
+import {
   formatDetailDuration,
   integerCountFormatter,
   measurementDecimalFormatter,
@@ -341,31 +346,30 @@ export function TrainingSegmentationPanel({
           && <p>{copy.segmentNoMatches}</p>}
         {timeline(applied, exercise)}
         {applied.segments.length > 0 && (
-          <div className="training-table-scroll" tabIndex={0}>
-            <table>
+          <details className="answer-exact-values training-segment-exact">
+            <summary>{copy.segmentExactTimings}</summary>
+            <DataTable accessibleName={`${applied.criterion.title} · ${copy.segmentExactTimings}`}>
               <thead><tr>
-                <th scope="col">{copy.segmentNumber}</th>
-                <th scope="col">{copy.segmentStart}</th>
-                <th scope="col">{copy.segmentEnd}</th>
-                <th scope="col">{messages.training.duration}</th>
-                <th scope="col">{copy.segmentAttribution}</th>
+                <NumericTableHeader scope="col">{copy.segmentNumber}</NumericTableHeader>
+                <NumericTableHeader scope="col">{copy.segmentStart}</NumericTableHeader>
+                <NumericTableHeader scope="col">{copy.segmentEnd}</NumericTableHeader>
+                <NumericTableHeader scope="col">{messages.training.duration}</NumericTableHeader>
               </tr></thead>
               <tbody>{applied.segments.map((segment) => (
                 <tr key={segment.ordinal}>
-                  <th scope="row">{number.format(segment.ordinal + 1)}</th>
-                  <td>{formatDetailDuration(segment.startedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</td>
-                  <td>{formatDetailDuration(segment.endedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</td>
-                  <td>{formatDetailDuration(
+                  <NumericTableHeader scope="row">{number.format(segment.ordinal + 1)}</NumericTableHeader>
+                  <NumericTableCell>{formatDetailDuration(segment.startedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
+                  <NumericTableCell>{formatDetailDuration(segment.endedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
+                  <NumericTableCell>{formatDetailDuration(
                     (BigInt(segment.endedAtElapsedMilliseconds)
                       - BigInt(segment.startedAtElapsedMilliseconds)).toString(),
                     locale,
                     messages.training.durationUnits,
-                  )}</td>
-                  <td>{copy.segmentCalculatedByFitFreed}</td>
+                  )}</NumericTableCell>
                 </tr>
               ))}</tbody>
-            </table>
-          </div>
+            </DataTable>
+          </details>
         )}
         <div className="training-segment-actions">
           <button

@@ -2743,6 +2743,13 @@ boundary. Boundary tests cover precision transitions, signs, locale separators, 
 the complete 394-test React suite, localization contract, UI contract, and production build pass. Screen hierarchy,
 table composition, responsive alignment, and the independent density review remain open within X7-R3.
 
+**Execution checkpoint — concise segment and zone evidence:** personal segment timelines and recorded-zone
+distributions now answer before their complete values enumerate. Native disclosures retain every exact row for
+keyboard and assistive-technology use, while one shared `DataTable` owns the labelled scroll boundary and explicit
+tabular numeric alignment. Segment authorship and calculation attribution remain in the containing explanation and
+were removed from the repeated row schema. The remaining table families and primary screens still require migration
+and independent review before X7-R3 can close.
+
 ### X7-R4 — Adopt a mature analytical visualization foundation
 
 **Findings:** XH-16 and XH-22.

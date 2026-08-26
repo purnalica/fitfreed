@@ -1024,6 +1024,7 @@
       "zoneTime": "Tiempo registrado",
       "zoneDistance": "Distancia registrada",
       "zoneMuscleLoad": "Carga muscular registrada",
+      "zoneExactValues": "Valores exactos de las zonas registradas",
       "zoneNotRecorded": "No registrado",
       "zoneNotApplicable": "No aplicable",
       "unsupportedZoneGroups": {
@@ -1098,7 +1099,7 @@
       "segmentNumber": "Segmento",
       "segmentStart": "Inicio transcurrido",
       "segmentEnd": "Final transcurrido",
-      "segmentAttribution": "Atribución",
+      "segmentExactTimings": "Tiempos exactos de los segmentos",
       "segmentMoveEarlier": "Mover antes",
       "segmentMoveLater": "Mover después",
       "segmentConfigure": "Configurar definición",

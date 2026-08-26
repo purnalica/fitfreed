@@ -85,6 +85,11 @@ presentation role. The UI-contract check scans every production TypeScript and T
 direct `Intl` formatter construction outside this boundary, so a feature cannot silently introduce a
 second grouping, date, sign, coordinate, or precision policy.
 
+`DataTable` owns the labelled horizontal-scroll region, semantic caption, and explicit numeric header and
+cell alignment used by exact evidence. Segment and zone components keep their timeline or distribution in
+the primary composition and mount the complete table inside a native disclosure. Set-level authorship and
+source attribution remain in the containing explanation rather than becoming one repeated table column.
+
 Report refresh crosses the same boundaries: Tauri validates the exact saved definition revision, saved
 snapshot, and reviewed candidate; the application re-resolves through authoritative ports and performs
 optimistic compare-and-save; SQLite advances existing snapshot and revision columns without storing resolved

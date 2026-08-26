@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
@@ -67,7 +68,7 @@ const assessment: TrainingExerciseZones = {
 afterEach(cleanup);
 
 describe("TrainingSessionZonesPanel", () => {
-  it("renders source attribution, proportional known time, and every exact value", () => {
+  it("renders source attribution and proportional known time before exact values", async () => {
     render(
       <TrainingSessionZonesPanel
         assessment={assessment}
@@ -83,10 +84,15 @@ describe("TrainingSessionZonesPanel", () => {
     expect(within(heartRate).getByRole("img", {
       name: "Heart rate distribution with recorded time for 1 of 2 zones.",
     })).toBeVisible();
+    expect(within(heartRate).getByRole("table")).not.toBeVisible();
+    await userEvent.click(within(heartRate).getByText("Exact recorded zone values"));
     expect(within(heartRate).getAllByRole("row")).toHaveLength(3);
     expect(heartRate).toHaveTextContent("120–139 bpm");
     expect(heartRate).toHaveTextContent("15 min");
     expect(heartRate).toHaveTextContent("Not recorded");
+    const exactDisclosures = within(panel).getAllByText("Exact recorded zone values");
+    await userEvent.click(exactDisclosures[1]);
+    await userEvent.click(exactDisclosures[2]);
     expect(panel).toHaveTextContent("8–10 km/h");
     expect(panel).toHaveTextContent("2,500.5 m");
     expect(panel).toHaveTextContent("180–219 W");
@@ -154,7 +160,7 @@ describe("TrainingSessionZonesPanel", () => {
     expect(screen.getByText("The source provided this group with no bands.")).toBeVisible();
   });
 
-  it("localizes labels and exact numeric evidence for Spanish", () => {
+  it("localizes labels and exact numeric evidence for Spanish", async () => {
     render(
       <TrainingSessionZonesPanel
         assessment={assessment}
@@ -165,6 +171,7 @@ describe("TrainingSessionZonesPanel", () => {
 
     const panel = screen.getByRole("region", { name: "Zonas registradas" });
     expect(panel).toHaveTextContent("Registrado por el origen");
+    await userEvent.click(within(panel).getAllByText("Valores exactos de las zonas registradas")[1]);
     expect(panel).toHaveTextContent("2.500,5 m");
     expect(panel).toHaveTextContent("No registrado");
   });

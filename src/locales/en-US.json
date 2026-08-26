@@ -1024,6 +1024,7 @@
       "zoneTime": "Recorded time",
       "zoneDistance": "Recorded distance",
       "zoneMuscleLoad": "Recorded muscle load",
+      "zoneExactValues": "Exact recorded zone values",
       "zoneNotRecorded": "Not recorded",
       "zoneNotApplicable": "Not applicable",
       "unsupportedZoneGroups": {
@@ -1098,7 +1099,7 @@
       "segmentNumber": "Segment",
       "segmentStart": "Elapsed start",
       "segmentEnd": "Elapsed end",
-      "segmentAttribution": "Attribution",
+      "segmentExactTimings": "Exact segment timings",
       "segmentMoveEarlier": "Move earlier",
       "segmentMoveLater": "Move later",
       "segmentConfigure": "Configure definition",

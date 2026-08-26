@@ -107,7 +107,10 @@ When supported recorded zones are the only detailed visual evidence, their exact
 aggregate distribution take the leading region. Heart-rate time, speed distance, or power muscle load is
 compared only within one selectable source group. The view states its coverage, renders missing aggregate
 values differently from recorded zero, and opens the chosen exact group without implying when a zone
-occurred or treating source bands as personal segments.
+occurred or treating source bands as personal segments. The distribution remains primary; its numeric band,
+duration, distance, and load table opens only on explicit request. Personal segmentation follows the same
+hierarchy: the timeline answers first, exact boundaries are disclosed on request, and authorship is explained
+once for the criterion set instead of repeated in every row.
 Supported recorded heart-rate, speed, and power zones preserve
 their exact bounds and applicable aggregates without implying a timeline. Session provenance loads only on
 request and distinguishes source revision time, local import time, interpretation versions, and reconciliation
