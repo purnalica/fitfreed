@@ -24,9 +24,11 @@ interface TrainingSportsPanelProps {
   refreshToken: number;
   openSportRef?: string;
   navigationRequestId?: number;
+  sessionReturnFocus?: { sessionFilterRef: string; requestId: number };
   classificationChange?: TrainingSportClassificationChange;
   onError: (code: string | undefined) => void;
   onChange?: (result: SavedTrainingSportClassification) => void;
+  onOpenSessions?: (sport: TrainingSport) => void;
 }
 
 function localDate(value: string): Date {
@@ -62,19 +64,26 @@ export function TrainingSportsPanel({
   refreshToken,
   openSportRef,
   navigationRequestId,
+  sessionReturnFocus,
   classificationChange,
   onError,
   onChange,
+  onOpenSessions = () => undefined,
 }: TrainingSportsPanelProps) {
   const [overview, setOverview] = useState<TrainingSportsOverview>();
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [editingSportRef, setEditingSportRef] = useState<string>();
+  const [editingSessionFilterRef, setEditingSessionFilterRef] = useState<string>();
   const [taskBusy, setTaskBusy] = useState(false);
   const [status, setStatus] = useState<string>();
   const actionRefs = useRef(new Map<string, HTMLButtonElement>());
-  const returnFocusSportRef = useRef<string | undefined>(undefined);
+  const sessionActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const returnFocusIdentity = useRef<{
+    sessionFilterRef: string;
+    sportRef?: string;
+  } | undefined>(undefined);
   const handledNavigationRequest = useRef<number | undefined>(undefined);
+  const handledSessionReturnRequest = useRef<number | undefined>(undefined);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
@@ -87,7 +96,7 @@ export function TrainingSportsPanel({
     let active = true;
     setLoading(true);
     setFailed(false);
-    setEditingSportRef(undefined);
+    setEditingSessionFilterRef(undefined);
     setStatus(undefined);
     invoke<TrainingSportsOverview>("query_training_sports")
       .then((result) => {
@@ -126,9 +135,20 @@ export function TrainingSportsPanel({
     handledNavigationRequest.current = navigationRequestId;
     const requested = overview.sports.find((sport) => sport.sportRef === openSportRef);
     if (!requested?.classification) return;
-    setEditingSportRef(openSportRef);
+    setEditingSessionFilterRef(requested.sessionFilterRef);
     setStatus(undefined);
   }, [navigationRequestId, openSportRef, overview]);
+
+  useEffect(() => {
+    if (
+      !sessionReturnFocus
+      || handledSessionReturnRequest.current === sessionReturnFocus.requestId
+    ) return;
+    handledSessionReturnRequest.current = sessionReturnFocus.requestId;
+    return restoreFocusAfterReveal(
+      sessionActionRefs.current.get(sessionReturnFocus.sessionFilterRef) ?? null,
+    );
+  }, [sessionReturnFocus]);
 
   function titleFor(sport: TrainingSport): string {
     const unknownSports = overview?.sports.filter((candidate) =>
@@ -140,30 +160,41 @@ export function TrainingSportsPanel({
 
   function beginEditing(sport: TrainingSport) {
     if (!sport.sportRef) return;
-    setEditingSportRef(sport.sportRef);
+    setEditingSessionFilterRef(sport.sessionFilterRef);
     setStatus(undefined);
   }
 
-  function finishEditing(sportRef: string) {
-    returnFocusSportRef.current = sportRef;
-    setEditingSportRef(undefined);
+  function finishEditing(sessionFilterRef: string, sportRef?: string) {
+    returnFocusIdentity.current = { sessionFilterRef, sportRef };
+    setEditingSessionFilterRef(undefined);
   }
 
   function classificationSaved(
+    sessionFilterRef: string,
     sportRef: string,
     result: SavedTrainingSportClassification,
   ) {
     setStatus(result.outcome === "changed" ? copy.saved : copy.unchanged);
-    finishEditing(sportRef);
+    finishEditing(sessionFilterRef, sportRef);
     if (result.outcome === "changed") onChange?.(result);
   }
 
   useEffect(() => {
-    if (editingSportRef !== undefined || returnFocusSportRef.current === undefined) return;
-    const sportRef = returnFocusSportRef.current;
-    returnFocusSportRef.current = undefined;
-    return restoreFocusAfterReveal(actionRefs.current.get(sportRef) ?? null);
-  }, [editingSportRef]);
+    if (
+      editingSessionFilterRef !== undefined
+      || returnFocusIdentity.current === undefined
+    ) return;
+    const { sessionFilterRef, sportRef } = returnFocusIdentity.current;
+    returnFocusIdentity.current = undefined;
+    const currentSessionFilterRef = actionRefs.current.has(sessionFilterRef)
+      ? sessionFilterRef
+      : overview?.sports.find((sport) => sport.sportRef === sportRef)?.sessionFilterRef;
+    return restoreFocusAfterReveal(
+      currentSessionFilterRef
+        ? actionRefs.current.get(currentSessionFilterRef) ?? null
+        : null,
+    );
+  }, [editingSessionFilterRef, overview]);
 
   const summary = overview && interpolate(
     copy.summary[plural.select(overview.sports.length) === "one" ? "one" : "other"],
@@ -198,13 +229,13 @@ export function TrainingSportsPanel({
         <ul className="training-sport-list">
           {overview.sports.map((sport, index) => {
             const title = titleFor(sport);
-            const editing = editingSportRef === sport.sportRef;
+            const editing = editingSessionFilterRef === sport.sessionFilterRef;
             const sessionTemplate = copy.sessions[
               plural.select(sport.coverage.sessionCount) === "one" ? "one" : "other"
             ];
             return (
               <li
-                key={sport.sportRef ?? `unavailable-${index}`}
+                key={sport.sessionFilterRef}
                 data-state={sport.state}
                 data-sport-family={sportCanonicalFamily(sport) ?? sport.state}
               >
@@ -229,21 +260,39 @@ export function TrainingSportsPanel({
                       </p>
                     </div>
                   </div>
-                  {sport.state !== "unavailable" && !editing && (
+                  <div className="training-sport-card-actions">
                     <button
                       type="button"
-                      className="secondary"
                       ref={(element) => {
-                        if (!sport.sportRef) return;
-                        if (element) actionRefs.current.set(sport.sportRef, element);
-                        else actionRefs.current.delete(sport.sportRef);
+                        if (element) {
+                          sessionActionRefs.current.set(sport.sessionFilterRef, element);
+                        } else {
+                          sessionActionRefs.current.delete(sport.sessionFilterRef);
+                        }
                       }}
                       disabled={taskBusy}
-                      onClick={() => beginEditing(sport)}
+                      onClick={() => onOpenSessions(sport)}
                     >
-                      {sport.state === "personally-overridden" ? copy.editNamed : copy.edit}
+                      {copy.viewSessions}
                     </button>
-                  )}
+                    {sport.state !== "unavailable" && sport.sportRef && !editing && (
+                      <button
+                        type="button"
+                        className="secondary training-sport-classify"
+                        ref={(element) => {
+                          if (element) {
+                            actionRefs.current.set(sport.sessionFilterRef, element);
+                          } else {
+                            actionRefs.current.delete(sport.sessionFilterRef);
+                          }
+                        }}
+                        disabled={taskBusy}
+                        onClick={() => beginEditing(sport)}
+                      >
+                        {sport.state === "personally-overridden" ? copy.editNamed : copy.edit}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {sport.state === "personally-overridden" && (
@@ -290,14 +339,18 @@ export function TrainingSportsPanel({
                     sport={sport}
                     title={title}
                     messages={copy}
-                    onCancel={() => finishEditing(sport.sportRef!)}
+                    onCancel={() => finishEditing(sport.sessionFilterRef, sport.sportRef ?? undefined)}
                     onBusyChange={setTaskBusy}
                     onError={onError}
                     onOverviewChange={(nextOverview) => {
                       setOverview(nextOverview);
                       setFailed(false);
                     }}
-                    onSaved={(result) => classificationSaved(sport.sportRef!, result)}
+                    onSaved={(result) => classificationSaved(
+                      sport.sessionFilterRef,
+                      sport.sportRef!,
+                      result,
+                    )}
                   />
                 )}
               </li>

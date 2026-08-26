@@ -129,12 +129,13 @@
     "sportUnknownIndexed": "Deporte desconocido {index}",
     "sportUnavailable": "Deporte no registrado",
     "classifySport": "Poner nombre a este deporte",
+    "openSportSessions": "Ver las sesiones de {sport}",
     "classifySportAccessible": "Poner nombre a {sport}",
     "sportSessions": {
       "one": "{count} sesión",
       "other": "{count} sesiones"
     },
-    "sportProfiles": {
+    "sportCollections": {
       "one": "{count} tipo de deporte registrado",
       "other": "{count} tipos de deporte registrados"
     },
@@ -1164,6 +1165,8 @@
       "duration": "Duración total",
       "distanceCoverage": "Distancia en {available} de {total} sesiones",
       "heartRateCoverage": "Frecuencia cardíaca en {available} de {total} sesiones",
+      "viewSessions": "Ver sesiones",
+      "backToSports": "Volver a deportes",
       "edit": "Nombrar este deporte",
       "editNamed": "Editar nombre del deporte",
       "editorHeading": "Clasificar {sport}",

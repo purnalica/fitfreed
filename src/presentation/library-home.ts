@@ -57,13 +57,14 @@ export interface LibraryPostImportReveal {
 }
 
 export interface LibraryHomeSportSummary {
+  sessionFilterRefs: string[];
   sportRef: string | null;
   state: TrainingSportState;
   canonicalFamily: SportFamily | null;
   displayLabel: string | null;
   localizedNames: Record<string, string>;
   recognitionCandidateCount: number;
-  profileCount: number;
+  representedCollectionCount: number;
   sessionCount: number;
 }
 
@@ -83,8 +84,8 @@ export interface LibraryHomeRecentSession {
 export interface LibraryHomeTraining {
   trainingSnapshotRef: string;
   sessionCount: number;
-  sportProfileCount: number;
-  omittedSportProfileCount: number;
+  sportCollectionCount: number;
+  omittedSportCollectionCount: number;
   sports: LibraryHomeSportSummary[];
   recentSessions: LibraryHomeRecentSession[];
 }
@@ -128,7 +129,7 @@ export interface ExplorationWorkspace {
 }
 
 export interface LibraryHome {
-  version: 5;
+  version: 6;
   libraryRevisionRef: string;
   recordedRange: LibraryHomeDateRange | null;
   usableRange: LibraryHomeDateRange | null;
@@ -174,8 +175,9 @@ export interface LibraryHomeMessages {
   sportUnavailable: string;
   classifySport: string;
   classifySportAccessible: string;
+  openSportSessions: string;
   sportSessions: { one: string; other: string };
-  sportProfiles: { one: string; other: string };
+  sportCollections: { one: string; other: string };
   omittedSports: { one: string; other: string };
   recentHeading: string;
   recentIntro: string;

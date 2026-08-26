@@ -12,6 +12,11 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
       result: { overview: { sports: Array<{ classification: { displayLabel: string } }> } };
     };
     onSportClassificationChange: (result: unknown) => void;
+    sportSessionsNavigation?: {
+      sessionFilterRefs: string[];
+      returnWorkspace: "home" | "sports";
+    };
+    onReturnToSports: (sessionFilterRef: string) => void;
   }) => (
     <section aria-label="Session child">
       <button
@@ -32,6 +37,17 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
           ? `${properties.classificationChange.requestId}:${properties.classificationChange.result.overview.sports[0].classification.displayLabel}`
           : "none"}
       </output>
+      <output data-testid="session-filter">
+        {properties.sportSessionsNavigation?.sessionFilterRefs.join(",") ?? "none"}
+      </output>
+      <button
+        type="button"
+        onClick={() => properties.onReturnToSports(
+          properties.sportSessionsNavigation?.sessionFilterRefs[0] ?? "missing",
+        )}
+      >
+        Return to sports child
+      </button>
     </section>
   ),
 }));
@@ -44,6 +60,8 @@ vi.mock("./TrainingSportsPanel", () => ({
       result: { overview: { sports: Array<{ classification: { displayLabel: string } }> } };
     };
     onChange: (result: unknown) => void;
+    onOpenSessions: (sport: { sessionFilterRef: string }) => void;
+    sessionReturnFocus?: { sessionFilterRef: string; requestId: number };
   }) => (
     <section aria-label="Sports child">
       <output data-testid="open-sport-ref">{properties.openSportRef ?? "none"}</output>
@@ -65,6 +83,17 @@ vi.mock("./TrainingSportsPanel", () => ({
           ? `${properties.classificationChange.requestId}:${properties.classificationChange.result.overview.sports[0].classification.displayLabel}`
           : "none"}
       </output>
+      <output data-testid="sport-return-focus">
+        {properties.sessionReturnFocus?.sessionFilterRef ?? "none"}
+      </output>
+      <button
+        type="button"
+        onClick={() => properties.onOpenSessions({
+          sessionFilterRef: `sport-${"a".repeat(64)}`,
+        })}
+      >
+        Open sport sessions
+      </button>
     </section>
   ),
 }));
@@ -76,6 +105,33 @@ vi.mock("./TrainingComparisonPanel", () => ({
 afterEach(cleanup);
 
 describe("TrainingInsightsPanel", () => {
+  it("opens one sport collection and returns to the exact Sports origin", async () => {
+    const user = userEvent.setup();
+    render(
+      <TrainingInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        navigationRequest={{ kind: "sports", requestId: 1 }}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+        onSportClassificationChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open sport sessions" }));
+    expect(screen.getByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("session-filter"))
+      .toHaveTextContent(`sport-${"a".repeat(64)}`);
+
+    await user.click(screen.getByRole("button", { name: "Return to sports child" }));
+    expect(screen.getByRole("button", { name: "Sports" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("sport-return-focus"))
+      .toHaveTextContent(`sport-${"a".repeat(64)}`);
+  });
+
   it("opens the Sports workspace for an exact contextual classification request", () => {
     render(
       <TrainingInsightsPanel

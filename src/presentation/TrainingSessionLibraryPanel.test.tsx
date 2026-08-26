@@ -156,6 +156,7 @@ const sports: TrainingSportsOverview = {
   sessionCount: 26,
   sports: [
     {
+      sessionFilterRef: `sport-${"1".repeat(64)}`,
       sportRef: `sport-${"c".repeat(64)}`,
       sourceIndex: 1,
       state: "personally-overridden",
@@ -177,6 +178,7 @@ const sports: TrainingSportsOverview = {
       },
     },
     {
+      sessionFilterRef: `sport-${"2".repeat(64)}`,
       sportRef: `sport-${"d".repeat(64)}`,
       sourceIndex: 2,
       state: "unknown",
@@ -1053,6 +1055,64 @@ beforeEach(() => {
 });
 
 describe("TrainingSessionLibraryPanel", () => {
+  it("opens an exact sport collection and restores the prior session filters on return", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        return Promise.resolve(request.sportRefs.length > 0
+          ? page([newest], 0, 1, null)
+          : page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onAvailableRange = vi.fn();
+    const onReturnToSports = vi.fn();
+    const user = userEvent.setup();
+    const view = render(
+      <TrainingSessionLibraryPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onAvailableRange={onAvailableRange}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+        onReturnToSports={onReturnToSports}
+      />,
+    );
+    expect(await screen.findByText("26 matching sessions")).toBeVisible();
+
+    view.rerender(
+      <TrainingSessionLibraryPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        sportSessionsNavigation={{
+          sessionFilterRefs: [sports.sports[0].sessionFilterRef],
+          returnWorkspace: "sports",
+          requestId: 1,
+        }}
+        onAvailableRange={onAvailableRange}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+        onReturnToSports={onReturnToSports}
+      />,
+    );
+    expect(await screen.findByText("1 matching session")).toBeVisible();
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_sessions", {
+      request: expect.objectContaining({
+        sportRefs: [sports.sports[0].sessionFilterRef],
+        snapshotRef: null,
+      }),
+    });
+
+    await user.click(screen.getByRole("button", { name: "Back to sports" }));
+    expect(onReturnToSports).toHaveBeenCalledWith(sports.sports[0].sessionFilterRef);
+    expect(screen.getByText("26 matching sessions")).toBeVisible();
+  });
+
   it("names one unresolved sport in context through the shared classification task", async () => {
     const namedSport = {
       ...sports.sports[1],
@@ -1157,7 +1217,7 @@ describe("TrainingSessionLibraryPanel", () => {
       },
     };
     const restoredWorkspace: TrainingDiscoveryWorkspace = {
-      version: 1,
+      version: 2,
       snapshotRef,
       from: null,
       through: null,
@@ -1664,7 +1724,7 @@ describe("TrainingSessionLibraryPanel", () => {
       .toHaveFocus());
     expect(mocks.invoke).toHaveBeenLastCalledWith("query_training_sessions", {
       request: expect.objectContaining({
-        sportRefs: [sports.sports[1].sportRef],
+        sportRefs: [sports.sports[1].sessionFilterRef],
         offset: 0,
         snapshotRef: null,
       }),
@@ -1858,7 +1918,7 @@ describe("TrainingSessionLibraryPanel", () => {
   it("keeps an unavailable saved sport refinement explicit and removable without exposing its ref", async () => {
     const savedSportRef = `sport-${"9".repeat(64)}`;
     const workspace: TrainingDiscoveryWorkspace = {
-      version: 1,
+      version: 2,
       snapshotRef,
       from: null,
       through: null,
@@ -2232,7 +2292,7 @@ describe("TrainingSessionLibraryPanel", () => {
         request: {
           from: "2025-01-01",
           through: "2026-08-18",
-          sportRefs: [sports.sports[0].sportRef],
+          sportRefs: [sports.sports[0].sessionFilterRef],
           requiredMeasurements: ["distance", "energy", "heart-rate"],
           text: "Trail",
           sort: "distance-desc",
@@ -3270,11 +3330,11 @@ describe("TrainingSessionLibraryPanel", () => {
 
   it("restores filters, calendar origin, comparison, open detail, and the exact snapshot", async () => {
     const restoredWorkspace: TrainingDiscoveryWorkspace = {
-      version: 1,
+      version: 2,
       snapshotRef,
       from: "2026-01-01",
       through: "2026-08-18",
-      sportRefs: [sports.sports[0].sportRef!],
+      sportRefs: [sports.sports[0].sessionFilterRef],
       requiredMeasurements: ["distance", "heart-rate"],
       text: "Trail",
       sort: "distance-desc",
@@ -3299,7 +3359,7 @@ describe("TrainingSessionLibraryPanel", () => {
         expect(request).toEqual({
           from: "2026-08-18",
           through: "2026-08-18",
-          sportRefs: [sports.sports[0].sportRef],
+          sportRefs: [sports.sports[0].sessionFilterRef],
           requiredMeasurements: ["distance", "heart-rate"],
           text: "Trail",
           sort: "distance-desc",

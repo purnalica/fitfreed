@@ -99,6 +99,11 @@ interface TrainingSessionLibraryPanelProps {
   refreshToken: number;
   initialDate?: string;
   initialSessionRef?: string;
+  sportSessionsNavigation?: {
+    sessionFilterRefs: string[];
+    returnWorkspace: "home" | "sports";
+    requestId: number;
+  };
   navigationRequestId?: number;
   createReportFocusRequestId?: number;
   onAvailableRange: (range: { from: string; through: string } | null) => void;
@@ -106,6 +111,7 @@ interface TrainingSessionLibraryPanelProps {
   onError: (code: string | undefined) => void;
   classificationChange?: TrainingSportClassificationChange;
   onSportClassificationChange?: (result: SavedTrainingSportClassification) => void;
+  onReturnToSports?: (sessionFilterRef: string) => void;
 }
 
 interface SearchDraft {
@@ -115,6 +121,18 @@ interface SearchDraft {
   requiredMeasurements: TrainingMeasurementFilter[];
   text: string;
   sort: TrainingSessionSort;
+}
+
+interface SessionWorkspaceReturnState {
+  draft: SearchDraft;
+  applied: SearchDraft;
+  pageCriteria: SearchDraft;
+  page: TrainingSessionSearchPage | undefined;
+  view: SessionView;
+  calendarMonth: string;
+  calendar: TrainingSessionCalendar | undefined;
+  selectedCalendarDay: string | undefined;
+  comparison: TrainingSessionSearchItem[];
 }
 
 type AppliedRefinement =
@@ -252,6 +270,7 @@ export function TrainingSessionLibraryPanel({
   refreshToken,
   initialDate,
   initialSessionRef,
+  sportSessionsNavigation,
   navigationRequestId,
   createReportFocusRequestId,
   onAvailableRange,
@@ -259,6 +278,7 @@ export function TrainingSessionLibraryPanel({
   onError,
   classificationChange,
   onSportClassificationChange = () => undefined,
+  onReturnToSports = () => undefined,
 }: TrainingSessionLibraryPanelProps) {
   const [draft, setDraft] = useState<SearchDraft>(() => emptyDraft(initialDate));
   const [applied, setApplied] = useState<SearchDraft>(() => emptyDraft(initialDate));
@@ -349,6 +369,9 @@ export function TrainingSessionLibraryPanel({
   );
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
+  const currentWorkspaceRef = useRef<SessionWorkspaceReturnState | undefined>(undefined);
+  const sportWorkspaceReturnRef = useRef<SessionWorkspaceReturnState | undefined>(undefined);
+  const handledSportSessionsNavigation = useRef<number | undefined>(undefined);
   const dateRangeValidation = useInvalidForm(onError);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -390,6 +413,17 @@ export function TrainingSessionLibraryPanel({
     useGrouping: false,
     maximumSignificantDigits: 17,
   }), [locale]);
+  currentWorkspaceRef.current = {
+    draft,
+    applied,
+    pageCriteria,
+    page,
+    view,
+    calendarMonth,
+    calendar,
+    selectedCalendarDay,
+    comparison,
+  };
   const appliedRefinements = useMemo<AppliedRefinement[]>(() => {
     const refinements: AppliedRefinement[] = [];
     const label = (name: string, value: string) => interpolate(copy.refinementLabel, {
@@ -411,7 +445,9 @@ export function TrainingSessionLibraryPanel({
       });
     }
     applied.sportRefs.forEach((sportRef, index) => {
-      const sport = sports?.sports.find((candidate) => candidate.sportRef === sportRef);
+      const sport = sports?.sports.find(
+        (candidate) => candidate.sessionFilterRef === sportRef,
+      );
       refinements.push({
         key: `sport-${sportRef}`,
         kind: "sport",
@@ -472,6 +508,13 @@ export function TrainingSessionLibraryPanel({
 
   useEffect(() => {
     let active = true;
+    if (
+      sportSessionsNavigation?.returnWorkspace === "sports"
+      && handledSportSessionsNavigation.current !== sportSessionsNavigation.requestId
+    ) {
+      sportWorkspaceReturnRef.current = currentWorkspaceRef.current;
+      handledSportSessionsNavigation.current = sportSessionsNavigation.requestId;
+    }
     setWorkspaceReady(false);
     setLoading(true);
     setFailed(false);
@@ -481,7 +524,7 @@ export function TrainingSessionLibraryPanel({
     void (async () => {
       const [sportsResult, workspaceResult] = await Promise.allSettled([
         invoke<TrainingSportsOverview>("query_training_sports"),
-        initialDate
+        initialDate || sportSessionsNavigation
           ? Promise.resolve(null)
           : invoke<TrainingDiscoveryWorkspace | null>("load_training_discovery_workspace"),
       ]);
@@ -496,8 +539,13 @@ export function TrainingSessionLibraryPanel({
       if (workspaceResult.status === "rejected") {
         onError(commandErrorCode(workspaceResult.reason));
       }
-      const nextDraft = restored ? draftFromWorkspace(restored) : emptyDraft(initialDate);
-      const nextView = restored?.view ?? "chronology";
+      const nextDraft = sportSessionsNavigation
+        ? {
+            ...emptyDraft(),
+            sportRefs: [...sportSessionsNavigation.sessionFilterRefs],
+          }
+        : restored ? draftFromWorkspace(restored) : emptyDraft(initialDate);
+      const nextView = sportSessionsNavigation ? "chronology" : restored?.view ?? "chronology";
       let nextCalendarDay = restored?.calendarDay ?? null;
       let nextPageCriteria = criteriaForCalendarDay(nextDraft, nextCalendarDay);
       let snapshotRef = restored?.snapshotRef ?? null;
@@ -651,6 +699,7 @@ export function TrainingSessionLibraryPanel({
     refreshToken,
     initialDate,
     initialSessionRef,
+    sportSessionsNavigation?.requestId,
     navigationRequestId,
     onAvailableRange,
     onError,
@@ -722,7 +771,7 @@ export function TrainingSessionLibraryPanel({
   useEffect(() => {
     if (!workspaceReady || !page || failed || loading || calendarLoading) return;
     const workspace: TrainingDiscoveryWorkspace = {
-      version: 1,
+      version: 2,
       snapshotRef: page.snapshotRef,
       from: applied.from || null,
       through: applied.through || null,
@@ -943,6 +992,28 @@ export function TrainingSessionLibraryPanel({
     });
   }
 
+  function returnToSportsWorkspace() {
+    const previous = sportWorkspaceReturnRef.current;
+    const sessionFilterRef = sportSessionsNavigation?.sessionFilterRefs[0];
+    if (!previous || !sessionFilterRef) return;
+    setDraft(previous.draft);
+    setApplied(previous.applied);
+    setPageCriteria(previous.pageCriteria);
+    setPage(previous.page);
+    setView(previous.view);
+    setCalendarMonth(previous.calendarMonth);
+    setCalendar(previous.calendar);
+    setSelectedCalendarDay(previous.selectedCalendarDay);
+    setComparison(previous.comparison);
+    detailOriginButtonRef.current = null;
+    setSelected(undefined);
+    setFailed(false);
+    setStatus(undefined);
+    onAvailableRange(previous.page?.availableRange ?? null);
+    sportWorkspaceReturnRef.current = undefined;
+    onReturnToSports(sessionFilterRef);
+  }
+
   function removeAppliedRefinement(
     refinement: AppliedRefinement,
     initiatingElement: HTMLButtonElement,
@@ -978,6 +1049,24 @@ export function TrainingSessionLibraryPanel({
         ? current.sportRefs.filter((candidate) => candidate !== sportRef)
         : [...current.sportRefs, sportRef],
     }));
+  }
+
+  function openSportSessionsFilter(
+    sessionFilterRef: string,
+    initiatingElement: HTMLButtonElement,
+  ) {
+    const criteria = { ...emptyDraft(), sportRefs: [sessionFilterRef] };
+    setDraft(criteria);
+    void loadAppliedCriteria(criteria).then((result) => {
+      if (!result) return;
+      setApplied(criteria);
+      setSelectedCalendarDay(undefined);
+      restoreFocusAfterReveal(
+        appliedQueryFocusRef.current,
+        initiatingElement,
+        { align: "nearest" },
+      );
+    });
   }
 
   function selectView(next: SessionView) {
@@ -2097,6 +2186,16 @@ export function TrainingSessionLibraryPanel({
         </div>
       )}
       <div className="training-session-discovery" hidden={selected !== undefined}>
+        {sportSessionsNavigation?.returnWorkspace === "sports" && (
+          <button
+            type="button"
+            className="secondary training-session-return-to-sports"
+            disabled={loading}
+            onClick={returnToSportsWorkspace}
+          >
+            <span aria-hidden="true">← </span>{messages.training.sports.backToSports}
+          </button>
+        )}
         <header className="training-session-library-heading">
         <h2 id="training-session-library-heading" ref={libraryHeadingRef} tabIndex={-1}>
           {copy.heading}
@@ -2111,33 +2210,51 @@ export function TrainingSessionLibraryPanel({
         >
           <h3>{copy.sportSummaryHeading}</h3>
           <ul>
-            {sports.sports.map((sport, index) => (
+            {sports.sports.map((sport) => (
               <li
-                key={sport.sportRef ?? `unavailable-${index}`}
+                key={sport.sessionFilterRef}
                 data-state={sport.state}
                 data-sport-family={sportFamily(sport) ?? sport.state}
               >
                 <div className="training-history-sport-identity">
-                  <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
-                  <span>
-                    <strong
-                      ref={(element) => {
-                        if (!sport.sportRef) return;
-                        if (element) contextIdentityRefs.current.set(sport.sportRef, element);
-                        else contextIdentityRefs.current.delete(sport.sportRef);
-                      }}
-                      tabIndex={-1}
-                    >
-                      {sportTitle(sport)}
-                    </strong>
-                    <small>
-                      {number.format(sport.coverage.sessionCount)} {sessionUnit(
-                        sport.coverage.sessionCount,
-                      )}
-                    </small>
-                  </span>
+                  <button
+                    type="button"
+                    className="training-history-sport-open"
+                    disabled={loading}
+                    onClick={(event) => openSportSessionsFilter(
+                      sport.sessionFilterRef,
+                      event.currentTarget,
+                    )}
+                  >
+                    <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
+                    <span>
+                      <strong
+                        ref={(element) => {
+                          if (!sport.sportRef) return;
+                          const first = sports.sports.find(
+                            (candidate) => candidate.sportRef === sport.sportRef,
+                          );
+                          if (first?.sessionFilterRef !== sport.sessionFilterRef) return;
+                          if (element) contextIdentityRefs.current.set(sport.sportRef, element);
+                          else contextIdentityRefs.current.delete(sport.sportRef);
+                        }}
+                        tabIndex={-1}
+                      >
+                        {sportTitle(sport)}
+                      </strong>
+                      <small>
+                        {number.format(sport.coverage.sessionCount)} {sessionUnit(
+                          sport.coverage.sessionCount,
+                        )}
+                      </small>
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </button>
                   {(sport.state === "unknown" || sport.state === "ambiguous")
-                    && sport.sportRef && (
+                    && sport.sportRef
+                    && sports.sports.find(
+                      (candidate) => candidate.sportRef === sport.sportRef,
+                    )?.sessionFilterRef === sport.sessionFilterRef && (
                     <button
                       type="button"
                       className="secondary training-history-sport-classify"
@@ -2276,20 +2393,20 @@ export function TrainingSessionLibraryPanel({
             </select>
           </label>
         </div>
-        {sports && sports.sports.some((sport) => sport.sportRef !== null) && (
+        {sports && sports.sports.length > 0 && (
           <fieldset className="training-session-filter-options training-session-sport-options">
             <legend>{copy.sports}</legend>
-            {sports.sports.filter((sport) => sport.sportRef !== null).map((sport) => (
+            {sports.sports.map((sport) => (
               <label
-                key={sport.sportRef}
+                key={sport.sessionFilterRef}
                 data-state={sport.state}
                 data-sport-family={sportFamily(sport) ?? sport.state}
               >
                 <input
                   type="checkbox"
-                  checked={draft.sportRefs.includes(sport.sportRef!)}
+                  checked={draft.sportRefs.includes(sport.sessionFilterRef)}
                   disabled={loading}
-                  onChange={() => toggleSport(sport.sportRef!)}
+                  onChange={() => toggleSport(sport.sessionFilterRef)}
                 />
                 <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
                 <span>{sportTitle(sport)}</span>

@@ -502,14 +502,15 @@ function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
     training: {
       trainingSnapshotRef: "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       sessionCount: 24,
-      sportProfileCount: 1,
-      omittedSportProfileCount: 0,
+      sportCollectionCount: 1,
+      omittedSportCollectionCount: 0,
       sports: [{
+        sessionFilterRefs: [`sport-${"2".repeat(64)}`],
         sportRef: `sport-${"1".repeat(64)}`,
         state: "personally-overridden",
         canonicalFamily: "running",
         displayLabel: "Road running",
-        profileCount: 1,
+        representedCollectionCount: 1,
         sessionCount: 24,
       }],
       recentSessions: [{
@@ -1990,6 +1991,21 @@ describe("FitFreed import interface", () => {
       .toHaveAttribute("aria-current", "page");
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     await waitFor(() => expect(sports).toHaveFocus());
+
+    const roadRunning = screen.getByRole("button", {
+      name: "View sessions for Road running",
+    });
+    await user.click(roadRunning);
+    expect(await screen.findByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_sessions", {
+      request: expect.objectContaining({
+        sportRefs: [`sport-${"2".repeat(64)}`],
+        snapshotRef: null,
+      }),
+    });
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(roadRunning).toHaveFocus());
   });
 
   it("keeps an active import visible after leaving Sources and clears it after cancellation", async () => {
@@ -4076,6 +4092,7 @@ describe("FitFreed import interface", () => {
       exerciseCount: 1,
     };
     const unknownSport = {
+      sessionFilterRef: `sport-${"e".repeat(64)}`,
       sportRef,
       sourceIndex: 1,
       state: "unknown" as const,
@@ -4123,16 +4140,17 @@ describe("FitFreed import interface", () => {
           training: {
             trainingSnapshotRef: homeNamed ? "training-snapshot-named" : "training-snapshot-old",
             sessionCount: 1,
-            sportProfileCount: 1,
-            omittedSportProfileCount: 0,
+            sportCollectionCount: 1,
+            omittedSportCollectionCount: 0,
             sports: [{
+              sessionFilterRefs: [unknownSport.sessionFilterRef],
               sportRef,
               state: homeNamed ? "personally-overridden" : "unknown",
               canonicalFamily: homeNamed ? "water-sport" : null,
               displayLabel: homeNamed ? "River paddling" : null,
               localizedNames: {},
               recognitionCandidateCount: 0,
-              profileCount: 1,
+              representedCollectionCount: 1,
               sessionCount: 1,
             }],
             recentSessions: [{

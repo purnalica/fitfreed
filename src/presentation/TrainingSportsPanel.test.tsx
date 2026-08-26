@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
 
 const unknownSport: TrainingSport = {
+  sessionFilterRef: `sport-${"1".repeat(64)}`,
   sportRef: "sport-local-unknown",
   sourceIndex: 2,
   state: "unknown",
@@ -37,6 +38,7 @@ const unknownSport: TrainingSport = {
 };
 
 const classifiedSport: TrainingSport = {
+  sessionFilterRef: `sport-${"2".repeat(64)}`,
   sportRef: "sport-local-running",
   sourceIndex: 1,
   state: "personally-overridden",
@@ -59,6 +61,7 @@ const classifiedSport: TrainingSport = {
 };
 
 const unavailableSport: TrainingSport = {
+  sessionFilterRef: `sport-${"3".repeat(64)}`,
   sportRef: null,
   sourceIndex: 1,
   state: "unavailable",
@@ -114,6 +117,28 @@ beforeEach(() => {
 });
 
 describe("TrainingSportsPanel", () => {
+  it("opens the exact represented session collection independently from classification", async () => {
+    mocks.invoke.mockResolvedValueOnce(overview([recognizedSport, unavailableSport]));
+    const onOpenSessions = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onError={vi.fn()}
+        onOpenSessions={onOpenSessions}
+      />,
+    );
+
+    const kayaking = (await screen.findByRole("heading", { name: "Kayaking" })).closest("li");
+    expect(kayaking).not.toBeNull();
+    await user.click(within(kayaking!).getByRole("button", { name: "View sessions" }));
+    expect(onOpenSessions).toHaveBeenCalledWith(recognizedSport);
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+  });
+
   it("distinguishes localized catalogue recognition from ambiguous evidence", async () => {
     mocks.invoke.mockResolvedValueOnce(overview([recognizedSport, ambiguousSport]));
 
@@ -257,13 +282,19 @@ describe("TrainingSportsPanel", () => {
       .getByRole("heading", { name: "Unknown sport 1" })
       .closest("li");
     expect(unknownCard).not.toBeNull();
-    await user.click(within(unknownCard!).getByRole("button", { name: "Name this sport" }));
+    const classifyAction = within(unknownCard!).getByRole("button", {
+      name: "Name this sport",
+    });
+    await user.click(classifyAction);
     let editor = within(unknownCard!).getByRole("form", { name: "Classify Unknown sport 1" });
     expect(within(editor).getByRole("button", { name: "Save sport classification" }))
       .toBeDisabled();
     await user.type(within(editor).getByLabelText("Your sport name"), "Discarded draft");
     await user.click(within(editor).getByRole("button", { name: "Cancel editing" }));
     expect(within(unknownCard!).queryByRole("form")).not.toBeInTheDocument();
+    await waitFor(() => expect(within(unknownCard!).getByRole("button", {
+      name: "Name this sport",
+    })).toHaveFocus());
     expect(mocks.invoke).toHaveBeenCalledTimes(1);
 
     await user.click(within(unknownCard!).getByRole("button", { name: "Name this sport" }));
@@ -451,6 +482,7 @@ describe("TrainingSportsPanel", () => {
 
     const classified = {
       ...unknownSport,
+      sessionFilterRef: `sport-${"9".repeat(64)}`,
       state: "personally-overridden" as const,
       classification: {
         canonicalFamily: null,
@@ -463,6 +495,9 @@ describe("TrainingSportsPanel", () => {
 
     expect(await screen.findByRole("heading", { name: "Gravel cycling" })).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Sport classification saved.");
+    await waitFor(() => expect(
+      screen.getByRole("button", { name: "Edit sport name" }),
+    ).toHaveFocus());
   });
 
   it("keeps classification actions stable and announces marking a sport as unknown", async () => {

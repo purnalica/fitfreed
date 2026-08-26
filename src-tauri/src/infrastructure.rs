@@ -179,7 +179,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 29;
+const SCHEMA_VERSION: i64 = 30;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -209,6 +209,7 @@ const SCHEMA_V26: &str = include_str!("../migrations/0026_training_session_range
 const SCHEMA_V27: &str = include_str!("../migrations/0027_training_session_range_coordinates.sql");
 const SCHEMA_V28: &str = include_str!("../migrations/0028_provider_sport_catalogue.sql");
 const SCHEMA_V29: &str = include_str!("../migrations/0029_training_session_sport_evidence.sql");
+const SCHEMA_V30: &str = include_str!("../migrations/0030_training_discovery_workspace_v2.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@12";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@7";
@@ -221,6 +222,8 @@ const POLAR_DETAILED_SPORT_CATALOGUE_REVISION: &str =
     "polar-accesslink-detailed-sport-info@2026-05-06";
 const POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC: &str = "2026-08-26T11:25:54Z";
 const POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION: &str = "polar-training-target-sport@1";
+const LEGACY_TRAINING_WORKSPACE_VERSION: u32 = 1;
+const TRAINING_WORKSPACE_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderSportCatalogueEntryEvidence {
@@ -2165,8 +2168,55 @@ struct TrainingDiscoverySportEntry {
     public_sport: TrainingSessionSport,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum TrainingSportFilterScope {
+    SourceProfile { includes_exact_evidence: bool },
+    ExactEvidence { source_sport_codes: Vec<String> },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct TrainingSportGroupKey {
+    origin_id: String,
+    source_sport_ref: Option<String>,
+    scope: TrainingSportFilterScope,
+}
+
+struct TrainingSportFilterEntry {
+    key: TrainingSportGroupKey,
+    detected: DetectedTrainingSport,
+    public_sport: TrainingSessionSport,
+}
+
+fn training_sport_group_key(
+    source_entry: &TrainingDiscoverySportEntry,
+    exact_evidence: Option<&ExactTrainingSportEvidence>,
+) -> TrainingSportGroupKey {
+    let personally_overridden = source_entry
+        .classification
+        .as_ref()
+        .is_some_and(|classification| classification.authorship().is_some());
+    let scope = if personally_overridden {
+        TrainingSportFilterScope::SourceProfile {
+            includes_exact_evidence: true,
+        }
+    } else if let Some(exact_evidence) = exact_evidence {
+        TrainingSportFilterScope::ExactEvidence {
+            source_sport_codes: exact_evidence.source_sport_codes.clone(),
+        }
+    } else {
+        TrainingSportFilterScope::SourceProfile {
+            includes_exact_evidence: false,
+        }
+    };
+    TrainingSportGroupKey {
+        origin_id: source_entry.origin_id.clone(),
+        source_sport_ref: source_entry.source_sport_ref.clone(),
+        scope,
+    }
+}
+
 fn training_discovery_filter(
-    sport_entries: &[TrainingDiscoverySportEntry],
+    sport_entries: &[TrainingSportFilterEntry],
     request: &TrainingSessionSearchRequest,
 ) -> std::result::Result<(String, Vec<Value>), TrainingSessionDiscoveryPortError> {
     validate_training_discovery_sport_refs(sport_entries, request)?;
@@ -2190,26 +2240,13 @@ fn training_discovery_filter(
     }
     if !request.sport_refs.is_empty() {
         let selected_entries = sport_entries.iter().filter(|entry| {
-            entry
-                .public_sport
-                .sport_ref
-                .as_ref()
-                .is_some_and(|sport_ref| request.sport_refs.contains(sport_ref))
+            request
+                .sport_refs
+                .contains(&entry.detected.session_filter_ref)
         });
         let mut sport_predicates = Vec::new();
         for entry in selected_entries {
-            let origin_parameter = values.len() + 1;
-            values.push(Value::Text(entry.origin_id.clone()));
-            let sport_parameter = values.len() + 1;
-            values.push(
-                entry
-                    .source_sport_ref
-                    .clone()
-                    .map_or(Value::Null, Value::Text),
-            );
-            sport_predicates.push(format!(
-                "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
-            ));
+            sport_predicates.push(training_sport_filter_predicate(entry, &mut values));
         }
         predicates.push(format!("({})", sport_predicates.join(" OR ")));
     }
@@ -2219,53 +2256,92 @@ fn training_discovery_filter(
             .filter(|entry| training_discovery_sport_matches_text(entry, &text));
         let mut text_predicates = Vec::new();
         for entry in matching_entries {
-            let origin_parameter = values.len() + 1;
-            values.push(Value::Text(entry.origin_id.clone()));
-            let sport_parameter = values.len() + 1;
-            values.push(
-                entry
-                    .source_sport_ref
-                    .clone()
-                    .map_or(Value::Null, Value::Text),
-            );
-            text_predicates.push(format!(
-                "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
-            ));
+            text_predicates.push(training_sport_filter_predicate(entry, &mut values));
         }
-        let provider_parameter = values.len() + 1;
-        values.push(Value::Text(SOURCE_PROVIDER.to_owned()));
-        let mapping_parameter = values.len() + 1;
-        values.push(Value::Text(
-            POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION.to_owned(),
-        ));
-        let text_parameter = values.len() + 1;
-        values.push(Value::Text(format!("%{}%", escape_sql_like_pattern(&text))));
-        text_predicates.push(format!(
-            "EXISTS (
-                 SELECT 1
-                 FROM training_session_sport_evidence AS exact_sport,
-                      json_each(exact_sport.localized_names_json) AS localized_name
-                 WHERE exact_sport.origin_id = session.origin_id
-                   AND exact_sport.session_id = session.session_id
-                   AND exact_sport.source_provider = ?{provider_parameter}
-                   AND exact_sport.mapping_version = ?{mapping_parameter}
-                   AND (
-                       lower(localized_name.value) LIKE ?{text_parameter} ESCAPE '\\'
-                       OR lower(coalesce(exact_sport.canonical_family_suggestion, ''))
-                          LIKE ?{text_parameter} ESCAPE '\\'
-                   )
-             )"
-        ));
-        predicates.push(format!("({})", text_predicates.join(" OR ")));
+        predicates.push(if text_predicates.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("({})", text_predicates.join(" OR "))
+        });
     }
     Ok((predicates.join(" AND "), values))
 }
 
-fn escape_sql_like_pattern(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('%', "\\%")
-        .replace('_', "\\_")
+fn training_sport_filter_predicate(
+    entry: &TrainingSportFilterEntry,
+    values: &mut Vec<Value>,
+) -> String {
+    let origin_parameter = values.len() + 1;
+    values.push(Value::Text(entry.key.origin_id.clone()));
+    let sport_parameter = values.len() + 1;
+    values.push(
+        entry
+            .key
+            .source_sport_ref
+            .clone()
+            .map_or(Value::Null, Value::Text),
+    );
+    let identity = format!(
+        "session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter}"
+    );
+    match &entry.key.scope {
+        TrainingSportFilterScope::SourceProfile {
+            includes_exact_evidence: true,
+        } => format!("({identity})"),
+        TrainingSportFilterScope::SourceProfile {
+            includes_exact_evidence: false,
+        } => {
+            let provider_parameter = values.len() + 1;
+            values.push(Value::Text(SOURCE_PROVIDER.to_owned()));
+            let mapping_parameter = values.len() + 1;
+            values.push(Value::Text(
+                POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION.to_owned(),
+            ));
+            format!(
+                "({identity} AND NOT EXISTS (
+                     SELECT 1 FROM training_session_sport_evidence AS exact_sport
+                     WHERE exact_sport.origin_id = session.origin_id
+                       AND exact_sport.session_id = session.session_id
+                       AND exact_sport.source_provider = ?{provider_parameter}
+                       AND exact_sport.mapping_version = ?{mapping_parameter}
+                 ))"
+            )
+        }
+        TrainingSportFilterScope::ExactEvidence { source_sport_codes } => {
+            let provider_parameter = values.len() + 1;
+            values.push(Value::Text(SOURCE_PROVIDER.to_owned()));
+            let mapping_parameter = values.len() + 1;
+            values.push(Value::Text(
+                POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION.to_owned(),
+            ));
+            let code_parameters = source_sport_codes
+                .iter()
+                .map(|code| {
+                    let parameter = values.len() + 1;
+                    values.push(Value::Text(code.clone()));
+                    format!("?{parameter}")
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            let expected_count = source_sport_codes.len();
+            format!(
+                "({identity}
+                   AND (SELECT COUNT(*)
+                        FROM training_session_sport_evidence AS exact_sport
+                        WHERE exact_sport.origin_id = session.origin_id
+                          AND exact_sport.session_id = session.session_id
+                          AND exact_sport.source_provider = ?{provider_parameter}
+                          AND exact_sport.mapping_version = ?{mapping_parameter}) = {expected_count}
+                   AND (SELECT COUNT(*)
+                        FROM training_session_sport_evidence AS exact_sport
+                        WHERE exact_sport.origin_id = session.origin_id
+                          AND exact_sport.session_id = session.session_id
+                          AND exact_sport.source_provider = ?{provider_parameter}
+                          AND exact_sport.mapping_version = ?{mapping_parameter}
+                          AND exact_sport.source_sport_code IN ({code_parameters})) = {expected_count})"
+            )
+        }
+    }
 }
 
 fn query_training_session_discovery(
@@ -2297,8 +2373,11 @@ fn query_training_session_discovery(
     }
 
     let available_range = query_training_bounds_on(&transaction).map_err(discovery_failure)?;
-    let sport_entries = query_training_discovery_sports(&transaction).map_err(discovery_failure)?;
-    let source_indices = sport_entries
+    let source_sport_entries =
+        query_training_discovery_sports(&transaction).map_err(discovery_failure)?;
+    let sport_filter_entries =
+        query_training_sport_filter_entries(&transaction).map_err(discovery_failure)?;
+    let source_indices = source_sport_entries
         .iter()
         .map(|entry| entry.origin_id.clone())
         .collect::<BTreeSet<_>>()
@@ -2306,7 +2385,7 @@ fn query_training_session_discovery(
         .enumerate()
         .map(|(index, origin)| (origin, index + 1))
         .collect::<BTreeMap<_, _>>();
-    let sport_by_identity = sport_entries
+    let sport_by_identity = source_sport_entries
         .iter()
         .map(|entry| {
             (
@@ -2316,7 +2395,7 @@ fn query_training_session_discovery(
         })
         .collect::<HashMap<_, _>>();
 
-    let (where_clause, mut values) = training_discovery_filter(&sport_entries, request)?;
+    let (where_clause, mut values) = training_discovery_filter(&sport_filter_entries, request)?;
     let total_count = transaction
         .query_row(
             &format!("SELECT COUNT(*) FROM training_session AS session WHERE {where_clause}"),
@@ -2495,7 +2574,7 @@ fn query_training_session_discovery(
                     "training-session sport context is unavailable".to_owned(),
                 )
             })?;
-        let sport = resolve_training_session_sport_with_exact_evidence(
+        let (sport, sport_filter_ref) = resolve_training_session_sport_with_exact_evidence(
             &transaction,
             sport_entry,
             &session_id,
@@ -2503,6 +2582,7 @@ fn query_training_session_discovery(
         .map_err(discovery_failure)?;
         sessions.push(TrainingSessionSearchItem {
             session_ref: training_session_ref(&origin_id, &session_id),
+            sport_filter_ref,
             source_index,
             started_at_local,
             stopped_at_local,
@@ -2590,8 +2670,11 @@ fn query_training_calendar_discovery(
         return Err(TrainingSessionDiscoveryPortError::SnapshotChanged);
     }
     let available_range = query_training_bounds_on(&transaction).map_err(discovery_failure)?;
-    let sport_entries = query_training_discovery_sports(&transaction).map_err(discovery_failure)?;
-    let source_indices = sport_entries
+    let source_sport_entries =
+        query_training_discovery_sports(&transaction).map_err(discovery_failure)?;
+    let sport_filter_entries =
+        query_training_sport_filter_entries(&transaction).map_err(discovery_failure)?;
+    let source_indices = source_sport_entries
         .iter()
         .map(|entry| entry.origin_id.clone())
         .collect::<BTreeSet<_>>()
@@ -2599,7 +2682,7 @@ fn query_training_calendar_discovery(
         .enumerate()
         .map(|(index, origin)| (origin, index + 1))
         .collect::<BTreeMap<_, _>>();
-    let (where_clause, values) = training_discovery_filter(&sport_entries, &search_request)?;
+    let (where_clause, values) = training_discovery_filter(&sport_filter_entries, &search_request)?;
     let query = format!(
         "SELECT substr(session.started_at_local, 1, 10), session.origin_id,
                 COUNT(*), SUM(session.duration_milliseconds),
@@ -2780,7 +2863,7 @@ fn query_training_session_selection_discovery(
                     "selected training session sport context is unavailable".to_owned(),
                 )
             })?;
-        let sport = resolve_training_session_sport_with_exact_evidence(
+        let (sport, sport_filter_ref) = resolve_training_session_sport_with_exact_evidence(
             &transaction,
             sport_entry,
             &session_id,
@@ -2790,6 +2873,7 @@ fn query_training_session_selection_discovery(
             session_ref.clone(),
             TrainingSessionSearchItem {
                 session_ref: session_ref.clone(),
+                sport_filter_ref,
                 source_index,
                 started_at_local,
                 stopped_at_local,
@@ -6832,13 +6916,13 @@ fn query_active_provider_sport_suggestions(
     Ok(suggestions)
 }
 
-fn query_training_session_sport_suggestions(
+fn query_training_session_sport_evidence(
     connection: &Connection,
     origin_id: &str,
     session_id: &str,
-) -> Result<Vec<ProviderNeutralSportSuggestion>> {
+) -> Result<ExactTrainingSportEvidence> {
     let mut statement = connection.prepare(
-        "SELECT canonical_family_suggestion, localized_names_json,
+        "SELECT source_sport_code, canonical_family_suggestion, localized_names_json,
                 catalogue_revision, retrieved_at_utc, mapping_version, evidence_ref
          FROM training_session_sport_evidence
          WHERE origin_id = ?1 AND session_id = ?2
@@ -6854,19 +6938,24 @@ fn query_training_session_sport_suggestions(
         ],
         |row| {
             Ok((
-                row.get::<_, Option<String>>(0)?,
-                row.get::<_, String>(1)?,
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, String>(3)?,
                 row.get::<_, String>(4)?,
                 row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
             ))
         },
     )?;
-    let mut suggestions = Vec::new();
+    let mut evidence = ExactTrainingSportEvidence {
+        source_sport_codes: Vec::new(),
+        suggestions: Vec::new(),
+    };
     let mut evidence_refs = HashSet::new();
     for row in rows {
         let (
+            source_sport_code,
             canonical_family,
             localized_names_json,
             catalogue_revision,
@@ -6874,6 +6963,17 @@ fn query_training_session_sport_suggestions(
             mapping_version,
             evidence_ref,
         ) = row?;
+        if !valid_polar_sport_code(&source_sport_code)
+            || evidence
+                .source_sport_codes
+                .last()
+                .is_some_and(|previous| previous >= &source_sport_code)
+        {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored training-session sport codes are invalid or not uniquely ordered"
+                    .to_owned(),
+            ));
+        }
         if !evidence_refs.insert(evidence_ref.clone()) {
             return Err(ImportError::InvalidTrainingLibrary(
                 "stored training-session sport evidence is duplicated".to_owned(),
@@ -6904,32 +7004,128 @@ fn query_training_session_sport_suggestions(
             evidence_ref,
         )
         .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
-        suggestions.push(
+        evidence.source_sport_codes.push(source_sport_code);
+        evidence.suggestions.push(
             ProviderNeutralSportSuggestion::new(canonical_family, localized_names, provenance)
                 .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?,
         );
     }
-    Ok(suggestions)
+    Ok(evidence)
+}
+
+fn query_exact_training_sport_evidence(
+    connection: &Connection,
+) -> Result<HashMap<(String, String), ExactTrainingSportEvidence>> {
+    let mut statement = connection.prepare(
+        "SELECT origin_id, session_id, source_sport_code,
+                canonical_family_suggestion, localized_names_json,
+                catalogue_revision, retrieved_at_utc, mapping_version, evidence_ref
+         FROM training_session_sport_evidence
+         WHERE source_provider = ?1 AND mapping_version = ?2
+         ORDER BY origin_id, session_id, source_sport_code",
+    )?;
+    let rows = statement.query_map(
+        params![SOURCE_PROVIDER, POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION],
+        |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+            ))
+        },
+    )?;
+    let mut evidence = HashMap::<(String, String), ExactTrainingSportEvidence>::new();
+    for row in rows {
+        let (
+            origin_id,
+            session_id,
+            source_sport_code,
+            canonical_family,
+            localized_names_json,
+            catalogue_revision,
+            retrieved_at_utc,
+            mapping_version,
+            evidence_ref,
+        ) = row?;
+        if !valid_polar_sport_code(&source_sport_code) {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored training-session sport code is invalid".to_owned(),
+            ));
+        }
+        let localized_names =
+            serde_json::from_str::<BTreeMap<String, String>>(&localized_names_json)
+                .map_err(|error| {
+                    ImportError::InvalidTrainingLibrary(format!(
+                        "stored training-session sport names are invalid: {error}"
+                    ))
+                })?
+                .into_iter()
+                .map(|(language_tag, value)| {
+                    SportLocalizedName::new(language_tag, value)
+                        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))
+                })
+                .collect::<Result<Vec<_>>>()?;
+        let canonical_family = canonical_family
+            .as_deref()
+            .map(SportFamily::from_code)
+            .transpose()
+            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        let provenance = SportRecognitionProvenance::new(
+            catalogue_revision,
+            retrieved_at_utc,
+            mapping_version,
+            evidence_ref,
+        )
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        let suggestion =
+            ProviderNeutralSportSuggestion::new(canonical_family, localized_names, provenance)
+                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        let group =
+            evidence
+                .entry((origin_id, session_id))
+                .or_insert_with(|| ExactTrainingSportEvidence {
+                    source_sport_codes: Vec::new(),
+                    suggestions: Vec::new(),
+                });
+        if group.source_sport_codes.last() >= Some(&source_sport_code) {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored training-session sport evidence is not uniquely ordered".to_owned(),
+            ));
+        }
+        group.source_sport_codes.push(source_sport_code);
+        group.suggestions.push(suggestion);
+    }
+    Ok(evidence)
 }
 
 fn resolve_training_session_sport_with_exact_evidence(
     connection: &Connection,
     entry: &TrainingDiscoverySportEntry,
     session_id: &str,
-) -> Result<TrainingSessionSport> {
-    let exact_candidates =
-        query_training_session_sport_suggestions(connection, &entry.origin_id, session_id)?;
-    let recognition_candidates = if exact_candidates.is_empty() {
+) -> Result<(TrainingSessionSport, String)> {
+    let exact = query_training_session_sport_evidence(connection, &entry.origin_id, session_id)?;
+    let recognition_candidates = if exact.suggestions.is_empty() {
         entry.recognition_candidates.clone()
     } else {
-        exact_candidates
+        exact.suggestions.clone()
     };
-    resolve_training_session_sport(
+    let public_sport = resolve_training_session_sport(
         entry.public_sport.sport_ref.clone(),
         entry.classification.clone(),
         recognition_candidates,
     )
-    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))
+    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    let group_key = training_sport_group_key(
+        entry,
+        (!exact.source_sport_codes.is_empty()).then_some(&exact),
+    );
+    Ok((public_sport, training_sport_filter_ref(&group_key)))
 }
 
 fn query_training_discovery_sports(
@@ -7085,13 +7281,13 @@ fn restore_sport_classification(
 }
 
 fn validate_training_discovery_sport_refs(
-    entries: &[TrainingDiscoverySportEntry],
+    entries: &[TrainingSportFilterEntry],
     request: &TrainingSessionSearchRequest,
 ) -> std::result::Result<(), TrainingSessionDiscoveryPortError> {
     for sport_ref in &request.sport_refs {
         if !entries
             .iter()
-            .any(|entry| entry.public_sport.sport_ref.as_deref() == Some(sport_ref.as_str()))
+            .any(|entry| entry.detected.session_filter_ref == *sport_ref)
         {
             return Err(TrainingSessionDiscoveryPortError::UnknownSportReference);
         }
@@ -7099,7 +7295,7 @@ fn validate_training_discovery_sport_refs(
     Ok(())
 }
 
-fn training_discovery_sport_matches_text(entry: &TrainingDiscoverySportEntry, text: &str) -> bool {
+fn training_discovery_sport_matches_text(entry: &TrainingSportFilterEntry, text: &str) -> bool {
     let classification_matches = entry
         .public_sport
         .classification
@@ -7299,142 +7495,229 @@ fn training_provenance_failure(
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
-    let catalogue = query_active_provider_sport_suggestions(&connection)?;
+    Ok(query_training_sport_groups(&connection)?
+        .into_iter()
+        .map(|group| group.detected)
+        .collect())
+}
+
+struct ExactTrainingSportEvidence {
+    source_sport_codes: Vec<String>,
+    suggestions: Vec<ProviderNeutralSportSuggestion>,
+}
+
+struct PersistedTrainingSportGroup {
+    key: TrainingSportGroupKey,
+    detected: DetectedTrainingSport,
+}
+
+struct TrainingSportGroupAccumulator {
+    sport_ref: Option<String>,
+    origin_id: String,
+    classification: Option<SportClassification>,
+    recognition_candidates: Vec<ProviderNeutralSportSuggestion>,
+    first_local_date: String,
+    last_local_date: String,
+    session_count: usize,
+    total_duration_milliseconds: i128,
+    distance_session_count: usize,
+    heart_rate_session_count: usize,
+}
+
+fn query_training_sport_groups(
+    connection: &Connection,
+) -> Result<Vec<PersistedTrainingSportGroup>> {
+    let source_entries = query_training_discovery_sports(connection)?
+        .into_iter()
+        .map(|entry| {
+            (
+                (entry.origin_id.clone(), entry.source_sport_ref.clone()),
+                entry,
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let exact_evidence = query_exact_training_sport_evidence(connection)?;
     let mut statement = connection.prepare(
-        "SELECT session.origin_id, origin.source_provider, session.sport_ref,
-                substr(MIN(session.started_at_local), 1, 10),
-                substr(MAX(session.started_at_local), 1, 10),
-                COUNT(*), SUM(session.duration_milliseconds),
-                SUM(session.distance_meters IS NOT NULL),
-                SUM(session.average_heart_rate_bpm IS NOT NULL
-                    OR session.maximum_heart_rate_bpm IS NOT NULL),
-                classification.classification_state,
-                classification.canonical_family,
-                classification.display_label,
-                classification.authorship,
-                classification.revision
+        "SELECT session.origin_id, session.session_id, session.sport_ref,
+                substr(session.started_at_local, 1, 10),
+                session.duration_milliseconds,
+                session.distance_meters IS NOT NULL,
+                session.average_heart_rate_bpm IS NOT NULL
+                    OR session.maximum_heart_rate_bpm IS NOT NULL
          FROM training_session AS session
-         JOIN observation_origin AS origin ON origin.id = session.origin_id
-         LEFT JOIN sport_classification AS classification
-           ON classification.origin_id = session.origin_id
-          AND classification.source_sport_ref = session.sport_ref
-         GROUP BY session.origin_id, session.sport_ref
-         ORDER BY session.origin_id, session.sport_ref",
+         ORDER BY session.origin_id, session.session_id",
     )?;
     let rows = statement.query_map([], |row| {
-        Ok(PersistedTrainingSport {
-            origin_id: row.get(0)?,
-            source_provider: row.get(1)?,
-            source_sport_ref: row.get(2)?,
-            first_local_date: row.get(3)?,
-            last_local_date: row.get(4)?,
-            session_count: row.get(5)?,
-            total_duration_milliseconds: row.get(6)?,
-            distance_session_count: row.get(7)?,
-            heart_rate_session_count: row.get(8)?,
-            state: row.get(9)?,
-            canonical_family: row.get(10)?,
-            display_label: row.get(11)?,
-            authorship: row.get(12)?,
-            revision: row.get(13)?,
-        })
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, i64>(4)?,
+            row.get::<_, bool>(5)?,
+            row.get::<_, bool>(6)?,
+        ))
     })?;
-    rows.map(|row| decode_detected_training_sport(row?, &catalogue))
+    let mut groups = BTreeMap::<TrainingSportGroupKey, TrainingSportGroupAccumulator>::new();
+    for row in rows {
+        let (
+            origin_id,
+            session_id,
+            source_sport_ref,
+            local_date,
+            duration_milliseconds,
+            has_distance,
+            has_heart_rate,
+        ) = row?;
+        let source_entry = source_entries
+            .get(&(origin_id.clone(), source_sport_ref.clone()))
+            .ok_or_else(|| {
+                ImportError::InvalidTrainingLibrary(
+                    "training session has no source-sport context".to_owned(),
+                )
+            })?;
+        let exact = exact_evidence.get(&(origin_id.clone(), session_id));
+        let key = training_sport_group_key(source_entry, exact);
+        let recognition_candidates = exact
+            .map(|evidence| evidence.suggestions.clone())
+            .unwrap_or_else(|| source_entry.recognition_candidates.clone());
+        let group = groups
+            .entry(key)
+            .or_insert_with(|| TrainingSportGroupAccumulator {
+                sport_ref: source_entry.public_sport.sport_ref.clone(),
+                origin_id: origin_id.clone(),
+                classification: source_entry.classification.clone(),
+                recognition_candidates: Vec::new(),
+                first_local_date: local_date.clone(),
+                last_local_date: local_date.clone(),
+                session_count: 0,
+                total_duration_milliseconds: 0,
+                distance_session_count: 0,
+                heart_rate_session_count: 0,
+            });
+        merge_sport_suggestions(&mut group.recognition_candidates, recognition_candidates);
+        if local_date < group.first_local_date {
+            group.first_local_date = local_date.clone();
+        }
+        if local_date > group.last_local_date {
+            group.last_local_date = local_date;
+        }
+        group.session_count = group.session_count.checked_add(1).ok_or_else(|| {
+            ImportError::InvalidTrainingLibrary("sport session count overflowed".to_owned())
+        })?;
+        group.total_duration_milliseconds = group
+            .total_duration_milliseconds
+            .checked_add(i128::from(duration_milliseconds))
+            .ok_or_else(|| {
+                ImportError::InvalidTrainingLibrary("sport duration overflowed".to_owned())
+            })?;
+        group.distance_session_count = group
+            .distance_session_count
+            .checked_add(usize::from(has_distance))
+            .ok_or_else(|| {
+                ImportError::InvalidTrainingLibrary("sport distance coverage overflowed".to_owned())
+            })?;
+        group.heart_rate_session_count = group
+            .heart_rate_session_count
+            .checked_add(usize::from(has_heart_rate))
+            .ok_or_else(|| {
+                ImportError::InvalidTrainingLibrary(
+                    "sport heart-rate coverage overflowed".to_owned(),
+                )
+            })?;
+    }
+    Ok(groups
+        .into_iter()
+        .map(|(key, group)| PersistedTrainingSportGroup {
+            detected: DetectedTrainingSport {
+                session_filter_ref: training_sport_filter_ref(&key),
+                sport_ref: group.sport_ref,
+                origin_id: group.origin_id,
+                classification: group.classification,
+                recognition_candidates: group.recognition_candidates,
+                first_local_date: group.first_local_date,
+                last_local_date: group.last_local_date,
+                session_count: group.session_count,
+                total_duration_milliseconds: group.total_duration_milliseconds,
+                distance_session_count: group.distance_session_count,
+                heart_rate_session_count: group.heart_rate_session_count,
+            },
+            key,
+        })
+        .collect())
+}
+
+fn query_training_sport_filter_entries(
+    connection: &Connection,
+) -> Result<Vec<TrainingSportFilterEntry>> {
+    query_training_sport_groups(connection)?
+        .into_iter()
+        .map(|group| {
+            let public_sport = resolve_training_session_sport(
+                group.detected.sport_ref.clone(),
+                group.detected.classification.clone(),
+                group.detected.recognition_candidates.clone(),
+            )
+            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+            Ok(TrainingSportFilterEntry {
+                key: group.key,
+                detected: group.detected,
+                public_sport,
+            })
+        })
         .collect()
 }
 
-struct PersistedTrainingSport {
-    origin_id: String,
-    source_provider: String,
-    source_sport_ref: Option<String>,
-    first_local_date: String,
-    last_local_date: String,
-    session_count: i64,
-    total_duration_milliseconds: i64,
-    distance_session_count: i64,
-    heart_rate_session_count: i64,
-    state: Option<String>,
-    canonical_family: Option<String>,
-    display_label: Option<String>,
-    authorship: Option<String>,
-    revision: Option<i64>,
+fn training_sport_filter_ref(key: &TrainingSportGroupKey) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-sport-filter:v1\0");
+    digest.update(key.origin_id.as_bytes());
+    digest.update(b"\0");
+    if let Some(source_sport_ref) = &key.source_sport_ref {
+        digest.update(source_sport_ref.as_bytes());
+    }
+    digest.update(b"\0");
+    match &key.scope {
+        TrainingSportFilterScope::SourceProfile {
+            includes_exact_evidence,
+        } => {
+            digest.update(b"source-profile\0");
+            digest.update([u8::from(*includes_exact_evidence)]);
+        }
+        TrainingSportFilterScope::ExactEvidence { source_sport_codes } => {
+            digest.update(b"exact-evidence\0");
+            for code in source_sport_codes {
+                digest.update(code.as_bytes());
+                digest.update(b"\0");
+            }
+        }
+    }
+    format!("sport-{:x}", digest.finalize())
 }
 
-fn decode_detected_training_sport(
-    persisted: PersistedTrainingSport,
-    catalogue: &ProviderSportSuggestionLookup,
-) -> Result<DetectedTrainingSport> {
-    let PersistedTrainingSport {
-        origin_id,
-        source_provider,
-        source_sport_ref,
-        first_local_date,
-        last_local_date,
-        session_count,
-        total_duration_milliseconds,
-        distance_session_count,
-        heart_rate_session_count,
-        state,
-        canonical_family,
-        display_label,
-        authorship,
-        revision,
-    } = persisted;
-    let session_count = persisted_count(session_count, "sport_session_count")?;
-    let distance_session_count =
-        persisted_count(distance_session_count, "sport_distance_session_count")?;
-    let heart_rate_session_count =
-        persisted_count(heart_rate_session_count, "sport_heart_rate_session_count")?;
-    let Some(source_sport_ref) = source_sport_ref else {
-        if state.is_some()
-            || canonical_family.is_some()
-            || display_label.is_some()
-            || authorship.is_some()
-            || revision.is_some()
+fn merge_sport_suggestions(
+    target: &mut Vec<ProviderNeutralSportSuggestion>,
+    candidates: Vec<ProviderNeutralSportSuggestion>,
+) {
+    for candidate in candidates {
+        if !target
+            .iter()
+            .any(|existing| same_sport_suggestion_meaning(existing, &candidate))
         {
-            return Err(ImportError::InvalidTrainingLibrary(
-                "unavailable sport contains a classification".to_owned(),
-            ));
+            target.push(candidate);
         }
-        return Ok(DetectedTrainingSport {
-            sport_ref: None,
-            origin_id,
-            classification: None,
-            recognition_candidates: Vec::new(),
-            first_local_date,
-            last_local_date,
-            session_count,
-            total_duration_milliseconds: i128::from(total_duration_milliseconds),
-            distance_session_count,
-            heart_rate_session_count,
-        });
-    };
-    let key = SportClassificationKey::new(origin_id.clone(), source_sport_ref)
-        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
-    let classification = restore_sport_classification(
-        key.clone(),
-        state,
-        canonical_family,
-        display_label,
-        authorship,
-        revision,
-    )?;
-    let recognition_candidates = catalogue
-        .get(&(source_provider, key.source_sport_ref().to_owned()))
-        .cloned()
-        .unwrap_or_default();
-    Ok(DetectedTrainingSport {
-        sport_ref: Some(detected_sport_ref(&key)),
-        origin_id,
-        classification: Some(classification),
-        recognition_candidates,
-        first_local_date,
-        last_local_date,
-        session_count,
-        total_duration_milliseconds: i128::from(total_duration_milliseconds),
-        distance_session_count,
-        heart_rate_session_count,
-    })
+    }
+}
+
+fn same_sport_suggestion_meaning(
+    left: &ProviderNeutralSportSuggestion,
+    right: &ProviderNeutralSportSuggestion,
+) -> bool {
+    left.canonical_family() == right.canonical_family()
+        && left.localized_names() == right.localized_names()
+        && left.provenance().catalogue_revision() == right.provenance().catalogue_revision()
+        && left.provenance().retrieved_at_utc() == right.provenance().retrieved_at_utc()
+        && left.provenance().mapping_version() == right.provenance().mapping_version()
 }
 
 fn detected_sport_ref(key: &SportClassificationKey) -> String {
@@ -8350,8 +8633,23 @@ pub fn load_training_discovery_workspace_record(
         return Ok(None);
     };
     let invalid = |reason: &str| ImportError::InvalidTrainingLibrary(reason.to_owned());
-    let sport_refs = serde_json::from_str::<Vec<String>>(&sport_refs_json)
+    let mut version = u32::try_from(version)
+        .map_err(|_| invalid("stored training workspace version is invalid"))?;
+    let mut sport_refs = serde_json::from_str::<Vec<String>>(&sport_refs_json)
         .map_err(|_| invalid("stored training workspace sport filters are invalid"))?;
+    if version == LEGACY_TRAINING_WORKSPACE_VERSION {
+        sport_refs = migrate_training_workspace_sport_refs(&connection, &sport_refs)?;
+        version = TRAINING_WORKSPACE_VERSION;
+        let migrated_sport_refs_json = serde_json::to_string(&sport_refs)
+            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        connection.execute(
+            "UPDATE training_discovery_workspace
+             SET workspace_version = ?1, sport_refs_json = ?2,
+                 updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE id = 1",
+            params![version, migrated_sport_refs_json],
+        )?;
+    }
     let measurement_codes = serde_json::from_str::<Vec<String>>(&measurements_json)
         .map_err(|_| invalid("stored training workspace measurement filters are invalid"))?;
     let required_measurements = measurement_codes
@@ -8380,8 +8678,7 @@ pub fn load_training_discovery_workspace_record(
         _ => return Err(invalid("stored training workspace view is unknown")),
     };
     Ok(Some(TrainingDiscoveryWorkspace {
-        version: u32::try_from(version)
-            .map_err(|_| invalid("stored training workspace version is invalid"))?,
+        version,
         snapshot_ref,
         from,
         through,
@@ -8399,6 +8696,32 @@ pub fn load_training_discovery_workspace_record(
         selected_session_refs,
         open_session_ref,
     }))
+}
+
+fn migrate_training_workspace_sport_refs(
+    connection: &Connection,
+    legacy_sport_refs: &[String],
+) -> Result<Vec<String>> {
+    let groups = query_training_sport_groups(connection)?;
+    let mut migrated = Vec::new();
+    let mut seen = BTreeSet::new();
+    for legacy_sport_ref in legacy_sport_refs {
+        let exact_filter = groups
+            .iter()
+            .find(|group| group.detected.session_filter_ref == *legacy_sport_ref);
+        let matches = exact_filter
+            .into_iter()
+            .chain(groups.iter().filter(|group| {
+                group.detected.sport_ref.as_deref() == Some(legacy_sport_ref.as_str())
+            }));
+        for group in matches {
+            let session_filter_ref = group.detected.session_filter_ref.clone();
+            if seen.insert(session_filter_ref.clone()) {
+                migrated.push(session_filter_ref);
+            }
+        }
+    }
+    Ok(migrated)
 }
 
 pub fn save_training_discovery_workspace_record(
@@ -8693,6 +9016,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         }
         if version < 29 {
             connection.execute_batch(SCHEMA_V29)?;
+        }
+        if version < 30 {
+            connection.execute_batch(SCHEMA_V30)?;
         }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
@@ -15929,6 +16255,24 @@ mod tests {
         )
     }
 
+    fn training_session_json_without_sport(
+        session_id: &str,
+        start_time: &str,
+        stop_time: &str,
+        duration_milliseconds: i64,
+    ) -> String {
+        format!(
+            r#"{{
+            "identifier":{{"id":"{session_id}"}},
+            "created":"2026-02-04T12:00:00.000",
+            "modified":"2026-02-04T12:05:00.000",
+            "startTime":"{start_time}",
+            "stopTime":"{stop_time}",
+            "durationMillis":{duration_milliseconds}
+            }}"#
+        )
+    }
+
     fn persisted_report_definition() -> ReportDefinition {
         persisted_report_definition_with_seed('1', "Morning progression")
     }
@@ -16939,15 +17283,15 @@ mod tests {
                 LibraryDomain::Recovery,
             ]
         );
-        assert_eq!(home.version, 5);
+        assert_eq!(home.version, 6);
         assert!(home
             .library_revision_ref
             .starts_with("library-home-revision-"));
         let initial_revision = home.library_revision_ref.clone();
         let training = home.training.as_ref().expect("complete training identity");
         assert_eq!(training.session_count, 1);
-        assert_eq!(training.sport_profile_count, 1);
-        assert_eq!(training.omitted_sport_profile_count, 0);
+        assert_eq!(training.sport_collection_count, 1);
+        assert_eq!(training.omitted_sport_collection_count, 0);
         assert_eq!(training.sports.len(), 1);
         assert_eq!(training.sports[0].state, TrainingSportState::Unknown);
         let home_sport_ref = training.sports[0]
@@ -19315,6 +19659,96 @@ mod tests {
         assert_eq!(unresolved.recognition_candidate_count, 0);
         assert_eq!(recognized.sport_ref, unresolved.sport_ref);
 
+        let sports_library = SqliteTrainingSports::new(harness.database());
+        let represented =
+            query_training_sports(&sports_library).expect("represented target sports");
+        assert_eq!(represented.session_count, 2);
+        assert_eq!(represented.sports.len(), 2);
+        let represented_recognized = represented
+            .sports
+            .iter()
+            .find(|sport| sport.state == TrainingSportState::Recognized)
+            .expect("recognized target collection");
+        let represented_unresolved = represented
+            .sports
+            .iter()
+            .find(|sport| sport.state == TrainingSportState::Unknown)
+            .expect("unresolved source-profile remainder");
+        assert_ne!(
+            represented_recognized.session_filter_ref,
+            represented_unresolved.session_filter_ref
+        );
+        assert_eq!(
+            represented_recognized.sport_ref,
+            represented_unresolved.sport_ref
+        );
+        let recognized_collection = fitfreed_application::query_training_sessions(
+            &library,
+            TrainingSessionSearchRequest {
+                sport_refs: vec![represented_recognized.session_filter_ref.clone()],
+                ..request.clone()
+            },
+        )
+        .expect("exact recognized collection");
+        assert_eq!(recognized_collection.total_count, 1);
+        assert_eq!(
+            recognized_collection.sessions[0].session_ref,
+            imported.sessions[0].session_ref
+        );
+        let unresolved_collection = fitfreed_application::query_training_sessions(
+            &library,
+            TrainingSessionSearchRequest {
+                sport_refs: vec![represented_unresolved.session_filter_ref.clone()],
+                ..request.clone()
+            },
+        )
+        .expect("exact unresolved collection");
+        assert_eq!(unresolved_collection.total_count, 1);
+        assert_eq!(
+            unresolved_collection.sessions[0].session_ref,
+            imported.sessions[1].session_ref
+        );
+
+        save_training_discovery_workspace_record(
+            &harness.database(),
+            &TrainingDiscoveryWorkspace {
+                version: 1,
+                snapshot_ref: recognized_collection.snapshot_ref.clone(),
+                from: None,
+                through: None,
+                sport_refs: vec![recognized
+                    .sport_ref
+                    .clone()
+                    .expect("legacy source-profile capability")],
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedDescending,
+                offset: 0,
+                limit: 25,
+                view: TrainingDiscoveryView::Chronology,
+                calendar_month: None,
+                calendar_day: None,
+                selected_session_refs: Vec::new(),
+                open_session_ref: None,
+            },
+        )
+        .expect("legacy workspace");
+        let migrated_workspace = fitfreed_application::load_training_discovery_workspace(&library)
+            .expect("migrated represented-sport workspace")
+            .expect("stored represented-sport workspace");
+        assert_eq!(migrated_workspace.version, 2);
+        assert_eq!(
+            migrated_workspace
+                .sport_refs
+                .into_iter()
+                .collect::<BTreeSet<_>>(),
+            represented
+                .sports
+                .iter()
+                .map(|sport| sport.session_filter_ref.clone())
+                .collect::<BTreeSet<_>>()
+        );
+
         let repeated = import_polar_archive(&harness.database(), &archive).expect("exact reimport");
         assert!(repeated.exact_repeat);
         let extended = harness.archive(
@@ -19373,6 +19807,208 @@ mod tests {
                 .expect("both attributed target sources retained"),
             2
         );
+    }
+
+    #[test]
+    fn recognizes_and_filters_exact_target_sport_without_a_source_sport_profile() {
+        let harness = Harness::new();
+        let session = training_session_json_without_sport(
+            "target-session-without-source-sport",
+            "2026-01-04T09:00:00",
+            "2026-01-04T10:00:00",
+            3_600_000,
+        );
+        let archive = harness.archive(
+            "target-sport-without-source-profile.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-target-without-source-sport-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-04T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &session,
+                ),
+                (
+                    "training-target-2026-01-04-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"River technique",
+                    "description":"",
+                    "startTime":"2026-01-04T09:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"WATERSPORTS_KAYAKING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+
+        import_polar_archive(&harness.database(), &archive)
+            .expect("target sport without source profile import");
+        let sports_library = SqliteTrainingSports::new(harness.database());
+        let represented =
+            query_training_sports(&sports_library).expect("represented exact target sport");
+        assert_eq!(represented.sports.len(), 1);
+        let kayaking = &represented.sports[0];
+        assert_eq!(kayaking.state, TrainingSportState::Recognized);
+        assert!(kayaking.sport_ref.is_none());
+        assert!(kayaking.classification.is_none());
+        assert_eq!(
+            kayaking
+                .recognition
+                .as_ref()
+                .expect("exact kayaking recognition")
+                .localized_names["en"],
+            "Kayaking"
+        );
+
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let request = TrainingSessionSearchRequest {
+            from: None,
+            through: None,
+            sport_refs: vec![kayaking.session_filter_ref.clone()],
+            required_measurements: Vec::new(),
+            text: None,
+            sort: TrainingSessionSort::StartedAscending,
+            offset: 0,
+            limit: 25,
+            snapshot_ref: None,
+        };
+        let filtered = fitfreed_application::query_training_sessions(&library, request.clone())
+            .expect("exact target sport collection without source profile");
+        assert_eq!(filtered.total_count, 1);
+        assert_eq!(
+            filtered.sessions[0].sport.state,
+            TrainingSportState::Recognized
+        );
+        assert!(filtered.sessions[0].sport.sport_ref.is_none());
+
+        let calendar = fitfreed_application::query_training_session_calendar(
+            &library,
+            TrainingSessionCalendarRequest {
+                month: "2026-01".to_owned(),
+                from: None,
+                through: None,
+                sport_refs: request.sport_refs,
+                required_measurements: Vec::new(),
+                text: None,
+                snapshot_ref: Some(filtered.snapshot_ref),
+            },
+        )
+        .expect("exact target sport calendar without source profile");
+        assert_eq!(calendar.days.len(), 1);
+        assert_eq!(calendar.days[0].local_date, "2026-01-04");
+        assert_eq!(calendar.days[0].session_count, 1);
+    }
+
+    #[test]
+    fn personal_classification_reunites_exact_and_unresolved_source_profile_sessions() {
+        let harness = Harness::new();
+        let recognized_session = training_session_json(
+            "target-recognized-before-override",
+            "2026-01-05T09:00:00",
+            "2026-01-05T10:00:00",
+            3_600_000,
+            "shared-opaque-sport",
+        );
+        let unresolved_session = training_session_json(
+            "target-unresolved-before-override",
+            "2026-01-06T09:00:00",
+            "2026-01-06T10:00:00",
+            3_600_000,
+            "shared-opaque-sport",
+        );
+        let archive = harness.archive(
+            "target-sport-personal-override.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-target-personal-override-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-05T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &recognized_session,
+                ),
+                (
+                    "training-session_2026-01-06T09-00-00_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &unresolved_session,
+                ),
+                (
+                    "training-target-2026-01-05-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"River technique",
+                    "description":"",
+                    "startTime":"2026-01-05T09:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"WATERSPORTS_KAYAKING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+
+        import_polar_archive(&harness.database(), &archive).expect("personal override import");
+        let sports_library = SqliteTrainingSports::new(harness.database());
+        let before = query_training_sports(&sports_library).expect("sports before override");
+        assert_eq!(before.sports.len(), 2);
+        let classification_ref = before.sports[0]
+            .sport_ref
+            .clone()
+            .expect("shared source profile classification reference");
+        assert!(before
+            .sports
+            .iter()
+            .all(|sport| sport.sport_ref.as_deref() == Some(classification_ref.as_str())));
+
+        save_training_sport_classification(
+            &sports_library,
+            SaveSportClassificationRequest {
+                sport_ref: classification_ref,
+                expected_revision: 0,
+                canonical_family: Some("water-sport".to_owned()),
+                display_label: Some("My paddling".to_owned()),
+            },
+        )
+        .expect("personal classification");
+
+        let after = query_training_sports(&sports_library).expect("sports after override");
+        assert_eq!(after.sports.len(), 1);
+        let paddling = &after.sports[0];
+        assert_eq!(paddling.state, TrainingSportState::PersonallyOverridden);
+        assert_eq!(paddling.coverage.session_count, 2);
+        assert_eq!(
+            paddling
+                .classification
+                .as_ref()
+                .and_then(|classification| classification.display_label.as_deref()),
+            Some("My paddling")
+        );
+
+        let sessions = fitfreed_application::query_training_sessions(
+            &SqliteTrainingLibrary::new(harness.database()),
+            TrainingSessionSearchRequest {
+                from: None,
+                through: None,
+                sport_refs: vec![paddling.session_filter_ref.clone()],
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedAscending,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("personally classified source profile collection");
+        assert_eq!(sessions.total_count, 2);
+        assert!(sessions.sessions.iter().all(|session| {
+            session.sport.state == TrainingSportState::PersonallyOverridden
+                && session
+                    .sport
+                    .classification
+                    .as_ref()
+                    .and_then(|classification| classification.display_label.as_deref())
+                    == Some("My paddling")
+        }));
     }
 
     #[test]
@@ -19758,6 +20394,14 @@ mod tests {
             },
         )
         .expect("searchable sport classification");
+        let classified_sports =
+            query_training_sports(&sports_library).expect("sport discovery after classification");
+        let first_sport_filter = classified_sports
+            .sports
+            .iter()
+            .find(|sport| sport.sport_ref.as_ref() == Some(&first_sport))
+            .map(|sport| sport.session_filter_ref.clone())
+            .expect("first represented sport filter reference");
         let library = SqliteTrainingLibrary::new(harness.database());
         let base_request = TrainingSessionSearchRequest {
             from: None,
@@ -19830,7 +20474,7 @@ mod tests {
             TrainingSessionSearchRequest {
                 from: Some("2024-01-01".to_owned()),
                 through: Some("2024-12-31".to_owned()),
-                sport_refs: vec![first_sport.clone()],
+                sport_refs: vec![first_sport_filter.clone()],
                 required_measurements: vec![
                     TrainingMeasurementFilter::Distance,
                     TrainingMeasurementFilter::HeartRate,
@@ -19863,7 +20507,7 @@ mod tests {
                 month: "2024-01".to_owned(),
                 from: Some("2024-01-01".to_owned()),
                 through: Some("2024-12-31".to_owned()),
-                sport_refs: vec![first_sport],
+                sport_refs: vec![first_sport_filter],
                 required_measurements: vec![
                     TrainingMeasurementFilter::Distance,
                     TrainingMeasurementFilter::HeartRate,
@@ -19943,7 +20587,7 @@ mod tests {
         let database_path = harness.database();
         let library = SqliteTrainingLibrary::new(database_path.clone());
         let workspace = TrainingDiscoveryWorkspace {
-            version: 1,
+            version: 2,
             snapshot_ref: format!("training-snapshot-{}", "a".repeat(64)),
             from: Some("2026-01-01".to_owned()),
             through: Some("2026-08-18".to_owned()),
@@ -23346,6 +23990,7 @@ mod tests {
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
             SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29,
+            SCHEMA_V30,
         ];
         for migration in migrations
             .iter()
@@ -25610,6 +26255,71 @@ mod tests {
                 .expect("workspace table"),
             1
         );
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn upgrades_version_twenty_nine_with_training_workspace_identity_migration() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        create_schema_baseline(&connection, 29);
+        connection
+            .execute(
+                "INSERT INTO training_discovery_workspace (
+                     id, workspace_version, snapshot_ref, from_date, through_date,
+                     sport_refs_json, required_measurements_json, text_filter, sort_code,
+                     page_offset, page_limit, view_code, calendar_month, calendar_day,
+                     selected_session_refs_json, open_session_ref, updated_at_utc
+                 ) VALUES (
+                     1, 1, ?1, NULL, NULL, '[]', '[]', NULL, 'started-desc',
+                     0, 25, 'chronology', NULL, NULL, '[]', NULL,
+                     '2026-08-26T12:00:00Z'
+                 )",
+                [format!("training-snapshot-{}", "a".repeat(64))],
+            )
+            .expect("version-one workspace");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version thirty");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            29
+        );
+        assert!(connection
+            .execute(
+                "UPDATE training_discovery_workspace SET workspace_version = 2 WHERE id = 1",
+                [],
+            )
+            .is_err());
+
+        migrate_schema(&connection, false).expect("version thirty migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT workspace_version FROM training_discovery_workspace WHERE id = 1",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("preserved version-one workspace"),
+            1
+        );
+        connection
+            .execute(
+                "UPDATE training_discovery_workspace SET workspace_version = 2 WHERE id = 1",
+                [],
+            )
+            .expect("version-two workspace");
         assert_integrity(&connection);
     }
 }

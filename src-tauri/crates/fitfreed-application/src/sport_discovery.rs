@@ -11,6 +11,7 @@ use crate::{ApplicationError, TrainingSessionSport};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DetectedTrainingSport {
+    pub session_filter_ref: String,
     pub sport_ref: Option<String>,
     pub origin_id: String,
     pub classification: Option<SportClassification>,
@@ -75,6 +76,7 @@ pub struct TrainingSportCoverage {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingSport {
+    pub session_filter_ref: String,
     pub sport_ref: Option<String>,
     pub source_index: usize,
     pub state: TrainingSportState,
@@ -157,12 +159,7 @@ pub fn save_training_sport_classification(
             "sport query returned a different reference".to_owned(),
         ));
     }
-    validate_detected_sport(
-        &record,
-        &mut BTreeSet::new(),
-        &mut BTreeSet::new(),
-        &mut BTreeSet::new(),
-    )?;
+    validate_detected_sport(&record, &mut BTreeSet::new(), &mut BTreeMap::new())?;
     let existing =
         record
             .classification
@@ -217,17 +214,15 @@ fn build_training_sports_overview(
         .enumerate()
         .map(|(index, origin)| (origin.clone(), index + 1))
         .collect::<BTreeMap<_, _>>();
-    let mut seen_sport_refs = BTreeSet::new();
-    let mut seen_classification_keys = BTreeSet::new();
-    let mut seen_unavailable_origins = BTreeSet::new();
+    let mut seen_session_filter_refs = BTreeSet::new();
+    let mut seen_classifications = BTreeMap::new();
     let mut session_count = 0_usize;
     let mut sports = Vec::with_capacity(records.len());
     for record in records {
         validate_detected_sport(
             &record,
-            &mut seen_sport_refs,
-            &mut seen_classification_keys,
-            &mut seen_unavailable_origins,
+            &mut seen_session_filter_refs,
+            &mut seen_classifications,
         )?;
         session_count = session_count
             .checked_add(record.session_count)
@@ -253,9 +248,8 @@ fn build_training_sports_overview(
 
 fn validate_detected_sport(
     record: &DetectedTrainingSport,
-    seen_sport_refs: &mut BTreeSet<String>,
-    seen_classification_keys: &mut BTreeSet<(String, String)>,
-    seen_unavailable_origins: &mut BTreeSet<String>,
+    seen_session_filter_refs: &mut BTreeSet<String>,
+    seen_classifications: &mut BTreeMap<(String, String), SportClassification>,
 ) -> Result<(), ApplicationError> {
     let first = parse_local_date(&record.first_local_date)?;
     let last = parse_local_date(&record.last_local_date)?;
@@ -273,11 +267,18 @@ fn validate_detected_sport(
             "detected sport coverage is invalid".to_owned(),
         ));
     }
+    if record.session_filter_ref.is_empty()
+        || !seen_session_filter_refs.insert(record.session_filter_ref.clone())
+    {
+        return Err(ApplicationError::SportClassificationQuery(
+            "detected sport session filter reference is empty or duplicated".to_owned(),
+        ));
+    }
     match (&record.sport_ref, &record.classification) {
         (Some(sport_ref), Some(classification)) => {
-            if sport_ref.is_empty() || !seen_sport_refs.insert(sport_ref.clone()) {
+            if sport_ref.is_empty() {
                 return Err(ApplicationError::SportClassificationQuery(
-                    "detected sport reference is empty or duplicated".to_owned(),
+                    "detected sport reference is empty".to_owned(),
                 ));
             }
             if classification.key().origin_id() != record.origin_id {
@@ -289,23 +290,21 @@ fn validate_detected_sport(
                 classification.key().origin_id().to_owned(),
                 classification.key().source_sport_ref().to_owned(),
             );
-            if !seen_classification_keys.insert(key) {
-                return Err(ApplicationError::SportClassificationQuery(
-                    "detected sport classification is duplicated".to_owned(),
-                ));
+            match seen_classifications.get(&key) {
+                Some(previous) if previous != classification => {
+                    return Err(ApplicationError::SportClassificationQuery(
+                        "detected sport classification representations disagree".to_owned(),
+                    ));
+                }
+                Some(_) => {}
+                None => {
+                    seen_classifications.insert(key, classification.clone());
+                }
             }
         }
         (None, None) => {
-            if !record.recognition_candidates.is_empty() {
-                return Err(ApplicationError::SportClassificationQuery(
-                    "unavailable sport contains recognition candidates".to_owned(),
-                ));
-            }
-            if !seen_unavailable_origins.insert(record.origin_id.clone()) {
-                return Err(ApplicationError::SportClassificationQuery(
-                    "unavailable sport group is duplicated for its origin".to_owned(),
-                ));
-            }
+            // Exact source evidence can identify a session even when its summary contains no
+            // independently classifiable source sport reference.
         }
         _ => {
             return Err(ApplicationError::SportClassificationQuery(
@@ -330,6 +329,7 @@ fn parse_local_date(value: &str) -> Result<NaiveDate, ApplicationError> {
 
 fn map_detected_sport(record: DetectedTrainingSport, source_index: usize) -> TrainingSport {
     let DetectedTrainingSport {
+        session_filter_ref,
         sport_ref,
         classification,
         recognition_candidates,
@@ -341,9 +341,8 @@ fn map_detected_sport(record: DetectedTrainingSport, source_index: usize) -> Tra
         heart_rate_session_count,
         ..
     } = record;
-    let (state, classification, recognition, recognition_candidate_count) = classification.map_or(
-        (TrainingSportState::Unavailable, None, None, 0),
-        |classification| {
+    let (state, classification, recognition, recognition_candidate_count) = match classification {
+        Some(classification) => {
             let resolved = resolve_sport_identity(&classification, recognition_candidates);
             let state = map_identity_state(resolved.state());
             let recognition = resolved.recognized_suggestion().map(map_recognition);
@@ -354,9 +353,21 @@ fn map_detected_sport(record: DetectedTrainingSport, source_index: usize) -> Tra
                 recognition,
                 candidate_count,
             )
-        },
-    );
+        }
+        None => {
+            let candidate_count = recognition_candidates.len();
+            let state = match candidate_count {
+                0 => TrainingSportState::Unavailable,
+                1 => TrainingSportState::Recognized,
+                _ => TrainingSportState::Ambiguous,
+            };
+            let recognition =
+                (candidate_count == 1).then(|| map_recognition(&recognition_candidates[0]));
+            (state, None, recognition, candidate_count)
+        }
+    };
     TrainingSport {
+        session_filter_ref,
         sport_ref,
         source_index,
         state,
@@ -380,13 +391,23 @@ pub fn resolve_training_session_sport(
     recognition_candidates: Vec<ProviderNeutralSportSuggestion>,
 ) -> Result<TrainingSessionSport, ApplicationError> {
     match (sport_ref, classification) {
-        (None, None) if recognition_candidates.is_empty() => Ok(TrainingSessionSport {
-            sport_ref: None,
-            state: TrainingSportState::Unavailable,
-            classification: None,
-            recognition: None,
-            recognition_candidate_count: 0,
-        }),
+        (None, None) => {
+            let recognition_candidate_count = recognition_candidates.len();
+            let state = match recognition_candidate_count {
+                0 => TrainingSportState::Unavailable,
+                1 => TrainingSportState::Recognized,
+                _ => TrainingSportState::Ambiguous,
+            };
+            let recognition = (recognition_candidate_count == 1)
+                .then(|| map_recognition(&recognition_candidates[0]));
+            Ok(TrainingSessionSport {
+                sport_ref: None,
+                state,
+                classification: None,
+                recognition,
+                recognition_candidate_count,
+            })
+        }
         (Some(sport_ref), Some(classification)) => {
             let resolved = resolve_sport_identity(&classification, recognition_candidates);
             let state = map_identity_state(resolved.state());
@@ -449,7 +470,7 @@ fn map_recognition(suggestion: &ProviderNeutralSportSuggestion) -> TrainingSport
     }
 }
 
-fn sport_sort_key(sport: &TrainingSport) -> (u8, String, String, usize, String) {
+fn sport_sort_key(sport: &TrainingSport) -> (u8, String, String, usize, String, String) {
     let state = match sport.state {
         TrainingSportState::PersonallyOverridden => 0,
         TrainingSportState::Recognized => 1,
@@ -503,6 +524,7 @@ fn sport_sort_key(sport: &TrainingSport) -> (u8, String, String, usize, String) 
         label,
         sport.source_index,
         sport.sport_ref.clone().unwrap_or_default(),
+        sport.session_filter_ref.clone(),
     )
 }
 

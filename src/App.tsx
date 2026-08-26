@@ -47,6 +47,7 @@ import type {
   ExploreDestination,
   LibraryHome,
   LibraryHomeRecentSession,
+  LibraryHomeSportSummary,
   LibraryQuestion,
   RecentTrainingComparisonHighlight,
 } from "./presentation/library-home";
@@ -773,6 +774,39 @@ function App() {
     }
   }
 
+  async function openHomeSportSessions(sport: LibraryHomeSportSummary) {
+    if (homeNavigationOperation || sport.sessionFilterRefs.length === 0) return;
+    const focusTarget = `sport-sessions:${sport.sessionFilterRefs.join(",")}`;
+    setLibraryHomeFocusTarget(focusTarget);
+    setHomeNavigationOperation({ kind: "open", destination: "training" });
+    setReportReturnRef(undefined);
+    setReportReturnFocusRequest(undefined);
+    navigationSequence.current += 1;
+    const navigation = {
+      domain: "training" as const,
+      kind: "sport-sessions" as const,
+      sessionFilterRefs: [...sport.sessionFilterRefs],
+      returnWorkspace: "home" as const,
+      requestId: navigationSequence.current,
+    };
+    setExplorerNavigation(navigation);
+    try {
+      await invoke("clear_training_discovery_workspace");
+      if (!(await openExploration("training"))) {
+        setExplorerNavigation((current) => current?.requestId === navigation.requestId
+          ? undefined
+          : current);
+      }
+    } catch (reason) {
+      setExplorerNavigation((current) => current?.requestId === navigation.requestId
+        ? undefined
+        : current);
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setHomeNavigationOperation(undefined);
+    }
+  }
+
   async function openHomeTrainingWorkspace(workspace: "sessions" | "sports") {
     if (homeNavigationOperation) return;
     const focusTarget = `summary:${workspace}`;
@@ -1421,6 +1455,7 @@ function App() {
           onOpenSession={(session) => void openHomeTrainingSession(session)}
           onOpenTrainingSessions={() => void openHomeTrainingWorkspace("sessions")}
           onOpenSports={() => void openHomeTrainingWorkspace("sports")}
+          onOpenSportSessions={(sport) => void openHomeSportSessions(sport)}
           onOpenSportClassification={(sportRef) => void openHomeSportClassification(sportRef)}
           onOpenSources={openSources}
           onChooseArchive={() => void chooseArchiveFromHome()}

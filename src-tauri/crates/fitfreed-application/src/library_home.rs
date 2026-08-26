@@ -13,7 +13,7 @@ use super::{
     TrainingSportsPort,
 };
 
-const LIBRARY_HOME_VERSION: u32 = 5;
+const LIBRARY_HOME_VERSION: u32 = 6;
 const RECENT_SESSION_LIMIT: usize = 4;
 const SPORT_SUMMARY_LIMIT: usize = 6;
 const COMPARISON_PERIOD_DAYS: u64 = 7;
@@ -165,13 +165,14 @@ pub struct PostImportReveal {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibraryHomeSportSummary {
+    pub session_filter_refs: Vec<String>,
     pub sport_ref: Option<String>,
     pub state: TrainingSportState,
     pub canonical_family: Option<String>,
     pub display_label: Option<String>,
     pub localized_names: BTreeMap<String, String>,
     pub recognition_candidate_count: usize,
-    pub profile_count: usize,
+    pub represented_collection_count: usize,
     pub session_count: usize,
 }
 
@@ -193,8 +194,8 @@ pub struct LibraryHomeRecentSession {
 pub struct LibraryHomeTraining {
     pub training_snapshot_ref: String,
     pub session_count: usize,
-    pub sport_profile_count: usize,
-    pub omitted_sport_profile_count: usize,
+    pub sport_collection_count: usize,
+    pub omitted_sport_collection_count: usize,
     pub sports: Vec<LibraryHomeSportSummary>,
     pub recent_sessions: Vec<LibraryHomeRecentSession>,
 }
@@ -478,22 +479,24 @@ where
     let training = LibraryHomeTraining {
         training_snapshot_ref: snapshot_ref.clone(),
         session_count: recent.total_count,
-        sport_profile_count: sports.sports.len(),
-        omitted_sport_profile_count: 0,
+        sport_collection_count: sports.sports.len(),
+        omitted_sport_collection_count: 0,
         sports: summarized_sports(&sports)?,
         recent_sessions: recent.sessions.into_iter().map(recent_session).collect(),
     };
-    let represented_profiles = training.sports.iter().try_fold(0_usize, |total, sport| {
-        total.checked_add(sport.profile_count).ok_or_else(|| {
-            ApplicationError::Query("Home sport profile count overflowed".to_owned())
-        })
+    let represented_collections = training.sports.iter().try_fold(0_usize, |total, sport| {
+        total
+            .checked_add(sport.represented_collection_count)
+            .ok_or_else(|| {
+                ApplicationError::Query("Home sport collection count overflowed".to_owned())
+            })
     })?;
     let mut training = training;
-    training.omitted_sport_profile_count = training
-        .sport_profile_count
-        .checked_sub(represented_profiles)
+    training.omitted_sport_collection_count = training
+        .sport_collection_count
+        .checked_sub(represented_collections)
         .ok_or_else(|| {
-            ApplicationError::Query("Home sport profile coverage is invalid".to_owned())
+            ApplicationError::Query("Home sport collection coverage is invalid".to_owned())
         })?;
     let highlight = training_highlight(port, &snapshot_ref, latest_session_date, reference_date)?;
     Ok((Some(training), Some(highlight)))
@@ -593,21 +596,28 @@ fn summarized_sports(
             },
         };
         let summary = groups.entry(key).or_insert(LibraryHomeSportSummary {
+            session_filter_refs: Vec::new(),
             sport_ref: sport.sport_ref.clone(),
             state: sport.state,
             canonical_family,
             display_label,
             localized_names,
             recognition_candidate_count,
-            profile_count: 0,
+            represented_collection_count: 0,
             session_count: 0,
         });
-        if summary.profile_count > 0 {
+        if summary.represented_collection_count > 0 {
             summary.sport_ref = None;
         }
-        summary.profile_count = summary.profile_count.checked_add(1).ok_or_else(|| {
-            ApplicationError::Query("Home sport profile count overflowed".to_owned())
-        })?;
+        summary
+            .session_filter_refs
+            .push(sport.session_filter_ref.clone());
+        summary.represented_collection_count = summary
+            .represented_collection_count
+            .checked_add(1)
+            .ok_or_else(|| {
+                ApplicationError::Query("Home sport collection count overflowed".to_owned())
+            })?;
         summary.session_count = summary
             .session_count
             .checked_add(sport.coverage.session_count)

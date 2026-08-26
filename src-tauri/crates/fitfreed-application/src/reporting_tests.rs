@@ -445,6 +445,8 @@ impl ReportExportPort for RecordingExportPort {
 fn session() -> TrainingSessionSearchItem {
     TrainingSessionSearchItem {
         session_ref: SESSION_REF.to_owned(),
+        sport_filter_ref: "sport-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            .to_owned(),
         source_index: 1,
         started_at_local: "2026-08-18T07:30:00.000".to_owned(),
         stopped_at_local: "2026-08-18T08:30:00.000".to_owned(),

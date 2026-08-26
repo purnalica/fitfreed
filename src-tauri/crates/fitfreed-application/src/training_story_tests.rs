@@ -137,6 +137,7 @@ fn classified_sport(family: &str) -> TrainingSessionSport {
 fn selected_session(family: &str) -> TrainingSessionSearchItem {
     TrainingSessionSearchItem {
         session_ref: SESSION.to_owned(),
+        sport_filter_ref: SPORT.to_owned(),
         source_index: 1,
         started_at_local: "2026-08-16T07:30:00.000".to_owned(),
         stopped_at_local: "2026-08-16T08:30:00.000".to_owned(),
@@ -376,7 +377,7 @@ fn composes_a_running_story_at_one_authoritative_snapshot() {
     let story = query_session_story(ports(&port), query()).unwrap();
 
     assert_eq!(story.schema_version, TRAINING_SESSION_STORY_SCHEMA_VERSION);
-    assert_eq!(TRAINING_SESSION_STORY_SCHEMA_VERSION, 4);
+    assert_eq!(TRAINING_SESSION_STORY_SCHEMA_VERSION, 5);
     assert_eq!(story.snapshot_ref, SNAPSHOT);
     assert_eq!(story.session.session_ref, SESSION);
     assert_eq!(port.accepted_snapshots.borrow().as_slice(), [SNAPSHOT; 5]);

@@ -25,6 +25,13 @@ export interface TrainingSportNavigationRequest {
   requestId: number;
 }
 
+export interface TrainingSportSessionsNavigationRequest {
+  kind: "sport-sessions";
+  sessionFilterRefs: string[];
+  returnWorkspace: "home" | "sports";
+  requestId: number;
+}
+
 export interface TrainingWorkspaceNavigationRequest {
   kind: "sessions" | "sports";
   requestId: number;
@@ -35,4 +42,5 @@ export type TrainingNavigationRequest =
   | TrainingSessionNavigationRequest
   | TrainingComparisonNavigationRequest
   | TrainingSportNavigationRequest
+  | TrainingSportSessionsNavigationRequest
   | TrainingWorkspaceNavigationRequest;

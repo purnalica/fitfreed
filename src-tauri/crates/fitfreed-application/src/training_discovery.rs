@@ -16,7 +16,7 @@ const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
 const SPORT_PREFIX: &str = "sport-";
 const TRAINING_WORKSPACE_PAGE_SIZE: usize = 25;
-const TRAINING_WORKSPACE_VERSION: u32 = 1;
+const TRAINING_WORKSPACE_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TrainingMeasurementFilter {
@@ -100,6 +100,7 @@ pub struct TrainingSessionSport {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrainingSessionSearchItem {
     pub session_ref: String,
+    pub sport_filter_ref: String,
     pub source_index: usize,
     pub started_at_local: String,
     pub stopped_at_local: String,
@@ -768,13 +769,10 @@ fn validate_session(
     {
         return query_failure("training-session page violates its measurement filters");
     }
-    if !request.sport_refs.is_empty()
-        && session
-            .sport
-            .sport_ref
-            .as_ref()
-            .is_none_or(|sport_ref| !request.sport_refs.contains(sport_ref))
-    {
+    if !valid_opaque_ref(&session.sport_filter_ref, SPORT_PREFIX) {
+        return query_failure("training-session sport filter identity is invalid");
+    }
+    if !request.sport_refs.is_empty() && !request.sport_refs.contains(&session.sport_filter_ref) {
         return query_failure("training-session page violates its sport filters");
     }
     validate_sport(&session.sport)?;
@@ -824,6 +822,16 @@ pub(crate) fn training_session_sport_is_valid(sport: &TrainingSessionSport) -> b
         sport.recognition_candidate_count,
     ) {
         (TrainingSportState::Unavailable, None, None, None, 0) => true,
+        (TrainingSportState::Recognized, None, None, Some(recognition), 1)
+            if valid_recognition(recognition) =>
+        {
+            true
+        }
+        (TrainingSportState::Ambiguous, None, None, None, candidate_count)
+            if candidate_count > 1 =>
+        {
+            true
+        }
         (TrainingSportState::Unknown, Some(sport_ref), Some(classification), None, 0)
             if valid_opaque_ref(sport_ref, SPORT_PREFIX)
                 && classification.canonical_family.is_none()

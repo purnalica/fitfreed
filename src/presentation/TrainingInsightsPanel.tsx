@@ -49,6 +49,16 @@ export function TrainingInsightsPanel({
   const [classificationChange, setClassificationChange]
     = useState<TrainingSportClassificationChange>();
   const classificationRequestId = useRef(0);
+  const sportSessionsRequestId = useRef(0);
+  const [localSportSessionsNavigation, setLocalSportSessionsNavigation] = useState<{
+    sessionFilterRefs: string[];
+    returnWorkspace: "sports";
+    requestId: number;
+  }>();
+  const [sessionReturnFocus, setSessionReturnFocus] = useState<{
+    sessionFilterRef: string;
+    requestId: number;
+  }>();
   const sessionNavigation = navigationRequest && "kind" in navigationRequest
     && navigationRequest.kind === "session"
     ? navigationRequest
@@ -69,6 +79,12 @@ export function TrainingInsightsPanel({
     && navigationRequest.kind === "sports"
     ? navigationRequest
     : undefined;
+  const externalSportSessionsNavigation = navigationRequest && "kind" in navigationRequest
+    && navigationRequest.kind === "sport-sessions"
+    ? navigationRequest
+    : undefined;
+  const sportSessionsNavigation = externalSportSessionsNavigation
+    ?? localSportSessionsNavigation;
   const [workspace, setWorkspace] = useState<TrainingWorkspace>(
     comparisonNavigation
       ? "comparison"
@@ -82,7 +98,9 @@ export function TrainingInsightsPanel({
       : undefined);
 
   useEffect(() => {
-    if (sportNavigation || sportWorkspaceNavigation) {
+    if (sportSessionsNavigation) {
+      setWorkspace("sessions");
+    } else if (sportNavigation || sportWorkspaceNavigation) {
       setWorkspace("sports");
     } else if (comparisonNavigation || reportReturnFocusRequest?.kind === "comparison") {
       setWorkspace("comparison");
@@ -99,6 +117,7 @@ export function TrainingInsightsPanel({
     reportReturnFocusRequest?.requestId,
     sessionNavigation?.requestId,
     sessionWorkspaceNavigation?.requestId,
+    sportSessionsNavigation?.requestId,
     sportNavigation?.requestId,
     sportWorkspaceNavigation?.requestId,
   ]);
@@ -118,6 +137,26 @@ export function TrainingInsightsPanel({
     onSportClassificationChange(result);
   }
 
+  function openSportSessions(sessionFilterRef: string) {
+    sportSessionsRequestId.current += 1;
+    setLocalSportSessionsNavigation({
+      sessionFilterRefs: [sessionFilterRef],
+      returnWorkspace: "sports",
+      requestId: sportSessionsRequestId.current,
+    });
+    setWorkspace("sessions");
+  }
+
+  function returnToSports(sessionFilterRef: string) {
+    sportSessionsRequestId.current += 1;
+    setLocalSportSessionsNavigation(undefined);
+    setSessionReturnFocus({
+      sessionFilterRef,
+      requestId: sportSessionsRequestId.current,
+    });
+    setWorkspace("sports");
+  }
+
   return (
     <section className="training-insights" aria-labelledby="training-heading">
       <header className="training-workspace-heading">
@@ -135,7 +174,10 @@ export function TrainingInsightsPanel({
             type="button"
             aria-current={workspace === destination ? "page" : undefined}
             disabled={destination === "comparison" && availableRange === null}
-            onClick={() => setWorkspace(destination)}
+            onClick={() => {
+              if (destination === "sports") setLocalSportSessionsNavigation(undefined);
+              setWorkspace(destination);
+            }}
           >
             {messages.training.workspaces[destination]}
           </button>
@@ -149,6 +191,7 @@ export function TrainingInsightsPanel({
           classificationChange={classificationChange}
           initialDate={initialDate}
           initialSessionRef={sessionNavigation?.sessionRef}
+          sportSessionsNavigation={sportSessionsNavigation}
           navigationRequestId={sessionNavigation?.requestId}
           createReportFocusRequestId={reportReturnFocusRequest?.kind === "session"
             ? reportReturnFocusRequest.requestId
@@ -157,6 +200,7 @@ export function TrainingInsightsPanel({
           onCreateReport={onCreateReport}
           onError={onError}
           onSportClassificationChange={(result) => publishClassification("sessions", result)}
+          onReturnToSports={returnToSports}
         />
       </div>
       <div className="training-workspace-panel" hidden={workspace !== "sports"}>
@@ -166,9 +210,11 @@ export function TrainingInsightsPanel({
           refreshToken={refreshToken}
           openSportRef={sportNavigation?.sportRef}
           navigationRequestId={sportNavigation?.requestId}
+          sessionReturnFocus={sessionReturnFocus}
           classificationChange={classificationChange}
           onError={onError}
           onChange={(result) => publishClassification("sports", result)}
+          onOpenSessions={(sport) => openSportSessions(sport.sessionFilterRef)}
         />
       </div>
       <div className="training-workspace-panel" hidden={workspace !== "comparison"}>

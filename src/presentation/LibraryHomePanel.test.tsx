@@ -10,7 +10,7 @@ const messages = catalogs["en-US"].home;
 
 function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
   return {
-    version: 5,
+    version: 6,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     recordedRange: { from: "2024-01-02", through: "2026-08-17" },
     usableRange: { from: "2024-01-02", through: "2026-08-17" },
@@ -79,47 +79,51 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
     training: {
       trainingSnapshotRef: "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       sessionCount: 42,
-      sportProfileCount: 4,
-      omittedSportProfileCount: 0,
+      sportCollectionCount: 4,
+      omittedSportCollectionCount: 0,
       sports: [
         {
+          sessionFilterRefs: [`sport-${"1".repeat(64)}`],
           sportRef: "sport-local-running",
           state: "personally-overridden",
           canonicalFamily: "running",
           displayLabel: "Road running",
           localizedNames: {},
           recognitionCandidateCount: 0,
-          profileCount: 1,
+          representedCollectionCount: 1,
           sessionCount: 22,
         },
         {
+          sessionFilterRefs: [`sport-${"2".repeat(64)}`],
           sportRef: "sport-local-kayaking",
           state: "personally-overridden",
           canonicalFamily: "water-sport",
           displayLabel: "Kayaking",
           localizedNames: {},
           recognitionCandidateCount: 0,
-          profileCount: 1,
+          representedCollectionCount: 1,
           sessionCount: 12,
         },
         {
+          sessionFilterRefs: [`sport-${"3".repeat(64)}`],
           sportRef: "sport-local-unknown-a",
           state: "unknown",
           canonicalFamily: null,
           displayLabel: null,
           localizedNames: {},
           recognitionCandidateCount: 0,
-          profileCount: 1,
+          representedCollectionCount: 1,
           sessionCount: 5,
         },
         {
+          sessionFilterRefs: [`sport-${"4".repeat(64)}`],
           sportRef: "sport-local-unknown-b",
           state: "unknown",
           canonicalFamily: null,
           displayLabel: null,
           localizedNames: {},
           recognitionCandidateCount: 0,
-          profileCount: 1,
+          representedCollectionCount: 1,
           sessionCount: 3,
         },
       ],
@@ -179,15 +183,16 @@ describe("LibraryHomePanel", () => {
     const home = populatedHome();
     home.training = {
       ...home.training!,
-      sportProfileCount: 1,
+      sportCollectionCount: 1,
       sports: [{
+        sessionFilterRefs: [`sport-${"2".repeat(64)}`],
         sportRef: "sport-local-kayaking",
         state: "recognized",
         canonicalFamily: "water-sport",
         displayLabel: null,
         localizedNames: { en: "Kayaking", "es-ES": "Piragüismo" },
         recognitionCandidateCount: 1,
-        profileCount: 1,
+        representedCollectionCount: 1,
         sessionCount: 12,
       }],
       recentSessions: [{
@@ -230,6 +235,7 @@ describe("LibraryHomePanel", () => {
     const onOpenSession = vi.fn();
     const onOpenTrainingSessions = vi.fn();
     const onOpenSports = vi.fn();
+    const onOpenSportSessions = vi.fn();
     render(
       <LibraryHomePanel
         home={populatedHome()}
@@ -240,6 +246,7 @@ describe("LibraryHomePanel", () => {
         onOpenSession={onOpenSession}
         onOpenTrainingSessions={onOpenTrainingSessions}
         onOpenSports={onOpenSports}
+        onOpenSportSessions={onOpenSportSessions}
         onOpenSources={vi.fn()}
       />,
     );
@@ -259,6 +266,10 @@ describe("LibraryHomePanel", () => {
     expect(within(sports).getByText("Unknown sport 1")).toBeVisible();
     expect(within(sports).getByText("Unknown sport 2")).toBeVisible();
     expect(within(sports).getAllByTestId("sport-family-icon")).toHaveLength(4);
+    await user.click(within(sports).getByRole("button", {
+      name: "View sessions for Road running",
+    }));
+    expect(onOpenSportSessions).toHaveBeenCalledWith(populatedHome().training!.sports[0]);
 
     const comparison = screen.getByRole("region", { name: "Last 7 days" });
     expect(comparison).toHaveTextContent("4 sessions");
@@ -284,7 +295,7 @@ describe("LibraryHomePanel", () => {
     home.training = {
       ...home.training!,
       sessionCount: 0,
-      sportProfileCount: 0,
+      sportCollectionCount: 0,
       sports: [],
       recentSessions: [],
     };
@@ -630,7 +641,7 @@ describe("LibraryHomePanel", () => {
     render(
       <LibraryHomePanel
         home={{
-          version: 5,
+          version: 6,
           libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           recordedRange: null,
           usableRange: null,

@@ -211,7 +211,9 @@ impl TrainingSportsPort for ControlledLibraryHomePort {
         }
         Ok(by_origin
             .into_iter()
-            .map(|(origin_id, sessions)| DetectedTrainingSport {
+            .enumerate()
+            .map(|(index, (origin_id, sessions))| DetectedTrainingSport {
+                session_filter_ref: format!("sport-{:064x}", index + 1),
                 sport_ref: None,
                 origin_id,
                 classification: None,
@@ -416,6 +418,14 @@ fn controlled_search_item(
         });
     TrainingSessionSearchItem {
         session_ref: format!("session-{:064x}", hasher.finish()),
+        sport_filter_ref: port
+            .detected_sports
+            .iter()
+            .find(|detected| detected.origin_id == session.origin_id)
+            .map(|detected| detected.session_filter_ref.clone())
+            .unwrap_or_else(|| {
+                "sport-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_owned()
+            }),
         source_index,
         started_at_local: session.started_at_local.clone(),
         stopped_at_local: session.stopped_at_local.clone(),
@@ -590,6 +600,7 @@ fn classified_detected_sport_named(
     let origin_id = "origin-a";
     let source_sport_ref = format!("source-sport-{index}");
     DetectedTrainingSport {
+        session_filter_ref: format!("sport-{index:064x}"),
         sport_ref: Some(format!("sport-{index:064x}")),
         origin_id: origin_id.to_owned(),
         classification: Some(
@@ -618,6 +629,7 @@ fn unknown_detected_sport(index: usize, session_count: usize) -> DetectedTrainin
     let origin_id = "origin-a";
     let source_sport_ref = format!("source-sport-{index}");
     DetectedTrainingSport {
+        session_filter_ref: format!("sport-{index:064x}"),
         sport_ref: Some(format!("sport-{index:064x}")),
         origin_id: origin_id.to_owned(),
         classification: Some(
@@ -930,16 +942,16 @@ fn composes_recognizable_complete_training_identity_and_one_recent_comparison() 
     let home = query_library_home(&representative_port(), LibraryHomeRequest::default())
         .expect("recognizable library home");
 
-    assert_eq!(home.version, 5);
+    assert_eq!(home.version, 6);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     let training = home.training.expect("complete training identity");
     assert_eq!(training.training_snapshot_ref, TRAINING_SNAPSHOT);
     assert_eq!(training.session_count, 2);
-    assert_eq!(training.sport_profile_count, 1);
-    assert_eq!(training.omitted_sport_profile_count, 0);
+    assert_eq!(training.sport_collection_count, 1);
+    assert_eq!(training.omitted_sport_collection_count, 0);
     assert_eq!(training.sports.len(), 1);
     assert_eq!(training.sports[0].state, TrainingSportState::Unavailable);
-    assert_eq!(training.sports[0].profile_count, 1);
+    assert_eq!(training.sports[0].represented_collection_count, 1);
     assert_eq!(training.sports[0].session_count, 2);
     assert_eq!(training.recent_sessions.len(), 2);
     assert_eq!(
@@ -996,7 +1008,7 @@ fn reports_complete_history_and_bounded_aggregated_sports_instead_of_recent_cove
 
     assert_eq!(home.domains[0].observed_record_count, 2);
     assert_eq!(training.session_count, 40);
-    assert_eq!(training.sport_profile_count, 8);
+    assert_eq!(training.sport_collection_count, 8);
     assert_eq!(training.sports.len(), 1);
     assert_eq!(
         training.sports[0].canonical_family.as_deref(),
@@ -1006,10 +1018,10 @@ fn reports_complete_history_and_bounded_aggregated_sports_instead_of_recent_cove
         training.sports[0].display_label.as_deref(),
         Some("Trail running")
     );
-    assert_eq!(training.sports[0].profile_count, 8);
+    assert_eq!(training.sports[0].represented_collection_count, 8);
     assert_eq!(training.sports[0].session_count, 40);
     assert_eq!(training.sports[0].sport_ref, None);
-    assert_eq!(training.omitted_sport_profile_count, 0);
+    assert_eq!(training.omitted_sport_collection_count, 0);
     assert_eq!(training.recent_sessions.len(), 4);
 }
 
@@ -1036,14 +1048,13 @@ fn preserves_each_unknown_profile_as_a_distinct_safe_home_identity() {
         .expect("distinct unresolved Home sports");
     let training = home.training.expect("training identity");
 
-    assert_eq!(home.version, 5);
-    assert_eq!(training.sport_profile_count, 4);
+    assert_eq!(home.version, 6);
+    assert_eq!(training.sport_collection_count, 4);
     assert_eq!(training.sports.len(), 4);
-    assert_eq!(training.omitted_sport_profile_count, 0);
-    assert!(training
-        .sports
-        .iter()
-        .all(|sport| { sport.state == TrainingSportState::Unknown && sport.profile_count == 1 }));
+    assert_eq!(training.omitted_sport_collection_count, 0);
+    assert!(training.sports.iter().all(|sport| {
+        sport.state == TrainingSportState::Unknown && sport.represented_collection_count == 1
+    }));
     let expected_refs = (0..4)
         .map(|index| format!("sport-{index:064x}"))
         .collect::<Vec<_>>();
@@ -1115,7 +1126,7 @@ fn combines_personally_identical_profiles_without_using_hidden_recognition_as_id
         .expect("training identity");
 
     assert_eq!(training.sports.len(), 1);
-    assert_eq!(training.sports[0].profile_count, 2);
+    assert_eq!(training.sports[0].represented_collection_count, 2);
     assert_eq!(training.sports[0].sport_ref, None);
     assert_eq!(
         training.sports[0].display_label.as_deref(),
@@ -1134,7 +1145,7 @@ fn combines_personally_identical_profiles_without_using_hidden_recognition_as_id
 }
 
 #[test]
-fn bounds_distinct_sport_summaries_and_reports_the_omitted_profile_count() {
+fn bounds_distinct_sport_summaries_and_reports_the_omitted_collection_count() {
     let mut port = representative_port();
     port.training_bounds = Some(training_range("2026-01-04", "2026-01-10"));
     port.sessions = (0..7)
@@ -1159,14 +1170,14 @@ fn bounds_distinct_sport_summaries_and_reports_the_omitted_profile_count() {
         .training
         .expect("training identity");
 
-    assert_eq!(training.sport_profile_count, 7);
+    assert_eq!(training.sport_collection_count, 7);
     assert_eq!(training.sports.len(), 6);
-    assert_eq!(training.omitted_sport_profile_count, 1);
+    assert_eq!(training.omitted_sport_collection_count, 1);
     assert_eq!(
         training
             .sports
             .iter()
-            .map(|sport| sport.profile_count)
+            .map(|sport| sport.represented_collection_count)
             .sum::<usize>(),
         6
     );
@@ -1489,7 +1500,7 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
     let home = query_library_home(&EmptyPort, LibraryHomeRequest::default()).expect("empty home");
 
-    assert_eq!(home.version, 5);
+    assert_eq!(home.version, 6);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     assert_eq!(home.recorded_range, None);
     assert_eq!(home.usable_range, None);

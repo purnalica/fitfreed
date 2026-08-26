@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-sport-identity-v2.schema.json",
+  "title": "FitFreed training sport identity version 2",
+  "$ref": "#/$defs/sportIdentity",
+  "$defs": {
+    "sportRef": {
+      "type": "string",
+      "pattern": "^sport-[0-9a-f]{64}$"
+    },
+    "optionalSportRef": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sportRef" }
+      ]
+    },
+    "family": {
+      "enum": [
+        "running",
+        "cycling",
+        "swimming",
+        "walking",
+        "hiking",
+        "strength",
+        "mobility",
+        "racket-sport",
+        "team-sport",
+        "winter-sport",
+        "water-sport",
+        "other"
+      ]
+    },
+    "optionalFamily": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/family" }
+      ]
+    },
+    "optionalDisplayLabel": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^(?=\\S)(?:(?![\\u0000-\\u001F\\u007F-\\u009F])[\\s\\S])*\\S$"
+        }
+      ]
+    },
+    "unresolvedClassification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalFamily", "displayLabel", "authorship", "revision"],
+      "properties": {
+        "canonicalFamily": { "type": "null" },
+        "displayLabel": { "type": "null" },
+        "authorship": { "type": "null" },
+        "revision": { "const": 0 }
+      }
+    },
+    "personalClassification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalFamily", "displayLabel", "authorship", "revision"],
+      "properties": {
+        "canonicalFamily": { "$ref": "#/$defs/optionalFamily" },
+        "displayLabel": { "$ref": "#/$defs/optionalDisplayLabel" },
+        "authorship": { "const": "user" },
+        "revision": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "localizedNames": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "pattern": "^(?=\\S)(?:(?![\\u0000-\\u001F\\u007F-\\u009F])[\\s\\S])*\\S$"
+      }
+    },
+    "recognition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalFamily",
+        "localizedNames",
+        "catalogueRevision",
+        "retrievedAtUtc",
+        "mappingVersion",
+        "evidenceRef"
+      ],
+      "properties": {
+        "canonicalFamily": { "$ref": "#/$defs/optionalFamily" },
+        "localizedNames": { "$ref": "#/$defs/localizedNames" },
+        "catalogueRevision": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "retrievedAtUtc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "mappingVersion": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "evidenceRef": {
+          "type": "string",
+          "pattern": "^sport-evidence-[0-9a-f]{64}$"
+        }
+      }
+    },
+    "recognized": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef", "state", "classification", "recognition", "recognitionCandidateCount"
+      ],
+      "properties": {
+        "sportRef": { "$ref": "#/$defs/optionalSportRef" },
+        "state": { "const": "recognized" },
+        "classification": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/unresolvedClassification" }
+          ]
+        },
+        "recognition": { "$ref": "#/$defs/recognition" },
+        "recognitionCandidateCount": { "const": 1 }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "sportRef": { "$ref": "#/$defs/sportRef" },
+            "classification": { "$ref": "#/$defs/unresolvedClassification" }
+          }
+        },
+        {
+          "properties": {
+            "sportRef": { "type": "null" },
+            "classification": { "type": "null" }
+          }
+        }
+      ]
+    },
+    "ambiguous": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef", "state", "classification", "recognition", "recognitionCandidateCount"
+      ],
+      "properties": {
+        "sportRef": { "$ref": "#/$defs/optionalSportRef" },
+        "state": { "const": "ambiguous" },
+        "classification": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/unresolvedClassification" }
+          ]
+        },
+        "recognition": { "type": "null" },
+        "recognitionCandidateCount": { "type": "integer", "minimum": 2 }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "sportRef": { "$ref": "#/$defs/sportRef" },
+            "classification": { "$ref": "#/$defs/unresolvedClassification" }
+          }
+        },
+        {
+          "properties": {
+            "sportRef": { "type": "null" },
+            "classification": { "type": "null" }
+          }
+        }
+      ]
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef", "state", "classification", "recognition", "recognitionCandidateCount"
+      ],
+      "properties": {
+        "sportRef": { "$ref": "#/$defs/sportRef" },
+        "state": { "const": "unknown" },
+        "classification": { "$ref": "#/$defs/unresolvedClassification" },
+        "recognition": { "type": "null" },
+        "recognitionCandidateCount": { "const": 0 }
+      }
+    },
+    "personal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef", "state", "classification", "recognition", "recognitionCandidateCount"
+      ],
+      "properties": {
+        "sportRef": { "$ref": "#/$defs/sportRef" },
+        "state": { "const": "personally-overridden" },
+        "classification": { "$ref": "#/$defs/personalClassification" },
+        "recognition": {},
+        "recognitionCandidateCount": { "type": "integer", "minimum": 0 }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "recognition": { "type": "null" },
+            "recognitionCandidateCount": { "const": 0 }
+          }
+        },
+        {
+          "properties": {
+            "recognition": { "$ref": "#/$defs/recognition" },
+            "recognitionCandidateCount": { "const": 1 }
+          }
+        },
+        {
+          "properties": {
+            "recognition": { "type": "null" },
+            "recognitionCandidateCount": { "type": "integer", "minimum": 2 }
+          }
+        }
+      ]
+    },
+    "unavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef", "state", "classification", "recognition", "recognitionCandidateCount"
+      ],
+      "properties": {
+        "sportRef": { "type": "null" },
+        "state": { "const": "unavailable" },
+        "classification": { "type": "null" },
+        "recognition": { "type": "null" },
+        "recognitionCandidateCount": { "const": 0 }
+      }
+    },
+    "sportIdentity": {
+      "oneOf": [
+        { "$ref": "#/$defs/recognized" },
+        { "$ref": "#/$defs/ambiguous" },
+        { "$ref": "#/$defs/unknown" },
+        { "$ref": "#/$defs/personal" },
+        { "$ref": "#/$defs/unavailable" }
+      ]
+    }
+  }
+}

@@ -296,7 +296,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C5 | Reopened by XH-12 through XH-22 — the geometry correction remains valid but does not constitute a coherent data-presentation system | Data is concise, aligned, precise, visual, and progressively disclosed |
 | X7-P0 | Complete in working tree — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
 | X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
-| X7-R2 | Pending | Sports are evidence-backed and every represented collection opens its exact sessions |
+| X7-R2 | In progress — exact represented-sport identity and Home/History drill-down verified locally | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Pending | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Pending | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
@@ -2613,8 +2613,24 @@ vocabulary shape and completed training-target sport codes. A normalized target 
 identifies one current session in the same origin; incomplete, unmatched, and multiply matched targets contribute
 nothing, while several distinct exact codes remain ambiguous. The provider code and target provenance remain inside
 SQLite schema 29; session search and ordered selection expose only provider-neutral localized recognition and can
-find that recognized name. Exact reimport is version-scoped and idempotent. The source-profile summary split,
-filtered-session destination, complete natural-drill-down audit, and shared comparison presets remain in X7-R2.
+find that recognized name. Exact reimport is version-scoped and idempotent.
+
+**Execution checkpoint — represented-session identity and navigation:** training sports version 3 now separates the
+personal-classification `sportRef` from the exact collection `sessionFilterRef`. Exact recognized, ambiguous,
+unresolved remainder, unavailable, and personally overridden collections filter search and calendar through one
+validated identity; exact evidence also works when a session has no source profile. A personal override deliberately
+reunites exact and unresolved sessions for its source profile. Home may aggregate several collection capabilities
+without inventing one editable profile. Home and History sport cards expose independent session and classification
+actions; direct entry, Back, prior filters, tab, and focus survive the round trip. SQLite schema 30 lazily expands
+legacy saved profile filters into their current exact collections. Versioned identity, Home, search, selection,
+workspace, story, and report contracts cover the new boundary. The complete natural-drill-down audit and shared
+comparison presets remain in X7-R2.
+
+The 2026-08-26 verification passed the complete fast contributor lane, Rust lint and formatting, the production
+build, and the rebuilt packaged macOS campaign. The packaged functional journey covered both locales, supported
+zoom levels, classification cancellation and save, collection navigation, reimport, durable state, accessibility,
+and application-process restart in 3 minutes 12 seconds. Independent adaptive-session, adaptive-range restart, and
+insight-performance journeys also passed; every measured p95 remained inside its documented budget.
 
 ### X7-R3 — Establish one coherent data-presentation and Settings system
 

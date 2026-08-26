@@ -162,11 +162,13 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .library-home-sports h2, .library-home-recent h2 { margin: 0 0 4px; font-size: 1.16rem; }
 .library-home-sports > div p, .library-home-recent > div p { margin: 0; color: var(--muted); font-size: .84rem; }
 .library-home-sports ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 9px; margin: 0; padding: 0; list-style: none; }
-.library-home-sports li { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; padding: 11px; background: var(--surface-soft); border-radius: 12px; }
+.library-home-sports li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: center; min-width: 0; padding: 6px; background: var(--surface-soft); border-radius: 12px; }
+.library-home-sport-open { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-width: 0; min-height: 52px; padding: 5px; color: var(--ink); text-align: left; background: transparent; border: 1px solid transparent; border-radius: 9px; box-shadow: none; }
+.library-home-sport-open:hover, .library-home-sport-open:focus-visible { background: var(--surface); border-color: var(--accent); box-shadow: none; }
 .library-home-sports .sport-family-icon, .library-home-recent .sport-family-icon { width: 38px; height: 38px; padding: 8px; color: var(--accent-deep); background: var(--surface); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .library-home-sports li strong, .library-home-sports li span, .library-home-sports li small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .library-home-sports li strong { font-size: .88rem; }
-.library-home-sports li > div strong { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.library-home-sports .library-home-sport-open > span strong { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
 .library-home-sports li span, .library-home-sports li small { color: var(--muted); font-size: .73rem; }
 .library-home-sports .library-home-sport-classify { grid-column: 1 / -1; min-height: 34px; padding: 6px 9px; font-size: .72rem; }
 .library-home-sports-omitted { grid-column: 2; margin: 0; color: var(--muted); font-size: .78rem; }
@@ -525,6 +527,9 @@ th:last-child, td:last-child { text-align: right; }
 .training-history-sports li { display: block; min-width: 0; padding: 7px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 11px; }
 .training-history-sport-identity { display: flex; align-items: center; gap: 8px; }
 .training-history-sport-identity > span { min-width: 0; }
+.training-history-sport-open { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 8px; align-items: center; flex: 1 1 auto; min-width: 0; min-height: 40px; padding: 3px; color: var(--ink); text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; box-shadow: none; }
+.training-history-sport-open:hover, .training-history-sport-open:focus-visible { background: var(--surface); border-color: var(--accent); box-shadow: none; }
+.training-history-sport-open > span { min-width: 0; }
 .training-history-sport-classify { min-height: 34px; margin-left: 6px; padding: 5px 8px; font-size: .7rem; }
 .training-history-sport-editor, .training-history-sports > .training-sports-status { grid-column: 1 / -1; }
 .training-history-sport-editor { padding: 2px 14px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
@@ -675,6 +680,8 @@ th:last-child, td:last-child { text-align: right; }
 .training-sport-card-heading h3 { margin: 0 0 5px; font-size: 1.12rem; overflow-wrap: anywhere; }
 .training-sport-card-heading p { margin: 0; color: var(--muted); font-size: .76rem; }
 .training-sport-card-heading button { flex: 0 0 auto; min-height: 38px; padding: 7px 10px; font-size: .76rem; }
+.training-sport-card-actions { display: flex; flex: 0 0 auto; gap: 8px; align-items: start; }
+.training-session-return-to-sports { margin: 0 0 12px; }
 .training-sport-list > li > p { margin: 12px 0; color: var(--ink-soft); font-size: .82rem; }
 .training-sport-authorship { color: var(--success) !important; font-weight: 750; }
 .training-sport-coverage { display: grid; gap: 7px; margin: 14px 0 0; }

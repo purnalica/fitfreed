@@ -357,7 +357,7 @@ for (const [selector, maximum] of [
   );
 }
 for (const selector of [
-  ".library-home-sports li > div strong",
+  ".library-home-sports .library-home-sport-open > span strong",
   ".library-home-recent-identity > strong",
 ]) {
   requireRule(

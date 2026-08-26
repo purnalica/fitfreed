@@ -19,6 +19,7 @@ fn detected_sport(
     session_count: usize,
 ) -> DetectedTrainingSport {
     DetectedTrainingSport {
+        session_filter_ref: format!("filter-{sport_ref}"),
         sport_ref: Some(sport_ref.to_owned()),
         origin_id: origin_id.to_owned(),
         classification: Some(SportClassification::unresolved(
@@ -36,6 +37,7 @@ fn detected_sport(
 
 fn unavailable_sport(origin_id: &str) -> DetectedTrainingSport {
     DetectedTrainingSport {
+        session_filter_ref: format!("filter-unavailable-{origin_id}"),
         sport_ref: None,
         origin_id: origin_id.to_owned(),
         classification: None,
@@ -117,14 +119,17 @@ impl TrainingSportsPort for ControlledTrainingSportsPort {
             return Ok(false);
         }
         let mut detected = self.detected.lock().expect("detected sports");
-        let existing = detected
+        let matching = detected
             .iter_mut()
-            .find(|sport| {
+            .filter(|sport| {
                 sport.classification.as_ref().map(SportClassification::key)
                     == Some(classification.key())
             })
-            .expect("saved detected sport");
-        existing.classification = Some(classification.clone());
+            .collect::<Vec<_>>();
+        assert!(!matching.is_empty(), "saved detected sport");
+        for existing in matching {
+            existing.classification = Some(classification.clone());
+        }
         Ok(true)
     }
 }
@@ -170,6 +175,10 @@ fn composes_classified_unknown_and_unavailable_sports_without_source_references(
         Some("sport-running")
     );
     assert_eq!(
+        overview.sports[0].session_filter_ref,
+        "filter-sport-running"
+    );
+    assert_eq!(
         overview.sports[0]
             .classification
             .as_ref()
@@ -180,6 +189,49 @@ fn composes_classified_unknown_and_unavailable_sports_without_source_references(
     assert_eq!(overview.sports[1].source_index, 2);
     assert_eq!(overview.sports[2].state, TrainingSportState::Unavailable);
     assert_eq!(overview.sports[2].source_index, 1);
+}
+
+#[test]
+fn keeps_exact_representations_separate_from_one_classifiable_source_profile() {
+    let mut kayaking = detected_sport("sport-shared", "origin-a", "opaque-1", 2);
+    kayaking.session_filter_ref = "filter-kayaking".to_owned();
+    kayaking.recognition_candidates = vec![recognized_suggestion(
+        "Kayaking",
+        Some(SportFamily::WaterSport),
+    )];
+    let mut unresolved = detected_sport("sport-shared", "origin-a", "opaque-1", 3);
+    unresolved.session_filter_ref = "filter-unresolved".to_owned();
+
+    let overview = query_training_sports(&ControlledTrainingSportsPort::with(vec![
+        unresolved, kayaking,
+    ]))
+    .expect("split source profile representations");
+
+    assert_eq!(overview.session_count, 5);
+    assert_eq!(overview.sports.len(), 2);
+    assert_eq!(overview.sports[0].state, TrainingSportState::Recognized);
+    assert_eq!(overview.sports[0].session_filter_ref, "filter-kayaking");
+    assert_eq!(overview.sports[1].state, TrainingSportState::Unknown);
+    assert_eq!(overview.sports[1].session_filter_ref, "filter-unresolved");
+    assert_eq!(overview.sports[0].sport_ref, overview.sports[1].sport_ref);
+}
+
+#[test]
+fn recognizes_exact_evidence_without_inventing_a_classifiable_source_profile() {
+    let mut recognized = unavailable_sport("origin-a");
+    recognized.session_filter_ref = "filter-exact".to_owned();
+    recognized.recognition_candidates = vec![recognized_suggestion(
+        "Kayaking",
+        Some(SportFamily::WaterSport),
+    )];
+
+    let overview = query_training_sports(&ControlledTrainingSportsPort::with(vec![recognized]))
+        .expect("evidence-only sport recognition");
+
+    assert_eq!(overview.sports[0].state, TrainingSportState::Recognized);
+    assert!(overview.sports[0].sport_ref.is_none());
+    assert!(overview.sports[0].classification.is_none());
+    assert_eq!(overview.sports[0].recognition_candidate_count, 1);
 }
 
 #[test]

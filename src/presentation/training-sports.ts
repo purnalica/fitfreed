@@ -117,6 +117,7 @@ export interface TrainingSportCoverage {
 }
 
 export interface TrainingSport {
+  sessionFilterRef: string;
   sportRef: string | null;
   sourceIndex: number;
   state: TrainingSportState;

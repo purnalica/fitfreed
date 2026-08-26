@@ -29,6 +29,7 @@ interface LibraryHomePanelProps {
   onOpenSession: (session: LibraryHomeRecentSession) => void;
   onOpenTrainingSessions?: () => void;
   onOpenSports?: () => void;
+  onOpenSportSessions?: (sport: LibraryHomeSportSummary) => void;
   onOpenSportClassification?: (sportRef: string) => void;
   onOpenSources: () => void;
   onChooseArchive?: () => void;
@@ -64,6 +65,7 @@ export function LibraryHomePanel({
   onOpenSession,
   onOpenTrainingSessions = () => onExplore("training", "summary:sessions"),
   onOpenSports = () => onExplore("training", "summary:sports"),
+  onOpenSportSessions = () => undefined,
   onOpenSportClassification = () => undefined,
   onOpenSources,
   onChooseArchive = onOpenSources,
@@ -253,7 +255,7 @@ export function LibraryHomePanel({
     ? formatCount(training.sessionCount, messages.summarySessions)
     : undefined;
   const sportSummary = training
-    ? formatCount(training.sportProfileCount, messages.summarySports)
+    ? formatCount(training.sportCollectionCount, messages.summarySports)
     : undefined;
 
   return (
@@ -279,7 +281,7 @@ export function LibraryHomePanel({
               ) : (
                 <strong>{sessionSummary}</strong>
               )}
-              {training.sportProfileCount > 0 ? (
+              {training.sportCollectionCount > 0 ? (
                 <button
                   type="button"
                   className="library-home-summary-action"
@@ -309,16 +311,30 @@ export function LibraryHomePanel({
             {training.sports.map((sport, index) => {
               const label = sportLabel(sport);
               const sportRef = sport.sportRef;
+              const sessionFocusTarget = `sport-sessions:${sport.sessionFilterRefs.join(",")}`;
               return (
-                <li key={sportRef ?? `${sport.state}-${sport.canonicalFamily ?? "none"}-${sport.displayLabel ?? "none"}-${index}`}>
-                  <SportFamilyIcon family={sport.canonicalFamily} state={sport.state} />
-                  <div>
-                    <strong>{label}</strong>
-                    <span>{formatCount(sport.sessionCount, messages.sportSessions)}</span>
-                    {sport.profileCount > 1 && (
-                      <small>{formatCount(sport.profileCount, messages.sportProfiles)}</small>
-                    )}
-                  </div>
+                <li key={sport.sessionFilterRefs.join(":") || `${sport.state}-${index}`}>
+                  <button
+                    type="button"
+                    className="library-home-sport-open"
+                    ref={registerFocusTarget(sessionFocusTarget)}
+                    aria-label={messages.openSportSessions.replace("{sport}", label)}
+                    disabled={pendingDestination !== undefined}
+                    onClick={() => onOpenSportSessions(sport)}
+                  >
+                    <SportFamilyIcon family={sport.canonicalFamily} state={sport.state} />
+                    <span>
+                      <strong>{label}</strong>
+                      <span>{formatCount(sport.sessionCount, messages.sportSessions)}</span>
+                      {sport.representedCollectionCount > 1 && (
+                        <small>{formatCount(
+                          sport.representedCollectionCount,
+                          messages.sportCollections,
+                        )}</small>
+                      )}
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </button>
                   {(sport.state === "unknown" || sport.state === "ambiguous")
                     && sportRef && (
                     <button
@@ -336,9 +352,9 @@ export function LibraryHomePanel({
               );
             })}
           </ul>
-          {training.omittedSportProfileCount > 0 && (
+          {training.omittedSportCollectionCount > 0 && (
             <p className="library-home-sports-omitted">
-              {formatCount(training.omittedSportProfileCount, messages.omittedSports)}
+              {formatCount(training.omittedSportCollectionCount, messages.omittedSports)}
             </p>
           )}
         </section>

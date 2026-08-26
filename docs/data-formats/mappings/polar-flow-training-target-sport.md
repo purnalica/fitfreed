@@ -87,6 +87,13 @@ bytes are an exact repeat only under the same source-adapter and operation-mappi
 therefore reassesses an older completed ZIP and can enrich session identity without duplicating sessions or
 evidence rows.
 
+Recognition does not require the matched session to contain `sport.id`. Exact evidence can therefore produce a
+`recognized` or `ambiguous` session with no personal-classification capability. History assigns every represented
+exact candidate set its own opaque `sessionFilterRef`; the unresolved remainder of a recorded source profile has a
+different filter. The independent `sportRef` continues to identify only a real source profile that the user may
+classify. A personal override reunites exact and unresolved sessions for that profile without deleting exact
+evidence. This separation is defined by training sport identity version 2 and training sports version 3.
+
 ## Explicit non-evidence
 
 The adapter never derives sport identity from opaque numeric identifiers, profile array position, route presence,

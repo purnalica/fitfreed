@@ -1016,8 +1016,9 @@ async function expectHomeSportClassificationRoundTrip(catalog, homeTitle, traini
     "Home sport classification did not focus the shared editor",
   );
   await editor.$(`aria/${catalog.training.sports.cancel}`).click();
-  await expectDocumentFocus(
-    ".training-sport-list > li[data-state='unknown'] button",
+  const trainingSport = await trainingSportCard(trainingTitle);
+  await expectElementFocus(
+    await trainingSport.$(`aria/${catalog.training.sports.edit}`),
     "sport classification cancellation did not restore Sports focus",
   );
   await returnToLibraryHome(catalog);
@@ -1029,7 +1030,7 @@ async function expectHomeSportClassificationRoundTrip(catalog, homeTitle, traini
 
 async function saveContextSportClassification(catalog, currentTitle, family, label) {
   const item = await trainingHistorySportItem(currentTitle);
-  const action = await item.$("button");
+  const action = await item.$(".training-history-sport-classify");
   await action.click();
   const editor = await $(".training-history-sport-editor form");
   await expect(editor.$("label[for$='-family']")).toHaveText(
@@ -1066,7 +1067,7 @@ async function saveContextSportClassification(catalog, currentTitle, family, lab
 
 async function saveSportClassification(catalog, currentTitle, family, label) {
   const card = await trainingSportCard(currentTitle);
-  await card.$("button").click();
+  await card.$(".training-sport-classify").click();
   const editor = await card.$("form");
   await expect(editor.$("label[for$='-family']")).toHaveText(
     catalog.training.sports.family,
@@ -1092,7 +1093,7 @@ async function saveSportClassification(catalog, currentTitle, family, label) {
 
 async function resetSportClassification(catalog, currentTitle) {
   const card = await trainingSportCard(currentTitle);
-  await card.$("button").click();
+  await card.$(".training-sport-classify").click();
   await card.$(`aria/${catalog.training.sports.reset}`).click();
   await browser.waitUntil(
     async () => (await card.getAttribute("data-state")) === "personally-overridden",
@@ -1890,13 +1891,15 @@ describe("packaged FitFreed import journey", () => {
       ".training-insights",
     );
     const contextualSport = await trainingHistorySportItem("Unknown sport 1");
-    const contextualAction = await contextualSport.$("button");
+    const contextualAction = await contextualSport.$(".training-history-sport-classify");
     await contextualAction.click();
     await exerciseSportClassificationComposition();
     await browser.waitUntil(
       async () => browser.execute(
         () => document.activeElement
-          === document.querySelector(".training-history-sports li[data-state='unknown'] button"),
+          === document.querySelector(
+            ".training-history-sports li[data-state='unknown'] .training-history-sport-classify",
+          ),
       ),
       { timeout: 10_000, timeoutMsg: "context classification cancellation did not restore focus" },
     );
@@ -2444,7 +2447,7 @@ describe("packaged FitFreed import journey", () => {
     await expect(provenance).toHaveText(
       expect.stringContaining(english.training.sessionLibrary.provenanceDecisions.create),
     );
-    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@11"));
+    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@12"));
     await expect(provenance).toHaveText(
       expect.stringContaining("polar-flow-training-session@6"),
     );
@@ -4131,11 +4134,11 @@ describe("packaged FitFreed import journey", () => {
     await expectResultBelowCompactNavigation("#activity-comparison-heading");
     await openDomainWorkspace(spanish, "activity", "history");
     await expectHistory([
-      [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
-      [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
+      [formatLocalDate("es-ES", "2026-01-01"), "3.100", spanish.activity.available],
+      [formatLocalDate("es-ES", "2026-01-02"), "4.200", spanish.activity.available],
       [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable, spanish.activity.unavailable],
       [formatLocalDate("es-ES", "2026-01-04"), spanish.unavailable, spanish.activity.missing],
-      [formatLocalDate("es-ES", "2026-01-05"), "5300", spanish.activity.available],
+      [formatLocalDate("es-ES", "2026-01-05"), "5.300", spanish.activity.available],
     ]);
     const spanishDetailLabel = `${spanish.activity.viewDetails} ${formatLocalDate("es-ES", "2026-01-04")}`;
     const spanishDetailButtons = await $$(`button[aria-label="${spanishDetailLabel}"]`);

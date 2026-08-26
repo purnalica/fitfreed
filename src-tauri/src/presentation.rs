@@ -431,26 +431,28 @@ impl From<PostImportReveal> for PostImportRevealDto {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryHomeSportSummaryDto {
+    session_filter_refs: Vec<String>,
     sport_ref: Option<String>,
     state: &'static str,
     canonical_family: Option<String>,
     display_label: Option<String>,
     localized_names: BTreeMap<String, String>,
     recognition_candidate_count: usize,
-    profile_count: usize,
+    represented_collection_count: usize,
     session_count: usize,
 }
 
 impl From<LibraryHomeSportSummary> for LibraryHomeSportSummaryDto {
     fn from(sport: LibraryHomeSportSummary) -> Self {
         Self {
+            session_filter_refs: sport.session_filter_refs,
             sport_ref: sport.sport_ref,
             state: training_sport_state_code(sport.state),
             canonical_family: sport.canonical_family,
             display_label: sport.display_label,
             localized_names: sport.localized_names,
             recognition_candidate_count: sport.recognition_candidate_count,
-            profile_count: sport.profile_count,
+            represented_collection_count: sport.represented_collection_count,
             session_count: sport.session_count,
         }
     }
@@ -493,8 +495,8 @@ impl From<LibraryHomeRecentSession> for LibraryHomeRecentSessionDto {
 pub struct LibraryHomeTrainingDto {
     training_snapshot_ref: String,
     session_count: usize,
-    sport_profile_count: usize,
-    omitted_sport_profile_count: usize,
+    sport_collection_count: usize,
+    omitted_sport_collection_count: usize,
     sports: Vec<LibraryHomeSportSummaryDto>,
     recent_sessions: Vec<LibraryHomeRecentSessionDto>,
 }
@@ -504,8 +506,8 @@ impl From<LibraryHomeTraining> for LibraryHomeTrainingDto {
         Self {
             training_snapshot_ref: training.training_snapshot_ref,
             session_count: training.session_count,
-            sport_profile_count: training.sport_profile_count,
-            omitted_sport_profile_count: training.omitted_sport_profile_count,
+            sport_collection_count: training.sport_collection_count,
+            omitted_sport_collection_count: training.omitted_sport_collection_count,
             sports: training.sports.into_iter().map(Into::into).collect(),
             recent_sessions: training
                 .recent_sessions
@@ -1984,6 +1986,7 @@ impl From<TrainingSportCoverage> for TrainingSportCoverageDto {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrainingSportDto {
+    session_filter_ref: String,
     sport_ref: Option<String>,
     source_index: usize,
     state: &'static str,
@@ -1998,6 +2001,7 @@ pub struct TrainingSportDto {
 impl From<TrainingSport> for TrainingSportDto {
     fn from(sport: TrainingSport) -> Self {
         Self {
+            session_filter_ref: sport.session_filter_ref,
             sport_ref: sport.sport_ref,
             source_index: sport.source_index,
             state: training_sport_state_code(sport.state),
@@ -7378,6 +7382,7 @@ mod tests {
         );
 
         let recognized_json = serde_json::to_value(TrainingSportDto::from(TrainingSport {
+            session_filter_ref: format!("sport-{}", "d".repeat(64)),
             sport_ref: Some(format!("sport-{}", "c".repeat(64))),
             source_index: 1,
             state: TrainingSportState::Recognized,
@@ -7421,6 +7426,7 @@ mod tests {
             .is_none());
 
         let classified = TrainingSport {
+            session_filter_ref: format!("sport-{}", "e".repeat(64)),
             sport_ref: Some("sport-synthetic".to_owned()),
             source_index: 2,
             state: TrainingSportState::PersonallyOverridden,
@@ -7447,6 +7453,7 @@ mod tests {
             sports: vec![
                 classified.clone(),
                 TrainingSport {
+                    session_filter_ref: format!("sport-{}", "f".repeat(64)),
                     sport_ref: None,
                     source_index: 1,
                     state: TrainingSportState::Unavailable,
@@ -7471,6 +7478,7 @@ mod tests {
                 "originCount": 2,
                 "sessionCount": 8,
                 "sports": [{
+                    "sessionFilterRef": format!("sport-{}", "e".repeat(64)),
                     "sportRef": "sport-synthetic",
                     "sourceIndex": 2,
                     "state": "personally-overridden",
@@ -7491,6 +7499,7 @@ mod tests {
                         "heartRateSessionCount": 5
                     }
                 }, {
+                    "sessionFilterRef": format!("sport-{}", "f".repeat(64)),
                     "sportRef": null,
                     "sourceIndex": 1,
                     "state": "unavailable",
@@ -7641,6 +7650,9 @@ mod tests {
                 session_ref:
                     "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
                         .to_owned(),
+                sport_filter_ref:
+                    "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                        .to_owned(),
                 source_index: 2,
                 started_at_local: "2026-08-18T07:30:00".to_owned(),
                 stopped_at_local: "2026-08-18T08:30:00".to_owned(),
@@ -7762,7 +7774,7 @@ mod tests {
         );
 
         let workspace_value = serde_json::json!({
-            "version": 1,
+            "version": 2,
             "snapshotRef": "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "from": "2026-01-01",
             "through": "2026-08-18",
@@ -8217,6 +8229,8 @@ mod tests {
         let session = TrainingSessionSearchItem {
             session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
                 .to_owned(),
+            sport_filter_ref:
+                "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
             source_index: 1,
             started_at_local: "2026-08-18T07:30:00".to_owned(),
             stopped_at_local: "2026-08-18T08:30:00".to_owned(),
@@ -8244,7 +8258,7 @@ mod tests {
             },
         };
         let story = SessionStory {
-            schema_version: 4,
+            schema_version: 5,
             snapshot_ref:
                 "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                     .to_owned(),
@@ -8357,7 +8371,7 @@ mod tests {
 
         let json =
             serde_json::to_value(SessionStoryDto::from(story)).expect("session story response");
-        assert_eq!(json["schemaVersion"], 4);
+        assert_eq!(json["schemaVersion"], 5);
         assert_eq!(
             json["session"]["durationMilliseconds"],
             i64::MAX.to_string()
@@ -9500,7 +9514,7 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
-            version: 5,
+            version: 6,
             library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             recorded_range: Some(LibraryHomeDateRange {
                 from: "2025-12-31".to_owned(),
@@ -9546,16 +9560,20 @@ mod tests {
             training: Some(LibraryHomeTraining {
                 training_snapshot_ref: "training-snapshot-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
                 session_count: 2,
-                sport_profile_count: 1,
-                omitted_sport_profile_count: 0,
+                sport_collection_count: 1,
+                omitted_sport_collection_count: 0,
                 sports: vec![LibraryHomeSportSummary {
+                    session_filter_refs: vec![
+                        "sport-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                            .to_owned(),
+                    ],
                     sport_ref: Some("sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_owned()),
                     state: TrainingSportState::PersonallyOverridden,
                     canonical_family: Some("running".to_owned()),
                     display_label: Some("Trail running".to_owned()),
                     localized_names: BTreeMap::new(),
                     recognition_candidate_count: 0,
-                    profile_count: 1,
+                    represented_collection_count: 1,
                     session_count: 2,
                 }],
                 recent_sessions: vec![LibraryHomeRecentSession {
@@ -9614,7 +9632,7 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "version": 5,
+                "version": 6,
                 "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "recordedRange": { "from": "2025-12-31", "through": "2026-01-06" },
                 "usableRange": { "from": "2025-12-31", "through": "2026-01-06" },
@@ -9642,16 +9660,19 @@ mod tests {
                 "training": {
                     "trainingSnapshotRef": "training-snapshot-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                     "sessionCount": 2,
-                    "sportProfileCount": 1,
-                    "omittedSportProfileCount": 0,
+                    "sportCollectionCount": 1,
+                    "omittedSportCollectionCount": 0,
                     "sports": [{
+                        "sessionFilterRefs": [
+                            "sport-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                        ],
                         "sportRef": "sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
                         "state": "personally-overridden",
                         "canonicalFamily": "running",
                         "displayLabel": "Trail running",
                         "localizedNames": {},
                         "recognitionCandidateCount": 0,
-                        "profileCount": 1,
+                        "representedCollectionCount": 1,
                         "sessionCount": 2
                     }],
                     "recentSessions": [{

@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
 
 const unknownSport: TrainingSport = {
+  sessionFilterRef: `sport-${"b".repeat(64)}`,
   sportRef: `sport-${"a".repeat(64)}`,
   sourceIndex: 1,
   state: "unknown",

@@ -5,6 +5,7 @@ use super::*;
 const SNAPSHOT: &str =
     "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const SESSION: &str = "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const SPORT: &str = "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
 struct ControlledDiscoveryPort {
     result: Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError>,
@@ -119,6 +120,7 @@ fn recognized_sport(localized_name: String) -> TrainingSessionSport {
 fn item() -> TrainingSessionSearchItem {
     TrainingSessionSearchItem {
         session_ref: SESSION.to_owned(),
+        sport_filter_ref: SPORT.to_owned(),
         source_index: 1,
         started_at_local: "2026-08-16T07:30:00.000".to_owned(),
         stopped_at_local: "2026-08-16T08:30:00.000".to_owned(),
@@ -347,7 +349,7 @@ fn rejects_oversized_duplicate_or_incomplete_comparison_selections() {
 
 fn workspace() -> TrainingDiscoveryWorkspace {
     TrainingDiscoveryWorkspace {
-        version: 1,
+        version: 2,
         snapshot_ref: SNAPSHOT.to_owned(),
         from: Some("2024-01-01".to_owned()),
         through: Some("2026-08-31".to_owned()),
@@ -430,7 +432,7 @@ fn rejects_inconsistent_training_discovery_workspaces_before_writing() {
     }
     let cases = [
         TrainingDiscoveryWorkspace {
-            version: 2,
+            version: 3,
             ..workspace()
         },
         TrainingDiscoveryWorkspace {
