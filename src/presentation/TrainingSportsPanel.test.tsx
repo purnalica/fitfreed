@@ -80,6 +80,7 @@ const unavailableSport: TrainingSport = {
 
 const recognizedSport: TrainingSport = {
   ...unknownSport,
+  sessionFilterRef: `sport-${"4".repeat(64)}`,
   sportRef: "sport-local-kayaking",
   sourceIndex: 1,
   state: "recognized",
@@ -96,6 +97,7 @@ const recognizedSport: TrainingSport = {
 
 const ambiguousSport: TrainingSport = {
   ...unknownSport,
+  sessionFilterRef: `sport-${"5".repeat(64)}`,
   sportRef: "sport-local-ambiguous",
   sourceIndex: 1,
   state: "ambiguous",

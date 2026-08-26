@@ -1551,6 +1551,7 @@ describe("TrainingSessionLibraryPanel", () => {
         sports.sports[0],
         {
           ...sports.sports[0],
+          sessionFilterRef: `sport-${"e".repeat(64)}`,
           sportRef: `sport-${"e".repeat(64)}`,
           sourceIndex: 2,
           classification: {
@@ -1563,6 +1564,7 @@ describe("TrainingSessionLibraryPanel", () => {
         sports.sports[1],
         {
           ...sports.sports[1],
+          sessionFilterRef: `sport-${"f".repeat(64)}`,
           sportRef: `sport-${"f".repeat(64)}`,
           sourceIndex: 1,
         },
