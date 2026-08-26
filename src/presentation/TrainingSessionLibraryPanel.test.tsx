@@ -2547,7 +2547,21 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Explore signals together",
     });
     expect(within(crossSignal).getAllByRole("checkbox", { checked: true })).toHaveLength(2);
-    expect(within(crossSignal).getAllByRole("img")).toHaveLength(2);
+    expect(within(crossSignal).getAllByRole("img")).toHaveLength(1);
+    const crossSignalChart = analyticalChartProbe.models
+      .map((candidate) => candidate as AnalyticalChartModel)
+      .find((candidate) => candidate.accessibleName === "Explore signals together");
+    expect(crossSignalChart).toMatchObject({
+      layout: { kind: "stacked-lanes" },
+      axes: [
+        { label: "Heart rate · series 1", unit: "bpm" },
+        { label: "Speed · series 2", unit: "km/h" },
+      ],
+      series: [
+        { id: heartRateSignalRef },
+        { id: speedSignalRef },
+      ],
+    });
     expect(crossSignal).toHaveTextContent("Elapsed time 0–10 min");
     const workbenchExactSignal = await within(signalExercise!).findByRole("region", {
       name: "Exact Heart rate samples",

@@ -1,6 +1,7 @@
 import { LineChart } from "echarts/charts";
 import {
   AriaComponent,
+  AxisPointerComponent,
   DataZoomComponent,
   GridComponent,
   LegendComponent,
@@ -30,6 +31,7 @@ import {
 use([
   LineChart,
   AriaComponent,
+  AxisPointerComponent,
   DataZoomComponent,
   GridComponent,
   LegendComponent,
@@ -65,17 +67,19 @@ interface CompiledAxis {
   nameGap: number;
   min: number;
   max: number;
+  gridIndex?: number;
   inverse?: boolean;
   position?: "left" | "right";
   offset?: number;
   axisLabel: {
+    show?: boolean;
     color: string;
     fontFamily: string;
     fontSize: number;
     formatter: (value: number) => string;
   };
-  axisLine: { lineStyle: { color: string } };
-  splitLine: { lineStyle: { color: string } };
+  axisLine: { show?: boolean; lineStyle: { color: string } };
+  splitLine: { show?: boolean; lineStyle: { color: string } };
   nameTextStyle: {
     color: string;
     fontFamily: string;
@@ -88,6 +92,7 @@ interface CompiledSeries {
   id: string;
   name: string;
   type: "line";
+  xAxisIndex?: number;
   yAxisIndex: number;
   data: CompiledDataItem[];
   connectNulls: false;
@@ -113,6 +118,15 @@ interface CompiledSeries {
   };
 }
 
+interface CompiledGrid {
+  left: number;
+  right: number;
+  top: number | string;
+  bottom?: number;
+  height?: string;
+  containLabel: true;
+}
+
 export interface CompiledEChartsOption {
   animation: false;
   backgroundColor: string;
@@ -122,7 +136,7 @@ export interface CompiledEChartsOption {
     description: string;
     decal: { show: true };
   };
-  grid: { left: number; right: number; top: number; bottom: number; containLabel: true };
+  grid: CompiledGrid | CompiledGrid[];
   legend: {
     show: boolean;
     textStyle: { color: string; fontFamily: string; fontSize: number };
@@ -142,7 +156,8 @@ export interface CompiledEChartsOption {
       };
     };
   };
-  xAxis: CompiledAxis;
+  axisPointer?: { link: Array<{ xAxisIndex: number[] }> };
+  xAxis: CompiledAxis | CompiledAxis[];
   yAxis: CompiledAxis[];
   dataZoom: Array<Record<string, unknown>>;
   series: CompiledSeries[];
@@ -187,8 +202,9 @@ function compileAxis(
   index: number,
   model: AnalyticalChartModel,
   palette: AnalyticalChartPalette,
+  stacked: boolean,
 ): CompiledAxis {
-  const position = index % 2 === 0 ? "left" : "right";
+  const position = stacked || index % 2 === 0 ? "left" : "right";
   return {
     type: "value",
     name: axisName(axis.label, axis.unit),
@@ -196,9 +212,10 @@ function compileAxis(
     nameGap: scaledPixels(48 + Math.floor(index / 2) * 44, palette),
     min: axis.domain.minimum,
     max: axis.domain.maximum,
+    ...(stacked ? { gridIndex: index } : {}),
     inverse: axis.direction === "lower-at-top",
     position,
-    offset: scaledPixels(Math.floor(index / 2) * 52, palette),
+    offset: stacked ? 0 : scaledPixels(Math.floor(index / 2) * 52, palette),
     axisLabel: {
       color: palette.muted,
       fontFamily: palette.fontFamily,
@@ -206,6 +223,39 @@ function compileAxis(
       formatter: valueFormatter(axis.format, model.locale),
     },
     axisLine: { lineStyle: { color: palette.line } },
+    splitLine: { lineStyle: { color: palette.line } },
+    nameTextStyle: {
+      color: palette.ink,
+      fontFamily: palette.fontFamily,
+      fontSize: chartFontSize(palette),
+      fontWeight: 700,
+    },
+  };
+}
+
+function compileCoordinateAxis(
+  model: AnalyticalChartModel,
+  palette: AnalyticalChartPalette,
+  gridIndex?: number,
+  showLabels = true,
+): CompiledAxis {
+  const coordinateFormatter = valueFormatter(model.coordinate.format, model.locale);
+  return {
+    type: "value",
+    name: showLabels ? axisName(model.coordinate.label, model.coordinate.unit) : "",
+    nameLocation: "middle",
+    nameGap: scaledPixels(36, palette),
+    min: model.coordinate.domain.minimum,
+    max: model.coordinate.domain.maximum,
+    ...(gridIndex === undefined ? {} : { gridIndex }),
+    axisLabel: {
+      show: showLabels,
+      color: palette.muted,
+      fontFamily: palette.fontFamily,
+      fontSize: chartFontSize(palette),
+      formatter: coordinateFormatter,
+    },
+    axisLine: { show: showLabels, lineStyle: { color: palette.line } },
     splitLine: { lineStyle: { color: palette.line } },
     nameTextStyle: {
       color: palette.ink,
@@ -226,6 +276,23 @@ function axisSideSpace(
   return scaledPixels(64 + Math.max(0, count - 1) * 52, palette);
 }
 
+function stackedGrids(
+  laneCount: number,
+  palette: AnalyticalChartPalette,
+): CompiledGrid[] {
+  const top = 10;
+  const bottom = 18;
+  const gap = 3;
+  const height = (100 - top - bottom - gap * Math.max(0, laneCount - 1)) / laneCount;
+  return Array.from({ length: laneCount }, (_, index) => ({
+    left: axisSideSpace(1, 0, palette),
+    right: scaledPixels(28, palette),
+    top: `${top + index * (height + gap)}%`,
+    height: `${height}%`,
+    containLabel: true,
+  }));
+}
+
 export function compileEChartsAnalyticalChart(
   model: AnalyticalChartModel,
   palette: AnalyticalChartPalette,
@@ -234,6 +301,7 @@ export function compileEChartsAnalyticalChart(
   const colors = palette.seriesColors?.length
     ? palette.seriesColors
     : [palette.accent, palette.ink, palette.muted];
+  const stacked = model.layout.kind === "stacked-lanes";
   const axisIndexes = new Map(model.axes.map((axis, index) => [axis.id, index]));
   const series: CompiledSeries[] = model.series.map((sourceSeries, seriesIndex) => {
     const data: CompiledDataItem[] = [];
@@ -251,12 +319,14 @@ export function compileEChartsAnalyticalChart(
         });
       }
     }
-    const annotations = seriesIndex === 0 ? model.annotations : undefined;
+    const annotations = stacked || seriesIndex === 0 ? model.annotations : undefined;
+    const axisIndex = axisIndexes.get(sourceSeries.axisId) ?? 0;
     return {
       id: sourceSeries.id,
       name: sourceSeries.label,
       type: "line",
-      yAxisIndex: axisIndexes.get(sourceSeries.axisId) ?? 0,
+      ...(stacked ? { xAxisIndex: axisIndex } : {}),
+      yAxisIndex: axisIndex,
       data,
       connectNulls: false,
       showSymbol: sourceSeries.points.length <= 500,
@@ -313,12 +383,14 @@ export function compileEChartsAnalyticalChart(
       } : {}),
     };
   });
-  const coordinateFormatter = valueFormatter(model.coordinate.format, model.locale);
+  const coordinateAxisIndexes = stacked
+    ? model.axes.map((_, index) => index)
+    : 0;
   const zoom = model.interaction.zoom
     ? [
         {
           type: "inside",
-          xAxisIndex: 0,
+          xAxisIndex: coordinateAxisIndexes,
           filterMode: "none",
           zoomOnMouseWheel: "shift",
           moveOnMouseWheel: true,
@@ -326,7 +398,7 @@ export function compileEChartsAnalyticalChart(
         },
         {
           type: "slider",
-          xAxisIndex: 0,
+          xAxisIndex: coordinateAxisIndexes,
           filterMode: "none",
           height: scaledPixels(22, palette),
           bottom: scaledPixels(8, palette),
@@ -353,13 +425,13 @@ export function compileEChartsAnalyticalChart(
         description: model.accessibleDescription,
         decal: { show: true },
       },
-      grid: {
-        left: axisSideSpace(model.axes.length, 0, palette),
-        right: axisSideSpace(model.axes.length, 1, palette),
-        top: scaledPixels(model.series.length > 1 ? 50 : 28, palette),
-        bottom: scaledPixels(model.interaction.zoom ? 74 : 52, palette),
-        containLabel: true,
-      },
+      grid: stacked ? stackedGrids(model.axes.length, palette) : {
+          left: axisSideSpace(model.axes.length, 0, palette),
+          right: axisSideSpace(model.axes.length, 1, palette),
+          top: scaledPixels(model.series.length > 1 ? 50 : 28, palette),
+          bottom: scaledPixels(model.interaction.zoom ? 74 : 52, palette),
+          containLabel: true,
+        },
       legend: {
         show: model.series.length > 1,
         textStyle: {
@@ -386,29 +458,18 @@ export function compileEChartsAnalyticalChart(
           },
         },
       },
-      xAxis: {
-        type: "value",
-        name: axisName(model.coordinate.label, model.coordinate.unit),
-        nameLocation: "middle",
-        nameGap: scaledPixels(36, palette),
-        min: model.coordinate.domain.minimum,
-        max: model.coordinate.domain.maximum,
-        axisLabel: {
-          color: palette.muted,
-          fontFamily: palette.fontFamily,
-          fontSize: chartFontSize(palette),
-          formatter: coordinateFormatter,
-        },
-        axisLine: { lineStyle: { color: palette.line } },
-        splitLine: { lineStyle: { color: palette.line } },
-        nameTextStyle: {
-          color: palette.ink,
-          fontFamily: palette.fontFamily,
-          fontSize: chartFontSize(palette),
-          fontWeight: 700,
-        },
-      },
-      yAxis: model.axes.map((axis, index) => compileAxis(axis, index, model, palette)),
+      ...(stacked && model.axes.length > 1 ? {
+        axisPointer: { link: [{ xAxisIndex: model.axes.map((_, index) => index) }] },
+      } : {}),
+      xAxis: stacked
+        ? model.axes.map((_, index) => compileCoordinateAxis(
+            model,
+            palette,
+            index,
+            index === model.axes.length - 1,
+          ))
+        : compileCoordinateAxis(model, palette),
+      yAxis: model.axes.map((axis, index) => compileAxis(axis, index, model, palette, stacked)),
       dataZoom: zoom,
       series,
     },

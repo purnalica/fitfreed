@@ -2022,6 +2022,7 @@ export function TrainingSessionLibraryPanel({
             : (
               <>
                 <TrainingCrossSignalPanel
+                  exerciseRef={exerciseRef}
                   series={series}
                   locale={locale}
                   messages={messages}

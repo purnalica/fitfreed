@@ -12,6 +12,7 @@ function model(): AnalyticalChartModel {
     accessibleDescription: "Recorded pace with missing values shown as gaps.",
     locale: "en-US",
     renderer: "canvas",
+    layout: { kind: "overlay" },
     coordinate: {
       ref: "exercise-1:primary:elapsed",
       label: "Elapsed time",
@@ -154,6 +155,65 @@ describe("compileEChartsAnalyticalChart", () => {
     });
   });
 
+  it("stacks independent lanes on linked elapsed axes without changing their values", () => {
+    const stacked = Object.assign(model(), {
+      layout: { kind: "stacked-lanes" as const },
+    });
+    stacked.axes.push({
+      id: "temperature",
+      label: "Temperature",
+      unit: "°C",
+      domain: { minimum: 10, maximum: 20 },
+      direction: "higher-at-top",
+      format: { kind: "number", maximumFractionDigits: 1 },
+    });
+    stacked.series.push({
+      id: "signal-2",
+      label: "Temperature",
+      coordinateRef: stacked.coordinate.ref,
+      axisId: "temperature",
+      points: [
+        { id: "temperature-1", coordinate: 0, value: 10, gapBefore: false },
+        { id: "temperature-2", coordinate: 3_000, value: 20, gapBefore: false },
+      ],
+    });
+
+    const compiled = compileEChartsAnalyticalChart(stacked, {
+      accent: "#336655",
+      accentSoft: "rgba(51, 102, 85, 0.18)",
+      ink: "#17211b",
+      muted: "#657068",
+      line: "#d1d8d2",
+      surface: "#ffffff",
+      baseFontSize: 16,
+      fontFamily: "Inter",
+    });
+
+    expect(compiled.option.grid).toEqual([
+      expect.objectContaining({ containLabel: true }),
+      expect.objectContaining({ containLabel: true }),
+    ]);
+    expect(compiled.option.xAxis).toEqual([
+      expect.objectContaining({ gridIndex: 0, min: 0, max: 3_000 }),
+      expect.objectContaining({ gridIndex: 1, min: 0, max: 3_000 }),
+    ]);
+    expect(compiled.option.yAxis).toEqual([
+      expect.objectContaining({ gridIndex: 0, name: "Pace (min/km)" }),
+      expect.objectContaining({ gridIndex: 1, name: "Temperature (°C)" }),
+    ]);
+    expect(compiled.option.series).toEqual([
+      expect.objectContaining({ xAxisIndex: 0, yAxisIndex: 0 }),
+      expect.objectContaining({ xAxisIndex: 1, yAxisIndex: 1 }),
+    ]);
+    expect(compiled.option.axisPointer).toEqual({
+      link: [{ xAxisIndex: [0, 1] }],
+    });
+    expect(compiled.option.dataZoom).toEqual([
+      expect.objectContaining({ xAxisIndex: [0, 1] }),
+      expect.objectContaining({ xAxisIndex: [0, 1] }),
+    ]);
+  });
+
   it("inherits zoomed application typography and reserves matching label space", () => {
     const element = document.createElement("div");
     element.style.fontFamily = "Inter";
@@ -168,6 +228,11 @@ describe("compileEChartsAnalyticalChart", () => {
       baseFontSize: 32,
       fontFamily: "Inter",
     });
+    expect(Array.isArray(compiled.option.grid)).toBe(false);
+    expect(Array.isArray(compiled.option.xAxis)).toBe(false);
+    if (Array.isArray(compiled.option.grid) || Array.isArray(compiled.option.xAxis)) {
+      throw new Error("overlay charts must compile one coordinate grid and axis");
+    }
     expect(compiled.option.grid.left).toBeGreaterThanOrEqual(128);
     expect(compiled.option.xAxis.axisLabel).toMatchObject({
       fontFamily: "Inter",

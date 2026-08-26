@@ -283,6 +283,14 @@ the model carries authoritative coordinates. A localized error boundary fails cl
 evidence. Every live chart retains its semantic heading, controls, explanation, and exact tabular or structured
 alternative outside the renderer, so canvas pixels never become the sole meaning or interaction path.
 
+The cross-signal view uses the same port with a `stacked-lanes` layout rather than owning another drawing system.
+Two through four independently scaled signal series each receive a labelled vertical axis and a separate grid,
+while linked horizontal axes preserve the one application-established elapsed coordinate. One cursor and one
+horizontal zoom window therefore move across all visible lanes without normalizing values, joining gaps, aligning
+another evidence role, or claiming causation. The coordinate domain remains stable while the visible selection
+changes because it is derived from every eligible series in that one exercise role. Lane summaries and direct exact-
+sample actions remain semantic HTML outside ECharts.
+
 A separately lazily loaded presentation adapter uses stable Leaflet 1.x
 only for a local vector viewport: projection, pan, zoom, fit, resize, pointer coordinates, and metric scale.
 It receives one bounded `SessionStory`, creates no independent query, and exposes no Leaflet type outside

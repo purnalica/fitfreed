@@ -18,6 +18,7 @@ function model(): AnalyticalChartModel {
     accessibleDescription: "Recorded values with gaps preserved.",
     locale: "en-US",
     renderer: "canvas",
+    layout: { kind: "overlay" },
     coordinate: {
       ref: "exercise-1:primary:elapsed",
       label: "Elapsed time",

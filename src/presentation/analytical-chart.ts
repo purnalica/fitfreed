@@ -2,6 +2,7 @@ import type { Locale } from "../locales/catalogs";
 
 export type AnalyticalChartRenderer = "canvas" | "svg";
 export type AnalyticalChartAxisDirection = "higher-at-top" | "lower-at-top";
+export type AnalyticalChartLayout = "overlay" | "stacked-lanes";
 
 export type AnalyticalChartValueFormat =
   | { kind: "duration-milliseconds" }
@@ -64,6 +65,7 @@ export interface AnalyticalChartModel {
   accessibleDescription: string;
   locale: Locale;
   renderer: AnalyticalChartRenderer;
+  layout: { kind: AnalyticalChartLayout };
   coordinate: AnalyticalChartCoordinate;
   axes: AnalyticalChartAxis[];
   series: AnalyticalChartSeries[];
@@ -105,6 +107,16 @@ function validDomain(domain: AnalyticalChartDomain): boolean {
 
 function insideDomain(value: number, domain: AnalyticalChartDomain): boolean {
   return value >= domain.minimum && value <= domain.maximum;
+}
+
+export function analyticalCoordinateFromDecimal(value: string): number | null {
+  try {
+    const coordinate = BigInt(value);
+    if (coordinate < 0n || coordinate > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    return Number(coordinate);
+  } catch {
+    return null;
+  }
 }
 
 function addIssue(

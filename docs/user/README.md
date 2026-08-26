@@ -86,7 +86,8 @@ session leads with the [interactive local route workbench](session-routes.md): p
 separate while pan, zoom, fit, focused view, recorded-position traversal, sport-aware measurement overlays, a
 structured value alternative, conditional elapsed measurement lanes, and direct exact-evidence paths remain local without an external location
 request. Overlays and attached lanes appear only when an importer supplies an exact recorded relationship. The current Polar Flow mapping supplies none, so its route and regular signals remain deliberately independent. A selected position opens and focuses its containing exact route row; independent signals retain their own exact-sample paths. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with labelled elapsed-time and measurement axes. Dense series offer local horizontal chart zoom while retaining paginated access to every original sample. When one role has enough recorded evidence, two through four
-signals can also be selected as independently scaled lanes over one stable elapsed-time axis; every lane
+signals can also be selected as independently scaled lanes over one stable elapsed-time axis. A linked cursor and
+horizontal zoom keep those lanes at the same recorded elapsed position without normalizing their values; every lane
 retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.
 When a session has useful recorded signals but no drawable route, FitFreed gives the application-ranked
 measurement the leading visual region instead of reserving an empty map. The displayed sport-aware metric,

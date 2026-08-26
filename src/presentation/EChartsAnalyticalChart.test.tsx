@@ -32,6 +32,7 @@ function model(): AnalyticalChartModel {
     accessibleDescription: "Recorded heart rate with source gaps preserved.",
     locale: "en-US",
     renderer: "svg",
+    layout: { kind: "overlay" },
     coordinate: {
       ref: "exercise-1:primary:elapsed",
       label: "Elapsed time",

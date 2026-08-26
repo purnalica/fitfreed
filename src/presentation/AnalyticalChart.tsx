@@ -62,6 +62,7 @@ class ChartErrorBoundary extends Component<ChartErrorBoundaryProps, ChartErrorBo
 
 function resetKey(model: AnalyticalChartModel): string {
   return [
+    model.layout.kind,
     model.coordinate.ref,
     model.coordinate.domain.minimum,
     model.coordinate.domain.maximum,

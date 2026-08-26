@@ -1,5 +1,8 @@
 import type { Locale } from "../locales/catalogs";
-import type { AnalyticalChartModel } from "./analytical-chart";
+import {
+  analyticalCoordinateFromDecimal,
+  type AnalyticalChartModel,
+} from "./analytical-chart";
 import { AnalyticalChart } from "./AnalyticalChart";
 import type { TrainingSignalVisualSample } from "./training-session-signal";
 
@@ -43,16 +46,6 @@ export interface TrainingSignalChartModelInput {
   rangeSelection: TrainingSignalPlotRangeSelection | null;
 }
 
-function elapsedCoordinate(value: string): number | null {
-  try {
-    const elapsed = BigInt(value);
-    if (elapsed < 0n || elapsed > BigInt(Number.MAX_SAFE_INTEGER)) return null;
-    return Number(elapsed);
-  } catch {
-    return null;
-  }
-}
-
 function coordinateForOrdinal(
   samples: TrainingSignalVisualSample[],
   ordinal: number | null,
@@ -60,7 +53,7 @@ function coordinateForOrdinal(
   if (ordinal === null) return undefined;
   const sample = samples.find((candidate) => candidate.ordinal === ordinal);
   if (!sample) return undefined;
-  return elapsedCoordinate(sample.elapsedMilliseconds) ?? undefined;
+  return analyticalCoordinateFromDecimal(sample.elapsedMilliseconds) ?? undefined;
 }
 
 export function buildTrainingSignalChartModel({
@@ -78,7 +71,7 @@ export function buildTrainingSignalChartModel({
   rangeSelection,
 }: TrainingSignalChartModelInput): AnalyticalChartModel | null {
   const points = samples.map((sample) => {
-    const coordinate = elapsedCoordinate(sample.elapsedMilliseconds);
+    const coordinate = analyticalCoordinateFromDecimal(sample.elapsedMilliseconds);
     return coordinate === null ? null : {
       id: `sample-${sample.ordinal}`,
       coordinate,
@@ -106,6 +99,7 @@ export function buildTrainingSignalChartModel({
     accessibleDescription: summary,
     locale,
     renderer: samples.length > 1_000 ? "canvas" : "svg",
+    layout: { kind: "overlay" },
     coordinate: {
       ref: coordinateRef,
       label: xAxisLabel,

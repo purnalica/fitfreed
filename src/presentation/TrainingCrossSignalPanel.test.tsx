@@ -3,12 +3,22 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
+import type { AnalyticalChartModel } from "./analytical-chart";
 import type {
   TrainingSignalKind,
   TrainingSignalSeriesOverview,
   TrainingSignalUnit,
 } from "./training-session-signal";
 import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
+
+const analyticalChartProbe = vi.hoisted(() => ({ models: [] as unknown[] }));
+
+vi.mock("./AnalyticalChart", () => ({
+  AnalyticalChart: ({ model }: { model: AnalyticalChartModel }) => {
+    analyticalChartProbe.models.push(model);
+    return <div role="img" aria-label={model.accessibleName} />;
+  },
+}));
 
 function signal(
   ordinal: number,
@@ -43,12 +53,16 @@ const series = [
   signal(4, "left-crank-power", "watts", [180, 200, 190]),
 ];
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  analyticalChartProbe.models.length = 0;
+});
 
 describe("TrainingCrossSignalPanel", () => {
   it("aligns separate labelled lanes on one elapsed-time axis without bridging gaps", () => {
     render(
       <TrainingCrossSignalPanel
+        exerciseRef={`exercise-${"a".repeat(64)}`}
         series={series}
         locale="en-US"
         messages={catalogs["en-US"]}
@@ -61,19 +75,34 @@ describe("TrainingCrossSignalPanel", () => {
     expect(panel).toHaveTextContent("Each lane keeps its own labeled scale");
     expect(panel).toHaveTextContent("Elapsed time 0–2 s");
     expect(within(panel).getAllByRole("checkbox", { checked: true })).toHaveLength(3);
-    expect(within(panel).getAllByRole("img")).toHaveLength(3);
+    expect(within(panel).getAllByRole("img")).toHaveLength(1);
 
     const heartRateLane = panel.querySelector('[data-signal-ref="signal-1111111111111111111111111111111111111111111111111111111111111111"]');
     expect(heartRateLane).toHaveTextContent("Heart rate · series 1");
     expect(heartRateLane).toHaveTextContent("120–140 bpm");
-    expect(heartRateLane?.querySelectorAll("polyline")).toHaveLength(0);
-    expect(heartRateLane?.querySelectorAll("circle")).toHaveLength(2);
+    const chart = analyticalChartProbe.models.at(-1) as AnalyticalChartModel;
+    expect(chart.layout).toEqual({ kind: "stacked-lanes" });
+    expect(chart.coordinate).toMatchObject({
+      ref: `exercise-${"a".repeat(64)}:primary:elapsed`,
+      domain: { minimum: 0, maximum: 2_000 },
+    });
+    expect(chart.axes.map((axis) => [axis.label, axis.unit, axis.domain])).toEqual([
+      ["Heart rate · series 1", "bpm", { minimum: 120, maximum: 140 }],
+      ["Speed · series 2", "km/h", { minimum: 10, maximum: 12 }],
+      ["Altitude · series 3", "m", { minimum: 50, maximum: 55 }],
+    ]);
+    expect(chart.series[0].points).toEqual([
+      expect.objectContaining({ coordinate: 0, value: 120, gapBefore: false }),
+      expect.objectContaining({ coordinate: 1_000, value: null, gapBefore: false }),
+      expect.objectContaining({ coordinate: 2_000, value: 140, gapBefore: true }),
+    ]);
   });
 
   it("keeps selection between two and four recorded series", async () => {
     const user = userEvent.setup();
     render(
       <TrainingCrossSignalPanel
+        exerciseRef={`exercise-${"a".repeat(64)}`}
         series={series}
         locale="en-US"
         messages={catalogs["en-US"]}
@@ -105,6 +134,7 @@ describe("TrainingCrossSignalPanel", () => {
     const onOpenExact = vi.fn();
     render(
       <TrainingCrossSignalPanel
+        exerciseRef={`exercise-${"a".repeat(64)}`}
         series={series}
         locale="en-US"
         messages={catalogs["en-US"]}
@@ -125,6 +155,7 @@ describe("TrainingCrossSignalPanel", () => {
     const onOpenExact = vi.fn();
     const rendered = render(
       <TrainingCrossSignalPanel
+        exerciseRef={`exercise-${"a".repeat(64)}`}
         series={[series[0]]}
         locale="en-US"
         messages={catalogs["en-US"]}
@@ -136,6 +167,7 @@ describe("TrainingCrossSignalPanel", () => {
 
     rendered.rerender(
       <TrainingCrossSignalPanel
+        exerciseRef={`exercise-${"a".repeat(64)}`}
         series={series}
         locale="es-ES"
         messages={catalogs["es-ES"]}
@@ -149,6 +181,7 @@ describe("TrainingCrossSignalPanel", () => {
     await user.click(screen.getByRole("checkbox", { name: "Altitud · serie 3" }));
     rendered.rerender(
       <TrainingCrossSignalPanel
+        exerciseRef={`exercise-${"a".repeat(64)}`}
         series={[series[3], series[4]]}
         locale="es-ES"
         messages={catalogs["es-ES"]}

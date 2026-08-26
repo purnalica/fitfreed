@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  analyticalCoordinateFromDecimal,
   type AnalyticalChartModel,
   validateAnalyticalChartModel,
 } from "./analytical-chart";
@@ -11,6 +12,7 @@ function model(): AnalyticalChartModel {
     accessibleDescription: "Recorded heart rate with source gaps preserved.",
     locale: "en-US",
     renderer: "canvas",
+    layout: { kind: "overlay" },
     coordinate: {
       ref: "exercise-1:primary:elapsed",
       label: "Elapsed time",
@@ -46,6 +48,13 @@ function model(): AnalyticalChartModel {
 }
 
 describe("validateAnalyticalChartModel", () => {
+  it("accepts only non-negative exactly representable decimal coordinates", () => {
+    expect(analyticalCoordinateFromDecimal("1234")).toBe(1_234);
+    expect(analyticalCoordinateFromDecimal("-1")).toBeNull();
+    expect(analyticalCoordinateFromDecimal("9007199254740992")).toBeNull();
+    expect(analyticalCoordinateFromDecimal("not-a-coordinate")).toBeNull();
+  });
+
   it("accepts ordered finite evidence with explicit gaps and annotations", () => {
     expect(validateAnalyticalChartModel(model())).toEqual([]);
   });
