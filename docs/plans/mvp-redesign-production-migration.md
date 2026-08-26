@@ -296,8 +296,8 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C5 | Reopened by XH-12 through XH-22 — the geometry correction remains valid but does not constitute a coherent data-presentation system | Data is concise, aligned, precise, visual, and progressively disclosed |
 | X7-P0 | Complete in working tree — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
 | X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
-| X7-R2 | In progress — exact represented-sport identity, Home/History drill-down, and shared comparison presets verified locally | Sports are evidence-backed and every represented collection opens its exact sessions |
-| X7-R3 | Pending | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
+| X7-R2 | Complete locally — exact represented-sport identity, comparison presets, and the complete natural-drill-down campaign passed 2026-08-26 | Sports are evidence-backed and every represented collection opens its exact sessions |
+| X7-R3 | In progress — shared presentation and Settings contracts are the active corrective boundary | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Pending | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Pending | Relevant built-in examples and duplication make reports understandable and reusable |
@@ -2623,8 +2623,8 @@ reunites exact and unresolved sessions for its source profile. Home may aggregat
 without inventing one editable profile. Home and History sport cards expose independent session and classification
 actions; direct entry, Back, prior filters, tab, and focus survive the round trip. SQLite schema 30 lazily expands
 legacy saved profile filters into their current exact collections. Versioned identity, Home, search, selection,
-workspace, story, and report contracts cover the new boundary. The complete natural-drill-down audit remains in
-X7-R2.
+workspace, story, and report contracts cover the new boundary. The complete natural-drill-down audit and route matrix
+are recorded below.
 
 **Execution checkpoint — evidence-anchored comparison presets:** one provider-neutral presentation value object now
 derives week-to-date, month-to-date, and year-to-date comparisons for Activity, Training, Sleep, Recovery, and the
@@ -2641,7 +2641,7 @@ invalid ranges. Component tests cover the shared control and all five integratio
 Rust lint and formatting, localization and documentation contracts, production build, packaged functional journey,
 real process restart, adaptive-session journeys, and dense insight campaign passed on 2026-08-26. The functional
 journey additionally verifies distinct packaged defaults and retained manual control; every measured p95 remained
-inside its documented budget. The complete natural-drill-down audit remains in X7-R2.
+inside its documented budget. The route matrix below closes the remaining natural-drill-down boundary.
 
 **Execution checkpoint — natural drill-down audit:** the bounded-summary audit now covers every production workspace,
 not only elements that already looked like controls. The resulting route matrix is:
@@ -2665,8 +2665,8 @@ omitted-sport or domain-coverage route restores that exact control and the open 
 heading. The audit deliberately does not turn adjacent explanatory values into controls: where the exact records are
 already exposed by a labelled disclosure, table, pagination control, or source action, the surrounding summary remains
 visually non-interactive. Component and application tests exercise the two corrections, pending navigation, unavailable
-coverage, exact destination selection, and origin-focus restoration. The packaged journey now requires the
-domain-coverage round trip; the X7-R2 verification gate remains open until the rebuilt application passes it.
+coverage, exact destination selection, and origin-focus restoration. The rebuilt packaged journey exercises the same
+domain-coverage round trip.
 
 The 2026-08-26 verification passed the complete fast contributor lane, Rust lint and formatting, the production
 build, and the rebuilt packaged macOS campaign. The packaged functional journey covered both locales, supported
