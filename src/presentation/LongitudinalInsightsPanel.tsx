@@ -28,7 +28,7 @@ import {
   recoveryRangeIsValid,
 } from "./recovery-format";
 import { formatSleepDuration } from "./sleep-format";
-import { formatDuration } from "./training-format";
+import { formatSummaryDuration } from "./presentation-format";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 
@@ -430,7 +430,7 @@ export function LongitudinalInsightsPanel({
                 <div><dt>{copy.activityAvailability}</dt><dd>{activityStatus(selectedInsight.day)}</dd></div>
                 <div><dt>{copy.steps}</dt><dd>{formatSteps(selectedInsight.day.activity.stepCount)}</dd></div>
                 <div><dt>{copy.trainingSessions}</dt><dd>{number.format(selectedInsight.day.training.sessionCount)}</dd></div>
-                <div><dt>{copy.trainingDuration}</dt><dd>{formatDuration(selectedInsight.day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+                <div><dt>{copy.trainingDuration}</dt><dd>{formatSummaryDuration(selectedInsight.day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
                 <div><dt>{copy.sleepAvailability}</dt><dd>{selectedInsight.day.sleep.availability === "available" ? copy.available : copy.missing}</dd></div>
                 <div><dt>{copy.sleepDuration}</dt><dd>{formatSleepDuration(selectedInsight.day.sleep.asleepMilliseconds, locale, messages.training.durationUnits, messages.unavailable)}</dd></div>
                 <div><dt>{copy.recoveryAvailability}</dt><dd>{selectedInsight.day.recovery.availability === "available" ? copy.available : copy.missing}</dd></div>
@@ -575,7 +575,7 @@ function LongitudinalSeries({
                     <tr key={day.localDate}>
                       <th scope="row"><time dateTime={day.localDate}>{date.format(recoveryLocalDate(day.localDate))}</time></th>
                       <td>{day.activity.stepCount === null ? activityStatus(day) : formatSteps(day.activity.stepCount)}</td>
-                      <td>{formatDuration(day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</td>
+                      <td>{formatSummaryDuration(day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</td>
                       <td>{formatSleepDuration(day.sleep.asleepMilliseconds, locale, messages.training.durationUnits, copy.missing)}</td>
                       <td>{formatRecoveryMilliseconds(day.recovery.beatToBeatIntervalMilliseconds, locale, copy.missing)}</td>
                       <td>

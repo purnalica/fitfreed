@@ -1,20 +1,18 @@
-export interface DurationUnitLabels {
-  hours: string;
-  minutes: string;
-  seconds: string;
-  milliseconds: string;
-}
+import type { Locale } from "../locales/catalogs";
+import {
+  type DistanceUnitLabels,
+  type DurationUnitLabels,
+  formatDistance as formatPresentedDistance,
+  formatSummaryDuration,
+} from "./presentation-format";
 
-export interface DistanceUnitLabels {
-  meters: string;
-  kilometers: string;
-}
+export type { DistanceUnitLabels, DurationUnitLabels } from "./presentation-format";
 
 export function trainingLocalDateTime(value: string): Date {
   return new Date(`${value}Z`);
 }
 
-export function formatTrainingDateTime(value: string, locale: string): string {
+export function formatTrainingDateTime(value: string, locale: Locale): string {
   const time = value.match(/T\d{2}:\d{2}:(\d{2})(?:\.(\d+))?/);
   const fractional = time?.[2];
   const hasFractionalPrecision = fractional !== undefined && /[1-9]/.test(fractional);
@@ -34,21 +32,21 @@ export function formatTrainingDateTime(value: string, locale: string): string {
     .join("");
 }
 
-export function formatSessionCardDate(value: string, locale: string): string {
+export function formatSessionCardDate(value: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(trainingLocalDateTime(value));
 }
 
-export function formatSessionCardTime(value: string, locale: string): string {
+export function formatSessionCardTime(value: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale, {
     timeStyle: "short",
     timeZone: "UTC",
   }).format(trainingLocalDateTime(value));
 }
 
-export function formatSessionCardDateTime(value: string, locale: string): string {
+export function formatSessionCardDateTime(value: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -58,72 +56,23 @@ export function formatSessionCardDateTime(value: string, locale: string): string
 
 export function formatSessionCardDuration(
   value: string,
-  locale: string,
+  locale: Locale,
   units: DurationUnitLabels,
 ): string {
-  const number = new Intl.NumberFormat(locale);
-  const exact = BigInt(value);
-  const negative = exact < 0n;
-  const absolute = negative ? -exact : exact;
-  const sign = negative ? "−" : "";
-  if (absolute < 59_500n) {
-    const seconds = (absolute + 500n) / 1_000n;
-    return `${sign}${number.format(seconds)} ${units.seconds}`;
-  }
-
-  const roundedMinutes = (absolute + 30_000n) / 60_000n;
-  const hours = roundedMinutes / 60n;
-  const minutes = roundedMinutes % 60n;
-  const parts: string[] = [];
-  if (hours > 0n) parts.push(`${number.format(hours)} ${units.hours}`);
-  if (minutes > 0n) parts.push(`${number.format(minutes)} ${units.minutes}`);
-  return `${sign}${parts.join(" ")}`;
+  return formatSummaryDuration(value, locale, units);
 }
 
 export function formatSessionCardDistance(
   value: number,
-  locale: string,
+  locale: Locale,
   units: DistanceUnitLabels,
 ): string {
-  if (value >= 1_000) {
-    const kilometers = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
-    return `${kilometers.format(value / 1_000)} ${units.kilometers}`;
-  }
-  const meters = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
-  return `${meters.format(value)} ${units.meters}`;
-}
-
-export function formatDuration(
-  value: string,
-  locale: string,
-  units: DurationUnitLabels,
-  showSign = false,
-): string {
-  const number = new Intl.NumberFormat(locale);
-  const exact = BigInt(value);
-  const negative = exact < 0n;
-  let remainder = negative ? -exact : exact;
-  const hours = remainder / 3_600_000n;
-  remainder %= 3_600_000n;
-  const minutes = remainder / 60_000n;
-  remainder %= 60_000n;
-  const seconds = remainder / 1_000n;
-  const milliseconds = remainder % 1_000n;
-  const parts: string[] = [];
-  if (hours > 0n) parts.push(`${number.format(hours)} ${units.hours}`);
-  if (minutes > 0n) parts.push(`${number.format(minutes)} ${units.minutes}`);
-  if (seconds > 0n) parts.push(`${number.format(seconds)} ${units.seconds}`);
-  if (milliseconds > 0n) {
-    parts.push(`${number.format(milliseconds)} ${units.milliseconds}`);
-  }
-  if (parts.length === 0) parts.push(`${number.format(0)} ${units.seconds}`);
-  const sign = negative ? "−" : showSign && exact > 0n ? "+" : "";
-  return `${sign}${parts.join(" ")}`;
+  return formatPresentedDistance(value, locale, units);
 }
 
 export function formatExactMetric(
   value: string | null,
-  locale: string,
+  locale: Locale,
   unavailable: string,
   unit: string,
   showSign = false,
@@ -136,7 +85,7 @@ export function formatExactMetric(
 
 export function formatDistance(
   value: number | null,
-  locale: string,
+  locale: Locale,
   unavailable: string,
   unit: string,
   showSign = false,

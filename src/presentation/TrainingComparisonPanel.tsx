@@ -10,7 +10,8 @@ import {
 } from "./comparison-period-preset";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { restoreFocusAfterReveal } from "./focus-restoration";
-import { formatDistance, formatDuration, formatExactMetric } from "./training-format";
+import { formatSummaryDuration } from "./presentation-format";
+import { formatDistance, formatExactMetric } from "./training-format";
 import type {
   TrainingComparison,
   TrainingDateRange,
@@ -329,17 +330,17 @@ export function TrainingComparisonPanel({
       ],
       [
         messages.training.totalDuration,
-        formatDuration(
+        formatSummaryDuration(
           baseline.totalDurationMilliseconds,
           locale,
           messages.training.durationUnits,
         ),
-        formatDuration(
+        formatSummaryDuration(
           current.totalDurationMilliseconds,
           locale,
           messages.training.durationUnits,
         ),
-        formatDuration(changes.duration, locale, messages.training.durationUnits, true),
+        formatSummaryDuration(changes.duration, locale, messages.training.durationUnits, true),
       ],
       [
         messages.training.totalDistance,

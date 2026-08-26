@@ -24,7 +24,7 @@ import { formatTrainingRangeChoice } from "./training-range-choice";
 import { TrainingRangeEditor } from "./TrainingRangeEditor";
 import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteSignalLanes } from "./TrainingRouteSignalLanes";
-import { formatDuration } from "./training-format";
+import { formatDetailDuration, formatExactDuration } from "./presentation-format";
 
 type StoryRole = "primary" | "transition";
 
@@ -362,7 +362,7 @@ export function TrainingRouteWorkbench({
   });
   const selectedElapsed = selection.point.source.elapsedMilliseconds === null
     ? copy.elapsedUnavailable
-    : formatDuration(
+    : formatExactDuration(
       selection.point.source.elapsedMilliseconds,
       locale,
       messages.training.durationUnits,
@@ -396,7 +396,7 @@ export function TrainingRouteWorkbench({
     });
     const elapsed = point.source.elapsedMilliseconds === null
       ? copy.elapsedUnavailable
-      : formatDuration(point.source.elapsedMilliseconds, locale, messages.training.durationUnits);
+      : formatExactDuration(point.source.elapsedMilliseconds, locale, messages.training.durationUnits);
     return `${position} · ${elapsed}`;
   }
 
@@ -465,7 +465,7 @@ export function TrainingRouteWorkbench({
           <div className="training-route-saved-range">
             <span>{copy.visibleSavedRange}</span>
             <strong>{selectedRouteRange.title}</strong>
-            <small>{formatDuration(
+            <small>{formatDetailDuration(
               (BigInt(selectedRouteRange.endedAtElapsedMilliseconds)
                 - BigInt(selectedRouteRange.startedAtElapsedMilliseconds)).toString(),
               locale,

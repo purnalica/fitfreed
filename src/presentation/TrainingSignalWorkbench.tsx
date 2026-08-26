@@ -18,7 +18,7 @@ import {
 import { formatTrainingRangeChoice } from "./training-range-choice";
 import { TrainingRangeEditor } from "./TrainingRangeEditor";
 import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
-import { formatDuration } from "./training-format";
+import { formatDetailDuration, formatExactDuration } from "./presentation-format";
 import type {
   TrainingSignalRole,
   TrainingSignalSeriesOverview,
@@ -236,7 +236,7 @@ export function TrainingSignalWorkbench({
   }
 
   function sampleControlValue(sampleIndex: number): string {
-    return `${samplePosition(sampleIndex)} · ${formatDuration(
+    return `${samplePosition(sampleIndex)} · ${formatExactDuration(
       samples[sampleIndex].elapsedMilliseconds,
       locale,
       messages.training.durationUnits,
@@ -311,7 +311,7 @@ export function TrainingSignalWorkbench({
           <div className="training-signal-saved-range">
             <span>{copy.visibleSavedRange}</span>
             <strong>{selectedSignalRange.title}</strong>
-            <small>{formatDuration(
+            <small>{formatDetailDuration(
               (BigInt(selectedSignalRange.endedAtElapsedMilliseconds)
                 - BigInt(selectedSignalRange.startedAtElapsedMilliseconds)).toString(),
               locale,
@@ -493,7 +493,7 @@ export function TrainingSignalWorkbench({
               <div className="training-signal-selection" aria-live="polite">
                 <div>
                   <strong>{samplePosition(selectedSampleIndex)}</strong>
-                  <span>{formatDuration(
+                  <span>{formatExactDuration(
                     selectedSample.elapsedMilliseconds,
                     locale,
                     messages.training.durationUnits,
@@ -514,7 +514,7 @@ export function TrainingSignalWorkbench({
           </div>
           <div>
             <dt>{copy.interval}</dt>
-            <dd>{formatDuration(
+            <dd>{formatExactDuration(
               choice.signal.intervalMilliseconds,
               locale,
               messages.training.durationUnits,

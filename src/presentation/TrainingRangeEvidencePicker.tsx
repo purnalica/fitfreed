@@ -6,7 +6,7 @@ import {
   type TrainingRangeEditorSurface,
   useOptionalTrainingRangeInteraction,
 } from "./TrainingRangeInteractionProvider";
-import { formatDuration } from "./training-format";
+import { formatExactDuration } from "./presentation-format";
 import type { TrainingSessionCurrentRangeCoordinate } from "./training-session-range";
 
 export interface TrainingRangeEvidenceEntry {
@@ -103,13 +103,13 @@ export function TrainingRangeEvidencePicker({
   if (entries.length === 0 || !interaction) return null;
 
   function entryTiming(selected: TrainingRangeEvidenceEntry): string {
-    const start = formatDuration(
+    const start = formatExactDuration(
       selected.startedAtElapsedMilliseconds,
       locale,
       messages.training.durationUnits,
     );
     if (selected.startedAtElapsedMilliseconds === selected.endedAtElapsedMilliseconds) return start;
-    return `${start}–${formatDuration(
+    return `${start}–${formatExactDuration(
       selected.endedAtElapsedMilliseconds,
       locale,
       messages.training.durationUnits,

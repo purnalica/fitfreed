@@ -33,13 +33,13 @@ import type {
 } from "./session-report";
 import {
   formatDistance,
-  formatDuration,
   formatExactMetric,
   formatSessionCardDate,
   formatSessionCardDistance,
   formatSessionCardDuration,
   formatTrainingDateTime,
 } from "./training-format";
+import { formatSummaryDuration } from "./presentation-format";
 import type {
   TrainingDateRange,
   TrainingSeriesComparison,
@@ -1130,7 +1130,7 @@ export function ReportsPanel({
       case "training-days":
         return number.format(summary.trainingDays);
       case "duration":
-        return formatDuration(
+        return formatSummaryDuration(
           summary.totalDurationMilliseconds,
           locale,
           messages.training.durationUnits,
@@ -1174,7 +1174,7 @@ export function ReportsPanel({
           true,
         );
       case "duration":
-        return formatDuration(
+        return formatSummaryDuration(
           series.durationMillisecondsChange,
           locale,
           messages.training.durationUnits,
@@ -1469,7 +1469,7 @@ export function ReportsPanel({
           <p className="report-attribution">{copy.recordedAttribution}</p>
           <dl className="report-evidence-summary">
             <div><dt>{copy.started}</dt><dd>{formatTrainingDateTime(resolved.session.startedAtLocal, locale)}</dd></div>
-            <div><dt>{messages.training.duration}</dt><dd>{formatDuration(resolved.session.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+            <div><dt>{messages.training.duration}</dt><dd>{formatSummaryDuration(resolved.session.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
             <div><dt>{messages.training.distance}</dt><dd>{formatDistance(resolved.session.distanceMeters, locale, copy.unavailable, messages.training.units.meters)}</dd></div>
             <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(resolved.session.energyKilocalories, locale, copy.unavailable, messages.training.units.kilocalories)}</dd></div>
             {resolved.session.averageHeartRateBpm !== null && (

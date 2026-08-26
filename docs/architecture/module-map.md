@@ -77,6 +77,12 @@ write, and saved preferences remain the only durable source of truth. `UpdatePan
 event lifecycle but is composed inside Settings and remains mounted while its category is hidden, so
 category or locale changes cannot duplicate launch discovery or lose a scheduled result.
 
+`presentation-format` owns shared locale grouping and the named summary, detail, and exact-evidence
+policies for durations and other displayed measurements. Training, sleep, longitudinal, and report
+components choose one of those roles while their feature-specific formatting modules retain only
+domain vocabulary and composition. Stored and exported values remain exact and never depend on a
+presentation role.
+
 Report refresh crosses the same boundaries: Tauri validates the exact saved definition revision, saved
 snapshot, and reviewed candidate; the application re-resolves through authoritative ports and performs
 optimistic compare-and-save; SQLite advances existing snapshot and revision columns without storing resolved

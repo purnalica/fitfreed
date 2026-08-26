@@ -60,6 +60,14 @@ alone are not accepted final identifiers. Missing evidence changes the compositi
 empty charts or inventing zero values. A result heading may wrap around a complete localized
 measurement, but it never isolates the unit from its value on another line.
 
+Duration precision follows the information role. A summary rounds sub-minute values to seconds,
+ordinary values to minutes, and totals of at least 100 hours to whole hours. Detail may retain seconds
+but not sub-second residue. Exact evidence retains every recorded millisecond when present. The same
+role distinction applies to decimal quantities: summary and detail formatting never rewrite the
+underlying value or the exact export. Counts always use locale grouping, including both sides of one
+ratio, and values plus units remain one reading unit. A screen chooses a named shared policy rather
+than constructing an independent number or date formatter.
+
 Severity follows consequence. A failed or rejected operation first states what happened to the
 existing library or saved document, then offers one safe next action. Technical detail is optional,
 contains no personal path, and never leads ordinary workflow copy.

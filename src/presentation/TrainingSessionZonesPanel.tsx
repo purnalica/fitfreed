@@ -1,7 +1,8 @@
 import { type Ref, useMemo } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
-import { formatDistance, formatDuration } from "./training-format";
+import { formatDetailDuration } from "./presentation-format";
+import { formatDistance } from "./training-format";
 import type {
   TrainingExerciseZones,
   TrainingZone,
@@ -150,7 +151,7 @@ export function TrainingSessionZonesPanel({
                 </span>
                 <span>{zone.timeInZoneMilliseconds === null
                   ? copy.zoneNotRecorded
-                  : formatDuration(
+                  : formatDetailDuration(
                     zone.timeInZoneMilliseconds,
                     locale,
                     messages.training.durationUnits,
@@ -174,7 +175,7 @@ export function TrainingSessionZonesPanel({
                 <td>{number.format(zone.lowerLimit)}–{number.format(zone.higherLimit)} {unit}</td>
                 <td>{zone.timeInZoneMilliseconds === null
                   ? copy.zoneNotRecorded
-                  : formatDuration(
+                  : formatDetailDuration(
                     zone.timeInZoneMilliseconds,
                     locale,
                     messages.training.durationUnits,

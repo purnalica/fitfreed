@@ -11,7 +11,7 @@ import {
   type RouteWorkbenchOverlayValue,
 } from "./route-workbench-model";
 import type { SessionStoryMetric, SessionStoryRole } from "./session-story";
-import { formatDuration } from "./training-format";
+import { formatDetailDuration } from "./presentation-format";
 
 const MAX_VISIBLE_LANES = 4;
 const DEFAULT_VISIBLE_LANES = 3;
@@ -217,7 +217,7 @@ export function TrainingRouteSignalLanes({
           <p>{copy.signalLanesIntroduction}</p>
         </div>
         <span>{interpolate(copy.signalLanesAxis, {
-          through: formatDuration(
+          through: formatDetailDuration(
             model.maximumElapsedMilliseconds,
             locale,
             messages.training.durationUnits,

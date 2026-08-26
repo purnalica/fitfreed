@@ -1,6 +1,6 @@
+import type { Locale } from "../locales/catalogs";
 import type { SleepDateRange, SleepPhaseSummary, SleepStageTransition } from "./sleep-insights";
-import type { DurationUnitLabels } from "./training-format";
-import { formatDuration } from "./training-format";
+import { type DurationUnitLabels, formatDetailDuration } from "./presentation-format";
 
 export function sleepLocalDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
@@ -16,7 +16,7 @@ export function sleepRangeIsValid(range: SleepDateRange, available: SleepDateRan
   return inclusiveDays <= 366;
 }
 
-export function formatSleepDateTime(value: string, locale: string): string {
+export function formatSleepDateTime(value: string, locale: Locale): string {
   const offset = value.slice(-6);
   const wallClock = value.slice(0, -6);
   const formatted = new Intl.DateTimeFormat(locale, {
@@ -29,17 +29,17 @@ export function formatSleepDateTime(value: string, locale: string): string {
 
 export function formatSleepDuration(
   value: string | null,
-  locale: string,
+  locale: Locale,
   units: DurationUnitLabels,
   unavailable: string,
   showSign = false,
 ): string {
-  return value === null ? unavailable : formatDuration(value, locale, units, showSign);
+  return value === null ? unavailable : formatDetailDuration(value, locale, units, showSign);
 }
 
 export function formatDecimal(
   value: number | null,
-  locale: string,
+  locale: Locale,
   unavailable: string,
   suffix = "",
   showSign = false,

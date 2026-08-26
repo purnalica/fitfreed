@@ -5,7 +5,8 @@ import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { sportCanonicalFamily } from "./training-sports";
 import { parseElapsedEditorValue } from "./training-range-editor-model";
-import { formatDuration, formatSessionCardDistance } from "./training-format";
+import { formatDetailDuration } from "./presentation-format";
+import { formatSessionCardDistance } from "./training-format";
 import { TrainingRangeEvidenceEditor } from "./TrainingRangeEvidenceEditor";
 import {
   type TrainingRangeEvidenceEntry,
@@ -65,7 +66,7 @@ export function TrainingStructureWorkbench({
   const manualLaps = structure.manualLaps ?? [];
   const automaticLaps = structure.automaticLaps ?? [];
   const pauseCount = structure.pauses?.length ?? 0;
-  const duration = formatDuration(
+  const duration = formatDetailDuration(
     structure.durationMilliseconds,
     locale,
     messages.training.durationUnits,

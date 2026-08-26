@@ -24,7 +24,7 @@ import {
   recoveryRangeIsValid,
 } from "./recovery-format";
 import { formatSleepDuration } from "./sleep-format";
-import { formatDuration } from "./training-format";
+import { formatSummaryDuration } from "./presentation-format";
 
 interface LongitudinalComparisonPanelProps {
   availableRange: LongitudinalDateRange;
@@ -141,9 +141,9 @@ export function LongitudinalComparisonPanel({
       ],
       [
         copy.trainingDuration,
-        formatDuration(series.training.baseline.totalDurationMilliseconds, locale, messages.training.durationUnits),
-        formatDuration(series.training.comparison.totalDurationMilliseconds, locale, messages.training.durationUnits),
-        formatDuration(series.training.durationMillisecondsChange, locale, messages.training.durationUnits, true),
+        formatSummaryDuration(series.training.baseline.totalDurationMilliseconds, locale, messages.training.durationUnits),
+        formatSummaryDuration(series.training.comparison.totalDurationMilliseconds, locale, messages.training.durationUnits),
+        formatSummaryDuration(series.training.durationMillisecondsChange, locale, messages.training.durationUnits, true),
       ],
       [
         copy.averageSleep,
@@ -237,7 +237,7 @@ export function LongitudinalComparisonPanel({
                 current: series.training.comparison.totalDurationMilliseconds,
                 format: (value: string | null) => value === null
                   ? messages.unavailable
-                  : formatDuration(value, locale, messages.training.durationUnits),
+                  : formatSummaryDuration(value, locale, messages.training.durationUnits),
               },
               {
                 label: copy.averageSleep,

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  formatDuration,
   formatSessionCardDate,
   formatSessionCardDateTime,
   formatSessionCardDistance,
@@ -9,6 +8,7 @@ import {
   formatSessionCardTime,
   formatTrainingDateTime,
 } from "./training-format";
+import { formatExactDuration } from "./presentation-format";
 
 const units = {
   hours: "h",
@@ -34,8 +34,8 @@ describe("human-scale training-session formatting", () => {
   });
 
   it("uses seconds as the human-scale zero for an exact elapsed duration", () => {
-    expect(formatDuration("0", "en-US", units)).toBe("0 s");
-    expect(formatDuration("1", "en-US", units)).toBe("1 ms");
+    expect(formatExactDuration("0", "en-US", units)).toBe("0 s");
+    expect(formatExactDuration("1", "en-US", units)).toBe("1 ms");
   });
 
   it("removes source precision that does not help identify an ordinary session", () => {

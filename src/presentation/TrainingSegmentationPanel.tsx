@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
-import { formatDuration } from "./training-format";
+import { formatDetailDuration } from "./presentation-format";
 import type {
   AppliedTrainingSegmentCriterion,
   SegmentCriterion,
@@ -149,7 +149,7 @@ function definitionSummary(
   switch (criterion.definition.kind) {
     case "equal-elapsed-time":
       return interpolate(copy.segmentEqualTimeSummary, {
-        value: formatDuration(
+        value: formatDetailDuration(
           criterion.definition.spanMilliseconds,
           locale,
           messages.training.durationUnits,
@@ -349,9 +349,9 @@ export function TrainingSegmentationPanel({
               <tbody>{applied.segments.map((segment) => (
                 <tr key={segment.ordinal}>
                   <th scope="row">{number.format(segment.ordinal + 1)}</th>
-                  <td>{formatDuration(segment.startedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</td>
-                  <td>{formatDuration(segment.endedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</td>
-                  <td>{formatDuration(
+                  <td>{formatDetailDuration(segment.startedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                  <td>{formatDetailDuration(segment.endedAtElapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                  <td>{formatDetailDuration(
                     (BigInt(segment.endedAtElapsedMilliseconds)
                       - BigInt(segment.startedAtElapsedMilliseconds)).toString(),
                     locale,

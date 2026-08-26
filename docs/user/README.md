@@ -51,8 +51,10 @@ available through explicit disclosures instead of displacing the first session. 
 visible label identify a sport in Home, the index, filters, results, comparisons, and classification management.
 Every sport in the current history remains visibly available without a hidden horizontal continuation. Session
 cards use the person's locale and everyday precision for dates, times, durations, and distances, and show only
-the optional facts that were recorded. Exact timestamps, unrounded quantities, source separation, and provenance
-remain available when the person opens the session, comparison, result summary, or source evidence. A calendar
+the optional facts that were recorded. Summary totals use magnitude-aware precision, ordinary detail may retain
+seconds, and milliseconds appear only when exact elapsed evidence makes them material. Exact timestamps,
+unrounded quantities, source separation, and provenance remain available through the relevant exact-evidence or
+source disclosure. A calendar
 date contributed by more than one separated history says so directly instead of presenting an unexplained source
 number.
 When verifiable catalogue evidence is installed, Home, History, sessions, and reports use its localized sport

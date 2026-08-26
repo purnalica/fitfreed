@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
-import { formatDuration } from "./training-format";
+import { formatExactDuration } from "./presentation-format";
 import type {
   TrainingSignalSeriesOverview,
   TrainingSignalVisualSample,
@@ -145,7 +145,7 @@ export function TrainingCrossSignalPanel({
   const introduction = candidates[0].role === "transition"
     ? copy.crossSignalTransitionIntro
     : copy.crossSignalPrimaryIntro;
-  const elapsedThrough = formatDuration(
+  const elapsedThrough = formatExactDuration(
     maximumElapsed.toString(),
     locale,
     messages.training.durationUnits,

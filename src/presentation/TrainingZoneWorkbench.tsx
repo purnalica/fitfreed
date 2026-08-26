@@ -4,7 +4,8 @@ import { type catalogs, type Locale } from "../locales/catalogs";
 import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { sportCanonicalFamily } from "./training-sports";
-import { formatDistance, formatDuration } from "./training-format";
+import { formatDetailDuration } from "./presentation-format";
+import { formatDistance } from "./training-format";
 import type { TrainingZone, TrainingZoneGroup } from "./training-session-zone";
 
 interface TrainingZoneWorkbenchProps {
@@ -112,7 +113,7 @@ export function TrainingZoneWorkbench({
     0,
   ) : 0;
   const totalLabel = measure === "time"
-    ? formatDuration(totalTime.toString(), locale, messages.training.durationUnits)
+    ? formatDetailDuration(totalTime.toString(), locale, messages.training.durationUnits)
     : measure === "distance"
       ? formatDistance(
         totalNumber,
@@ -143,7 +144,7 @@ export function TrainingZoneWorkbench({
     if (measure === "time") {
       return zone.timeInZoneMilliseconds === null
         ? sessionCopy.zoneNotRecorded
-        : formatDuration(
+        : formatDetailDuration(
           zone.timeInZoneMilliseconds,
           locale,
           messages.training.durationUnits,

@@ -10,7 +10,6 @@ import { SportFamilyIcon } from "./SportFamilyIcon";
 import type { SessionReportOrigin } from "./session-report";
 import {
   formatDistance,
-  formatDuration,
   formatExactMetric,
   formatSessionCardDate,
   formatSessionCardDateTime,
@@ -20,6 +19,11 @@ import {
   formatTrainingDateTime,
   formatUtcOffset,
 } from "./training-format";
+import {
+  formatDetailDuration,
+  formatExactDuration,
+  formatSummaryDuration,
+} from "./presentation-format";
 import type {
   TrainingDiscoveryWorkspace,
   TrainingMeasurementFilter,
@@ -1398,8 +1402,8 @@ export function TrainingSessionLibraryPanel({
                 <tbody>{laps.map((lap) => (
                   <tr key={lap.lapRef}>
                     <th scope="row">{number.format(lap.ordinal + 1)}</th>
-                    <td>{formatDuration(lap.splitTimeMilliseconds, locale, messages.training.durationUnits)}</td>
-                    <td>{formatDuration(lap.durationMilliseconds, locale, messages.training.durationUnits)}</td>
+                    <td>{formatDetailDuration(lap.splitTimeMilliseconds, locale, messages.training.durationUnits)}</td>
+                    <td>{formatDetailDuration(lap.durationMilliseconds, locale, messages.training.durationUnits)}</td>
                     <td>{formatDistance(lap.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</td>
                   </tr>
                 ))}</tbody>
@@ -1644,7 +1648,7 @@ export function TrainingSessionLibraryPanel({
                             : `${coordinate.format(point.altitudeMeters)} ${messages.training.units.meters}`}</td>
                           <td>{point.elapsedMilliseconds === null
                             ? copy.metricUnavailable
-                            : formatDuration(point.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                            : formatExactDuration(point.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
                         </tr>
                       );
                     })}</tbody>
@@ -1851,7 +1855,7 @@ export function TrainingSessionLibraryPanel({
         <div role="group" aria-label={kind}>
           <dl>
             <div><dt>{copy.signalCoverage}</dt><dd>{coverageLabel(signal.availableSampleCount, signal.sampleCount)}</dd></div>
-            <div><dt>{copy.signalInterval}</dt><dd>{formatDuration(signal.intervalMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+            <div><dt>{copy.signalInterval}</dt><dd>{formatExactDuration(signal.intervalMilliseconds, locale, messages.training.durationUnits)}</dd></div>
           </dl>
         </div>
         <p className="training-signal-projection">{copy.signalProjection}</p>
@@ -1934,7 +1938,7 @@ export function TrainingSessionLibraryPanel({
                             {number.format(sample.ordinal + 1)}
                             {target && <span className="sr-only"> · {copy.selectedSignalEvidence}</span>}
                           </th>
-                          <td>{formatDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                          <td>{formatExactDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
                           <td>{sample.value === null
                             ? copy.metricUnavailable
                             : `${coordinate.format(sample.value)} ${unit}`}</td>
@@ -2134,7 +2138,7 @@ export function TrainingSessionLibraryPanel({
           <dl>
             <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(exercise.startedAtLocal, locale)}</dd></div>
             <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(exercise.stoppedAtLocal, locale)}</dd></div>
-            <div><dt>{messages.training.duration}</dt><dd>{formatDuration(exercise.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+            <div><dt>{messages.training.duration}</dt><dd>{formatDetailDuration(exercise.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
             <div><dt>{messages.training.distance}</dt><dd>{formatDistance(exercise.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
             <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(exercise.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
           </dl>
@@ -2809,7 +2813,7 @@ export function TrainingSessionLibraryPanel({
                         <span>{messages.training.trainingDays}</span>
                       </li>
                       <li>
-                        <strong>{formatDuration(
+                        <strong>{formatSummaryDuration(
                           summary.totalDurationMilliseconds,
                           locale,
                           messages.training.durationUnits,
@@ -2904,7 +2908,7 @@ export function TrainingSessionLibraryPanel({
                     <tbody>
                       <tr>
                         <th scope="row">{messages.training.duration}</th>
-                        {comparison.map((session) => <td key={session.sessionRef}>{formatDuration(
+                        {comparison.map((session) => <td key={session.sessionRef}>{formatDetailDuration(
                           session.durationMilliseconds,
                           locale,
                           messages.training.durationUnits,
@@ -3084,7 +3088,7 @@ export function TrainingSessionLibraryPanel({
                 {selected.utcOffsetMinutes !== null && (
                   <div><dt>{messages.training.utcOffset}</dt><dd>{formatUtcOffset(selected.utcOffsetMinutes, copy.metricUnavailable)}</dd></div>
                 )}
-                <div><dt>{messages.training.duration}</dt><dd>{formatDuration(selected.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+                <div><dt>{messages.training.duration}</dt><dd>{formatDetailDuration(selected.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
                 {selected.distanceMeters !== null && (
                   <div><dt>{messages.training.distance}</dt><dd>{formatDistance(selected.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
                 )}

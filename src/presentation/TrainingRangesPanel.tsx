@@ -8,7 +8,8 @@ import {
   duplicateTrainingRangeTitleCounts,
   formatTrainingRangeTiming,
 } from "./training-range-choice";
-import { formatDuration, formatSessionCardDistance } from "./training-format";
+import { formatDetailDuration } from "./presentation-format";
+import { formatSessionCardDistance } from "./training-format";
 import type {
   TrainingRangeBoundaryState,
   TrainingRangeSummaryLimitation,
@@ -123,7 +124,7 @@ export function TrainingRangesPanel({
         <dl className="training-range-result-summary">
           <div>
             <dt>{copy.duration}</dt>
-            <dd>{formatDuration(
+            <dd>{formatDetailDuration(
               summary.elapsedDurationMilliseconds,
               locale,
               messages.training.durationUnits,
@@ -290,7 +291,7 @@ export function TrainingRangesPanel({
               className="training-result-focus-target"
               tabIndex={-1}
             >{range.title}</h4>
-            <span>{rangeCoordinateLabel(range)} · {formatDuration(
+            <span>{rangeCoordinateLabel(range)} · {formatDetailDuration(
               duration,
               locale,
               messages.training.durationUnits,

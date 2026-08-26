@@ -80,6 +80,12 @@ Reports uses the same current-location semantics for a separate staged workflow.
 
 Settings has a presentation-owned category location. **Appearance & language** owns the atomic preference editor and representative preview; **Updates** owns maintenance status and actions without competing visually with those preferences. Moving between categories preserves an unsaved preview. Restoring defaults changes only the draft, cancellation reapplies the complete saved set without writing, and saving is the sole preference mutation. Requested top-level navigation pauses until the person keeps editing or explicitly discards and continues. The update component remains mounted when its category or Settings itself is hidden, so launch and periodic discovery retain one lifecycle and do not restart merely because the person navigates. Category location never enters the preference DTO or SQLite row.
 
+React owns one provider-neutral presentation-format boundary for locale grouping and named summary,
+detail, and exact-evidence precision. Feature panels select the role that matches the current
+information hierarchy; they do not round canonical values, mutate exports, or construct a competing
+duration policy. Exact elapsed coordinates retain milliseconds, ordinary session and structural
+detail rounds to seconds, and aggregate summaries use magnitude-aware precision.
+
 The host writes only a closed JSON object containing its fixed event contract, application version, source revision, clean-tree state, and bounded monotonic startup durations. The durations cover host setup completion and host receipt of the signal plus renderer locale readiness and signal invocation. They contain no wall-clock timestamps, paths, host identity, application data, or operation values. The benchmark combines them with its outer process timer to report aggregate phase distributions while retaining the application-owned process-to-painted-shell boundary without WebDriver, WebView reloads, personal data, filesystem paths, or test-only package capabilities. Failure to write or validate the diagnostic signal never blocks ordinary deferred startup; a benchmark that cannot observe it fails closed.
 
 ## Contributor contract

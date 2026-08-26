@@ -6,7 +6,7 @@ import { commandErrorCode } from "./command-error";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { SportClassificationTask } from "./SportClassificationTask";
 import { SportFamilyIcon } from "./SportFamilyIcon";
-import { formatDuration } from "./training-format";
+import { formatSummaryDuration } from "./presentation-format";
 import {
   type SavedTrainingSportClassification,
   resolvedSportName,
@@ -315,7 +315,7 @@ export function TrainingSportsPanel({
                   </div>
                   <div>
                     <dt>{copy.duration}</dt>
-                    <dd>{formatDuration(
+                    <dd>{formatSummaryDuration(
                       sport.coverage.totalDurationMilliseconds,
                       locale,
                       messages.training.durationUnits,
