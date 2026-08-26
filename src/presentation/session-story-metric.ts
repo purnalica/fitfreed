@@ -1,9 +1,11 @@
+import type { Locale } from "../locales/catalogs";
 import type { SessionStoryMetric, SessionStoryValueTransform } from "./session-story";
+import { integerCountFormatter, summaryDecimalFormatter } from "./presentation-format";
 
 export function formatSessionStoryMetricValue(
   metric: SessionStoryMetric,
   value: number,
-  locale: string,
+  locale: Locale,
   unit: string,
 ): string {
   if (metric === "pace") {
@@ -11,13 +13,14 @@ export function formatSessionStoryMetricValue(
     const seconds = Math.round((value - minutes) * 60);
     const normalizedMinutes = seconds === 60 ? minutes + 1 : minutes;
     const normalizedSeconds = seconds === 60 ? 0 : seconds;
-    return `${new Intl.NumberFormat(locale).format(normalizedMinutes)}:${normalizedSeconds
+    return `${integerCountFormatter(locale).format(normalizedMinutes)}:${normalizedSeconds
       .toString().padStart(2, "0")} ${unit}`;
   }
-  const formatted = new Intl.NumberFormat(locale, {
-    maximumFractionDigits: metric === "heart-rate" || metric === "cadence"
-      || metric === "stroke-rate" || metric === "power" ? 0 : 1,
-  }).format(value);
+  const wholeNumber = metric === "heart-rate" || metric === "cadence"
+    || metric === "stroke-rate" || metric === "power";
+  const formatted = (wholeNumber
+    ? integerCountFormatter(locale)
+    : summaryDecimalFormatter(locale)).format(value);
   return `${formatted} ${unit}`;
 }
 

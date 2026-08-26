@@ -24,7 +24,12 @@ import { formatTrainingRangeChoice } from "./training-range-choice";
 import { TrainingRangeEditor } from "./TrainingRangeEditor";
 import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteSignalLanes } from "./TrainingRouteSignalLanes";
-import { formatDetailDuration, formatExactDuration } from "./presentation-format";
+import {
+  detailDecimalFormatter,
+  formatDetailDuration,
+  formatExactDuration,
+  integerCountFormatter,
+} from "./presentation-format";
 
 type StoryRole = "primary" | "transition";
 
@@ -189,7 +194,8 @@ export function TrainingRouteWorkbench({
   const focusTransitionRequested = useRef(false);
   const mapSelectionHandlerRef = useRef<(pointIndex: number) => void>(setSelectedPointIndex);
   const copy = messages.training.sessionLibrary.routeWorkbench;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
+  const measurement = useMemo(() => detailDecimalFormatter(locale), [locale]);
   const singleExercise = choices.every(
     (candidate) => candidate.exerciseOrdinal === choices[0]?.exerciseOrdinal,
   );
@@ -705,7 +711,7 @@ export function TrainingRouteWorkbench({
             <dt>{copy.altitude}</dt>
             <dd>{selection.point.source.altitudeMeters === null
               ? copy.notRecorded
-              : `${number.format(selection.point.source.altitudeMeters)} ${messages.training.units.meters}`}</dd>
+              : `${measurement.format(selection.point.source.altitudeMeters)} ${messages.training.units.meters}`}</dd>
           </div>
           {selection.overlayValues.map((value) => (
             <div key={value.signalRef}>

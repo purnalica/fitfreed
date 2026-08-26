@@ -7,6 +7,11 @@ import { commandErrorCode } from "./command-error";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import {
+  formatSummaryDuration,
+  mediumDateFormatter,
+  measurementDecimalFormatter,
+} from "./presentation-format";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { reportSourceTarget, type ReportSourceTarget } from "./report-navigation";
 import { routeSvgPoints } from "./route-svg";
@@ -39,7 +44,6 @@ import {
   formatSessionCardDuration,
   formatTrainingDateTime,
 } from "./training-format";
-import { formatSummaryDuration } from "./presentation-format";
 import type {
   TrainingDateRange,
   TrainingSeriesComparison,
@@ -176,7 +180,7 @@ function hasSupportedEvidence(
 }
 
 function formatReportRange(range: TrainingDateRange, locale: Locale): string {
-  const formatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" });
+  const formatter = mediumDateFormatter(locale);
   const format = (value: string) => formatter.format(new Date(`${value}T00:00:00Z`));
   return `${format(range.from)} – ${format(range.through)}`;
 }
@@ -314,7 +318,7 @@ export function ReportsPanel({
   const commentaryFocusRequestRef = useRef<"field" | "add" | undefined>(undefined);
   const compositionCancelTargetRef = useRef<"library" | "preview" | undefined>(undefined);
   const compositionCancelOriginRef = useRef<HTMLElement>(null);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => measurementDecimalFormatter(locale), [locale]);
   const commentaryPresent = editor?.blocks.some((block) => block.kind === "narrative") ?? false;
 
   useEffect(() => {

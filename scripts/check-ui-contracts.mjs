@@ -182,6 +182,28 @@ for (const sourcePath of sourceFiles(path.join(repositoryRoot, "src"))) {
   }
 }
 
+const presentationDirectory = path.join(repositoryRoot, "src", "presentation");
+const applicationSourceDirectory = path.join(repositoryRoot, "src");
+const canonicalFormatterPath = path.join(
+  presentationDirectory,
+  "presentation-format.ts",
+);
+const adHocFormatterConsumers = sourceFiles(applicationSourceDirectory).filter((sourcePath) => {
+  if (sourcePath === canonicalFormatterPath || /\.test\.[cm]?[jt]sx?$/.test(sourcePath)) {
+    return false;
+  }
+  return /new Intl\.(?:DateTimeFormat|NumberFormat|PluralRules)\s*\(/.test(
+    readFileSync(sourcePath, "utf8"),
+  );
+});
+if (adHocFormatterConsumers.length > 0) {
+  throw new Error(
+    `application presentation sources must use named policies from presentation-format.ts: ${adHocFormatterConsumers
+      .map((sourcePath) => path.relative(repositoryRoot, sourcePath))
+      .join(", ")}`,
+  );
+}
+
 if (/\bfallback=\{null\}/.test(application)) {
   throw new Error("lazy presentation boundaries must expose a visible loading status");
 }
@@ -1009,5 +1031,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, roleBasedLineMeasure: true, alignedClassificationForm: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, personalRanges: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, roleBasedLineMeasure: true, alignedClassificationForm: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, personalRanges: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, centralizedFormatting: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

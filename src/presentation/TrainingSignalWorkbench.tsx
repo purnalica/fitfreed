@@ -18,7 +18,11 @@ import {
 import { formatTrainingRangeChoice } from "./training-range-choice";
 import { TrainingRangeEditor } from "./TrainingRangeEditor";
 import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
-import { formatDetailDuration, formatExactDuration } from "./presentation-format";
+import {
+  formatDetailDuration,
+  formatExactDuration,
+  integerCountFormatter,
+} from "./presentation-format";
 import type {
   TrainingSignalRole,
   TrainingSignalSeriesOverview,
@@ -144,7 +148,7 @@ export function TrainingSignalWorkbench({
   const sessionCopy = messages.training.sessionLibrary;
   const metricCopy = sessionCopy.routeWorkbench.metrics;
   const metricUnits = sessionCopy.routeWorkbench.metricUnits;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
 
   useEffect(() => {
     setChoiceKey(choices[0]?.key ?? "");

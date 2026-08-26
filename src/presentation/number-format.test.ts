@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { integerCountFormatter } from "./number-format";
+import { integerCountFormatter } from "./presentation-format";
 
 describe("integer count formatting", () => {
   it("groups both four- and five-digit Spanish counts consistently", () => {

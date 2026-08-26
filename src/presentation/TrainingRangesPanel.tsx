@@ -8,7 +8,11 @@ import {
   duplicateTrainingRangeTitleCounts,
   formatTrainingRangeTiming,
 } from "./training-range-choice";
-import { formatDetailDuration } from "./presentation-format";
+import {
+  detailDecimalFormatter,
+  formatDetailDuration,
+  integerCountFormatter,
+} from "./presentation-format";
 import { formatSessionCardDistance } from "./training-format";
 import type {
   TrainingRangeBoundaryState,
@@ -66,13 +70,9 @@ export function TrainingRangesPanel({
     requestResultFocus: requestSelectedRangeFocus,
   } = useResultFocus<HTMLHeadingElement>(selectedRange !== undefined);
   const copy = messages.training.sessionLibrary.ranges;
-  const number = useMemo(() => new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 2,
-  }), [locale]);
-  const summaryNumber = useMemo(() => new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 0,
-  }), [locale]);
-  const integer = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => detailDecimalFormatter(locale), [locale]);
+  const summaryNumber = useMemo(() => integerCountFormatter(locale), [locale]);
+  const integer = useMemo(() => integerCountFormatter(locale), [locale]);
   const duplicateTitleCounts = useMemo(
     () => duplicateTrainingRangeTitleCounts(result?.ranges ?? []),
     [result?.ranges],

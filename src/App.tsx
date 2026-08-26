@@ -27,7 +27,10 @@ import type {
   ActivityOverview,
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
-import { integerCountFormatter } from "./presentation/number-format";
+import {
+  integerCountFormatter,
+  mediumDateFormatter,
+} from "./presentation/presentation-format";
 import type {
   ExplorerNavigationRequest,
   TrainingNavigationRequest,
@@ -278,7 +281,7 @@ function App() {
   const activityRangeValidation = useInvalidForm(setErrorCode);
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const maxSteps = activityOverview?.series
@@ -1425,6 +1428,8 @@ function App() {
           home={libraryHome}
           locale={locale}
           messages={messages.home}
+          durationUnits={messages.training.durationUnits}
+          distanceUnits={messages.training.units}
           focusRequestId={libraryHomeFocusRequestId}
           focusTarget={libraryHomeFocusTarget}
           acquisitionActionsDisabled={busy}

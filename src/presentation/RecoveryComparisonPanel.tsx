@@ -23,6 +23,11 @@ import type {
   RecoveryDateRange,
   RecoverySeriesSummary,
 } from "./recovery-insights";
+import {
+  integerCountFormatter,
+  mediumDateFormatter,
+  signedIntegerCountFormatter,
+} from "./presentation-format";
 
 interface RecoveryComparisonPanelProps {
   availableRange: RecoveryDateRange;
@@ -50,13 +55,13 @@ export function RecoveryComparisonPanel({
   const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
     comparison !== undefined,
   );
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
-    () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero" }),
+    () => signedIntegerCountFormatter(locale),
     [locale],
   );
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const copy = messages.recovery.comparison;

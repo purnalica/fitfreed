@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import type { catalogs, Locale } from "../locales/catalogs";
+import { integerCountFormatter, pluralRules } from "./presentation-format";
 
 export interface ImportReport {
   exactRepeat: boolean;
@@ -101,8 +102,8 @@ export function ImportOutcomePanel({
   onArchiveError = () => undefined,
 }: ImportOutcomePanelProps) {
   const [archiveChoosing, setArchiveChoosing] = useState(false);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
+  const plural = useMemo(() => pluralRules(locale), [locale]);
   const classifiedArtifacts = outcome.coverage.supported
     + outcome.coverage.unsupported
     + outcome.coverage.deliberatelyIgnored

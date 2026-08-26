@@ -6,7 +6,12 @@ import { commandErrorCode } from "./command-error";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { SportClassificationTask } from "./SportClassificationTask";
 import { SportFamilyIcon } from "./SportFamilyIcon";
-import { formatSummaryDuration } from "./presentation-format";
+import {
+  formatSummaryDuration,
+  integerCountFormatter,
+  mediumDateFormatter,
+  pluralRules,
+} from "./presentation-format";
 import {
   type SavedTrainingSportClassification,
   resolvedSportName,
@@ -84,10 +89,10 @@ export function TrainingSportsPanel({
   } | undefined>(undefined);
   const handledNavigationRequest = useRef<number | undefined>(undefined);
   const handledSessionReturnRequest = useRef<number | undefined>(undefined);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
+  const plural = useMemo(() => pluralRules(locale), [locale]);
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const copy = messages.training.sports;

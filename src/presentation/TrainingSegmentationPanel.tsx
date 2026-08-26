@@ -3,7 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
-import { formatDetailDuration } from "./presentation-format";
+import {
+  formatDetailDuration,
+  integerCountFormatter,
+  measurementDecimalFormatter,
+} from "./presentation-format";
 import type {
   AppliedTrainingSegmentCriterion,
   SegmentCriterion,
@@ -157,22 +161,22 @@ function definitionSummary(
       });
     case "equal-distance":
       return interpolate(copy.segmentEqualDistanceSummary, {
-        value: new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(
+        value: measurementDecimalFormatter(locale).format(
           criterion.definition.spanMeters / 1_000,
         ),
       });
     case "heart-rate-zone":
       return interpolate(copy.segmentHeartRateSummary, {
-        minimum: new Intl.NumberFormat(locale).format(
+        minimum: integerCountFormatter(locale).format(
           criterion.definition.minimumBeatsPerMinute,
         ),
-        maximum: new Intl.NumberFormat(locale).format(
+        maximum: integerCountFormatter(locale).format(
           criterion.definition.maximumBeatsPerMinute,
         ),
       });
     case "manual-boundaries":
       return interpolate(copy.segmentManualSummary, {
-        count: new Intl.NumberFormat(locale).format(
+        count: integerCountFormatter(locale).format(
           criterion.definition.elapsedMilliseconds.length,
         ),
       });
@@ -194,7 +198,7 @@ export function TrainingSegmentationPanel({
   const [reuseSelections, setReuseSelections] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<string>();
   const copy = messages.training.sessionLibrary;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const busy = mutationCommand !== undefined;
 
   function mutationProgress(command: SegmentMutationCommand): string {

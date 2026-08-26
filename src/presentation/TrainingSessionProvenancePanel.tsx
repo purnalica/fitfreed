@@ -6,6 +6,7 @@ import type {
   TrainingProvenanceEvent,
   TrainingSessionProvenanceResult,
 } from "./training-session-provenance";
+import { integerCountFormatter, mediumDateTimeFormatter } from "./presentation-format";
 
 const PROVENANCE_PAGE_SIZE = 10;
 
@@ -35,12 +36,8 @@ export function TrainingSessionProvenancePanel({
   const [result, setResult] = useState<TrainingSessionProvenanceResult>();
   const requestSequence = useRef(0);
   const copy = messages.training.sessionLibrary;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const dateTime = useMemo(() => new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
+  const dateTime = useMemo(() => mediumDateTimeFormatter(locale), [locale]);
 
   useEffect(() => {
     requestSequence.current += 1;

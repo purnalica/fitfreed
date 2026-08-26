@@ -52,7 +52,8 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Localization catalogs, placeholders, plural rules, and fallback.
 - Production presentation reachability, locale-message consumption, CSS ownership, automation entry points,
   and packaged-test registration, with explicit typed handling for dynamic dictionaries and generated class
-  families.
+  families. The same contract scan rejects production `Intl` constructors outside the named shared
+  presentation-format boundary.
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
 - Training workspace and session-detail navigation, semantic current-location state, focused reveal below persistent navigation, enforced progressive-disclosure boundaries, and the single route → signal → structure → zone evidence-layout matrix for complete, partial, unsupported-only, and summary-only stories.

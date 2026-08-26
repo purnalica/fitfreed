@@ -183,11 +183,6 @@ export interface LibraryHomeMessages {
   recentHeading: string;
   recentIntro: string;
   recentOpen: string;
-  durationHoursMinutes: string;
-  durationHours: string;
-  durationMinutes: string;
-  durationLessThanMinute: string;
-  recentDistance: string;
   comparisonEyebrow: string;
   comparisonHeading: string;
   comparisonIntro: string;

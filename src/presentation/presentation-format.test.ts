@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  coordinateDecimalFormatter,
+  decimalSeparator,
   formatCount,
   formatCountRatio,
   formatDetailDuration,
@@ -11,7 +13,17 @@ import {
   formatLocalDate,
   formatPace,
   formatSummaryDecimal,
+  formatSummaryDistance,
   formatSummaryDuration,
+  longDateFormatter,
+  mediumDateTimeFormatter,
+  monthYearFormatter,
+  pluralRules,
+  signedIntegerCountFormatter,
+  signedExactDecimalFormatter,
+  signedSummaryDecimalFormatter,
+  sourcePrecisionDateTimeFormatter,
+  weekdayFormatter,
 } from "./presentation-format";
 
 const durationUnits = {
@@ -68,8 +80,36 @@ describe("shared presentation formatting", () => {
     expect(formatSummaryDecimal(12.3456, "en-US")).toBe("12.3");
     expect(formatLocalDate("2026-08-26", "es-ES")).toBe("26 ago 2026");
     expect(formatDistance(1_549, "en-US", distanceUnits)).toBe("1.55 km");
+    expect(formatSummaryDistance(1_549, "en-US", distanceUnits)).toBe("1.5 km");
     expect(formatPace(302_400, "en-US", "min/km")).toBe("5:02 min/km");
     expect(formatEnergy(645.8, "en-US", "kcal")).toBe("646 kcal");
     expect(formatFractionAsPercentage(0.873, "es-ES")).toBe("87 %");
+  });
+
+  it("centralizes signed, coordinate, plural, and source-precision policies", () => {
+    expect(signedIntegerCountFormatter("en-US").format(24)).toBe("+24");
+    expect(signedIntegerCountFormatter("en-US").format(0)).toBe("0");
+    expect(signedSummaryDecimalFormatter("es-ES").format(-1.25)).toBe("-1,3");
+    expect(signedExactDecimalFormatter("en-US").format(1.23456789)).toBe(
+      "+1.23456789",
+    );
+    expect(coordinateDecimalFormatter("en-US").format(-0.12345678901234567)).toBe(
+      "-0.12345678901234566",
+    );
+    expect(pluralRules("en-US").select(1)).toBe("one");
+    expect(decimalSeparator("es-ES")).toBe(",");
+    expect(
+      sourcePrecisionDateTimeFormatter("en-US", true).format(
+        new Date("2026-08-26T10:11:12Z"),
+      ),
+    ).toContain("12");
+  });
+
+  it("centralizes the calendar and UTC date-time variants used by the product", () => {
+    const instant = new Date("2026-08-26T10:11:12Z");
+    expect(mediumDateTimeFormatter("en-US").format(instant)).toContain("10:11");
+    expect(longDateFormatter("en-US").format(instant)).toBe("August 26, 2026");
+    expect(monthYearFormatter("en-US").format(instant)).toBe("August 2026");
+    expect(weekdayFormatter("en-US").format(instant)).toBe("Wed");
   });
 });

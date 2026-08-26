@@ -1,7 +1,7 @@
 import { type Ref, useMemo } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
-import { formatDetailDuration } from "./presentation-format";
+import { exactDecimalFormatter, formatDetailDuration } from "./presentation-format";
 import { formatDistance } from "./training-format";
 import type {
   TrainingExerciseZones,
@@ -32,9 +32,7 @@ export function TrainingSessionZonesPanel({
   focusHeadingRef,
 }: TrainingSessionZonesPanelProps) {
   const copy = messages.training.sessionLibrary;
-  const number = useMemo(() => new Intl.NumberFormat(locale, {
-    maximumSignificantDigits: 17,
-  }), [locale]);
+  const number = useMemo(() => exactDecimalFormatter(locale), [locale]);
 
   function unsupportedGroups(count: number) {
     if (count === 0) return null;

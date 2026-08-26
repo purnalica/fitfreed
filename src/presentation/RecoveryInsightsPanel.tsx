@@ -26,6 +26,11 @@ import type {
 } from "./recovery-insights";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
+import {
+  detailDecimalFormatter,
+  integerCountFormatter,
+  mediumDateFormatter,
+} from "./presentation-format";
 
 interface RecoveryInsightsPanelProps {
   locale: Locale;
@@ -65,13 +70,13 @@ export function RecoveryInsightsPanel({
   const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailOriginRef = useRef<HTMLButtonElement | null>(null);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const decimal = useMemo(
-    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }),
+    () => detailDecimalFormatter(locale),
     [locale],
   );
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const { resultHeadingRef: answerHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(

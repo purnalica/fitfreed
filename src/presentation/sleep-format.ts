@@ -1,6 +1,12 @@
 import type { Locale } from "../locales/catalogs";
 import type { SleepDateRange, SleepPhaseSummary, SleepStageTransition } from "./sleep-insights";
-import { type DurationUnitLabels, formatDetailDuration } from "./presentation-format";
+import {
+  type DurationUnitLabels,
+  formatDetailDuration,
+  mediumDateTimeFormatter,
+  signedSummaryDecimalFormatter,
+  summaryDecimalFormatter,
+} from "./presentation-format";
 
 export function sleepLocalDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
@@ -19,11 +25,7 @@ export function sleepRangeIsValid(range: SleepDateRange, available: SleepDateRan
 export function formatSleepDateTime(value: string, locale: Locale): string {
   const offset = value.slice(-6);
   const wallClock = value.slice(0, -6);
-  const formatted = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${wallClock}Z`));
+  const formatted = mediumDateTimeFormatter(locale).format(new Date(`${wallClock}Z`));
   return `${formatted} (UTC${offset})`;
 }
 
@@ -45,10 +47,9 @@ export function formatDecimal(
   showSign = false,
 ): string {
   if (value === null) return unavailable;
-  const number = new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 1,
-    signDisplay: showSign ? "exceptZero" : "auto",
-  });
+  const number = showSign
+    ? signedSummaryDecimalFormatter(locale)
+    : summaryDecimalFormatter(locale);
   return `${number.format(value)}${suffix}`;
 }
 

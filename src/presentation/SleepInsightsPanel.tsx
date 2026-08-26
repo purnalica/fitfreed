@@ -30,6 +30,7 @@ import type {
 } from "./sleep-insights";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
+import { integerCountFormatter, mediumDateFormatter } from "./presentation-format";
 
 interface SleepInsightsPanelProps {
   locale: Locale;
@@ -69,9 +70,9 @@ export function SleepInsightsPanel({
   const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailOriginRef = useRef<HTMLButtonElement | null>(null);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const { resultHeadingRef: answerHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
@@ -649,7 +650,7 @@ function SleepScoreDetails({ detail, locale, messages }: { detail: SleepPeriodDe
   return (
     <section className="sleep-subdetail" aria-labelledby="sleep-score-heading">
       <h3 id="sleep-score-heading">{copy.scoreHeading}</h3>
-      <dl className="sleep-score-grid">{values.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{formatDecimal(value, locale, messages.unavailable)}</dd></div>)}<div><dt>{copy.relativeRating}</dt><dd>{score.relativeRating === null ? messages.unavailable : `${new Intl.NumberFormat(locale).format(score.relativeRating)} / 5`}</dd></div></dl>
+      <dl className="sleep-score-grid">{values.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{formatDecimal(value, locale, messages.unavailable)}</dd></div>)}<div><dt>{copy.relativeRating}</dt><dd>{score.relativeRating === null ? messages.unavailable : `${integerCountFormatter(locale).format(score.relativeRating)} / 5`}</dd></div></dl>
     </section>
   );
 }

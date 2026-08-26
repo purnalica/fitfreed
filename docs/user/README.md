@@ -52,7 +52,8 @@ visible label identify a sport in Home, the index, filters, results, comparisons
 Every sport in the current history remains visibly available without a hidden horizontal continuation. Session
 cards use the person's locale and everyday precision for dates, times, durations, and distances, and show only
 the optional facts that were recorded. Summary totals use magnitude-aware precision, ordinary detail may retain
-seconds, and milliseconds appear only when exact elapsed evidence makes them material. Exact timestamps,
+seconds, and milliseconds appear only when exact elapsed evidence makes them material. Counts and both sides of
+a count ratio use the locale's grouping consistently. Exact timestamps,
 unrounded quantities, source separation, and provenance remain available through the relevant exact-evidence or
 source disclosure. A calendar
 date contributed by more than one separated history says so directly instead of presenting an unexplained source

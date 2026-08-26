@@ -20,9 +20,14 @@ import {
   formatUtcOffset,
 } from "./training-format";
 import {
+  coordinateDecimalFormatter,
   formatDetailDuration,
   formatExactDuration,
   formatSummaryDuration,
+  integerCountFormatter,
+  longDateFormatter,
+  monthYearFormatter,
+  weekdayFormatter,
 } from "./presentation-format";
 import type {
   TrainingDiscoveryWorkspace,
@@ -393,30 +398,17 @@ export function TrainingSessionLibraryPanel({
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
   const copy = messages.training.sessionLibrary;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const detailLayout = useMemo(
     () => sessionStoryLayout(detailStory),
     [detailStory],
   );
   const detailSections = detailLayout.sections;
-  const calendarDate = useMemo(() => new Intl.DateTimeFormat(locale, {
-    dateStyle: "long",
-    timeZone: "UTC",
-  }), [locale]);
-  const monthName = useMemo(() => new Intl.DateTimeFormat(locale, {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }), [locale]);
-  const weekdayName = useMemo(() => new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    timeZone: "UTC",
-  }), [locale]);
+  const calendarDate = useMemo(() => longDateFormatter(locale), [locale]);
+  const monthName = useMemo(() => monthYearFormatter(locale), [locale]);
+  const weekdayName = useMemo(() => weekdayFormatter(locale), [locale]);
   const textTooLong = [...draft.text.trim()].length > 80;
-  const coordinate = useMemo(() => new Intl.NumberFormat(locale, {
-    useGrouping: false,
-    maximumSignificantDigits: 17,
-  }), [locale]);
+  const coordinate = useMemo(() => coordinateDecimalFormatter(locale), [locale]);
   currentWorkspaceRef.current = {
     draft,
     applied,

@@ -8,6 +8,7 @@ import {
   type ComparisonPeriodPresetKind,
   type ComparisonPeriodSelection,
 } from "./comparison-period-preset";
+import { mediumDateFormatter } from "./presentation-format";
 
 export interface ComparisonPeriodPresetMessages {
   heading: string;
@@ -51,7 +52,7 @@ export function ComparisonPeriodPresets({
   onSelect,
 }: ComparisonPeriodPresetsProps) {
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const options = useMemo(() => (

@@ -1,4 +1,6 @@
+import type { Locale } from "../locales/catalogs";
 import type { RecoveryDateRange } from "./recovery-insights";
+import { integerCountFormatter, signedIntegerCountFormatter } from "./presentation-format";
 
 export function recoveryLocalDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
@@ -18,14 +20,15 @@ export function recoveryRangeIsValid(
 
 export function formatRecoveryMilliseconds(
   value: string | null,
-  locale: string,
+  locale: Locale,
   unavailable: string,
   signed = false,
 ): string {
   if (value === null) return unavailable;
-  return `${new Intl.NumberFormat(locale, {
-    signDisplay: signed ? "exceptZero" : "auto",
-  }).format(BigInt(value))} ms`;
+  const number = signed
+    ? signedIntegerCountFormatter(locale)
+    : integerCountFormatter(locale);
+  return `${number.format(BigInt(value))} ms`;
 }
 
 export function recoveryBarWidth(value: string | null, maximum: bigint): string {

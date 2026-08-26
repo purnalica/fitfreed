@@ -23,6 +23,11 @@ import type {
   SleepDateRange,
   SleepSeriesSummary,
 } from "./sleep-insights";
+import {
+  integerCountFormatter,
+  mediumDateFormatter,
+  signedSummaryDecimalFormatter,
+} from "./presentation-format";
 
 interface SleepComparisonPanelProps {
   availableRange: SleepDateRange;
@@ -56,13 +61,13 @@ export function SleepComparisonPanel({
   const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
     comparison !== undefined,
   );
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
-    () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero", maximumFractionDigits: 1 }),
+    () => signedSummaryDecimalFormatter(locale),
     [locale],
   );
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const copy = messages.sleep.comparison;

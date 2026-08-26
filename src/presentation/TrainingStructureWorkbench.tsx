@@ -5,7 +5,7 @@ import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { sportCanonicalFamily } from "./training-sports";
 import { parseElapsedEditorValue } from "./training-range-editor-model";
-import { formatDetailDuration } from "./presentation-format";
+import { formatDetailDuration, integerCountFormatter } from "./presentation-format";
 import { formatSessionCardDistance } from "./training-format";
 import { TrainingRangeEvidenceEditor } from "./TrainingRangeEvidenceEditor";
 import {
@@ -54,7 +54,7 @@ export function TrainingStructureWorkbench({
     ?? exercises[0];
   const copy = messages.training.sessionLibrary.structureWorkbench;
   const sessionCopy = messages.training.sessionLibrary;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
 
   useEffect(() => {
     setExerciseRef(exercises[0]?.exerciseRef ?? "");

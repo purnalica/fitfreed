@@ -28,7 +28,12 @@ import {
   recoveryRangeIsValid,
 } from "./recovery-format";
 import { formatSleepDuration } from "./sleep-format";
-import { formatSummaryDuration } from "./presentation-format";
+import {
+  formatSummaryDuration,
+  integerCountFormatter,
+  mediumDateFormatter,
+  pluralRules,
+} from "./presentation-format";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 
@@ -73,10 +78,10 @@ export function LongitudinalInsightsPanel({
   const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailOriginRef = useRef<HTMLButtonElement | null>(null);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
+  const plural = useMemo(() => pluralRules(locale), [locale]);
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const copy = messages.longitudinal;

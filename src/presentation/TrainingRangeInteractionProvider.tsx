@@ -10,6 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { integerCountFormatter } from "./presentation-format";
 import {
   coordinateKey,
   elapsedEditorValue,
@@ -156,7 +157,7 @@ export function TrainingRangeInteractionProvider({
   const [removeConfirmation, setRemoveConfirmation] = useState(false);
   const [status, setStatus] = useState<string>();
   const copy = messages.training.sessionLibrary.ranges;
-  const integer = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const integer = useMemo(() => integerCountFormatter(locale), [locale]);
   const busy = mutationCommand !== undefined;
 
   const choices = useMemo(() => selectableRangeCoordinates(result ?? {

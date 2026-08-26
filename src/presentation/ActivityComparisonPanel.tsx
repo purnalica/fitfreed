@@ -16,6 +16,12 @@ import {
   type ComparisonPeriodSelection,
 } from "./comparison-period-preset";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import {
+  integerCountFormatter,
+  mediumDateFormatter,
+  pluralRules,
+  signedIntegerCountFormatter,
+} from "./presentation-format";
 import { submissionOrigin } from "./submission-origin";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
@@ -64,14 +70,14 @@ export function ActivityComparisonPanel({
   const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
     comparison !== undefined,
   );
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
-    () => new Intl.NumberFormat(locale, { signDisplay: "always" }),
+    () => signedIntegerCountFormatter(locale, "always"),
     [locale],
   );
-  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
+  const plural = useMemo(() => pluralRules(locale), [locale]);
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
 

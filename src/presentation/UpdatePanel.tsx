@@ -5,6 +5,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Locale } from "../locales/catalogs";
 import { catalogs } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { localMediumDateTimeFormatter } from "./presentation-format";
 
 type UpdateStatus =
   | "unconfigured"
@@ -90,10 +91,7 @@ export function UpdatePanel({
   const [errorCode, setErrorCode] = useState<string>();
   const requestSequence = useRef(0);
   const dateTime = useMemo(
-    () => new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }),
+    () => localMediumDateTimeFormatter(locale),
     [locale],
   );
 

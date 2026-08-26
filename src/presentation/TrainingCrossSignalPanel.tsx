@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
-import { formatExactDuration } from "./presentation-format";
+import {
+  coordinateDecimalFormatter,
+  formatExactDuration,
+  integerCountFormatter,
+} from "./presentation-format";
 import type {
   TrainingSignalSeriesOverview,
   TrainingSignalVisualSample,
@@ -91,11 +95,8 @@ export function TrainingCrossSignalPanel({
   const candidateSignature = candidates.map((signal) => signal.signalRef).join("|");
   const [selectedRefs, setSelectedRefs] = useState(() => initialSelection(series));
   const copy = messages.training.sessionLibrary;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const coordinate = useMemo(() => new Intl.NumberFormat(locale, {
-    useGrouping: false,
-    maximumSignificantDigits: 17,
-  }), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
+  const coordinate = useMemo(() => coordinateDecimalFormatter(locale), [locale]);
   const maximumElapsed = useMemo(() => maximumElapsedMilliseconds(candidates), [candidates]);
 
   useEffect(() => {

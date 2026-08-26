@@ -10,6 +10,7 @@ import type {
   OpenOfficialSourceLinkOutcome,
   OpenOfficialSourceLinkRequest,
 } from "../infrastructure/official-source-link";
+import { formatLocalDate } from "./presentation-format";
 
 type SourcesMessages = (typeof catalogs)["en-US"]["sources"];
 
@@ -376,10 +377,7 @@ export function SourcesPanel({
                     )}</p>
                     <p>{messages.verifiedOn.replace(
                       "{date}",
-                      new Intl.DateTimeFormat(locale, {
-                        dateStyle: "medium",
-                        timeZone: "UTC",
-                      }).format(new Date(`${guide.verifiedOn}T00:00:00Z`)),
+                      formatLocalDate(guide.verifiedOn, locale),
                     )}</p>
                   </div>
                 </header>

@@ -2,8 +2,17 @@ import type { Locale } from "../locales/catalogs";
 import {
   type DistanceUnitLabels,
   type DurationUnitLabels,
+  decimalSeparator,
+  exactDecimalFormatter,
   formatDistance as formatPresentedDistance,
   formatSummaryDuration,
+  integerCountFormatter,
+  mediumDateFormatter,
+  mediumDateTimeFormatter,
+  shortTimeFormatter,
+  signedExactDecimalFormatter,
+  signedIntegerCountFormatter,
+  sourcePrecisionDateTimeFormatter,
 } from "./presentation-format";
 
 export type { DistanceUnitLabels, DurationUnitLabels } from "./presentation-format";
@@ -17,15 +26,9 @@ export function formatTrainingDateTime(value: string, locale: Locale): string {
   const fractional = time?.[2];
   const hasFractionalPrecision = fractional !== undefined && /[1-9]/.test(fractional);
   const hasSecondPrecision = time === null || time[1] !== "00" || hasFractionalPrecision;
-  const dateTime = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: hasSecondPrecision ? "medium" : "short",
-    timeZone: "UTC",
-  });
+  const dateTime = sourcePrecisionDateTimeFormatter(locale, hasSecondPrecision);
   if (!hasFractionalPrecision) return dateTime.format(trainingLocalDateTime(value));
-  const decimal = new Intl.NumberFormat(locale)
-    .formatToParts(1.1)
-    .find((part) => part.type === "decimal")?.value ?? ".";
+  const decimal = decimalSeparator(locale);
   return dateTime
     .formatToParts(trainingLocalDateTime(value))
     .map((part) => part.type === "second" ? `${part.value}${decimal}${fractional}` : part.value)
@@ -33,25 +36,15 @@ export function formatTrainingDateTime(value: string, locale: Locale): string {
 }
 
 export function formatSessionCardDate(value: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(trainingLocalDateTime(value));
+  return mediumDateFormatter(locale).format(trainingLocalDateTime(value));
 }
 
 export function formatSessionCardTime(value: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale, {
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(trainingLocalDateTime(value));
+  return shortTimeFormatter(locale).format(trainingLocalDateTime(value));
 }
 
 export function formatSessionCardDateTime(value: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(trainingLocalDateTime(value));
+  return mediumDateTimeFormatter(locale).format(trainingLocalDateTime(value));
 }
 
 export function formatSessionCardDuration(
@@ -79,7 +72,9 @@ export function formatExactMetric(
 ): string {
   if (value === null) return unavailable;
   const exact = BigInt(value);
-  const number = new Intl.NumberFormat(locale, showSign ? { signDisplay: "exceptZero" } : {});
+  const number = showSign
+    ? signedIntegerCountFormatter(locale)
+    : integerCountFormatter(locale);
   return `${number.format(exact)} ${unit}`;
 }
 
@@ -91,10 +86,9 @@ export function formatDistance(
   showSign = false,
 ): string {
   if (value === null) return unavailable;
-  const number = new Intl.NumberFormat(locale, {
-    maximumSignificantDigits: 17,
-    signDisplay: showSign ? "exceptZero" : "auto",
-  });
+  const number = showSign
+    ? signedExactDecimalFormatter(locale)
+    : exactDecimalFormatter(locale);
   return `${number.format(value)} ${unit}`;
 }
 

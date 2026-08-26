@@ -11,7 +11,7 @@ import {
   type RouteWorkbenchOverlayValue,
 } from "./route-workbench-model";
 import type { SessionStoryMetric, SessionStoryRole } from "./session-story";
-import { formatDetailDuration } from "./presentation-format";
+import { formatDetailDuration, integerCountFormatter } from "./presentation-format";
 
 const MAX_VISIBLE_LANES = 4;
 const DEFAULT_VISIBLE_LANES = 3;
@@ -138,7 +138,7 @@ export function TrainingRouteSignalLanes({
   const [selectedRefs, setSelectedRefs] = useState(() => initialLaneRefs(candidates));
   const copy = messages.training.sessionLibrary.routeWorkbench;
   const signalCopy = messages.training.sessionLibrary.signalKinds;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
 
   useEffect(() => {
     setSelectedRefs(initialLaneRefs(candidates));

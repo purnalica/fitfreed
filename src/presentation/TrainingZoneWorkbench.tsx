@@ -4,7 +4,7 @@ import { type catalogs, type Locale } from "../locales/catalogs";
 import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { sportCanonicalFamily } from "./training-sports";
-import { formatDetailDuration } from "./presentation-format";
+import { exactDecimalFormatter, formatDetailDuration } from "./presentation-format";
 import { formatDistance } from "./training-format";
 import type { TrainingZone, TrainingZoneGroup } from "./training-session-zone";
 
@@ -74,9 +74,7 @@ export function TrainingZoneWorkbench({
   const choice = choices.find((candidate) => candidate.key === choiceKey) ?? choices[0];
   const copy = messages.training.sessionLibrary.zoneWorkbench;
   const sessionCopy = messages.training.sessionLibrary;
-  const number = useMemo(() => new Intl.NumberFormat(locale, {
-    maximumSignificantDigits: 17,
-  }), [locale]);
+  const number = useMemo(() => exactDecimalFormatter(locale), [locale]);
 
   useEffect(() => {
     setChoiceKey(choices[0]?.key ?? "");

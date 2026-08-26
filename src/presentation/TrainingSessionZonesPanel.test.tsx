@@ -165,7 +165,7 @@ describe("TrainingSessionZonesPanel", () => {
 
     const panel = screen.getByRole("region", { name: "Zonas registradas" });
     expect(panel).toHaveTextContent("Registrado por el origen");
-    expect(panel).toHaveTextContent("2500,5 m");
+    expect(panel).toHaveTextContent("2.500,5 m");
     expect(panel).toHaveTextContent("No registrado");
   });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 
+import type { Locale } from "../locales/catalogs";
 import type {
   ExploreDestination,
   IllustratedSportFamily,
@@ -14,11 +15,22 @@ import type {
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { localizedName } from "./training-sports";
+import {
+  type DistanceUnitLabels,
+  type DurationUnitLabels,
+  formatSummaryDistance,
+  formatSummaryDuration,
+  integerCountFormatter,
+  mediumDateFormatter,
+  pluralRules,
+} from "./presentation-format";
 
 interface LibraryHomePanelProps {
   home: LibraryHome;
-  locale: string;
+  locale: Locale;
   messages: LibraryHomeMessages;
+  durationUnits: DurationUnitLabels;
+  distanceUnits: DistanceUnitLabels;
   focusRequestId?: number;
   focusTarget?: string;
   pendingDestination?: ExploreDestination;
@@ -52,6 +64,8 @@ export function LibraryHomePanel({
   home,
   locale,
   messages,
+  durationUnits,
+  distanceUnits,
   focusRequestId = 0,
   focusTarget,
   pendingDestination,
@@ -73,19 +87,15 @@ export function LibraryHomePanel({
 }: LibraryHomePanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const focusTargets = useRef(new Map<string, HTMLButtonElement>());
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const decimal = useMemo(
-    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
-    [locale],
-  );
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const unresolvedSportRefs = home.training?.sports
     .flatMap((sport) => (sport.state === "unknown" || sport.state === "ambiguous")
       && sport.sportRef !== null
       ? [sport.sportRef]
       : []) ?? [];
-  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
+  const plural = useMemo(() => pluralRules(locale), [locale]);
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const formatCount = (
@@ -94,21 +104,16 @@ export function LibraryHomePanel({
   ) => templates[plural.select(value) === "one" ? "one" : "other"]
     .replace("{count}", number.format(value));
   const formatDate = (value: string) => date.format(localDate(value.slice(0, 10)));
-  const formatDuration = (value: string) => {
-    const totalMinutes = BigInt(value) / 60_000n;
-    const hours = totalMinutes / 60n;
-    const minutes = totalMinutes % 60n;
-    if (hours > 0n && minutes > 0n) {
-      return messages.durationHoursMinutes
-        .replace("{hours}", number.format(hours))
-        .replace("{minutes}", number.format(minutes));
-    }
-    if (hours > 0n) return messages.durationHours.replace("{hours}", number.format(hours));
-    if (minutes > 0n) return messages.durationMinutes.replace("{minutes}", number.format(minutes));
-    return messages.durationLessThanMinute;
-  };
-  const formatDistance = (value: number) => messages.recentDistance
-    .replace("{distance}", decimal.format(value / 1_000));
+  const formatDuration = (value: string) => formatSummaryDuration(
+    value,
+    locale,
+    durationUnits,
+  );
+  const formatDistance = (value: number) => formatSummaryDistance(
+    value,
+    locale,
+    distanceUnits,
+  );
   const sportLabel = (sport: {
     sportRef?: string | null;
     sportState?: LibraryHomeRecentSession["sportState"];

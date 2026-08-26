@@ -81,7 +81,9 @@ category or locale changes cannot duplicate launch discovery or lose a scheduled
 policies for durations and other displayed measurements. Training, sleep, longitudinal, and report
 components choose one of those roles while their feature-specific formatting modules retain only
 domain vocabulary and composition. Stored and exported values remain exact and never depend on a
-presentation role.
+presentation role. The UI-contract check scans every production TypeScript and TSX source and rejects
+direct `Intl` formatter construction outside this boundary, so a feature cannot silently introduce a
+second grouping, date, sign, coordinate, or precision policy.
 
 Report refresh crosses the same boundaries: Tauri validates the exact saved definition revision, saved
 snapshot, and reviewed candidate; the application re-resolves through authoritative ports and performs

@@ -26,9 +26,28 @@ export function integerCountFormatter(locale: Locale): Intl.NumberFormat {
   });
 }
 
+export function signedIntegerCountFormatter(
+  locale: Locale,
+  signDisplay: "always" | "exceptZero" = "exceptZero",
+): Intl.NumberFormat {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+    signDisplay,
+    useGrouping: true,
+  });
+}
+
 export function summaryDecimalFormatter(locale: Locale): Intl.NumberFormat {
   return new Intl.NumberFormat(locale, {
     maximumFractionDigits: 1,
+    useGrouping: true,
+  });
+}
+
+export function signedSummaryDecimalFormatter(locale: Locale): Intl.NumberFormat {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+    signDisplay: "exceptZero",
     useGrouping: true,
   });
 }
@@ -40,6 +59,13 @@ export function detailDecimalFormatter(locale: Locale): Intl.NumberFormat {
   });
 }
 
+export function measurementDecimalFormatter(locale: Locale): Intl.NumberFormat {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 3,
+    useGrouping: true,
+  });
+}
+
 export function exactDecimalFormatter(locale: Locale): Intl.NumberFormat {
   return new Intl.NumberFormat(locale, {
     maximumSignificantDigits: 17,
@@ -47,11 +73,91 @@ export function exactDecimalFormatter(locale: Locale): Intl.NumberFormat {
   });
 }
 
+export function signedExactDecimalFormatter(locale: Locale): Intl.NumberFormat {
+  return new Intl.NumberFormat(locale, {
+    maximumSignificantDigits: 17,
+    signDisplay: "exceptZero",
+    useGrouping: true,
+  });
+}
+
+export function coordinateDecimalFormatter(locale: Locale): Intl.NumberFormat {
+  return new Intl.NumberFormat(locale, {
+    maximumSignificantDigits: 17,
+    useGrouping: false,
+  });
+}
+
+export function pluralRules(locale: Locale): Intl.PluralRules {
+  return new Intl.PluralRules(locale);
+}
+
 export function mediumDateFormatter(locale: Locale): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeZone: "UTC",
   });
+}
+
+export function longDateFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "long",
+    timeZone: "UTC",
+  });
+}
+
+export function monthYearFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function weekdayFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+}
+
+export function shortTimeFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    timeStyle: "short",
+    timeZone: "UTC",
+  });
+}
+
+export function mediumDateTimeFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  });
+}
+
+export function localMediumDateTimeFormatter(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export function sourcePrecisionDateTimeFormatter(
+  locale: Locale,
+  includeSeconds: boolean,
+): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: includeSeconds ? "medium" : "short",
+    timeZone: "UTC",
+  });
+}
+
+export function decimalSeparator(locale: Locale): string {
+  return summaryDecimalFormatter(locale)
+    .formatToParts(1.1)
+    .find((part) => part.type === "decimal")?.value ?? ".";
 }
 
 export function formatCount(value: NumericValue, locale: Locale): string {
@@ -172,6 +278,17 @@ export function formatDistance(
 ): string {
   if (Math.abs(meters) >= 1_000) {
     return `${detailDecimalFormatter(locale).format(meters / 1_000)} ${units.kilometers}`;
+  }
+  return `${integerCountFormatter(locale).format(meters)} ${units.meters}`;
+}
+
+export function formatSummaryDistance(
+  meters: number,
+  locale: Locale,
+  units: DistanceUnitLabels,
+): string {
+  if (Math.abs(meters) >= 1_000) {
+    return `${summaryDecimalFormatter(locale).format(meters / 1_000)} ${units.kilometers}`;
   }
   return `${integerCountFormatter(locale).format(meters)} ${units.meters}`;
 }

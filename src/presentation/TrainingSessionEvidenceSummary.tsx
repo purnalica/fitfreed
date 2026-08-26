@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import type { SessionStory } from "./session-story";
+import { integerCountFormatter } from "./presentation-format";
 
 interface TrainingSessionEvidenceSummaryProps {
   story: SessionStory;
@@ -22,7 +23,7 @@ export function TrainingSessionEvidenceSummary({
   messages,
 }: TrainingSessionEvidenceSummaryProps) {
   const copy = messages.training.sessionLibrary.evidenceSummary;
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const roleEvidence = story.exercises.flatMap(
     (exercise) => [exercise.primary.evidence, exercise.transition.evidence],
   );

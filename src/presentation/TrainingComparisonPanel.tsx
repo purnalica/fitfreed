@@ -10,7 +10,12 @@ import {
 } from "./comparison-period-preset";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { restoreFocusAfterReveal } from "./focus-restoration";
-import { formatSummaryDuration } from "./presentation-format";
+import {
+  formatSummaryDuration,
+  integerCountFormatter,
+  mediumDateFormatter,
+  signedIntegerCountFormatter,
+} from "./presentation-format";
 import { formatDistance, formatExactMetric } from "./training-format";
 import type {
   TrainingComparison,
@@ -82,13 +87,13 @@ export function TrainingComparisonPanel({
   );
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
-    () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero" }),
+    () => signedIntegerCountFormatter(locale),
     [locale],
   );
   const date = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    () => mediumDateFormatter(locale),
     [locale],
   );
   const selectableRange = useMemo(() => ({

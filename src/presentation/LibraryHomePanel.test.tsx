@@ -7,6 +7,10 @@ import type { LibraryHome } from "./library-home";
 import { LibraryHomePanel } from "./LibraryHomePanel";
 
 const messages = catalogs["en-US"].home;
+const presentationUnits = {
+  durationUnits: catalogs["en-US"].training.durationUnits,
+  distanceUnits: catalogs["en-US"].training.units,
+};
 
 function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
   return {
@@ -211,6 +215,7 @@ describe("LibraryHomePanel", () => {
 
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={home}
         locale="es-ES"
         messages={catalogs["es-ES"].home}
@@ -238,6 +243,7 @@ describe("LibraryHomePanel", () => {
     const onOpenSportSessions = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome()}
         locale="en-US"
         messages={messages}
@@ -273,7 +279,7 @@ describe("LibraryHomePanel", () => {
 
     const comparison = screen.getByRole("region", { name: "Last 7 days" });
     expect(comparison).toHaveTextContent("4 sessions");
-    expect(comparison).toHaveTextContent("3 hr");
+    expect(comparison).toHaveTextContent("3 h");
     expect(comparison).toHaveTextContent("Previous 7 days");
     await user.click(within(comparison).getByRole("button", { name: "Explore these 7 days" }));
     expect(onOpenComparison).toHaveBeenCalledWith(populatedHome().highlight);
@@ -281,7 +287,7 @@ describe("LibraryHomePanel", () => {
     const recent = screen.getByRole("region", { name: "Recent sessions" });
     const roadRun = within(recent).getByRole("button", { name: /Open Road running/ });
     expect(roadRun).toHaveTextContent("Aug 17, 2026");
-    expect(roadRun).toHaveTextContent("1 hr 2 min");
+    expect(roadRun).toHaveTextContent("1 h 2 min");
     expect(roadRun).toHaveTextContent("12.3 km");
     const unknown = within(recent).getByRole("button", { name: /Open Unknown sport 2/ });
     expect(unknown).toHaveTextContent("45 min");
@@ -302,6 +308,7 @@ describe("LibraryHomePanel", () => {
 
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={home}
         locale="en-US"
         messages={messages}
@@ -333,6 +340,7 @@ describe("LibraryHomePanel", () => {
     const user = userEvent.setup();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={home}
         locale="en-US"
         messages={messages}
@@ -354,6 +362,7 @@ describe("LibraryHomePanel", () => {
     const onOpenSportClassification = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome()}
         locale="en-US"
         messages={messages}
@@ -386,6 +395,7 @@ describe("LibraryHomePanel", () => {
     };
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={{
           ...home,
           training: {
@@ -410,6 +420,7 @@ describe("LibraryHomePanel", () => {
     const onExplore = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome()}
         locale="en-US"
         messages={messages}
@@ -458,6 +469,7 @@ describe("LibraryHomePanel", () => {
     });
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={home}
         locale="en-US"
         messages={messages}
@@ -491,6 +503,7 @@ describe("LibraryHomePanel", () => {
   it("presents old, future-dated, and library-only history without implying recent performance", () => {
     const { rerender } = render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome({
           highlight: {
             kind: "historical-training",
@@ -514,6 +527,7 @@ describe("LibraryHomePanel", () => {
 
     rerender(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome({
           training: null,
           highlight: { kind: "library-history", latestEvidenceDate: "2026-08-16" },
@@ -535,6 +549,7 @@ describe("LibraryHomePanel", () => {
     const onExplore = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome({ resumableExploration: { version: 1, destination: "training" } })}
         locale="en-US"
         messages={messages}
@@ -552,6 +567,7 @@ describe("LibraryHomePanel", () => {
   it("keeps Home and stable actions visible while the exact destination opens", () => {
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome({ resumableExploration: { version: 1, destination: "training" } })}
         locale="en-US"
         messages={messages}
@@ -575,6 +591,7 @@ describe("LibraryHomePanel", () => {
     const onOpenSources = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={populatedHome({
           postImport: {
             exactRepeat: false,
@@ -632,6 +649,7 @@ describe("LibraryHomePanel", () => {
     });
     const { rerender } = render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={unchangedHome}
         locale="en-US"
         messages={messages}
@@ -649,6 +667,7 @@ describe("LibraryHomePanel", () => {
 
     rerender(
       <LibraryHomePanel
+        {...presentationUnits}
         home={{
           ...unchangedHome,
           postImport: { ...unchangedHome.postImport!, exactRepeat: true },
@@ -672,6 +691,7 @@ describe("LibraryHomePanel", () => {
     const onOpenSourceGuide = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={{
           version: 6,
           libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -733,6 +753,7 @@ describe("LibraryHomePanel", () => {
     const onChooseArchive = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={{
           ...populatedHome(),
           recordedRange: null,
@@ -768,6 +789,7 @@ describe("LibraryHomePanel", () => {
     const onChooseArchive = vi.fn();
     render(
       <LibraryHomePanel
+        {...presentationUnits}
         home={{
           ...populatedHome(),
           usableRange: null,

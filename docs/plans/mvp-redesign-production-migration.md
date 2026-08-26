@@ -2734,6 +2734,15 @@ journey covered both locales, Settings save and discard paths, import, navigatio
 application-process restart. Independent adaptive-session, adaptive-range restart, and dense insight-performance
 journeys also passed, with every measured p95 inside its documented budget.
 
+**Execution checkpoint — one presentation-format boundary:** every production formatter now enters the named
+provider-neutral boundary for integer counts, signed values, summary/detail/exact decimals, count ratios, dates and
+times, durations, distances, pace, energy, percentages, coordinates, and plural selection. Home no longer owns a
+parallel duration or distance vocabulary, and count and exact-measurement grouping is consistent in both locales.
+The UI-contract scan fails when a production TypeScript or TSX source constructs an `Intl` formatter outside that
+boundary. Boundary tests cover precision transitions, signs, locale separators, dates, coordinates, and grouping;
+the complete 394-test React suite, localization contract, UI contract, and production build pass. Screen hierarchy,
+table composition, responsive alignment, and the independent density review remain open within X7-R3.
+
 ### X7-R4 — Adopt a mature analytical visualization foundation
 
 **Findings:** XH-16 and XH-22.
