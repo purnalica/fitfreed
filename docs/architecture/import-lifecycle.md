@@ -148,7 +148,9 @@ The terminal presentation separates three concerns. A consequence-led result sta
 history changed; a rejected or failed transaction places its specific localized reason and safe next action in
 the primary result; and one exact incorporation disclosure contains reconciliation counts and family coverage.
 Wrong ZIP selection, malformed current content, an unsupported provider version, suspicious member structure,
-and an exceeded safety limit remain distinct. Picker and official-link
+and each typed archive-resource limit remain distinct. Entry count, expanded member size, total expanded size,
+compression ratio, and bounded read exhaustion have separate stable terminal codes without persisting archive paths
+or personal values. Picker and official-link
 failures are source-action errors outside the terminal import outcome, so a later source-action failure
 cannot rewrite or mislabel the persisted transaction result.
 

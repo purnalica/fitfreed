@@ -1868,7 +1868,11 @@ for (const field of [
   "malformed-supported-export",
   "unsupported-provider-version",
   "suspicious-archive-layout",
-  "archive-safety-limit",
+  "archive-entry-count-limit",
+  "archive-expanded-member-size-limit",
+  "archive-total-expanded-size-limit",
+  "archive-compression-ratio-limit",
+  "archive-bounded-read-limit",
 ]) {
   requireMention(importControl, field, importControlPath);
 }

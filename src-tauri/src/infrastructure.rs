@@ -241,6 +241,20 @@ pub const fn library_schema_version() -> u32 {
     SCHEMA_VERSION as u32
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum ArchiveResourceLimit {
+    #[error("archive entry count {observed} exceeds {maximum}")]
+    EntryCount { observed: u64, maximum: u64 },
+    #[error("expanded member size {observed} bytes exceeds {maximum} bytes")]
+    ExpandedMemberSize { observed: u64, maximum: u64 },
+    #[error("total expanded size {observed} bytes exceeds {maximum} bytes")]
+    TotalExpandedSize { observed: u64, maximum: u64 },
+    #[error("compression ratio {observed:?} exceeds {maximum}:1")]
+    CompressionRatio { observed: Option<u64>, maximum: u64 },
+    #[error("member read exceeded the bounded maximum of {maximum} bytes")]
+    BoundedReadExhaustion { maximum: u64 },
+}
+
 #[derive(Debug, Error)]
 pub enum ImportError {
     #[error("archive input/output failure: {0}")]
@@ -268,7 +282,7 @@ pub enum ImportError {
     #[error("duplicate archive member: {0}")]
     DuplicateMember(String),
     #[error("archive resource limit exceeded: {0}")]
-    ResourceLimit(String),
+    ResourceLimit(ArchiveResourceLimit),
     #[error("injected interruption after {0} mapped artifact(s)")]
     InjectedInterruption(usize),
     #[error("injected interruption before schema migration commit")]
@@ -8985,7 +8999,13 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::UnsafeMember(_) | ImportError::DuplicateMember(_) => {
             "suspicious-archive-layout"
         }
-        ImportError::ResourceLimit(_) => "archive-safety-limit",
+        ImportError::ResourceLimit(limit) => match limit {
+            ArchiveResourceLimit::EntryCount { .. } => "archive-entry-count-limit",
+            ArchiveResourceLimit::ExpandedMemberSize { .. } => "archive-expanded-member-size-limit",
+            ArchiveResourceLimit::TotalExpandedSize { .. } => "archive-total-expanded-size-limit",
+            ArchiveResourceLimit::CompressionRatio { .. } => "archive-compression-ratio-limit",
+            ArchiveResourceLimit::BoundedReadExhaustion { .. } => "archive-bounded-read-limit",
+        },
         ImportError::Cancelled => "user-cancelled",
         ImportError::UnsupportedSchemaVersion(_) => "unsupported-schema-version",
         ImportError::InvalidLibraryBackup(_) => "invalid-library-backup",
@@ -9007,17 +9027,59 @@ fn terminal_code(error: &ImportError) -> &'static str {
     }
 }
 
+fn enforce_archive_entry_count(entry_count: u64) -> Result<()> {
+    if entry_count > MAX_ARCHIVE_ENTRIES as u64 {
+        return Err(ImportError::ResourceLimit(
+            ArchiveResourceLimit::EntryCount {
+                observed: entry_count,
+                maximum: MAX_ARCHIVE_ENTRIES as u64,
+            },
+        ));
+    }
+    Ok(())
+}
+
+fn enforce_member_resource_limits(expanded_size: u64, compressed_size: u64) -> Result<()> {
+    if expanded_size > MAX_ENTRY_BYTES {
+        return Err(ImportError::ResourceLimit(
+            ArchiveResourceLimit::ExpandedMemberSize {
+                observed: expanded_size,
+                maximum: MAX_ENTRY_BYTES,
+            },
+        ));
+    }
+    if expanded_size > 0
+        && (compressed_size == 0 || expanded_size / compressed_size > MAX_COMPRESSION_RATIO)
+    {
+        return Err(ImportError::ResourceLimit(
+            ArchiveResourceLimit::CompressionRatio {
+                observed: (compressed_size > 0).then(|| expanded_size / compressed_size),
+                maximum: MAX_COMPRESSION_RATIO,
+            },
+        ));
+    }
+    Ok(())
+}
+
+fn add_expanded_member_size(total_size: u64, member_size: u64) -> Result<u64> {
+    let expanded_size = total_size.saturating_add(member_size);
+    if expanded_size > MAX_TOTAL_BYTES {
+        return Err(ImportError::ResourceLimit(
+            ArchiveResourceLimit::TotalExpandedSize {
+                observed: expanded_size,
+                maximum: MAX_TOTAL_BYTES,
+            },
+        ));
+    }
+    Ok(expanded_size)
+}
+
 fn validate_archive(
     archive: &mut ZipArchive<File>,
     cancellation: &AtomicBool,
     on_progress: &mut dyn FnMut(ImportProgress),
 ) -> Result<usize> {
-    if archive.len() > MAX_ARCHIVE_ENTRIES {
-        return Err(ImportError::ResourceLimit(format!(
-            "{} entries exceeds {MAX_ARCHIVE_ENTRIES}",
-            archive.len()
-        )));
-    }
+    enforce_archive_entry_count(archive.len() as u64)?;
 
     let mut names = HashSet::new();
     let mut total_size = 0_u64;
@@ -9044,25 +9106,8 @@ fn validate_archive(
         if !names.insert(name.clone()) {
             return Err(ImportError::DuplicateMember(name));
         }
-        if member.size() > MAX_ENTRY_BYTES {
-            return Err(ImportError::ResourceLimit(format!(
-                "member {name} exceeds {MAX_ENTRY_BYTES} expanded bytes"
-            )));
-        }
-        if member.size() > 0
-            && (member.compressed_size() == 0
-                || member.size() / member.compressed_size() > MAX_COMPRESSION_RATIO)
-        {
-            return Err(ImportError::ResourceLimit(format!(
-                "member {name} exceeds compression-ratio limit"
-            )));
-        }
-        total_size = total_size.saturating_add(member.size());
-        if total_size > MAX_TOTAL_BYTES {
-            return Err(ImportError::ResourceLimit(format!(
-                "expanded archive exceeds {MAX_TOTAL_BYTES} bytes"
-            )));
-        }
+        enforce_member_resource_limits(member.size(), member.compressed_size())?;
+        total_size = add_expanded_member_size(total_size, member.size())?;
         if assess_artifact(&name).classification == ArtifactClassification::Supported {
             processable_artifacts += 1;
         }
@@ -9163,11 +9208,7 @@ fn validate_central_directory_names(path: &Path) -> Result<()> {
         (standard_entries, standard_size, standard_offset)
     };
 
-    if entry_count > MAX_ARCHIVE_ENTRIES as u64 {
-        return Err(ImportError::ResourceLimit(format!(
-            "{entry_count} entries exceeds {MAX_ARCHIVE_ENTRIES}"
-        )));
-    }
+    enforce_archive_entry_count(entry_count)?;
     let central_end = central_offset.checked_add(central_size).ok_or_else(|| {
         ImportError::InvalidContainer("central-directory size overflows".to_owned())
     })?;
@@ -13610,6 +13651,15 @@ fn read_bytes<R: Read>(
     artifact: &str,
     cancellation: &AtomicBool,
 ) -> Result<Vec<u8>> {
+    read_bytes_with_limit(input, artifact, cancellation, MAX_ENTRY_BYTES)
+}
+
+fn read_bytes_with_limit<R: Read>(
+    input: &mut R,
+    artifact: &str,
+    cancellation: &AtomicBool,
+    maximum_bytes: u64,
+) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
     let mut buffer = [0_u8; 64 * 1024];
     loop {
@@ -13623,6 +13673,13 @@ fn read_bytes<R: Read>(
             })?;
         if read == 0 {
             break;
+        }
+        if (bytes.len() as u64).saturating_add(read as u64) > maximum_bytes {
+            return Err(ImportError::ResourceLimit(
+                ArchiveResourceLimit::BoundedReadExhaustion {
+                    maximum: maximum_bytes,
+                },
+            ));
         }
         bytes.extend_from_slice(&buffer[..read]);
     }
@@ -22127,14 +22184,102 @@ mod tests {
 
         let error = import_archive(&harness.database(), &archive, "polar:synthetic")
             .expect_err("compression-ratio limit");
-        assert!(matches!(error, ImportError::ResourceLimit(_)));
+        assert!(matches!(
+            error,
+            ImportError::ResourceLimit(ArchiveResourceLimit::CompressionRatio { .. })
+        ));
         let outcome = query_latest_import_outcome(&harness.database())
             .expect("outcome query")
             .expect("rejected outcome");
         assert_eq!(
             outcome.terminal_code,
-            Some("archive-safety-limit".to_owned())
+            Some("archive-compression-ratio-limit".to_owned())
         );
+        assert!(!outcome.canonical_history_changed);
+    }
+
+    #[test]
+    fn assigns_a_specific_terminal_code_to_each_archive_resource_limit() {
+        let cases = [
+            (
+                ArchiveResourceLimit::EntryCount {
+                    observed: 10_001,
+                    maximum: 10_000,
+                },
+                "archive-entry-count-limit",
+            ),
+            (
+                ArchiveResourceLimit::ExpandedMemberSize {
+                    observed: 65,
+                    maximum: 64,
+                },
+                "archive-expanded-member-size-limit",
+            ),
+            (
+                ArchiveResourceLimit::TotalExpandedSize {
+                    observed: 9,
+                    maximum: 8,
+                },
+                "archive-total-expanded-size-limit",
+            ),
+            (
+                ArchiveResourceLimit::CompressionRatio {
+                    observed: None,
+                    maximum: 1_000,
+                },
+                "archive-compression-ratio-limit",
+            ),
+            (
+                ArchiveResourceLimit::BoundedReadExhaustion { maximum: 64 },
+                "archive-bounded-read-limit",
+            ),
+        ];
+
+        for (limit, expected) in cases {
+            assert_eq!(terminal_code(&ImportError::ResourceLimit(limit)), expected);
+        }
+    }
+
+    #[test]
+    fn archive_resource_guards_preserve_the_limit_that_failed() {
+        assert!(matches!(
+            enforce_archive_entry_count(MAX_ARCHIVE_ENTRIES as u64 + 1),
+            Err(ImportError::ResourceLimit(
+                ArchiveResourceLimit::EntryCount { .. }
+            ))
+        ));
+        assert!(matches!(
+            enforce_member_resource_limits(MAX_ENTRY_BYTES + 1, MAX_ENTRY_BYTES + 1),
+            Err(ImportError::ResourceLimit(
+                ArchiveResourceLimit::ExpandedMemberSize { .. }
+            ))
+        ));
+        assert!(matches!(
+            enforce_member_resource_limits(MAX_COMPRESSION_RATIO + 1, 1),
+            Err(ImportError::ResourceLimit(
+                ArchiveResourceLimit::CompressionRatio { .. }
+            ))
+        ));
+        assert!(matches!(
+            add_expanded_member_size(MAX_TOTAL_BYTES, 1),
+            Err(ImportError::ResourceLimit(
+                ArchiveResourceLimit::TotalExpandedSize { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn bounded_member_reads_reject_more_content_than_the_declared_limit() {
+        let cancellation = AtomicBool::new(false);
+        let mut input = std::io::Cursor::new(b"12345");
+
+        let error = read_bytes_with_limit(&mut input, "synthetic-artifact.json", &cancellation, 4)
+            .expect_err("bounded read exhaustion");
+
+        assert!(matches!(
+            error,
+            ImportError::ResourceLimit(ArchiveResourceLimit::BoundedReadExhaustion { maximum: 4 })
+        ));
     }
 
     #[test]

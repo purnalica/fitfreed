@@ -351,7 +351,7 @@ Normalized data will retain the minimum provenance needed to diagnose an import 
 
 ### FR-012 — Protection from malicious or defective input
 
-The application will validate the ZIP archive, limit uncontrolled resource consumption, and reject paths, sizes, structures, or content that could compromise the computer or corrupt the library.
+The application will validate the ZIP archive, limit uncontrolled resource consumption, and reject paths, sizes, structures, or content that could compromise the computer or corrupt the library. A resource rejection will preserve a typed reason for entry count, expanded member size, total expanded size, compression ratio, or bounded read exhaustion so the interface can explain the actual limit and a safe recovery without exposing archive paths or personal values.
 
 ### FR-013 — Locale selection
 

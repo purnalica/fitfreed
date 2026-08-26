@@ -45,16 +45,23 @@ The current terminal categories are:
 | `malformed-supported-export` | the current provider format was recognized but required supported content is invalid | retain the original ZIP and report compatibility |
 | `unsupported-provider-version` | provider-shaped evidence exists, but the archive version or ordinary layout is outside the current adapter | retain the original ZIP and report compatibility |
 | `suspicious-archive-layout` | a path, link, encryption, or duplicate-name pattern is unsafe to process | obtain a fresh original export |
-| `archive-safety-limit` | a count, expanded-size, member-size, or compression-ratio limit was exceeded | retain the ZIP and report bounded size information |
+| `archive-entry-count-limit` | the ZIP contains more than 10,000 members | confirm that this is the original provider export; retain it and report the file count |
+| `archive-expanded-member-size-limit` | one member declares more than 64 MB of expanded content | retain the original ZIP and report the per-file limit |
+| `archive-total-expanded-size-limit` | declared expanded content exceeds 8 GB in total | confirm that this is the original provider export; retain it and report the approximate expanded size |
+| `archive-compression-ratio-limit` | one member expands beyond a 1,000:1 ratio or declares expanded content without compressed content | obtain a fresh original export or report the ratio limit |
+| `archive-bounded-read-limit` | a member supplies more content than declared and crosses the 64 MB read boundary | obtain a fresh original export |
 
 Historical libraries may contain the preceding `invalid-supported-artifact`, `invalid-source-subject-evidence`,
-`unsafe-archive-member`, `duplicate-archive-member`, or `archive-resource-limit` codes. They remain readable and
-localized but are not emitted by the current adapter. Source-subject conflict, local I/O, database, coordination,
-recovery, and internal-failure codes remain separate because they do not describe package compatibility.
+`unsafe-archive-member`, `duplicate-archive-member`, `archive-resource-limit`, or `archive-safety-limit` codes. They
+remain readable and localized but are not emitted by the current adapter. Source-subject conflict, local I/O,
+database, coordination, recovery, and internal-failure codes remain separate because they do not describe package
+compatibility.
 
 An ordinary directory entry or nested ordinary archive with no recognized provider evidence is
 `not-supported-export`, not a security or provider-compatibility incident. Traversal, absolute paths, symbolic links,
-encryption, duplicate names, and resource-limit violations remain rejected without extraction.
+encryption, duplicate names, and resource-limit violations remain rejected without extraction. Resource-limit
+errors retain only the typed category and bounded numeric facts in process memory. Persisted terminal outcomes expose
+the stable category, never an archive member name or path.
 
 ## Terminal outcome
 

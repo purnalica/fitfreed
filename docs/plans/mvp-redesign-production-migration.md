@@ -2543,6 +2543,10 @@ navigation to mask renderer starvation; or a test-only import path.
 **Execution checkpoint — native destination acceptance:** the macOS infrastructure adapter no longer accepts a
 detached process spawn. It invokes `/usr/bin/open` with the exact application-selected URL as a separate argument,
 captures process output locally, waits for the launcher exit status, and returns success only for a successful exit.
+**Execution checkpoint — typed archive-resource outcomes:** archive entry count, expanded member size, total expanded
+size, compression ratio, and bounded read exhaustion now remain distinct through rejection persistence and localized
+presentation. Bounded reads stop before allocating beyond the limit; terminal outcomes retain stable categories and
+never expose member paths. Historical aggregate codes remain readable but are no longer emitted.
 Process creation still maps permission, missing-launcher, and operating-system failures to stable application
 categories; a non-successful exit maps to delegation failure. Focused tests cover the exact invocation and every
 result without granting presentation arbitrary URL authority. Actual default-browser appearance remains the
