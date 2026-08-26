@@ -298,7 +298,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
 | X7-R2 | Complete locally — exact represented-sport identity, comparison presets, and the complete natural-drill-down campaign passed 2026-08-26 | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
-| X7-R4 | Pending | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
+| X7-R4 | In progress — production-shaped chart decision spike passed 2026-08-26; architecture decision and migration remain | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Pending | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Pending | Exact local and hosted evidence plus independent falsification leave no material finding |
@@ -2821,6 +2821,10 @@ their coordinate is authoritative; exact values remain accessible; and a route c
 planetary context.
 
 **Decision spike:**
+
+The [production-shaped chart evaluation](../research/x7-r4-chart-foundation-evaluation.md) completed on 2026-08-26
+and recommends Apache ECharts 6.1.0. The recommendation remains research evidence until the next implementation step
+records the presentation boundary in an accepted ADR and current thematic architecture.
 
 1. Supersede ADR 0013 only after a focused production-shaped comparison of Apache ECharts, uPlot, Observable Plot,
    and Vega-Lite, or a better candidate discovered during the review. Use official source, licence, release, security,
