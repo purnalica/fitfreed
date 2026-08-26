@@ -159,6 +159,7 @@ export interface LibraryHomeMessages {
   coverageSummary: string;
   coverageIntro: string;
   domains: Record<LibraryDomain, string>;
+  openDomain: string;
   records: { one: string; other: string };
   measurements: { one: string; other: string };
   unavailable: string;

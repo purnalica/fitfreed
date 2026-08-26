@@ -322,6 +322,33 @@ describe("LibraryHomePanel", () => {
       .not.toBeInTheDocument();
   });
 
+  it("opens the complete sport collection from the bounded omitted count", async () => {
+    const home = populatedHome();
+    home.training = {
+      ...home.training!,
+      sportCollectionCount: 7,
+      omittedSportCollectionCount: 3,
+    };
+    const onOpenSports = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <LibraryHomePanel
+        home={home}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSports={onOpenSports}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "View 3 more sport types" }));
+
+    expect(onOpenSports).toHaveBeenCalledWith("sports:omitted");
+  });
+
   it("keeps unresolved profiles distinct and opens the existing classification task exactly", async () => {
     const user = userEvent.setup();
     const onOpenSportClassification = vi.fn();
@@ -413,6 +440,7 @@ describe("LibraryHomePanel", () => {
   it("keeps source coverage subordinate and does not turn unavailable evidence into zero", async () => {
     const user = userEvent.setup();
     const onOpenSources = vi.fn();
+    const onExplore = vi.fn();
     const home = populatedHome({
       domains: [
         populatedHome().domains[0],
@@ -433,7 +461,7 @@ describe("LibraryHomePanel", () => {
         home={home}
         locale="en-US"
         messages={messages}
-        onExplore={vi.fn()}
+        onExplore={onExplore}
         onOpenComparison={vi.fn()}
         onOpenSession={vi.fn()}
         onOpenSources={onOpenSources}
@@ -451,6 +479,10 @@ describe("LibraryHomePanel", () => {
       .toHaveTextContent("Not available");
     expect(within(coverage).getByRole("listitem", { name: /Activity/ }))
       .not.toHaveTextContent("0 records");
+    expect(within(coverage).queryByRole("button", { name: "Explore Activity" }))
+      .not.toBeInTheDocument();
+    await user.click(within(coverage).getByRole("button", { name: "Explore Training" }));
+    expect(onExplore).toHaveBeenCalledWith("training", "coverage:training");
 
     await user.click(within(coverage).getByRole("button", { name: "Review source coverage" }));
     expect(onOpenSources).toHaveBeenCalledOnce();

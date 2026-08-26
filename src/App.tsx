@@ -807,9 +807,11 @@ function App() {
     }
   }
 
-  async function openHomeTrainingWorkspace(workspace: "sessions" | "sports") {
+  async function openHomeTrainingWorkspace(
+    workspace: "sessions" | "sports",
+    focusTarget = `summary:${workspace}`,
+  ) {
     if (homeNavigationOperation) return;
-    const focusTarget = `summary:${workspace}`;
     setLibraryHomeFocusTarget(focusTarget);
     setHomeNavigationOperation({ kind: "open", destination: "training" });
     setReportReturnRef(undefined);
@@ -1454,7 +1456,7 @@ function App() {
           onOpenComparison={(comparison) => void openHomeTrainingComparison(comparison)}
           onOpenSession={(session) => void openHomeTrainingSession(session)}
           onOpenTrainingSessions={() => void openHomeTrainingWorkspace("sessions")}
-          onOpenSports={() => void openHomeTrainingWorkspace("sports")}
+          onOpenSports={(focusTarget) => void openHomeTrainingWorkspace("sports", focusTarget)}
           onOpenSportSessions={(sport) => void openHomeSportSessions(sport)}
           onOpenSportClassification={(sportRef) => void openHomeSportClassification(sportRef)}
           onOpenSources={openSources}

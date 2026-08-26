@@ -473,7 +473,7 @@ async function expectPersonalRangeGeometry(stacked) {
   }
 }
 
-async function expectLibraryHome(catalog) {
+async function expectLibraryHome(catalog, { coverageExpanded = false } = {}) {
   await expect($(".library-home h1")).toHaveText(catalog.home.title);
   const summaryFacts = await $$(".library-home-summary strong");
   expect(summaryFacts).toHaveLength(2);
@@ -508,7 +508,8 @@ async function expectLibraryHome(catalog) {
     await expect($(".library-home-questions")).toHaveText(expect.stringContaining(label));
   }
   const coverageDisclosure = await $(".library-home-coverage-disclosure");
-  expect(await coverageDisclosure.getAttribute("open")).toBeNull();
+  expect(await coverageDisclosure.getAttribute("open"))
+    .toBe(coverageExpanded ? "" : null);
   const domainRows = await coverageDisclosure.$$(".library-home-coverage li");
   expect(domainRows).toHaveLength(Object.keys(catalog.home.domains).length);
   expect(await $$("#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights")).toHaveLength(0);
@@ -542,6 +543,24 @@ async function expectHomeSummaryDestinations(catalog) {
   await expectDocumentFocus(
     ".library-home-summary-action:nth-of-type(2)",
     "Home did not restore the sport-summary origin",
+  );
+}
+
+async function expectHomeCoverageDestination(catalog) {
+  const disclosure = await $(".library-home-coverage-disclosure");
+  await disclosure.$("summary").click();
+  const training = await disclosure.$(
+    ".library-home-coverage li[data-domain='training'] button",
+  );
+  await training.click();
+  await $(".training-session-results").waitForDisplayed({ timeout: 10_000 });
+  await expect($(`aria/${catalog.training.workspaces.sessions}`))
+    .toHaveAttribute("aria-current", "page");
+  await returnToLibraryHome(catalog);
+  expect(await disclosure.getAttribute("open")).toBe("");
+  await expectDocumentFocus(
+    ".library-home-coverage li[data-domain='training'] button",
+    "Home did not restore the training-coverage origin",
   );
 }
 
@@ -1755,6 +1774,7 @@ describe("packaged FitFreed import journey", () => {
     await waitForNotice(english.home.postImportChanged);
     await expectLibraryHome(english);
     await expectHomeSummaryDestinations(english);
+    await expectHomeCoverageDestination(english);
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportChanged),
     );
@@ -3377,7 +3397,7 @@ describe("packaged FitFreed import journey", () => {
       },
     ]);
     await returnToLibraryHome(spanish);
-    await expectLibraryHome(spanish);
+    await expectLibraryHome(spanish, { coverageExpanded: true });
     const esJan4Card = await formatBrowserTrainingCardDateTime(
       "es-ES",
       "2026-01-04T06:15:00",
@@ -3527,7 +3547,7 @@ describe("packaged FitFreed import journey", () => {
     await goToHome("sources");
     await $("aria/Import selected package").click();
     await waitForNotice(english.home.postImportExactRepeat);
-    await expectLibraryHome(english);
+    await expectLibraryHome(english, { coverageExpanded: true });
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportExactRepeat),
     );
@@ -3561,7 +3581,7 @@ describe("packaged FitFreed import journey", () => {
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"), english.choose);
     await $("aria/Import selected package").click();
     await waitForNotice(english.home.postImportChanged);
-    await expectLibraryHome(english);
+    await expectLibraryHome(english, { coverageExpanded: true });
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportChanged),
     );
@@ -4603,7 +4623,7 @@ describe("packaged FitFreed import journey", () => {
       ["0", spanish.recovery.missingNights],
     ]);
     await returnToLibraryHome(spanish);
-    await expectLibraryHome(spanish);
+    await expectLibraryHome(spanish, { coverageExpanded: true });
     expect(await $$(".library-home-resume")).toHaveLength(0);
     await openHomeQuestion(
       spanish,
@@ -4725,7 +4745,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await $(`aria/${spanish.import}`).click();
     await waitForNotice(spanish.home.postImportChanged);
-    await expectLibraryHome(spanish);
+    await expectLibraryHome(spanish, { coverageExpanded: true });
     expect(await $$(".library-home-resume")).toHaveLength(1);
     await goToHome("reports");
     const reportsAfterRefreshImport = await $$(".report-list button");
@@ -4949,7 +4969,7 @@ describe("packaged FitFreed import journey", () => {
     await $(`aria/${spanish.reports.backToReport}`).click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
     await goToHome("home");
-    await expectLibraryHome(spanish);
+    await expectLibraryHome(spanish, { coverageExpanded: true });
     const resumableTraining = await $$(".library-home-resume button");
     expect(resumableTraining).toHaveLength(1);
     await resumableTraining[0].click();
@@ -4957,7 +4977,7 @@ describe("packaged FitFreed import journey", () => {
     await returnToLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(0);
     await browser.reloadSession();
-    await expectLibraryHome(spanish);
+    await expectLibraryHome(spanish, { coverageExpanded: true });
     expect(await $$(".library-home-resume")).toHaveLength(0);
     recordJourneyPhase("prepare-application-process-restart");
     await openHomeQuestion(

@@ -99,6 +99,7 @@
       "sleep": "Sleep",
       "recovery": "Recovery"
     },
+    "openDomain": "Explore {domain}",
     "records": {
       "one": "{count} record",
       "other": "{count} records"
@@ -150,8 +151,8 @@
       "other": "{count} recorded sport types"
     },
     "omittedSports": {
-      "one": "{count} additional recorded sport type",
-      "other": "{count} additional recorded sport types"
+      "one": "View {count} more sport type",
+      "other": "View {count} more sport types"
     },
     "recentHeading": "Recent sessions",
     "recentIntro": "Open a session to inspect its recorded details.",

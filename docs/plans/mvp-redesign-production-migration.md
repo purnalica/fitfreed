@@ -2643,6 +2643,31 @@ real process restart, adaptive-session journeys, and dense insight campaign pass
 journey additionally verifies distinct packaged defaults and retained manual control; every measured p95 remained
 inside its documented budget. The complete natural-drill-down audit remains in X7-R2.
 
+**Execution checkpoint — natural drill-down audit:** the bounded-summary audit now covers every production workspace,
+not only elements that already looked like controls. The resulting route matrix is:
+
+| Surface | Represented collection or evidence | Natural route |
+| --- | --- | --- |
+| Home summary | All training sessions and all represented sports | Separate Sessions and Sports actions; zero-count facts remain plain text |
+| Home sports | Each exact represented sport collection and any omitted remainder | Each sport opens its exact filtered sessions; the remainder opens the complete Sports collection; classification remains an independent nested action |
+| Home highlights and recent history | Both bounded comparison periods, historical training, and each recent session | The comparison opens with its exact ranges, historical training opens Sessions, and each recent item opens its session |
+| Home usable-history coverage | Every usable domain count and complete source coverage | Each usable domain opens its explorer, unavailable evidence remains a plain unavailable state, and source coverage opens Sources |
+| Activity | Selected-period summary, visual dates, and exact daily rows | Visible dates open the authoritative day detail; the adjacent chart and table expose the evidence represented by the summary |
+| Training | Sport groups, search and calendar results, result counts, selected comparisons, routes, signals, structures, zones, and personal ranges | Sport groups apply exact filters; session cards and calendar entries open the session; pagination traverses the complete result set; exact evidence disclosures retain their own focused routes |
+| Sleep and recovery | Selected-period answers, nightly visuals, counts, and exact nights | A co-located exact-evidence disclosure exposes the complete bounded set; every available night opens authoritative detail and a missing night never offers invented detail |
+| Aligned history | Four-domain visual, coverage counts, and aligned dates | A co-located exact-evidence disclosure exposes every date; each date opens aligned detail with routes to all four authoritative explorers |
+| Reports | Saved report summaries, primary results, supporting evidence, and provenance | Every library card opens the result-first preview; a saved session or comparison report exposes its canonical source action; coverage and provenance remain inspectable in the preview |
+| Import result and Sources | Incorporation counts, artifact coverage, and classified artifact families | The terminal result discloses the complete incorporation account and per-family explanation; rejected or unavailable evidence never receives a false history route |
+
+The audit found two residual dead ends on Home: the omitted-sport count was plain text and usable domain cards stated
+record counts without an explorer action. Both now use explicit, independently focusable actions. Returning from an
+omitted-sport or domain-coverage route restores that exact control and the open disclosure rather than only the Home
+heading. The audit deliberately does not turn adjacent explanatory values into controls: where the exact records are
+already exposed by a labelled disclosure, table, pagination control, or source action, the surrounding summary remains
+visually non-interactive. Component and application tests exercise the two corrections, pending navigation, unavailable
+coverage, exact destination selection, and origin-focus restoration. The packaged journey now requires the
+domain-coverage round trip; the X7-R2 verification gate remains open until the rebuilt application passes it.
+
 The 2026-08-26 verification passed the complete fast contributor lane, Rust lint and formatting, the production
 build, and the rebuilt packaged macOS campaign. The packaged functional journey covered both locales, supported
 zoom levels, classification cancellation and save, collection navigation, reimport, durable state, accessibility,

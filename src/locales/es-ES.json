@@ -99,6 +99,7 @@
       "sleep": "Sueño",
       "recovery": "Recuperación"
     },
+    "openDomain": "Explorar: {domain}",
     "records": {
       "one": "{count} registro",
       "other": "{count} registros"
@@ -150,8 +151,8 @@
       "other": "{count} tipos de deporte registrados"
     },
     "omittedSports": {
-      "one": "{count} tipo de deporte registrado adicional",
-      "other": "{count} tipos de deporte registrados adicionales"
+      "one": "Ver {count} tipo de deporte más",
+      "other": "Ver {count} tipos de deporte más"
     },
     "recentHeading": "Sesiones recientes",
     "recentIntro": "Abre una sesión para inspeccionar los detalles registrados.",

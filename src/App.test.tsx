@@ -563,11 +563,13 @@ const questionForDestination = {
 function offerExploration(
   destination: keyof typeof questionForDestination,
   resumable = false,
+  homeOverrides: Record<string, unknown> = {},
 ) {
   const question = questionForDestination[destination];
   const home = populatedLibraryHome({
     questions: [{ kind: question.kind, destination }],
     resumableExploration: resumable ? { version: 1, destination } : null,
+    ...homeOverrides,
   });
   let savedDestination = resumable ? destination : null;
   mocks.homeInvoke.mockImplementation((command, arguments_) => {
@@ -1964,7 +1966,14 @@ describe("FitFreed import interface", () => {
   });
 
   it("opens both Home training aggregates and restores their exact initiating controls", async () => {
-    offerExploration("training");
+    const populated = populatedLibraryHome();
+    offerExploration("training", false, {
+      training: {
+        ...populated.training,
+        sportCollectionCount: 4,
+        omittedSportCollectionCount: 3,
+      },
+    });
     const user = userEvent.setup();
     render(<App />);
 
@@ -1985,7 +1994,7 @@ describe("FitFreed import interface", () => {
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     await waitFor(() => expect(sessions).toHaveFocus());
 
-    const sports = screen.getByRole("button", { name: "1 recorded sport type" });
+    const sports = screen.getByRole("button", { name: "4 recorded sport types" });
     await user.click(sports);
     expect(await screen.findByRole("button", { name: "Sports" }))
       .toHaveAttribute("aria-current", "page");
@@ -2006,6 +2015,20 @@ describe("FitFreed import interface", () => {
     });
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     await waitFor(() => expect(roadRunning).toHaveFocus());
+
+    const omittedSports = screen.getByRole("button", { name: "View 3 more sport types" });
+    await user.click(omittedSports);
+    expect(await screen.findByRole("button", { name: "Sports" }))
+      .toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(omittedSports).toHaveFocus());
+
+    const trainingCoverage = screen.getByRole("button", { name: "Explore Training" });
+    await user.click(trainingCoverage);
+    expect(await screen.findByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(trainingCoverage).toHaveFocus());
   });
 
   it("keeps an active import visible after leaving Sources and clears it after cancellation", async () => {

@@ -28,7 +28,7 @@ interface LibraryHomePanelProps {
   onOpenComparison: (comparison: RecentTrainingComparisonHighlight) => void;
   onOpenSession: (session: LibraryHomeRecentSession) => void;
   onOpenTrainingSessions?: () => void;
-  onOpenSports?: () => void;
+  onOpenSports?: (focusTarget?: string) => void;
   onOpenSportSessions?: (sport: LibraryHomeSportSummary) => void;
   onOpenSportClassification?: (sportRef: string) => void;
   onOpenSources: () => void;
@@ -64,7 +64,7 @@ export function LibraryHomePanel({
   onOpenComparison,
   onOpenSession,
   onOpenTrainingSessions = () => onExplore("training", "summary:sessions"),
-  onOpenSports = () => onExplore("training", "summary:sports"),
+  onOpenSports = (focusTarget = "summary:sports") => onExplore("training", focusTarget),
   onOpenSportSessions = () => undefined,
   onOpenSportClassification = () => undefined,
   onOpenSources,
@@ -287,7 +287,7 @@ export function LibraryHomePanel({
                   className="library-home-summary-action"
                   ref={registerFocusTarget("summary:sports")}
                   disabled={pendingDestination !== undefined}
-                  onClick={onOpenSports}
+                  onClick={() => onOpenSports()}
                 >
                   <strong>{sportSummary}</strong>
                   <span aria-hidden="true">→</span>
@@ -353,9 +353,15 @@ export function LibraryHomePanel({
             })}
           </ul>
           {training.omittedSportCollectionCount > 0 && (
-            <p className="library-home-sports-omitted">
+            <button
+              type="button"
+              className="secondary library-home-sports-omitted"
+              ref={registerFocusTarget("sports:omitted")}
+              disabled={pendingDestination !== undefined}
+              onClick={() => onOpenSports("sports:omitted")}
+            >
               {formatCount(training.omittedSportCollectionCount, messages.omittedSports)}
-            </p>
+            </button>
           )}
         </section>
       )}
@@ -571,6 +577,9 @@ export function LibraryHomePanel({
                 coverage={domain}
                 messages={messages}
                 formatCount={formatCount}
+                disabled={pendingDestination !== undefined}
+                buttonRef={registerFocusTarget(`coverage:${domain.domain}`)}
+                onOpen={() => onExplore(domain.domain, `coverage:${domain.domain}`)}
               />
             ))}
           </ul>
@@ -618,9 +627,19 @@ interface DomainCoverageProps {
   coverage: LibraryDomainCoverage;
   messages: LibraryHomeMessages;
   formatCount: (value: number, templates: { one: string; other: string }) => string;
+  disabled: boolean;
+  buttonRef: (element: HTMLButtonElement | null) => void;
+  onOpen: () => void;
 }
 
-function DomainCoverage({ coverage, messages, formatCount }: DomainCoverageProps) {
+function DomainCoverage({
+  coverage,
+  messages,
+  formatCount,
+  disabled,
+  buttonRef,
+  onOpen,
+}: DomainCoverageProps) {
   const availableMeasurements = coverage.measurements.filter(
     (measurement) => measurement.availableRecords > 0,
   ).length;
@@ -633,6 +652,15 @@ function DomainCoverage({ coverage, messages, formatCount }: DomainCoverageProps
         <>
           <span>{formatCount(coverage.observedRecordCount, messages.records)}</span>
           <span>{formatCount(availableMeasurements, messages.measurements)}</span>
+          <button
+            type="button"
+            className="secondary"
+            ref={buttonRef}
+            disabled={disabled}
+            onClick={onOpen}
+          >
+            {messages.openDomain.replace("{domain}", messages.domains[coverage.domain])}
+          </button>
         </>
       )}
     </li>
