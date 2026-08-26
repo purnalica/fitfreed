@@ -43,8 +43,10 @@ the native launcher is called.
 | `purpose` | enum | 1 | `account` or `instructions`, copied from the accepted request. |
 | `url` | HTTPS URI | 1 | Exact destination selected by the application and accepted by the native launcher. |
 
-The outcome is returned only after the operating-system launcher accepts synchronous delegation. The `url` is
-safe to present as the exact attempted destination. It is not provider response evidence.
+The outcome is returned only after the operating-system launcher accepts synchronous delegation. On macOS this means
+that the system launcher process was created and returned a successful exit status; process creation alone is not an
+accepted outcome. The `url` is safe to present as the exact attempted destination. It is not browser-rendering or
+provider-response evidence.
 
 ## Failure behavior
 

@@ -2540,6 +2540,14 @@ and the revision-isolated production-native browser observation.
 that loses cancellation or terminal state; a spinner without phase or count during countable work; disabling all
 navigation to mask renderer starvation; or a test-only import path.
 
+**Execution checkpoint — native destination acceptance:** the macOS infrastructure adapter no longer accepts a
+detached process spawn. It invokes `/usr/bin/open` with the exact application-selected URL as a separate argument,
+captures process output locally, waits for the launcher exit status, and returns success only for a successful exit.
+Process creation still maps permission, missing-launcher, and operating-system failures to stable application
+categories; a non-successful exit maps to delegation failure. Focused tests cover the exact invocation and every
+result without granting presentation arbitrary URL authority. Actual default-browser appearance remains the
+revision-isolated native observation in X7-R1 rather than an automated claim.
+
 ### X7-R2 — Make history recognizable and every collection navigable
 
 **Findings:** XH-08, XH-09, XH-17, and the unresolved identity consequence in XH-18.

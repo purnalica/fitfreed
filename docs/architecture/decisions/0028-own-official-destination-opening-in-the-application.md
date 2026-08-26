@@ -52,10 +52,12 @@ Official source destinations will be opened through an application-owned use cas
 - The application revalidates the adapter guide, resolves exact-locale then locale-neutral fallback, rejects an
   unknown source or missing purpose, and delegates the selected HTTPS URL through
   `OfficialSourceLinkOpenerPort`.
-- Infrastructure calls the operating system's detached URL launcher and classifies unsupported-platform,
-  permission-denied, missing-handler, operating-system, and adapter-delegation failures.
-- The host returns the selected source, purpose, and URL on accepted delegation and maps each failure category
-  to a stable public code. Raw operating-system errors are not serialized.
+- On macOS, infrastructure invokes the system URL launcher as a bounded child process, waits for its exit status, and
+  accepts delegation only when that process succeeds. Process creation errors preserve permission-denied,
+  missing-launcher, and operating-system categories; a non-successful launcher exit is a delegation failure. Other
+  platform adapters retain their replaceable native implementation behind the same port.
+- The host returns the selected source, purpose, and URL only after synchronous launcher acceptance and maps each
+  failure category to a stable public code. Raw process output and operating-system errors are not serialized.
 - The frontend opener package, plug-in registration, and URL capability allowlist are removed. The native Rust
   launcher dependency remains an infrastructure implementation detail.
 - Instrumented E2E replaces only the final launcher action under a distinct test marker and continues to verify
@@ -76,14 +78,15 @@ Official source destinations will be opened through an application-owned use cas
 - Desktop transport gains another typed command and outcome contract.
 - E2E cannot prove that a browser window became visible because it deliberately replaces the operating-system
   surface; the human production-package gate remains mandatory.
-- Native error classification is necessarily limited to failures reported synchronously by the operating-system
-  launcher. An accepted request does not prove that a particular browser window became visible.
+- Waiting for the macOS launcher adds one short synchronous native boundary to the command. Acceptance still does not
+  prove that a particular browser window became visible or that the provider page loaded.
 
 ## Verification
 
 - Application tests cover localized selection, neutral fallback, missing destinations, exact delegation, and
   every preserved launcher failure category.
-- Infrastructure tests cover stable classification of native launcher errors.
+- Infrastructure tests cover the exact macOS command and destination, successful and unsuccessful launcher exits, and
+  stable process-creation failure categories.
 - Transport tests cover strict request validation, outcome serialization, and stable public failure codes.
 - React tests cover persistent accepted and failed outcomes, explicit copyable destinations, local focus, and
   concurrent-action exclusion.

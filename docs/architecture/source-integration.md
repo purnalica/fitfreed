@@ -86,10 +86,11 @@ The desktop bundle contains the concise procedure and both initial locale catalo
 Opening an official page is always a separate user action through the application use case selected in
 [ADR 0028](decisions/0028-own-official-destination-opening-in-the-application.md). Presentation sends a source,
 purpose, and supported locale rather than native URL authority. The application revalidates the guide, selects
-the exact localized or locale-neutral HTTPS destination, and delegates it through an infrastructure port. The
-host returns a factual accepted outcome or a stable native failure category; it grants no generic frontend URL,
-path, credential, account, or download access. FitFreed never enters credentials, signs in, requests an export,
-polls provider delivery, or downloads the archive on the person's behalf.
+the exact localized or locale-neutral HTTPS destination, and delegates it through an infrastructure port. On macOS,
+the adapter waits for the system launcher to accept or reject that destination; spawning a process is not sufficient
+evidence of acceptance. The host returns a factual accepted outcome or a stable native failure category; it grants no
+generic frontend URL, path, credential, account, or download access. FitFreed never enters credentials, signs in,
+requests an export, polls provider delivery, or downloads the archive on the person's behalf.
 
 The normative version 1 application-to-presentation contract is documented in [`../data-formats/guidance/source-acquisition-guide-v1.md`](../data-formats/guidance/source-acquisition-guide-v1.md). An adapter guide change increments its own `guideVersion` when the procedure, archive expectation, constraint meaning, troubleshooting meaning, or official destination changes. A verification-only review updates `verifiedOn` without changing the contract schema version.
 

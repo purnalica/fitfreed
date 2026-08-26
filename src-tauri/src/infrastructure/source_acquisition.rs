@@ -1,8 +1,17 @@
+#[cfg(target_os = "macos")]
+use std::process::Command;
+#[cfg(any(target_os = "macos", test))]
+use std::{
+    io::{Error, ErrorKind},
+    process::Output,
+};
+
 use fitfreed_application::{
     ExpectedSourceArchive, LocalePreference, OfficialSourceLink, OfficialSourceLinkOpenError,
     OfficialSourceLinkOpenerPort, OfficialSourceLinkPurpose, SourceAcquisitionGuide,
     SourceAcquisitionGuidePort, SOURCE_ACQUISITION_GUIDE_SCHEMA_VERSION,
 };
+#[cfg(not(target_os = "macos"))]
 use tauri_plugin_opener::Error as OpenerError;
 
 pub struct PolarFlowSourceAcquisitionGuides;
@@ -11,10 +20,57 @@ pub struct NativeOfficialSourceLinkOpener;
 
 impl OfficialSourceLinkOpenerPort for NativeOfficialSourceLinkOpener {
     fn open_official_source_link(&self, url: &str) -> Result<(), OfficialSourceLinkOpenError> {
-        tauri_plugin_opener::open_url(url, None::<&str>).map_err(classify_opener_error)
+        #[cfg(target_os = "macos")]
+        {
+            launch_macos_official_destination(&SystemPlatformDestinationLauncher, url)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            tauri_plugin_opener::open_url(url, None::<&str>).map_err(classify_opener_error)
+        }
     }
 }
 
+#[cfg(any(target_os = "macos", test))]
+trait PlatformDestinationLauncher {
+    fn launch(&self, program: &str, arguments: &[&str]) -> Result<Output, Error>;
+}
+
+#[cfg(target_os = "macos")]
+struct SystemPlatformDestinationLauncher;
+
+#[cfg(target_os = "macos")]
+impl PlatformDestinationLauncher for SystemPlatformDestinationLauncher {
+    fn launch(&self, program: &str, arguments: &[&str]) -> Result<Output, Error> {
+        Command::new(program).args(arguments).output()
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn launch_macos_official_destination(
+    launcher: &impl PlatformDestinationLauncher,
+    url: &str,
+) -> Result<(), OfficialSourceLinkOpenError> {
+    let output = launcher
+        .launch("/usr/bin/open", &["--", url])
+        .map_err(classify_launcher_error)?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(OfficialSourceLinkOpenError::Delegation)
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn classify_launcher_error(error: Error) -> OfficialSourceLinkOpenError {
+    match error.kind() {
+        ErrorKind::PermissionDenied => OfficialSourceLinkOpenError::PermissionDenied,
+        ErrorKind::NotFound => OfficialSourceLinkOpenError::LauncherUnavailable,
+        _ => OfficialSourceLinkOpenError::OperatingSystem,
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
 fn classify_opener_error(error: OpenerError) -> OfficialSourceLinkOpenError {
     match error {
         OpenerError::UnsupportedPlatform => OfficialSourceLinkOpenError::UnsupportedPlatform,
@@ -83,7 +139,12 @@ impl SourceAcquisitionGuidePort for PolarFlowSourceAcquisitionGuides {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Error, ErrorKind};
+    use std::{
+        cell::RefCell,
+        io::{Error, ErrorKind},
+        os::unix::process::ExitStatusExt,
+        process::{ExitStatus, Output},
+    };
 
     use fitfreed_application::{
         query_source_acquisition_guides, ExpectedSourceArchive, LocalePreference,
@@ -91,6 +152,45 @@ mod tests {
     };
 
     use super::*;
+
+    struct ControlledPlatformLauncher {
+        invocation: RefCell<Option<(String, Vec<String>)>>,
+        result: RefCell<Option<Result<Output, Error>>>,
+    }
+
+    impl ControlledPlatformLauncher {
+        fn succeeding() -> Self {
+            Self::with_result(Ok(output(0)))
+        }
+
+        fn with_result(result: Result<Output, Error>) -> Self {
+            Self {
+                invocation: RefCell::new(None),
+                result: RefCell::new(Some(result)),
+            }
+        }
+    }
+
+    impl PlatformDestinationLauncher for ControlledPlatformLauncher {
+        fn launch(&self, program: &str, arguments: &[&str]) -> Result<Output, Error> {
+            self.invocation.replace(Some((
+                program.to_owned(),
+                arguments.iter().map(|value| (*value).to_owned()).collect(),
+            )));
+            self.result
+                .borrow_mut()
+                .take()
+                .expect("one controlled launch result")
+        }
+    }
+
+    fn output(code: i32) -> Output {
+        Output {
+            status: ExitStatus::from_raw(code << 8),
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        }
+    }
 
     #[test]
     fn supplies_the_verified_offline_polar_flow_acquisition_guide() {
@@ -149,28 +249,47 @@ mod tests {
     }
 
     #[test]
-    fn preserves_actionable_native_opener_failure_categories() {
+    fn waits_for_the_macos_launcher_to_accept_the_exact_official_destination() {
+        let launcher = ControlledPlatformLauncher::succeeding();
+
+        launch_macos_official_destination(&launcher, "https://support.example.test/export")
+            .expect("accepted destination");
+
         assert_eq!(
-            classify_opener_error(OpenerError::UnsupportedPlatform),
-            OfficialSourceLinkOpenError::UnsupportedPlatform
+            launcher.invocation.into_inner(),
+            Some((
+                "/usr/bin/open".to_owned(),
+                vec![
+                    "--".to_owned(),
+                    "https://support.example.test/export".to_owned(),
+                ],
+            ))
         );
+    }
+
+    #[test]
+    fn rejects_a_launcher_process_that_does_not_accept_the_destination() {
+        let launcher = ControlledPlatformLauncher::with_result(Ok(output(1)));
+
         assert_eq!(
-            classify_opener_error(OpenerError::Io(Error::from(ErrorKind::PermissionDenied))),
+            launch_macos_official_destination(&launcher, "https://support.example.test/export"),
+            Err(OfficialSourceLinkOpenError::Delegation)
+        );
+    }
+
+    #[test]
+    fn preserves_actionable_native_launcher_failure_categories() {
+        assert_eq!(
+            classify_launcher_error(Error::from(ErrorKind::PermissionDenied)),
             OfficialSourceLinkOpenError::PermissionDenied
         );
         assert_eq!(
-            classify_opener_error(OpenerError::Io(Error::from(ErrorKind::NotFound))),
+            classify_launcher_error(Error::from(ErrorKind::NotFound)),
             OfficialSourceLinkOpenError::LauncherUnavailable
         );
         assert_eq!(
-            classify_opener_error(OpenerError::Io(Error::other("native failure"))),
+            classify_launcher_error(Error::other("native failure")),
             OfficialSourceLinkOpenError::OperatingSystem
-        );
-        assert_eq!(
-            classify_opener_error(OpenerError::Json(
-                serde_json::from_str::<serde_json::Value>("{").expect_err("invalid JSON"),
-            )),
-            OfficialSourceLinkOpenError::Delegation
         );
     }
 }
