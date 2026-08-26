@@ -132,6 +132,10 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 ## Evolution tracks after the MVP
 
+Structured training objectives, phases, and blocks are a high-priority product requirement under FR-027. Their exact
+delivery boundary and relationship to first-MVP acceptance will be set during the post-X6 review consolidation; they
+must not be reduced to a presentation-only enhancement or silently treated as absent provider data.
+
 ### Platform track
 
 1. Private unsigned macOS MVP alpha.
@@ -148,6 +152,24 @@ Minimum operating-system versions, architectures, packaging, signing, and update
 3. Additional provider importers and matching incremental connectors, potentially including Garmin, selected by user value and available export and API capabilities.
 
 Archive import remains the historical baseline; a provider API is an incremental convenience, not a substitute for historical portability. Connector authorization, limited history windows, unavailable data families, rate limits, revocation, outages, and API discontinuation remain explicit. The relative scheduling of platform expansion and additional data sources remains a product decision after MVP evaluation. Neither track may compromise the provider-neutral core.
+
+### Cartography track
+
+1. The first MVP renders exact recorded route geometry locally without requesting an external basemap.
+2. Post-MVP evolution adds meaningful cartographic context after evaluating OSS renderers and openly licensed map
+   data or services against location privacy, offline operation, attribution, caching, sustainability, accessibility,
+   and user control.
+
+This direction is confirmed, but its delivery milestone and source strategy remain outcome-level decisions until the
+first MVP evaluation closes. Post-MVP cartography must not become an implicit prerequisite for first-MVP acceptance.
+
+### Experience-personalization track
+
+1. Introduce several curated, clearly differentiated themes without requiring a complex editor.
+2. Extend personalization capabilities in later product evolution according to validated user needs.
+
+Every stage preserves readability, accessibility, localization, visual hierarchy, and cross-platform coherence. The
+post-X6 plan will establish delivery placement; advanced personalization is not a first-MVP prerequisite.
 
 ### Horizon 2 — Mature personal analytics
 

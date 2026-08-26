@@ -2423,9 +2423,10 @@ VoiceOver, scaling, reduced-motion, factual tone, continued-use, and product-val
 
 ### Topics for the next UX evaluation
 
-- [ ] Appearance-personalization themes: assess whether optional themes beyond system, light, and dark would
-  provide meaningful personal expression without weakening readability, accessibility, visual hierarchy, or
-  cross-platform coherence.
+- [x] Appearance-personalization themes: the product owner confirmed that FitFreed will offer several curated themes
+  beyond system, light, and dark appearance. They must create a perceptible change without requiring a complex editor
+  or weakening readability, accessibility, visual hierarchy, localization, or cross-platform coherence. Delivery
+  placement remains part of the post-session plan.
 
 These are evaluation prompts, not confirmed MVP implementation scope.
 

@@ -2,7 +2,7 @@
 
 ## Status and boundary
 
-**Rejected on 2026-08-25 for source `41ffad2eaec1862049c54c8a285277ac3f465abb`. The valid native session may
+**Rejected again on 2026-08-26 for review source `de0ba3dd149a95ee96e8a48ea7aaf1cb74453d6d`. The valid native session may
 continue for diagnostic coverage, but the current experience cannot pass X6.**
 
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
@@ -31,11 +31,22 @@ rejected human session.
 This evaluation can accept or reopen the X6 product experience only. It cannot accept signing,
 notarization, installation trust, update recovery, a release candidate, or public distribution.
 
+### Repeated-session collection protocol
+
+During the active participant review, observations are recorded in the order reported without concurrent diagnosis,
+implementation, testing, prioritization, or solution design. This preserves the participant's review flow and avoids
+changing the evaluated product between observations. Consolidation, root-cause analysis, planning, correction, and
+verification begin only after the participant explicitly ends the review session.
+
+The participant ended observation collection on 2026-08-26. Post-session consolidation, root-cause analysis,
+planning, correction, and verification may begin when the blocked autonomous execution goal is resumed.
+
 ## Findings
 
-### XH-01 — Acquisition actions produce no observable result
+### XH-01 — Acquisition actions do not complete in the default browser
 
-- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
+- **Status:** reopened; production-native human re-evaluation on 2026-08-26 confirms that both Polar destinations
+  still fail to appear in the default browser.
 - **Observed task:** obtain guidance from the empty-library `Import your fitness history` journey using a
   pointer.
 - **Observed behavior:** `Show me how` produced no visible transition. `Open official account page` and
@@ -58,6 +69,10 @@ notarization, installation trust, update recovery, a release candidate, or publi
   arbitrary frontend URL opening with application-owned destination selection and a categorized native launcher
   port. Component, contract, Rust, and packaged tests pass in both locales. Browser appearance remains unaccepted
   until the revision-isolated production package is reviewed with the actual default browser.
+- **Corrected-build re-evaluation:** review source `de0ba3dd149a95ee96e8a48ea7aaf1cb74453d6d` displays an
+  in-application outcome after each Polar action, but neither destination appears in the default browser. This
+  contradicts the user outcome while preserving evidence that the presentation now exposes the attempted action.
+  Diagnose the native launch chain to its operating-system boundary before changing behavior or tests.
 
 ### XH-02 — Instrumented application invalidated the native-boundary evaluation
 
@@ -77,7 +92,8 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-03 — Wrong archive produces a hidden, alarming, and unactionable explanation
 
-- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
+- **Status:** reopened; production-native human re-evaluation on 2026-08-26 finds the corrected resource-limit
+  explanation unintelligible.
 - **Observed task:** recover after selecting a ZIP that is not the intended fitness-history export.
 - **Observed behavior:** the result gives visual priority to `This archive was not imported` without an immediately
   visible explanation. Expanding `Why the import stopped` reveals `The package contains an unsafe file layout. Keep
@@ -94,6 +110,11 @@ notarization, installation trust, update recovery, a release candidate, or publi
   React, and packaged tests distinguish ordinary unrelated, malformed current, nested provider-shaped, traversal,
   duplicate, and resource-limit packages without exposing source locators or changing canonical history. Human tone,
   hierarchy, and recovery comprehension remain pending in the repeated production-native profile.
+- **Corrected-build re-evaluation:** review source `de0ba3dd149a95ee96e8a48ea7aaf1cb74453d6d` reports that
+  FitFreed stopped because the ZIP exceeds a “processing safety limit.” The participant cannot determine which limit
+  was reached, what that says about the selected archive, or what practical recovery is available. Separating the
+  internal category and making it primary did not make the result understandable; the user-facing reason must be
+  traced from the exact validation outcome rather than collapsed into a generic resource-limit label.
 
 ### XH-04 — Archive reselection updates content outside the visible viewport
 
@@ -137,8 +158,8 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-06 — Finalization provides no perceptible evidence of continuing work
 
-- **Status:** correction implemented and fully automated; production-native human re-evaluation pending. Runtime
-  completion was observed in the rejected source, so the original finding was never evidence of a deadlock.
+- **Status:** reopened by the repeated production-native profile. Runtime completion was observed in both reviewed
+  sources, so the finding is not evidence of a deadlock.
 - **Observed task:** wait for an import after it reaches `Finalizing the updated library`.
 - **Observed behavior:** the screen remains fixed on that phase without changing progress or other perceptible
   feedback, leaving the participant unable to tell whether FitFreed is working or blocked.
@@ -156,6 +177,9 @@ notarization, installation trust, update recovery, a release candidate, or publi
   percentage, or promising a duration. Unit, integration, transport, React, and packaged tests cover progress,
   cancellation, retry, completion, failure, repeat, extension, and restart. Perceptibility and confidence remain
   pending in the repeated production-native profile.
+- **Corrected-build re-evaluation:** during reconciliation, the participant selected Reports. Perceptible progress
+  stopped, the requested change took a long time to appear, and the application seemed inoperative until it eventually
+  changed. The observation is recorded without diagnosis while the participant review remains active.
 
 ### XH-07 — History is unavailable during opaque finalization without an explanation
 
@@ -202,10 +226,22 @@ notarization, installation trust, update recovery, a release candidate, or publi
   grant has been established. No real catalogue is therefore bundled and sport identity is not inferred from route or
   measurement patterns. The finding remains open until authorized catalogue evidence or an explicitly reviewed
   local-only acquisition path supplies trustworthy names to the implemented boundary.
+- **Repeated-build observation:** after an authorized real export was imported in the production-native review on
+  2026-08-26, every imported sport type remained unknown. No personal sport, count, source value, or archive detail is
+  retained in this record. The observation is preserved for the post-session evaluation without concurrent diagnosis
+  or correction.
+- **Additional repeated-build observation:** at least one imported session is labelled `Unrecorded sport` in the
+  participant's locale. The participant cannot understand how that state differs from an unknown sport or whether it
+  means absent source evidence, unsupported interpretation, or a product failure. No session detail is retained.
+- **Product-owner direction:** do not exclude a maintained identifier-correlation catalogue as a structural solution.
+  The post-session evaluation must assess independently established mappings from user-owned exports alongside an
+  authenticated local-only catalogue path. For every correlation it must distinguish interpretation of a person's
+  exported evidence from redistribution of provider-owned catalogue material, and establish provenance, confidence,
+  licence basis, update policy, ambiguity handling, and correction governance before product use.
 
 ### XH-09 — Home aggregates look actionable but do not lead to exploration
 
-- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
+- **Status:** reopened by the repeated production-native profile on 2026-08-26.
 - **Observed task:** use the prominent Home summaries for imported training sessions and recorded sport types to begin
   exploring the library.
 - **Observed behavior:** the aggregate badges invite a click through their prominence and compact control-like shape,
@@ -215,6 +251,16 @@ notarization, installation trust, update recovery, a release candidate, or publi
   presenting dead-end quantities.
 - **Participant impact:** the first obvious exploration attempt fails silently and reinforces the impression that Home
   reports data without providing access to it.
+- **Repeated-build observation:** each sport summary on Home must open the sessions represented by that exact sport.
+  The current surface offers classification but does not make the sport itself an exploration route. No displayed
+  sport, session count, or personal value from the participant's screenshot is retained.
+- **Additional repeated-build observation:** the same missing route affects History's Sports workspace. Each sport
+  card summarizes a session collection and supports classification, but it does not open the represented sessions.
+  Home and History therefore fail the same sport-to-session exploration expectation. No displayed date, duration,
+  count, or other personal value is retained.
+- **Product-owner direction:** treat this as a transversal navigation requirement, not a sport-card exception. Every
+  summary that states a bounded count or represented collection must offer the natural route to those records or exact
+  supporting evidence; non-interactive information must not imply an unavailable drill-down.
 - **Disposition:** positive session and sport totals are now explicit controls. The session total clears disposable
   training refinements before opening the complete newest-first session history; the sport total opens the complete
   sport-management view. Both use the existing durable training destination, preserve their exact Home origin, and
@@ -267,6 +313,197 @@ notarization, installation trust, update recovery, a release candidate, or publi
   combinations; self-review found and corrected a compact persistent-navigation overlap before closure. Human form
   comprehension and Full Keyboard Access confirmation remain pending.
 
+### XH-12 — Settings actions obscure their relationship and outcome
+
+- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Observed task:** change appearance or language preferences and decide whether to keep, revert, or reset them.
+- **Observed behavior:** the three actions occupy a visually unbalanced wrapped region, with `Restore defaults`
+  separated from `Discard preview` and `Save changes` and the primary action on a second row. The participant could
+  not determine what `Discard preview` would discard.
+- **Verified behavior:** `Discard preview` restores the entire unsaved preference draft to the currently persisted
+  language, appearance, and content-zoom values and immediately reapplies those persisted values to the interface. It
+  does not discard only the example card, and it does not write to persistence. `Restore defaults` is a separate
+  persisted reset operation.
+- **Expected behavior:** the action composition and labels make the scope, persistence effect, and relationship of
+  keep, revert, and reset choices understandable before activation at every supported locale, zoom, and viewport.
+- **Participant impact:** uncertainty over whether an action affects the example, the whole interface, or persisted
+  settings makes an ordinary preference change feel risky and makes the primary save path harder to scan.
+- **Disposition:** evaluate the complete action hierarchy and responsive composition as one settings workflow. Retain
+  the existing application and persistence contracts, and require comprehension, pointer, keyboard, unsaved-change,
+  save, revert, defaults, restart, both-locale, and supported-zoom evidence before closure.
+
+### XH-13 — Empty-library privacy copy describes data that does not yet exist
+
+- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Observed task:** understand the product and its privacy boundary before the first import.
+- **Observed behavior:** the empty Home states, “No account. No upload. The archive and library stay on this device.”
+  In Spanish it likewise says that the archive and library remain on the device, although neither exists yet.
+- **Expected behavior:** first-run privacy copy distinguishes current facts from the future processing guarantee and
+  states plainly what will happen if the person chooses an archive.
+- **Participant impact:** the person has to infer which data the product is referring to at the moment when purpose,
+  trust, and the local boundary should be easiest to understand.
+- **Disposition:** correct the shared message contract in both locales and test it in the empty state, populated state,
+  acquisition journey, supported zoom range, and localized product guidance. Preserve the factual account-free,
+  no-upload, local-processing guarantee without implying that an archive has already been selected or imported.
+
+### XH-14 — One progress ratio uses visibly inconsistent grouping
+
+- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Observed task:** monitor reconciliation during a real import.
+- **Observed behavior:** the Spanish progress sentence renders its four-digit completed count without grouping and its
+  five-digit total with grouping, so two values representing the same unit use visibly different formatting.
+- **Root cause:** both placeholders use the same `Intl.NumberFormat("es-ES")`. WebKit applies the locale's minimum
+  grouping behavior, leaving this four-digit value ungrouped while grouping the five-digit value. The implementation
+  is internally consistent but the resulting comparative display is not.
+- **Expected behavior:** completed and total counts in one progress ratio use the same explicit grouping policy and
+  remain immediately comparable in every supported locale.
+- **Participant impact:** a long-running operation already demands attention; inconsistent number shapes add needless
+  parsing effort and make the progress feedback look unfinished.
+- **Disposition:** define one progress-counter formatting contract instead of relying on the locale's implicit minimum
+  grouping threshold. Verify boundary values around three, four, and five digits in both locales, packaged WebKit,
+  progress announcements, and exact terminal outcomes.
+
+### XH-15 — Accumulated values expose meaningless precision
+
+- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Observed task:** scan accumulated duration and similar summary values.
+- **Observed behavior:** an accumulated duration spanning hours is presented through milliseconds. The participant
+  considers seconds potentially acceptable in context, but milliseconds plainly meaningless at that scale.
+- **Expected behavior:** summary precision follows the magnitude, measurement semantics, and decision the value
+  supports. Exact source evidence may remain available on deliberate request without dominating the summary.
+- **Participant impact:** excessive precision creates visual noise, implies false significance, and makes important
+  accumulated results harder to compare quickly.
+- **Disposition:** retain the observation for the post-session evaluation across all accumulated durations and
+  measurements. Do not retain the participant's displayed value in this record.
+
+### XH-16 — Recorded tracks lack cartographic context
+
+- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Observed task:** understand where an outdoor session took place by inspecting its recorded track.
+- **Observed behavior:** FitFreed presents the recorded route geometry without an actual geographic basemap. The
+  participant cannot relate the shape to paths, water, streets, terrain, or recognizable places.
+- **Expected behavior:** outdoor tracking provides meaningful spatial context while preserving explicit privacy,
+  provenance, attribution, licensing, offline, and exact-evidence boundaries.
+- **Participant impact:** the route loses much of its investigative value, undermining a primary reason for an outdoor
+  athlete to use the product.
+- **Additional repeated-build observation:** the route workbench permits zooming out to a scale spanning thousands of
+  kilometres, which has no useful relationship to one recorded session. Map zoom must remain within reasonable bounds
+  for the route's extent and the investigation task while retaining a predictable full-route reset.
+- **Product-owner direction:** after the review, evaluate OSS renderers and openly licensed cartographic data or
+  services as structural options. Do not treat an open-source rendering library as proof that its map tiles, hosting,
+  caching, attribution, or location-disclosure model are unrestricted.
+- **Disposition:** retain the observation without selecting or integrating a map source during the active review.
+
+### XH-17 — Comparison starts without a meaningful contrast
+
+- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Observed task:** begin a period comparison from the available comparison option.
+- **Observed behavior:** both comparison sides can begin with the same date range, producing no useful contrast.
+- **Visual confirmation:** the participant supplied a screenshot showing identical initial reference and comparison
+  ranges. The image and its displayed dates are not retained.
+- **Expected behavior:** the product proposes distinct contextual pairs such as current and preceding week, month, or
+  year, while keeping manual selection of both ranges available at all times.
+- **Participant impact:** the person must repair a meaningless initial state before learning anything, and the product
+  fails to demonstrate what comparison is for.
+- **Disposition:** retain the observation and product direction for joint post-session evaluation without changing
+  comparison behavior during the active review.
+
+### XH-18 — Rich provider workout structure is not visibly accounted for
+
+- **Status:** open; raised in the repeated production-native profile on 2026-08-26.
+- **Observed task:** inspect the ranges and blocks expected from structured Polar workouts.
+- **Observed behavior:** the participant cannot establish whether the expected structure was absent from the export,
+  imported but undiscoverable, or deliberately unsupported.
+- **Current declared boundary:** FitFreed imports supported nested exercises, source/manual laps, automatic laps, and
+  pauses when they occur in a mapped training-session artifact. Polar planning artifacts and training targets are
+  recognized but unsupported, and the current mapping does not claim their phases or blocks.
+- **Expected behavior:** the product and import coverage make every supported, unavailable, and deliberately unmapped
+  structure explicit, while session exploration exposes all successfully imported structure naturally.
+- **Disposition:** retain the question for post-session evaluation without inspecting or recording the participant's
+  source files, workout structure, or personal values during the active review.
+- **Product-owner direction:** importing objectives, phases, blocks, and related provider-authored training structure
+  is a fundamental high-priority requirement. The post-session plan must treat it as end-to-end source, canonical,
+  reconciliation, exploration, and documentation work rather than a display-only refinement.
+
+### XH-19 — Segment tables hinder comparison and repeat set-level attribution
+
+- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Observed task:** scan and compare the calculated segments of one exercise.
+- **Observed behavior:** elapsed boundaries and durations are not aligned for rapid numeric comparison. A complete
+  attribution column repeats the same FitFreed authorship on every row even though it describes the shared segment
+  definition rather than a row-specific difference.
+- **Expected behavior:** numeric and temporal columns use alignment appropriate to their value structure. Attribution
+  shared by the full result appears once in the definition or explanation; a column is retained only when authorship
+  can differ meaningfully by row.
+- **Participant impact:** the table spends substantial width on repeated text while making the values that actually
+  differ harder to scan.
+- **Disposition:** retain the observation for the joint post-session table and information-density evaluation. The
+  participant's screenshot and displayed values are not retained.
+- **Additional visual confirmation:** another segment-table state shows the same severe alignment failure. The
+  participant identifies exacting data presentation as core product behavior because the application's purpose is to
+  make data understandable; technical presence of the values cannot compensate for poor visual comparison. The image
+  and its values are not retained.
+
+### XH-20 — Detail evidence overwhelms the primary experience
+
+- **Status:** open and transversal; observed in the repeated production-native profile on 2026-08-26.
+- **Observed scope:** the participant identifies an excessive amount of directly visible detail in the segment result
+  as one example of a broader application-wide problem.
+- **Observed behavior:** complete rows, exact boundaries, duration precision, and repeated metadata dominate the
+  ordinary surface even when they are useful only for deliberate inspection.
+- **Expected behavior:** each screen first supports comprehension, visual interpretation, and the next useful action.
+  Exhaustive tables and exact evidence remain available through explicit progressive disclosure.
+- **Participant impact:** more data becomes more noise rather than more information, making the product harder to scan
+  and obscuring the value of the underlying history.
+- **Product-owner direction:** exceptional UX requires a global information-density and progressive-disclosure review
+  across the complete application, not isolated removal of one table or field.
+- **Disposition:** retain the observation for systemic post-session evaluation. The participant's screenshot and
+  displayed values are not retained.
+
+### XH-21 — Appearance lacks personal expression
+
+- **Status:** confirmed product direction during the repeated production-native profile on 2026-08-26.
+- **Positive observation:** the participant considers the current visual character sober and elegant.
+- **Requested evolution:** provide several curated preset themes whose change is clearly perceptible while retaining
+  that visual quality. A complex arbitrary-theme editor is not required.
+- **Future boundary:** broader personalization capabilities may follow later; preset themes are the deliberately
+  bounded first level rather than the final customization ceiling.
+- **Boundary:** themes remain separate from system, light, and dark appearance and must preserve readability,
+  accessibility, localization, hierarchy, and cross-platform coherence.
+- **Disposition:** retain the confirmed direction for post-session planning without changing appearance during the
+  active review.
+
+### XH-22 — Ad hoc charts do not provide a viable analytical foundation
+
+- **Status:** open and transversal; observed in the repeated production-native profile on 2026-08-26.
+- **Observed scope:** charts throughout the application, with exercise signals as one important example.
+- **Observed behavior:** charts appear visually unfinished and omit interpretive foundations such as useful axes and
+  complete analytical interaction. The participant considers the first approximation understandable as a development
+  step but not a viable production direction.
+- **Expected behavior:** mature charts make scale, units, gaps, series identity, selection, exact values, and accessible
+  alternatives clear. Several exercise signals can be compared or overlaid when an exact shared coordinate supports
+  that relationship, for example to inspect co-variation without claiming causation.
+- **Product-owner direction:** evaluate a maintained specialized OSS charting library rather than continuing to build
+  a general chart engine inside FitFreed. Keep product-specific evidence composition and interaction under FitFreed's
+  control, and retain the existing prohibition against invented signal alignment.
+- **Disposition:** library selection and migration planning begin only after the active participant review ends. The
+  evaluation must cover licence, accessibility, offline behavior, WebView compatibility, performance, localization,
+  deterministic output, maintenance, and replaceability.
+
+### XH-23 — Reports provide no reusable examples or duplication path
+
+- **Status:** confirmed missing capability at the end of the repeated production-native review on 2026-08-26.
+- **Observed task:** understand report capabilities and use an existing result as the basis for a personal report.
+- **Observed behavior:** Reports provides no curated pre-existing examples, and the current product has no operation to
+  duplicate a saved report.
+- **Expected behavior:** relevant built-in examples demonstrate useful capabilities against supported local evidence
+  and can create a new independently owned report. A saved report can likewise be duplicated without changing its
+  source definition.
+- **Boundary:** unmet example prerequisites remain explicit; built-in examples never fabricate personal results.
+  Community template exchange remains outside the first MVP.
+- **Disposition:** retain the confirmed requirement for post-session domain, application, persistence, presentation,
+  export, documentation, and lifecycle planning before either control is exposed.
+
 ## Passing observations
 
 ### XH-P01 — Import cancellation permits an immediate retry
@@ -314,3 +551,6 @@ does not override observed incomprehension, invisible transitions, missing ident
 
 X6 remains failed until every valid critical or major product finding receives regression evidence and applicable
 exact hosted verification, and the human evaluation is completed successfully from the valid native review build.
+The repeated profile on 2026-08-26 uses review source `de0ba3dd149a95ee96e8a48ea7aaf1cb74453d6d`, whose
+executable inputs are the corrected source `31751b2ef9291fc23d7aa50e14a2ecfe46280c21`. XH-01 reproduced at the
+real default-browser boundary: FitFreed displayed local action outcomes, but neither Polar destination appeared.

@@ -107,6 +107,15 @@ Saved reports will retain a documented, versioned, reproducible definition rathe
 
 The ordinary report journey is result-first. Opening a saved report, or starting one from a question, exploration, or session, will show a useful rendered result before exposing composition mechanics. Editing is a deliberate secondary mode, and returning from it restores the report result without placing that result below the editor or a long report list. Blank composition and advanced block controls remain available without becoming the default path for people who only need to review, refresh, or export a result.
 
+Reports will include a curated set of relevant built-in examples that demonstrate meaningful product capabilities over
+the evidence actually available in the person's local library. An example with unmet prerequisites will explain them
+rather than fabricate a result. A person can use an example as the basis of a new independently owned report without
+mutating the built-in definition.
+
+A saved report can be duplicated deliberately. Duplication creates a new local report identity and an independently
+editable definition while retaining the source report unchanged. Exact naming, evidence-snapshot, stale-state, origin,
+and revision semantics will be fixed by the post-review implementation plan before the control is exposed.
+
 Cancelling a saved composition restores its exact reviewed definition and result without writing the draft.
 Cancelling a new contextual composition returns to its exact source and creates nothing; cancelling a start
 owned by the report Library returns to that Library and creates nothing. Merely moving between Library,
@@ -117,8 +126,8 @@ coverage-and-limitation, and optional commentary blocks, plus a route block when
 Its normative export will be deterministic self-contained HTML with embedded styles and graphics, semantic
 headings and tables, no scripts or external requests, declared locale and units, and explicit provenance,
 coverage, limitations, authorship when present, definition version, and source revision. Native PDF, formulas,
-arbitrary queries, free-form layout, shared templates, scheduled generation, and plug-in blocks are outside the
-MVP.
+arbitrary queries, free-form layout, community template exchange, scheduled generation, and plug-in blocks are outside
+the MVP. Curated built-in examples and creating an independent report from one are inside the confirmed report scope.
 
 ### FR-006 — Visualization
 
@@ -133,6 +142,15 @@ The application will retain the information needed to explain which files were p
 - Import must be safe to repeat.
 - Historical data must evolve cumulatively.
 - The visual experience is a core product capability, not a later enhancement.
+- Production charting will prefer a maintained specialized OSS library after explicit evaluation of GPL compatibility,
+  accessibility, offline operation, deterministic rendering, macOS WebView behavior, performance, large-series
+  handling, localization, replaceability, and maintenance health. Custom code will focus on FitFreed-specific
+  composition, evidence semantics, and interaction rather than recreating a general charting engine without a proven
+  product need.
+- Charts will provide the axes, units, scales, legends, selection, missing-data treatment, exact alternatives, and
+  visual hierarchy needed to interpret their question. A person may compare or overlay several exercise signals to
+  inspect co-variation when the importer establishes an exact shared coordinate. Signals without that authority remain
+  independently explorable and are never visually aligned in a way that implies a recorded relationship.
 - User experience and developer experience are first-class quality attributes, not polish deferred until after feature implementation.
 - The project will optimize for sustainable external contribution rather than assuming a permanent closed group of maintainers.
 - Product construction will be gradual and will expose working increments early enough to evaluate behavior, usability, architecture, and priorities before the full product is built.
@@ -160,9 +178,28 @@ The following decisions define FitFreed across features and releases. They are f
 
 - Primary journeys will begin from recognisable user questions, records, or prior explorations. They will not require knowledge of source filenames, schemas, database concepts, or provider terminology.
 - Answers will lead to their supporting dates, sessions, samples, calculations, provenance, coverage, and limitations. Summary cards and charts are views over evidence, not substitutes for it.
+- Every visible summary of a bounded collection, count, period, sport, session group, report result, or evidence set will
+  provide the natural route to the represented records or exact supporting data. A person who reads that sessions or
+  records exist can inspect them without reconstructing filters elsewhere. Non-interactive context must neither look
+  actionable nor imply a drill-down that does not exist.
 - Default views will present the smallest set of evidence needed to understand an answer. Dense tables, raw precision, and exhaustive metadata belong to deliberate detail views rather than the first reading path.
+- Every production workspace will undergo a global information-density and progressive-disclosure review. Its primary
+  state must make the current object, conclusion, visual explanation, and next useful action understandable without
+  first traversing exhaustive rows or diagnostic evidence. Detailed tables, complete segment lists, source fields,
+  repeated attribution, and exact values remain reachable on demand and accessible, but do not become the ordinary
+  screen merely because the data exists.
 - Exploration will provide structured selectors for known dimensions such as sport, date range, measurement availability, and other bounded domain values whenever the data supports them. Free-text search remains available for session names and imprecise recall, but it will not force a person to type values the application already knows or make valid filter choices undiscoverable.
+- Comparison entry points will propose distinct, meaningful relative periods derived from the current context, such as
+  this week and the preceding week, this month and the preceding month, or this year and the preceding year. They will
+  not default both sides to the same range. Manual selection of both inclusive ranges remains available at all times.
 - Dates, times, durations, quantities, units, and numeric precision will be localized and chosen for the scale and decision being communicated. Exact stored precision remains available when it is meaningful; it will not dominate summaries where it creates false significance or visual noise.
+- Tables will align numeric, temporal, and comparable values by their reading structure so rows can be scanned and
+  compared without reconstructing columns mentally. Provenance or attribution shared by an entire result belongs in
+  that result's definition or explanation; it will not consume a repeated per-row column unless attribution genuinely
+  differs between rows.
+- Because FitFreed's primary value is making owned data understandable, alignment, spacing, precision, hierarchy, and
+  comparable-value presentation are product correctness concerns rather than cosmetic finishing work. A data surface
+  is not accepted merely because every value is technically present.
 - Text scaling and responsive layout will react to the space actually available to each component, not only to the outer window width. Labels, values, controls, legends, and alternatives will reflow or change composition before words, units, or numeric meaning are squeezed into unreadable fragments.
 - Every recognized sport will have a coherent provider-neutral visual identifier used consistently on Home, History, session, comparison, and report surfaces. A sport icon always appears with a textual name or accessible name; arbitrary characters, provider logos, color-only coding, and generic placeholders are not an acceptable final icon system.
 - When an outdoor session contains supported GPS geometry, its primary session story will show the recorded track in geographically proportioned local context—with direction, scale, bounds, gaps, and selected position—rather than as an abstract decorative line. The MVP does not add streets, terrain, or place names. The map will remain local-first, expose distance and exact route evidence through an accessible alternative, distinguish missing or partial geometry, and apply explicit location-privacy behavior where information leaves the application.
@@ -373,6 +410,10 @@ All user-facing features included in the first release will be available in Engl
 
 - The application will provide a dedicated and extensible settings space rather than scattering persistent preferences across unrelated screens.
 - Initial preferences will include interface language, default content zoom from 100% through 200%, and system, light, or dark appearance.
+- Product evolution will offer several curated visual themes that create a perceptible change while preserving the
+  application's sober, elegant character. Theme selection remains distinct from system, light, or dark appearance;
+  an arbitrary theme editor is not required. The post-X6 plan will place this confirmed direction without weakening
+  readability, accessibility, localization, or cross-platform coherence.
 - Preferences will have safe defaults, explain their effect, survive restart, recover from invalid or obsolete values, and provide an explicit way to restore defaults.
 - Settings will distinguish preferences from data-library operations and group future controls by user outcome, including accessibility, imports, data and privacy, updates, and application information.
 
@@ -410,7 +451,10 @@ All user-facing features included in the first release will be available in Engl
 - Visual queries will be bounded and may use attributed downsampling; exact values will remain available through a stable paginated alternative.
 - The initial reusable `SegmentCriterion` variants are equal elapsed time, equal distance, heart-rate zone, and manual boundaries. Each will declare measurement prerequisites, units, applicability, attribution, and evaluation version; unavailable prerequisites will be explained rather than guessed.
 - Source structure, FitFreed-derived segments, and user-authored criteria will remain visibly distinct, reversible, and independently inspectable.
-- Precise route geometry will remain local. The MVP route view will use local project-rendered geometry without an external tile request, and export will require sensitive-content review.
+- Precise route geometry will remain local. The first MVP route view will use local project-rendered geometry without
+  an external tile request, and export will require sensitive-content review. Cartographic basemaps are deliberately
+  deferred rather than rejected: post-MVP evolution will evaluate OSS renderers and openly licensed map data or
+  services without weakening location privacy, attribution, offline use, or user control.
 - Reimporting identical source bytes after a mapping upgrade will reassess and atomically enrich the existing session without duplicating its session, exercise, lap, route, or series identities.
 
 ### FR-026 — User-authored sport classification
@@ -425,6 +469,23 @@ All user-facing features included in the first release will be available in Engl
 - Training history will use a recognizable provider-neutral sport label and visual identifier wherever trustworthy identity evidence exists. Unresolved references remain honest but are classifiable from the affected history itself; assigning or revising a display label and sport family updates every relevant view without requiring reimport.
 - Every sport identity available to the current history will be visibly discoverable at supported widths and zoom levels. Discovery will wrap complete labels and actions instead of relying on unannounced horizontal scrolling, truncation, or hidden continuation.
 - Home will preserve each unresolved sport profile as a distinct visible identity and offer a contextual path to the same classification task used by History. Multiple unresolved profiles will never collapse into one apparent sport, expose source values, or create competing editors.
+
+### FR-027 — Structured training intent, phases, and blocks
+
+**Priority: high.** FitFreed will import and preserve supported provider-authored training objectives, phases, blocks,
+repetitions, work and recovery structure, and their documented duration, distance, and intensity constraints. This is
+a fundamental training capability rather than optional presentation enrichment.
+
+- Source-authored planning structure will retain identity, ordering, nesting, units, optionality, provenance, source
+  revision, and its relationship to the completed session when that relationship is established by source evidence.
+- Imported objectives, phases, and blocks will remain distinct from recorded exercises, manual or automatic laps,
+  FitFreed-calculated segments, and user-authored ranges or criteria.
+- Reimport and connected-provider synchronization will reconcile later or amended structure without duplicating it,
+  rewriting recorded evidence, or inventing a relationship between a plan and a completed session.
+- Session exploration will expose the imported structure naturally and state clearly when planning evidence was
+  absent, unsupported, only partially mapped, or not authoritatively linked to the recorded session.
+- Provider mappings and canonical contracts will document supported fields, known loss, ambiguity, units, time
+  semantics, and version evolution with independently constructed synthetic evidence.
 
 ## Confirmed MVP scope
 
@@ -447,7 +508,8 @@ The accepted report, deep-session, segmentation, and sport-classification bounda
 
 The MVP explicitly excludes:
 
-- External-tile cartography, route atlases, route search, and geospatial analysis beyond the local session route.
+- External-tile cartography, route atlases, route search, and geospatial analysis beyond the local session route. This
+  is a first-MVP boundary; cartographic context remains an explicit post-MVP direction.
 - Sample families and provider-specific training structures outside the verified FR-025 set.
 - Free-form report layout, formulas, arbitrary queries, native PDF generation, cloud collaboration, and scheduled reports.
 - Additional source providers.
