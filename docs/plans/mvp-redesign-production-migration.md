@@ -2721,6 +2721,19 @@ and multiple sequential edits; full pointer, keyboard, screen-reader, reduced-mo
 provenance entirely; replacing one giant table with dozens of equally noisy cards; immediate persistence from reset;
 CSS-only alignment applied to a single screenshot; or deleting behavior assertions when composition changes.
 
+**Execution checkpoint — one explicit Settings transaction:** `Restore defaults` now changes only the mounted draft and
+live preview, `Cancel changes` restores the persisted preferences without writing, and `Save changes` is the sole durable
+Settings write. Leaving Settings with an unsaved draft opens one focused guard that can retain editing or discard the
+draft before completing the requested navigation. The former native reset command and its application use case were
+removed so no second persistence path can bypass the transaction. The action group retains one stable order and one
+primary action across supported widths, locales, appearances, and content zooms.
+
+The exact committed source `4e1c6de890ed61d4741886bd86ac5ae1da40eb27` passed the complete fast contributor lane,
+Rust lint and formatting, production build, and rebuilt packaged macOS campaign on 2026-08-26. The functional packaged
+journey covered both locales, Settings save and discard paths, import, navigation, reimport, accessibility, and a real
+application-process restart. Independent adaptive-session, adaptive-range restart, and dense insight-performance
+journeys also passed, with every measured p95 inside its documented budget.
+
 ### X7-R4 — Adopt a mature analytical visualization foundation
 
 **Findings:** XH-16 and XH-22.
