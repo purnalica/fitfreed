@@ -16,6 +16,15 @@ export interface ApplicationPreferencesLoad {
   status: PreferencesLoadStatus;
 }
 
+export function defaultApplicationPreferences(locale: Locale): ApplicationPreferences {
+  return {
+    version: 1,
+    locale,
+    appearance: "system",
+    contentZoomPercent: 100,
+  };
+}
+
 export function applyApplicationPreferences(
   preferences: ApplicationPreferences,
   root: HTMLElement = document.documentElement,

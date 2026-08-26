@@ -32,7 +32,9 @@ temporarily replaces the history list, and returning restores the point from whi
 Current builds also demonstrate import safety, source-subject correlation, reconciliation, and localized
 family coverage. Settings separates **Appearance & language** from **Updates**, so maintenance does not
 compete with the preference preview. Language, appearance, and content size can be previewed against one
-recognizable fictional session before saving or deliberately discarding the draft. The Updates category
+recognizable fictional session. Restoring defaults changes only this draft; cancelling restores the saved
+values without writing, and saving is the only durable change. FitFreed asks before discarding an unsaved
+draft during navigation. The Updates category
 identifies the installed version as soon as update state is available. Builds expose trusted update checking
 at ready startup, in the Updates category on explicit request, and
 every 24 hours while the application remains open; exact-candidate installation; persisted dismissal;

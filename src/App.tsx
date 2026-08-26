@@ -35,6 +35,7 @@ import type {
 import { WorkspaceNavigation } from "./presentation/WorkspaceNavigation";
 import {
   applyApplicationPreferences,
+  defaultApplicationPreferences,
   type ApplicationPreferences,
   type ApplicationPreferencesLoad,
 } from "./presentation/application-preferences";
@@ -174,6 +175,11 @@ interface LibraryHomeProjection {
   afterImportOperationRef: string | null;
 }
 
+interface SettingsNavigationIntent {
+  destination: ApplicationHome;
+  scrollMode: ApplicationHomeScrollMode;
+}
+
 function applicationScroller() {
   return document.scrollingElement ?? document.documentElement;
 }
@@ -186,16 +192,17 @@ function App() {
   const localeReadyMilliseconds = useRef(0);
   const localeCatalogRequest = useRef(0);
   const [applicationReady, setApplicationReady] = useState(false);
-  const [savedPreferences, setSavedPreferences] = useState<ApplicationPreferences>(() => ({
-    version: 1,
-    locale: systemLocale(),
-    appearance: "system",
-    contentZoomPercent: 100,
-  }));
-  const [preferencesOperation, setPreferencesOperation] = useState<"save" | "reset">();
+  const [defaultPreferences, setDefaultPreferences] = useState<ApplicationPreferences>(() =>
+    defaultApplicationPreferences(systemLocale()));
+  const [savedPreferences, setSavedPreferences] = useState<ApplicationPreferences>(() =>
+    defaultApplicationPreferences(systemLocale()));
+  const [preferencesOperation, setPreferencesOperation] = useState<"save">();
   const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
   const [preferencesRecovered, setPreferencesRecovered] = useState(false);
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const [settingsNavigationIntent, setSettingsNavigationIntent]
+    = useState<SettingsNavigationIntent>();
   const [settingsWorkspace, setSettingsWorkspace] = useState<SettingsWorkspace>("appearance");
   const [activeHome, setActiveHome] = useState<ApplicationHome>("home");
   const activeHomeRef = useRef<ApplicationHome>(activeHome);
@@ -385,6 +392,7 @@ function App() {
     let active = true;
     async function initializePreferences() {
       const defaultLocale = systemLocale();
+      setDefaultPreferences(defaultApplicationPreferences(defaultLocale));
       try {
         const loaded = await invoke<ApplicationPreferencesLoad>("load_preferences", {
           defaultLocale,
@@ -409,12 +417,8 @@ function App() {
             fallbackLocale = "en-US";
             fallbackCatalog = defaultCatalog;
           }
-          const defaults: ApplicationPreferences = {
-            version: 1,
-            locale: fallbackLocale,
-            appearance: "system",
-            contentZoomPercent: 100,
-          };
+          const defaults = defaultApplicationPreferences(fallbackLocale);
+          setDefaultPreferences(defaults);
           applyApplicationPreferences(defaults);
           setSavedPreferences(defaults);
           setLocale(fallbackLocale);
@@ -530,24 +534,6 @@ function App() {
     }
   }
 
-  function restoreSavedPreferencesPreview() {
-    localeCatalogRequest.current += 1;
-    applyApplicationPreferences(savedPreferences);
-    const catalog = loadedRuntimeCatalog(savedPreferences.locale);
-    if (catalog) {
-      setLocale(savedPreferences.locale);
-      setMessages(catalog);
-    } else {
-      const requestId = localeCatalogRequest.current;
-      void loadRuntimeCatalog(savedPreferences.locale).then((loaded) => {
-        if (localeCatalogRequest.current !== requestId) return;
-        setLocale(savedPreferences.locale);
-        setMessages(loaded);
-      }).catch(() => setErrorCode("preference-initialization-failed"));
-    }
-    setPreferencesSavedNotice(false);
-  }
-
   function previewPreferences(preferences: ApplicationPreferences) {
     applyApplicationPreferences(preferences);
     setPreferencesSavedNotice(false);
@@ -604,8 +590,6 @@ function App() {
   }
 
   function openExplore() {
-    restoreSavedPreferencesPreview();
-    setPreferencesEditorRevision((current) => current + 1);
     if (exploreDestination) {
       navigateHome("explore");
       return;
@@ -620,12 +604,13 @@ function App() {
   }
 
   function openLibraryHome() {
-    restoreSavedPreferencesPreview();
-    setPreferencesEditorRevision((current) => current + 1);
     navigateHome("home");
   }
 
-  function navigateApplication(destination: ApplicationHome) {
+  function navigateApplication(
+    destination: ApplicationHome,
+    scrollMode: ApplicationHomeScrollMode = "restore",
+  ) {
     if (destination === "home") {
       openLibraryHome();
       return;
@@ -635,7 +620,7 @@ function App() {
       return;
     }
     if (destination === "sources") {
-      openSources();
+      openSources(scrollMode);
       return;
     }
     if (destination === "reports") {
@@ -645,9 +630,27 @@ function App() {
     navigateHome("settings");
   }
 
+  function requestApplicationNavigation(
+    destination: ApplicationHome,
+    scrollMode: ApplicationHomeScrollMode = "restore",
+  ) {
+    if (activeHome === "settings" && settingsDirty && destination !== "settings") {
+      setSettingsNavigationIntent({ destination, scrollMode });
+      return;
+    }
+    setSettingsNavigationIntent(undefined);
+    navigateApplication(destination, scrollMode);
+  }
+
+  function discardSettingsAndNavigate() {
+    const intent = settingsNavigationIntent;
+    if (!intent) return;
+    setSettingsDirty(false);
+    setSettingsNavigationIntent(undefined);
+    navigateApplication(intent.destination, intent.scrollMode);
+  }
+
   function openSources(scrollMode: ApplicationHomeScrollMode = "restore") {
-    restoreSavedPreferencesPreview();
-    setPreferencesEditorRevision((current) => current + 1);
     navigateHome("sources", scrollMode);
   }
 
@@ -657,8 +660,6 @@ function App() {
   }
 
   function openReports() {
-    restoreSavedPreferencesPreview();
-    setPreferencesEditorRevision((current) => current + 1);
     setReportOrigin(undefined);
     setReportReturnRef(undefined);
     setReportOpenRequest(undefined);
@@ -931,6 +932,8 @@ function App() {
       setMessages(catalog);
       setPreferencesSavedNotice(true);
       setPreferencesRecovered(false);
+      setSettingsDirty(false);
+      setSettingsNavigationIntent(undefined);
       setPreferencesEditorRevision((current) => current + 1);
       setUpdateLocaleRefreshToken((current) => current + 1);
     } catch (reason) {
@@ -939,36 +942,8 @@ function App() {
       setLocale(previous.locale);
       setMessages(loadedRuntimeCatalog(previous.locale) ?? defaultCatalog);
       setPreferencesEditorRevision((current) => current + 1);
-      setErrorCode(commandErrorCode(reason));
-    } finally {
-      setPreferencesOperation(undefined);
-    }
-  }
-
-  async function resetPreferences() {
-    const previous = savedPreferences;
-    setPreferencesOperation("reset");
-    setErrorCode(undefined);
-    try {
-      const reset = await invoke<ApplicationPreferencesLoad>("reset_preferences", {
-        defaultLocale: systemLocale(),
-      });
-      const catalog = await loadRuntimeCatalog(reset.preferences.locale);
-      localeCatalogRequest.current += 1;
-      applyApplicationPreferences(reset.preferences);
-      setSavedPreferences(reset.preferences);
-      setLocale(reset.preferences.locale);
-      setMessages(catalog);
-      setPreferencesSavedNotice(true);
-      setPreferencesRecovered(false);
-      setPreferencesEditorRevision((current) => current + 1);
-      setUpdateLocaleRefreshToken((current) => current + 1);
-    } catch (reason) {
-      localeCatalogRequest.current += 1;
-      applyApplicationPreferences(previous);
-      setLocale(previous.locale);
-      setMessages(loadedRuntimeCatalog(previous.locale) ?? defaultCatalog);
-      setPreferencesEditorRevision((current) => current + 1);
+      setSettingsDirty(false);
+      setSettingsNavigationIntent(undefined);
       setErrorCode(commandErrorCode(reason));
     } finally {
       setPreferencesOperation(undefined);
@@ -1160,7 +1135,7 @@ function App() {
         label: messages.shell.activeImport,
         detail: shellImportDetail,
         actionLabel: messages.shell.viewImport,
-        onAction: () => openSources("start"),
+        onAction: () => requestApplicationNavigation("sources", "start"),
       }
     : undefined;
   const rangeLoading = rangeOperation !== undefined;
@@ -1255,7 +1230,7 @@ function App() {
       exploreDisabled={historyUnavailable}
       exploreRestriction={historyRestriction}
       activeOperation={shellImportOperation}
-      onNavigate={navigateApplication}
+      onNavigate={requestApplicationNavigation}
     >
         <SportIconDefinitions />
         {preferencesRecovered && (
@@ -1313,6 +1288,7 @@ function App() {
             <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
               <SettingsPanel
                 savedPreferences={savedPreferences}
+                defaultPreferences={defaultPreferences}
                 messages={messages.settings}
                 workspace={settingsWorkspace}
                 disabled={!libraryReady || updateInstalling}
@@ -1322,7 +1298,14 @@ function App() {
                 onWorkspaceChange={setSettingsWorkspace}
                 onPreview={previewPreferences}
                 onSave={savePreferences}
-                onReset={resetPreferences}
+                onDirtyChange={setSettingsDirty}
+                navigationGuard={settingsNavigationIntent
+                  ? {
+                      destinationLabel: messages.shell[settingsNavigationIntent.destination],
+                      onKeepEditing: () => setSettingsNavigationIntent(undefined),
+                      onDiscardAndContinue: discardSettingsAndNavigate,
+                    }
+                  : undefined}
                 updatePanel={applicationReady && (
                   <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
                     <UpdatePanel

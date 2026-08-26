@@ -2160,12 +2160,15 @@
     "previewBody": "This example uses the language, appearance, and content size currently selected.",
     "localOnly": "These preferences stay on this device. They do not modify or leave with your fitness history.",
     "restore": "Restore defaults",
-    "discard": "Discard preview",
-    "restoring": "Restoring defaults…",
+    "cancel": "Cancel changes",
     "save": "Save changes",
     "saving": "Saving…",
     "saved": "Settings saved on this device.",
     "unsaved": "Changes not saved",
+    "navigationGuardTitle": "Unsaved changes",
+    "navigationGuardBody": "Save or discard these changes before going to {destination}.",
+    "keepEditing": "Keep editing",
+    "discardAndLeave": "Discard changes and leave",
     "recovered": "FitFreed restored safe application defaults because the stored settings were not compatible with this version. Review and save them if needed."
   },
   "updates": {

@@ -69,10 +69,11 @@ Sessions or Sports workspace; the session route first clears its disposable disc
 the normal top-level training destination, and returning to Home restores the exact aggregate control. No new domain,
 application, persistence, or transport path is introduced by these presentation routes.
 
-`SettingsPanel` owns one unsaved preference draft, its representative preview, explicit discard, and
-the Appearance and Updates category navigation. `App` keeps that panel mounted while the person visits
-another top-level workspace and increments an editor revision when such a visit must discard the draft;
-saved preferences remain the only durable source of truth. `UpdatePanel` keeps its separate command and
+`SettingsPanel` owns one unsaved preference draft, its representative preview, draft-only default
+restoration, cancellation, and the Appearance and Updates category navigation. `App` guards requested
+top-level navigation while that draft differs from the saved preferences; the person can keep editing or
+explicitly discard before the requested destination opens. The preference save command is the sole Settings
+write, and saved preferences remain the only durable source of truth. `UpdatePanel` keeps its separate command and
 event lifecycle but is composed inside Settings and remains mounted while its category is hidden, so
 category or locale changes cannot duplicate launch discovery or lose a scheduled result.
 

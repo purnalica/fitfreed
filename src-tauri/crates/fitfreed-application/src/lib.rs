@@ -3665,18 +3665,6 @@ pub fn save_application_preferences(
         .map_err(ApplicationError::PreferenceUpdate)
 }
 
-pub fn reset_application_preferences(
-    port: &dyn ApplicationPreferencesPort,
-    default_locale: LocalePreference,
-) -> Result<ApplicationPreferencesLoad, ApplicationError> {
-    let preferences = ApplicationPreferences::defaults(default_locale);
-    save_application_preferences(port, &preferences)?;
-    Ok(ApplicationPreferencesLoad {
-        preferences,
-        status: PreferencesLoadStatus::Current,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4358,7 +4346,7 @@ mod tests {
     }
 
     #[test]
-    fn resets_the_complete_application_preference_set_atomically() {
+    fn prepares_the_complete_application_preference_defaults_without_persisting() {
         let port = ControlledApplicationPreferencesPort::with(Some(StoredApplicationPreferences {
             version: i64::from(APPLICATION_PREFERENCES_VERSION),
             locale: "es-ES".to_owned(),
@@ -4366,18 +4354,16 @@ mod tests {
             content_zoom_percent: 175,
         }));
 
-        let reset = reset_application_preferences(&port, LocalePreference::EnUs)
-            .expect("reset preferences");
+        let defaults = ApplicationPreferences::defaults(LocalePreference::EnUs);
 
-        assert_eq!(reset.status, PreferencesLoadStatus::Current);
-        assert_eq!(
-            reset.preferences,
-            ApplicationPreferences::defaults(LocalePreference::EnUs)
-        );
-        assert_eq!(
-            *port.saved.lock().expect("reset save"),
-            vec![ApplicationPreferences::defaults(LocalePreference::EnUs)]
-        );
+        assert_eq!(defaults.locale, LocalePreference::EnUs);
+        assert_eq!(defaults.appearance, AppearancePreference::System);
+        assert_eq!(defaults.content_zoom_percent, MINIMUM_CONTENT_ZOOM_PERCENT);
+        assert!(port
+            .saved
+            .lock()
+            .expect("default preparation writes")
+            .is_empty());
     }
 
     fn training_session(

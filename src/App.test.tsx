@@ -849,12 +849,6 @@ beforeEach(() => {
       };
       return Promise.resolve(storedPreferences.preferences);
     }
-    if (command === "reset_preferences") {
-      storedPreferences = preferencesLoad(
-        arguments_.defaultLocale as "en-US" | "es-ES",
-      );
-      return Promise.resolve(storedPreferences);
-    }
     throw new Error(`Unexpected preference command: ${command}`);
   });
   mocks.listen.mockResolvedValue(() => {});
@@ -956,10 +950,6 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
         status: "current",
       };
       return Promise.resolve(storedPreferences.preferences);
-    }
-    if (command === "reset_preferences") {
-      storedPreferences = preferencesLoad(arguments_.defaultLocale as "en-US" | "es-ES");
-      return Promise.resolve(storedPreferences);
     }
     throw new Error(`Unexpected preference command: ${command}`);
   });
@@ -2216,7 +2206,7 @@ describe("FitFreed import interface", () => {
     expect(homeQueryCount).toBe(3);
   });
 
-  it("previews, saves, restores, and resets every setting from the Settings home", async () => {
+  it("previews, saves, restores defaults as a draft, and persists only on save", async () => {
     emptyLibrary();
     const user = userEvent.setup();
     const view = render(<App />);
@@ -2252,34 +2242,37 @@ describe("FitFreed import interface", () => {
     expect(screen.getByRole("radio", { name: "Oscuro" })).toBeChecked();
     expect(screen.getByLabelText("Ampliación predeterminada del contenido")).toHaveValue("200");
 
-    let completeReset: (load: ApplicationPreferencesLoad) => void = () => undefined;
-    mocks.preferencesInvoke.mockImplementation((command) => {
-      if (command === "reset_preferences") {
-        return new Promise((resolve) => {
-          completeReset = resolve;
-        });
-      }
-      throw new Error(`Unexpected preference command: ${command}`);
-    });
     await user.click(screen.getByRole("button", { name: "Restaurar valores predeterminados" }));
-    expect(mocks.preferencesInvoke).toHaveBeenCalledWith(
-      "reset_preferences",
-      { defaultLocale: "en-US" },
-    );
-    const settingsForm = screen.getByRole("form", { name: "Apariencia e idioma" });
-    expect(settingsForm).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("button", { name: "Restaurar valores predeterminados" }))
+    expect(mocks.preferencesInvoke.mock.calls.filter(
+      ([command]) => command === "reset_preferences",
+    )).toHaveLength(0);
+    const settingsForm = screen.getByRole("form", { name: "Appearance and language" });
+    expect(settingsForm).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByRole("button", { name: "Restore defaults" }))
       .toBeDisabled();
-    expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Restaurando valores predeterminados…",
+      "Changes not saved",
     );
-    expect(screen.queryByText("Guardando…")).not.toBeInTheDocument();
-
-    act(() => completeReset(preferencesLoad()));
-    await waitFor(() => expect(document.documentElement)
-      .toHaveAttribute("data-appearance", "system"));
+    expect(screen.queryByText("Restoring defaults…")).not.toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("data-appearance", "system");
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");
+
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(mocks.preferencesInvoke).toHaveBeenCalledWith(
+      "save_preferences",
+      {
+        preferences: {
+          locale: "en-US",
+          appearance: "system",
+          contentZoomPercent: 100,
+        },
+      },
+    ));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Settings saved on this device.",
+    );
   });
 
   it("keeps preferences and update maintenance in distinct Settings categories", async () => {
@@ -2479,7 +2472,7 @@ describe("FitFreed import interface", () => {
       .toBeVisible();
   });
 
-  it("discards an unsaved appearance preview when leaving Settings", async () => {
+  it("guards navigation from Settings and discards an unsaved preview only on request", async () => {
     emptyLibrary();
     const user = userEvent.setup();
     render(<App />);
@@ -2490,6 +2483,20 @@ describe("FitFreed import interface", () => {
     expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
 
     await user.click(screen.getByRole("button", { name: "Home" }));
+
+    const guard = screen.getByRole("alertdialog", { name: "Unsaved changes" });
+    expect(guard).toHaveTextContent("Home");
+    expect(screen.getByRole("button", { name: "Settings" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
+    const keepEditing = screen.getByRole("button", { name: "Keep editing" });
+    await waitFor(() => expect(keepEditing).toHaveFocus());
+    await user.click(keepEditing);
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
+
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    await user.click(screen.getByRole("button", { name: "Discard changes and leave" }));
 
     expect(document.documentElement).toHaveAttribute("data-appearance", "system");
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");

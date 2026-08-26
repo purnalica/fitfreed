@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyApplicationPreferences,
+  defaultApplicationPreferences,
   sameApplicationPreferences,
   type ApplicationPreferences,
 } from "./application-preferences";
@@ -21,6 +22,15 @@ afterEach(() => {
 });
 
 describe("application preferences", () => {
+  it("defines one complete previewable default set for a supported system locale", () => {
+    expect(defaultApplicationPreferences("es-ES")).toEqual({
+      version: 1,
+      locale: "es-ES",
+      appearance: "system",
+      contentZoomPercent: 100,
+    });
+  });
+
   it("applies language, appearance, and content zoom to the document together", () => {
     applyApplicationPreferences(darkSpanishPreferences);
 

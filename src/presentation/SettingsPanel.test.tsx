@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
@@ -25,6 +25,7 @@ describe("SettingsPanel", () => {
       return (
         <SettingsPanel
           savedPreferences={savedPreferences}
+          defaultPreferences={savedPreferences}
           messages={catalogs["en-US"].settings}
           workspace={workspace}
           disabled={false}
@@ -32,7 +33,6 @@ describe("SettingsPanel", () => {
           onWorkspaceChange={setWorkspace}
           onPreview={vi.fn()}
           onSave={vi.fn()}
-          onReset={vi.fn()}
           updatePanel={<section aria-label="Update maintenance">Update controls</section>}
         />
       );
@@ -68,13 +68,14 @@ describe("SettingsPanel", () => {
       .not.toBeInTheDocument();
   });
 
-  it("uses a concrete interface example and lets the preview be discarded explicitly", async () => {
+  it("uses a concrete interface example and lets the complete draft be cancelled", async () => {
     const user = userEvent.setup();
     const onPreview = vi.fn();
 
     render(
       <SettingsPanel
         savedPreferences={savedPreferences}
+        defaultPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         workspace="appearance"
         disabled={false}
@@ -82,7 +83,6 @@ describe("SettingsPanel", () => {
         onWorkspaceChange={vi.fn()}
         onPreview={onPreview}
         onSave={vi.fn()}
-        onReset={vi.fn()}
       />,
     );
 
@@ -94,7 +94,7 @@ describe("SettingsPanel", () => {
 
     await user.click(screen.getByRole("radio", { name: "Dark" }));
     await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
-    await user.click(screen.getByRole("button", { name: "Discard preview" }));
+    await user.click(screen.getByRole("button", { name: "Cancel changes" }));
 
     expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
     expect(screen.getByLabelText("Default content zoom")).toHaveValue("100");
@@ -110,6 +110,7 @@ describe("SettingsPanel", () => {
     render(
       <SettingsPanel
         savedPreferences={savedPreferences}
+        defaultPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         workspace="appearance"
         disabled={false}
@@ -117,7 +118,6 @@ describe("SettingsPanel", () => {
         onWorkspaceChange={vi.fn()}
         onPreview={onPreview}
         onSave={onSave}
-        onReset={vi.fn()}
       />,
     );
 
@@ -142,12 +142,66 @@ describe("SettingsPanel", () => {
     });
   });
 
-  it("requests a complete reset and blocks every mutable control when disabled", async () => {
+  it("keeps an unsaved draft until guarded navigation is explicitly discarded", async () => {
     const user = userEvent.setup();
-    const onReset = vi.fn().mockResolvedValue(undefined);
+    const onPreview = vi.fn();
+    const onDirtyChange = vi.fn();
+    const onDiscardAndContinue = vi.fn();
+
+    function GuardHarness() {
+      const [guarded, setGuarded] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setGuarded(true)}>Request navigation</button>
+          <SettingsPanel
+            savedPreferences={savedPreferences}
+            defaultPreferences={savedPreferences}
+            messages={catalogs["en-US"].settings}
+            workspace="appearance"
+            disabled={false}
+            savedNotice={false}
+            onWorkspaceChange={vi.fn()}
+            onPreview={onPreview}
+            onSave={vi.fn()}
+            onDirtyChange={onDirtyChange}
+            navigationGuard={guarded
+              ? {
+                  destinationLabel: "Home",
+                  onKeepEditing: () => setGuarded(false),
+                  onDiscardAndContinue,
+                }
+              : undefined}
+          />
+        </>
+      );
+    }
+
+    render(<GuardHarness />);
+    await user.click(screen.getByRole("radio", { name: "Dark" }));
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+
+    await user.click(screen.getByRole("button", { name: "Request navigation" }));
+    const guard = screen.getByRole("alertdialog", { name: "Unsaved changes" });
+    expect(guard).toHaveTextContent("Home");
+    const keepEditing = within(guard).getByRole("button", { name: "Keep editing" });
+    await waitFor(() => expect(keepEditing).toHaveFocus());
+    await user.click(keepEditing);
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
+
+    await user.click(screen.getByRole("button", { name: "Request navigation" }));
+    await user.click(screen.getByRole("button", { name: "Discard changes and leave" }));
+    expect(onPreview).toHaveBeenLastCalledWith(savedPreferences);
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    expect(onDiscardAndContinue).toHaveBeenCalledOnce();
+  });
+
+  it("blocks every mutable control and draft action when disabled", async () => {
+    const user = userEvent.setup();
     const view = render(
       <SettingsPanel
         savedPreferences={{ ...savedPreferences, appearance: "light", contentZoomPercent: 150 }}
+        defaultPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         workspace="appearance"
         disabled
@@ -155,7 +209,6 @@ describe("SettingsPanel", () => {
         onWorkspaceChange={vi.fn()}
         onPreview={vi.fn()}
         onSave={vi.fn()}
-        onReset={onReset}
       />,
     );
 
@@ -163,11 +216,13 @@ describe("SettingsPanel", () => {
     expect(screen.getByRole("radio", { name: "System" })).toBeDisabled();
     expect(screen.getByLabelText("Default content zoom")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel changes" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
 
     view.rerender(
       <SettingsPanel
         savedPreferences={{ ...savedPreferences, appearance: "light", contentZoomPercent: 150 }}
+        defaultPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         workspace="appearance"
         disabled={false}
@@ -175,17 +230,20 @@ describe("SettingsPanel", () => {
         onWorkspaceChange={vi.fn()}
         onPreview={vi.fn()}
         onSave={vi.fn()}
-        onReset={onReset}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Restore defaults" }));
-    expect(onReset).toHaveBeenCalledOnce();
+    expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
+    expect(screen.getByLabelText("Default content zoom")).toHaveValue("100");
+    expect(screen.getByRole("status")).toHaveTextContent("Changes not saved");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
   it("keeps settings actions stable and announces progress while preferences are saved", () => {
     render(
       <SettingsPanel
         savedPreferences={savedPreferences}
+        defaultPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         workspace="appearance"
         disabled={false}
@@ -194,7 +252,6 @@ describe("SettingsPanel", () => {
         onWorkspaceChange={vi.fn()}
         onPreview={vi.fn()}
         onSave={vi.fn()}
-        onReset={vi.fn()}
       />,
     );
 
@@ -205,27 +262,33 @@ describe("SettingsPanel", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Saving…");
   });
 
-  it("keeps both settings actions stable and announces default restoration distinctly", () => {
+  it("keeps restoring defaults inside the draft and reserves busy progress for saving", async () => {
+    const user = userEvent.setup();
+    const onPreview = vi.fn();
+    const onSave = vi.fn().mockResolvedValue(undefined);
     render(
       <SettingsPanel
         savedPreferences={{ ...savedPreferences, appearance: "dark" }}
+        defaultPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         workspace="appearance"
         disabled={false}
-        operation="reset"
         savedNotice={false}
         onWorkspaceChange={vi.fn()}
-        onPreview={vi.fn()}
-        onSave={vi.fn()}
-        onReset={vi.fn()}
+        onPreview={onPreview}
+        onSave={onSave}
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Restore defaults" }));
     const form = screen.getByRole("form", { name: "Appearance and language" });
-    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(form).toHaveAttribute("aria-busy", "false");
     expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Restoring defaults…");
+    expect(screen.getByRole("button", { name: "Cancel changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Changes not saved");
+    expect(onPreview).toHaveBeenLastCalledWith(savedPreferences);
+    expect(onSave).not.toHaveBeenCalled();
     expect(screen.queryByText("Saving…")).not.toBeInTheDocument();
   });
 });

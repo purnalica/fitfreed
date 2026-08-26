@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import type { catalogs } from "../locales/catalogs";
 import {
@@ -14,16 +14,22 @@ type SettingsMessages = (typeof catalogs)["en-US"]["settings"];
 
 interface SettingsPanelProps {
   savedPreferences: ApplicationPreferences;
+  defaultPreferences: ApplicationPreferences;
   messages: SettingsMessages;
   workspace: SettingsWorkspace;
   disabled: boolean;
-  operation?: "save" | "reset";
+  operation?: "save";
   savedNotice: boolean;
   editorRevision?: number;
   onWorkspaceChange: (workspace: SettingsWorkspace) => void;
   onPreview: (preferences: ApplicationPreferences) => void;
   onSave: (preferences: ApplicationPreferences) => Promise<void>;
-  onReset: () => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
+  navigationGuard?: {
+    destinationLabel: string;
+    onKeepEditing: () => void;
+    onDiscardAndContinue: () => void;
+  };
   updatePanel?: ReactNode;
 }
 
@@ -33,6 +39,7 @@ const zoomOptions = [100, 125, 150, 175, 200];
 
 export function SettingsPanel({
   savedPreferences,
+  defaultPreferences,
   messages,
   workspace,
   disabled,
@@ -42,10 +49,13 @@ export function SettingsPanel({
   onWorkspaceChange,
   onPreview,
   onSave,
-  onReset,
+  onDirtyChange,
+  navigationGuard,
   updatePanel,
 }: SettingsPanelProps) {
   const [draft, setDraft] = useState(savedPreferences);
+  const cancelChangesButton = useRef<HTMLButtonElement>(null);
+  const navigationGuardAction = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setDraft(savedPreferences);
@@ -58,7 +68,18 @@ export function SettingsPanel({
   ]);
 
   const dirty = !sameApplicationPreferences(draft, savedPreferences);
+  const defaultsSelected = sameApplicationPreferences(draft, defaultPreferences);
   const busy = operation !== undefined;
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!dirty || !navigationGuard) return undefined;
+    const frame = requestAnimationFrame(() => navigationGuardAction.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [dirty, navigationGuard?.destinationLabel]);
 
   function preview(next: ApplicationPreferences) {
     setDraft(next);
@@ -68,6 +89,17 @@ export function SettingsPanel({
   function discardPreview() {
     setDraft(savedPreferences);
     onPreview(savedPreferences);
+    onDirtyChange?.(false);
+  }
+
+  function keepEditing() {
+    navigationGuard?.onKeepEditing();
+    requestAnimationFrame(() => cancelChangesButton.current?.focus());
+  }
+
+  function discardAndContinue() {
+    discardPreview();
+    navigationGuard?.onDiscardAndContinue();
   }
 
   return (
@@ -166,6 +198,36 @@ export function SettingsPanel({
 
           <p className="settings-local-note">{messages.localOnly}</p>
 
+          {dirty && navigationGuard && (
+            <section
+              className="settings-navigation-guard"
+              role="alertdialog"
+              aria-labelledby="settings-navigation-guard-heading"
+              aria-describedby="settings-navigation-guard-body"
+            >
+              <h3 id="settings-navigation-guard-heading">{messages.navigationGuardTitle}</h3>
+              <p id="settings-navigation-guard-body">
+                {messages.navigationGuardBody.replace(
+                  "{destination}",
+                  navigationGuard.destinationLabel,
+                )}
+              </p>
+              <div>
+                <button
+                  ref={navigationGuardAction}
+                  type="button"
+                  className="secondary"
+                  onClick={keepEditing}
+                >
+                  {messages.keepEditing}
+                </button>
+                <button type="button" onClick={discardAndContinue}>
+                  {messages.discardAndLeave}
+                </button>
+              </div>
+            </section>
+          )}
+
           {!busy && (dirty || savedNotice) && (
             <p className="settings-status" role="status" aria-live="polite">
               {dirty ? messages.unsaved : messages.saved}
@@ -176,32 +238,26 @@ export function SettingsPanel({
             <button
               type="button"
               className="secondary"
-              disabled={disabled || busy}
-              onClick={() => void onReset()}
+              disabled={disabled || busy || defaultsSelected}
+              onClick={() => preview(defaultPreferences)}
             >
               {messages.restore}
             </button>
-            {dirty && !busy && (
-              <button
-                type="button"
-                className="secondary settings-discard"
-                disabled={disabled}
-                onClick={discardPreview}
-              >
-                {messages.discard}
-              </button>
-            )}
+            <button
+              ref={cancelChangesButton}
+              type="button"
+              className="secondary settings-cancel"
+              disabled={disabled || busy || !dirty}
+              onClick={discardPreview}
+            >
+              {messages.cancel}
+            </button>
             <ProgressSubmitButton
               loading={operation === "save"}
               disabled={disabled || busy || !dirty}
               actionLabel={messages.save}
               progressLabel={messages.saving}
             />
-            {operation === "reset" && (
-              <span className="progress-submit-status" role="status" aria-live="polite">
-                {messages.restoring}
-              </span>
-            )}
           </div>
         </form>
 

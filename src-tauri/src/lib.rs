@@ -58,7 +58,6 @@ use fitfreed_application::{
     remove_training_segment_criterion as remove_segment_criterion_through_port,
     remove_training_session_range as remove_training_session_range_through_port,
     rename_training_session_range as rename_training_session_range_through_port,
-    reset_application_preferences as reset_preferences_through_port,
     resolve_report as resolve_report_through_port,
     resolve_session_report as resolve_session_report_through_port,
     save_application_preferences as save_preferences_through_port,
@@ -1377,23 +1376,6 @@ async fn save_preferences(
 }
 
 #[tauri::command]
-async fn reset_preferences(
-    app: AppHandle,
-    startup_recovery: State<'_, Arc<StartupLibraryRecovery>>,
-    default_locale: String,
-) -> Result<ApplicationPreferencesLoadDto, CommandErrorDto> {
-    let default_locale = supported_locale(&default_locale)?;
-    startup_recovery
-        .await_ready()
-        .await
-        .map_err(|_| CommandErrorDto::new("library-unavailable"))?;
-    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
-    reset_preferences_through_port(&SqliteApplicationPreferences::new(path), default_locale)
-        .map(Into::into)
-        .map_err(CommandErrorDto::from)
-}
-
-#[tauri::command]
 async fn check_for_updates_on_launch(
     app: AppHandle,
     channel: State<'_, Arc<HttpsUpdateChannel>>,
@@ -2187,7 +2169,6 @@ pub fn run() {
             open_official_source_link,
             load_preferences,
             save_preferences,
-            reset_preferences,
             check_for_updates_on_launch,
             check_for_updates,
             dismiss_available_update,

@@ -257,9 +257,11 @@ Settings is a dedicated space for lasting preferences. The initial groups contai
 (`en-US`, `es-ES`), appearance (system, light, dark), and content zoom from 100% through 200%.
 Changes immediately affect one concrete fictional session preview and save explicitly. The preview
 must expose the actual effects of locale, appearance, and zoom rather than decorate the form. An
-unsaved draft is named, survives movement between Settings categories, and offers an explicit discard
-action; leaving Settings also restores the complete persisted preference set. Appearance choices use
-recognizable visual samples in addition to names.
+unsaved draft is named and survives movement between Settings categories. **Restore defaults** changes
+only that draft and its preview. **Cancel changes** restores the complete persisted preference set without
+writing, and **Save changes** is the sole durable Settings write. Navigation away from an unsaved draft
+requires an explicit choice to keep editing or discard and continue. Appearance choices use recognizable
+visual samples in addition to names.
 
 Update discovery and maintenance form a second Settings category. They remain mounted so a scheduled
 or launch check is not repeated when the person switches categories, always identify the installed

@@ -599,8 +599,18 @@ async function setAppearanceAndZoom(appearance, zoom, save, destination = "explo
   );
   if (save) {
     await persistSettings();
+    await goToHome(destination);
+    return;
   }
-  await goToHome(destination);
+  const requestedDestination = await $(`.app-sidebar nav button[data-home='${destination}']`);
+  await requestedDestination.click();
+  const guard = await $(".settings-navigation-guard");
+  await guard.waitForDisplayed({ timeout: 10_000 });
+  await guard.$("button:not(.secondary)").click();
+  await browser.waitUntil(
+    async () => (await requestedDestination.getAttribute("aria-current")) === "page",
+    { timeout: 10_000, timeoutMsg: "discarding the Settings draft did not continue navigation" },
+  );
 }
 
 async function resetSettings(destination = "explore") {
@@ -615,6 +625,7 @@ async function resetSettings(destination = "explore") {
     )),
     { timeout: 10_000, timeoutMsg: "the application settings were not reset" },
   );
+  await persistSettings();
   await goToHome(destination);
 }
 
@@ -1608,7 +1619,7 @@ describe("packaged FitFreed import journey", () => {
     ));
     await $("input[name='appearance'][value='dark']").click();
     await expect($(".settings-status")).toHaveText(english.settings.unsaved);
-    await $(`aria/${english.settings.discard}`).click();
+    await $(`aria/${english.settings.cancel}`).click();
     await expect($("html")).toHaveAttribute("data-appearance", "system");
     expect(await $("input[name='appearance'][value='system']").isSelected()).toBe(true);
     expect(await $$(".settings-status")).toHaveLength(0);

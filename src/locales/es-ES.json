@@ -2160,12 +2160,15 @@
     "previewBody": "Este ejemplo usa el idioma, la apariencia y el tamaño del contenido seleccionados.",
     "localOnly": "Estas preferencias permanecen en este dispositivo. No modifican tu historial deportivo ni salen con él.",
     "restore": "Restaurar valores predeterminados",
-    "discard": "Descartar vista previa",
-    "restoring": "Restaurando valores predeterminados…",
+    "cancel": "Cancelar cambios",
     "save": "Guardar cambios",
     "saving": "Guardando…",
     "saved": "Ajustes guardados en este dispositivo.",
     "unsaved": "Cambios sin guardar",
+    "navigationGuardTitle": "Cambios sin guardar",
+    "navigationGuardBody": "Guarda o descarta estos cambios antes de ir a {destination}.",
+    "keepEditing": "Seguir editando",
+    "discardAndLeave": "Descartar cambios y salir",
     "recovered": "FitFreed ha restaurado valores predeterminados seguros porque los ajustes guardados no eran compatibles con esta versión. Revísalos y guárdalos si es necesario."
   },
   "updates": {
