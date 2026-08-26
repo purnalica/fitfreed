@@ -26,6 +26,7 @@ describe("TrainingSignalPlot", () => {
     const model = buildTrainingSignalChartModel({
       samples,
       summary: "Recorded pace",
+      accessibleDescription: "Recorded pace with source gaps preserved.",
       coordinateRef: "exercise-1:primary:elapsed",
       seriesId: "pace-signal",
       xAxisLabel: "Elapsed time",
@@ -39,6 +40,7 @@ describe("TrainingSignalPlot", () => {
     });
 
     expect(model).not.toBeNull();
+    expect(model?.accessibleDescription).toBe("Recorded pace with source gaps preserved.");
     expect(model?.axes[0].direction).toBe("lower-at-top");
     expect(model?.interaction.pointSelection).toBe(false);
     expect(model?.series[0].points).toEqual([
@@ -78,6 +80,7 @@ describe("TrainingSignalPlot", () => {
     const model = buildTrainingSignalChartModel({
       samples,
       summary: "Recorded heart rate",
+      accessibleDescription: "Recorded heart rate with an exact saved range.",
       coordinateRef: "exercise-1:primary:elapsed",
       seriesId: "heart-rate-signal",
       xAxisLabel: "Elapsed time",

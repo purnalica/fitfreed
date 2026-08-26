@@ -13,6 +13,7 @@ import {
   formatFractionAsPercentage,
   formatLocalDate,
   formatPace,
+  formatAnalyticalPace,
   formatAnalyticalDuration,
   formatSummaryDecimal,
   formatSummaryDistance,
@@ -110,6 +111,8 @@ describe("shared presentation formatting", () => {
   it("centralizes compact analytical-axis duration and number policies", () => {
     expect(formatAnalyticalDuration(65_000, "en-US")).toBe("1:05");
     expect(formatAnalyticalDuration(3_665_000, "en-US")).toBe("1:01:05");
+    expect(formatAnalyticalPace(4.999, "en-US")).toBe("5:00");
+    expect(formatAnalyticalPace(5.5, "es-ES")).toBe("5:30");
     expect(analyticalAxisNumberFormatter("en-US", 1).format(1_234.56)).toBe("1,234.6");
     expect(analyticalAxisNumberFormatter("es-ES", 2).format(1_234.56)).toBe("1.234,56");
   });

@@ -330,6 +330,14 @@ export function formatAnalyticalDuration(value: number, locale: Locale): string 
     : `${number.format(minutes)}:${twoDigits.format(seconds)}`;
 }
 
+export function formatAnalyticalPace(value: number, locale: Locale): string {
+  const roundedSeconds = Math.max(0, Math.round(value * 60));
+  const minutes = Math.floor(roundedSeconds / 60);
+  const seconds = roundedSeconds % 60;
+  return `${integerCountFormatter(locale).format(minutes)}:${seconds
+    .toString().padStart(2, "0")}`;
+}
+
 export function formatEnergy(value: number, locale: Locale, unit: string): string {
   return `${integerCountFormatter(locale).format(value)} ${unit}`;
 }

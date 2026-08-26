@@ -2840,12 +2840,25 @@ internal CSS selectors have been removed, and the automated architecture guard e
 presentation-adapter dependency. Longitudinal history now uses four independently scaled lanes over one exact
 local-date coordinate, retains missing values as gaps and zero training as zero, uses canvas plus zoom for the
 maximum 366-day view, and keeps its exact accessible table. A separate timing defect found by the complete suite
-was fixed and committed as `77101cc`. The current complete presentation suite passes with 415 tests across 62
+was fixed and committed as `77101cc`. The current complete presentation suite passes with 417 tests across 62
 files. TypeScript, automation, localization, presentation-inventory, architecture, UI-contract, documentation,
 and production-build gates pass without renderer warnings. The production build keeps ECharts outside the initial
-graph in one lazily loaded 205.23-kilobyte gzip chunk. The live boundary and completed migrations are documented in
-the current architecture, developer, testing, performance, and user guides. The remaining live analytical
-migrations, static report rendering, route-relative zoom bounds, and complete X7-R4 acceptance gates remain.
+graph in one lazily loaded approximately 205-kilobyte gzip chunk. The conditional linked route-signal view now also
+uses the same stacked-lane port for one through four independently scaled measurements over only an
+application-authorized route elapsed coordinate. It preserves gaps, formats pace as `M:SS`, synchronizes chart,
+native keyboard control, and map selection without inventing an exact sample relationship, and updates the mounted
+renderer in place during traversal. The live boundary and all live analytical migrations are documented in the
+current architecture, developer, testing, performance, and user guides. Static report rendering, route-relative
+zoom bounds, and the complete X7-R4 acceptance gates remain.
+
+The exact instrumented macOS package passed the complete functional journey, application-process restart,
+evidence-adaptive composition, independent-signal range restart, and isolated two-year performance scenario. The
+functional journey completed in 2 minutes 13.3 seconds, while the adaptive composition and its fresh-process range
+restoration completed in 8.8 seconds and 1.3 seconds. In the dense session, route-workbench opening measured 72
+milliseconds at p95, route selection 1 millisecond, independent-signal reveal 82 milliseconds, signal overview 152
+milliseconds, fourth-series selection 34 milliseconds, and exact-signal pagination 79 milliseconds. Every accepted
+interaction budget passed. The chart range retained its exact saved and reimported boundaries in both the rendered
+annotation contract and its accessible description after a new process.
 
 1. Supersede ADR 0013 only after a focused production-shaped comparison of Apache ECharts, uPlot, Observable Plot,
    and Vega-Lite, or a better candidate discovered during the review. Use official source, licence, release, security,

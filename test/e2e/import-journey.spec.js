@@ -2472,11 +2472,16 @@ describe("packaged FitFreed import journey", () => {
     );
     const recordedSignals = await $$(".training-signal");
     await expect(recordedSignals[0].$(".training-signal-heading h6")).toHaveText("Heart rate");
-    await expect(recordedSignals[0].$("svg")).toHaveAttribute(
+    const primarySignalChart = await recordedSignals[0].$(".analytical-chart-canvas");
+    await expect(primarySignalChart).toHaveAttribute(
       "aria-label",
       expect.stringContaining("100 recorded values out of 101 samples"),
     );
-    expect(await recordedSignals[0].$$("polyline")).toHaveLength(2);
+    await expect(primarySignalChart).toHaveAttribute(
+      "aria-label",
+      expect.stringContaining("Gaps show missing source values"),
+    );
+    await expect(recordedSignals[0]).toHaveText(expect.stringContaining("100 of 101"));
     const crossSignal = await $(".training-cross-signal");
     await expect(crossSignal.$("h6")).toHaveText(
       english.training.sessionLibrary.crossSignalHeading,
@@ -2486,8 +2491,13 @@ describe("packaged FitFreed import journey", () => {
     );
     const crossSignalChoices = await crossSignal.$$('input[type="checkbox"]');
     expect(crossSignalChoices).toHaveLength(2);
-    expect(await crossSignal.$$("svg")).toHaveLength(2);
-    expect(await crossSignal.$$("article:first-child polyline")).toHaveLength(2);
+    await expect(crossSignal.$(".analytical-chart-canvas")).toHaveAttribute(
+      "aria-label",
+      english.training.sessionLibrary.crossSignalHeading,
+    );
+    const crossSignalLanes = await crossSignal.$$(".training-cross-signal-lanes article");
+    expect(crossSignalLanes).toHaveLength(2);
+    await expect(crossSignalLanes[0]).toHaveText(expect.stringContaining("100 of 101 recorded"));
     await expect(crossSignal).toHaveText(expect.stringContaining("Elapsed time 0–1 h"));
     for (const choice of crossSignalChoices) {
       await expect(choice).toBeChecked();

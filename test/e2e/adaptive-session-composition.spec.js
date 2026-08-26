@@ -4,6 +4,7 @@ import path from "node:path";
 import AxeBuilder from "@axe-core/webdriverio";
 
 import { e2eApplicationBinary } from "../../scripts/e2e-paths.mjs";
+import { accessibleDescription } from "./support/accessibility.js";
 import {
   goToHome,
   openHomeQuestion,
@@ -33,6 +34,13 @@ async function waitForNotice(fragment) {
     }
     return false;
   }, { timeout: 10_000, timeoutMsg: `status did not contain ${fragment}` });
+}
+
+async function expectSignalChartRangeDescription(workbench, expectedRange) {
+  const chart = await workbench.$(".analytical-chart-canvas");
+  await chart.waitForDisplayed({ timeout: 10_000 });
+  const description = await accessibleDescription(chart);
+  expect(description).toContain(expectedRange);
 }
 
 async function selectNativeOption(select, value) {
@@ -212,8 +220,14 @@ describe("packaged evidence-adaptive session composition", () => {
     await expect(signalWorkbench.$(".eyebrow")).toHaveText(
       english.training.sessionLibrary.signalWorkbench.eyebrow,
     );
-    expect(await signalWorkbench.$$(".training-signal-workbench-plot polyline"))
-      .not.toHaveLength(0);
+    const signalChart = await signalWorkbench.$(
+      ".training-signal-workbench-plot .analytical-chart-canvas",
+    );
+    await signalChart.waitForDisplayed({ timeout: 10_000 });
+    await expect(signalChart).toHaveAttribute(
+      "aria-label",
+      expect.stringContaining("Gaps show missing source values"),
+    );
     expect(await $$(".training-route-workbench")).toHaveLength(0);
     expect(await $$(".training-structure-workbench")).toHaveLength(0);
     expect(await $$(".training-zone-workbench")).toHaveLength(0);
@@ -336,8 +350,10 @@ describe("packaged evidence-adaptive session composition", () => {
     await expect(signalSelector).toBeEnabled();
     await expect(signalWorkbench.$(".training-signal-saved-range strong"))
       .toHaveText("Steady signal");
-    expect(await signalWorkbench.$$(".training-signal-range-start")).toHaveLength(1);
-    expect(await signalWorkbench.$$(".training-signal-range-end")).toHaveLength(1);
+    await expectSignalChartRangeDescription(
+      signalWorkbench,
+      "Shown on the chart: Steady signal · 0:15:00–0:45:00.",
+    );
     const signalRangeAccessibility = await new AxeBuilder({ client: browser })
       .setLegacyMode()
       .include(".training-signal-workbench")
@@ -410,10 +426,10 @@ describe("packaged evidence-adaptive session composition", () => {
     await reimportedSignalWorkbench.waitForDisplayed({ timeout: 10_000 });
     await expect(reimportedSignalWorkbench.$(".training-signal-saved-range strong"))
       .toHaveText("Steady signal");
-    expect(await reimportedSignalWorkbench.$$(".training-signal-range-start"))
-      .toHaveLength(1);
-    expect(await reimportedSignalWorkbench.$$(".training-signal-range-end"))
-      .toHaveLength(1);
+    await expectSignalChartRangeDescription(
+      reimportedSignalWorkbench,
+      "Shown on the chart: Steady signal · 0:15:00–0:45:00.",
+    );
     await backToResults(english);
 
     await openSessionByDate("Jan 11, 2026");

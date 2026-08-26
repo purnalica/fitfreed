@@ -57,6 +57,11 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
 - Training workspace and session-detail navigation, semantic current-location state, focused reveal below persistent navigation, enforced progressive-disclosure boundaries, and the single route → signal → structure → zone evidence-layout matrix for complete, partial, unsupported-only, and summary-only stories.
+- Conditional route-signal composition for one through four independently scaled lanes over only an
+  application-authorized route elapsed coordinate, including pace `M:SS` formatting, nulls and source gaps,
+  stable full-domain selection, shared map movement, absence without alignment, exact-sample disclosure only
+  from supplied overlay ordinals, one native accessible position alternative, high-zoom sizing, and in-place chart
+  updates rather than renderer replacement.
 - History starts with visible chronological results while its complete sport index is closed. Deliberate opening
   retains every sport identity and contextual classification action; choosing a sport closes the index, exposes the
   exact applied refinement, and focuses its result count without a second discovery contract.
@@ -66,7 +71,7 @@ Automated testing is the primary source of evidence that the product behaves cor
   evidence never creates duplicate table or scroll-region landmarks. The UI contract rejects direct production
   `<table>` ownership outside `DataTable` and CSS that assigns table alignment from first, last, or ordinal column
   position.
-- Personal-range creation, selection, exact elapsed validation, rename, immutable-coordinate adjustment, legacy anchoring, reimport review, optimistic-conflict draft retention, guarded removal, remount restoration, concise summary disclosure, both locales, and opaque-capability exclusion.
+- Personal-range creation, selection, exact elapsed validation, rename, immutable-coordinate adjustment, legacy anchoring, reimport review, optimistic-conflict draft retention, guarded removal, remount restoration, accessible signal-chart range descriptions, concise summary disclosure, both locales, and opaque-capability exclusion.
 - Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail
   replacement, and progressive-disclosure boundaries. Activity retains its visual and day actions while its exact
   table is closed, then reveals the same gap-aware rows without another application query and remains coherent

@@ -230,6 +230,14 @@ export function TrainingSignalWorkbench({
       && coordinate.coordinate.signalRef === choice.signal.signalRef
     ))
   )) ?? false;
+  const visibleRangeDescription = rangeStartedAt !== undefined && rangeEndedAt !== undefined
+    ? `${copy.visibleSavedRange}: ${selectedSignalRange
+      ? `${selectedSignalRange.title} · `
+      : ""}${elapsedEditorValue(rangeStartedAt)}–${elapsedEditorValue(rangeEndedAt)}.`
+    : null;
+  const chartAccessibleDescription = visibleRangeDescription
+    ? `${chartSummary} ${visibleRangeDescription}`
+    : chartSummary;
 
   function samplePosition(sampleIndex: number): string {
     const sample = samples[sampleIndex];
@@ -472,6 +480,7 @@ export function TrainingSignalWorkbench({
             <TrainingSignalPlot
               samples={samples}
               summary={chartSummary}
+              accessibleDescription={chartAccessibleDescription}
               coordinateRef={`${choice.exerciseRef}:${choice.role}:${choice.signal.signalRef}:elapsed`}
               seriesId={choice.signal.signalRef}
               xAxisLabel={sessionCopy.signalElapsed}

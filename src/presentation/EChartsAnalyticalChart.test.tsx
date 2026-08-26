@@ -6,6 +6,7 @@ import EChartsAnalyticalChart from "./EChartsAnalyticalChart";
 
 const adapter = vi.hoisted(() => ({
   mount: vi.fn(),
+  update: vi.fn(),
   resize: vi.fn(),
   dispose: vi.fn(),
 }));
@@ -66,9 +67,11 @@ function model(): AnalyticalChartModel {
 
 beforeEach(() => {
   adapter.mount.mockReset();
+  adapter.update.mockReset();
   adapter.resize.mockReset();
   adapter.dispose.mockReset();
   adapter.mount.mockReturnValue({
+    update: adapter.update,
     resize: adapter.resize,
     dispose: adapter.dispose,
   });
@@ -97,7 +100,10 @@ describe("EChartsAnalyticalChart", () => {
 
     const host = screen.getByRole("img", { name: "Recorded heart rate" });
     expect(host).toHaveAttribute("data-chart-renderer", "svg");
-    expect(adapter.mount).toHaveBeenCalledWith(host, expect.any(Object), onSelection);
+    expect(host).toHaveAccessibleDescription("Recorded heart rate with source gaps preserved.");
+    const renderer = host.querySelector(".analytical-chart-renderer");
+    expect(renderer).toHaveAttribute("aria-hidden", "true");
+    expect(adapter.mount).toHaveBeenCalledWith(renderer, expect.any(Object), onSelection);
 
     act(() => observedResize?.([], {} as ResizeObserver));
     expect(adapter.resize).toHaveBeenCalledTimes(1);
@@ -109,22 +115,51 @@ describe("EChartsAnalyticalChart", () => {
     expect(adapter.dispose).toHaveBeenCalledTimes(1);
   });
 
+  it("updates synchronized evidence without replacing the renderer", () => {
+    const initial = model();
+    const onSelection = vi.fn<(selection: AnalyticalChartSelection) => void>();
+    const rendered = render(
+      <EChartsAnalyticalChart model={initial} onSelection={onSelection} />,
+    );
+    const updated = {
+      ...initial,
+      annotations: { selectedCoordinate: 1_000 },
+    };
+
+    rendered.rerender(
+      <EChartsAnalyticalChart model={updated} onSelection={onSelection} />,
+    );
+
+    expect(adapter.mount).toHaveBeenCalledTimes(1);
+    expect(adapter.dispose).not.toHaveBeenCalled();
+    expect(adapter.update).toHaveBeenCalledOnce();
+    expect(adapter.update).toHaveBeenCalledWith(updated, onSelection);
+  });
+
   it("waits for visible geometry before mounting the renderer", () => {
     hostWidth = 0;
     hostHeight = 0;
-    const { unmount } = render(<EChartsAnalyticalChart model={model()} />);
+    const initial = model();
+    const rendered = render(<EChartsAnalyticalChart model={initial} />);
 
     expect(adapter.mount).not.toHaveBeenCalled();
+
+    const updated = {
+      ...initial,
+      annotations: { selectedCoordinate: 1_000 },
+    };
+    rendered.rerender(<EChartsAnalyticalChart model={updated} />);
 
     hostWidth = 640;
     hostHeight = 320;
     act(() => observedResize?.([], {} as ResizeObserver));
     expect(adapter.mount).toHaveBeenCalledTimes(1);
+    expect(adapter.mount).toHaveBeenCalledWith(expect.any(HTMLElement), updated, undefined);
 
     act(() => observedResize?.([], {} as ResizeObserver));
     expect(adapter.resize).toHaveBeenCalledTimes(1);
 
-    unmount();
+    rendered.unmount();
     expect(adapter.dispose).toHaveBeenCalledTimes(1);
   });
 });

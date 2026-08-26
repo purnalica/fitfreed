@@ -79,6 +79,13 @@ boundary stays beside the visual relationship. A longitudinal comparison likewis
 application-owned baseline and comparison aggregates before exact values and controls, preserves the previous
 valid result across a contextual failure, and makes no claim about causation, health, or readiness.
 
+The route workbench uses the same analytical boundary only when the application supplies an exact recorded
+route-and-signal coordinate. One through four independently scaled measurement lanes share that route elapsed axis,
+retain source gaps, and synchronize their selected coordinate with the map. Chart point selection navigates returned
+route evidence; exact signal disclosure remains tied to the application-supplied aligned sample ordinal. A native
+shared-position control and semantic lane summaries keep keyboard, current-value, provenance, range, and exact-source
+meaning outside the renderer. Selection updates reuse the mounted chart instance instead of replacing it.
+
 Reports uses the same current-location semantics for a separate staged workflow. Library owns saved definitions and new starts, Compose owns the complete ordered editor and its evidence tools, and Preview owns resolved output plus mutually exclusive stale-evidence or export review. The mounted draft and resolved candidate survive temporary stage changes, while a successful save and a saved-report selection lead to Preview. The stage never becomes durable report data; only the existing versioned definition and its application-owned evidence reference cross the transport and persistence boundaries.
 
 Settings has a presentation-owned category location. **Appearance & language** owns the atomic preference editor and representative preview; **Updates** owns maintenance status and actions without competing visually with those preferences. Moving between categories preserves an unsaved preview. Restoring defaults changes only the draft, cancellation reapplies the complete saved set without writing, and saving is the sole preference mutation. Requested top-level navigation pauses until the person keeps editing or explicitly discards and continues. The update component remains mounted when its category or Settings itself is hidden, so launch and periodic discovery retain one lifecycle and do not restart merely because the person navigates. Category location never enters the preference DTO or SQLite row.

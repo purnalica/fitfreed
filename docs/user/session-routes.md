@@ -63,16 +63,22 @@ boundary, and equal offsets on an independent signal never synchronize that sign
 ## Compare measurements along the route
 
 Recorded measurements appear below the map only when an importer explicitly aligns them with route positions.
-Every such lane
-keeps its own named scale and source identity; their cursor is the same recorded position used by the map,
-value strip, and position control. Click or tap a lane to choose the closest recorded route position on its
-elapsed axis. When the lane has keyboard focus, use Left and Right to move between recorded positions or Home
-and End to move to the first or last timed position.
+Every such lane keeps its own labelled axis, unit, recorded range, and source identity in one linked analytical
+chart. Pace uses clock-like minutes and seconds rather than decimal minutes. The chart cursor is the same recorded
+position used by the map and value strip. Choose a returned chart point to move the map to the nearest returned
+route point on the application-established elapsed coordinate; this navigation does not claim that proximity is an
+exact source relationship.
+
+The **Shared map and measurement position** control is the complete pointer and keyboard alternative. Left and Right
+move between recorded route positions, while Home and End move to the first or last timed position. Its accessible
+value names the route point, elapsed time, and current value in every visible lane. The chart and control update the
+existing local view rather than recreating it during traversal.
 
 FitFreed initially shows at most three useful lanes. If more measurements are available, **Visible
 measurements** lets you show up to four while keeping at least one. A line stops at a recorded unavailable
-value or source gap. The displayed ranges and selected values are structured text as well as graphics, and
-an unaligned point remains explicitly unavailable.
+value or source gap. Dense lanes provide local horizontal zoom without changing their evidence domain. Displayed
+ranges, selected values, source coverage, and exact-source actions remain structured HTML as well as graphics, and an
+unaligned point remains explicitly unavailable.
 
 The current Polar Flow importer does not provide the required route-and-signal relationship, even when both
 sides contain elapsed values. Its map therefore remains available and its regular signal charts remain in

@@ -712,12 +712,28 @@ for (const [laneCount, expectedHeight] of [
     `a readable but laptop-bounded ${laneCount}-lane signal chart`,
   );
 }
+for (const [laneCount, expectedHeight] of [
+  ["1", /height:\s*clamp\(240px,\s*32vh,\s*320px\)/],
+  ["2", /height:\s*clamp\(300px,\s*40vh,\s*380px\)/],
+  ["3", /height:\s*clamp\(360px,\s*48vh,\s*460px\)/],
+  ["4", /height:\s*clamp\(420px,\s*54vh,\s*520px\)/],
+]) {
+  requireRule(
+    stylesheet,
+    `.training-route-signal-chart[data-lane-count="${laneCount}"] > .analytical-chart-canvas`,
+    [expectedHeight],
+    `a readable but laptop-bounded ${laneCount}-lane route-signal chart`,
+  );
+}
 for (const obsoleteRendererSelector of [
   ".training-signal-visual svg",
   ".training-signal-workbench-plot svg",
   ".training-signal-workbench-plot polyline",
   ".training-cross-signal-lanes svg",
   ".training-cross-signal-lanes polyline",
+  ".training-route-signal-lane-chart svg",
+  ".training-route-signal-lane-chart polyline",
+  ".training-route-signal-cursor",
   ".longitudinal-chart",
   ".longitudinal-lanes",
 ]) {
@@ -747,6 +763,8 @@ for (const zoom of ["175", "200"]) {
     `:root[data-content-zoom="${zoom}"] .training-signal-workbench-plot > .analytical-chart-canvas`,
   ) || !stylesheet.includes(
     `:root[data-content-zoom="${zoom}"] .training-cross-signal-chart > .analytical-chart-canvas`,
+  ) || !stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-route-signal-chart`,
   ) || !stylesheet.includes(
     `:root[data-content-zoom="${zoom}"] .longitudinal-answer-visual > .analytical-chart-canvas`,
   )) {

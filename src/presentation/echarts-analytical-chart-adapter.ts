@@ -26,6 +26,7 @@ import type {
 import {
   analyticalAxisNumberFormatter,
   formatAnalyticalDuration,
+  formatAnalyticalPace,
   mediumDateFormatter,
 } from "./presentation-format";
 
@@ -171,6 +172,10 @@ export interface CompiledEChartsAnalyticalChart {
 }
 
 export interface EChartsAnalyticalChartHandle {
+  update: (
+    model: AnalyticalChartModel,
+    onSelection?: (selection: AnalyticalChartSelection) => void,
+  ) => void;
   resize: () => void;
   dispose: () => void;
 }
@@ -182,6 +187,9 @@ function valueFormatter(format: AnalyticalChartValueFormat, locale: AnalyticalCh
   if (format.kind === "local-date") {
     const formatter = mediumDateFormatter(locale);
     return (value: number) => formatter.format(new Date(value));
+  }
+  if (format.kind === "pace-minutes") {
+    return (value: number) => formatAnalyticalPace(value, locale);
   }
   const formatter = analyticalAxisNumberFormatter(locale, format.maximumFractionDigits);
   return (value: number) => formatter.format(value);
@@ -514,22 +522,32 @@ export function mountEChartsAnalyticalChart(
   model: AnalyticalChartModel,
   onSelection?: (selection: AnalyticalChartSelection) => void,
 ): EChartsAnalyticalChartHandle {
-  const compiled = compileEChartsAnalyticalChart(model, analyticalChartPalette(element));
+  let palette = analyticalChartPalette(element);
+  let activeModel = model;
+  let activeOnSelection = onSelection;
+  let compiled = compileEChartsAnalyticalChart(model, palette);
   const chart: EChartsType = init(element, undefined, {
     renderer: model.renderer,
     devicePixelRatio: window.devicePixelRatio,
   });
   chart.setOption(compiled.option as unknown as EChartsCoreOption);
   chart.on("click", (event) => {
-    if (!model.interaction.pointSelection || !onSelection) return;
+    if (!activeModel.interaction.pointSelection || !activeOnSelection) return;
     const candidate = event as unknown as { seriesIndex?: number; dataIndex?: number };
     if (candidate.seriesIndex === undefined || candidate.dataIndex === undefined) return;
     const selection = compiled.selectionByDataIndex.get(
       `${candidate.seriesIndex}:${candidate.dataIndex}`,
     );
-    if (selection) onSelection(selection);
+    if (selection) activeOnSelection(selection);
   });
   return {
+    update: (nextModel, nextOnSelection) => {
+      activeModel = nextModel;
+      activeOnSelection = nextOnSelection;
+      palette = analyticalChartPalette(element);
+      compiled = compileEChartsAnalyticalChart(nextModel, palette);
+      chart.setOption(compiled.option as unknown as EChartsCoreOption, { notMerge: true });
+    },
     resize: () => chart.resize(),
     dispose: () => chart.dispose(),
   };

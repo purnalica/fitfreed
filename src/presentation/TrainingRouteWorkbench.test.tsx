@@ -3,12 +3,19 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
+import type { AnalyticalChartModel, AnalyticalChartSelection } from "./analytical-chart";
 import type { SessionStory } from "./session-story";
 import type { TrainingSessionRange, TrainingSessionRangesResult } from "./training-session-range";
 import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
 
 const commands = vi.hoisted(() => ({ invoke: vi.fn() }));
+const analyticalChartProbe = vi.hoisted(() => ({
+  renderings: [] as Array<{
+    model: unknown;
+    onSelection?: (selection: unknown) => void;
+  }>,
+}));
 const viewport = vi.hoisted(() => ({
   create: vi.fn(),
   selectPoint: undefined as ((pointIndex: number) => void) | undefined,
@@ -25,6 +32,21 @@ const viewport = vi.hoisted(() => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: commands.invoke }));
+vi.mock("./AnalyticalChart", () => ({
+  AnalyticalChart: ({
+    model,
+    onSelection,
+  }: {
+    model: AnalyticalChartModel;
+    onSelection?: (selection: AnalyticalChartSelection) => void;
+  }) => {
+    analyticalChartProbe.renderings.push({
+      model,
+      onSelection: onSelection as ((selection: unknown) => void) | undefined,
+    });
+    return <div role="img" aria-label={model.accessibleName} />;
+  },
+}));
 vi.mock("./leaflet-route-adapter", () => ({
   createLocalRouteViewport: viewport.create,
 }));
@@ -214,6 +236,7 @@ function story(withElapsed = true): SessionStory {
 
 beforeEach(() => {
   commands.invoke.mockReset();
+  analyticalChartProbe.renderings.length = 0;
   viewport.selectPoint = undefined;
   Object.values(viewport.controller).forEach((mock) => mock.mockReset());
   viewport.create.mockReset().mockImplementation((_element, options) => {
@@ -221,6 +244,15 @@ beforeEach(() => {
     return Promise.resolve(viewport.controller);
   });
 });
+
+function latestRouteSignalChart() {
+  const rendering = analyticalChartProbe.renderings.at(-1);
+  expect(rendering).toBeDefined();
+  return rendering! as {
+    model: AnalyticalChartModel;
+    onSelection?: (selection: AnalyticalChartSelection) => void;
+  };
+}
 
 afterEach(cleanup);
 
@@ -482,16 +514,38 @@ describe("TrainingRouteWorkbench", () => {
     const signalLanes = within(workbench).getByRole("region", {
       name: "Recorded measurements along the route",
     });
-    const paceLane = within(signalLanes).getByRole("slider", {
-      name: "Pace lane position",
+    const chartPosition = within(signalLanes).getByRole("slider", {
+      name: "Shared map and measurement position",
     });
-    expect(paceLane).toHaveAttribute("aria-valuenow", "1");
-    expect(paceLane).toHaveAttribute(
+    expect(chartPosition).toHaveAttribute("aria-valuenow", "1");
+    expect(chartPosition).toHaveAttribute(
       "aria-valuetext",
-      "Point 1 of 3 · 0 s · 5:00 min/km",
+      "Point 1 of 3 · 0 s · Pace: 5:00 min/km",
     );
-    expect(paceLane.querySelectorAll("polyline")).toHaveLength(1);
-    expect(paceLane.querySelectorAll(".training-route-signal-cursor")).toHaveLength(1);
+    expect(within(signalLanes).getByRole("img", {
+      name: "Measurements along this route",
+    })).toBeVisible();
+    const initialChart = latestRouteSignalChart().model;
+    expect(initialChart).toMatchObject({
+      layout: { kind: "stacked-lanes" },
+      coordinate: {
+        ref: `route-${"a".repeat(64)}:elapsed`,
+        domain: { minimum: 0, maximum: 2_000 },
+      },
+      interaction: { zoom: false, pointSelection: true },
+      annotations: { selectedCoordinate: 0 },
+    });
+    expect(initialChart.axes[0]).toMatchObject({
+      label: "Pace",
+      unit: "min/km",
+      direction: "lower-at-top",
+      format: { kind: "pace-minutes" },
+    });
+    expect(initialChart.series[0].points).toEqual([
+      expect.objectContaining({ coordinate: 0, value: 5, gapBefore: false }),
+      expect.objectContaining({ coordinate: 1_000, value: 6, gapBefore: false }),
+      expect.objectContaining({ coordinate: 2_000, value: null, gapBefore: false }),
+    ]);
 
     const position = within(workbench).getByRole("slider", { name: "Recorded position" });
     expect(position).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 s");
@@ -503,27 +557,20 @@ describe("TrainingRouteWorkbench", () => {
     expect(position).toHaveAttribute("aria-valuetext", "Point 2 of 3 · 1 s");
     expect(viewport.controller.updateSelection).toHaveBeenLastCalledWith(1);
 
-    paceLane.focus();
+    chartPosition.focus();
     await user.keyboard("{ArrowRight}");
     expect(await screen.findByText("Point 3 of 3")).toBeVisible();
-    expect(paceLane).toHaveAttribute("aria-valuenow", "3");
+    expect(chartPosition).toHaveAttribute("aria-valuenow", "3");
     await user.keyboard("{Home}");
     expect(await screen.findByText("Point 1 of 3")).toBeVisible();
     await user.keyboard("{End}");
     expect(await screen.findByText("Point 3 of 3")).toBeVisible();
 
-    vi.spyOn(paceLane, "getBoundingClientRect").mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      left: 0,
-      right: 300,
-      bottom: 100,
-      width: 300,
-      height: 100,
-      toJSON: () => ({}),
-    });
-    fireEvent.click(paceLane, { clientX: 0 });
+    act(() => latestRouteSignalChart().onSelection?.({
+      seriesId: `signal-${"b".repeat(64)}`,
+      pointId: `signal-${"b".repeat(64)}:sample-0`,
+      coordinate: 0,
+    }));
     expect(await screen.findByText("Point 1 of 3")).toBeVisible();
 
     await act(async () => viewport.selectPoint?.(2));
@@ -680,15 +727,18 @@ describe("TrainingRouteWorkbench", () => {
     });
     expect(within(lanes).getAllByRole("checkbox")).toHaveLength(5);
     expect(within(lanes).getAllByRole("checkbox", { checked: true })).toHaveLength(3);
-    expect(within(lanes).getAllByRole("slider")).toHaveLength(3);
+    expect(within(lanes).getAllByRole("slider")).toHaveLength(1);
+    expect(latestRouteSignalChart().model.series).toHaveLength(3);
 
     await user.click(within(lanes).getByRole("checkbox", { name: "Cadence" }));
-    expect(within(lanes).getAllByRole("slider")).toHaveLength(4);
+    expect(within(lanes).getAllByRole("slider")).toHaveLength(1);
+    expect(latestRouteSignalChart().model.series).toHaveLength(4);
     expect(within(lanes).getByRole("checkbox", { name: "Power" })).toBeDisabled();
     await user.click(within(lanes).getByRole("checkbox", { name: "Elevation" }));
     expect(within(lanes).getByRole("checkbox", { name: "Power" })).toBeEnabled();
     await user.click(within(lanes).getByRole("checkbox", { name: "Power" }));
-    expect(within(lanes).getAllByRole("slider")).toHaveLength(4);
+    expect(within(lanes).getAllByRole("slider")).toHaveLength(1);
+    expect(latestRouteSignalChart().model.series).toHaveLength(4);
   });
 
   it("splits synchronized lane geometry at a recorded source gap", () => {
@@ -706,9 +756,11 @@ describe("TrainingRouteWorkbench", () => {
       />,
     );
 
-    const lane = screen.getByRole("slider", { name: "Pace lane position" });
-    expect(lane.querySelectorAll("polyline")).toHaveLength(0);
-    expect(lane.querySelectorAll(".training-route-signal-lane-isolated")).toHaveLength(2);
+    expect(latestRouteSignalChart().model.series[0].points).toEqual([
+      expect.objectContaining({ coordinate: 0, value: 5, gapBefore: false }),
+      expect.objectContaining({ coordinate: 1_000, value: 6, gapBefore: true }),
+      expect.objectContaining({ coordinate: 2_000, value: null, gapBefore: false }),
+    ]);
   });
 
   it("keeps the bounded lane but does not invent an exact sample target at an unaligned point", async () => {
@@ -727,8 +779,7 @@ describe("TrainingRouteWorkbench", () => {
       />,
     );
 
-    expect(screen.getByRole("slider", { name: "Pace lane position" })
-      .querySelectorAll("polyline")).toHaveLength(1);
+    expect(latestRouteSignalChart().model.series[0].points).toHaveLength(3);
     fireEvent.change(screen.getByRole("slider", { name: "Recorded position" }), {
       target: { value: "1" },
     });

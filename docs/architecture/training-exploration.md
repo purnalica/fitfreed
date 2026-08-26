@@ -291,6 +291,19 @@ another evidence role, or claiming causation. The coordinate domain remains stab
 changes because it is derived from every eligible series in that one exercise role. Lane summaries and direct exact-
 sample actions remain semantic HTML outside ECharts.
 
+The conditional route-signal view uses that same `stacked-lanes` contract for one through four measurements. Its
+coordinate is the one route elapsed coordinate established by an `exact-recorded` application overlay; every lane
+keeps its transformed values, unit, independent domain, source gaps, and complete bounded visual samples. Pace axes
+use the shared clock-like `M:SS` presentation policy rather than decimal minutes. A selected route point supplies the
+authoritative chart annotation only when that point has recorded elapsed evidence. Selecting a returned chart point
+moves the shared map position to the nearest returned route point on that already established coordinate, while the
+exact-source action still uses only the application-supplied aligned signal-sample ordinal. It never derives an exact
+relationship from chart proximity. One native range control supplies pointer and explicit Left, Right, Home, and End
+navigation for the shared position; named ranges, current values, source coverage, and exact actions remain semantic
+HTML outside the renderer. The React adapter updates an existing ECharts instance when selection changes and mounts
+the latest model if geometry becomes visible later, so map traversal does not recreate the renderer or reveal stale
+evidence.
+
 A separately lazily loaded presentation adapter uses stable Leaflet 1.x
 only for a local vector viewport: projection, pan, zoom, fit, resize, pointer coordinates, and metric scale.
 It receives one bounded `SessionStory`, creates no independent query, and exposes no Leaflet type outside
@@ -325,14 +338,14 @@ and reveals the same composed counts for exercises, structure, routes, signals, 
 unsupported evidence. This keeps compatibility detail explicit and accessible without placing an inventory of
 limitations between the person and the strongest recorded visual.
 
-`TrainingRouteSignalLanes` is a conditional semantic timeline, not an assumed accompaniment to a route. It can
+`TrainingRouteSignalLanes` is a conditional analytical timeline, not an assumed accompaniment to a route. It can
 pair a role's bounded route and signal evidence only through `exact-recorded` application overlays that name
 the exact route-point and signal-sample relationship. The current Polar Flow mapping returns no such overlays,
 so production renders the recorded route alone and keeps its regular signals in the independent Signals and
 zones destination. Equal offsets, cardinality, or visual proximity never activate the component.
 
-When a future importer supplies that authority, the complete bounded series may provide lane geometry and
-source gaps while exact overlay matches provide selected values and exact-row paths. Each lane then retains the
+When a future importer supplies that authority, the complete bounded series provides renderer-neutral lane geometry
+and source gaps while exact overlay matches provide selected values and exact-row paths. Each lane retains the
 transformed metric, source identity, recorded elapsed time, null value, and gap marker from the coherent
 `SessionStory`; presentation still neither resamples nor launches an independent query. Missing route elapsed
 time or an unavailable alignment omits the synchronized lane workspace rather than creating a cursor or join.
@@ -449,7 +462,9 @@ coordinate. Its selected-sample control and two boundary controls traverse exact
 pointer or the same explicit keyboard policy. `TrainingSignalPlot` creates a validated analytical model from that
 one series: exact elapsed milliseconds form the labelled horizontal coordinate, the recorded measurement owns its
 labelled value axis and unit, nulls and source gaps remain disconnected, and exact sample ordinals alone can become
-the selection line, boundary lines, and range band. A typed boundary that is not one of those returned visual samples remains unmarked. The chart
+the selection line, boundary lines, and range band. The chart's accessible description repeats the exact visible
+personal-range title and elapsed boundaries, so save, reimport, and process restart never make that projection
+visual-only. A typed boundary that is not one of those returned visual samples remains unmarked. The chart
 keeps approximately three quarters of the wide workspace and stacks above its inspector at compact width or
 high content zoom. Dense series expose local horizontal chart zoom, while the native slider, explicit inputs, and
 paginated exact-sample table remain the authoritative keyboard and assistive-technology paths. Point selection is

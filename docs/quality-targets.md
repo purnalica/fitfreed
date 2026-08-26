@@ -77,6 +77,8 @@ limit applies to this exact workload after a WAL checkpoint; it is not a univers
 - Queries that exceed 500 ms expose progress or progressive results and remain cancellable.
 - Downsampling or aggregation may improve rendering but must preserve displayed meaning and provide access to exact values.
 - Visual interaction targets 60 frames per second; sustained work must not block the UI event loop in a way that causes visible input loss or frozen progress.
+- Synchronized map and analytical-chart traversal updates the mounted local renderer in place; changing a selected
+  evidence point must not dispose and recreate the chart engine.
 
 ## Accessibility target
 

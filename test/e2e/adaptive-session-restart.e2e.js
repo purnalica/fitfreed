@@ -1,6 +1,7 @@
 import fs from "node:fs";
 
 import { e2eApplicationBinary } from "../../scripts/e2e-paths.mjs";
+import { accessibleDescription } from "./support/accessibility.js";
 import {
   goToHome,
   openHomeQuestion,
@@ -80,8 +81,11 @@ describe("packaged independent-signal range restart", () => {
     await workbench.waitForDisplayed({ timeout: 10_000 });
     await expect(workbench.$(".training-signal-saved-range strong"))
       .toHaveText("Steady signal");
-    expect(await workbench.$$(".training-signal-range-start")).toHaveLength(1);
-    expect(await workbench.$$(".training-signal-range-end")).toHaveLength(1);
+    const signalChart = await workbench.$(".analytical-chart-canvas");
+    await signalChart.waitForDisplayed({ timeout: 10_000 });
+    expect(await accessibleDescription(signalChart)).toContain(
+      "Mostrado en el gráfico: Steady signal · 0:15:00–0:45:00.",
+    );
 
     await openPersonalRanges();
     const inspector = await $(".training-range-inspector");

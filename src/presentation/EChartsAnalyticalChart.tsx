@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import type {
   AnalyticalChartModel,
@@ -15,18 +15,33 @@ export default function EChartsAnalyticalChart({
   model,
   onSelection,
 }: EChartsAnalyticalChartProps) {
+  const descriptionId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<ReturnType<typeof mountEChartsAnalyticalChart> | undefined>(undefined);
+  const renderedModelRef = useRef<AnalyticalChartModel | undefined>(undefined);
+  const renderedSelectionRef = useRef<typeof onSelection>(undefined);
+  const latestModelRef = useRef(model);
+  const latestSelectionRef = useRef(onSelection);
+  latestModelRef.current = model;
+  latestSelectionRef.current = onSelection;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    let chart: ReturnType<typeof mountEChartsAnalyticalChart> | undefined;
     const renderAtCurrentSize = () => {
       if (container.clientWidth <= 0 || container.clientHeight <= 0) return;
-      if (chart) {
-        chart.resize();
+      if (chartRef.current) {
+        chartRef.current.resize();
       } else {
-        chart = mountEChartsAnalyticalChart(container, model, onSelection);
+        const latestModel = latestModelRef.current;
+        const latestSelection = latestSelectionRef.current;
+        chartRef.current = mountEChartsAnalyticalChart(
+          container,
+          latestModel,
+          latestSelection,
+        );
+        renderedModelRef.current = latestModel;
+        renderedSelectionRef.current = latestSelection;
       }
     };
     const observer = typeof ResizeObserver === "undefined"
@@ -38,17 +53,35 @@ export default function EChartsAnalyticalChart({
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", renderAtCurrentSize);
-      chart?.dispose();
+      chartRef.current?.dispose();
+      chartRef.current = undefined;
+      renderedModelRef.current = undefined;
+      renderedSelectionRef.current = undefined;
     };
+  }, [model.renderer]);
+
+  useEffect(() => {
+    if (!chartRef.current
+      || (renderedModelRef.current === model && renderedSelectionRef.current === onSelection)) return;
+    chartRef.current.update(model, onSelection);
+    renderedModelRef.current = model;
+    renderedSelectionRef.current = onSelection;
   }, [model, onSelection]);
 
   return (
     <div
-      ref={containerRef}
       className="analytical-chart-canvas"
       role="img"
       aria-label={model.accessibleName}
+      aria-describedby={descriptionId}
       data-chart-renderer={model.renderer}
-    />
+    >
+      <span id={descriptionId} className="sr-only">{model.accessibleDescription}</span>
+      <div
+        ref={containerRef}
+        className="analytical-chart-renderer"
+        aria-hidden="true"
+      />
+    </div>
   );
 }

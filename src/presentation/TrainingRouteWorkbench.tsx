@@ -772,6 +772,7 @@ export function TrainingRouteWorkbench({
         locale={locale}
         messages={messages}
         metricLabel={(metric) => copy.metrics[metric]}
+        metricUnit={(metric) => copy.metricUnits[metric]}
         formatMetricValue={(metric, value) => metricValue(
           metric,
           value,

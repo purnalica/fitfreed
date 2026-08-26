@@ -288,6 +288,8 @@ describe("TrainingSignalWorkbench", () => {
     expect(visibleSignal).toBeEnabled();
     expect(document.querySelector(".training-signal-saved-range strong"))
       .toHaveTextContent("Steady pulse");
+    expect(latestChartModel(signalRef).accessibleDescription)
+      .toContain("Shown on the chart: Steady pulse · 0:00:01–0:00:03.");
 
     fireEvent.change(position, { target: { value: "3" } });
     await user.click(screen.getByRole("button", { name: "Create a range from this sample" }));

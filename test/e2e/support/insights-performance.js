@@ -375,17 +375,29 @@ async function measureTrainingSignalOverview() {
         signalSectionButton.click();
       }
       const signalSection = document.querySelector("#training-detail-signals");
-      const charts = Array.from(document.querySelectorAll(".training-signal svg"));
+      const charts = Array.from(document.querySelectorAll(
+        ".training-signal .analytical-chart-canvas",
+      ));
       const choices = document.querySelectorAll(
         ".training-cross-signal-selection input[type='checkbox']",
       );
-      const crossSignalLanes = document.querySelectorAll(".training-cross-signal-lanes svg");
+      const crossSignalChart = document.querySelector(
+        ".training-cross-signal-chart .analytical-chart-canvas",
+      );
+      const crossSignalLanes = document.querySelectorAll(
+        ".training-cross-signal-lanes article",
+      );
+      const rendererMounted = (chart) => (
+        chart?.querySelector(".analytical-chart-renderer")?.childElementCount > 0
+      );
       if (
         signalsOpened
         && signalSection && !signalSection.hasAttribute("hidden")
         && charts.length === 4
         && choices.length === 4
         && crossSignalLanes.length === 3
+        && rendererMounted(crossSignalChart)
+        && charts.every(rendererMounted)
         && charts.every((chart) => chart.getAttribute("aria-label")?.includes("20,001 samples"))
       ) {
         document.documentElement.getBoundingClientRect();
@@ -412,6 +424,7 @@ async function measureTrainingSignalOverview() {
               label: choice.parentElement?.textContent,
             })),
             selectedChoices: Array.from(choices).filter((choice) => choice.checked).length,
+            crossSignalChartMounted: rendererMounted(crossSignalChart),
             crossSignalLanes: crossSignalLanes.length,
           })}`,
         });
@@ -435,11 +448,16 @@ async function measureTrainingSignalOverview() {
     target.addEventListener("click", () => {
       const started = window.performance.now();
       function observeSelection() {
-        const lanes = document.querySelectorAll(".training-cross-signal-lanes svg");
+        const lanes = document.querySelectorAll(".training-cross-signal-lanes article");
+        const chart = document.querySelector(
+          ".training-cross-signal-chart[data-lane-count='4'] .analytical-chart-canvas",
+        );
         const checked = document.querySelectorAll(
           ".training-cross-signal-selection input[type='checkbox']:checked",
         );
-        if (lanes.length === 4 && checked.length === 4) {
+        const rendererMounted = chart
+          ?.querySelector(".analytical-chart-renderer")?.childElementCount > 0;
+        if (lanes.length === 4 && checked.length === 4 && rendererMounted) {
           document.documentElement.getBoundingClientRect();
           setTimeout(() => {
             globalThis.__fitfreedMaximumSignalSelection = {

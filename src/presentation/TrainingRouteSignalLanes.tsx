@@ -1,24 +1,26 @@
-import { useEffect, useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import {
+  analyticalCoordinateFromDecimal,
+  type AnalyticalChartAxis,
+  type AnalyticalChartModel,
+  type AnalyticalChartPoint,
+} from "./analytical-chart";
+import { AnalyticalChart } from "./AnalyticalChart";
+import { formatDetailDuration, integerCountFormatter } from "./presentation-format";
+import {
   routePointIndexAtTimelineFraction,
   routeTimelineKeyboardSelection,
-  routeTimelinePosition,
-  routeTimelinePositionForElapsed,
   type RouteWorkbenchModel,
   type RouteWorkbenchOverlay,
   type RouteWorkbenchOverlayValue,
 } from "./route-workbench-model";
 import type { SessionStoryMetric, SessionStoryRole } from "./session-story";
-import { formatDetailDuration, integerCountFormatter } from "./presentation-format";
 
 const MAX_VISIBLE_LANES = 4;
 const DEFAULT_VISIBLE_LANES = 3;
-const SVG_LEFT = 20;
-const SVG_WIDTH = 960;
-const SVG_TOP = 14;
-const SVG_HEIGHT = 76;
+const ZOOM_SAMPLE_THRESHOLD = 80;
 
 interface TrainingRouteSignalLanesProps {
   model: RouteWorkbenchModel;
@@ -29,6 +31,7 @@ interface TrainingRouteSignalLanesProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   metricLabel: (metric: SessionStoryMetric) => string;
+  metricUnit: (metric: SessionStoryMetric) => string;
   formatMetricValue: (metric: SessionStoryMetric, value: number) => string;
   onSelectPoint: (pointIndex: number) => void;
   onOpenExactSignal: (
@@ -38,12 +41,29 @@ interface TrainingRouteSignalLanesProps {
   ) => void;
 }
 
-interface LaneView {
+export interface TrainingRouteSignalChartLane {
   overlay: RouteWorkbenchOverlay;
   label: string;
+  unit: string;
   sourceLabel: string;
   exactSampleCount: number;
-  segments: string[];
+  rangeSummary: string;
+}
+
+export interface TrainingRouteSignalChartInput {
+  routeModel: RouteWorkbenchModel;
+  lanes: TrainingRouteSignalChartLane[];
+  selectedPointIndex: number;
+  locale: Locale;
+  coordinateLabel: string;
+  accessibleName: string;
+  introduction: string;
+  meaning: string;
+}
+
+export interface TrainingRouteSignalChartProjection {
+  model: AnalyticalChartModel;
+  maximumElapsedMilliseconds: number;
 }
 
 function interpolate(template: string, values: Record<string, string>): string {
@@ -62,36 +82,6 @@ function visibleCandidates(model: RouteWorkbenchModel): RouteWorkbenchOverlay[] 
 function initialLaneRefs(overlays: RouteWorkbenchOverlay[]): string[] {
   return overlays.slice(0, Math.min(DEFAULT_VISIBLE_LANES, MAX_VISIBLE_LANES))
     .map((overlay) => overlay.signalRef);
-}
-
-function laneSegments(
-  model: RouteWorkbenchModel,
-  overlay: RouteWorkbenchOverlay,
-): string[] {
-  if (overlay.laneMinimum === null || overlay.laneMaximum === null) return [];
-  const laneMaximum = overlay.laneMaximum;
-  const valueSpan = laneMaximum - overlay.laneMinimum;
-  const segments: string[] = [];
-  let current: string[] = [];
-  overlay.laneSamples.forEach((sample) => {
-    if (sample.value === null || sample.gapBefore) {
-      if (current.length > 0) segments.push(current.join(" "));
-      current = [];
-    }
-    if (sample.value === null) return;
-    const timelinePosition = routeTimelinePositionForElapsed(
-      model,
-      sample.elapsedMilliseconds,
-    );
-    if (timelinePosition === null) return;
-    const x = SVG_LEFT + timelinePosition * SVG_WIDTH;
-    const y = valueSpan === 0
-      ? SVG_TOP + SVG_HEIGHT / 2
-      : SVG_TOP + (laneMaximum - sample.value) / valueSpan * SVG_HEIGHT;
-    current.push(`${x.toFixed(2)},${y.toFixed(2)}`);
-  });
-  if (current.length > 0) segments.push(current.join(" "));
-  return segments;
 }
 
 function exactSignalAction(
@@ -120,6 +110,116 @@ function selectedValue(
   );
 }
 
+function axisFormat(metric: SessionStoryMetric): AnalyticalChartAxis["format"] {
+  if (metric === "pace") return { kind: "pace-minutes" };
+  if (metric === "heart-rate" || metric === "cadence"
+    || metric === "stroke-rate" || metric === "power") {
+    return { kind: "number", maximumFractionDigits: 0 };
+  }
+  return { kind: "number", maximumFractionDigits: 1 };
+}
+
+function analyticalPoints(
+  lane: TrainingRouteSignalChartLane,
+): AnalyticalChartPoint[] | null {
+  const points = lane.overlay.laneSamples.map((sample) => {
+    const coordinate = analyticalCoordinateFromDecimal(sample.elapsedMilliseconds);
+    return coordinate === null ? null : {
+      id: `${lane.overlay.signalRef}:sample-${sample.signalSampleOrdinal}`,
+      coordinate,
+      value: sample.value,
+      gapBefore: sample.gapBefore,
+    };
+  });
+  return points.some((point) => point === null)
+    ? null
+    : points.filter((point): point is AnalyticalChartPoint => point !== null);
+}
+
+export function buildTrainingRouteSignalChartProjection({
+  routeModel,
+  lanes,
+  selectedPointIndex,
+  locale,
+  coordinateLabel,
+  accessibleName,
+  introduction,
+  meaning,
+}: TrainingRouteSignalChartInput): TrainingRouteSignalChartProjection | null {
+  if (lanes.length < 1 || lanes.length > MAX_VISIBLE_LANES
+    || routeModel.maximumElapsedMilliseconds === null) return null;
+  const maximumElapsedMilliseconds = analyticalCoordinateFromDecimal(
+    routeModel.maximumElapsedMilliseconds,
+  );
+  if (maximumElapsedMilliseconds === null) return null;
+  const points = lanes.map(analyticalPoints);
+  if (points.some((lanePoints) => lanePoints === null)) return null;
+  const selectedElapsed = routeModel.points[selectedPointIndex]?.source.elapsedMilliseconds;
+  const selectedCoordinate = selectedElapsed === null || selectedElapsed === undefined
+    ? undefined
+    : analyticalCoordinateFromDecimal(selectedElapsed) ?? undefined;
+  const coordinateRef = `${routeModel.routeRef}:elapsed`;
+  const axes: AnalyticalChartAxis[] = lanes.flatMap((lane) => (
+    lane.overlay.laneMinimum === null || lane.overlay.laneMaximum === null
+      ? []
+      : [{
+          id: `${lane.overlay.signalRef}:axis`,
+          label: lane.label,
+          unit: lane.unit,
+          domain: {
+            minimum: lane.overlay.laneMinimum,
+            maximum: lane.overlay.laneMaximum,
+          },
+          direction: lane.overlay.metric === "pace" ? "lower-at-top" : "higher-at-top",
+          format: axisFormat(lane.overlay.metric),
+        }]
+  ));
+  if (axes.length !== lanes.length) return null;
+  const pointCount = points.reduce(
+    (total, lanePoints) => total + (lanePoints?.length ?? 0),
+    0,
+  );
+
+  return {
+    maximumElapsedMilliseconds,
+    model: {
+      accessibleName,
+      accessibleDescription: [
+        introduction,
+        ...lanes.map((lane) => `${lane.label}. ${lane.rangeSummary}`),
+        meaning,
+      ].join(" "),
+      locale,
+      renderer: pointCount > 1_000 ? "canvas" : "svg",
+      layout: { kind: "stacked-lanes" },
+      coordinate: {
+        ref: coordinateRef,
+        label: coordinateLabel,
+        unit: "",
+        domain: { minimum: 0, maximum: maximumElapsedMilliseconds },
+        format: { kind: "duration-milliseconds" },
+      },
+      axes,
+      series: lanes.map((lane, index) => ({
+        id: lane.overlay.signalRef,
+        label: lane.label,
+        coordinateRef,
+        axisId: axes[index].id,
+        points: points[index] ?? [],
+      })),
+      ...(selectedCoordinate === undefined
+        ? {}
+        : { annotations: { selectedCoordinate } }),
+      interaction: {
+        zoom: lanes.some(
+          (lane) => lane.overlay.laneSamples.length > ZOOM_SAMPLE_THRESHOLD,
+        ),
+        pointSelection: true,
+      },
+    },
+  };
+}
+
 export function TrainingRouteSignalLanes({
   model,
   role,
@@ -129,6 +229,7 @@ export function TrainingRouteSignalLanes({
   locale,
   messages,
   metricLabel,
+  metricUnit,
   formatMetricValue,
   onSelectPoint,
   onOpenExactSignal,
@@ -137,7 +238,8 @@ export function TrainingRouteSignalLanes({
   const candidateSignature = candidates.map((overlay) => overlay.signalRef).join("|");
   const [selectedRefs, setSelectedRefs] = useState(() => initialLaneRefs(candidates));
   const copy = messages.training.sessionLibrary.routeWorkbench;
-  const signalCopy = messages.training.sessionLibrary.signalKinds;
+  const sessionCopy = messages.training.sessionLibrary;
+  const signalCopy = sessionCopy.signalKinds;
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
 
   useEffect(() => {
@@ -171,16 +273,7 @@ export function TrainingRouteSignalLanes({
       : current.length >= MAX_VISIBLE_LANES ? current : [...current, signalRef]);
   }
 
-  function selectFromPointer(event: MouseEvent<HTMLDivElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    if (bounds.width <= 0) return;
-    onSelectPoint(routePointIndexAtTimelineFraction(
-      model,
-      (event.clientX - bounds.left) / bounds.width,
-    ));
-  }
-
-  function selectFromKeyboard(event: KeyboardEvent<HTMLDivElement>) {
+  function selectFromKeyboard(event: KeyboardEvent<HTMLInputElement>) {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     const next = routeTimelineKeyboardSelection(model, selectedPointIndex, event.key);
     if (next === null) return;
@@ -189,21 +282,53 @@ export function TrainingRouteSignalLanes({
     onSelectPoint(next);
   }
 
-  const lanes: LaneView[] = candidates.flatMap((overlay) => {
+  const lanes: TrainingRouteSignalChartLane[] = candidates.flatMap((overlay) => {
     if (!selectedRefs.includes(overlay.signalRef)) return [];
     const exactSignal = role.exactSignals.find(
       (signal) => signal.signalRef === overlay.signalRef,
     );
     if (!exactSignal) return [];
+    const rangeSummary = overlay.laneMinimum === null || overlay.laneMaximum === null
+      ? copy.overlayUnavailable
+      : interpolate(copy.overlayRange, {
+          minimum: formatMetricValue(overlay.metric, overlay.laneMinimum),
+          maximum: formatMetricValue(overlay.metric, overlay.laneMaximum),
+        });
     return [{
       overlay,
       label: laneLabel(overlay),
+      unit: metricUnit(overlay.metric),
       sourceLabel: signalCopy[exactSignal.kind],
       exactSampleCount: exactSignal.sampleCount,
-      segments: laneSegments(model, overlay),
+      rangeSummary,
     }];
   });
-  const selectedTimelinePosition = routeTimelinePosition(model, selectedPointIndex);
+  if (lanes.length === 0) return null;
+
+  const projection = buildTrainingRouteSignalChartProjection({
+    routeModel: model,
+    lanes,
+    selectedPointIndex,
+    locale,
+    coordinateLabel: sessionCopy.signalElapsed,
+    accessibleName: copy.signalLanesHeading,
+    introduction: copy.signalLanesIntroduction,
+    meaning: copy.signalLanesMeaning,
+  });
+  const selectedLaneValues = lanes.map((lane) => {
+    const value = selectedValue(lane.overlay, model, selectedPointIndex);
+    const formatted = value?.value === null || value === undefined
+      ? interpolate(copy.noMetricAtPosition, {
+          metric: metricLabel(lane.overlay.metric).toLocaleLowerCase(locale),
+        })
+      : formatMetricValue(lane.overlay.metric, value.value);
+    return { lane, value, formatted };
+  });
+  const positionValueText = [
+    selectedPointPosition,
+    selectedElapsed,
+    ...selectedLaneValues.map(({ lane, formatted }) => `${lane.label}: ${formatted}`),
+  ].join(" · ");
 
   return (
     <section
@@ -244,111 +369,80 @@ export function TrainingRouteSignalLanes({
           })}</div>
         </fieldset>
       )}
+      {projection === null ? (
+        <p className="analytical-chart-status" role="status">
+          {sessionCopy.analyticalChartUnavailable}
+        </p>
+      ) : (
+        <div
+          className="training-route-signal-chart"
+          data-lane-count={lanes.length}
+        >
+          <AnalyticalChart
+            model={projection.model}
+            loadingMessage={sessionCopy.analyticalChartLoading}
+            unavailableMessage={sessionCopy.analyticalChartUnavailable}
+            onSelection={(selection) => onSelectPoint(routePointIndexAtTimelineFraction(
+              model,
+              projection.maximumElapsedMilliseconds === 0
+                ? 0
+                : selection.coordinate / projection.maximumElapsedMilliseconds,
+            ))}
+          />
+        </div>
+      )}
+      <label className="training-route-signal-position-control">
+        <span>{copy.signalChartPosition}</span>
+        <input
+          type="range"
+          min="1"
+          max={model.points.length}
+          step="1"
+          value={selectedPointIndex + 1}
+          aria-valuemin={1}
+          aria-valuemax={model.points.length}
+          aria-valuenow={selectedPointIndex + 1}
+          aria-valuetext={positionValueText}
+          aria-describedby="training-route-signal-position-instructions"
+          onKeyDown={selectFromKeyboard}
+          onChange={(event) => onSelectPoint(Number(event.target.value) - 1)}
+        />
+      </label>
+      <p id="training-route-signal-position-instructions" className="sr-only">
+        {copy.signalLaneInstructions}
+      </p>
       <div className="training-route-signal-lane-list">
-        {lanes.map((lane) => {
-          const value = selectedValue(lane.overlay, model, selectedPointIndex);
-          const formattedValue = value?.value === null || value === undefined
-            ? interpolate(copy.noMetricAtPosition, {
-              metric: metricLabel(lane.overlay.metric).toLocaleLowerCase(locale),
-            })
-            : formatMetricValue(lane.overlay.metric, value.value);
-          const range = lane.overlay.laneMinimum === null || lane.overlay.laneMaximum === null
-            ? copy.overlayUnavailable
-            : interpolate(copy.overlayRange, {
-              minimum: formatMetricValue(lane.overlay.metric, lane.overlay.laneMinimum),
-              maximum: formatMetricValue(lane.overlay.metric, lane.overlay.laneMaximum),
-            });
-          const laneValueText = `${selectedPointPosition} · ${selectedElapsed} · ${formattedValue}`;
-          const selectedX = selectedTimelinePosition === null
-            ? null
-            : SVG_LEFT + selectedTimelinePosition * SVG_WIDTH;
-          const selectedY = value?.value === null || value === undefined
-            || lane.overlay.laneMinimum === null || lane.overlay.laneMaximum === null
-            ? null
-            : lane.overlay.laneMinimum === lane.overlay.laneMaximum
-              ? SVG_TOP + SVG_HEIGHT / 2
-              : SVG_TOP + (lane.overlay.laneMaximum - value.value)
-                / (lane.overlay.laneMaximum - lane.overlay.laneMinimum) * SVG_HEIGHT;
-          return (
-            <article key={lane.overlay.signalRef} data-signal-ref={lane.overlay.signalRef}>
-              <div className="training-route-signal-lane-heading">
-                <div>
-                  <h6>{lane.label}</h6>
-                  <span>{range}</span>
-                </div>
-                <div>
-                  <span>{interpolate(copy.signalLaneAlignment, {
-                    count: number.format(lane.overlay.samples.length),
-                  })}</span>
-                  <span>{interpolate(copy.signalLaneSource, {
-                    signal: lane.sourceLabel,
-                    count: number.format(lane.exactSampleCount),
-                  })}</span>
-                </div>
+        {selectedLaneValues.map(({ lane, value, formatted }) => (
+          <article key={lane.overlay.signalRef} data-signal-ref={lane.overlay.signalRef}>
+            <div className="training-route-signal-lane-heading">
+              <div>
+                <h6>{lane.label}</h6>
+                <span>{lane.rangeSummary}</span>
               </div>
-              <div
-                className="training-route-signal-lane-chart"
-                role="slider"
-                tabIndex={0}
-                aria-label={interpolate(copy.signalLanePosition, { metric: lane.label })}
-                aria-orientation="horizontal"
-                aria-valuemin={1}
-                aria-valuemax={model.points.length}
-                aria-valuenow={selectedPointIndex + 1}
-                aria-valuetext={laneValueText}
-                aria-describedby={`training-route-lane-${lane.overlay.signalRef}-instructions`}
-                onClick={selectFromPointer}
-                onKeyDown={selectFromKeyboard}
-              >
-                <svg viewBox="0 0 1000 104" aria-hidden="true" focusable="false">
-                  <rect x="1" y="1" width="998" height="102" rx="12" />
-                  <line className="training-route-signal-lane-grid" x1="20" x2="980" y1="52" y2="52" />
-                  {lane.segments.map((points, index) => points.includes(" ")
-                    ? <polyline key={`${lane.overlay.signalRef}-${index}`} points={points} />
-                    : (() => {
-                      const [cx, cy] = points.split(",");
-                      return <circle
-                        key={`${lane.overlay.signalRef}-${index}`}
-                        className="training-route-signal-lane-isolated"
-                        cx={cx}
-                        cy={cy}
-                        r="4"
-                      />;
-                    })())}
-                  {selectedX !== null && <line
-                    className="training-route-signal-cursor"
-                    x1={selectedX}
-                    x2={selectedX}
-                    y1="7"
-                    y2="97"
-                  />}
-                  {selectedX !== null && selectedY !== null && <circle
-                    className="training-route-signal-selected"
-                    cx={selectedX}
-                    cy={selectedY}
-                    r="6"
-                  />}
-                </svg>
+              <div>
+                <span>{interpolate(copy.signalLaneAlignment, {
+                  count: number.format(lane.overlay.samples.length),
+                })}</span>
+                <span>{interpolate(copy.signalLaneSource, {
+                  signal: lane.sourceLabel,
+                  count: number.format(lane.exactSampleCount),
+                })}</span>
               </div>
-              <p
-                id={`training-route-lane-${lane.overlay.signalRef}-instructions`}
-                className="sr-only"
-              >{copy.signalLaneInstructions}</p>
-              <footer>
-                <strong aria-live="polite">{formattedValue}</strong>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={(event) => onOpenExactSignal(
-                    lane.overlay.signalRef,
-                    value?.signalSampleOrdinal ?? null,
-                    event.currentTarget,
-                  )}
-                >{exactSignalAction(lane.overlay, lane.sourceLabel, copy, metricLabel)}</button>
-              </footer>
-            </article>
-          );
-        })}
+            </div>
+            <footer>
+              <strong aria-live="polite">{formatted}</strong>
+              <button
+                type="button"
+                className="secondary"
+                onClick={(event) => onOpenExactSignal(
+                  lane.overlay.signalRef,
+                  value?.signalSampleOrdinal ?? null,
+                  event.currentTarget,
+                )}
+              >{exactSignalAction(lane.overlay, lane.sourceLabel, copy, metricLabel)}</button>
+            </footer>
+          </article>
+        ))}
       </div>
       <p className="training-route-signal-lanes-meaning">{copy.signalLanesMeaning}</p>
     </section>

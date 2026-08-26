@@ -53,7 +53,8 @@ exact visible elapsed sample, or the preceding one when the position is the last
 controls move only through exact samples represented in the bounded chart. A boundary typed into the shared
 editor remains exact and unmarked when that particular sample is outside the bounded projection; FitFreed does
 not snap it to a nearby sample. The route and signal boundary controls support arrow, Home, and End keys through
-the same bounded behavior used by their pointer interaction.
+the same bounded behavior used by their pointer interaction. When a range is shown on the signal chart, its
+accessible description includes the range name and exact elapsed boundaries as well as the measurement coverage.
 
 Each regular signal retains its own recorded elapsed coordinate. Equal elapsed numbers do not synchronize the
 range with a route or another signal. Opening exact samples from the chart reveals and focuses the currently

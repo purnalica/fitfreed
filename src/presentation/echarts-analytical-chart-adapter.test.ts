@@ -26,7 +26,7 @@ function model(): AnalyticalChartModel {
       unit: "min/km",
       domain: { minimum: 4, maximum: 6 },
       direction: "lower-at-top",
-      format: { kind: "number", maximumFractionDigits: 1 },
+      format: { kind: "pace-minutes" },
     }],
     series: [{
       id: "signal-1",
@@ -79,6 +79,7 @@ describe("compileEChartsAnalyticalChart", () => {
         max: 6,
       }),
     ]);
+    expect(compiled.option.yAxis[0].axisLabel.formatter(4.999)).toBe("5:00");
     expect(compiled.option.dataZoom).toHaveLength(2);
     expect(compiled.option.series).toEqual([
       expect.objectContaining({

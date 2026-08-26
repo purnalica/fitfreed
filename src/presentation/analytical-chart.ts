@@ -7,6 +7,7 @@ export type AnalyticalChartLayout = "overlay" | "stacked-lanes";
 export type AnalyticalChartValueFormat =
   | { kind: "duration-milliseconds" }
   | { kind: "local-date" }
+  | { kind: "pace-minutes" }
   | { kind: "number"; maximumFractionDigits: number };
 
 export interface AnalyticalChartDomain {

@@ -875,22 +875,23 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-route-signal-lane-selection label { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: .74rem; font-weight: 750; }
 .training-route-signal-lane-selection label:has(input:checked) { color: var(--accent-deep); border-color: var(--accent); }
 .training-route-signal-lane-selection input { margin: 0; }
+.analytical-chart-canvas { width: 100%; min-width: 0; }
+.analytical-chart-renderer { width: 100%; height: 100%; min-width: 0; }
+.training-route-signal-chart { min-width: 0; overflow: hidden; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px; }
+.training-route-signal-chart[data-lane-count="1"] > .analytical-chart-canvas { height: clamp(240px, 32vh, 320px); }
+.training-route-signal-chart[data-lane-count="2"] > .analytical-chart-canvas { height: clamp(300px, 40vh, 380px); }
+.training-route-signal-chart[data-lane-count="3"] > .analytical-chart-canvas { height: clamp(360px, 48vh, 460px); }
+.training-route-signal-chart[data-lane-count="4"] > .analytical-chart-canvas { height: clamp(420px, 54vh, 520px); }
+.training-route-signal-position-control { display: grid; grid-template-columns: minmax(190px, auto) minmax(0, 1fr); gap: 12px; align-items: center; min-width: 0; padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
+.training-route-signal-position-control > span { color: var(--ink-soft); font-size: .74rem; font-weight: 800; }
+.training-route-signal-position-control input { width: 100%; min-height: 34px; padding: 0; accent-color: var(--accent-deep); cursor: pointer; }
 .training-route-signal-lane-list { display: grid; gap: 10px; min-width: 0; }
-.training-route-signal-lane-list article { min-width: 0; padding: 11px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
+.training-route-signal-lane-list article { min-width: 0; padding: 11px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
 .training-route-signal-lane-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 7px 18px; }
 .training-route-signal-lane-heading h6 { margin: 0; font-size: .86rem; }
 .training-route-signal-lane-heading div > span { display: block; margin-top: 2px; color: var(--muted); font-size: .7rem; }
 .training-route-signal-lane-heading > div:last-child { text-align: right; }
-.training-route-signal-lane-chart { min-width: 0; margin: 7px 0; border-radius: 12px; cursor: crosshair; touch-action: pan-y; }
-.training-route-signal-lane-chart:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.training-route-signal-lane-chart svg { display: block; width: 100%; height: clamp(76px, 8vw, 104px); }
-.training-route-signal-lane-chart rect { fill: var(--surface-soft); stroke: var(--line); }
-.training-route-signal-lane-chart polyline { fill: none; stroke: var(--accent-deep); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.training-route-signal-lane-grid { stroke: color-mix(in srgb, var(--line) 70%, transparent); stroke-dasharray: 4 6; vector-effect: non-scaling-stroke; }
-.training-route-signal-lane-isolated { fill: var(--accent-deep); stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.training-route-signal-cursor { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
-.training-route-signal-selected { fill: var(--surface); stroke: var(--danger); stroke-width: 4; vector-effect: non-scaling-stroke; }
-.training-route-signal-lane-list footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.training-route-signal-lane-list footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 9px; }
 .training-route-signal-lane-list footer strong { font-size: .82rem; font-variant-numeric: tabular-nums; }
 .training-route-signal-lane-list footer button { min-height: 36px; padding: 6px 9px; font-size: .72rem; }
 .training-route-signal-lanes-meaning { margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
@@ -1071,7 +1072,6 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-cross-signal-selection label { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: .78rem; font-weight: 700; }
 .training-cross-signal-selection label:has(input:checked) { color: var(--accent-deep); border-color: var(--accent); }
 .training-cross-signal-selection input { margin: 0; }
-.analytical-chart-canvas { width: 100%; min-width: 0; }
 .training-cross-signal-chart { min-width: 0; }
 .training-cross-signal-chart[data-lane-count="2"] > .analytical-chart-canvas { height: clamp(300px, 42vh, 360px); }
 .training-cross-signal-chart[data-lane-count="3"] > .analytical-chart-canvas { height: clamp(360px, 50vh, 440px); }
@@ -1808,7 +1808,9 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 :root[data-content-zoom="175"] .training-route-selection,
 :root[data-content-zoom="200"] .training-route-selection { grid-template-columns: 1fr; }
 :root[data-content-zoom="175"] .training-route-position-control,
-:root[data-content-zoom="200"] .training-route-position-control { grid-template-columns: 1fr; gap: 4px; }
+:root[data-content-zoom="200"] .training-route-position-control,
+:root[data-content-zoom="175"] .training-route-signal-position-control,
+:root[data-content-zoom="200"] .training-route-signal-position-control { grid-template-columns: 1fr; gap: 4px; }
 :root[data-content-zoom="175"] .training-route-overlay-legend,
 :root[data-content-zoom="200"] .training-route-overlay-legend { grid-template-columns: 1fr; }
 :root[data-content-zoom="175"] .training-route-signal-lanes > header,
@@ -1817,6 +1819,12 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 :root[data-content-zoom="200"] .training-route-signal-lane-list footer { align-items: stretch; flex-direction: column; }
 :root[data-content-zoom="175"] .training-route-signal-lane-heading > div:last-child,
 :root[data-content-zoom="200"] .training-route-signal-lane-heading > div:last-child { text-align: left; }
+:root[data-content-zoom="175"] .training-route-signal-chart[data-lane-count="1"] > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-route-signal-chart[data-lane-count="1"] > .analytical-chart-canvas { height: clamp(320px, 40vh, 420px); }
+:root[data-content-zoom="175"] .training-route-signal-chart[data-lane-count="2"] > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-route-signal-chart[data-lane-count="2"] > .analytical-chart-canvas { height: clamp(400px, 48vh, 520px); }
+:root[data-content-zoom="175"] .training-route-signal-chart:is([data-lane-count="3"], [data-lane-count="4"]) > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-route-signal-chart:is([data-lane-count="3"], [data-lane-count="4"]) > .analytical-chart-canvas { height: clamp(500px, 58vh, 680px); }
 :root[data-content-zoom="150"] .training-history-sports ul,
 :root[data-content-zoom="175"] .training-history-sports ul,
 :root[data-content-zoom="200"] .training-history-sports ul { grid-template-columns: repeat(auto-fit, minmax(min(500px, 100%), 1fr)); }
@@ -1993,8 +2001,8 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .training-route-map-tools { right: 10px; left: 10px; max-width: none; }
   .training-route-map-tools button { flex: 1 1 auto; }
   .training-route-north { top: auto; bottom: 12px; }
-  .training-route-position-control, .training-route-overlay-legend { grid-template-columns: 1fr; }
-  .training-route-position-control { gap: 4px; }
+  .training-route-position-control, .training-route-signal-position-control, .training-route-overlay-legend { grid-template-columns: 1fr; }
+  .training-route-position-control, .training-route-signal-position-control { gap: 4px; }
   .training-route-signal-lanes { padding: 11px 8px; }
   .training-route-signal-lanes > header, .training-route-signal-lane-list footer { align-items: stretch; flex-direction: column; }
   .training-route-signal-lane-heading > div:last-child { text-align: left; }

@@ -119,6 +119,10 @@ The continuation sequence is:
    alternatives; and
 4. implement and verify route-relative zoom bounds before completing X7-R4.
 
+As of 2026-08-26, the live adapter and the exercise, cross-signal, conditional linked route-signal, and longitudinal
+migrations in steps 2 and the live portion of step 3 are implemented. Static report graphics and route-relative zoom
+bounds remain before X7-R4 can close.
+
 Simple bounded categorical summaries may remain semantic HTML when that is clearer and more accessible. Leaflet
 remains the local route-workbench renderer. The decision does not authorize external tiles, network requests,
 fabricated shared coordinates, or library types outside presentation.

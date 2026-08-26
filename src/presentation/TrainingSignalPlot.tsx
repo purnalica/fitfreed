@@ -9,6 +9,7 @@ import type { TrainingSignalVisualSample } from "./training-session-signal";
 interface TrainingSignalPlotProps {
   samples: TrainingSignalVisualSample[];
   summary: string;
+  accessibleDescription?: string;
   coordinateRef: string;
   seriesId: string;
   xAxisLabel: string;
@@ -34,6 +35,7 @@ export interface TrainingSignalPlotRangeSelection {
 export interface TrainingSignalChartModelInput {
   samples: TrainingSignalVisualSample[];
   summary: string;
+  accessibleDescription: string;
   coordinateRef: string;
   seriesId: string;
   xAxisLabel: string;
@@ -59,6 +61,7 @@ function coordinateForOrdinal(
 export function buildTrainingSignalChartModel({
   samples,
   summary,
+  accessibleDescription,
   coordinateRef,
   seriesId,
   xAxisLabel,
@@ -96,7 +99,7 @@ export function buildTrainingSignalChartModel({
 
   return {
     accessibleName: summary,
-    accessibleDescription: summary,
+    accessibleDescription,
     locale,
     renderer: samples.length > 1_000 ? "canvas" : "svg",
     layout: { kind: "overlay" },
@@ -149,6 +152,7 @@ export function buildTrainingSignalChartModel({
 export function TrainingSignalPlot({
   samples,
   summary,
+  accessibleDescription = summary,
   coordinateRef,
   seriesId,
   xAxisLabel,
@@ -171,6 +175,7 @@ export function TrainingSignalPlot({
   const model = buildTrainingSignalChartModel({
     samples,
     summary,
+    accessibleDescription,
     coordinateRef,
     seriesId,
     xAxisLabel,
