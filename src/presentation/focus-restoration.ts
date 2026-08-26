@@ -17,8 +17,30 @@ export function restoreFocusAfterReveal(
   let attemptCount = 0;
   let timer: number | undefined;
 
+  const stop = () => {
+    if (cancelled) return;
+    cancelled = true;
+    document.removeEventListener("focusin", observeExplicitFocusMovement);
+    if (timer !== undefined) window.clearTimeout(timer);
+  };
+
+  function observeExplicitFocusMovement(event: FocusEvent) {
+    if (
+      !focusEstablished
+      || event.target === element
+      || event.target === initiatingElement
+    ) return;
+    stop();
+  }
+
+  document.addEventListener("focusin", observeExplicitFocusMovement);
+
   const attempt = () => {
-    if (cancelled || !element.isConnected) return;
+    if (cancelled) return;
+    if (!element.isConnected) {
+      stop();
+      return;
+    }
     const activeElement = document.activeElement;
     if (
       activeElement !== element
@@ -28,7 +50,7 @@ export function restoreFocusAfterReveal(
       && activeElement !== null
       && (focusEstablished || !options.forceInitialFocus)
     ) {
-      cancelled = true;
+      stop();
       return;
     }
     attemptCount += 1;
@@ -45,12 +67,11 @@ export function restoreFocusAfterReveal(
     if (document.activeElement === element) focusEstablished = true;
     if (attemptCount < MAXIMUM_FOCUS_ATTEMPTS) {
       timer = window.setTimeout(attempt, FOCUS_SETTLING_MILLISECONDS);
+    } else {
+      stop();
     }
   };
 
   timer = window.setTimeout(attempt, 0);
-  return () => {
-    cancelled = true;
-    if (timer !== undefined) window.clearTimeout(timer);
-  };
+  return stop;
 }

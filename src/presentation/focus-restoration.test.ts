@@ -37,6 +37,24 @@ describe("restoreFocusAfterReveal", () => {
     expect(alternative).toHaveFocus();
   });
 
+  it("remembers explicit focus movement even when the new control is removed before polling", () => {
+    vi.useFakeTimers();
+    const target = document.createElement("button");
+    const alternative = document.createElement("button");
+    document.body.append(target, alternative);
+
+    restoreFocusAfterReveal(target);
+    vi.advanceTimersByTime(0);
+    expect(target).toHaveFocus();
+
+    alternative.focus();
+    alternative.remove();
+    expect(document.body).toHaveFocus();
+    vi.advanceTimersByTime(500);
+
+    expect(target).not.toHaveFocus();
+  });
+
   it("moves focus from the initiating control to the revealed result", () => {
     vi.useFakeTimers();
     const initiatingControl = document.createElement("button");

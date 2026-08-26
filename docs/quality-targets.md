@@ -86,6 +86,8 @@ The MVP additionally requires:
 
 - Complete keyboard operation without traps.
 - Predictable focus order and visible focus.
+- Settling focus restoration yields permanently to an explicit user focus change, including when the newly
+  focused control is removed before the next scheduled layout check.
 - VoiceOver names, roles, values, state changes, and chart alternatives.
 - No information conveyed by color alone.
 - Text scaling and layout resilience.
