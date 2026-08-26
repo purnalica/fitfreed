@@ -402,6 +402,10 @@
       "emptyLibrary": "No imported training sessions yet.",
       "emptyResults": "No sessions match these filters.",
       "sportSummaryHeading": "Sports in this history",
+      "sportSummaryCount": {
+        "one": "{count} sport available to browse",
+        "other": "{count} sports available to browse"
+      },
       "refine": "Refine sessions",
       "refineHelp": "Dates, sports, recorded measurements, search, and order",
       "resultSummary": "Result summary",

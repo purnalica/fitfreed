@@ -2765,6 +2765,13 @@ than remaining in hidden controls. Opening either control performs no second que
 through locale changes and range replacement. The remaining primary screens and the independent density review remain
 open within X7-R3.
 
+**Execution checkpoint — History sessions before the complete sport index:** chronology now remains visible while the
+complete provider-neutral sport grid starts inside one labelled native disclosure. The route remains immediately
+reachable and retains every identity, icon, represented-session action, and contextual classification task. Selecting
+one sport applies the existing exact refinement, closes the index, and focuses the visible result count rather than
+leaving focus in hidden content. The remaining primary screens and the independent density review remain open within
+X7-R3.
+
 ### X7-R4 — Adopt a mature analytical visualization foundation
 
 **Findings:** XH-16 and XH-22.

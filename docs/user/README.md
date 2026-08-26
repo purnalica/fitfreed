@@ -48,11 +48,13 @@ key and therefore performs no update request or installation.
 The independently generated synthetic journey covers both first-run acquisition paths, result-led Home
 exploration, exact recent-session entry and return, range filtering, exact aligned day detail, navigation to authoritative explorers, two-period
 comparison, mapping-aware reimport, cumulative import, and restart. Training separates Sessions, Sports,
-and Compare periods without losing a temporary view when moving among them. Sessions opens on a compact
-provider-neutral sport index and the actual chronology; refinements and complete-result aggregates remain
-available through explicit disclosures instead of displacing the first session. The same semantic icon and
-visible label identify a sport in Home, the index, filters, results, comparisons, and classification management.
-Every sport in the current history remains visibly available without a hidden horizontal continuation. Session
+and Compare periods without losing a temporary view when moving among them. Sessions opens on the actual
+chronology; refinements, the complete provider-neutral sport index, and complete-result aggregates remain
+available through explicit disclosures instead of displacing the first session. **Sports in this history** reveals
+every sport without a hidden horizontal continuation. Choosing one applies that sport as a visible refinement and
+returns the chronology to the primary position; unresolved sports can still be named in the same disclosed index.
+The same semantic icon and visible label identify a sport in Home, the index, filters, results, comparisons,
+and classification management. Session
 cards use the person's locale and everyday precision for dates, times, durations, and distances, and show only
 the optional facts that were recorded. Summary totals use magnitude-aware precision, ordinary detail may retain
 seconds, and milliseconds appear only when exact elapsed evidence makes them material. Counts and both sides of

@@ -120,13 +120,16 @@ state, comparison input, or a selected session. This presentation state is dispo
 discovery workspace described above is durable.
 
 The Sessions view composes that existing discovery contract as a History Desk. Its default viewport presents
-the provider-neutral sport groups and actual chronological session results before query controls. Each sport
-and session combines visible localized text with the same semantic family icon; unknown and unavailable
+actual chronological session results before either query controls or the complete provider-neutral sport index.
+The closed **Sports in this history** disclosure keeps the sport route immediately reachable without enumerating
+a large history before its first session. Opening it reveals the complete wrapping grid without a horizontal-scroll
+convention or ellipsis; selecting one sport applies the existing exact refinement, closes the index, and focuses the
+visible applied-query result. Contextual classification remains inside the open index and uses the same shared task.
+Each sport and session combines visible localized text with the same semantic family icon; unknown and unavailable
 evidence use distinct explicit symbols and labels rather than a provider value or placeholder. Date, sport,
 measurement, personal-label text, and sorting controls remain one complete form behind **Refine sessions**.
-The sport index is a wrapping grid whose complete identities and contextual actions stay visible without a
-horizontal-scroll convention or ellipsis. Session cards are evidence-adaptive: duration is the only required
-summary fact, while distance, energy, and average heart rate create rows only when recorded. Presentation
+Session cards are evidence-adaptive: duration is the only required summary fact, while distance, energy,
+and average heart rate create rows only when recorded. Presentation
 formatters reduce dates, times, durations, and distances to locale-appropriate human precision for scanning;
 they never mutate, round, or replace the exact application result. Deliberate detail, comparison, result-summary,
 and provenance surfaces continue to expose exact source-separated evidence. Calendar cells describe multiple

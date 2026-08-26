@@ -402,6 +402,10 @@
       "emptyLibrary": "Todavía no hay sesiones de entrenamiento importadas.",
       "emptyResults": "Ninguna sesión coincide con estos filtros.",
       "sportSummaryHeading": "Deportes de este historial",
+      "sportSummaryCount": {
+        "one": "{count} deporte disponible para explorar",
+        "other": "{count} deportes disponibles para explorar"
+      },
       "refine": "Acotar sesiones",
       "refineHelp": "Fechas, deportes, mediciones registradas, búsqueda y orden",
       "resultSummary": "Resumen de resultados",

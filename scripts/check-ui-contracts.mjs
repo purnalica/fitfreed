@@ -434,6 +434,13 @@ for (const workspace of ["sessions", "sports", "comparison"]) {
 if (!trainingSessionLibrary.includes("aria-label={copy.detailNavigation}")) {
   throw new Error("Training session detail must expose its section navigation");
 }
+if (!trainingSessionLibrary.includes('className="training-history-sports-disclosure"')
+  || !trainingSessionLibrary.includes('ref={sportIndexRef}')) {
+  throw new Error("History must keep its complete sport index in one deliberate disclosure");
+}
+if (!trainingSessionLibrary.includes('sportIndexRef.current?.removeAttribute("open")')) {
+  throw new Error("History sport navigation must return the applied result to the primary position");
+}
 if (!trainingSessionLibrary.includes('<h2\n                id="training-session-detail-heading"')) {
   throw new Error("an open training session must remain the level-two subject below Training");
 }

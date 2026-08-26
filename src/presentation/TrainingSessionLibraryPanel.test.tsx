@@ -1147,7 +1147,12 @@ describe("TrainingSessionLibraryPanel", () => {
     const user = userEvent.setup();
     renderPanel(vi.fn(), { onSportClassificationChange });
 
-    const sportSummary = await screen.findByRole("region", { name: "Sports in this history" });
+    const sportIndex = await screen.findByRole("group", { name: "Sports in this history" });
+    expect(sportIndex).not.toHaveAttribute("open");
+    await user.click(within(sportIndex).getByText("Sports in this history"));
+    const sportSummary = within(sportIndex).getByRole("region", {
+      name: "Sports in this history",
+    });
     const unknownIdentity = within(sportSummary).getByText("Unknown sport 1");
     const unknownItem = unknownIdentity.closest("li");
     expect(unknownItem).not.toBeNull();
@@ -1489,16 +1494,34 @@ describe("TrainingSessionLibraryPanel", () => {
     renderPanel();
 
     const region = await screen.findByRole("region", { name: "Find a training session" });
-    const sportSummary = within(region).getByRole("region", { name: "Sports in this history" });
-    expect(within(sportSummary).getByText("Trail running")).toBeVisible();
-    expect(within(sportSummary).getByText("Unknown sport 1")).toBeVisible();
-    expect(within(sportSummary).getAllByTestId("sport-family-icon")).toHaveLength(2);
+    const sportIndex = within(region).getByRole("group", { name: "Sports in this history" });
+    expect(sportIndex).not.toHaveAttribute("open");
+    expect(sportIndex).toHaveTextContent("2 sports available to browse");
+    expect(within(sportIndex).getByRole("region", {
+      name: "Sports in this history",
+      hidden: true,
+    })).not.toBeVisible();
 
     const resultList = within(region).getByRole("list", { name: "Training sessions" });
     const resultArticles = within(resultList).getAllByRole("article");
     expect(resultArticles).toHaveLength(2);
     expect(within(resultArticles[0]).getByText("Trail running")).toBeVisible();
     expect(within(resultArticles[0]).getByTestId("sport-family-icon")).toBeVisible();
+
+    await user.click(within(sportIndex).getByText("Sports in this history"));
+    const sportSummary = within(sportIndex).getByRole("region", {
+      name: "Sports in this history",
+    });
+    expect(within(sportSummary).getByText("Trail running")).toBeVisible();
+    expect(within(sportSummary).getByText("Unknown sport 1")).toBeVisible();
+    expect(within(sportSummary).getAllByTestId("sport-family-icon")).toHaveLength(2);
+
+    await user.click(within(sportSummary).getByRole("button", { name: /Trail running/ }));
+    await waitFor(() => expect(sportIndex).not.toHaveAttribute("open"));
+    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    expect(appliedQuery).toHaveTextContent("Sport: Trail running");
+    await waitFor(() => expect(within(appliedQuery).getByText("26 matching sessions"))
+      .toHaveFocus());
 
     const refinements = within(region).getByRole("group", { name: "Refine sessions" });
     expect(refinements).not.toHaveAttribute("open");
@@ -1548,7 +1571,10 @@ describe("TrainingSessionLibraryPanel", () => {
 
     renderPanel();
 
-    const summary = await screen.findByRole("region", { name: "Sports in this history" });
+    const sportIndex = await screen.findByRole("group", { name: "Sports in this history" });
+    expect(sportIndex).not.toHaveAttribute("open");
+    await userEvent.setup().click(within(sportIndex).getByText("Sports in this history"));
+    const summary = within(sportIndex).getByRole("region", { name: "Sports in this history" });
     expect(within(summary).getAllByRole("listitem")).toHaveLength(4);
     for (const label of ["Trail running", "Cycling", "Unknown sport 1", "Unknown sport 2"]) {
       expect(within(summary).getByText(label)).toBeVisible();
@@ -1895,6 +1921,11 @@ describe("TrainingSessionLibraryPanel", () => {
     const region = await screen.findByRole("region", {
       name: "Encontrar una sesión de entrenamiento",
     });
+    const sportIndex = within(region).getByRole("group", {
+      name: "Deportes de este historial",
+    });
+    expect(sportIndex).not.toHaveAttribute("open");
+    expect(sportIndex).toHaveTextContent("2 deportes disponibles para explorar");
     const refinements = within(region).getByRole("group", { name: "Acotar sesiones" });
     await user.click(within(refinements).getByText("Acotar sesiones"));
     await user.type(within(refinements).getByLabelText("Fecha inicial"), "2025-01-01");

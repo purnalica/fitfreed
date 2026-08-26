@@ -390,6 +390,7 @@ export function TrainingSessionLibraryPanel({
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
   const appliedQueryFocusRef = useRef<HTMLParagraphElement>(null);
+  const sportIndexRef = useRef<HTMLDetailsElement>(null);
   const refinementsRef = useRef<HTMLDetailsElement>(null);
   const detailOriginButtonRef = useRef<HTMLButtonElement | null>(null);
   const contextActionRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -1062,6 +1063,7 @@ export function TrainingSessionLibraryPanel({
       if (!result) return;
       setApplied(criteria);
       setSelectedCalendarDay(undefined);
+      sportIndexRef.current?.removeAttribute("open");
       restoreFocusAfterReveal(
         appliedQueryFocusRef.current,
         initiatingElement,
@@ -2213,103 +2215,120 @@ export function TrainingSessionLibraryPanel({
         <p className="sr-only">{copy.intro}</p>
         </header>
         {sports && sports.sports.length > 0 && (
-          <section
-          className="training-history-sports"
-          role="region"
-          aria-label={copy.sportSummaryHeading}
-        >
-          <h3>{copy.sportSummaryHeading}</h3>
-          <ul>
-            {sports.sports.map((sport) => (
-              <li
-                key={sport.sessionFilterRef}
-                data-state={sport.state}
-                data-sport-family={sportFamily(sport) ?? sport.state}
-              >
-                <div className="training-history-sport-identity">
-                  <button
-                    type="button"
-                    className="training-history-sport-open"
-                    disabled={loading}
-                    onClick={(event) => openSportSessionsFilter(
-                      sport.sessionFilterRef,
-                      event.currentTarget,
-                    )}
+          <details
+            className="training-history-sports-disclosure"
+            aria-label={copy.sportSummaryHeading}
+            ref={sportIndexRef}
+          >
+            <summary>
+              <span>{copy.sportSummaryHeading}</span>
+              <small>{interpolate(
+                sports.sports.length === 1
+                  ? copy.sportSummaryCount.one
+                  : copy.sportSummaryCount.other,
+                { count: number.format(sports.sports.length) },
+              )}</small>
+            </summary>
+            <section
+              className="training-history-sports"
+              role="region"
+              aria-label={copy.sportSummaryHeading}
+            >
+              <ul>
+                {sports.sports.map((sport) => (
+                  <li
+                    key={sport.sessionFilterRef}
+                    data-state={sport.state}
+                    data-sport-family={sportFamily(sport) ?? sport.state}
                   >
-                    <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
-                    <span>
-                      <strong
-                        ref={(element) => {
-                          if (!sport.sportRef) return;
-                          const first = sports.sports.find(
-                            (candidate) => candidate.sportRef === sport.sportRef,
-                          );
-                          if (first?.sessionFilterRef !== sport.sessionFilterRef) return;
-                          if (element) contextIdentityRefs.current.set(sport.sportRef, element);
-                          else contextIdentityRefs.current.delete(sport.sportRef);
-                        }}
-                        tabIndex={-1}
-                      >
-                        {sportTitle(sport)}
-                      </strong>
-                      <small>
-                        {number.format(sport.coverage.sessionCount)} {sessionUnit(
-                          sport.coverage.sessionCount,
+                    <div className="training-history-sport-identity">
+                      <button
+                        type="button"
+                        className="training-history-sport-open"
+                        disabled={loading}
+                        onClick={(event) => openSportSessionsFilter(
+                          sport.sessionFilterRef,
+                          event.currentTarget,
                         )}
-                      </small>
-                    </span>
-                    <span aria-hidden="true">→</span>
-                  </button>
-                  {(sport.state === "unknown" || sport.state === "ambiguous")
-                    && sport.sportRef
-                    && sports.sports.find(
-                      (candidate) => candidate.sportRef === sport.sportRef,
-                    )?.sessionFilterRef === sport.sessionFilterRef && (
-                    <button
-                      type="button"
-                      className="secondary training-history-sport-classify"
-                      ref={(element) => {
-                        if (element) contextActionRefs.current.set(sport.sportRef!, element);
-                        else contextActionRefs.current.delete(sport.sportRef!);
-                      }}
-                      disabled={
-                        classificationBusy
-                        || (contextSportRef !== undefined && contextSportRef !== sport.sportRef)
-                      }
-                      onClick={() => {
-                        setContextSportRef(sport.sportRef!);
-                        setClassificationStatus(undefined);
-                      }}
-                    >
-                      {messages.training.sports.edit}
-                    </button>
-                  )}
+                      >
+                        <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
+                        <span>
+                          <strong
+                            ref={(element) => {
+                              if (!sport.sportRef) return;
+                              const first = sports.sports.find(
+                                (candidate) => candidate.sportRef === sport.sportRef,
+                              );
+                              if (first?.sessionFilterRef !== sport.sessionFilterRef) return;
+                              if (element) {
+                                contextIdentityRefs.current.set(sport.sportRef, element);
+                              } else {
+                                contextIdentityRefs.current.delete(sport.sportRef);
+                              }
+                            }}
+                            tabIndex={-1}
+                          >
+                            {sportTitle(sport)}
+                          </strong>
+                          <small>
+                            {number.format(sport.coverage.sessionCount)} {sessionUnit(
+                              sport.coverage.sessionCount,
+                            )}
+                          </small>
+                        </span>
+                        <span aria-hidden="true">→</span>
+                      </button>
+                      {(sport.state === "unknown" || sport.state === "ambiguous")
+                        && sport.sportRef
+                        && sports.sports.find(
+                          (candidate) => candidate.sportRef === sport.sportRef,
+                        )?.sessionFilterRef === sport.sessionFilterRef && (
+                        <button
+                          type="button"
+                          className="secondary training-history-sport-classify"
+                          ref={(element) => {
+                            if (element) contextActionRefs.current.set(sport.sportRef!, element);
+                            else contextActionRefs.current.delete(sport.sportRef!);
+                          }}
+                          disabled={
+                            classificationBusy
+                            || (contextSportRef !== undefined && contextSportRef !== sport.sportRef)
+                          }
+                          onClick={() => {
+                            setContextSportRef(sport.sportRef!);
+                            setClassificationStatus(undefined);
+                          }}
+                        >
+                          {messages.training.sports.edit}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {contextSport?.sportRef && contextSport.classification && (
+                <div className="training-history-sport-editor">
+                  <SportClassificationTask
+                    editorId="history-sport-context"
+                    sport={contextSport}
+                    title={sportTitle(contextSport)}
+                    messages={messages.training.sports}
+                    onCancel={() => closeContextClassification(contextSport.sportRef!, "action")}
+                    onBusyChange={setClassificationBusy}
+                    onError={onError}
+                    onOverviewChange={applyClassificationOverview}
+                    onSaved={(result) => finishContextClassification(
+                      contextSport.sportRef!,
+                      result,
+                    )}
+                  />
                 </div>
-              </li>
-            ))}
-          </ul>
-          {contextSport?.sportRef && contextSport.classification && (
-            <div className="training-history-sport-editor">
-              <SportClassificationTask
-                editorId="history-sport-context"
-                sport={contextSport}
-                title={sportTitle(contextSport)}
-                messages={messages.training.sports}
-                onCancel={() => closeContextClassification(contextSport.sportRef!, "action")}
-                onBusyChange={setClassificationBusy}
-                onError={onError}
-                onOverviewChange={applyClassificationOverview}
-                onSaved={(result) => finishContextClassification(
-                  contextSport.sportRef!,
-                  result,
-                )}
-              />
-            </div>
-          )}
-          {classificationStatus && (
-            <p className="sr-only" role="status">{classificationStatus}</p>
-          )}
-          </section>
+              )}
+              {classificationStatus && (
+                <p className="sr-only" role="status">{classificationStatus}</p>
+              )}
+            </section>
+          </details>
         )}
         <div className="training-session-tools">
           <details

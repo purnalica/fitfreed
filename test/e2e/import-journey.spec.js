@@ -1042,6 +1042,7 @@ async function trainingSportCard(title) {
 }
 
 async function trainingHistorySportItem(title) {
+  await openDisclosure(".training-history-sports-disclosure");
   const items = await $$(".training-history-sports li");
   for (const item of items) {
     if (await item.$("strong").getText() === title) return item;

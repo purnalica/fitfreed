@@ -57,6 +57,9 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
 - Training workspace and session-detail navigation, semantic current-location state, focused reveal below persistent navigation, enforced progressive-disclosure boundaries, and the single route → signal → structure → zone evidence-layout matrix for complete, partial, unsupported-only, and summary-only stories.
+- History starts with visible chronological results while its complete sport index is closed. Deliberate opening
+  retains every sport identity and contextual classification action; choosing a sport closes the index, exposes the
+  exact applied refinement, and focuses its result count without a second discovery contract.
 - Shared production-table naming, distinct nested scroll-region labels, keyboard-scroll boundaries, explicit
   numeric-column semantics, and closed-by-default segment and zone tables without row-level attribution
   duplication. The UI contract rejects direct production `<table>` ownership outside `DataTable` and CSS that

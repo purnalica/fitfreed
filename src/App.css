@@ -534,8 +534,12 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-workspace-panel > .training-comparison { margin-top: 0; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
 .training-session-library { margin: 0 0 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
 .training-session-library-heading h2 { margin: 0; font-size: 1.15rem; letter-spacing: -.02em; }
-.training-history-sports { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; align-items: start; margin-top: 11px; }
-.training-history-sports h3 { margin: 0; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.training-history-sports-disclosure { margin-top: 11px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.training-history-sports-disclosure > summary { padding: 9px 12px; color: var(--accent-deep); cursor: pointer; font-size: .82rem; font-weight: 750; }
+.training-history-sports-disclosure > summary span { margin-left: 4px; }
+.training-history-sports-disclosure > summary small { float: right; margin: 2px 0 0 14px; color: var(--muted); font-size: .72rem; font-weight: 650; }
+.training-history-sports-disclosure[open] > summary { border-bottom: 1px solid var(--line); }
+.training-history-sports { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; align-items: start; padding: 12px; }
 .training-history-sports ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 9px; width: 100%; max-width: 100%; margin: 0; padding: 0; list-style: none; }
 .training-history-sports li { display: block; min-width: 0; padding: 7px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 11px; }
 .training-history-sport-identity { display: flex; align-items: center; gap: 8px; }
