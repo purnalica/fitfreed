@@ -657,6 +657,7 @@
       "detailProvenanceIntro": "Open the source history on demand to inspect attribution, interpretation versions, and reconciliation decisions.",
       "evidenceSummary": {
         "regionLabel": "Session evidence",
+        "disclosureSummary": "Review recorded session evidence",
         "eyebrow": "Recorded detail",
         "heading": "What this session contains",
         "introduction": "A concise account of what FitFreed can currently present. Detailed values remain available in the relevant views.",

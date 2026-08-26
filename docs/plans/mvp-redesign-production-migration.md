@@ -2772,6 +2772,13 @@ one sport applies the existing exact refinement, closes the index, and focuses t
 leaving focus in hidden content. The remaining primary screens and the independent density review remain open within
 X7-R3.
 
+**Execution checkpoint — session answer before the compatibility inventory:** the strongest available route, signal,
+structure, or zone workbench remains the primary session story while the complete composed evidence account now starts
+inside one labelled native disclosure. Opening it performs no query and retains every exercise, route-point, signal,
+gap, lap, pause, zone, and unsupported-evidence statement in both locales. Adaptive leadership and every exact-detail
+path remain unchanged; compatibility limitations no longer interrupt the visual answer by default. The remaining
+primary screens and the independent density review remain open within X7-R3.
+
 ### X7-R4 — Adopt a mature analytical visualization foundation
 
 **Findings:** XH-16 and XH-22.

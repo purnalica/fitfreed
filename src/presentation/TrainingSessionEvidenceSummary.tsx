@@ -85,20 +85,23 @@ export function TrainingSessionEvidenceSummary({
     || values.unsupportedZoneGroups > 0;
 
   return (
-    <section
-      className="training-session-evidence-summary"
-      role="region"
-      aria-label={copy.regionLabel}
-    >
-      <div>
-        <p className="eyebrow">{copy.eyebrow}</p>
-        <h3>{copy.heading}</h3>
-        <p>{copy.introduction}</p>
-      </div>
-      <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
-      {!hasDetailedEvidence && <p className="training-session-evidence-empty">
-        {copy.noDetailedEvidence}
-      </p>}
-    </section>
+    <details className="training-session-evidence-disclosure">
+      <summary>{copy.disclosureSummary}</summary>
+      <section
+        className="training-session-evidence-summary"
+        role="region"
+        aria-label={copy.regionLabel}
+      >
+        <div>
+          <p className="eyebrow">{copy.eyebrow}</p>
+          <h3>{copy.heading}</h3>
+          <p>{copy.introduction}</p>
+        </div>
+        <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
+        {!hasDetailedEvidence && <p className="training-session-evidence-empty">
+          {copy.noDetailedEvidence}
+        </p>}
+      </section>
+    </details>
   );
 }

@@ -657,6 +657,7 @@
       "detailProvenanceIntro": "Abre el historial del origen cuando lo necesites para consultar la atribución, las versiones de interpretación y las decisiones de conciliación.",
       "evidenceSummary": {
         "regionLabel": "Evidencias de la sesión",
+        "disclosureSummary": "Consultar las evidencias registradas de la sesión",
         "eyebrow": "Detalle registrado",
         "heading": "Qué contiene esta sesión",
         "introduction": "Un resumen conciso de lo que FitFreed puede presentar actualmente. Los valores detallados siguen disponibles en sus vistas correspondientes.",

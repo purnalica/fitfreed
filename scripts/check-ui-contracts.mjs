@@ -26,6 +26,12 @@ const trainingSessionLibrary = readFileSync(path.join(
   "presentation",
   "TrainingSessionLibraryPanel.tsx",
 ), "utf8");
+const trainingSessionEvidenceSummary = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingSessionEvidenceSummary.tsx",
+), "utf8");
 const trainingRanges = readFileSync(path.join(
   repositoryRoot,
   "src",
@@ -805,6 +811,16 @@ requireRule(
 for (const section of ["overview", "structure", "signals", "routes", "provenance"]) {
   if (!trainingSessionLibrary.includes(`hidden={detailSection !== "${section}"}`)) {
     throw new Error(`Training session detail must progressively disclose ${section}`);
+  }
+}
+for (const boundary of [
+  '<details className="training-session-evidence-disclosure">',
+  "<summary>{copy.disclosureSummary}</summary>",
+  'role="region"',
+  "aria-label={copy.regionLabel}",
+]) {
+  if (!trainingSessionEvidenceSummary.includes(boundary)) {
+    throw new Error(`Training session evidence must remain a labelled disclosure: ${boundary}`);
   }
 }
 if (!workspaceNavigation.includes('aria-label={label}')) {

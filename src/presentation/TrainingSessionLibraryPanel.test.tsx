@@ -2758,6 +2758,9 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Recorded route workbench",
     })).not.toBeInTheDocument();
 
+    expect(within(detail).getByRole("region", { name: "Session evidence", hidden: true }))
+      .not.toBeVisible();
+    await user.click(within(detail).getByText("Review recorded session evidence"));
     const evidence = within(detail).getByRole("region", { name: "Session evidence" });
     expect(evidence).toHaveTextContent("Recorded detail");
     expect(evidence).toHaveTextContent(
@@ -2858,6 +2861,9 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Recorded signal workbench",
     })).not.toBeInTheDocument();
 
+    expect(within(detail).getByRole("region", { name: "Session evidence", hidden: true }))
+      .not.toBeVisible();
+    await user.click(within(detail).getByText("Review recorded session evidence"));
     const evidence = within(detail).getByRole("region", { name: "Session evidence" });
     expect(evidence).toHaveTextContent("1 exercise with recorded structure");
     expect(evidence).toHaveTextContent("1 recorded lap");
@@ -2970,6 +2976,9 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Recorded structure workbench",
     })).not.toBeInTheDocument();
 
+    expect(within(detail).getByRole("region", { name: "Session evidence", hidden: true }))
+      .not.toBeVisible();
+    await user.click(within(detail).getByText("Review recorded session evidence"));
     const evidence = within(detail).getByRole("region", { name: "Session evidence" });
     expect(evidence).toHaveTextContent("4 recorded zones");
     expect(evidence).toHaveTextContent("1 recorded zone group not shown here");
@@ -3026,6 +3035,13 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(workbench).getByRole("combobox", {
       name: "Grupo de zonas visible",
     })).toBeVisible();
+    expect(within(region).getByRole("region", {
+      name: "Evidencias de la sesión",
+      hidden: true,
+    })).not.toBeVisible();
+    await user.click(within(region).getByText("Consultar las evidencias registradas de la sesión"));
+    expect(within(region).getByRole("region", { name: "Evidencias de la sesión" }))
+      .toHaveTextContent("4 zonas registradas");
 
     await user.click(within(workbench).getByRole("button", {
       name: "Explorar las zonas registradas exactas",

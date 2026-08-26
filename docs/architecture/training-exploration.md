@@ -300,6 +300,12 @@ region and aligns it below persistent application navigation. The transition is 
 of the sections consume the already loaded coherent session story; it issues no substitute query and changes no
 persisted exploration state merely to repair viewport position.
 
+The leading route, signal, structure, or zone workbench remains the primary session answer. The complete
+session-evidence account is a closed native disclosure immediately after that answer: opening it issues no query
+and reveals the same composed counts for exercises, structure, routes, signals, gaps, laps, pauses, zones, and
+unsupported evidence. This keeps compatibility detail explicit and accessible without placing an inventory of
+limitations between the person and the strongest recorded visual.
+
 `TrainingRouteSignalLanes` is a conditional semantic timeline, not an assumed accompaniment to a route. It can
 pair a role's bounded route and signal evidence only through `exact-recorded` application overlays that name
 the exact route-point and signal-sample relationship. The current Polar Flow mapping returns no such overlays,

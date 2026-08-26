@@ -4446,6 +4446,11 @@ describe("FitFreed import interface", () => {
     expect(within(detailNavigation).queryByRole("button", {
       name: "Signals and zones",
     })).not.toBeInTheDocument();
+    expect(within(detail!).getByRole("region", {
+      name: "Session evidence",
+      hidden: true,
+    })).not.toBeVisible();
+    await user.click(within(detail!).getByText("Review recorded session evidence"));
     expect(within(detail!).getByRole("region", { name: "Session evidence" }))
       .toHaveTextContent("1 exercise with recorded structure");
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
