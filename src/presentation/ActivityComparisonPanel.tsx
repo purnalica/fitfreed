@@ -8,6 +8,13 @@ import type {
   ActivitySeriesSummary,
 } from "./activity-insights";
 import { commandErrorCode } from "./command-error";
+import { ComparisonPeriodPresets } from "./ComparisonPeriodPresets";
+import {
+  currentLocalDate,
+  defaultComparisonPeriods,
+  initialComparisonRanges,
+  type ComparisonPeriodSelection,
+} from "./comparison-period-preset";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { submissionOrigin } from "./submission-origin";
 import { useInvalidForm } from "./useInvalidForm";
@@ -36,38 +43,6 @@ function rangeIsValid(range: ActivityDateRange, available: ActivityDateRange): b
   return inclusiveDays <= 366;
 }
 
-interface ActivityComparisonRanges {
-  baseline: ActivityDateRange;
-  comparison: ActivityDateRange;
-}
-
-function addDays(value: string, days: number): string {
-  const result = localDate(value);
-  result.setUTCDate(result.getUTCDate() + days);
-  return result.toISOString().slice(0, 10);
-}
-
-function inclusiveDays(range: ActivityDateRange): number {
-  return Math.floor(
-    (localDate(range.through).getTime() - localDate(range.from).getTime()) / 86_400_000,
-  ) + 1;
-}
-
-export function latestEqualActivityPeriods(
-  availableRange: ActivityDateRange,
-): ActivityComparisonRanges | null {
-  const periodDays = Math.min(30, Math.floor(inclusiveDays(availableRange) / 2));
-  if (periodDays < 1) return null;
-  const comparisonThrough = availableRange.through;
-  const comparisonFrom = addDays(comparisonThrough, -(periodDays - 1));
-  const baselineThrough = addDays(comparisonFrom, -1);
-  const baselineFrom = addDays(baselineThrough, -(periodDays - 1));
-  return {
-    baseline: { from: baselineFrom, through: baselineThrough },
-    comparison: { from: comparisonFrom, through: comparisonThrough },
-  };
-}
-
 export function ActivityComparisonPanel({
   availableRange,
   initialRange,
@@ -76,13 +51,9 @@ export function ActivityComparisonPanel({
   onError,
   answerRequestId,
 }: ActivityComparisonPanelProps) {
-  const initialPeriods = latestEqualActivityPeriods(availableRange);
-  const [baselineRange, setBaselineRange] = useState(
-    initialPeriods?.baseline ?? initialRange,
-  );
-  const [comparisonRange, setComparisonRange] = useState(
-    initialPeriods?.comparison ?? initialRange,
-  );
+  const initialPeriods = initialComparisonRanges(availableRange, initialRange);
+  const [baselineRange, setBaselineRange] = useState(initialPeriods.baseline);
+  const [comparisonRange, setComparisonRange] = useState(initialPeriods.comparison);
   const [comparison, setComparison] = useState<ActivityComparison>();
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -137,7 +108,7 @@ export function ActivityComparisonPanel({
       || handledAnswerRequestId.current === answerRequestId
     ) return;
     handledAnswerRequestId.current = answerRequestId;
-    const periods = latestEqualActivityPeriods(availableRange);
+    const periods = defaultComparisonPeriods(availableRange, currentLocalDate());
     if (!periods) {
       setInsufficientHistory(true);
       setControlsOpen(true);
@@ -175,6 +146,14 @@ export function ActivityComparisonPanel({
   function updateComparison(field: keyof ActivityDateRange, value: string) {
     validation.edit();
     setComparisonRange((current) => ({ ...current, [field]: value }));
+  }
+
+  function applyPreset(selection: ComparisonPeriodSelection) {
+    validation.edit();
+    setLoadFailed(false);
+    setInsufficientHistory(false);
+    setBaselineRange(selection.baseline);
+    setComparisonRange(selection.comparison);
   }
 
   function formatCount(value: string | null): string {
@@ -430,6 +409,15 @@ export function ActivityComparisonPanel({
           aria-busy={loading}
           onSubmit={(event) => void runComparison(event)}
         >
+          <ComparisonPeriodPresets
+            availableRange={availableRange}
+            baselineRange={baselineRange}
+            comparisonRange={comparisonRange}
+            locale={locale}
+            messages={messages.comparisonPeriods}
+            disabled={loading}
+            onSelect={applyPreset}
+          />
           {rangeInputs.map(({ label, value, update }) => (
             <label key={label}>
               <span>{label}</span>

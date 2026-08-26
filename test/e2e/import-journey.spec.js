@@ -852,6 +852,18 @@ async function setTrainingComparisonRanges(
   }
 }
 
+async function expectUsefulComparisonDefault(selector, catalog) {
+  await openDisclosure(`${selector} > .answer-controls`);
+  const inputs = await $$(`${selector} input[type='date']`);
+  expect(inputs).toHaveLength(4);
+  const values = [];
+  for (const input of inputs) values.push(await input.getValue());
+  expect(values.slice(0, 2)).not.toEqual(values.slice(2));
+  await expect($(`${selector} .comparison-period-presets p`)).toHaveText(
+    catalog.comparisonPeriods.manualHint,
+  );
+}
+
 async function openTrainingWorkspace(catalog, workspace) {
   const expected = catalog.training.workspaces[workspace];
   const buttons = await $$(".training-workspace-navigation button");
@@ -3804,6 +3816,7 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Back to session results").click();
 
     await openTrainingWorkspace(english, "comparison");
+    await expectUsefulComparisonDefault(".training-comparison", english);
     await setTrainingComparisonRanges(
       "2026-01-04",
       "2026-01-04",

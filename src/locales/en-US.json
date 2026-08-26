@@ -19,6 +19,16 @@
   "date": "Local date",
   "steps": "Steps",
   "unavailable": "Not available",
+  "comparisonPeriods": {
+    "heading": "Suggested periods",
+    "week": "Week to date",
+    "month": "Month to date",
+    "year": "Year to date",
+    "currentHint": "Uses recorded dates through today and the matching part of the previous calendar period.",
+    "recordedHint": "Uses the latest recorded date, {date}, and the matching part of the preceding calendar period.",
+    "manualHint": "The four dates below remain editable.",
+    "unavailable": "There is not enough recorded history for this period."
+  },
   "shell": {
     "navigation": "Application",
     "sidebar": "Primary application navigation",

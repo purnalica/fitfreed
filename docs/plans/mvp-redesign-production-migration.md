@@ -296,7 +296,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C5 | Reopened by XH-12 through XH-22 — the geometry correction remains valid but does not constitute a coherent data-presentation system | Data is concise, aligned, precise, visual, and progressively disclosed |
 | X7-P0 | Complete in working tree — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
 | X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
-| X7-R2 | In progress — exact represented-sport identity and Home/History drill-down verified locally | Sports are evidence-backed and every represented collection opens its exact sessions |
+| X7-R2 | In progress — exact represented-sport identity, Home/History drill-down, and shared comparison presets verified locally | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Pending | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Pending | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
@@ -2623,8 +2623,25 @@ reunites exact and unresolved sessions for its source profile. Home may aggregat
 without inventing one editable profile. Home and History sport cards expose independent session and classification
 actions; direct entry, Back, prior filters, tab, and focus survive the round trip. SQLite schema 30 lazily expands
 legacy saved profile filters into their current exact collections. Versioned identity, Home, search, selection,
-workspace, story, and report contracts cover the new boundary. The complete natural-drill-down audit and shared
-comparison presets remain in X7-R2.
+workspace, story, and report contracts cover the new boundary. The complete natural-drill-down audit remains in
+X7-R2.
+
+**Execution checkpoint — evidence-anchored comparison presets:** one provider-neutral presentation value object now
+derives week-to-date, month-to-date, and year-to-date comparisons for Activity, Training, Sleep, Recovery, and the
+aligned four-domain history. Each preset compares the elapsed part of the latest recorded calendar period with the
+matching part of the preceding period, says when the anchor is the latest recorded date rather than today, and is
+disabled when the required historical boundary is unavailable. A short history falls back to adjacent equal periods;
+a one-date history leaves the baseline explicitly empty instead of comparing one interval with itself. The same
+accessible control appears above four always-editable native date fields in every comparator and preserves the chosen
+periods through failure and retry. Report definitions continue to consume their application-authored comparison query;
+the presentation does not infer a wider history boundary from a session-owned report start.
+
+Pure calendar tests cover ISO-week boundaries, month ends, leap years, stale and sparse histories, manual edits, and
+invalid ranges. Component tests cover the shared control and all five integrations. The complete contributor lane,
+Rust lint and formatting, localization and documentation contracts, production build, packaged functional journey,
+real process restart, adaptive-session journeys, and dense insight campaign passed on 2026-08-26. The functional
+journey additionally verifies distinct packaged defaults and retained manual control; every measured p95 remained
+inside its documented budget. The complete natural-drill-down audit remains in X7-R2.
 
 The 2026-08-26 verification passed the complete fast contributor lane, Rust lint and formatting, the production
 build, and the rebuilt packaged macOS campaign. The packaged functional journey covered both locales, supported

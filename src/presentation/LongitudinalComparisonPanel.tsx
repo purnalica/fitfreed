@@ -3,6 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { ComparisonPeriodPresets } from "./ComparisonPeriodPresets";
+import {
+  initialComparisonRanges,
+  type ComparisonPeriodSelection,
+} from "./comparison-period-preset";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { submissionOrigin } from "./submission-origin";
 import { useInvalidForm } from "./useInvalidForm";
@@ -36,8 +41,9 @@ export function LongitudinalComparisonPanel({
   messages,
   onError,
 }: LongitudinalComparisonPanelProps) {
-  const [baselineRange, setBaselineRange] = useState(initialRange);
-  const [comparisonRange, setComparisonRange] = useState(initialRange);
+  const initialPeriods = initialComparisonRanges(availableRange, initialRange);
+  const [baselineRange, setBaselineRange] = useState(initialPeriods.baseline);
+  const [comparisonRange, setComparisonRange] = useState(initialPeriods.comparison);
   const [comparison, setComparison] = useState<LongitudinalComparison>();
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -67,6 +73,13 @@ export function LongitudinalComparisonPanel({
     validation.edit();
     setLoadFailed(false);
     setComparisonRange((current) => ({ ...current, [field]: value }));
+  }
+
+  function applyPreset(selection: ComparisonPeriodSelection) {
+    validation.edit();
+    setLoadFailed(false);
+    setBaselineRange(selection.baseline);
+    setComparisonRange(selection.comparison);
   }
 
   async function loadComparison(initiatingElement: HTMLElement | null) {
@@ -336,6 +349,15 @@ export function LongitudinalComparisonPanel({
           aria-busy={loading}
           onSubmit={(event) => void runComparison(event)}
         >
+          <ComparisonPeriodPresets
+            availableRange={availableRange}
+            baselineRange={baselineRange}
+            comparisonRange={comparisonRange}
+            locale={locale}
+            messages={messages.comparisonPeriods}
+            disabled={loading}
+            onSelect={applyPreset}
+          />
           {inputs.map(([label, value, update]) => (
             <label key={label}>
               <span>{label}</span>

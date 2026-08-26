@@ -3,10 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
-import {
-  ActivityComparisonPanel,
-  latestEqualActivityPeriods,
-} from "./ActivityComparisonPanel";
+import { ActivityComparisonPanel } from "./ActivityComparisonPanel";
 import type {
   ActivityComparison,
   ActivitySeriesSummary,
@@ -59,19 +56,22 @@ beforeEach(() => {
 });
 
 describe("ActivityComparisonPanel", () => {
-  it("chooses the latest adjacent equal periods without exceeding thirty days", () => {
-    expect(latestEqualActivityPeriods({ from: "2026-01-01", through: "2026-04-30" }))
-      .toEqual({
-        baseline: { from: "2026-03-02", through: "2026-03-31" },
-        comparison: { from: "2026-04-01", through: "2026-04-30" },
-      });
-    expect(latestEqualActivityPeriods({ from: "2026-01-01", through: "2026-01-05" }))
-      .toEqual({
-        baseline: { from: "2026-01-02", through: "2026-01-03" },
-        comparison: { from: "2026-01-04", through: "2026-01-05" },
-      });
-    expect(latestEqualActivityPeriods({ from: "2026-01-01", through: "2026-01-01" }))
-      .toBeNull();
+  it("starts with distinct adjacent periods when no calendar preset fits", () => {
+    render(
+      <ActivityComparisonPanel
+        availableRange={{ from: "2026-01-01", through: "2026-01-05" }}
+        initialRange={{ from: "2026-01-01", through: "2026-01-05" }}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Baseline from")).toHaveValue("2026-01-02");
+    expect(screen.getByLabelText("Baseline through")).toHaveValue("2026-01-03");
+    expect(screen.getByLabelText("Comparison from")).toHaveValue("2026-01-04");
+    expect(screen.getByLabelText("Comparison through")).toHaveValue("2026-01-05");
+    expect(screen.getByText("The four dates below remain editable.")).toBeVisible();
   });
 
   it("keeps independent origins separate and reveals exact evidence deliberately", async () => {

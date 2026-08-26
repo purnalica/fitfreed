@@ -19,6 +19,16 @@
   "date": "Fecha local",
   "steps": "Pasos",
   "unavailable": "No disponible",
+  "comparisonPeriods": {
+    "heading": "Períodos sugeridos",
+    "week": "Semana hasta la fecha",
+    "month": "Mes hasta la fecha",
+    "year": "Año hasta la fecha",
+    "currentHint": "Usa los datos registrados hasta hoy y la misma parte del período natural anterior.",
+    "recordedHint": "Usa la última fecha registrada, {date}, y la misma parte del período natural anterior.",
+    "manualHint": "Las cuatro fechas siguientes se pueden editar.",
+    "unavailable": "No hay suficiente historial registrado para este período."
+  },
   "shell": {
     "navigation": "Aplicación",
     "sidebar": "Navegación principal de la aplicación",

@@ -52,6 +52,34 @@ beforeEach(() => {
 });
 
 describe("TrainingComparisonPanel", () => {
+  it("starts with a useful adjacent preset and keeps manual dates editable", async () => {
+    const user = userEvent.setup();
+    render(
+      <TrainingComparisonPanel
+        availableRange={{ from: "2025-01-01", through: "2026-08-18" }}
+        initialRange={{ from: "2026-07-20", through: "2026-08-18" }}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Baseline period start")).toHaveValue("2026-08-10");
+    expect(screen.getByLabelText("Baseline period end")).toHaveValue("2026-08-11");
+    expect(screen.getByLabelText("Comparison period start")).toHaveValue("2026-08-17");
+    expect(screen.getByLabelText("Comparison period end")).toHaveValue("2026-08-18");
+    expect(screen.getByRole("button", { name: "Week to date" }))
+      .toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "Month to date" }));
+    expect(screen.getByLabelText("Baseline period start")).toHaveValue("2026-07-01");
+    expect(screen.getByLabelText("Baseline period end")).toHaveValue("2026-07-18");
+    expect(screen.getByLabelText("Comparison period start")).toHaveValue("2026-08-01");
+    expect(screen.getByLabelText("Comparison period end")).toHaveValue("2026-08-18");
+    expect(screen.getByText("The four dates below remain editable.")).toBeVisible();
+  });
+
   it("announces pending work without renaming the action or hiding the previous result", async () => {
     let resolveComparison!: (value: TrainingComparison) => void;
     mocks.invoke

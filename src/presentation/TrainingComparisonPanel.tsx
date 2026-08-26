@@ -3,6 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { ComparisonPeriodPresets } from "./ComparisonPeriodPresets";
+import {
+  initialComparisonRanges,
+  type ComparisonPeriodSelection,
+} from "./comparison-period-preset";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { formatDistance, formatDuration, formatExactMetric } from "./training-format";
@@ -58,8 +63,14 @@ export function TrainingComparisonPanel({
   onCreateReport,
   onError,
 }: TrainingComparisonPanelProps) {
-  const [baselineRange, setBaselineRange] = useState(initialRange);
-  const [comparisonRange, setComparisonRange] = useState(initialRange);
+  const initialPeriods = initialQuery
+    ? {
+        baseline: initialQuery.baselineRange,
+        comparison: initialQuery.comparisonRange,
+      }
+    : initialComparisonRanges(availableRange, initialRange);
+  const [baselineRange, setBaselineRange] = useState(initialPeriods.baseline);
+  const [comparisonRange, setComparisonRange] = useState(initialPeriods.comparison);
   const [comparison, setComparison] = useState<TrainingComparison>();
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -222,6 +233,13 @@ export function TrainingComparisonPanel({
     validation.edit();
     setLoadFailed(false);
     setComparisonRange((current) => ({ ...current, [field]: value }));
+  }
+
+  function applyPreset(selection: ComparisonPeriodSelection) {
+    validation.edit();
+    setLoadFailed(false);
+    setBaselineRange(selection.baseline);
+    setComparisonRange(selection.comparison);
   }
 
   function rangeLabel(range: TrainingDateRange | null): string {
@@ -575,6 +593,15 @@ export function TrainingComparisonPanel({
           aria-busy={loading}
           onSubmit={(event) => void runComparison(event)}
         >
+          <ComparisonPeriodPresets
+            availableRange={availableRange}
+            baselineRange={baselineRange}
+            comparisonRange={comparisonRange}
+            locale={locale}
+            messages={messages.comparisonPeriods}
+            disabled={loading}
+            onSelect={applyPreset}
+          />
           {rangeInputs.map(({ label, value, update }) => (
             <label key={label}>
               <span>{label}</span>

@@ -56,6 +56,30 @@ beforeEach(() => {
 });
 
 describe("RecoveryComparisonPanel", () => {
+  it("offers useful calendar presets while keeping all four dates editable", async () => {
+    const user = userEvent.setup();
+    render(
+      <RecoveryComparisonPanel
+        availableRange={{ from: "2026-01-01", through: "2026-03-30" }}
+        initialRange={{ from: "2026-03-28", through: "2026-03-30" }}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Baseline period start")).toHaveValue("2026-03-23");
+    expect(screen.getByLabelText("Comparison period start")).toHaveValue("2026-03-30");
+
+    await user.click(screen.getByRole("button", { name: "Month to date" }));
+
+    expect(screen.getByLabelText("Baseline period start")).toHaveValue("2026-02-01");
+    expect(screen.getByLabelText("Baseline period end")).toHaveValue("2026-02-28");
+    expect(screen.getByLabelText("Comparison period start")).toHaveValue("2026-03-01");
+    expect(screen.getByLabelText("Comparison period end")).toHaveValue("2026-03-30");
+    expect(screen.getByText("The four dates below remain editable.")).toBeVisible();
+  });
+
   it("leads with a factual interval answer and keeps controls and exact values secondary", async () => {
     mocks.invoke.mockResolvedValue(comparison);
     const user = userEvent.setup();
@@ -68,7 +92,6 @@ describe("RecoveryComparisonPanel", () => {
         onError={vi.fn()}
       />,
     );
-
     await user.click(screen.getByRole("button", { name: "Compare recovery periods" }));
 
     const answer = await screen.findByRole("region", { name: "Recovery period answer" });
@@ -110,6 +133,7 @@ describe("RecoveryComparisonPanel", () => {
         onError={vi.fn()}
       />,
     );
+    const baselineStart = screen.getByLabelText("Baseline period start").getAttribute("value");
 
     await user.click(screen.getByRole("button", { name: "Compare recovery periods" }));
     await screen.findByRole("region", { name: "Recovery period answer" });
@@ -120,7 +144,7 @@ describe("RecoveryComparisonPanel", () => {
       name: "Recovery comparison unavailable",
     });
     expect(screen.getByRole("region", { name: "Recovery period answer" })).toBeVisible();
-    expect(screen.getByLabelText("Baseline period start")).toHaveValue("2026-03-28");
+    expect(screen.getByLabelText("Baseline period start")).toHaveValue(baselineStart);
     await user.click(within(unavailable).getByRole("button", {
       name: "Try this recovery comparison again",
     }));

@@ -626,6 +626,29 @@ describe("LongitudinalInsightsPanel", () => {
     })).not.toBeInTheDocument();
   });
 
+  it("opens shared comparison with distinct evidence-anchored periods and manual control", async () => {
+    mocks.invoke.mockResolvedValue(overview());
+    const user = userEvent.setup();
+    renderPanel();
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await within(region).findByRole("region", { name: "Aligned-history answer" });
+
+    await user.click(within(region).getByRole("button", { name: "Compare periods" }));
+
+    expect(within(region).getByRole("button", { name: "Week to date" }))
+      .toHaveAttribute("aria-pressed", "true");
+    expect(within(region).getByLabelText("Baseline period start"))
+      .toHaveValue("2026-03-23");
+    expect(within(region).getByLabelText("Baseline period end"))
+      .toHaveValue("2026-03-23");
+    expect(within(region).getByLabelText("Comparison period start"))
+      .toHaveValue("2026-03-30");
+    expect(within(region).getByLabelText("Comparison period end"))
+      .toHaveValue("2026-03-30");
+    expect(within(region).getByText("The four dates below remain editable."))
+      .toBeVisible();
+  });
+
   it("nests metric headings under each independent comparison origin", async () => {
     const multiple = comparison();
     multiple.series.push({
@@ -672,6 +695,9 @@ describe("LongitudinalInsightsPanel", () => {
     renderPanel({ onError: vi.fn() });
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
     await user.click(within(region).getByRole("button", { name: "Compare periods" }));
+    const baselineStart = within(region)
+      .getByLabelText("Baseline period start")
+      .getAttribute("value");
     await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
     await within(region).findByRole("region", { name: "Compared-history answer" });
     await user.click(within(region).getByText("Change the compared shared periods"));
@@ -683,7 +709,7 @@ describe("LongitudinalInsightsPanel", () => {
     expect(within(region).getByRole("region", { name: "Compared-history answer" }))
       .toBeVisible();
     expect(within(region).getByLabelText("Baseline period start"))
-      .toHaveValue("2026-03-28");
+      .toHaveValue(baselineStart);
     await user.click(within(unavailable).getByRole("button", {
       name: "Try this comparison again",
     }));
