@@ -301,7 +301,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Complete locally — built-in examples, independent duplication, exact clean-revision verification, and all release-shaped gates passed 2026-08-27 | Relevant built-in examples and duplication make reports understandable and reusable |
-| X7-R7 | Pending | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R7 | In progress — restart-safe falsification boundary recorded 2026-08-27 | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3141,6 +3141,21 @@ copy with reused block identities; auto-saving an example click; duplicating onl
 mode; or introducing community exchange before the local contract is accepted.
 
 ### X7-R7 — Falsify the complete corrected product before handoff
+
+**Execution checkpoint — 2026-08-27 restart boundary:** X7-R6 is closed locally at clean candidate `6170f75`, and
+documentation-only evidence commit `392081f` leaves the executable-input fingerprint unchanged at
+`a67fad4667ab253dfded6c3906fa5f4adc8994be57b0dc84ee5f6eedd00870cc`. The complete outgoing range contains fifteen
+focused commits over the last known `origin/main`; its content, email-privacy, secret, merge, and diff audits pass.
+Normal synchronization remains pending because the configured SSH signing agent rejected the bounded push attempt.
+The working tree is clean.
+
+Whole-product falsification has started. The X7 acceptance contract, the rejected X6 production-native evaluation,
+and the retained machine-audit evidence have been re-read. No new X7-R7 finding has yet been accepted or corrected.
+The deterministic continuation is to establish the current X7-R1 native-link disposition from its introducing
+change and live evidence; inventory the existing visual, accessibility, geometry, and review-package automation;
+trace every X7 production path to a reachable surface and complete behavior test; then execute the independent
+screen-and-state audit. Every critical or major finding reopens its owning increment and must be corrected before the
+complete gates, executable-input-selected hosted campaign, and revision-isolated production-native review package.
 
 **User outcome:** the next review build is a credible product candidate for the agreed private macOS alpha journey,
 not a collection of individually green corrections.
