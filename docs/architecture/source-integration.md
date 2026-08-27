@@ -124,6 +124,29 @@ shared opaque values, frequency, measurements, routes, or device context. The ad
 source evidence and exposes only its provider-neutral suggestion. Distinct exact codes remain ambiguous, and
 personal meaning still wins without erasing recognition.
 
+### Planned-training intent
+
+[ADR 0033](decisions/0033-model-planned-training-as-versioned-intent.md) maps supported provider targets into a
+provider-neutral planned-training aggregate rather than attaching their phases to recorded sessions. Source
+Translation owns filename grammar, target-item identity evidence, JSON validation, provider enum translation,
+unmapped source locations, source sport codes, and mapping versions. Fitness History owns target identity, ordered
+exercise and phase invariants, goals and units, transition and repeat semantics, mapping coverage, completion ordering,
+reconciliation, conflicts, and planned-to-recorded relationship cardinality.
+
+Scheduled targets and favourite templates share canonical structure but retain distinct lifecycle kinds. Favourite
+exports remain ordered immutable snapshots, including explicit emptiness; omission from a later snapshot cannot delete
+history. A mapping revision may enrich equal source evidence, but package order cannot resolve an unorderable changed
+definition. Exact source candidates may establish one recorded-session relationship after both aggregates reconcile;
+name, date proximity, duration, sport family, route, measurements, and phase shape are never substitutes.
+
+Application queries compose planned intent with recorded evidence only after reading each authority through its own
+port. Reports and portable export consume the same provider-neutral aggregate or read model. They never query the
+provider adapter or infer canonical meaning from the SQLite schema.
+
+The [portable planned-training contract](../data-formats/portable/planned-training-v1.md) exits canonical intent and
+its attributed source evidence without making provider tokens part of the domain or publishing SQLite as an
+interchange format. Provider codes survive only as explicit opaque source evidence in the user-controlled export.
+
 ### No lowest-common-denominator model
 
 Vendor neutrality does not mean flattening every observation into generic key-value data. The model will distinguish:

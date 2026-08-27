@@ -2,6 +2,7 @@ import type { TrainingSessionSearchItem, TrainingSessionSport } from "./training
 import type { TrainingProvenanceCurrent } from "./training-session-provenance";
 import type { TrainingRouteKind, TrainingRoutePoint } from "./training-session-route";
 import type { TrainingComparison, TrainingDateRange } from "./training-insights";
+import type { PlannedTrainingTargetDetail } from "./planned-training";
 
 export interface SessionReportOrigin {
   kind: "session";
@@ -20,6 +21,18 @@ export interface NarrativeReportBlock {
   kind: "narrative";
   blockRef: string;
   body: string;
+}
+
+export interface PlannedTrainingReportOrigin {
+  kind: "planned-training";
+  snapshotRef: string;
+  target: PlannedTrainingTargetDetail;
+}
+
+export interface PlannedTrainingReportBlock {
+  kind: "planned-training";
+  blockRef: string;
+  targetRef: string;
 }
 
 export interface RouteReportBlock {
@@ -87,7 +100,8 @@ export type ReportBlock =
   | SessionEvidenceReportBlock
   | RouteReportBlock
   | NarrativeReportBlock
-  | AnalyticalReportBlock;
+  | AnalyticalReportBlock
+  | PlannedTrainingReportBlock;
 
 export interface ReportDefinition {
   reportRef: string;
@@ -97,7 +111,7 @@ export interface ReportDefinition {
   origin: ReportOrigin;
   provenancePolicy: "current-attribution";
   authorship: "user";
-  definitionVersion: 1 | 2 | 3 | 4;
+  definitionVersion: 1 | 2 | 3 | 4 | 5;
   revision: string;
   blocks: ReportBlock[];
 }
@@ -110,12 +124,14 @@ export type ReportOrigin =
       questionVersion: 1;
     }
   | { kind: "exploration"; query: ReportTrainingComparisonQuery }
+  | { kind: "planned-training"; targetRef: string }
   | { kind: "blank" };
 
 export type ReportStartOrigin =
   | SessionReportOrigin
   | { kind: "question" }
-  | { kind: "exploration"; query: ReportTrainingComparisonQuery };
+  | { kind: "exploration"; query: ReportTrainingComparisonQuery }
+  | PlannedTrainingReportOrigin;
 
 export type ReportStart =
   | {
@@ -157,6 +173,7 @@ export type ReportLibraryMetricValue =
 export type ReportLibrarySubject =
   | { kind: "session"; sport: TrainingSessionSport }
   | { kind: "training-comparison" }
+  | { kind: "planned-training"; name: string | null }
   | { kind: "authored-note" };
 
 export type ReportLibraryPeriod =
@@ -165,7 +182,8 @@ export type ReportLibraryPeriod =
       kind: "training-comparison";
       baselineRange: TrainingDateRange;
       comparisonRange: TrainingDateRange;
-    };
+    }
+  | { kind: "planned-training"; scheduledAtLocal: string };
 
 export interface ReportLibraryComparisonSeries {
   sourceIndex: number;
@@ -185,6 +203,13 @@ export type ReportLibraryResult =
       metric: ReportTrainingMetric;
       series: ReportLibraryComparisonSeries[];
       omittedSourceCount: number;
+    }
+  | {
+      kind: "planned-training";
+      exerciseCount: number | null;
+      phaseCount: number | null;
+      expandedPhaseCount: number | null;
+      repeatBlockCount: number | null;
     };
 
 export interface ReportLibrarySensitivity {
@@ -236,6 +261,7 @@ export interface ResolvedReport {
   session: TrainingSessionSearchItem | null;
   routes: ReportRouteEvidence[];
   trainingComparison: TrainingComparison | null;
+  plannedTraining: ReportPlannedTrainingEvidence | null;
   provenance: ReportEvidenceProvenance;
   sensitiveContents: ReportSensitiveContent[];
   limitations: ReportLimitation[];
@@ -244,7 +270,13 @@ export interface ResolvedReport {
 export type ReportEvidenceProvenance =
   | { kind: "session"; current: TrainingProvenanceCurrent }
   | { kind: "library-snapshot" }
+  | { kind: "planned-training-snapshot" }
   | { kind: "authored-only" };
+
+export interface ReportPlannedTrainingEvidence {
+  blockRef: string;
+  target: PlannedTrainingTargetDetail;
+}
 
 export type ResolvedSessionReport = ResolvedReport & {
   session: TrainingSessionSearchItem;
@@ -292,6 +324,11 @@ export type SessionReportBlockDraft =
       kind: "narrative";
       blockRef?: string;
       body: string;
+    }
+  | {
+      kind: "planned-training";
+      blockRef?: string;
+      targetRef: string;
     }
   | {
       kind: "training-finding";

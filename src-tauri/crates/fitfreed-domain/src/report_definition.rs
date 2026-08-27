@@ -4,7 +4,9 @@ const REPORT_ID_PREFIX: &str = "report-";
 const BLOCK_ID_PREFIX: &str = "report-block-";
 const SESSION_ID_PREFIX: &str = "session-";
 const ROUTE_ID_PREFIX: &str = "route-";
-const SNAPSHOT_ID_PREFIX: &str = "training-snapshot-";
+const PLANNED_TARGET_ID_PREFIX: &str = "planned-target-";
+const TRAINING_SNAPSHOT_ID_PREFIX: &str = "training-snapshot-";
+const PLANNED_SNAPSHOT_ID_PREFIX: &str = "planned-snapshot-";
 const ID_HEX_CHARACTERS: usize = 64;
 const MAX_TITLE_CHARACTERS: usize = 120;
 const MAX_NARRATIVE_CHARACTERS: usize = 10_000;
@@ -13,7 +15,8 @@ pub const MAX_ROUTE_ENDPOINT_REDACTION_METERS: u32 = 5_000;
 pub const REPORT_DEFINITION_VERSION_V1: u32 = 1;
 pub const REPORT_DEFINITION_VERSION_V2: u32 = 2;
 pub const REPORT_DEFINITION_VERSION_V3: u32 = 3;
-pub const REPORT_DEFINITION_VERSION: u32 = 4;
+pub const REPORT_DEFINITION_VERSION_V4: u32 = 4;
+pub const REPORT_DEFINITION_VERSION: u32 = 5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReportQuestion {
@@ -207,6 +210,9 @@ pub enum ReportOrigin {
     Exploration {
         query: ReportTrainingComparisonQuery,
     },
+    PlannedTraining {
+        target_ref: String,
+    },
     Blank,
 }
 
@@ -240,6 +246,9 @@ pub enum ReportBlockContent {
     },
     TrainingCoverage {
         query: ReportTrainingComparisonQuery,
+    },
+    PlannedTraining {
+        target_ref: String,
     },
 }
 
@@ -335,6 +344,18 @@ impl ReportBlock {
         Self::restore(block_ref, ReportBlockContent::TrainingCoverage { query })
     }
 
+    pub fn planned_training(
+        block_ref: impl Into<String>,
+        target_ref: impl Into<String>,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(
+            block_ref,
+            ReportBlockContent::PlannedTraining {
+                target_ref: target_ref.into(),
+            },
+        )
+    }
+
     pub fn restore(
         block_ref: impl Into<String>,
         content: ReportBlockContent,
@@ -371,6 +392,10 @@ impl ReportBlock {
             | ReportBlockContent::TrainingChart { .. }
             | ReportBlockContent::TrainingExactTable { .. }
             | ReportBlockContent::TrainingCoverage { .. } => {}
+            ReportBlockContent::PlannedTraining { target_ref } => {
+                validate_identifier(target_ref, PLANNED_TARGET_ID_PREFIX)
+                    .map_err(|_| ReportDefinitionError::InvalidPlannedTrainingIdentifier)?;
+            }
         }
         Ok(Self { block_ref, content })
     }
@@ -417,7 +442,8 @@ impl ReportDefinition {
             | ReportBlockContent::TrainingComparison { .. }
             | ReportBlockContent::TrainingChart { .. }
             | ReportBlockContent::TrainingExactTable { .. }
-            | ReportBlockContent::TrainingCoverage { .. } => {
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => {
                 return Err(ReportDefinitionError::InvalidVersionOneBlockOrder);
             }
         };
@@ -499,7 +525,14 @@ impl ReportDefinition {
         if normalize_title(&title)? != title {
             return Err(ReportDefinitionError::NonCanonicalTitle);
         }
-        validate_identifier(&source_snapshot_ref, SNAPSHOT_ID_PREFIX)
+        let snapshot_prefix = if definition_version == REPORT_DEFINITION_VERSION
+            && matches!(origin, ReportOrigin::PlannedTraining { .. })
+        {
+            PLANNED_SNAPSHOT_ID_PREFIX
+        } else {
+            TRAINING_SNAPSHOT_ID_PREFIX
+        };
+        validate_identifier(&source_snapshot_ref, snapshot_prefix)
             .map_err(|_| ReportDefinitionError::InvalidSnapshotIdentifier)?;
         if revision == 0 {
             return Err(ReportDefinitionError::ZeroRevision);
@@ -508,7 +541,8 @@ impl ReportDefinition {
             REPORT_DEFINITION_VERSION_V1 => validate_version_one_blocks(&origin, &blocks)?,
             REPORT_DEFINITION_VERSION_V2 => validate_version_two_blocks(&origin, &blocks)?,
             REPORT_DEFINITION_VERSION_V3 => validate_version_three_blocks(&origin, &blocks)?,
-            REPORT_DEFINITION_VERSION => validate_version_four_blocks(&origin, &blocks)?,
+            REPORT_DEFINITION_VERSION_V4 => validate_version_four_blocks(&origin, &blocks)?,
+            REPORT_DEFINITION_VERSION => validate_version_five_blocks(&origin, &blocks)?,
             _ => return Err(ReportDefinitionError::UnsupportedDefinitionVersion),
         }
         Ok(Self {
@@ -856,6 +890,9 @@ fn validate_legacy_composable_blocks(
                     &mut training_comparison_query,
                 )?;
             }
+            ReportBlockContent::PlannedTraining { .. } => {
+                return Err(ReportDefinitionError::InvalidVersionTwoComposition);
+            }
         }
     }
     if session_count != 1 || narrative_count != 1 {
@@ -868,14 +905,41 @@ fn validate_version_four_blocks(
     origin: &ReportOrigin,
     blocks: &[ReportBlock],
 ) -> Result<(), ReportDefinitionError> {
+    validate_current_blocks(
+        origin,
+        blocks,
+        false,
+        ReportDefinitionError::InvalidVersionFourComposition,
+    )
+}
+
+fn validate_version_five_blocks(
+    origin: &ReportOrigin,
+    blocks: &[ReportBlock],
+) -> Result<(), ReportDefinitionError> {
+    validate_current_blocks(
+        origin,
+        blocks,
+        true,
+        ReportDefinitionError::InvalidVersionFiveComposition,
+    )
+}
+
+fn validate_current_blocks(
+    origin: &ReportOrigin,
+    blocks: &[ReportBlock],
+    allow_planned_training: bool,
+    composition_error: ReportDefinitionError,
+) -> Result<(), ReportDefinitionError> {
     if !(1..=MAX_REPORT_BLOCKS).contains(&blocks.len()) {
-        return Err(ReportDefinitionError::InvalidVersionFourComposition);
+        return Err(composition_error);
     }
     let mut block_refs = BTreeSet::new();
     let mut route_refs = BTreeSet::new();
     let mut session_count = 0;
     let mut narrative_count = 0;
     let mut analytical_count = 0;
+    let mut planned_training_count = 0;
     let mut training_comparison_kinds = BTreeSet::new();
     let mut training_comparison_query = None;
     for block in blocks {
@@ -886,7 +950,7 @@ fn validate_version_four_blocks(
             ReportBlockContent::SessionEvidence { session_ref, .. } => {
                 session_count += 1;
                 if !origin_allows_session(origin, session_ref)? {
-                    return Err(ReportDefinitionError::InvalidVersionFourComposition);
+                    return Err(composition_error);
                 }
             }
             ReportBlockContent::Route {
@@ -895,7 +959,7 @@ fn validate_version_four_blocks(
                 ..
             } => {
                 if !origin_allows_session(origin, session_ref)? {
-                    return Err(ReportDefinitionError::InvalidVersionFourComposition);
+                    return Err(composition_error);
                 }
                 if !route_refs.insert(route_ref) {
                     return Err(ReportDefinitionError::DuplicateRouteIdentifier);
@@ -952,31 +1016,61 @@ fn validate_version_four_blocks(
                     &mut training_comparison_query,
                 )?;
             }
+            ReportBlockContent::PlannedTraining { target_ref } => {
+                if !allow_planned_training {
+                    return Err(composition_error);
+                }
+                planned_training_count += 1;
+                let ReportOrigin::PlannedTraining {
+                    target_ref: origin_target_ref,
+                } = origin
+                else {
+                    return Err(composition_error);
+                };
+                validate_identifier(origin_target_ref, PLANNED_TARGET_ID_PREFIX)
+                    .map_err(|_| ReportDefinitionError::InvalidPlannedTrainingIdentifier)?;
+                if target_ref != origin_target_ref {
+                    return Err(ReportDefinitionError::PlannedTrainingOriginMismatch);
+                }
+            }
         }
     }
     let valid_origin_shape = match origin {
         ReportOrigin::Session { session_ref } => {
             validate_identifier(session_ref, SESSION_ID_PREFIX)
                 .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
-            session_count == 1
+            session_count == 1 && planned_training_count == 0
         }
         ReportOrigin::Question { question } => {
             session_count == 0
                 && route_refs.is_empty()
+                && planned_training_count == 0
                 && analytical_count > 0
                 && training_comparison_query.is_some_and(|query| query.question() == *question)
         }
         ReportOrigin::Exploration { query } => {
             session_count == 0
                 && route_refs.is_empty()
+                && planned_training_count == 0
                 && analytical_count > 0
                 && training_comparison_query
                     .is_some_and(|answer| answer.question() == query.question())
         }
-        ReportOrigin::Blank => session_count == 0 && route_refs.is_empty(),
+        ReportOrigin::PlannedTraining { target_ref } => {
+            validate_identifier(target_ref, PLANNED_TARGET_ID_PREFIX)
+                .map_err(|_| ReportDefinitionError::InvalidPlannedTrainingIdentifier)?;
+            allow_planned_training
+                && planned_training_count == 1
+                && session_count == 0
+                && route_refs.is_empty()
+                && analytical_count == 0
+        }
+        ReportOrigin::Blank => {
+            session_count == 0 && route_refs.is_empty() && planned_training_count == 0
+        }
     };
     if !valid_origin_shape || narrative_count > 1 {
-        return Err(ReportDefinitionError::InvalidVersionFourComposition);
+        return Err(composition_error);
     }
     Ok(())
 }
@@ -1133,6 +1227,7 @@ pub enum ReportDefinitionError {
     InvalidBlockIdentifier,
     InvalidSessionIdentifier,
     InvalidRouteIdentifier,
+    InvalidPlannedTrainingIdentifier,
     InvalidSnapshotIdentifier,
     EmptyTitle,
     TitleTooLong,
@@ -1145,10 +1240,12 @@ pub enum ReportDefinitionError {
     InvalidVersionOneBlockOrder,
     InvalidVersionTwoComposition,
     InvalidVersionFourComposition,
+    InvalidVersionFiveComposition,
     DuplicateBlockIdentifier,
     DuplicateRouteIdentifier,
     InvalidRouteEndpointRedaction,
     SessionOriginMismatch,
+    PlannedTrainingOriginMismatch,
     InvalidReportDate,
     UnorderedReportDateRange,
     ReportDateRangeTooLong,
@@ -1168,6 +1265,9 @@ impl fmt::Display for ReportDefinitionError {
             Self::InvalidBlockIdentifier => "report block identifier is invalid",
             Self::InvalidSessionIdentifier => "report session identifier is invalid",
             Self::InvalidRouteIdentifier => "report route identifier is invalid",
+            Self::InvalidPlannedTrainingIdentifier => {
+                "report planned-training identifier is invalid"
+            }
             Self::InvalidSnapshotIdentifier => "report source snapshot is invalid",
             Self::EmptyTitle => "report title is empty",
             Self::TitleTooLong => "report title exceeds 120 characters",
@@ -1188,12 +1288,18 @@ impl fmt::Display for ReportDefinitionError {
             Self::InvalidVersionFourComposition => {
                 "version-four report composition exceeds its origin authority"
             }
+            Self::InvalidVersionFiveComposition => {
+                "version-five report composition exceeds its single-source origin authority"
+            }
             Self::DuplicateBlockIdentifier => "report block identifiers are duplicated",
             Self::DuplicateRouteIdentifier => "report route identifiers are duplicated",
             Self::InvalidRouteEndpointRedaction => {
                 "report route endpoint redaction exceeds 5000 metres"
             }
             Self::SessionOriginMismatch => "report session block does not match its origin",
+            Self::PlannedTrainingOriginMismatch => {
+                "report planned-training block does not match its origin"
+            }
             Self::InvalidReportDate => "report date is invalid",
             Self::UnorderedReportDateRange => "report date range is not ordered",
             Self::ReportDateRangeTooLong => "report date range exceeds 366 inclusive days",

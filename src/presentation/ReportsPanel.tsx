@@ -12,6 +12,7 @@ import {
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { PlannedTrainingEvidence } from "./PlannedTrainingPanel";
 import {
   formatSummaryDuration,
   mediumDateFormatter,
@@ -41,6 +42,7 @@ import type {
   PreparedReportStart,
   SessionReportBlockDraft,
 } from "./session-report";
+import type { PlannedTrainingTargetDetail } from "./planned-training";
 import {
   formatDistance,
   formatExactMetric,
@@ -109,6 +111,7 @@ interface EditorState {
   origin: ReportOrigin;
   sessionRef?: string;
   suggestedQuery?: ReportTrainingComparisonQuery;
+  plannedTarget?: PlannedTrainingTargetDetail;
   title: string;
   blocks: SessionReportBlockDraft[];
 }
@@ -135,6 +138,12 @@ function draftFromBlock(block: ReportBlock): SessionReportBlockDraft {
       };
     case "narrative":
       return { blockRef: block.blockRef, kind: block.kind, body: block.body };
+    case "planned-training":
+      return {
+        blockRef: block.blockRef,
+        kind: block.kind,
+        targetRef: block.targetRef,
+      };
     case "training-finding":
     case "training-chart":
       return {
@@ -181,6 +190,11 @@ function hasSupportedEvidence(
   if (origin.kind === "session") {
     return blocks.some((block) => block.kind === "session-evidence");
   }
+  if (origin.kind === "planned-training") {
+    return blocks.some((block) => (
+      block.kind === "planned-training" && block.targetRef === origin.targetRef
+    ));
+  }
   return blocks.some(isAnalyticalBlock);
 }
 
@@ -205,7 +219,10 @@ function validReportRange(range: TrainingDateRange): boolean {
   return (through - from) / 86_400_000 < 366;
 }
 
-function editorFromDefinition(definition: ReportDefinition): EditorState {
+function editorFromDefinition(
+  definition: ReportDefinition,
+  plannedTarget?: PlannedTrainingTargetDetail,
+): EditorState {
   return {
     reportRef: definition.reportRef,
     revision: definition.revision,
@@ -217,6 +234,7 @@ function editorFromDefinition(definition: ReportDefinition): EditorState {
     suggestedQuery: definition.origin.kind === "exploration"
       ? definition.origin.query
       : definition.blocks.find(isAnalyticalReportBlock)?.query,
+    plannedTarget,
     title: definition.title,
     blocks: definition.blocks.map(draftFromBlock),
   };
@@ -447,6 +465,21 @@ export function ReportsPanel({
       resetTransientReportState();
       return;
     }
+    if (origin.kind === "planned-training") {
+      const targetRef = origin.target.target.summary.targetRef;
+      setWorkspace("compose");
+      setEditor({
+        sourceSnapshotRef: origin.snapshotRef,
+        origin: { kind: "planned-training", targetRef },
+        plannedTarget: origin.target,
+        title: interpolate(copy.plannedDefaultTitle, {
+          name: origin.target.target.summary.name,
+        }),
+        blocks: [{ kind: "planned-training", targetRef }],
+      });
+      resetTransientReportState();
+      return;
+    }
     if (origin.kind === "question") {
       void beginPreparedReport(
         {
@@ -578,7 +611,10 @@ export function ReportsPanel({
       const result = await invoke<ResolvedReport>("resolve_report", {
         reportRef,
       });
-      const nextEditor = editorFromDefinition(result.definition);
+      const nextEditor = editorFromDefinition(
+        result.definition,
+        result.plannedTraining?.target,
+      );
       if (
         nextEditor.origin.kind === "blank"
         && !nextEditor.suggestedQuery
@@ -627,7 +663,10 @@ export function ReportsPanel({
     setSavedNotice(false);
     setRefreshedNotice(false);
     if (resolved) {
-      setEditor(editorFromDefinition(resolved.definition));
+      setEditor(editorFromDefinition(
+        resolved.definition,
+        resolved.plannedTraining?.target,
+      ));
       compositionCancelTargetRef.current = "preview";
       setWorkspace("preview");
       return;
@@ -1033,6 +1072,9 @@ export function ReportsPanel({
         comparison: formatReportRange(report.period.comparisonRange, locale),
       });
     }
+    if (report.period?.kind === "planned-training") {
+      return formatTrainingDateTime(report.period.scheduledAtLocal, locale);
+    }
     return null;
   }
 
@@ -1087,6 +1129,41 @@ export function ReportsPanel({
             )}</small>
           )}
         </div>
+      );
+    }
+    if (report.result?.kind === "planned-training") {
+      const values = [
+        report.result.exerciseCount === null
+          ? null
+          : countWithUnit(
+              report.result.exerciseCount.toString(),
+              copy.library.plannedUnits.exercises,
+            ),
+        report.result.phaseCount === null
+          ? null
+          : countWithUnit(
+              report.result.phaseCount.toString(),
+              copy.library.plannedUnits.phases,
+            ),
+        report.result.expandedPhaseCount === null
+          ? null
+          : countWithUnit(
+              report.result.expandedPhaseCount.toString(),
+              copy.library.plannedUnits.passes,
+            ),
+        report.result.repeatBlockCount === null || report.result.repeatBlockCount === 0
+          ? null
+          : countWithUnit(
+              report.result.repeatBlockCount.toString(),
+              copy.library.plannedUnits.repeats,
+            ),
+      ].filter((value): value is string => value !== null);
+      return values.length > 0 ? (
+        <p className="report-library-planned-result">{values.join(" · ")}</p>
+      ) : (
+        <p className="report-library-result-unavailable">
+          {copy.library.plannedStructureUnavailable}
+        </p>
       );
     }
     return (
@@ -1423,6 +1500,7 @@ export function ReportsPanel({
   function editorBlockLabel(block: SessionReportBlockDraft): string {
     if (block.kind === "session-evidence") return copy.sessionBlockHeading;
     if (block.kind === "narrative") return copy.interpretationHeading;
+    if (block.kind === "planned-training") return copy.plannedBlockHeading;
     if (isAnalyticalBlock(block)) return copy.analysis.blocks[block.kind].heading;
     const route = availableRoutes.find((candidate) => candidate.routeRef === block.routeRef)
       ?? resolved?.routes.find((candidate) => candidate.routeRef === block.routeRef);
@@ -1531,6 +1609,35 @@ export function ReportsPanel({
         </article>
       );
     }
+    if (block.kind === "planned-training") {
+      const evidence = resolved.plannedTraining;
+      if (!evidence || evidence.blockRef !== block.blockRef) {
+        return (
+          <article key={block.blockRef}>
+            <h3>{copy.plannedBlockHeading}</h3>
+            <p>{copy.plannedEvidenceUnavailable}</p>
+          </article>
+        );
+      }
+      const summary = evidence.target.target.summary;
+      return (
+        <article className="report-planned-training" key={block.blockRef}>
+          <p className="report-attribution">{copy.plannedAttribution}</p>
+          <h3>{summary.name}</h3>
+          {summary.targetKind.kind === "scheduled" && (
+            <time dateTime={summary.targetKind.scheduledAtLocal}>
+              {formatTrainingDateTime(summary.targetKind.scheduledAtLocal, locale)}
+            </time>
+          )}
+          {summary.description && <p>{summary.description}</p>}
+          <PlannedTrainingEvidence
+            detail={evidence.target}
+            locale={locale}
+            messages={messages}
+          />
+        </article>
+      );
+    }
     const evidence = resolved.routes.find((route) => route.blockRef === block.blockRef);
     return evidence ? renderRoutePreview(evidence) : (
       <article key={block.blockRef}>
@@ -1574,10 +1681,16 @@ export function ReportsPanel({
   const saveActionLabel = creating ? copy.create : copy.save;
   const canonicalSourceTarget = resolved ? reportSourceTarget(resolved) : null;
   const returnLabel = origin
-    ? origin.kind === "session" ? copy.backToSession : copy.backToComparison
+    ? origin.kind === "session"
+      ? copy.backToSession
+      : origin.kind === "planned-training" ? copy.backToPlannedTraining : copy.backToComparison
     : canonicalSourceTarget?.kind === "session"
       ? copy.viewSourceSession
-      : canonicalSourceTarget?.kind === "comparison" ? copy.viewSourceComparison : undefined;
+      : canonicalSourceTarget?.kind === "comparison"
+        ? copy.viewSourceComparison
+        : canonicalSourceTarget?.kind === "planned-training"
+          ? copy.viewSourcePlannedTraining
+          : undefined;
 
   return (
     <section className="reports-panel" aria-labelledby="reports-heading">
@@ -1714,14 +1827,18 @@ export function ReportsPanel({
                       )}
                       {report.subject.kind === "training-comparison"
                         && <span>{copy.library.trainingComparison}</span>}
+                      {report.subject.kind === "planned-training"
+                        && <span>{report.subject.name ?? copy.library.plannedTraining}</span>}
                       {report.subject.kind === "authored-note"
                         && <span>{copy.library.authoredNote}</span>}
                     </span>
-                    {report.period?.kind === "session"
+                    {report.period?.kind === "session" || report.period?.kind === "planned-training"
                       ? (
                         <time
                           className="report-library-period"
-                          dateTime={report.period.startedAtLocal}
+                          dateTime={report.period.kind === "session"
+                            ? report.period.startedAtLocal
+                            : report.period.scheduledAtLocal}
                         >
                           {libraryPeriod(report)}
                         </time>
@@ -1878,6 +1995,12 @@ export function ReportsPanel({
                             </span>
                           </label>
                         )}
+                        {block.kind === "planned-training" && editor.plannedTarget && (
+                          <div className="report-planned-training-source">
+                            <strong>{editor.plannedTarget.target.summary.name}</strong>
+                            <p>{copy.plannedAttribution}</p>
+                          </div>
+                        )}
                         {block.kind === "narrative" && (
                           <div className="report-field">
                             <label htmlFor={`report-narrative-${index}`}>{copy.narrativeLabel}</label>
@@ -2021,6 +2144,7 @@ export function ReportsPanel({
                   </section>
                 )}
 
+                {editor.origin.kind !== "planned-training" && (
                 <section className="report-analysis-picker" aria-labelledby="report-analysis-heading">
                   <div>
                     <h3 id="report-analysis-heading">{copy.analysis.addHeading}</h3>
@@ -2121,6 +2245,7 @@ export function ReportsPanel({
                   )
                   : <p>{copy.analysis.allAdded}</p>}
                 </section>
+                )}
               </div>
 
               <div className="report-actions">
@@ -2247,7 +2372,9 @@ export function ReportsPanel({
                       <dt>{copy.source}</dt>
                       <dd>{resolved.provenance.kind === "library-snapshot"
                         ? copy.librarySnapshotProvenance
-                        : copy.authoredOnlyProvenance}</dd>
+                        : resolved.provenance.kind === "planned-training-snapshot"
+                          ? copy.plannedSnapshotProvenance
+                          : copy.authoredOnlyProvenance}</dd>
                     </div>
                   )}
                   <div><dt>{copy.definitionVersion}</dt><dd>{resolved.definition.definitionVersion}</dd></div>
@@ -2377,11 +2504,14 @@ export function ReportsPanel({
               <ul>
                 {resolved.session && <li>{copy.sessionSummaryIncluded}</li>}
                 {resolved.trainingComparison && <li>{copy.analysisExportIncluded}</li>}
+                {resolved.plannedTraining && <li>{copy.plannedTrainingIncluded}</li>}
                 <li>{copy.titleIncluded}</li>
                 {resolved.definition.blocks.some((block) => block.kind === "narrative")
                   && <li>{copy.narrativeIncluded}</li>}
                 <li>{copy.provenanceIncluded}</li>
-                <li>{copy.exactSamplesExcluded}</li>
+                {(resolved.session || resolved.trainingComparison)
+                  && <li>{copy.exactSamplesExcluded}</li>}
+                {resolved.routes.length > 0 && <li>{copy.routeShapeRestricted}</li>}
               </ul>
               {resolved.session && physiologyAvailable && (
                 <label className="report-sensitive-choice">

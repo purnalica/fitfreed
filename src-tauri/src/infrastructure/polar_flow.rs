@@ -3,6 +3,16 @@ use std::sync::LazyLock;
 use fitfreed_domain::ArtifactClassification;
 use regex::Regex;
 
+mod training_target;
+pub(super) use training_target::{
+    decode_favourite_training_targets, decode_scheduled_training_target,
+    CompletedTrainingTargetSportEvidence, PlannedTrainingMappingContext,
+    PlannedTrainingSourceBatch, PlannedTrainingSourceRecord, PlannedTrainingSportMapping,
+};
+
+#[cfg(test)]
+mod training_target_tests;
+
 const DATE_PATTERN: &str = r"[0-9]{4}-[0-9]{2}-[0-9]{2}";
 const DATE_LENGTH: usize = 10;
 const TRAINING_START_LENGTH: usize = 19;
@@ -15,6 +25,7 @@ const UUID_PATTERN: &str =
 pub(super) enum SupportedArtifact {
     AccountData,
     DailyActivity,
+    FavoriteTrainingTargets,
     NightlyRecovery,
     SleepResult,
     SleepScore,
@@ -170,10 +181,11 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             "polar-flow-calendar-items",
             Unsupported,
         ),
-        rule(
+        supported_rule(
             format!(r"^favourite-targets-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-favourite-targets",
-            Unsupported,
+            SupportedArtifact::FavoriteTrainingTargets,
+            "mapped-planned-training",
         ),
         rule(
             format!(
@@ -257,7 +269,7 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             format!(r"^training-target-{DATE_PATTERN}-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-training-target",
             SupportedArtifact::TrainingTarget,
-            "mapped-completed-target-sport-evidence",
+            "mapped-planned-training",
         ),
     ]
 });
@@ -415,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn classifies_sport_vocabulary_and_training_target_evidence_as_supported() {
+    fn classifies_sport_vocabulary_and_planned_training_as_supported() {
         let cases = [
             (
                 format!("sport-profiles-42-{UUID_A}.json"),
@@ -424,10 +436,16 @@ mod tests {
                 "mapped-sport-vocabulary-evidence",
             ),
             (
+                format!("favourite-targets-42-{UUID_A}.json"),
+                "polar-flow-favourite-targets",
+                SupportedArtifact::FavoriteTrainingTargets,
+                "mapped-planned-training",
+            ),
+            (
                 format!("training-target-2026-01-02-42-{UUID_A}.json"),
                 "polar-flow-training-target",
                 SupportedArtifact::TrainingTarget,
-                "mapped-completed-target-sport-evidence",
+                "mapped-planned-training",
             ),
         ];
 
@@ -481,7 +499,6 @@ mod tests {
     fn recognizes_the_remaining_observed_registry_without_claiming_support() {
         let cases = [
             format!("calendar-items-42-{UUID_A}.json"),
-            format!("favourite-targets-42-{UUID_A}.json"),
             format!("fitness-test-results-42-2026-01-02-10-30-00-000-{UUID_A}.json"),
             format!("orthostatic-test-result-42-7-{UUID_A}.json"),
             format!("products-devices-42-{UUID_A}.json"),

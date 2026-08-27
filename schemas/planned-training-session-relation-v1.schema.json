@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/planned-training-session-relation-v1.schema.json",
+  "title": "FitFreed completed-session planned-training relation version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotRef",
+    "trainingSnapshotRef",
+    "sessionRef",
+    "relation",
+    "candidates"
+  ],
+  "properties": {
+    "snapshotRef": {
+      "$ref": "planned-training-chronology-v1.schema.json#/$defs/snapshotRef"
+    },
+    "trainingSnapshotRef": {
+      "type": "string",
+      "pattern": "^training-snapshot-[0-9a-f]{64}$"
+    },
+    "sessionRef": {
+      "$ref": "planned-training-chronology-v1.schema.json#/$defs/sessionRef"
+    },
+    "relation": { "$ref": "#/$defs/sessionRelation" },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "planned-training-chronology-v1.schema.json#/$defs/targetSummary"
+      }
+    }
+  },
+  "$defs": {
+    "sessionRelation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "targetRef",
+            "candidateTargetCount",
+            "candidateSessionCount"
+          ],
+          "properties": {
+            "state": { "const": "absent" },
+            "targetRef": { "type": "null" },
+            "candidateTargetCount": { "type": "null" },
+            "candidateSessionCount": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "targetRef",
+            "candidateTargetCount",
+            "candidateSessionCount"
+          ],
+          "properties": {
+            "state": { "const": "exact" },
+            "targetRef": {
+              "$ref": "planned-training-chronology-v1.schema.json#/$defs/targetRef"
+            },
+            "candidateTargetCount": { "type": "null" },
+            "candidateSessionCount": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "targetRef",
+            "candidateTargetCount",
+            "candidateSessionCount"
+          ],
+          "properties": {
+            "state": { "const": "ambiguous" },
+            "targetRef": { "type": "null" },
+            "candidateTargetCount": { "type": "integer", "minimum": 1 },
+            "candidateSessionCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    }
+  }
+}

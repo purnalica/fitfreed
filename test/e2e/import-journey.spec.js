@@ -30,6 +30,7 @@ const restartIdentityPath = process.env.FITFREED_E2E_RESTART_IDENTITY_PATH;
 const evidenceDirectory = path.resolve(".artifacts/e2e/evidence");
 const reportOutput = path.join(evidenceDirectory, "session-report.html");
 const refreshedReportOutput = path.join(evidenceDirectory, "refreshed-comparison-report.html");
+const plannedReportOutput = path.join(evidenceDirectory, "planned-training-report.html");
 
 async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
@@ -73,13 +74,29 @@ async function selectNativeOptionByText(select, expectedText) {
 }
 
 async function expectDocumentFocus(selector, timeoutMsg) {
-  await browser.waitUntil(
-    () => browser.execute(
-      (target) => document.activeElement === document.querySelector(target),
-      selector,
-    ),
-    { timeout: 10_000, timeoutMsg },
-  );
+  try {
+    await browser.waitUntil(
+      () => browser.execute(
+        (target) => document.activeElement === document.querySelector(target),
+        selector,
+      ),
+      { timeout: 10_000, timeoutMsg },
+    );
+  } catch (reason) {
+    const activeElement = await browser.execute(() => {
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement)) return null;
+      return {
+        tagName: active.tagName,
+        id: active.id,
+        className: active.className,
+        text: active.innerText.slice(0, 120),
+      };
+    });
+    throw new Error(`${timeoutMsg}; active element: ${JSON.stringify(activeElement)}`, {
+      cause: reason,
+    });
+  }
 }
 
 async function expectElementFocus(element, timeoutMsg) {
@@ -545,7 +562,9 @@ async function expectPersonalRangeGeometry(stacked) {
 }
 
 async function expectLibraryHome(catalog, { coverageExpanded = false } = {}) {
-  await expect($(".library-home h1")).toHaveText(catalog.home.title);
+  const heading = await $(".library-home h1");
+  await heading.waitForDisplayed({ timeout: 10_000 });
+  await expect(heading).toHaveText(catalog.home.title);
   const summaryFacts = await $$(".library-home-summary strong");
   expect(summaryFacts).toHaveLength(2);
   for (const fact of summaryFacts) await expect(fact).toBeDisplayed();
@@ -583,7 +602,10 @@ async function expectLibraryHome(catalog, { coverageExpanded = false } = {}) {
     .toBe(coverageExpanded ? "" : null);
   const domainRows = await coverageDisclosure.$$(".library-home-coverage li");
   expect(domainRows).toHaveLength(Object.keys(catalog.home.domains).length);
-  expect(await $$("#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights")).toHaveLength(0);
+  const retainedExplorers = await $$(
+    "#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights",
+  );
+  for (const explorer of retainedExplorers) await expect(explorer).not.toBeDisplayed();
 }
 
 async function expectHomeSummaryDestinations(catalog) {
@@ -988,6 +1010,7 @@ async function openTrainingWorkspace(catalog, workspace) {
   await expect(target).toHaveAttribute("aria-current", "page");
   const selector = {
     sessions: ".training-session-library",
+    plans: ".planned-training",
     sports: ".training-sports",
     comparison: ".training-comparison",
   }[workspace];
@@ -1579,6 +1602,7 @@ describe("packaged FitFreed import journey", () => {
     recordJourneyPhase("shell-and-first-run");
     fs.rmSync(reportOutput, { force: true });
     fs.rmSync(refreshedReportOutput, { force: true });
+    fs.rmSync(plannedReportOutput, { force: true });
     await resizeApplication(1440, 900);
     await expectApplicationShellLayout(english, "desktop", true);
     await resizeApplication(900, 760);
@@ -2650,7 +2674,7 @@ describe("packaged FitFreed import journey", () => {
     await expect(provenance).toHaveText(
       expect.stringContaining(english.training.sessionLibrary.provenanceDecisions.create),
     );
-    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@12"));
+    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@13"));
     await expect(provenance).toHaveText(
       expect.stringContaining("polar-flow-training-session@6"),
     );
@@ -3016,6 +3040,9 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining(english.reports.exactSamplesExcluded),
     );
     await expect(privacyReview).toHaveText(
+      expect.stringContaining(english.reports.routeShapeRestricted),
+    );
+    await expect(privacyReview).toHaveText(
       expect.stringContaining(english.reports.analysisExportIncluded),
     );
     await expect(privacyReview).toHaveText(
@@ -3086,8 +3113,8 @@ describe("packaged FitFreed import journey", () => {
       "a completed export did not focus its visible outcome",
     );
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
-    expect(exportedReport).toContain('data-fitfreed-report-version="4"');
-    expect(exportedReport).toContain('data-fitfreed-output-version="6"');
+    expect(exportedReport).toContain('data-fitfreed-report-version="5"');
+    expect(exportedReport).toContain('data-fitfreed-output-version="7"');
     expect(exportedReport).toContain('id="sport-icon-running"');
     expect(exportedReport).toContain('href="#sport-icon-running"');
     expect(exportedReport).toContain(">Trail running<");
@@ -5092,7 +5119,8 @@ describe("packaged FitFreed import journey", () => {
       "the refreshed export did not focus its visible outcome",
     );
     const refreshedExport = fs.readFileSync(refreshedReportOutput, "utf8");
-    expect(refreshedExport).toContain('data-fitfreed-report-version="4"');
+    expect(refreshedExport).toContain('data-fitfreed-report-version="5"');
+    expect(refreshedExport).toContain('data-fitfreed-output-version="7"');
     expect(refreshedExport).toContain("Synthetic comparison answer");
     expect(refreshedExport).not.toContain(
       "The recorded duration decreased; the reason remains my interpretation.",
@@ -5151,6 +5179,207 @@ describe("packaged FitFreed import journey", () => {
     );
     await $(`aria/${spanish.reports.backToReport}`).click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
+
+    recordJourneyPhase("planned-training-and-report");
+    await goToHome("sources");
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "planned-training.zip"),
+      spanish.choose,
+    );
+    await $(`aria/${spanish.import}`).click();
+    await waitForNotice(spanish.home.postImportChanged);
+    await expectLibraryHome(spanish, { coverageExpanded: true });
+    await goToHome("sources");
+    const plannedImportChanges = await $$(".outcome-change-summary li");
+    expect(plannedImportChanges.length).toBeGreaterThan(0);
+    await expect(plannedImportChanges[0].$("strong")).toHaveText("2");
+    await expect(plannedImportChanges[0].$("span")).toHaveText("observaciones nuevas");
+    await openOutcomeDisclosure(".outcome-coverage-detail");
+    await expectCoverage([
+      ["3", spanish.outcome.supported],
+      ["0", spanish.outcome.unsupported],
+      ["0", spanish.outcome.ignored],
+      ["0", spanish.outcome.unrecognized],
+      ["0", spanish.outcome.invalid],
+    ]);
+    await expectFamilyCoverage([
+      {
+        family: spanish.outcome.familyNames["polar-flow-account-data"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["source-subject-claim"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-favourite-targets"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mapped-planned-training"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-training-target"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mapped-planned-training"],
+      },
+    ]);
+
+    await openHomeQuestion(
+      spanish,
+      "explore-training-sessions",
+      ".training-insights",
+    );
+    await openTrainingWorkspace(spanish, "plans");
+    const plannedCards = await $$(".planned-training-list > li");
+    expect(plannedCards).toHaveLength(1);
+    await plannedCards[0].$("button").click();
+    await expect($("#planned-training-detail-heading")).toHaveText("Progressive intervals");
+    await expect($(".planned-training-boundary")).toHaveText(
+      spanish.training.planned.intentBoundary,
+    );
+    await expect($(".planned-training-shape")).toHaveText(
+      expect.stringContaining(spanish.training.planned.shape.phasesPasses
+        .replace("{phases}", "3")
+        .replace("{passes}", "9")),
+    );
+    expect(await $$(".planned-training-sequence > ol > li")).toHaveLength(3);
+    const exactPlannedPhases = await $(".planned-training-exact-phases");
+    expect(await exactPlannedPhases.getAttribute("open")).toBeNull();
+    await exactPlannedPhases.$("summary").click();
+    expect(await $$(".planned-training-exact-phases > ol > li")).toHaveLength(3);
+    await expect(exactPlannedPhases).toHaveText(
+      expect.stringContaining("Frecuencia cardíaca · zonas 1–2"),
+    );
+    await expectRevealOutsideApplicationNavigation(".planned-training-detail");
+    expect(await browser.execute(() => (
+      document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    ))).toBe(true);
+    const compactPlannedAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".planned-training")
+      .analyze();
+    expect(compactPlannedAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x7-r5-planned-detail-es-dark-200.png",
+    ));
+
+    await $(`aria/${spanish.training.planned.openRecordedSession}`).click();
+    await expect($("#training-session-detail-heading")).toHaveText(
+      spanish.training.sessionLibrary.detailHeading,
+    );
+    const linkedPlan = await $(".session-planned-training");
+    await expect(linkedPlan).toHaveText(expect.stringContaining("Progressive intervals"));
+    await expect(linkedPlan).toHaveText(
+      expect.stringContaining(spanish.training.planned.sessionRelation.exact),
+    );
+    await linkedPlan.$(`aria/${spanish.training.planned.sessionRelation.review}`).click();
+    await expect($("#planned-training-detail-heading")).toHaveText("Progressive intervals");
+
+    await selectLocale("en-US", "explore");
+    await setAppearanceAndZoom("light", 100, true, "explore");
+    await resizeApplication(1280, 820);
+    await expect($("#planned-training-detail-heading")).toHaveText("Progressive intervals");
+    await expect($(".planned-training-boundary")).toHaveText(
+      english.training.planned.intentBoundary,
+    );
+    await expectRevealOutsideApplicationNavigation(".planned-training-detail");
+    expect(await browser.execute(() => (
+      document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    ))).toBe(true);
+    const widePlannedAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".planned-training")
+      .analyze();
+    expect(widePlannedAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x7-r5-planned-detail-en-light-100.png",
+    ));
+
+    await $(`aria/${english.training.planned.createReport}`).click();
+    await expect($(".reports-hero h1")).toHaveText(english.reports.heading);
+    await expect($('.report-editor input[maxlength="120"]')).toHaveValue(
+      "Training plan · Progressive intervals",
+    );
+    await $(`aria/${english.reports.create}`).click();
+    await expect($(".report-preview h3")).toHaveText("Training plan · Progressive intervals");
+    await expect($(".report-planned-training")).toHaveText(
+      expect.stringContaining("Progressive intervals"),
+    );
+    await expect($(".report-planned-training .planned-training-boundary")).toHaveText(
+      english.training.planned.intentBoundary,
+    );
+    await $(`aria/${english.reports.reviewExport}`).click();
+    const plannedPrivacyReview = await $(".report-privacy-review");
+    await expect(plannedPrivacyReview).toHaveText(
+      expect.stringContaining(english.reports.plannedTrainingIncluded),
+    );
+    const plannedExportAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(plannedExportAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x7-r5-planned-report-review-en-light-100.png",
+    ));
+    await saveDialogMock.mockReturnValue(plannedReportOutput);
+    await saveDialogMock.update();
+    const plannedSaveCallCount = saveDialogMock.mock.calls.length;
+    await plannedPrivacyReview.$(`aria/${english.reports.chooseDestination}`).click();
+    await browser.waitUntil(async () => {
+      await saveDialogMock.update();
+      return saveDialogMock.mock.calls.length === plannedSaveCallCount + 1;
+    }, { timeout: 10_000, timeoutMsg: "planned report destination was not requested" });
+    await browser.waitUntil(() => fs.existsSync(plannedReportOutput), {
+      timeout: 10_000,
+      timeoutMsg: "the planned-training report was not written",
+    });
+    const plannedExport = fs.readFileSync(plannedReportOutput, "utf8");
+    expect(plannedExport).toContain('data-fitfreed-report-version="5"');
+    expect(plannedExport).toContain('data-fitfreed-output-version="7"');
+    expect(plannedExport).toContain("Training plan · Progressive intervals");
+    expect(plannedExport).toContain("Planned training evidence");
+    expect(plannedExport).toContain("Warm up");
+    expect(plannedExport).toContain("Heart-rate zones 1–2");
+    expect(plannedExport).toContain("Repeat from phase 2 for 4 total iterations");
+    expect(plannedExport).not.toContain("<script");
+    expect(plannedExport).not.toContain("http://");
+    expect(plannedExport).not.toContain("https://");
+    expect(plannedExport).not.toContain("planned-target-");
+    await $(`aria/${english.reports.backToPlannedTraining}`).click();
+    await expect($("#planned-training-detail-heading")).toHaveText("Progressive intervals");
+    await expectElementFocus(
+      await $(`aria/${english.training.planned.createReport}`),
+      "returning from the planned report did not focus its exact source action",
+    );
+
+    await goToHome("sources");
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "planned-training.zip"),
+      english.choose,
+    );
+    await $(`aria/${english.import}`).click();
+    await waitForNotice(english.home.postImportExactRepeat);
+    await expectLibraryHome(english, { coverageExpanded: true });
+    await openHomeQuestion(
+      english,
+      "explore-training-sessions",
+      ".training-insights",
+    );
+    await openTrainingWorkspace(english, "plans");
+    expect(await $$(".planned-training-list > li")).toHaveLength(1);
+    await $(`aria/${english.training.planned.favorites}`).click();
+    expect(await $$(".planned-training-list > li")).toHaveLength(1);
+    await expect($(".planned-training-list > li")).toHaveText(
+      expect.stringContaining("Reusable tempo template"),
+    );
+
+    await selectLocale("es-ES", "explore");
+    await setAppearanceAndZoom("dark", 200, true, "explore");
+    await resizeApplication(1280, 720);
     await goToHome("home");
     await expectLibraryHome(spanish, { coverageExpanded: true });
     const resumableTraining = await $$(".library-home-resume button");

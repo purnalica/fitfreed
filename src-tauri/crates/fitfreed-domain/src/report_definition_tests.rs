@@ -17,13 +17,23 @@ const TABLE_BLOCK_REF: &str =
     "report-block-5555555555555555555555555555555555555555555555555555555555555555";
 const COVERAGE_BLOCK_REF: &str =
     "report-block-6666666666666666666666666666666666666666666666666666666666666666";
+const PLANNED_TRAINING_BLOCK_REF: &str =
+    "report-block-7777777777777777777777777777777777777777777777777777777777777777";
 const SESSION_REF: &str =
     "session-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const ROUTE_REF: &str = "route-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const PLANNED_TARGET_REF: &str =
+    "planned-target-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const OTHER_PLANNED_TARGET_REF: &str =
+    "planned-target-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 const SNAPSHOT_REF: &str =
     "training-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const CHANGED_SNAPSHOT_REF: &str =
     "training-snapshot-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+const PLANNED_SNAPSHOT_REF: &str =
+    "planned-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const CHANGED_PLANNED_SNAPSHOT_REF: &str =
+    "planned-snapshot-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
 fn session_block(include_physiological_context: bool) -> ReportBlock {
     ReportBlock::session_evidence(
@@ -46,6 +56,11 @@ fn route_block(endpoint_redaction_meters: u32) -> ReportBlock {
         endpoint_redaction_meters,
     )
     .expect("route block")
+}
+
+fn planned_training_block(target_ref: &str) -> ReportBlock {
+    ReportBlock::planned_training(PLANNED_TRAINING_BLOCK_REF, target_ref)
+        .expect("planned-training block")
 }
 
 fn comparison_query() -> ReportTrainingComparisonQuery {
@@ -239,6 +254,159 @@ fn composes_factual_version_four_reports_without_authored_narrative() {
 }
 
 #[test]
+fn composes_one_planned_target_as_single_source_intent_evidence() {
+    let report = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Planned progression",
+        ReportLocale::EnUs,
+        PLANNED_SNAPSHOT_REF,
+        ReportOrigin::PlannedTraining {
+            target_ref: PLANNED_TARGET_REF.to_owned(),
+        },
+        vec![
+            planned_training_block(PLANNED_TARGET_REF),
+            narrative_block("My notes remain distinct from the imported plan."),
+        ],
+    )
+    .expect("planned-training report");
+
+    assert_eq!(report.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(report.source_snapshot_ref(), PLANNED_SNAPSHOT_REF);
+    assert_eq!(
+        report.origin(),
+        &ReportOrigin::PlannedTraining {
+            target_ref: PLANNED_TARGET_REF.to_owned(),
+        }
+    );
+    assert_eq!(
+        report.blocks()[0].content(),
+        &ReportBlockContent::PlannedTraining {
+            target_ref: PLANNED_TARGET_REF.to_owned(),
+        }
+    );
+
+    let factual = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Imported workout plan",
+        ReportLocale::EsEs,
+        PLANNED_SNAPSHOT_REF,
+        ReportOrigin::PlannedTraining {
+            target_ref: PLANNED_TARGET_REF.to_owned(),
+        },
+        vec![planned_training_block(PLANNED_TARGET_REF)],
+    )
+    .expect("factual planned-training report");
+    assert_eq!(factual.blocks().len(), 1);
+}
+
+#[test]
+fn rejects_cross_library_or_mixed_planned_training_compositions() {
+    let planned_origin = ReportOrigin::PlannedTraining {
+        target_ref: PLANNED_TARGET_REF.to_owned(),
+    };
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Wrong source library",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            planned_origin.clone(),
+            vec![planned_training_block(PLANNED_TARGET_REF)],
+        )
+        .expect_err("planned origin must use a planned snapshot"),
+        ReportDefinitionError::InvalidSnapshotIdentifier
+    );
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Recorded report with planned snapshot",
+            ReportLocale::EnUs,
+            PLANNED_SNAPSHOT_REF,
+            ReportOrigin::Blank,
+            vec![narrative_block("Authored evidence")],
+        )
+        .expect_err("recorded origin must use a training snapshot"),
+        ReportDefinitionError::InvalidSnapshotIdentifier
+    );
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Mismatched target",
+            ReportLocale::EnUs,
+            PLANNED_SNAPSHOT_REF,
+            planned_origin.clone(),
+            vec![planned_training_block(OTHER_PLANNED_TARGET_REF)],
+        )
+        .expect_err("block must match the origin target"),
+        ReportDefinitionError::PlannedTrainingOriginMismatch
+    );
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Mixed libraries",
+            ReportLocale::EnUs,
+            PLANNED_SNAPSHOT_REF,
+            planned_origin,
+            vec![
+                planned_training_block(PLANNED_TARGET_REF),
+                ReportBlock::training_comparison(COMPARISON_BLOCK_REF, comparison_query())
+                    .expect("training comparison"),
+            ],
+        )
+        .expect_err("one report cannot mix evidence libraries"),
+        ReportDefinitionError::InvalidVersionFiveComposition
+    );
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Blank report with planned authority",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            ReportOrigin::Blank,
+            vec![planned_training_block(PLANNED_TARGET_REF)],
+        )
+        .expect_err("blank origin cannot invent planned authority"),
+        ReportDefinitionError::InvalidVersionFiveComposition
+    );
+}
+
+#[test]
+fn refreshes_a_planned_report_without_rewriting_target_or_authorship() {
+    let report = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Planned progression",
+        ReportLocale::EnUs,
+        PLANNED_SNAPSHOT_REF,
+        ReportOrigin::PlannedTraining {
+            target_ref: PLANNED_TARGET_REF.to_owned(),
+        },
+        vec![
+            narrative_block("Preserve this interpretation."),
+            planned_training_block(PLANNED_TARGET_REF),
+        ],
+    )
+    .expect("planned report");
+
+    let refreshed = refresh_report_definition(&report, CHANGED_PLANNED_SNAPSHOT_REF)
+        .expect("refreshed planned report");
+
+    assert_eq!(
+        refreshed.source_snapshot_ref(),
+        CHANGED_PLANNED_SNAPSHOT_REF
+    );
+    assert_eq!(refreshed.revision(), 2);
+    assert_eq!(refreshed.origin(), report.origin());
+    assert_eq!(refreshed.blocks(), report.blocks());
+    assert_eq!(refreshed.title(), report.title());
+    assert_eq!(refreshed.locale(), report.locale());
+    assert_eq!(
+        refresh_report_definition(&refreshed, CHANGED_SNAPSHOT_REF)
+            .expect_err("planned report cannot refresh from recorded training"),
+        ReportDefinitionError::InvalidSnapshotIdentifier
+    );
+}
+
+#[test]
 fn authorizes_only_revision_bound_removal_and_names_the_removed_report() {
     let report = ReportDefinition::compose_session_report(
         REPORT_REF,
@@ -395,7 +563,7 @@ fn rejects_evidence_that_exceeds_the_report_origin_authority() {
             ],
         )
         .expect_err("session authority cannot be invented"),
-        ReportDefinitionError::InvalidVersionFourComposition
+        ReportDefinitionError::InvalidVersionFiveComposition
     );
     assert_eq!(
         ReportDefinition::compose_report(
@@ -407,7 +575,7 @@ fn rejects_evidence_that_exceeds_the_report_origin_authority() {
             vec![narrative_block("Evidence")],
         )
         .expect_err("question needs an answer"),
-        ReportDefinitionError::InvalidVersionFourComposition
+        ReportDefinitionError::InvalidVersionFiveComposition
     );
     assert_eq!(
         ReportDefinition::compose_report(
@@ -419,7 +587,7 @@ fn rejects_evidence_that_exceeds_the_report_origin_authority() {
             vec![route_block(200), narrative_block("Evidence")],
         )
         .expect_err("blank origin cannot authorize a route"),
-        ReportDefinitionError::InvalidVersionFourComposition
+        ReportDefinitionError::InvalidVersionFiveComposition
     );
 
     let other_query = ReportTrainingComparisonQuery::new(
@@ -679,7 +847,7 @@ fn rejects_invalid_route_authority_and_incomplete_compositions() {
             vec![route_block(200)],
         )
         .expect_err("missing session evidence"),
-        ReportDefinitionError::InvalidVersionFourComposition
+        ReportDefinitionError::InvalidVersionFiveComposition
     );
 }
 
@@ -863,7 +1031,7 @@ fn rejects_unsupported_versions_zero_revisions_and_oversized_text() {
     );
 
     for (definition_version, revision, expected) in [
-        (5, 1, ReportDefinitionError::UnsupportedDefinitionVersion),
+        (6, 1, ReportDefinitionError::UnsupportedDefinitionVersion),
         (
             REPORT_DEFINITION_VERSION_V1,
             0,

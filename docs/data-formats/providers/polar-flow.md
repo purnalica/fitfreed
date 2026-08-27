@@ -57,7 +57,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Continuous heart rate | Partitioned high-resolution daily heart-rate samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries, exercise/lap/pause structure, primary and transition routes, documented regular signal series, and heart-rate, speed, and power zone distributions are supported through training mapping version 6; exact completed-target sport evidence is supported separately; RR values, irregular samples, unknown series, and unsupported zone kinds remain deliberately unmapped |
-| Planning | Calendar entries, targets, favorites, programs, and personal events | Training targets are supported only for validated completed-target sport evidence; every other target field and the remaining planning families are recognized and unsupported |
+| Planning | Calendar entries, targets, favorites, programs, and personal events | Scheduled and favourite training targets are supported through planned-training mapping version 1, including validated completed-target sport evidence; calendar entries, programs, and personal events remain recognized and unsupported |
 | Sleep | Sleep timing, phases, interruptions, continuity, and scores | Result and score arrays are supported by mapping version 1; compatibility remains limited to the evaluated split-artifact structure and documented API correspondence |
 | Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Dated nightly-recovery summaries are specified for mapping version 1; the undated sample blob is deliberately excluded because no safe record relationship is established |
 | Tests | Fitness and orthostatic test results | Recognized and unsupported |
@@ -254,7 +254,7 @@ The optional top-level `sport.id` is present for the evaluated single- and multi
 
 Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves sport identifiers to names and parent sports. That catalogue is not present in the evaluated takeout, and the observed `sport-profiles` artifact contains user settings keyed by a different source field rather than the required identifier-to-name catalogue. Training-summary version 1 preserves the aggregate sport reference as opaque source classification evidence. It does not publish, guess, or present a sport name from that value.
 
-### Training-target and sport-profile evidence
+### Training-target planning structure and sport-profile evidence
 
 **Evidence: Observed with official detailed-sport vocabulary correspondence.** Each evaluated sport-profile item
 contains `exportVersion` and a `sport` string alongside provider settings. Each evaluated training target contains
@@ -262,15 +262,49 @@ contains `exportVersion` and a `sport` string alongside provider settings. Each 
 detailed-sport string vocabulary. The profile contains no takeout session identifier or documented relationship to
 training-session `sport.id`.
 
+Scheduled targets use one object per `training-target-{date}-{numeric-token}-{uuid-token}.json` artifact. Favourite
+targets use an array whose items share the target core but omit scheduled-only fields. The delivery UUID and the
+favourite array position have no established provider identity semantics. Missing nested collections and
+present-empty collections are distinct observed states.
+
+| Source path | Observed type and presence | Established meaning or limitation |
+|---|---|---|
+| `exportVersion` | required string | Source format metadata. It is retained verbatim after canonical text validation; no numeric ordering is inferred. |
+| `name` | required string | Provider-authored target name. |
+| `description` | optional string | Provider-authored description; absence differs from an empty string. |
+| `startTime` | required local date-time on scheduled targets; absent from favourites | Scheduled local instant without a time-zone identifier or UTC offset in the evaluated shape. |
+| `done` | required Boolean on scheduled targets; absent from favourites | Source completion state, not evidence that a completed session relationship exists. |
+| `nonUserEditable` | optional Boolean on scheduled targets; absent from favourites | Provider-authored editability indication. Absence has no inferred Boolean value. |
+| `exercises` | optional array | Ordered target exercises. Absence differs from an explicitly empty target. |
+| `exercises[].type` | required string | Evaluated vocabulary includes `FREE`, `PHASED`, `VOLUME`, and `STRENGTH`; other syntactically valid values require explicit unmapped handling. |
+| `exercises[].duration` | optional ISO 8601 duration string | Whole-millisecond duration goal where applicable. Calendar years and months are not established by the evaluated grammar. |
+| `exercises[].distance` | optional positive number | Distance goal in metres. |
+| `exercises[].sport` | optional detailed-sport string | Source vocabulary evidence for this exercise; it is not a training-session `sport.id`. |
+| `exercises[].phases` | optional array | Ordered phase definitions. Absence differs from present-empty. |
+| `phases[].index` | required positive integer | One-based contiguous source order in the evaluated shape. |
+| `phases[].name` | required string | Provider-authored phase name. |
+| `phases[].changeType` | required string | Evaluated values `MANUAL` and `AUTOMATIC` describe the transition after the phase. |
+| `phases[].goal.type` | required string | Evaluated values `DURATION` and `DISTANCE`; the matching `duration` or `distance` member supplies the exclusive goal. |
+| `phases[].intensity.type` | required string | Evaluated values `NONE`, `HEART_RATE_ZONES`, `SPEED_ZONES`, and `POWER_ZONES`. |
+| `phases[].intensity.lowerZone`, `upperZone` | conditionally required integers | Inclusive zone numbers for a zone-based intensity. The evaluated product zone range is 1 through 5. |
+| `phases[].jumpIndex`, `repeatCount` | optional integer pair | Both occur together on a repeat edge. `jumpIndex` is one-based. FitFreed interprets `repeatCount` as additional executions and therefore records total iterations as `repeatCount + 1`; this interpretation is versioned rather than claimed as an official takeout guarantee. |
+
+Unknown object members and unknown but syntactically valid enum values do not establish new semantics. The mapping
+records their JSON-pointer-like locations and reports partial coverage; it does not publish the source values as
+canonical facts. Invalid required fields, non-contiguous phase indexes, incomplete repeat pairs, invalid bounds, or
+durations that cannot be represented exactly in whole milliseconds invalidate the supported artifact rather than
+being guessed or rounded.
+
 A completed target can have a narrower relationship: its normalized local `startTime` may equal one current
 session's `startTime` in the same resolved source subject. FitFreed accepts that relationship only when exactly one
 session matches. An incomplete target, no match, or multiple session matches contributes no sport candidate.
 Distinct codes on one exact target remain ambiguous. This does not establish a global code-to-`sport.id` mapping,
 and it never labels other sessions that share the same opaque value.
 
-The exact parser, vocabulary subset, relationship, attribution, and reimport rules are normative in the
-[training-target sport-evidence mapping](../mappings/polar-flow-training-target-sport.md). Target names,
-descriptions, phases, objectives, and other planning content are not imported by this mapping.
+The complete provider-neutral planning transformation is normative in the
+[planned-training mapping](../mappings/polar-flow-planned-training.md). The exact completed-target relationship,
+vocabulary subset, attribution, and session-recognition rules remain normative in the narrower
+[training-target sport-evidence mapping](../mappings/polar-flow-training-target-sport.md).
 
 ### Sport-catalogue acquisition boundary
 

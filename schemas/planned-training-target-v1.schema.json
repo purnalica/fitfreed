@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/planned-training-target-v1.schema.json",
+  "title": "FitFreed planned-training target detail version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["snapshotRef", "target"],
+  "properties": {
+    "snapshotRef": {
+      "$ref": "planned-training-chronology-v1.schema.json#/$defs/snapshotRef"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "exercises"],
+      "properties": {
+        "summary": {
+          "$ref": "planned-training-chronology-v1.schema.json#/$defs/targetSummary"
+        },
+        "exercises": { "$ref": "#/$defs/optionalExercises" }
+      }
+    }
+  },
+  "$defs": {
+    "unsignedMilliseconds": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "optionalUnsignedMilliseconds": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/unsignedMilliseconds" }
+      ]
+    },
+    "optionalDistance": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number", "exclusiveMinimum": 0 }
+      ]
+    },
+    "recognition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalFamily",
+        "localizedNames",
+        "catalogueRevision",
+        "retrievedAtUtc",
+        "mappingVersion",
+        "evidenceRef"
+      ],
+      "properties": {
+        "canonicalFamily": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "enum": [
+                "running",
+                "cycling",
+                "swimming",
+                "walking",
+                "hiking",
+                "strength",
+                "mobility",
+                "racket-sport",
+                "team-sport",
+                "winter-sport",
+                "water-sport",
+                "other"
+              ]
+            }
+          ]
+        },
+        "localizedNames": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "propertyNames": {
+            "pattern": "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2}|-[0-9]{3})?$"
+          }
+        },
+        "catalogueRevision": { "type": "string", "minLength": 1 },
+        "retrievedAtUtc": { "type": "string", "format": "date-time" },
+        "mappingVersion": { "type": "string", "minLength": 1 },
+        "evidenceRef": {
+          "type": "string",
+          "pattern": "^sport-evidence-[0-9a-f]{64}$"
+        }
+      }
+    },
+    "sport": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "recognition"],
+          "properties": {
+            "state": { "enum": ["unavailable", "unmapped"] },
+            "recognition": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "recognition"],
+          "properties": {
+            "state": { "const": "recognized" },
+            "recognition": { "$ref": "#/$defs/recognition" }
+          }
+        }
+      ]
+    },
+    "goal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "durationMilliseconds", "distanceMeters"],
+          "properties": {
+            "kind": { "const": "duration" },
+            "durationMilliseconds": { "$ref": "#/$defs/unsignedMilliseconds" },
+            "distanceMeters": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "durationMilliseconds", "distanceMeters"],
+          "properties": {
+            "kind": { "const": "distance" },
+            "durationMilliseconds": { "type": "null" },
+            "distanceMeters": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "durationMilliseconds", "distanceMeters"],
+          "properties": {
+            "kind": { "const": "unmapped" },
+            "durationMilliseconds": { "type": "null" },
+            "distanceMeters": { "type": "null" }
+          }
+        }
+      ]
+    },
+    "intensity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "metric", "lowerZone", "upperZone"],
+          "properties": {
+            "kind": { "enum": ["none", "unmapped"] },
+            "metric": { "type": "null" },
+            "lowerZone": { "type": "null" },
+            "upperZone": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "metric", "lowerZone", "upperZone"],
+          "properties": {
+            "kind": { "const": "zone-range" },
+            "metric": { "enum": ["heart-rate", "speed", "power"] },
+            "lowerZone": { "type": "integer", "minimum": 1, "maximum": 5 },
+            "upperZone": { "type": "integer", "minimum": 1, "maximum": 5 }
+          }
+        }
+      ]
+    },
+    "repeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repeatRef", "returnToPhaseOrdinal", "totalIterations"],
+      "properties": {
+        "repeatRef": {
+          "type": "string",
+          "pattern": "^planned-repeat-[0-9a-f]{64}$"
+        },
+        "returnToPhaseOrdinal": { "type": "integer", "minimum": 0 },
+        "totalIterations": { "type": "integer", "minimum": 2, "maximum": 100 }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transitionRef", "change", "repeat"],
+      "properties": {
+        "transitionRef": {
+          "type": "string",
+          "pattern": "^planned-transition-[0-9a-f]{64}$"
+        },
+        "change": { "enum": ["manual", "automatic", "unmapped"] },
+        "repeat": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/repeat" }
+          ]
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phaseRef", "ordinal", "name", "goal", "intensity", "transition"],
+      "properties": {
+        "phaseRef": {
+          "type": "string",
+          "pattern": "^planned-phase-[0-9a-f]{64}$"
+        },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "goal": { "$ref": "#/$defs/goal" },
+        "intensity": { "$ref": "#/$defs/intensity" },
+        "transition": { "$ref": "#/$defs/transition" }
+      }
+    },
+    "optionalPhases": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/phase" }
+        }
+      ]
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exerciseRef",
+        "ordinal",
+        "kind",
+        "durationGoalMilliseconds",
+        "distanceGoalMeters",
+        "sport",
+        "phases"
+      ],
+      "properties": {
+        "exerciseRef": {
+          "type": "string",
+          "pattern": "^planned-exercise-[0-9a-f]{64}$"
+        },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "kind": { "enum": ["open", "phased", "volume", "strength", "unmapped"] },
+        "durationGoalMilliseconds": { "$ref": "#/$defs/optionalUnsignedMilliseconds" },
+        "distanceGoalMeters": { "$ref": "#/$defs/optionalDistance" },
+        "sport": { "$ref": "#/$defs/sport" },
+        "phases": { "$ref": "#/$defs/optionalPhases" }
+      }
+    },
+    "optionalExercises": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/exercise" }
+        }
+      ]
+    }
+  }
+}

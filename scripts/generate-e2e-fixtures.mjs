@@ -478,6 +478,57 @@ await createArchive("report-refresh.zip", [
   ],
 ]);
 
+await createArchive("planned-training.zip", [
+  [
+    `account-data-94-${uuidC}.json`,
+    JSON.stringify({ exportVersion: "synthetic-planned", username: syntheticUsername }),
+  ],
+  [
+    `training-target-2026-01-04-94-${uuidC}.json`,
+    JSON.stringify({
+      exportVersion: "1.0",
+      name: "Progressive intervals",
+      description: "A synthetic interval plan",
+      startTime: "2026-01-04T06:15:00.000",
+      done: true,
+      nonUserEditable: false,
+      exercises: [{
+        type: "PHASED",
+        phases: [{
+          index: 1,
+          name: "Warm up",
+          changeType: "AUTOMATIC",
+          goal: { type: "DURATION", duration: "PT10M" },
+          intensity: { type: "HEART_RATE_ZONES", lowerZone: 1, upperZone: 2 },
+        }, {
+          index: 2,
+          name: "Work",
+          changeType: "MANUAL",
+          goal: { type: "DISTANCE", distance: 1_000 },
+          intensity: { type: "SPEED_ZONES", lowerZone: 3, upperZone: 4 },
+        }, {
+          index: 3,
+          name: "Recovery",
+          changeType: "AUTOMATIC",
+          goal: { type: "DURATION", duration: "PT1M" },
+          intensity: { type: "NONE" },
+          jumpIndex: 2,
+          repeatCount: 3,
+        }],
+      }],
+    }),
+  ],
+  [
+    `favourite-targets-94-${uuidC}.json`,
+    JSON.stringify([{
+      exportVersion: "1.0",
+      name: "Reusable tempo template",
+      description: "A synthetic reusable plan",
+      exercises: [{ type: "FREE" }],
+    }]),
+  ],
+]);
+
 await createArchive("adaptive-sessions.zip", [
   [
     `account-data-91-${uuidC}.json`,
@@ -585,4 +636,4 @@ await createArchive("adaptive-sessions.zip", [
   ],
 ]);
 
-process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 5 })}\n`);
+process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 7 })}\n`);

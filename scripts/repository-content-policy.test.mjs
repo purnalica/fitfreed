@@ -74,6 +74,23 @@ test("accepts a privacy-minimized execution-environment classification", () => {
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("accepts ISO timestamps as source-format evidence rather than workstation identifiers", () => {
+  const result = runRepositoryContentCheck(
+    'A synthetic target starts at `2026-01-02T10:30:00.000`.\n',
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("rejects a labelled workstation serial identifier", () => {
+  const result = runRepositoryContentCheck(
+    "Serial number: 10C12345\n",
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /exact workstation details/);
+});
+
 test("scans the prospective working tree without treating tracked deletions as files", () => {
   const result = runRepositoryContentCheckWithDeletedTrackedFile();
 

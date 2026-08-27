@@ -12,22 +12,23 @@ use chrono::{Duration as ChronoDuration, NaiveDate};
 use fitfreed_application::{
     create_composed_session_report, create_report, export_report, list_report_library,
     query_activity_comparison, query_activity_overview, query_longitudinal_comparison,
-    query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
-    query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
-    query_training_comparison, query_training_overview, query_training_route_points,
-    query_training_session_calendar, query_training_session_provenance,
-    query_training_session_routes, query_training_session_segmentation,
-    query_training_session_selection, query_training_session_signals,
-    query_training_session_structure, query_training_session_zones, query_training_sessions,
-    query_training_signal_samples, resolve_session_report, ActivityDateRange,
-    CreateComposedSessionReportRequest, CreateReportRequest, LongitudinalDateRange,
-    RecoveryDateRange, ReportExportCancellation, ReportExportRequest, ReportLibraryRequest,
-    ReportRouteExportChoice, SessionReportBlockDraft, SessionReportBlockDraftContent,
-    SleepDateRange, TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
-    TrainingSessionProvenanceQuery, TrainingSessionRouteQuery, TrainingSessionSearchRequest,
-    TrainingSessionSegmentationQuery, TrainingSessionSelectionRequest, TrainingSessionSignalsQuery,
-    TrainingSessionSort, TrainingSessionStructureQuery, TrainingSessionZonesQuery,
-    TrainingSignalSamplesQuery,
+    query_longitudinal_overview, query_planned_training_chronology, query_planned_training_target,
+    query_recovery_comparison, query_recovery_detail, query_recovery_overview,
+    query_sleep_comparison, query_sleep_detail, query_sleep_overview, query_training_comparison,
+    query_training_overview, query_training_route_points, query_training_session_calendar,
+    query_training_session_provenance, query_training_session_routes,
+    query_training_session_segmentation, query_training_session_selection,
+    query_training_session_signals, query_training_session_structure, query_training_session_zones,
+    query_training_sessions, query_training_signal_samples, resolve_report, resolve_session_report,
+    ActivityDateRange, CreateComposedSessionReportRequest, CreateReportRequest,
+    LongitudinalDateRange, PlannedTrainingChronologyQuery, PlannedTrainingCollection,
+    PlannedTrainingTargetQuery, RecoveryDateRange, ReportExportCancellation, ReportExportRequest,
+    ReportLibraryRequest, ReportRouteExportChoice, SessionReportBlockDraft,
+    SessionReportBlockDraftContent, SleepDateRange, TrainingDateRange, TrainingRoutePointsQuery,
+    TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery, TrainingSessionRouteQuery,
+    TrainingSessionSearchRequest, TrainingSessionSegmentationQuery,
+    TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSort,
+    TrainingSessionStructureQuery, TrainingSessionZonesQuery, TrainingSignalSamplesQuery,
 };
 use fitfreed_domain::{
     ReportBlockContent, ReportDateRange, ReportLocale, ReportOrigin, ReportQuestion,
@@ -47,6 +48,14 @@ const ROUTE_POINTS_PER_ORIGIN: usize = 250_000;
 const SIGNAL_SAMPLES_PER_ORIGIN: usize = 100_000;
 const ZONE_GROUPS_PER_ORIGIN: usize = 64;
 const ZONES_PER_GROUP: usize = 256;
+const PLANNED_TARGET_COUNT: usize = 520;
+const PLANNED_PHASES_PER_TARGET: usize = 8;
+const PLANNED_REPEAT_START_ORDINAL: usize = 2;
+const PLANNED_REPEAT_END_ORDINAL: usize = 5;
+const PLANNED_REPEAT_ITERATIONS: usize = 4;
+const PLANNED_EXPANDED_PHASES_PER_TARGET: usize = PLANNED_PHASES_PER_TARGET
+    + (PLANNED_REPEAT_END_ORDINAL - PLANNED_REPEAT_START_ORDINAL + 1)
+        * (PLANNED_REPEAT_ITERATIONS - 1);
 const WARM_UP_RUNS: usize = 10;
 const MEASURED_RUNS: usize = 100;
 const COMMON_BUDGET_MILLISECONDS: f64 = 500.0;
@@ -61,6 +70,10 @@ struct Measurement {
 struct GeneratedRows {
     activity: usize,
     recovery: usize,
+    planned_training_targets: usize,
+    planned_training_exercises: usize,
+    planned_training_phases: usize,
+    planned_training_provenance_events: usize,
     training: usize,
     training_provenance_events: usize,
     training_structures: usize,
@@ -208,6 +221,74 @@ fn main() {
             .expect("training discovery page")
             .sessions
             .len()
+    });
+    let planned_training_chronology_request = PlannedTrainingChronologyQuery {
+        collection: PlannedTrainingCollection::Scheduled,
+        completion: None,
+        from: None,
+        through: None,
+        offset: 0,
+        limit: 50,
+        snapshot_ref: None,
+    };
+    let planned_training_chronology_setup = query_planned_training_chronology(
+        &training_library,
+        planned_training_chronology_request.clone(),
+    )
+    .expect("planned-training chronology setup");
+    assert_eq!(
+        planned_training_chronology_setup.total_count,
+        PLANNED_TARGET_COUNT
+    );
+    assert_eq!(planned_training_chronology_setup.targets.len(), 50);
+    let planned_training_target_ref = planned_training_chronology_setup.targets[0]
+        .target
+        .target_id()
+        .to_owned();
+    let planned_training_snapshot_ref = planned_training_chronology_setup.snapshot_ref.clone();
+    let planned_training_chronology = measure(50, || {
+        query_planned_training_chronology(
+            &training_library,
+            planned_training_chronology_request.clone(),
+        )
+        .expect("planned-training chronology")
+        .targets
+        .len()
+    });
+    let planned_training_target_request = PlannedTrainingTargetQuery {
+        target_ref: planned_training_target_ref.clone(),
+        snapshot_ref: Some(planned_training_snapshot_ref.clone()),
+    };
+    let planned_training_target_setup =
+        query_planned_training_target(&training_library, planned_training_target_request.clone())
+            .expect("planned-training target setup");
+    assert_eq!(
+        planned_training_target_setup.target.shape.phase_count,
+        Some(PLANNED_PHASES_PER_TARGET)
+    );
+    assert_eq!(
+        planned_training_target_setup
+            .target
+            .shape
+            .expanded_phase_count,
+        Some(PLANNED_EXPANDED_PHASES_PER_TARGET)
+    );
+    let planned_training_target_detail = measure(PLANNED_PHASES_PER_TARGET, || {
+        query_planned_training_target(&training_library, planned_training_target_request.clone())
+            .expect("planned-training target detail")
+            .target
+            .target
+            .exercises()
+            .expect("generated planned exercises")
+            .iter()
+            .map(|exercise| {
+                exercise
+                    .phases
+                    .as_ref()
+                    .expect("generated planned phases")
+                    .len()
+            })
+            .sum()
     });
     let training_calendar_request = TrainingSessionCalendarRequest {
         month: "2025-12".to_owned(),
@@ -460,9 +541,90 @@ fn main() {
         .series
         .len()
     });
-    for index in 0..22 {
+    let planned_training_report = create_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        CreateReportRequest {
+            title: "Synthetic phased training plan".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: planned_training_snapshot_ref.clone(),
+            origin: ReportOrigin::PlannedTraining {
+                target_ref: planned_training_target_ref.clone(),
+            },
+            blocks: vec![
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::PlannedTraining {
+                        target_ref: planned_training_target_ref.clone(),
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::Narrative {
+                        body: "Synthetic long-history phased-target performance evidence."
+                            .to_owned(),
+                    },
+                },
+            ],
+        },
+    )
+    .expect("create generated planned-training report");
+    let planned_training_report_setup = resolve_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        planned_training_report.report_ref(),
+    )
+    .expect("resolve generated planned-training report");
+    assert_eq!(
+        planned_training_report_setup
+            .planned_training
+            .as_ref()
+            .expect("planned-training report evidence")
+            .target
+            .target
+            .shape
+            .expanded_phase_count,
+        Some(PLANNED_EXPANDED_PHASES_PER_TARGET)
+    );
+    let planned_training_report_resolution = measure(PLANNED_PHASES_PER_TARGET, || {
+        resolve_report(
+            &report_library,
+            &training_library,
+            &training_library,
+            &training_library,
+            &training_library,
+            &training_library,
+            planned_training_report.report_ref(),
+        )
+        .expect("resolve phased planned-training report")
+        .planned_training
+        .expect("planned-training report evidence")
+        .target
+        .target
+        .target
+        .exercises()
+        .expect("planned-training report exercises")
+        .iter()
+        .map(|exercise| {
+            exercise
+                .phases
+                .as_ref()
+                .expect("planned-training report phases")
+                .len()
+        })
+        .sum()
+    });
+    for index in 0..21 {
         create_report(
             &report_library,
+            &training_library,
             &training_library,
             &training_library,
             &training_library,
@@ -492,6 +654,7 @@ fn main() {
         &report_library,
         &training_library,
         &training_library,
+        &training_library,
         report_library_request.clone(),
     )
     .expect("maximum report-library setup");
@@ -500,6 +663,7 @@ fn main() {
     let report_library_page = measure(24, || {
         list_report_library(
             &report_library,
+            &training_library,
             &training_library,
             &training_library,
             report_library_request.clone(),
@@ -537,6 +701,7 @@ fn main() {
         &training_library,
         &training_library,
         &training_library,
+        &training_library,
         &SelfContainedHtmlReportExporter,
         report_export_request.clone(),
         &ReportExportCancellation::new(),
@@ -553,6 +718,7 @@ fn main() {
                 &training_library,
                 &training_library,
                 &training_library,
+                &training_library,
                 &SelfContainedHtmlReportExporter,
                 report_export_request.clone(),
                 &ReportExportCancellation::new(),
@@ -561,6 +727,48 @@ fn main() {
             .byte_count,
         )
         .expect("report byte count fits usize")
+    });
+    let planned_training_export_request = ReportExportRequest {
+        report_ref: planned_training_report.report_ref().to_owned(),
+        expected_revision: planned_training_report.revision(),
+        expected_source_snapshot_ref: planned_training_report.source_snapshot_ref().to_owned(),
+        include_physiological_context: false,
+        route_choices: Vec::new(),
+        destination: directory.path().join("phased-planned-training-report.html"),
+    };
+    let planned_training_export_setup = export_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &SelfContainedHtmlReportExporter,
+        planned_training_export_request.clone(),
+        &ReportExportCancellation::new(),
+    )
+    .expect("planned-training report export setup");
+    let expected_planned_training_export_bytes =
+        usize::try_from(planned_training_export_setup.byte_count)
+            .expect("planned-training report byte count fits usize");
+    assert!(expected_planned_training_export_bytes > 0);
+    let planned_training_html_export = measure(expected_planned_training_export_bytes, || {
+        usize::try_from(
+            export_report(
+                &report_library,
+                &training_library,
+                &training_library,
+                &training_library,
+                &training_library,
+                &training_library,
+                &SelfContainedHtmlReportExporter,
+                planned_training_export_request.clone(),
+                &ReportExportCancellation::new(),
+            )
+            .expect("planned-training self-contained report export")
+            .byte_count,
+        )
+        .expect("planned-training report byte count fits usize")
     });
     let training_signal_request = TrainingSessionSignalsQuery {
         session_ref: training_discovery_page.sessions[0].session_ref.clone(),
@@ -869,6 +1077,26 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "plannedTraining.chronologyPage",
+            &planned_training_chronology,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "plannedTraining.targetDetail",
+            &planned_training_target_detail,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "plannedTraining.reportResolution",
+            &planned_training_report_resolution,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "plannedTraining.selfContainedHtmlExport",
+            &planned_training_html_export,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        (
             "training.calendarMonth",
             &training_calendar,
             COMMON_BUDGET_MILLISECONDS,
@@ -1047,6 +1275,11 @@ fn main() {
                 "calendarDays": 3_653,
                 "origins": ORIGIN_COUNT,
                 "storedActivityObservations": generated_rows.activity,
+                "storedPlannedTrainingTargets": generated_rows.planned_training_targets,
+                "storedPlannedTrainingExercises": generated_rows.planned_training_exercises,
+                "storedPlannedTrainingPhases": generated_rows.planned_training_phases,
+                "storedPlannedTrainingProvenanceEvents": generated_rows.planned_training_provenance_events,
+                "expandedPhasesPerPlannedTarget": PLANNED_EXPANDED_PHASES_PER_TARGET,
                 "storedTrainingSessions": generated_rows.training,
                 "storedTrainingProvenanceEvents": generated_rows.training_provenance_events,
                 "storedTrainingStructures": generated_rows.training_structures,
@@ -1156,6 +1389,24 @@ fn main() {
                         COMMON_BUDGET_MILLISECONDS,
                     ),
                 },
+                "plannedTraining": {
+                    "chronologyPage": measurement_json(
+                        &planned_training_chronology,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "targetDetail": measurement_json(
+                        &planned_training_target_detail,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "reportResolution": measurement_json(
+                        &planned_training_report_resolution,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "selfContainedHtmlExport": measurement_json(
+                        &planned_training_html_export,
+                        COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                },
                 "report": {
                     "libraryPage": measurement_json(
                         &report_library_page,
@@ -1257,6 +1508,10 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let transaction = connection.transaction().expect("begin generated history");
     let mut activity_rows = 0;
     let mut recovery_rows = 0;
+    let mut planned_training_target_rows = 0;
+    let mut planned_training_exercise_rows = 0;
+    let mut planned_training_phase_rows = 0;
+    let mut planned_training_provenance_event_rows = 0;
     let mut training_rows = 0;
     let mut training_provenance_event_rows = 0;
     let mut training_structure_rows = 0;
@@ -1340,6 +1595,159 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                     .expect("insert generated observation");
                 activity_rows += 1;
             }
+        }
+    }
+    {
+        let mut target_statement = transaction
+            .prepare_cached(
+                "INSERT INTO planned_training_target (
+                    origin_id, target_id, source_provider, source_kind, source_identity,
+                    current_evidence_revision, current_mapping_version, reconciliation_state,
+                    first_seen_import_operation_id, last_seen_import_operation_id
+                 ) VALUES (?1, ?2, 'polar-flow', 'scheduled', ?3, ?4,
+                    'synthetic-planned-training@1', 'current', 1, 1)",
+            )
+            .expect("prepare generated planned target insertion");
+        let mut revision_statement = transaction
+            .prepare_cached(
+                "INSERT INTO planned_training_target_revision (
+                    origin_id, target_id, evidence_revision, mapping_version, target_kind,
+                    scheduled_at_local, completion_state, name, description, editability,
+                    exercises_present, mapping_state, unmapped_field_count, source_export_version
+                 ) VALUES (?1, ?2, ?3, 'synthetic-planned-training@1', 'scheduled',
+                    ?4, 'completed', ?5, 'Synthetic phased training intent', 'editable',
+                    1, 'complete', 0, 'synthetic-v1')",
+            )
+            .expect("prepare generated planned target revision insertion");
+        let mut exercise_statement = transaction
+            .prepare_cached(
+                "INSERT INTO planned_training_exercise (
+                    origin_id, target_id, evidence_revision, mapping_version, exercise_id,
+                    ordinal, exercise_kind, duration_goal_milliseconds, distance_goal_meters,
+                    sport_state, canonical_family_suggestion, localized_names_json,
+                    catalogue_revision, catalogue_retrieved_at_utc, sport_mapping_version,
+                    sport_evidence_ref, phases_present
+                 ) VALUES (?1, ?2, ?3, 'synthetic-planned-training@1', ?4,
+                    0, 'phased', NULL, NULL, 'unavailable', NULL, NULL, NULL, NULL, NULL, NULL, 1)",
+            )
+            .expect("prepare generated planned exercise insertion");
+        let mut phase_statement = transaction
+            .prepare_cached(
+                "INSERT INTO planned_training_phase (
+                    origin_id, target_id, evidence_revision, mapping_version, exercise_id,
+                    phase_id, ordinal, name, goal_kind, duration_goal_milliseconds,
+                    distance_goal_meters, intensity_kind, intensity_metric, lower_zone,
+                    upper_zone, transition_id, change_kind, repeat_id,
+                    return_to_phase_ordinal, total_iterations
+                 ) VALUES (?1, ?2, ?3, 'synthetic-planned-training@1', ?4,
+                    ?5, ?6, ?7, ?8, ?9, ?10, 'zone-range', ?11, 2, 4,
+                    ?12, ?13, ?14, ?15, ?16)",
+            )
+            .expect("prepare generated planned phase insertion");
+        let mut provenance_statement = transaction
+            .prepare_cached(
+                "INSERT INTO planned_training_target_provenance (
+                    origin_id, target_id, evidence_revision, mapping_version,
+                    import_operation_id, source_provider, source_adapter_version,
+                    source_identity, source_artifact_locator, source_artifact_sha256,
+                    source_record_locator, source_export_version, reconciliation_decision,
+                    contributes_to_visible_state
+                 ) VALUES (?1, ?2, ?3, 'synthetic-planned-training@1', 1,
+                    'polar-flow', 'synthetic-planned-training@1', ?4, ?5,
+                    '0000000000000000000000000000000000000000000000000000000000000000',
+                    'json-root', 'synthetic-v1', 'create', 1)",
+            )
+            .expect("prepare generated planned provenance insertion");
+        let origin = "synthetic-origin-0";
+        for target_index in 0..PLANNED_TARGET_COUNT {
+            let target_number = target_index + 1;
+            let target_id = format!("planned-target-{target_number:064x}");
+            let evidence_revision = format!("planned-evidence-{target_number:064x}");
+            let exercise_id = format!("planned-exercise-{target_number:064x}");
+            let source_identity = format!("synthetic-planned-target-{target_number}");
+            let scheduled_date = first_date
+                + ChronoDuration::weeks(i64::try_from(target_index).expect("planned week"));
+            let scheduled_at_local = format!("{}T06:00:00", scheduled_date.format("%Y-%m-%d"));
+            target_statement
+                .execute(params![
+                    origin,
+                    target_id,
+                    source_identity,
+                    evidence_revision
+                ])
+                .expect("insert generated planned target");
+            revision_statement
+                .execute(params![
+                    origin,
+                    target_id,
+                    evidence_revision,
+                    scheduled_at_local,
+                    format!("Synthetic phased plan {target_number}")
+                ])
+                .expect("insert generated planned target revision");
+            exercise_statement
+                .execute(params![origin, target_id, evidence_revision, exercise_id])
+                .expect("insert generated planned exercise");
+            planned_training_target_rows += 1;
+            planned_training_exercise_rows += 1;
+            for phase_ordinal in 0..PLANNED_PHASES_PER_TARGET {
+                let phase_number = target_index * PLANNED_PHASES_PER_TARGET + phase_ordinal + 1;
+                let phase_id = format!("planned-phase-{phase_number:064x}");
+                let transition_id = format!("planned-transition-{phase_number:064x}");
+                let duration_goal = (phase_ordinal % 2 == 0)
+                    .then_some(i64::try_from(phase_ordinal + 1).expect("phase duration") * 60_000);
+                let distance_goal =
+                    (phase_ordinal % 2 == 1).then_some((phase_ordinal + 1) as f64 * 250.0);
+                let repeat_id = (phase_ordinal == PLANNED_REPEAT_END_ORDINAL)
+                    .then(|| format!("planned-repeat-{target_number:064x}"));
+                let return_to_phase_ordinal = (phase_ordinal == PLANNED_REPEAT_END_ORDINAL)
+                    .then_some(PLANNED_REPEAT_START_ORDINAL);
+                let total_iterations = (phase_ordinal == PLANNED_REPEAT_END_ORDINAL)
+                    .then_some(PLANNED_REPEAT_ITERATIONS);
+                phase_statement
+                    .execute(params![
+                        origin,
+                        target_id,
+                        evidence_revision,
+                        exercise_id,
+                        phase_id,
+                        phase_ordinal,
+                        format!("Phase {}", phase_ordinal + 1),
+                        if duration_goal.is_some() {
+                            "duration"
+                        } else {
+                            "distance"
+                        },
+                        duration_goal,
+                        distance_goal,
+                        match phase_ordinal % 3 {
+                            0 => "heart-rate",
+                            1 => "speed",
+                            _ => "power",
+                        },
+                        transition_id,
+                        if phase_ordinal % 2 == 0 {
+                            "automatic"
+                        } else {
+                            "manual"
+                        },
+                        repeat_id,
+                        return_to_phase_ordinal,
+                        total_iterations,
+                    ])
+                    .expect("insert generated planned phase");
+                planned_training_phase_rows += 1;
+            }
+            provenance_statement
+                .execute(params![
+                    origin,
+                    target_id,
+                    evidence_revision,
+                    source_identity,
+                    format!("synthetic/plans/{target_number}.json")
+                ])
+                .expect("insert generated planned provenance");
+            planned_training_provenance_event_rows += 1;
         }
     }
     {
@@ -1929,6 +2337,10 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     GeneratedRows {
         activity: activity_rows,
         recovery: recovery_rows,
+        planned_training_targets: planned_training_target_rows,
+        planned_training_exercises: planned_training_exercise_rows,
+        planned_training_phases: planned_training_phase_rows,
+        planned_training_provenance_events: planned_training_provenance_event_rows,
         training: training_rows,
         training_provenance_events: training_provenance_event_rows,
         training_structures: training_structure_rows,

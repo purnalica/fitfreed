@@ -11,6 +11,7 @@ import type {
   ReportTrainingComparisonQuery,
 } from "./presentation/session-report";
 import type { SessionStory } from "./presentation/session-story";
+import type { PlannedTrainingSessionRelationResult } from "./presentation/planned-training";
 import type { TrainingSessionSearchPage } from "./presentation/training-session-search";
 import type { TrainingSportsOverview } from "./presentation/training-sports";
 
@@ -215,6 +216,25 @@ function trainingSessionSearchPage(
 
 function emptyTrainingSessionSearchPage(): TrainingSessionSearchPage {
   return trainingSessionSearchPage([], null);
+}
+
+function absentPlannedTrainingRelation(arguments_: Record<string, unknown>) {
+  const query = arguments_.query as {
+    sessionRef: string;
+    trainingSnapshotRef: string;
+  };
+  return {
+    snapshotRef: `planned-training-snapshot-${"b".repeat(64)}`,
+    trainingSnapshotRef: query.trainingSnapshotRef,
+    sessionRef: query.sessionRef,
+    relation: {
+      state: "absent",
+      targetRef: null,
+      candidateTargetCount: null,
+      candidateSessionCount: null,
+    },
+    candidates: [],
+  } satisfies PlannedTrainingSessionRelationResult;
 }
 
 function reportLibraryPage(items: ReportLibraryItem[] = []): ReportLibraryPage {
@@ -1196,6 +1216,9 @@ describe("FitFreed import interface", () => {
           availableCriteria: [],
           exercises: [],
         });
+      }
+      if (command === "query_session_planned_training_relation") {
+        return Promise.resolve(absentPlannedTrainingRelation(arguments_));
       }
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -4393,6 +4416,9 @@ describe("FitFreed import interface", () => {
             appliedCriteria: [],
           }],
         });
+      }
+      if (command === "query_session_planned_training_relation") {
+        return Promise.resolve(absentPlannedTrainingRelation(arguments_));
       }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);

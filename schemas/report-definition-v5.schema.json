@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-definition-v5.schema.json",
+  "title": "FitFreed report definition version 5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportRef", "title", "locale", "sourceSnapshotRef", "origin",
+    "provenancePolicy", "authorship", "definitionVersion", "revision", "blocks"
+  ],
+  "properties": {
+    "reportRef": { "$ref": "report-definition-v4.schema.json#/$defs/reportRef" },
+    "title": { "$ref": "report-definition-v4.schema.json#/properties/title" },
+    "locale": { "$ref": "report-definition-v4.schema.json#/properties/locale" },
+    "sourceSnapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "origin": { "$ref": "#/$defs/origin" },
+    "provenancePolicy": { "const": "current-attribution" },
+    "authorship": { "const": "user" },
+    "definitionVersion": { "const": 5 },
+    "revision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/block" },
+      "allOf": [
+        {
+          "contains": { "$ref": "report-definition-v3.schema.json#/$defs/narrativeBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "report-definition-v3.schema.json#/$defs/sessionBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "#/$defs/plannedTrainingBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "report-definition-v3.schema.json#/$defs/trainingFindingBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "report-definition-v3.schema.json#/$defs/trainingChartBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "report-definition-v3.schema.json#/$defs/trainingExactTableBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "report-definition-v3.schema.json#/$defs/trainingCoverageBlock" },
+          "minContains": 0,
+          "maxContains": 1
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "origin": {
+            "type": "object",
+            "properties": { "kind": { "const": "planned-training" } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sourceSnapshotRef": { "$ref": "#/$defs/plannedSnapshotRef" },
+          "blocks": {
+            "type": "array",
+            "contains": { "$ref": "#/$defs/plannedTrainingBlock" },
+            "minContains": 1,
+            "maxContains": 1,
+            "items": {
+              "oneOf": [
+                { "$ref": "#/$defs/plannedTrainingBlock" },
+                { "$ref": "report-definition-v3.schema.json#/$defs/narrativeBlock" }
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "sourceSnapshotRef": {
+            "$ref": "report-definition-v4.schema.json#/$defs/snapshotRef"
+          },
+          "blocks": {
+            "type": "array",
+            "contains": { "$ref": "#/$defs/plannedTrainingBlock" },
+            "minContains": 0,
+            "maxContains": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "origin": {
+            "type": "object",
+            "properties": { "kind": { "const": "session" } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "contains": { "$ref": "report-definition-v3.schema.json#/$defs/sessionBlock" },
+            "minContains": 1,
+            "maxContains": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "allOf": [
+              {
+                "contains": { "$ref": "report-definition-v3.schema.json#/$defs/sessionBlock" },
+                "minContains": 0,
+                "maxContains": 0
+              },
+              {
+                "contains": { "$ref": "report-definition-v3.schema.json#/$defs/routeBlock" },
+                "minContains": 0,
+                "maxContains": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "origin": {
+            "type": "object",
+            "properties": { "kind": { "enum": ["question", "exploration"] } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "contains": { "$ref": "report-definition-v4.schema.json#/$defs/analyticalBlock" },
+            "minContains": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "reportRef": { "$ref": "report-definition-v4.schema.json#/$defs/reportRef" },
+    "blockRef": { "$ref": "report-definition-v4.schema.json#/$defs/blockRef" },
+    "snapshotRef": {
+      "oneOf": [
+        { "$ref": "report-definition-v4.schema.json#/$defs/snapshotRef" },
+        { "$ref": "#/$defs/plannedSnapshotRef" }
+      ]
+    },
+    "plannedSnapshotRef": {
+      "$ref": "planned-training-chronology-v1.schema.json#/$defs/snapshotRef"
+    },
+    "plannedTargetRef": {
+      "$ref": "planned-training-chronology-v1.schema.json#/$defs/targetRef"
+    },
+    "origin": {
+      "oneOf": [
+        { "$ref": "report-definition-v4.schema.json#/$defs/origin" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "targetRef"],
+          "properties": {
+            "kind": { "const": "planned-training" },
+            "targetRef": { "$ref": "#/$defs/plannedTargetRef" }
+          }
+        }
+      ]
+    },
+    "plannedTrainingBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "blockRef", "targetRef"],
+      "properties": {
+        "kind": { "const": "planned-training" },
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "targetRef": { "$ref": "#/$defs/plannedTargetRef" }
+      }
+    },
+    "block": {
+      "oneOf": [
+        { "$ref": "report-definition-v4.schema.json#/$defs/block" },
+        { "$ref": "#/$defs/plannedTrainingBlock" }
+      ]
+    }
+  }
+}

@@ -2,7 +2,10 @@
 
 ## Purpose and status
 
-The versioned performance gates protect full-scale import plus the current daily-activity, training-session, sleep, recovery, and integrated longitudinal Insights paths against the budgets in the [quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
+The versioned performance gates protect full-scale import plus the current daily-activity, training-session,
+structured planned-training, sleep, recovery, and integrated longitudinal Insights paths against the budgets in the
+[quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production
+boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
 
 These gates establish environment-qualified evidence under [ADR 0015](../architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md). Executable changes must pass the complete hosted macOS campaign, and the exact candidate must pass a clean local Apple Silicon production campaign before handoff. The budgets and commands are identical in both environments; a passing result proves that environment rather than promising identical timing on every supported Mac.
 
@@ -99,7 +102,18 @@ Run:
 npm run benchmark:insights
 ```
 
-The release-mode Rust example creates a temporary current-schema SQLite library through the production migration path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one training session, one primary sleep period, and one nightly-recovery observation per origin and date. Daily activity includes available, unavailable, and missing observations; training includes varied durations and deterministic optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes deterministic phase, score, goal, timeline, and recording-status data; recovery varies shared intervals while retaining typed source assessment, baseline, and guidance. The scale contains 14,612 training sessions, 14,612 primary sleep periods, 58,448 sleep transitions, and 14,612 recovery nights. No generated database survives the process.
+The release-mode Rust example creates a temporary current-schema SQLite library through the production migration
+path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one
+training session, one primary sleep period, and one nightly-recovery observation per origin and date. Daily activity
+includes available, unavailable, and missing observations; training includes varied durations and deterministic
+optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes deterministic
+phase, score, goal, timeline, and recording-status data; recovery varies shared intervals while retaining typed source
+assessment, baseline, and guidance. The scale contains 14,612 training sessions, 14,612 primary sleep periods, 58,448
+sleep transitions, and 14,612 recovery nights. No generated database or report survives the process.
+
+The command uses the dedicated generated target directory `src-tauri/target/insights-benchmark`. This prevents
+non-relocatable Cargo build metadata produced by another source checkout or release workflow from contaminating the
+benchmark, while leaving the benchmark executable and dependency cache reusable across benchmark runs.
 
 It measures the SQLite adapter plus application read model separately for daily activity, training sessions, sleep, recovery, and their longitudinal composition. Each path covers:
 
@@ -134,6 +148,16 @@ the complete application authorization and resolution path, deterministic HTML r
 file, synchronization, and atomic destination replacement. Report-library p95 uses the 500-millisecond common
 interaction budget. Complete self-contained HTML export and maximum-route resolution use the 2-second
 complex-visualization budget; the other detailed training paths use the common-interaction budget.
+
+The same ten-year library contains 520 independently authored weekly completed training plans. Each has one phased
+exercise, eight stored phases, intensity evidence, and one four-iteration repeat over four phases, producing 4,160
+stored phases and 20 expanded phases per target without flattening the repeat graph. Each scheduled instant aligns
+exactly with one generated recorded session so the documented relationship contract is exercised. The benchmark
+measures a 50-target chronology page, one complete target detail, one planned-training report resolution, and the
+same report's deterministic self-contained HTML export through the production SQLite, application, authorization,
+renderer, private staging, synchronization, and atomic replacement boundaries. Chronology, detail, and report
+resolution use the 500-millisecond common-interaction budget; HTML export uses the 2-second complex-interaction
+budget. Every execution verifies the exact stored and expanded phase counts.
 
 Each interaction has 10 warm-up executions and 100 measured executions. Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. Default and common interactions must remain within 500 ms p95; maximum-range interactions must remain within the 2-second complex-visualization budget. The local output reports application version, source revision, host profile, free storage, generated scale, database size, run policy, median, p95, maximum, budget result, and peak process memory. Public documentation follows the same minimized evidence boundary as the other benchmarks.
 

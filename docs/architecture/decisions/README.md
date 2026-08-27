@@ -45,5 +45,7 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0030: Preserve typed archive resource limits](0030-preserve-typed-archive-resource-limits.md) — Accepted on 2026-08-26.
 - [ADR 0031: Scope training-target sport evidence to one session](0031-scope-training-target-sport-evidence-to-one-session.md) — Accepted on 2026-08-26.
 - [ADR 0032: Use specialized analytical visualization engines](0032-use-specialized-analytical-visualization-engines.md) — Accepted on 2026-08-26.
+- [ADR 0033: Model planned training as versioned intent](0033-model-planned-training-as-versioned-intent.md) — Accepted on 2026-08-27.
+- [ADR 0034: Bind each report to one evidence library](0034-bind-each-report-to-one-evidence-library.md) — Accepted on 2026-08-27.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

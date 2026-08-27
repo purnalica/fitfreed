@@ -52,7 +52,8 @@ Documentation, schemas, fixtures, implementation, and migrations form one change
 - `mappings/` will contain normative source-to-canonical mapping tables for supported importers.
 - `guidance/` contains normative application-to-presentation contracts for importer-owned acquisition guidance.
 - `insights/` contains normative query and report read models derived from canonical facts.
-- `portable/` will contain the normative FitFreed export specification before portable export is implemented.
+- `portable/` contains normative FitFreed capability-export and report-artifact specifications. A complete normalized
+  library export is not implied until every supported domain has an indexed contract and one composed delivery path.
 - `persistence/` will contain implementation schema and migration references once a storage architecture is selected.
 - `release/` contains machine-readable release evidence contracts; it never contains generated packages or user data.
 
@@ -68,6 +69,7 @@ Directories are created with their first real contract; empty specifications are
 - [Canonical training-session route](canonical/training-session-route.md)
 - [Canonical training-session signal](canonical/training-session-signal.md)
 - [Canonical training-session zone](canonical/training-session-zone.md)
+- [Canonical planned training](canonical/planned-training.md)
 - [Canonical segment criterion](canonical/segment-criterion.md)
 - [Canonical training-session range version 3](canonical/training-session-range-v3.md)
 - [Canonical training-session range version 2](canonical/training-session-range-v2.md) — preceding contract
@@ -75,13 +77,16 @@ Directories are created with their first real contract; empty specifications are
 - [Canonical report definition version 1](canonical/report-definition.md)
 - [Canonical report definition version 2](canonical/report-definition-v2.md)
 - [Canonical report definition version 3](canonical/report-definition-v3.md)
-- [Canonical report definition version 4](canonical/report-definition-v4.md)
+- [Canonical report definition version 5](canonical/report-definition-v5.md)
+- [Canonical report definition version 4](canonical/report-definition-v4.md) — preceding contract
 - [Canonical sport classification](canonical/sport-classification.md)
 - [Canonical sleep period](canonical/sleep-period.md)
 - [Canonical nightly recovery](canonical/nightly-recovery.md)
 - [Polar Flow daily activity mapping](mappings/polar-flow-daily-activity.md)
 - [Polar Flow training session mapping](mappings/polar-flow-training-session.md)
 - [Polar Flow training-target sport-evidence mapping](mappings/polar-flow-training-target-sport.md)
+- [Polar Flow planned-training mapping](mappings/polar-flow-planned-training.md)
+- [Portable planned-training export version 1](portable/planned-training-v1.md)
 - [Polar Flow sleep mapping](mappings/polar-flow-sleep.md)
 - [Polar Flow nightly recovery mapping](mappings/polar-flow-nightly-recovery.md)
 - [Source acquisition guide version 1](guidance/source-acquisition-guide-v1.md)
@@ -92,6 +97,7 @@ Directories are created with their first real contract; empty specifications are
 - [Daily activity comparison read model version 1](insights/daily-activity-comparison-v1.md)
 - [Training overview read model version 1](insights/training-overview-v1.md)
 - [Training comparison read model version 1](insights/training-comparison-v1.md)
+- [Planned-training read models version 1](insights/planned-training-v1.md)
 - [Training sport identity version 2](insights/training-sport-identity-v2.md)
 - [Training sport identity version 1](insights/training-sport-identity-v1.md) — preceding contract
 - [Training sports read model version 3](insights/training-sports-v3.md)
@@ -122,7 +128,8 @@ Directories are created with their first real contract; empty specifications are
 - [Session report read models version 3](insights/session-report-v3.md) — preceding contract
 - [Session report read models version 2](insights/session-report-v2.md) — preceding contract
 - [Session report read models version 1](insights/session-report-v1.md) — initial contract
-- [Report workflow version 6](insights/report-v6.md)
+- [Report workflow version 7](insights/report-v7.md)
+- [Report workflow version 6](insights/report-v6.md) — preceding contract
 - [Report workflow version 5](insights/report-v5.md) — preceding contract
 - [Report workflow version 4](insights/report-v4.md) — preceding contract
 - [Training-discovery workspace version 2](insights/training-discovery-workspace-v2.md)
@@ -138,11 +145,13 @@ Directories are created with their first real contract; empty specifications are
 - [Library Home read model version 3](insights/library-home-v3.md) — preceding contract
 - [Library Home read model version 2](insights/library-home-v2.md) — preceding contract
 - [Library Home read model version 1](insights/library-home-v1.md) — initial contract
-- [Portable report definition version 1](portable/report-definition-v1.md)
-- [Portable report definition version 2](portable/report-definition-v2.md)
-- [Portable report definition version 3](portable/report-definition-v3.md)
-- [Portable report definition version 4](portable/report-definition-v4.md)
-- [Self-contained report HTML version 6](portable/report-html-v6.md)
+- [Portable report definition version 5](portable/report-definition-v5.md)
+- [Portable report definition version 4](portable/report-definition-v4.md) — preceding contract
+- [Portable report definition version 3](portable/report-definition-v3.md) — preceding contract
+- [Portable report definition version 2](portable/report-definition-v2.md) — preceding contract
+- [Portable report definition version 1](portable/report-definition-v1.md) — initial contract
+- [Self-contained report HTML version 7](portable/report-html-v7.md)
+- [Self-contained report HTML version 6](portable/report-html-v6.md) — preceding contract
 - [Self-contained report HTML version 5](portable/report-html-v5.md) — preceding contract
 - [Self-contained report HTML version 4](portable/report-html-v4.md) — preceding contract
 - [Self-contained report HTML version 3](portable/report-html-v3.md) — preceding contract
@@ -175,7 +184,9 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 25](persistence/sqlite-v25.md)
 - [SQLite schema version 26](persistence/sqlite-v26.md)
 - [SQLite schema version 27](persistence/sqlite-v27.md)
-- [SQLite schema version 30](persistence/sqlite-v30.md)
+- [SQLite schema version 32](persistence/sqlite-v32.md)
+- [SQLite schema version 31](persistence/sqlite-v31.md) — preceding schema
+- [SQLite schema version 30](persistence/sqlite-v30.md) — preceding schema
 - [SQLite schema version 29](persistence/sqlite-v29.md) — preceding schema
 - [SQLite schema version 28](persistence/sqlite-v28.md) — preceding schema
 - [Release manifest version 1](release/release-manifest-v1.md)

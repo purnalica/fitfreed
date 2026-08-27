@@ -27,7 +27,7 @@
     "benchmark:cold-launch": "node scripts/run-cold-launch-benchmark.mjs",
     "benchmark:dense-history": "node scripts/run-dense-history-benchmark.mjs",
     "benchmark:import": "node scripts/run-import-benchmark.mjs",
-    "benchmark:insights": "cargo run --quiet --release --manifest-path src-tauri/Cargo.toml --example insights_benchmark",
+    "benchmark:insights": "node scripts/run-insights-benchmark.mjs",
     "build:pages": "node scripts/pages-artifact.mjs .artifacts/pages",
     "check:architecture": "node scripts/check-rust-architecture.mjs",
     "check:data-contracts": "node scripts/check-data-contracts.mjs",

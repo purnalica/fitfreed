@@ -7,24 +7,28 @@ use fitfreed_application::{
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
     AdjustTrainingSessionRangeRequest, AppearancePreference, ApplicationError,
     ApplicationPreferences, ApplicationPreferencesLoad, AppliedTrainingSegmentCriterion,
-    CreateComposedSessionReportRequest, CreateReportRequest, CreateSessionReportRequest,
-    CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest,
-    ExpectedSourceArchive, ExplorationWorkspace, ExploreDestination, HistoricalTrainingHighlight,
-    HistoricalTrainingReason, ImportPhase, ImportProgress, InvalidApplicationPreferences,
-    LibraryDomain, LibraryDomainCoverage, LibraryHistoryHighlight, LibraryHome,
-    LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomePrimaryRange, LibraryHomeRangeScope,
-    LibraryHomeRecentSession, LibraryHomeRequest, LibraryHomeSportSummary, LibraryHomeTraining,
-    LibraryHomeTrainingComparison, LibraryHomeTrainingPeriod, LibraryMeasurement,
-    LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind, LocalePreference,
-    LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
-    LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
+    CompletedSessionPlannedTrainingRelation, CreateComposedSessionReportRequest,
+    CreateReportRequest, CreateSessionReportRequest, CreateTrainingSegmentCriterionRequest,
+    CreateTrainingSessionRangeRequest, ExpectedSourceArchive, ExplorationWorkspace,
+    ExploreDestination, HistoricalTrainingHighlight, HistoricalTrainingReason, ImportPhase,
+    ImportProgress, InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage,
+    LibraryHistoryHighlight, LibraryHome, LibraryHomeDateRange, LibraryHomeHighlight,
+    LibraryHomePrimaryRange, LibraryHomeRangeScope, LibraryHomeRecentSession, LibraryHomeRequest,
+    LibraryHomeSportSummary, LibraryHomeTraining, LibraryHomeTrainingComparison,
+    LibraryHomeTrainingPeriod, LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion,
+    LibraryQuestionKind, LocalePreference, LongitudinalActivityComparison, LongitudinalActivityDay,
+    LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
     MoveTrainingSegmentCriterionRequest, OfficialSourceLink, OfficialSourceLinkOpenError,
     OfficialSourceLinkPurpose, OpenOfficialSourceLinkOutcome, OpenOfficialSourceLinkRequest,
     PersistedTrainingRangeSummaryExercise, PersistedTrainingRoutePoints,
-    PersistedTrainingSignalSamples, PostImportReveal, PreferencesLoadStatus, PreparedReportStart,
+    PersistedTrainingSignalSamples, PlannedTrainingChronologyPage, PlannedTrainingChronologyQuery,
+    PlannedTrainingCollection, PlannedTrainingCompletionFilter, PlannedTrainingPlanShape,
+    PlannedTrainingReconciliationState, PlannedTrainingSessionRelationQuery,
+    PlannedTrainingSessionRelationResult, PlannedTrainingTargetDetail, PlannedTrainingTargetQuery,
+    PlannedTrainingTargetSummary, PostImportReveal, PreferencesLoadStatus, PreparedReportStart,
     RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
     RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
     RecoverySeriesOverview, RecoverySeriesSummary, RefreshReportRequest, RemoveReportRequest,
@@ -33,27 +37,27 @@ use fitfreed_application::{
     ReportLibraryComparisonSeries, ReportLibraryEvidenceState, ReportLibraryItem,
     ReportLibraryMetricValue, ReportLibraryPage, ReportLibraryPeriod, ReportLibraryRequest,
     ReportLibraryResult, ReportLibrarySensitivity, ReportLibrarySubject, ReportLimitation,
-    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
-    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
-    ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
-    SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
-    SessionReportBlockDraftContent, SessionStory, SessionStoryAlignedSampleView,
-    SessionStoryAlignmentStateView, SessionStoryAssessmentStateView, SessionStoryCompositionView,
-    SessionStoryExactRoute, SessionStoryExactSignal, SessionStoryExercise,
-    SessionStoryExerciseEvidenceView, SessionStoryMetricView, SessionStoryOverlayView,
-    SessionStoryProvenance, SessionStoryQuery, SessionStoryRole, SessionStoryRoleEvidenceView,
-    SessionStoryValueTransform, SleepComparison, SleepDateRange, SleepDayAvailability,
-    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
-    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
-    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter,
-    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
-    TrainingProvenanceEventView, TrainingRangeBoundaryEvidence, TrainingRangeBoundaryEvidenceState,
-    TrainingRangeBoundaryPair, TrainingRangeCardinalDirection, TrainingRangeCoordinateEvidence,
-    TrainingRangeDirectionSummary, TrainingRangeDistanceSummary, TrainingRangeEvidenceCoverage,
-    TrainingRangeEvidenceLocation, TrainingRangeExactEvidenceKind,
+    ReportPlannedTrainingEvidence, ReportResolutionStatus, ReportRouteEvidence,
+    ReportRouteExportChoice, ReportSensitiveContent, ReportSensitiveContentKind,
+    ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport, ResolvedSessionReport,
+    SaveSportClassificationRequest, SavedTrainingSportClassification, SegmentApplicabilityView,
+    SegmentMeasurementView, SessionReportBlockDraft, SessionReportBlockDraftContent, SessionStory,
+    SessionStoryAlignedSampleView, SessionStoryAlignmentStateView, SessionStoryAssessmentStateView,
+    SessionStoryCompositionView, SessionStoryExactRoute, SessionStoryExactSignal,
+    SessionStoryExercise, SessionStoryExerciseEvidenceView, SessionStoryMetricView,
+    SessionStoryOverlayView, SessionStoryProvenance, SessionStoryQuery, SessionStoryRole,
+    SessionStoryRoleEvidenceView, SessionStoryValueTransform, SleepComparison, SleepDateRange,
+    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
+    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
+    SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
+    TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
+    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRangeBoundaryEvidence,
+    TrainingRangeBoundaryEvidenceState, TrainingRangeBoundaryPair, TrainingRangeCardinalDirection,
+    TrainingRangeCoordinateEvidence, TrainingRangeDirectionSummary, TrainingRangeDistanceSummary,
+    TrainingRangeEvidenceCoverage, TrainingRangeEvidenceLocation, TrainingRangeExactEvidenceKind,
     TrainingRangeIndependentEvidence, TrainingRangeMeasurementSummary, TrainingRangeMetricCoverage,
     TrainingRangeMissingInterval, TrainingRangeSourceOverlap, TrainingRangeSourceOverlapRelation,
     TrainingRangeSourceRangeKind, TrainingRangeSummaryCoverageState,
@@ -723,11 +727,16 @@ fn explore_destination(destination: ExploreDestination) -> &'static str {
 }
 
 use fitfreed_domain::{
-    ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport, ReportAuthorship,
-    ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
-    ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
-    SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary,
-    SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
+    ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
+    PlannedTrainingCompletion, PlannedTrainingEditability, PlannedTrainingExercise,
+    PlannedTrainingExerciseKind, PlannedTrainingIntensity, PlannedTrainingIntensityMetric,
+    PlannedTrainingMappingState, PlannedTrainingPhase, PlannedTrainingPhaseChange,
+    PlannedTrainingPhaseGoal, PlannedTrainingSessionRelation, PlannedTrainingSport,
+    PlannedTrainingTargetKind, ReportAuthorship, ReportBlockContent, ReportDateRange,
+    ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy, ReportQuestion,
+    ReportTrainingComparisonQuery, ReportTrainingMetric, SegmentCriterion,
+    SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary, SleepScore,
+    SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, TrainingSessionRange,
     TrainingSessionRangeAuthorship, TrainingSessionRangeCoordinate,
     TrainingSessionRangeCoordinateScope, TrainingSessionRangeState,
@@ -761,6 +770,10 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidTrainingSessionDetail(_) => "invalid-training-session-detail",
             ApplicationError::TrainingSessionDetailChanged => "training-session-detail-changed",
             ApplicationError::TrainingSessionDetail(_) => "training-session-detail-failed",
+            ApplicationError::InvalidPlannedTrainingQuery(_) => "invalid-planned-training-query",
+            ApplicationError::PlannedTrainingChanged => "planned-training-changed",
+            ApplicationError::PlannedTrainingNotFound => "planned-training-not-found",
+            ApplicationError::PlannedTrainingQuery(_) => "planned-training-query-failed",
             ApplicationError::InvalidTrainingSegmentCriterion(_) => {
                 "invalid-training-segment-criterion"
             }
@@ -1186,6 +1199,33 @@ pub struct TrainingSessionSelectionRequestDto {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TrainingSessionStructureQueryDto {
     session_ref: String,
+    snapshot_ref: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlannedTrainingChronologyQueryDto {
+    collection: String,
+    completion: Option<String>,
+    from: Option<String>,
+    through: Option<String>,
+    offset: usize,
+    limit: usize,
+    snapshot_ref: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlannedTrainingTargetQueryDto {
+    target_ref: String,
+    snapshot_ref: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlannedTrainingSessionRelationQueryDto {
+    session_ref: String,
+    training_snapshot_ref: Option<String>,
     snapshot_ref: Option<String>,
 }
 
@@ -1688,6 +1728,61 @@ impl From<TrainingSessionStructureQueryDto> for TrainingSessionStructureQuery {
     fn from(query: TrainingSessionStructureQueryDto) -> Self {
         Self {
             session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+        }
+    }
+}
+
+impl TryFrom<PlannedTrainingChronologyQueryDto> for PlannedTrainingChronologyQuery {
+    type Error = ApplicationError;
+
+    fn try_from(query: PlannedTrainingChronologyQueryDto) -> Result<Self, Self::Error> {
+        let collection = match query.collection.as_str() {
+            "scheduled" => PlannedTrainingCollection::Scheduled,
+            "favorite-templates" => PlannedTrainingCollection::FavoriteTemplates,
+            _ => {
+                return Err(ApplicationError::InvalidPlannedTrainingQuery(
+                    "collection is invalid",
+                ))
+            }
+        };
+        let completion = query
+            .completion
+            .as_deref()
+            .map(|completion| match completion {
+                "pending" => Ok(PlannedTrainingCompletionFilter::Pending),
+                "completed" => Ok(PlannedTrainingCompletionFilter::Completed),
+                _ => Err(ApplicationError::InvalidPlannedTrainingQuery(
+                    "completion filter is invalid",
+                )),
+            })
+            .transpose()?;
+        Ok(Self {
+            collection,
+            completion,
+            from: query.from,
+            through: query.through,
+            offset: query.offset,
+            limit: query.limit,
+            snapshot_ref: query.snapshot_ref,
+        })
+    }
+}
+
+impl From<PlannedTrainingTargetQueryDto> for PlannedTrainingTargetQuery {
+    fn from(query: PlannedTrainingTargetQueryDto) -> Self {
+        Self {
+            target_ref: query.target_ref,
+            snapshot_ref: query.snapshot_ref,
+        }
+    }
+}
+
+impl From<PlannedTrainingSessionRelationQueryDto> for PlannedTrainingSessionRelationQuery {
+    fn from(query: PlannedTrainingSessionRelationQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            training_snapshot_ref: query.training_snapshot_ref,
             snapshot_ref: query.snapshot_ref,
         }
     }
@@ -2346,6 +2441,472 @@ impl From<TrainingSessionStructureResult> for TrainingSessionStructureResultDto 
             snapshot_ref: result.snapshot_ref,
             session_ref: result.session_ref,
             structure: result.structure.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingTargetKindDto {
+    kind: &'static str,
+    scheduled_at_local: Option<String>,
+    completion: Option<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingMappingCoverageDto {
+    state: &'static str,
+    unmapped_field_count: u32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingPlanShapeDto {
+    exercise_count: Option<usize>,
+    phase_count: Option<usize>,
+    expanded_phase_count: Option<usize>,
+    repeat_block_count: Option<usize>,
+    contains_intensity_evidence: bool,
+}
+
+impl From<PlannedTrainingPlanShape> for PlannedTrainingPlanShapeDto {
+    fn from(shape: PlannedTrainingPlanShape) -> Self {
+        Self {
+            exercise_count: shape.exercise_count,
+            phase_count: shape.phase_count,
+            expanded_phase_count: shape.expanded_phase_count,
+            repeat_block_count: shape.repeat_block_count,
+            contains_intensity_evidence: shape.contains_intensity_evidence,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingRelationDto {
+    state: &'static str,
+    session_ref: Option<String>,
+    candidate_count: Option<usize>,
+}
+
+fn planned_training_relation_dto(
+    relation: &PlannedTrainingSessionRelation,
+) -> PlannedTrainingRelationDto {
+    match relation {
+        PlannedTrainingSessionRelation::NotApplicable => PlannedTrainingRelationDto {
+            state: "not-applicable",
+            session_ref: None,
+            candidate_count: None,
+        },
+        PlannedTrainingSessionRelation::Absent => PlannedTrainingRelationDto {
+            state: "absent",
+            session_ref: None,
+            candidate_count: None,
+        },
+        PlannedTrainingSessionRelation::Exact { session_ref } => PlannedTrainingRelationDto {
+            state: "exact",
+            session_ref: Some(session_ref.clone()),
+            candidate_count: None,
+        },
+        PlannedTrainingSessionRelation::Ambiguous { candidate_count } => {
+            PlannedTrainingRelationDto {
+                state: "ambiguous",
+                session_ref: None,
+                candidate_count: Some(*candidate_count),
+            }
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingTargetSummaryDto {
+    target_ref: String,
+    source_index: usize,
+    reconciliation_state: &'static str,
+    target_kind: PlannedTrainingTargetKindDto,
+    name: String,
+    description: Option<String>,
+    editability: &'static str,
+    mapping_coverage: PlannedTrainingMappingCoverageDto,
+    shape: PlannedTrainingPlanShapeDto,
+    relation: PlannedTrainingRelationDto,
+}
+
+fn planned_training_target_summary_dto(
+    summary: &PlannedTrainingTargetSummary,
+) -> PlannedTrainingTargetSummaryDto {
+    let target_kind = match summary.target.kind() {
+        PlannedTrainingTargetKind::Scheduled {
+            scheduled_at_local,
+            completion,
+        } => PlannedTrainingTargetKindDto {
+            kind: "scheduled",
+            scheduled_at_local: Some(scheduled_at_local.clone()),
+            completion: Some(match completion {
+                PlannedTrainingCompletion::Pending => "pending",
+                PlannedTrainingCompletion::Completed => "completed",
+            }),
+        },
+        PlannedTrainingTargetKind::FavoriteTemplate => PlannedTrainingTargetKindDto {
+            kind: "favorite-template",
+            scheduled_at_local: None,
+            completion: None,
+        },
+    };
+    let mapping = summary.target.mapping_coverage();
+    PlannedTrainingTargetSummaryDto {
+        target_ref: summary.target.target_id().to_owned(),
+        source_index: summary.source_index,
+        reconciliation_state: match summary.reconciliation_state {
+            PlannedTrainingReconciliationState::Current => "current",
+            PlannedTrainingReconciliationState::Conflicted => "conflicted",
+        },
+        target_kind,
+        name: summary.target.name().to_owned(),
+        description: summary.target.description().map(str::to_owned),
+        editability: match summary.target.editability() {
+            PlannedTrainingEditability::Editable => "editable",
+            PlannedTrainingEditability::NonEditable => "non-editable",
+            PlannedTrainingEditability::Unspecified => "unspecified",
+        },
+        mapping_coverage: PlannedTrainingMappingCoverageDto {
+            state: match mapping.state() {
+                PlannedTrainingMappingState::Complete => "complete",
+                PlannedTrainingMappingState::Partial => "partial",
+            },
+            unmapped_field_count: mapping.unmapped_field_count(),
+        },
+        shape: summary.shape.clone().into(),
+        relation: planned_training_relation_dto(&summary.relation),
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingChronologyPageDto {
+    snapshot_ref: String,
+    total_count: usize,
+    offset: usize,
+    limit: usize,
+    next_offset: Option<usize>,
+    targets: Vec<PlannedTrainingTargetSummaryDto>,
+}
+
+impl From<PlannedTrainingChronologyPage> for PlannedTrainingChronologyPageDto {
+    fn from(page: PlannedTrainingChronologyPage) -> Self {
+        Self {
+            snapshot_ref: page.snapshot_ref,
+            total_count: page.total_count,
+            offset: page.offset,
+            limit: page.limit,
+            next_offset: page.next_offset,
+            targets: page
+                .targets
+                .iter()
+                .map(planned_training_target_summary_dto)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingSportRecognitionDto {
+    canonical_family: Option<&'static str>,
+    localized_names: BTreeMap<String, String>,
+    catalogue_revision: String,
+    retrieved_at_utc: String,
+    mapping_version: String,
+    evidence_ref: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingSportDto {
+    state: &'static str,
+    recognition: Option<PlannedTrainingSportRecognitionDto>,
+}
+
+fn planned_training_sport_dto(sport: &PlannedTrainingSport) -> PlannedTrainingSportDto {
+    match sport {
+        PlannedTrainingSport::Unavailable => PlannedTrainingSportDto {
+            state: "unavailable",
+            recognition: None,
+        },
+        PlannedTrainingSport::Unmapped => PlannedTrainingSportDto {
+            state: "unmapped",
+            recognition: None,
+        },
+        PlannedTrainingSport::Recognized(suggestion) => {
+            let provenance = suggestion.provenance();
+            PlannedTrainingSportDto {
+                state: "recognized",
+                recognition: Some(PlannedTrainingSportRecognitionDto {
+                    canonical_family: suggestion.canonical_family().map(|family| family.as_code()),
+                    localized_names: suggestion
+                        .localized_names()
+                        .iter()
+                        .map(|name| (name.language_tag().to_owned(), name.value().to_owned()))
+                        .collect(),
+                    catalogue_revision: provenance.catalogue_revision().to_owned(),
+                    retrieved_at_utc: provenance.retrieved_at_utc().to_owned(),
+                    mapping_version: provenance.mapping_version().to_owned(),
+                    evidence_ref: provenance.evidence_ref().to_owned(),
+                }),
+            }
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingPhaseGoalDto {
+    kind: &'static str,
+    duration_milliseconds: Option<String>,
+    distance_meters: Option<f64>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingIntensityDto {
+    kind: &'static str,
+    metric: Option<&'static str>,
+    lower_zone: Option<u8>,
+    upper_zone: Option<u8>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingRepeatDto {
+    repeat_ref: String,
+    return_to_phase_ordinal: usize,
+    total_iterations: u16,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingTransitionDto {
+    transition_ref: String,
+    change: &'static str,
+    repeat: Option<PlannedTrainingRepeatDto>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingPhaseDto {
+    phase_ref: String,
+    ordinal: usize,
+    name: String,
+    goal: PlannedTrainingPhaseGoalDto,
+    intensity: PlannedTrainingIntensityDto,
+    transition: PlannedTrainingTransitionDto,
+}
+
+impl From<&PlannedTrainingPhase> for PlannedTrainingPhaseDto {
+    fn from(phase: &PlannedTrainingPhase) -> Self {
+        let goal = match phase.goal {
+            PlannedTrainingPhaseGoal::DurationMilliseconds(value) => PlannedTrainingPhaseGoalDto {
+                kind: "duration",
+                duration_milliseconds: Some(value.to_string()),
+                distance_meters: None,
+            },
+            PlannedTrainingPhaseGoal::DistanceMeters(value) => PlannedTrainingPhaseGoalDto {
+                kind: "distance",
+                duration_milliseconds: None,
+                distance_meters: Some(value),
+            },
+            PlannedTrainingPhaseGoal::Unmapped => PlannedTrainingPhaseGoalDto {
+                kind: "unmapped",
+                duration_milliseconds: None,
+                distance_meters: None,
+            },
+        };
+        let intensity = match phase.intensity {
+            PlannedTrainingIntensity::None => PlannedTrainingIntensityDto {
+                kind: "none",
+                metric: None,
+                lower_zone: None,
+                upper_zone: None,
+            },
+            PlannedTrainingIntensity::ZoneRange {
+                metric,
+                lower_zone,
+                upper_zone,
+            } => PlannedTrainingIntensityDto {
+                kind: "zone-range",
+                metric: Some(match metric {
+                    PlannedTrainingIntensityMetric::HeartRate => "heart-rate",
+                    PlannedTrainingIntensityMetric::Speed => "speed",
+                    PlannedTrainingIntensityMetric::Power => "power",
+                }),
+                lower_zone: Some(lower_zone),
+                upper_zone: Some(upper_zone),
+            },
+            PlannedTrainingIntensity::Unmapped => PlannedTrainingIntensityDto {
+                kind: "unmapped",
+                metric: None,
+                lower_zone: None,
+                upper_zone: None,
+            },
+        };
+        Self {
+            phase_ref: phase.phase_id.clone(),
+            ordinal: phase.ordinal,
+            name: phase.name.clone(),
+            goal,
+            intensity,
+            transition: PlannedTrainingTransitionDto {
+                transition_ref: phase.transition.transition_id.clone(),
+                change: match phase.transition.change {
+                    PlannedTrainingPhaseChange::Manual => "manual",
+                    PlannedTrainingPhaseChange::Automatic => "automatic",
+                    PlannedTrainingPhaseChange::Unmapped => "unmapped",
+                },
+                repeat: phase
+                    .transition
+                    .repeat
+                    .as_ref()
+                    .map(|repeat| PlannedTrainingRepeatDto {
+                        repeat_ref: repeat.repeat_id.clone(),
+                        return_to_phase_ordinal: repeat.return_to_phase_ordinal,
+                        total_iterations: repeat.total_iterations,
+                    }),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingExerciseDto {
+    exercise_ref: String,
+    ordinal: usize,
+    kind: &'static str,
+    duration_goal_milliseconds: Option<String>,
+    distance_goal_meters: Option<f64>,
+    sport: PlannedTrainingSportDto,
+    phases: Option<Vec<PlannedTrainingPhaseDto>>,
+}
+
+impl From<&PlannedTrainingExercise> for PlannedTrainingExerciseDto {
+    fn from(exercise: &PlannedTrainingExercise) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_id.clone(),
+            ordinal: exercise.ordinal,
+            kind: match exercise.kind {
+                PlannedTrainingExerciseKind::Open => "open",
+                PlannedTrainingExerciseKind::Phased => "phased",
+                PlannedTrainingExerciseKind::Volume => "volume",
+                PlannedTrainingExerciseKind::Strength => "strength",
+                PlannedTrainingExerciseKind::Unmapped => "unmapped",
+            },
+            duration_goal_milliseconds: exercise
+                .duration_goal_milliseconds
+                .map(|value| value.to_string()),
+            distance_goal_meters: exercise.distance_goal_meters,
+            sport: planned_training_sport_dto(&exercise.sport),
+            phases: exercise
+                .phases
+                .as_deref()
+                .map(|phases| phases.iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingTargetDetailViewDto {
+    summary: PlannedTrainingTargetSummaryDto,
+    exercises: Option<Vec<PlannedTrainingExerciseDto>>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingTargetDetailDto {
+    snapshot_ref: String,
+    target: PlannedTrainingTargetDetailViewDto,
+}
+
+impl From<PlannedTrainingTargetDetail> for PlannedTrainingTargetDetailDto {
+    fn from(detail: PlannedTrainingTargetDetail) -> Self {
+        let summary = planned_training_target_summary_dto(&detail.target);
+        let exercises = detail
+            .target
+            .target
+            .exercises()
+            .map(|exercises| exercises.iter().map(Into::into).collect());
+        Self {
+            snapshot_ref: detail.snapshot_ref,
+            target: PlannedTrainingTargetDetailViewDto { summary, exercises },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletedSessionPlannedTrainingRelationDto {
+    state: &'static str,
+    target_ref: Option<String>,
+    candidate_target_count: Option<usize>,
+    candidate_session_count: Option<usize>,
+}
+
+fn completed_session_planned_training_relation_dto(
+    relation: CompletedSessionPlannedTrainingRelation,
+) -> CompletedSessionPlannedTrainingRelationDto {
+    match relation {
+        CompletedSessionPlannedTrainingRelation::Absent => {
+            CompletedSessionPlannedTrainingRelationDto {
+                state: "absent",
+                target_ref: None,
+                candidate_target_count: None,
+                candidate_session_count: None,
+            }
+        }
+        CompletedSessionPlannedTrainingRelation::Exact { target_ref } => {
+            CompletedSessionPlannedTrainingRelationDto {
+                state: "exact",
+                target_ref: Some(target_ref),
+                candidate_target_count: None,
+                candidate_session_count: None,
+            }
+        }
+        CompletedSessionPlannedTrainingRelation::Ambiguous {
+            candidate_target_count,
+            candidate_session_count,
+        } => CompletedSessionPlannedTrainingRelationDto {
+            state: "ambiguous",
+            target_ref: None,
+            candidate_target_count: Some(candidate_target_count),
+            candidate_session_count: Some(candidate_session_count),
+        },
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedTrainingSessionRelationResultDto {
+    snapshot_ref: String,
+    training_snapshot_ref: String,
+    session_ref: String,
+    relation: CompletedSessionPlannedTrainingRelationDto,
+    candidates: Vec<PlannedTrainingTargetSummaryDto>,
+}
+
+impl From<PlannedTrainingSessionRelationResult> for PlannedTrainingSessionRelationResultDto {
+    fn from(result: PlannedTrainingSessionRelationResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            training_snapshot_ref: result.training_snapshot_ref,
+            session_ref: result.session_ref,
+            relation: completed_session_planned_training_relation_dto(result.relation),
+            candidates: result
+                .candidates
+                .iter()
+                .map(planned_training_target_summary_dto)
+                .collect(),
         }
     }
 }
@@ -3237,6 +3798,10 @@ pub enum ReportBlockDto {
         block_ref: String,
         query: ReportTrainingComparisonQueryDto,
     },
+    PlannedTraining {
+        block_ref: String,
+        target_ref: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -3316,6 +3881,9 @@ pub enum ReportOriginDto {
     Exploration {
         query: ReportTrainingComparisonQueryDto,
     },
+    PlannedTraining {
+        target_ref: String,
+    },
     Blank {},
 }
 
@@ -3334,6 +3902,9 @@ impl TryFrom<ReportOriginDto> for ReportOrigin {
             ReportOriginDto::Exploration { query } => Ok(Self::Exploration {
                 query: query.try_into()?,
             }),
+            ReportOriginDto::PlannedTraining { target_ref } => {
+                Ok(Self::PlannedTraining { target_ref })
+            }
             ReportOriginDto::Blank {} => Ok(Self::Blank),
         }
     }
@@ -3351,6 +3922,9 @@ impl From<&ReportOrigin> for ReportOriginDto {
             },
             ReportOrigin::Exploration { query } => Self::Exploration {
                 query: query.into(),
+            },
+            ReportOrigin::PlannedTraining { target_ref } => Self::PlannedTraining {
+                target_ref: target_ref.clone(),
             },
             ReportOrigin::Blank => Self::Blank {},
         }
@@ -3431,6 +4005,12 @@ impl From<ReportDefinition> for ReportDefinitionDto {
                     ReportBlockDto::TrainingCoverage {
                         block_ref: block.block_ref().to_owned(),
                         query: query.into(),
+                    }
+                }
+                ReportBlockContent::PlannedTraining { target_ref } => {
+                    ReportBlockDto::PlannedTraining {
+                        block_ref: block.block_ref().to_owned(),
+                        target_ref: target_ref.clone(),
                     }
                 }
             })
@@ -3732,6 +4312,10 @@ pub enum SessionReportBlockDraftDto {
         block_ref: Option<String>,
         query: ReportTrainingComparisonQueryDto,
     },
+    PlannedTraining {
+        block_ref: Option<String>,
+        target_ref: String,
+    },
 }
 
 impl TryFrom<SessionReportBlockDraftDto> for SessionReportBlockDraft {
@@ -3802,6 +4386,13 @@ impl TryFrom<SessionReportBlockDraftDto> for SessionReportBlockDraft {
                 content: SessionReportBlockDraftContent::TrainingCoverage {
                     query: query.try_into()?,
                 },
+            },
+            SessionReportBlockDraftDto::PlannedTraining {
+                block_ref,
+                target_ref,
+            } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::PlannedTraining { target_ref },
             },
         })
     }
@@ -3928,6 +4519,7 @@ impl From<ReportLibraryRequestDto> for ReportLibraryRequest {
 enum ReportLibrarySubjectDto {
     Session { sport: Box<TrainingSessionSportDto> },
     TrainingComparison,
+    PlannedTraining { name: Option<String> },
     AuthoredNote,
 }
 
@@ -3938,6 +4530,7 @@ impl From<ReportLibrarySubject> for ReportLibrarySubjectDto {
                 sport: Box::new((*sport).into()),
             },
             ReportLibrarySubject::TrainingComparison => Self::TrainingComparison,
+            ReportLibrarySubject::PlannedTraining { name } => Self::PlannedTraining { name },
             ReportLibrarySubject::AuthoredNote => Self::AuthoredNote,
         }
     }
@@ -3957,6 +4550,9 @@ enum ReportLibraryPeriodDto {
         baseline_range: ReportDateRangeDto,
         comparison_range: ReportDateRangeDto,
     },
+    PlannedTraining {
+        scheduled_at_local: String,
+    },
 }
 
 impl From<ReportLibraryPeriod> for ReportLibraryPeriodDto {
@@ -3970,6 +4566,9 @@ impl From<ReportLibraryPeriod> for ReportLibraryPeriodDto {
                 baseline_range: (&baseline_range).into(),
                 comparison_range: (&comparison_range).into(),
             },
+            ReportLibraryPeriod::PlannedTraining { scheduled_at_local } => {
+                Self::PlannedTraining { scheduled_at_local }
+            }
         }
     }
 }
@@ -4028,6 +4627,12 @@ enum ReportLibraryResultDto {
         series: Vec<ReportLibraryComparisonSeriesDto>,
         omitted_source_count: usize,
     },
+    PlannedTraining {
+        exercise_count: Option<usize>,
+        phase_count: Option<usize>,
+        expanded_phase_count: Option<usize>,
+        repeat_block_count: Option<usize>,
+    },
 }
 
 impl From<ReportLibraryResult> for ReportLibraryResultDto {
@@ -4045,6 +4650,17 @@ impl From<ReportLibraryResult> for ReportLibraryResultDto {
                 metric: metric.code(),
                 series: series.into_iter().map(Into::into).collect(),
                 omitted_source_count,
+            },
+            ReportLibraryResult::PlannedTraining {
+                exercise_count,
+                phase_count,
+                expanded_phase_count,
+                repeat_block_count,
+            } => Self::PlannedTraining {
+                exercise_count,
+                phase_count,
+                expanded_phase_count,
+                repeat_block_count,
             },
         }
     }
@@ -4284,6 +4900,7 @@ pub enum ReportEvidenceProvenanceDto {
         current: TrainingProvenanceCurrentDto,
     },
     LibrarySnapshot,
+    PlannedTrainingSnapshot,
     AuthoredOnly,
 }
 
@@ -4294,7 +4911,24 @@ impl From<ReportEvidenceProvenance> for ReportEvidenceProvenanceDto {
                 current: current.into(),
             },
             ReportEvidenceProvenance::LibrarySnapshot => Self::LibrarySnapshot,
+            ReportEvidenceProvenance::PlannedTrainingSnapshot => Self::PlannedTrainingSnapshot,
             ReportEvidenceProvenance::AuthoredOnly => Self::AuthoredOnly,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportPlannedTrainingEvidenceDto {
+    block_ref: String,
+    target: PlannedTrainingTargetDetailDto,
+}
+
+impl From<ReportPlannedTrainingEvidence> for ReportPlannedTrainingEvidenceDto {
+    fn from(evidence: ReportPlannedTrainingEvidence) -> Self {
+        Self {
+            block_ref: evidence.block_ref,
+            target: evidence.target.into(),
         }
     }
 }
@@ -4308,6 +4942,7 @@ pub struct ResolvedReportDto {
     session: Option<ReportSessionEvidenceDto>,
     routes: Vec<ReportRouteEvidenceDto>,
     training_comparison: Option<TrainingComparisonDto>,
+    planned_training: Option<ReportPlannedTrainingEvidenceDto>,
     provenance: ReportEvidenceProvenanceDto,
     sensitive_contents: Vec<ReportSensitiveContentDto>,
     limitations: Vec<&'static str>,
@@ -4325,6 +4960,7 @@ impl From<ResolvedReport> for ResolvedReportDto {
             session: report.session.map(Into::into),
             routes: report.routes.into_iter().map(Into::into).collect(),
             training_comparison: report.training_comparison.map(Into::into),
+            planned_training: report.planned_training.map(Into::into),
             provenance: report.provenance.into(),
             sensitive_contents: report
                 .sensitive_contents
@@ -6588,7 +7224,9 @@ mod tests {
         UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
     };
     use fitfreed_domain::{
-        ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState, ReportBlock,
+        ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState,
+        PlannedTrainingMappingCoverage, PlannedTrainingRepeat, PlannedTrainingTarget,
+        PlannedTrainingTransition, ReportBlock,
     };
     use serde_json::{from_value, json, to_value};
 
@@ -7966,6 +8604,404 @@ mod tests {
                     .expect("training-session detail error JSON"),
                 serde_json::json!({ "code": code })
             );
+        }
+    }
+
+    #[test]
+    fn validates_and_serializes_provider_neutral_planned_training_transport_contracts() {
+        let input: PlannedTrainingChronologyQueryDto = from_value(json!({
+            "collection": "scheduled",
+            "completion": "completed",
+            "from": "2026-08-01",
+            "through": "2026-08-31",
+            "offset": 0,
+            "limit": 25,
+            "snapshotRef": null
+        }))
+        .expect("planned-training chronology request");
+        let query = PlannedTrainingChronologyQuery::try_from(input)
+            .expect("valid planned-training chronology request");
+        assert_eq!(query.collection, PlannedTrainingCollection::Scheduled);
+        assert_eq!(
+            query.completion,
+            Some(PlannedTrainingCompletionFilter::Completed)
+        );
+        assert!(from_value::<PlannedTrainingChronologyQueryDto>(json!({
+            "collection": "scheduled",
+            "completion": null,
+            "from": null,
+            "through": null,
+            "offset": 0,
+            "limit": 25,
+            "snapshotRef": null,
+            "sourceProvider": "must-not-cross-the-boundary"
+        }))
+        .is_err());
+
+        let target_ref = format!("planned-target-{}", "a".repeat(64));
+        let target = PlannedTrainingTarget::restore(
+            "private-origin",
+            target_ref.clone(),
+            format!("planned-evidence-{}", "b".repeat(64)),
+            PlannedTrainingTargetKind::Scheduled {
+                scheduled_at_local: "2026-08-18T07:30:00".to_owned(),
+                completion: PlannedTrainingCompletion::Completed,
+            },
+            "Progressive intervals",
+            Some("Controlled progression".to_owned()),
+            PlannedTrainingEditability::Editable,
+            Some(vec![PlannedTrainingExercise {
+                exercise_id: format!("planned-exercise-{}", "c".repeat(64)),
+                ordinal: 0,
+                kind: PlannedTrainingExerciseKind::Phased,
+                duration_goal_milliseconds: None,
+                distance_goal_meters: None,
+                sport: PlannedTrainingSport::Unmapped,
+                phases: Some(vec![PlannedTrainingPhase {
+                    phase_id: format!("planned-phase-{}", "d".repeat(64)),
+                    ordinal: 0,
+                    name: "Work".to_owned(),
+                    goal: PlannedTrainingPhaseGoal::DurationMilliseconds(i64::MAX),
+                    intensity: PlannedTrainingIntensity::ZoneRange {
+                        metric: PlannedTrainingIntensityMetric::HeartRate,
+                        lower_zone: 3,
+                        upper_zone: 4,
+                    },
+                    transition: PlannedTrainingTransition {
+                        transition_id: format!("planned-transition-{}", "e".repeat(64)),
+                        change: PlannedTrainingPhaseChange::Automatic,
+                        repeat: Some(PlannedTrainingRepeat {
+                            repeat_id: format!("planned-repeat-{}", "f".repeat(64)),
+                            return_to_phase_ordinal: 0,
+                            total_iterations: 2,
+                        }),
+                    },
+                }]),
+            }]),
+            PlannedTrainingMappingCoverage::complete(),
+        )
+        .expect("planned-training transport target");
+        let summary = PlannedTrainingTargetSummary {
+            source_index: 1,
+            reconciliation_state: PlannedTrainingReconciliationState::Current,
+            target,
+            relation: PlannedTrainingSessionRelation::Exact {
+                session_ref: format!("session-{}", "1".repeat(64)),
+            },
+            shape: PlannedTrainingPlanShape {
+                exercise_count: Some(1),
+                phase_count: Some(1),
+                expanded_phase_count: Some(2),
+                repeat_block_count: Some(1),
+                contains_intensity_evidence: true,
+            },
+        };
+        let detail_json = to_value(PlannedTrainingTargetDetailDto::from(
+            PlannedTrainingTargetDetail {
+                snapshot_ref: format!("planned-snapshot-{}", "2".repeat(64)),
+                target: summary.clone(),
+            },
+        ))
+        .expect("planned-training detail JSON");
+        assert_eq!(
+            detail_json["target"]["summary"]["targetKind"]["kind"],
+            "scheduled"
+        );
+        assert_eq!(
+            detail_json["target"]["exercises"][0]["phases"][0]["goal"]["durationMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(
+            detail_json["target"]["exercises"][0]["phases"][0]["transition"]["repeat"]
+                ["totalIterations"],
+            2
+        );
+        let serialized = detail_json.to_string();
+        for private_name in [
+            "private-origin",
+            "originId",
+            "sourceProvider",
+            "sourceSportCode",
+            "evidenceRevision",
+        ] {
+            assert!(!serialized.contains(private_name));
+        }
+
+        let page_json = to_value(PlannedTrainingChronologyPageDto::from(
+            PlannedTrainingChronologyPage {
+                snapshot_ref: format!("planned-snapshot-{}", "2".repeat(64)),
+                total_count: 1,
+                offset: 0,
+                limit: 25,
+                next_offset: None,
+                targets: vec![summary.clone()],
+            },
+        ))
+        .expect("planned-training chronology JSON");
+        assert!(page_json["targets"][0].get("exercises").is_none());
+        assert_eq!(page_json["targets"][0]["relation"]["state"], "exact");
+
+        let relation_json = to_value(PlannedTrainingSessionRelationResultDto::from(
+            PlannedTrainingSessionRelationResult {
+                snapshot_ref: format!("planned-snapshot-{}", "2".repeat(64)),
+                training_snapshot_ref: format!("training-snapshot-{}", "3".repeat(64)),
+                session_ref: format!("session-{}", "1".repeat(64)),
+                relation: CompletedSessionPlannedTrainingRelation::Ambiguous {
+                    candidate_target_count: 1,
+                    candidate_session_count: 2,
+                },
+                candidates: vec![summary],
+            },
+        ))
+        .expect("session planned-training relation JSON");
+        assert_eq!(relation_json["relation"]["state"], "ambiguous");
+        assert_eq!(relation_json["relation"]["candidateSessionCount"], 2);
+
+        for (error, code) in [
+            (
+                ApplicationError::InvalidPlannedTrainingQuery("invalid"),
+                "invalid-planned-training-query",
+            ),
+            (
+                ApplicationError::PlannedTrainingChanged,
+                "planned-training-changed",
+            ),
+            (
+                ApplicationError::PlannedTrainingNotFound,
+                "planned-training-not-found",
+            ),
+            (
+                ApplicationError::PlannedTrainingQuery("failed".to_owned()),
+                "planned-training-query-failed",
+            ),
+        ] {
+            assert_eq!(
+                to_value(CommandErrorDto::from(error)).expect("planned-training error JSON"),
+                json!({ "code": code })
+            );
+        }
+    }
+
+    #[test]
+    fn transports_planned_training_reports_without_mixing_evidence_libraries() {
+        let report_ref = format!("report-{}", "a".repeat(64));
+        let block_ref = format!("report-block-{}", "b".repeat(64));
+        let target_ref = format!("planned-target-{}", "c".repeat(64));
+        let snapshot_ref = format!("planned-snapshot-{}", "d".repeat(64));
+
+        let create: CreateReportRequestDto = from_value(json!({
+            "title": "Planned intervals",
+            "locale": "en-US",
+            "sourceSnapshotRef": snapshot_ref,
+            "origin": { "kind": "planned-training", "targetRef": target_ref },
+            "blocks": [{
+                "kind": "planned-training",
+                "blockRef": null,
+                "targetRef": target_ref
+            }]
+        }))
+        .expect("planned report creation transport");
+        let create = CreateReportRequest::try_from(create).expect("planned report creation");
+        assert!(matches!(
+            &create.origin,
+            ReportOrigin::PlannedTraining { target_ref: actual } if actual == &target_ref
+        ));
+        assert!(matches!(
+            &create.blocks[0].content,
+            SessionReportBlockDraftContent::PlannedTraining { target_ref: actual }
+                if actual == &target_ref
+        ));
+
+        let update: UpdateReportRequestDto = from_value(json!({
+            "reportRef": report_ref,
+            "expectedRevision": "1",
+            "title": "Planned intervals review",
+            "locale": "es-ES",
+            "blocks": [{
+                "kind": "planned-training",
+                "blockRef": block_ref,
+                "targetRef": target_ref
+            }]
+        }))
+        .expect("planned report update transport");
+        let update = UpdateReportRequest::try_from(update).expect("planned report update");
+        assert_eq!(update.expected_revision, 1);
+        assert!(matches!(
+            &update.blocks[0].content,
+            SessionReportBlockDraftContent::PlannedTraining { target_ref: actual }
+                if actual == &target_ref
+        ));
+
+        let refresh: RefreshReportRequestDto = from_value(json!({
+            "reportRef": report_ref,
+            "expectedRevision": "1",
+            "expectedSourceSnapshotRef": snapshot_ref,
+            "expectedResolvedSnapshotRef": format!("planned-snapshot-{}", "e".repeat(64))
+        }))
+        .expect("planned report refresh transport");
+        assert!(RefreshReportRequest::try_from(refresh)
+            .expect("planned report refresh")
+            .expected_resolved_snapshot_ref
+            .starts_with("planned-snapshot-"));
+
+        let export: ReportExportRequestDto = from_value(json!({
+            "reportRef": report_ref,
+            "expectedRevision": "1",
+            "expectedSourceSnapshotRef": snapshot_ref,
+            "includePhysiologicalContext": false,
+            "routeChoices": [],
+            "destinationPath": "/private/synthetic/planned-report.html"
+        }))
+        .expect("planned report export transport");
+        let export = ReportExportRequest::try_from(export).expect("planned report export");
+        assert!(!export.include_physiological_context);
+        assert!(export.route_choices.is_empty());
+
+        let definition = ReportDefinition::compose_report(
+            &report_ref,
+            "Planned intervals",
+            ReportLocale::EnUs,
+            &snapshot_ref,
+            ReportOrigin::PlannedTraining {
+                target_ref: target_ref.clone(),
+            },
+            vec![ReportBlock::planned_training(&block_ref, &target_ref)
+                .expect("planned report block")],
+        )
+        .expect("planned report definition");
+        let definition_json = to_value(ReportDefinitionDto::from(definition.clone()))
+            .expect("planned report definition JSON");
+        assert_eq!(definition_json["definitionVersion"], 5);
+        assert_eq!(definition_json["origin"]["kind"], "planned-training");
+        assert_eq!(definition_json["blocks"][0]["targetRef"], target_ref);
+
+        let target = PlannedTrainingTarget::restore(
+            "private-origin",
+            target_ref.clone(),
+            format!("planned-evidence-{}", "f".repeat(64)),
+            PlannedTrainingTargetKind::Scheduled {
+                scheduled_at_local: "2026-08-18T07:30:00".to_owned(),
+                completion: PlannedTrainingCompletion::Pending,
+            },
+            "Planned intervals",
+            Some("A synthetic structured plan".to_owned()),
+            PlannedTrainingEditability::Editable,
+            Some(vec![PlannedTrainingExercise {
+                exercise_id: format!("planned-exercise-{}", "1".repeat(64)),
+                ordinal: 0,
+                kind: PlannedTrainingExerciseKind::Phased,
+                duration_goal_milliseconds: Some(1_200_000),
+                distance_goal_meters: None,
+                sport: PlannedTrainingSport::Unavailable,
+                phases: Some(vec![PlannedTrainingPhase {
+                    phase_id: format!("planned-phase-{}", "2".repeat(64)),
+                    ordinal: 0,
+                    name: "Work".to_owned(),
+                    goal: PlannedTrainingPhaseGoal::DurationMilliseconds(300_000),
+                    intensity: PlannedTrainingIntensity::ZoneRange {
+                        metric: PlannedTrainingIntensityMetric::HeartRate,
+                        lower_zone: 3,
+                        upper_zone: 4,
+                    },
+                    transition: PlannedTrainingTransition {
+                        transition_id: format!("planned-transition-{}", "3".repeat(64)),
+                        change: PlannedTrainingPhaseChange::Automatic,
+                        repeat: None,
+                    },
+                }]),
+            }]),
+            PlannedTrainingMappingCoverage::complete(),
+        )
+        .expect("planned report target");
+        let detail = PlannedTrainingTargetDetail {
+            snapshot_ref: snapshot_ref.clone(),
+            target: PlannedTrainingTargetSummary {
+                source_index: 1,
+                reconciliation_state: PlannedTrainingReconciliationState::Current,
+                target,
+                relation: PlannedTrainingSessionRelation::Absent,
+                shape: PlannedTrainingPlanShape {
+                    exercise_count: Some(1),
+                    phase_count: Some(1),
+                    expanded_phase_count: Some(1),
+                    repeat_block_count: Some(0),
+                    contains_intensity_evidence: true,
+                },
+            },
+        };
+
+        let library = ReportLibraryPage {
+            items: vec![ReportLibraryItem {
+                report_ref: report_ref.clone(),
+                title: "Planned intervals".to_owned(),
+                locale: ReportLocale::EnUs,
+                source_snapshot_ref: snapshot_ref.clone(),
+                revision: 1,
+                evidence_state: ReportLibraryEvidenceState::Current,
+                subject: ReportLibrarySubject::PlannedTraining {
+                    name: Some("Planned intervals".to_owned()),
+                },
+                period: Some(ReportLibraryPeriod::PlannedTraining {
+                    scheduled_at_local: "2026-08-18T07:30:00".to_owned(),
+                }),
+                result: Some(ReportLibraryResult::PlannedTraining {
+                    exercise_count: Some(1),
+                    phase_count: Some(1),
+                    expanded_phase_count: Some(1),
+                    repeat_block_count: Some(0),
+                }),
+                sensitivity: ReportLibrarySensitivity {
+                    includes_physiological_context: false,
+                    precise_location_block_count: 0,
+                    minimum_endpoint_redaction_meters: None,
+                },
+            }],
+            total_count: 1,
+            offset: 0,
+            limit: 12,
+            next_offset: None,
+        };
+        let library_json =
+            to_value(ReportLibraryPageDto::from(library)).expect("planned report library JSON");
+        assert_eq!(
+            library_json["items"][0]["subject"]["kind"],
+            "planned-training"
+        );
+        assert_eq!(library_json["items"][0]["result"]["phaseCount"], 1);
+
+        let resolved = ResolvedReport {
+            definition,
+            resolved_snapshot_ref: snapshot_ref,
+            status: ReportResolutionStatus::Current,
+            session: None,
+            routes: Vec::new(),
+            training_comparison: None,
+            planned_training: Some(ReportPlannedTrainingEvidence {
+                block_ref,
+                target: detail,
+            }),
+            provenance: ReportEvidenceProvenance::PlannedTrainingSnapshot,
+            sensitive_contents: Vec::new(),
+            limitations: Vec::new(),
+        };
+        let resolved_json =
+            to_value(ResolvedReportDto::from(resolved)).expect("planned report resolution JSON");
+        assert_eq!(
+            resolved_json["provenance"]["kind"],
+            "planned-training-snapshot"
+        );
+        assert_eq!(
+            resolved_json["plannedTraining"]["target"]["target"]["exercises"][0]["phases"][0]
+                ["intensity"]["metric"],
+            "heart-rate"
+        );
+        assert_eq!(resolved_json["session"], json!(null));
+        assert!(resolved_json["routes"]
+            .as_array()
+            .is_some_and(Vec::is_empty));
+        let serialized = resolved_json.to_string();
+        for private_name in ["private-origin", "originId", "evidenceRevision"] {
+            assert!(!serialized.contains(private_name));
         }
     }
 
@@ -10185,7 +11221,7 @@ mod tests {
         .expect("analytical report definition");
         let definition_json =
             serde_json::to_value(ReportDefinitionDto::from(definition)).expect("definition JSON");
-        assert_eq!(definition_json["definitionVersion"], 4);
+        assert_eq!(definition_json["definitionVersion"], 5);
         assert_eq!(
             definition_json["blocks"][2],
             json!({

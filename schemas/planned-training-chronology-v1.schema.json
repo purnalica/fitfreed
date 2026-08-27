@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/planned-training-chronology-v1.schema.json",
+  "title": "FitFreed planned-training chronology version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotRef",
+    "totalCount",
+    "offset",
+    "limit",
+    "nextOffset",
+    "targets"
+  ],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "totalCount": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "nextOffset": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1 }
+      ]
+    },
+    "targets": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/targetSummary" }
+    }
+  },
+  "$defs": {
+    "snapshotRef": {
+      "type": "string",
+      "pattern": "^planned-snapshot-[0-9a-f]{64}$"
+    },
+    "targetRef": {
+      "type": "string",
+      "pattern": "^planned-target-[0-9a-f]{64}$"
+    },
+    "sessionRef": {
+      "type": "string",
+      "pattern": "^session-[0-9a-f]{64}$"
+    },
+    "localDateTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?$"
+    },
+    "optionalCount": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 0 }
+      ]
+    },
+    "targetKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "scheduledAtLocal", "completion"],
+          "properties": {
+            "kind": { "const": "scheduled" },
+            "scheduledAtLocal": { "$ref": "#/$defs/localDateTime" },
+            "completion": { "enum": ["pending", "completed"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "scheduledAtLocal", "completion"],
+          "properties": {
+            "kind": { "const": "favorite-template" },
+            "scheduledAtLocal": { "type": "null" },
+            "completion": { "type": "null" }
+          }
+        }
+      ]
+    },
+    "mappingCoverage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "unmappedFieldCount"],
+          "properties": {
+            "state": { "const": "complete" },
+            "unmappedFieldCount": { "const": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "unmappedFieldCount"],
+          "properties": {
+            "state": { "const": "partial" },
+            "unmappedFieldCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exerciseCount",
+        "phaseCount",
+        "expandedPhaseCount",
+        "repeatBlockCount",
+        "containsIntensityEvidence"
+      ],
+      "properties": {
+        "exerciseCount": { "$ref": "#/$defs/optionalCount" },
+        "phaseCount": { "$ref": "#/$defs/optionalCount" },
+        "expandedPhaseCount": { "$ref": "#/$defs/optionalCount" },
+        "repeatBlockCount": { "$ref": "#/$defs/optionalCount" },
+        "containsIntensityEvidence": { "type": "boolean" }
+      }
+    },
+    "relation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "sessionRef", "candidateCount"],
+          "properties": {
+            "state": { "enum": ["not-applicable", "absent"] },
+            "sessionRef": { "type": "null" },
+            "candidateCount": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "sessionRef", "candidateCount"],
+          "properties": {
+            "state": { "const": "exact" },
+            "sessionRef": { "$ref": "#/$defs/sessionRef" },
+            "candidateCount": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "sessionRef", "candidateCount"],
+          "properties": {
+            "state": { "const": "ambiguous" },
+            "sessionRef": { "type": "null" },
+            "candidateCount": { "type": "integer", "minimum": 2 }
+          }
+        }
+      ]
+    },
+    "targetSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "targetRef",
+        "sourceIndex",
+        "reconciliationState",
+        "targetKind",
+        "name",
+        "description",
+        "editability",
+        "mappingCoverage",
+        "shape",
+        "relation"
+      ],
+      "properties": {
+        "targetRef": { "$ref": "#/$defs/targetRef" },
+        "sourceIndex": { "type": "integer", "minimum": 1 },
+        "reconciliationState": { "enum": ["current", "conflicted"] },
+        "targetKind": { "$ref": "#/$defs/targetKind" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "description": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1, "maxLength": 2000 }
+          ]
+        },
+        "editability": { "enum": ["editable", "non-editable", "unspecified"] },
+        "mappingCoverage": { "$ref": "#/$defs/mappingCoverage" },
+        "shape": { "$ref": "#/$defs/shape" },
+        "relation": { "$ref": "#/$defs/relation" }
+      }
+    }
+  }
+}

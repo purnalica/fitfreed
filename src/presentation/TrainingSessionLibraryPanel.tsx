@@ -10,6 +10,7 @@ import {
 } from "./DataTable";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { SessionPlannedTrainingPanel } from "./PlannedTrainingPanel";
 import { SportClassificationTask } from "./SportClassificationTask";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import type { SessionReportOrigin } from "./session-report";
@@ -126,6 +127,7 @@ interface TrainingSessionLibraryPanelProps {
   classificationChange?: TrainingSportClassificationChange;
   onSportClassificationChange?: (result: SavedTrainingSportClassification) => void;
   onReturnToSports?: (sessionFilterRef: string) => void;
+  onOpenPlannedTraining?: (targetRef: string) => void;
 }
 
 interface SearchDraft {
@@ -293,6 +295,7 @@ export function TrainingSessionLibraryPanel({
   classificationChange,
   onSportClassificationChange = () => undefined,
   onReturnToSports = () => undefined,
+  onOpenPlannedTraining = () => undefined,
 }: TrainingSessionLibraryPanelProps) {
   const [draft, setDraft] = useState<SearchDraft>(() => emptyDraft(initialDate));
   const [applied, setApplied] = useState<SearchDraft>(() => emptyDraft(initialDate));
@@ -3145,6 +3148,16 @@ export function TrainingSessionLibraryPanel({
                 )}
               </dl>
             </div>
+            {page && (
+              <SessionPlannedTrainingPanel
+                sessionRef={selected.sessionRef}
+                trainingSnapshotRef={page.snapshotRef}
+                locale={locale}
+                messages={messages}
+                onError={onError}
+                onOpenTarget={onOpenPlannedTraining}
+              />
+            )}
           </section>
           <section
             id="training-detail-ranges"

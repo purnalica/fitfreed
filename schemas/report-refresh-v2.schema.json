@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-refresh-v2.schema.json",
+  "title": "FitFreed deliberate report refresh version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportRef", "expectedRevision", "expectedSourceSnapshotRef",
+    "expectedResolvedSnapshotRef"
+  ],
+  "properties": {
+    "reportRef": { "$ref": "report-definition-v5.schema.json#/$defs/reportRef" },
+    "expectedRevision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "expectedSourceSnapshotRef": {
+      "$ref": "report-definition-v5.schema.json#/$defs/snapshotRef"
+    },
+    "expectedResolvedSnapshotRef": {
+      "$ref": "report-definition-v5.schema.json#/$defs/snapshotRef"
+    }
+  }
+}

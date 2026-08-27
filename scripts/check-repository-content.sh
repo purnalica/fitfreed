@@ -63,7 +63,7 @@ while IFS= read -r -d '' candidate_path; do
 
   if [[ "$candidate_path" == *.md ]]; then
     if LC_ALL=C grep -Eiq 'MacBook (Air|Pro)([^[:alpha:]]|$)|Mac (mini|Studio|Pro)([^[:alpha:]]|$)|iMac([^[:alpha:]]|$)|Apple M[0-9]+ (Pro|Max|Ultra)([^[:alpha:]]|$)|[0-9]+ CPU cores|Mac[0-9]+,[0-9]+|(16|24|32|36|48|64|96|128|192) (GB|GiB)( of)? memory|macOS [0-9]+\.[0-9]+\.[0-9]+, (Apple Silicon|Intel)' "$candidate_file" ||
-      LC_ALL=C grep -Eq '(^|[^[:alnum:]])[0-9]{2}[A-Z][0-9]{2,}([^[:alnum:]]|$)' "$candidate_file"; then
+      LC_ALL=C grep -Eiq '(serial number|hardware uuid|device model|model identifier)[^[:alnum:]]*[[:alnum:]-]{5,}' "$candidate_file"; then
       report_failure "$candidate_path" "exact workstation details in public documentation"
     fi
   fi

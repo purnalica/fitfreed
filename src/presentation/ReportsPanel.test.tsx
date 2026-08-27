@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
 import { ReportsPanel } from "./ReportsPanel";
+import type { PlannedTrainingTargetDetail } from "./planned-training";
 import type {
   ReportDefinition,
   ReportLibraryItem,
@@ -33,6 +34,8 @@ const changedSnapshotRef = `training-snapshot-${digest("a")}`;
 const reportRef = `report-${digest("3")}`;
 const routeRef = `route-${digest("7")}`;
 const routeBlockRef = `report-block-${digest("8")}`;
+const plannedSnapshotRef = `planned-snapshot-${digest("d")}`;
+const plannedTargetRef = `planned-target-${digest("e")}`;
 const comparisonQuery = {
   question: "training-period-comparison" as const,
   questionVersion: 1 as const,
@@ -118,6 +121,7 @@ function resolution(value = definition()): ResolvedSessionReport {
     },
     routes: [],
     trainingComparison: null,
+    plannedTraining: null,
     sensitiveContents: [{
       kind: "heart-rate",
       blockRef: null,
@@ -385,7 +389,98 @@ function blankResolution(revision = "1", analytical = false): ResolvedReport {
     session: null,
     routes: [],
     trainingComparison: analytical ? analyticalResolution().trainingComparison : null,
+    plannedTraining: null,
     provenance: analytical ? { kind: "library-snapshot" } : { kind: "authored-only" },
+    sensitiveContents: [],
+    limitations: [],
+  };
+}
+
+const plannedTarget: PlannedTrainingTargetDetail = {
+  snapshotRef: plannedSnapshotRef,
+  target: {
+    summary: {
+      targetRef: plannedTargetRef,
+      sourceIndex: 1,
+      reconciliationState: "current",
+      targetKind: {
+        kind: "scheduled",
+        scheduledAtLocal: "2026-08-18T07:30:00",
+        completion: "completed",
+      },
+      name: "River intervals",
+      description: "Four controlled work intervals with recovery.",
+      editability: "editable",
+      mappingCoverage: { state: "complete", unmappedFieldCount: 0 },
+      shape: {
+        exerciseCount: 1,
+        phaseCount: 2,
+        expandedPhaseCount: 8,
+        repeatBlockCount: 1,
+        containsIntensityEvidence: true,
+      },
+      relation: { state: "exact", sessionRef, candidateCount: null },
+    },
+    exercises: [{
+      exerciseRef: `planned-exercise-${digest("1")}`,
+      ordinal: 0,
+      kind: "phased",
+      durationGoalMilliseconds: "1680000",
+      distanceGoalMeters: null,
+      sport: { state: "unmapped", recognition: null },
+      phases: [{
+        phaseRef: `planned-phase-${digest("2")}`,
+        ordinal: 0,
+        name: "Work",
+        goal: { kind: "duration", durationMilliseconds: "300000", distanceMeters: null },
+        intensity: {
+          kind: "zone-range",
+          metric: "heart-rate",
+          lowerZone: 3,
+          upperZone: 4,
+        },
+        transition: {
+          transitionRef: `planned-transition-${digest("3")}`,
+          change: "automatic",
+          repeat: null,
+        },
+      }],
+    }],
+  },
+};
+
+function plannedDefinition(revision = "1"): ReportDefinition {
+  return {
+    reportRef,
+    title: "Training plan · River intervals",
+    locale: "en-US",
+    sourceSnapshotRef: plannedSnapshotRef,
+    origin: { kind: "planned-training", targetRef: plannedTargetRef },
+    provenancePolicy: "current-attribution",
+    authorship: "user",
+    definitionVersion: 5,
+    revision,
+    blocks: [{
+      blockRef: `report-block-${digest("4")}`,
+      kind: "planned-training",
+      targetRef: plannedTargetRef,
+    }],
+  };
+}
+
+function plannedResolution(value = plannedDefinition()): ResolvedReport {
+  return {
+    definition: value,
+    resolvedSnapshotRef: plannedSnapshotRef,
+    status: "current",
+    session: null,
+    routes: [],
+    trainingComparison: null,
+    plannedTraining: {
+      blockRef: `report-block-${digest("4")}`,
+      target: plannedTarget,
+    },
+    provenance: { kind: "planned-training-snapshot" },
     sensitiveContents: [],
     limitations: [],
   };
@@ -532,6 +627,104 @@ afterEach(() => {
 });
 
 describe("ReportsPanel", () => {
+  it("creates a result-first report from one exact planned-training snapshot", async () => {
+    const created = plannedDefinition();
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "create_report") return Promise.resolve(created);
+      if (command === "resolve_report") return Promise.resolve(plannedResolution(created));
+      if (command === "export_report") return Promise.resolve({ byteCount: "3072" });
+      throw new Error(`Unexpected command: ${command} ${JSON.stringify(arguments_)}`);
+    });
+    mocks.save.mockResolvedValue("/tmp/river-intervals.html");
+    const user = userEvent.setup();
+
+    renderPanel({
+      origin: {
+        kind: "planned-training",
+        snapshotRef: plannedSnapshotRef,
+        target: plannedTarget,
+      },
+      originRequestId: 9,
+    });
+
+    expect(screen.getByDisplayValue("Training plan · River intervals")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Imported training plan" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Save report" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("create_report", {
+      request: {
+        title: "Training plan · River intervals",
+        locale: "en-US",
+        sourceSnapshotRef: plannedSnapshotRef,
+        origin: { kind: "planned-training", targetRef: plannedTargetRef },
+        blocks: [{ kind: "planned-training", targetRef: plannedTargetRef }],
+      },
+    }));
+    expect(await screen.findByRole("heading", { name: "River intervals" })).toBeVisible();
+    expect(within(screen.getByRole("heading", { name: "Plan sequence" }).parentElement!)
+      .getByText("Work")).toBeVisible();
+    expect(screen.getByText("This is imported intent. Recorded measurements remain separate."))
+      .toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Review and export" }));
+    expect(screen.getByText(/Imported objectives, exercises, phases/)).toBeVisible();
+    expect(screen.queryByText(/Exact training samples are excluded/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Selected routes use only/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Choose destination and export" }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("export_report", {
+      request: {
+        reportRef,
+        expectedRevision: "1",
+        expectedSourceSnapshotRef: plannedSnapshotRef,
+        includePhysiologicalContext: false,
+        routeChoices: [],
+        destinationPath: "/tmp/river-intervals.html",
+      },
+    }));
+  });
+
+  it("presents planned-training reports as useful library results", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([sessionLibraryItem({
+          title: "Training plan · River intervals",
+          sourceSnapshotRef: plannedSnapshotRef,
+          subject: { kind: "planned-training", name: "River intervals" },
+          period: {
+            kind: "planned-training",
+            scheduledAtLocal: "2026-08-18T07:30:00",
+          },
+          result: {
+            kind: "planned-training",
+            exerciseCount: 1,
+            phaseCount: 2,
+            expandedPhaseCount: 8,
+            repeatBlockCount: 1,
+          },
+          sensitivity: {
+            includesPhysiologicalContext: false,
+            preciseLocationBlockCount: 0,
+            minimumEndpointRedactionMeters: null,
+          },
+        })]));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    const card = await screen.findByRole("button", {
+      name: "Open Training plan · River intervals",
+    });
+    expect(within(card).getByText("River intervals")).toBeVisible();
+    expect(within(card).getByText("Aug 18, 2026, 7:30 AM")).toBeVisible();
+    expect(within(card).getByText(
+      "1 exercise · 2 phases · 8 planned passes · 1 repeat block",
+    )).toBeVisible();
+    expect(card).not.toHaveTextContent("planned-target-");
+  });
+
   it("uses localized provider recognition in the report library", async () => {
     const recognizedSport = {
       sportRef: `sport-${digest("9")}`,

@@ -14,7 +14,8 @@ expands the same start with enough guidance to create the first report:
   selects the five analytical views, and lets the calculated evidence stand on its own. Add commentary only
   when your own words improve the report.
 
-Reports can also begin from a completed training-period comparison or a specific training session. These
+Reports can also begin from a completed training-period comparison, a specific training session, or an imported
+planned-training target. These
 contextual starts retain the exact evidence that prompted the report instead of asking you to recreate it.
 The ordinary interface does not offer a generic blank start. Existing blank-origin reports remain readable
 and editable so an application update never discards authored work.
@@ -38,7 +39,7 @@ explicit review action. **Turn this comparison into a report** retains the exact
 answer; it never copies rounded presentation text as evidence. **Back to the comparison** restores the
 mounted answer and its focus.
 
-The fourth start is a specific training session:
+Another contextual start is a specific training session:
 
 1. Open **Explore**, choose **Explore my training sessions**, and find a session through chronology, calendar, or the available filters.
 2. Open **Session summary** and select **Build a report from this session**. FitFreed carries the exact session and training-library snapshot into Reports; it does not copy a value from the visible page.
@@ -58,11 +59,24 @@ The fourth start is a specific training session:
    definition under **Saved reports**, then opens the independent Preview. It survives restart and reimport
    independently from the provider ZIP.
 
-New reports use definition version 4. Every report may have zero or one plain-text commentary block and may
+An imported plan has its own contextual start:
+
+1. Open **Explore**, choose **Training plans**, and open a scheduled target or favourite template.
+2. Select **Build a report from this plan**. FitFreed carries the exact target and planned-library revision into
+   Reports; it does not copy rounded or flattened text from the visible page.
+3. Give the report a title and optionally add your own commentary. The imported objective, exercises, phases, goals,
+   intensity constraints, transitions, and repetitions remain source evidence. Commentary remains separately
+   attributed to you.
+4. Save the report. Preview leads with the complete structured plan and labels it as planned intent. An exact or
+   ambiguous relationship to a recorded session remains relationship evidence, not proof that the plan was completed
+   or followed.
+
+New reports use definition version 5. Every report may have zero or one plain-text commentary block and may
 contain at most one of each analytical view. Session-origin reports additionally require one session-evidence block and
 may contain distinct routes. Question and exploration origins require analytical evidence. Blank reports may
-remain narrative-only or gain analytical evidence later without changing how they began. Versions 1–3 remain
-readable and become version 4 only when edited. Lap or exact-sample blocks, native
+remain narrative-only or gain analytical evidence later without changing how they began. A planned-training report
+contains one exact planned target and cannot mix recorded-session or whole-training-library evidence into the same
+saved revision. Versions 1–4 remain readable and become version 5 only when edited. Lap or exact-sample blocks, native
 PDF, spreadsheet output, and free-form layout are not yet available.
 
 ## Reopen and edit
@@ -116,6 +130,10 @@ you resubmit an editing form. Use **Back to report** to reopen the same saved re
 opened session, comparison result, or report heading so the location change is explicit without requiring a
 pointer.
 
+A saved planned-training report offers **View source plan** when its exact target remains available. It opens that
+target in Training plans at the report's reviewed evidence state. **Back to report** restores the saved result and
+focus. FitFreed never substitutes a different target or routes this action to a generic plan list.
+
 An existing narrative-only blank-origin report has no source action because it began from authored content.
 If referenced evidence is unavailable, FitFreed also omits the action instead of substituting a different
 session or query.
@@ -129,12 +147,18 @@ path is not persisted in the report.
    replaces the preview rather than appearing beneath the editor.
 2. Read the complete content boundary. It includes only the applicable recorded session summary, selected
 comparison totals, findings, chart shapes, exact tables, coverage notices, your title, any optional commentary,
-source attribution, definition metadata, and reviewed route shapes. Exact training samples remain excluded.
+source attribution, definition metadata, reviewed route shapes, and the complete structured plan for a planned report.
+Exact training samples remain excluded.
 3. For a session report whose definition permits heart-rate context, decide whether this individual export
 should retain it. Review may remove sensitive content but cannot add content excluded by the definition.
 4. Review every available route independently. You may omit its geometry or increase endpoint protection for
 this export; you cannot reduce the protection saved in the definition.
 5. Select **Choose destination and export**, then choose a local HTML file through the operating-system dialog. After a destination is accepted, that action keeps its name and the review announces export progress while **Cancel export** remains available.
+
+For a planned report, the review contains no physiology or route choices because those belong to a different evidence
+library. It shows objectives, exercises, phases, goals, intensity constraints, transitions, repetitions, and optional
+commentary exactly from the reviewed target revision. For exact normalized reuse rather than presentation, use the
+planned-training JSON export; report HTML is not a library backup.
 
 The result is one deterministic, self-contained HTML file with embedded styling and no script, external
 image, font, stylesheet, telemetry, or network request. Analytical charts use static SVG with labelled axes and a visible
@@ -158,5 +182,6 @@ Cancellation or a failure before completion leaves no partial file that looks co
   values, and coverage before sharing.
 - A session report identifies Polar Flow only as recorded source attribution where applicable. Analytical
   non-session reports identify the local-library revision, while narrative-only reports explicitly claim no
-  imported evidence. The data model and report identity remain provider-neutral.
+  imported evidence. Planned reports identify the local planned-library revision and planned intent without exposing
+  private source identifiers. The data model and report identity remain provider-neutral.
 - Never attach a real report or screenshot containing personal values to a public issue.

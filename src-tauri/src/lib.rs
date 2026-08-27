@@ -41,6 +41,9 @@ use fitfreed_application::{
     query_library_home as build_library_home,
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
+    query_planned_training_chronology as build_planned_training_chronology,
+    query_planned_training_target as build_planned_training_target,
+    query_session_planned_training_relation as build_session_planned_training_relation,
     query_session_story as build_session_story,
     query_source_acquisition_guides as build_source_acquisition_guides,
     query_training_route_points as build_training_route_points,
@@ -96,7 +99,10 @@ use presentation::{
     ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
     ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
     LongitudinalDateRangeDto, LongitudinalOverviewDto, MoveTrainingSegmentCriterionRequestDto,
-    OpenOfficialSourceLinkOutcomeDto, OpenOfficialSourceLinkRequestDto, PreparedReportStartDto,
+    OpenOfficialSourceLinkOutcomeDto, OpenOfficialSourceLinkRequestDto,
+    PlannedTrainingChronologyPageDto, PlannedTrainingChronologyQueryDto,
+    PlannedTrainingSessionRelationQueryDto, PlannedTrainingSessionRelationResultDto,
+    PlannedTrainingTargetDetailDto, PlannedTrainingTargetQueryDto, PreparedReportStartDto,
     RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto,
     RefreshReportRequestDto, RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto,
     RemovedReportDto, RenameTrainingSessionRangeRequestDto, ReportDefinitionDto,
@@ -579,6 +585,40 @@ fn query_training_session_selection(
 }
 
 #[tauri::command]
+fn query_planned_training_chronology(
+    app: AppHandle,
+    query: PlannedTrainingChronologyQueryDto,
+) -> Result<PlannedTrainingChronologyPageDto, CommandErrorDto> {
+    let query = query.try_into().map_err(CommandErrorDto::from)?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_planned_training_chronology(&SqliteTrainingLibrary::new(path), query)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_planned_training_target(
+    app: AppHandle,
+    query: PlannedTrainingTargetQueryDto,
+) -> Result<PlannedTrainingTargetDetailDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_planned_training_target(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_session_planned_training_relation(
+    app: AppHandle,
+    query: PlannedTrainingSessionRelationQueryDto,
+) -> Result<PlannedTrainingSessionRelationResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_session_planned_training_relation(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
 fn query_training_session_structure(
     app: AppHandle,
     query: TrainingSessionStructureQueryDto,
@@ -889,6 +929,7 @@ fn create_report(
         &SqliteReportLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         request,
     )
@@ -907,6 +948,7 @@ fn update_report(
         &SqliteReportLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         request,
     )
@@ -923,6 +965,7 @@ fn refresh_report(
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     refresh_report_through_port(
         &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
@@ -1026,6 +1069,7 @@ fn list_report_library(
     list_report_library_through_port(
         &SqliteReportLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         request.into(),
     )
@@ -1073,6 +1117,7 @@ fn resolve_report(
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         &report_ref,
     )
@@ -1097,6 +1142,7 @@ async fn export_report(
         hold_instrumented_report_export(&cancellation);
         let result = export_report_through_port(
             &SqliteReportLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
@@ -2111,6 +2157,9 @@ pub fn run() {
             query_training_sessions,
             query_training_session_calendar,
             query_training_session_selection,
+            query_planned_training_chronology,
+            query_planned_training_target,
+            query_session_planned_training_relation,
             query_training_session_structure,
             query_session_story,
             query_training_session_routes,

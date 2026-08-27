@@ -32,12 +32,38 @@ pub use reporting::{
     ReportLibraryComparisonSeries, ReportLibraryEvidenceState, ReportLibraryItem,
     ReportLibraryMetricValue, ReportLibraryPage, ReportLibraryPeriod, ReportLibraryRequest,
     ReportLibraryResult, ReportLibrarySensitivity, ReportLibrarySubject, ReportLimitation,
-    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
-    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
-    ResolvedSessionReport, SessionReportBlockDraft, SessionReportBlockDraftContent,
-    SessionReportExportRequest, UpdateComposedSessionReportRequest, UpdateReportRequest,
-    UpdateSessionReportRequest,
+    ReportPlannedTrainingEvidence, ReportResolutionStatus, ReportRouteEvidence,
+    ReportRouteExportChoice, ReportSensitiveContent, ReportSensitiveContentKind,
+    ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport, ResolvedSessionReport,
+    SessionReportBlockDraft, SessionReportBlockDraftContent, SessionReportExportRequest,
+    UpdateComposedSessionReportRequest, UpdateReportRequest, UpdateSessionReportRequest,
 };
+
+mod data_exit;
+pub use data_exit::{
+    export_planned_training_data, NormalizedDataExportCancellation, NormalizedDataExportError,
+    NormalizedDataExportPort, NormalizedDataExportPortError, NormalizedDataExportReceipt,
+    NormalizedDataExportRequest, PLANNED_TRAINING_EXPORT_SCHEMA_VERSION,
+};
+
+#[cfg(test)]
+mod data_exit_tests;
+
+mod planned_training;
+pub use planned_training::{
+    query_planned_training_chronology, query_planned_training_target,
+    query_session_planned_training_relation, CompletedSessionPlannedTrainingRelation,
+    PersistedPlannedTrainingChronologyPage, PersistedPlannedTrainingTarget,
+    PersistedPlannedTrainingTargetDetail, PersistedSessionPlannedTrainingCandidates,
+    PlannedTrainingChronologyPage, PlannedTrainingChronologyQuery, PlannedTrainingCollection,
+    PlannedTrainingCompletionFilter, PlannedTrainingPlanShape, PlannedTrainingQueryPort,
+    PlannedTrainingQueryPortError, PlannedTrainingReconciliationState,
+    PlannedTrainingSessionRelationQuery, PlannedTrainingSessionRelationResult,
+    PlannedTrainingTargetDetail, PlannedTrainingTargetQuery, PlannedTrainingTargetSummary,
+};
+
+#[cfg(test)]
+mod planned_training_tests;
 
 #[cfg(test)]
 mod reporting_tests;
@@ -1493,6 +1519,14 @@ pub enum ApplicationError {
     TrainingSessionDetailChanged,
     #[error("training-session detail failed: {0}")]
     TrainingSessionDetail(String),
+    #[error("invalid planned-training query: {0}")]
+    InvalidPlannedTrainingQuery(&'static str),
+    #[error("planned-training evidence changed while it was being read")]
+    PlannedTrainingChanged,
+    #[error("planned-training target was not found")]
+    PlannedTrainingNotFound,
+    #[error("planned-training query failed: {0}")]
+    PlannedTrainingQuery(String),
     #[error("invalid training segment criterion: {0}")]
     InvalidTrainingSegmentCriterion(&'static str),
     #[error("training segment criterion changed while it was being edited")]

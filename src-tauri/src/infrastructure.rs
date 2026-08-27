@@ -6,15 +6,11 @@ use std::{
     io::{self, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
     result::Result as StandardResult,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        LazyLock,
-    },
+    sync::atomic::{AtomicBool, Ordering},
     time::{Duration, Instant},
 };
 
 use chrono::{DateTime, Local, Months, NaiveDate, NaiveDateTime, SecondsFormat, Timelike};
-use regex::Regex;
 use rusqlite::{
     params, params_from_iter,
     types::{Type, Value},
@@ -35,10 +31,12 @@ use fitfreed_application::{
     create_training_segment_criterion, create_training_session_range, list_report_library,
     move_training_segment_criterion, query_default_recovery_overview, query_default_sleep_overview,
     query_default_training_overview, query_library_home, query_longitudinal_overview,
-    query_recovery_detail, query_training_route_points, query_training_session_provenance,
-    query_training_session_range_summary, query_training_session_ranges,
-    query_training_session_routes, query_training_session_segmentation,
-    query_training_session_signals, query_training_session_structure, query_training_session_zones,
+    query_planned_training_chronology, query_planned_training_target, query_recovery_detail,
+    query_session_planned_training_relation, query_training_route_points,
+    query_training_session_provenance, query_training_session_range_summary,
+    query_training_session_ranges, query_training_session_routes,
+    query_training_session_segmentation, query_training_session_signals,
+    query_training_session_structure, query_training_session_zones,
     query_training_sessions as build_training_session_search, query_training_signal_samples,
     query_training_sports, remove_training_segment_criterion, remove_training_session_range,
     rename_training_session_range, save_exploration_workspace, save_training_sport_classification,
@@ -46,9 +44,10 @@ use fitfreed_application::{
     ApplicationError, CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest,
     LibraryDomain, LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion,
     LibraryQuestionKind, LocalePreference, MoveTrainingSegmentCriterionRequest,
-    RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest, ReportLibraryMetricValue,
-    ReportLibraryRequest, ReportLibraryResult, SaveSportClassificationRequest,
-    SegmentApplicabilityView, SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
+    NormalizedDataExportCancellation, NormalizedDataExportPort, RemoveTrainingSessionRangeRequest,
+    RenameTrainingSessionRangeRequest, ReportLibraryMetricValue, ReportLibraryRequest,
+    ReportLibraryResult, SaveSportClassificationRequest, SegmentApplicabilityView,
+    SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
     TrainingRangeSummaryCoverageState, TrainingSegmentCriterionMutationRequest, TrainingSportState,
     UpdateTrainingSegmentCriterionRequest,
 };
@@ -57,7 +56,9 @@ use fitfreed_application::{
     ApplicationPreferencesPort, ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace,
     ExplorationWorkspacePort, ExploreDestination, ImportOutcomeLibraryPort, ImportPhase,
     ImportPhaseTimings, ImportProgress, LibraryHomeClockPort, LibraryHomeMeasurementRangePort,
-    LibraryHomeRevisionPort, PersistedTrainingExerciseSegmentation,
+    LibraryHomeRevisionPort, PersistedPlannedTrainingChronologyPage,
+    PersistedPlannedTrainingTarget, PersistedPlannedTrainingTargetDetail,
+    PersistedSessionPlannedTrainingCandidates, PersistedTrainingExerciseSegmentation,
     PersistedTrainingRangeCoordinateEvidence, PersistedTrainingRangeSummaryExercise,
     PersistedTrainingRangeSummarySourceRange, PersistedTrainingRoutePoints,
     PersistedTrainingSessionCalendar, PersistedTrainingSessionProvenance,
@@ -65,7 +66,10 @@ use fitfreed_application::{
     PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
     PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
     PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
-    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, ProfiledImport,
+    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, PlannedTrainingChronologyQuery,
+    PlannedTrainingCollection, PlannedTrainingCompletionFilter, PlannedTrainingQueryPort,
+    PlannedTrainingQueryPortError, PlannedTrainingReconciliationState,
+    PlannedTrainingSessionRelationQuery, PlannedTrainingTargetQuery, ProfiledImport,
     RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
     ReportDefinitionPortError, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
     SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
@@ -102,12 +106,13 @@ use fitfreed_domain::{
     decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
     reconcile_training_session_range, ArtifactClassification, ArtifactCoverageSummary,
     ArtifactFamilyCoverage, DailyActivity, ExistingObservation, ImportOperationState,
-    ImportOutcome, ImportReport, NightlyRecovery, ProviderNeutralSportSuggestion,
-    ReconciliationDecision, RemovedTrainingSessionRange, ReportAuthorship, ReportBlock,
-    ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
-    ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
-    RevisionOrder, SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition,
-    SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
+    ImportOutcome, ImportReport, NightlyRecovery, PlannedTrainingCompletion,
+    PlannedTrainingTargetKind, ProviderNeutralSportSuggestion, ReconciliationDecision,
+    RemovedTrainingSessionRange, ReportAuthorship, ReportBlock, ReportBlockContent,
+    ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
+    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric, RevisionOrder,
+    SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPeriod,
+    SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
     SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
     SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
     SportClassificationKey, SportClassificationState, SportFamily, SportLocalizedName,
@@ -123,7 +128,10 @@ use fitfreed_domain::{
     TrainingZoneUnit, TrainingZones,
 };
 
+mod iso_duration;
 mod local_file;
+mod planned_training_export;
+mod planned_training_store;
 mod polar_flow;
 mod report_chart;
 mod report_html;
@@ -137,6 +145,7 @@ mod update_recovery;
 mod update_state;
 mod update_watchdog;
 
+pub use planned_training_export::SqlitePlannedTrainingExporter;
 pub use report_html::SelfContainedHtmlReportExporter;
 pub use source_acquisition::{NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides};
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
@@ -167,10 +176,18 @@ pub use update_watchdog::{
     UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 
+use iso_duration::parse_iso_duration_milliseconds;
 use local_file::PrivateStagingFile;
+use planned_training_store::{
+    load_current_planned_training_target, persist_favorite_snapshot,
+    reconcile_planned_training_record,
+};
 use polar_flow::{
     assess_artifact, classify_package_identity, daily_activity_filename_date,
-    training_session_filename_start, PolarFlowPackageIdentity, SupportedArtifact,
+    decode_favourite_training_targets, decode_scheduled_training_target,
+    training_session_filename_start, CompletedTrainingTargetSportEvidence,
+    PlannedTrainingMappingContext, PlannedTrainingSportMapping, PolarFlowPackageIdentity,
+    SupportedArtifact,
 };
 use source_subject::{
     persist_source_subject, resolve_source_subject, SourceSubjectClaim, SourceSubjectResolution,
@@ -180,7 +197,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 30;
+const SCHEMA_VERSION: i64 = 32;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -211,9 +228,11 @@ const SCHEMA_V27: &str = include_str!("../migrations/0027_training_session_range
 const SCHEMA_V28: &str = include_str!("../migrations/0028_provider_sport_catalogue.sql");
 const SCHEMA_V29: &str = include_str!("../migrations/0029_training_session_sport_evidence.sql");
 const SCHEMA_V30: &str = include_str!("../migrations/0030_training_discovery_workspace_v2.sql");
+const SCHEMA_V31: &str = include_str!("../migrations/0031_planned_training.sql");
+const SCHEMA_V32: &str = include_str!("../migrations/0032_planned_training_reports.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@12";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@7";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@13";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@8";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
 const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@6";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
@@ -223,6 +242,7 @@ const POLAR_DETAILED_SPORT_CATALOGUE_REVISION: &str =
     "polar-accesslink-detailed-sport-info@2026-05-06";
 const POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC: &str = "2026-08-26T11:25:54Z";
 const POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION: &str = "polar-training-target-sport@1";
+const POLAR_PLANNED_TRAINING_MAPPING_VERSION: &str = "polar-planned-training@1";
 const LEGACY_TRAINING_WORKSPACE_VERSION: u32 = 1;
 const TRAINING_WORKSPACE_VERSION: u32 = 2;
 
@@ -449,20 +469,6 @@ struct PolarTrainingSession {
 #[serde(rename_all = "camelCase")]
 struct PolarSportProfile {
     export_version: String,
-    sport: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct PolarTrainingTarget {
-    export_version: String,
-    start_time: String,
-    done: bool,
-    exercises: Vec<PolarTrainingTargetExercise>,
-}
-
-#[derive(Debug, Deserialize)]
-struct PolarTrainingTargetExercise {
     sport: String,
 }
 
@@ -769,18 +775,6 @@ struct ValidatedTrainingArtifact {
     sha256: String,
     origin_id: String,
     session_id: String,
-}
-
-#[derive(Debug)]
-struct MappedTrainingTargetSportEvidence {
-    locator: String,
-    sha256: String,
-    source_record_locator: String,
-    export_version: String,
-    started_at_local: String,
-    source_sport_code: String,
-    canonical_family: Option<SportFamily>,
-    localized_names: BTreeMap<String, String>,
 }
 
 impl From<MappedTrainingArtifact> for ValidatedTrainingArtifact {
@@ -1186,7 +1180,7 @@ fn execute_import(
     let mut mapped_sleep_result_artifacts = Vec::new();
     let mut mapped_sleep_score_artifacts = Vec::new();
     let mut mapped_nightly_recoveries = Vec::new();
-    let mut mapped_training_target_sport_evidence = Vec::new();
+    let mut mapped_planned_training_batches = Vec::new();
     let mut first_invalid = None;
     let mut processed_artifacts = 0;
     for index in 0..archive.len() {
@@ -1395,8 +1389,11 @@ fn execute_import(
                 let decode_started = Instant::now();
                 let bytes = read_bytes(&mut member, &locator, cancellation)?;
                 let artifact_sha256 = sha256_bytes(&bytes);
-                let mapped =
-                    decode_training_target_sport_evidence(&locator, &artifact_sha256, &bytes);
+                let mapped = decode_scheduled_training_target(
+                    planned_training_mapping_context(origin_id, &locator, &artifact_sha256),
+                    &bytes,
+                )
+                .map_err(|reason| invalid_training_artifact(&locator, reason));
                 timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
                 match mapped {
                     Ok(mapped) => {
@@ -1409,7 +1406,46 @@ fn execute_import(
                             Some(&artifact_sha256),
                             assessment.reason_code,
                         )?;
-                        mapped_training_target_sport_evidence.extend(mapped);
+                        mapped_planned_training_batches.push(mapped);
+                    }
+                    Err(error) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            ArtifactClassification::Invalid,
+                            Some(&artifact_sha256),
+                            "invalid-supported-artifact",
+                        )?;
+                        if first_invalid.is_none() {
+                            first_invalid = Some(error);
+                        }
+                    }
+                }
+            }
+            SupportedArtifact::FavoriteTrainingTargets => {
+                let decode_started = Instant::now();
+                let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                let artifact_sha256 = sha256_bytes(&bytes);
+                let mapped = decode_favourite_training_targets(
+                    planned_training_mapping_context(origin_id, &locator, &artifact_sha256),
+                    &bytes,
+                )
+                .map_err(|reason| invalid_training_artifact(&locator, reason));
+                timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
+                match mapped {
+                    Ok(mapped) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            assessment.classification,
+                            Some(&artifact_sha256),
+                            assessment.reason_code,
+                        )?;
+                        mapped_planned_training_batches.push(mapped);
                     }
                     Err(error) => {
                         record_artifact_coverage(
@@ -1557,9 +1593,13 @@ fn execute_import(
         ImportOperationState::Reconciling,
     )?;
     ensure_not_cancelled(cancellation)?;
+    let planned_training_record_count = mapped_planned_training_batches
+        .iter()
+        .map(|batch| batch.records.len())
+        .sum::<usize>();
     let reconciliation_units = mapped_artifacts.len()
         + validated_training_artifacts.len()
-        + mapped_training_target_sport_evidence.len()
+        + planned_training_record_count
         + mapped_sleep_periods.len()
         + mapped_nightly_recoveries.len();
     let mut reconciled_units = 0_usize;
@@ -1576,6 +1616,7 @@ fn execute_import(
     report.recognized_artifacts = processable_artifacts;
     if !mapped_artifacts.is_empty()
         || !validated_training_artifacts.is_empty()
+        || !mapped_planned_training_batches.is_empty()
         || !mapped_sleep_periods.is_empty()
         || !mapped_nightly_recoveries.is_empty()
     {
@@ -1634,24 +1675,60 @@ fn execute_import(
             ));
         }
     }
-    for (target_index, evidence) in mapped_training_target_sport_evidence.iter().enumerate() {
-        ensure_not_cancelled(cancellation)?;
-        let reconciliation_started = Instant::now();
-        reconcile_training_target_sport_evidence(&transaction, operation_id, origin_id, evidence)?;
-        timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
-        reconciled_units += 1;
-        on_progress(ImportProgress::artifacts(
-            ImportPhase::Reconciling,
-            reconciled_units,
-            reconciliation_units,
-        ));
-        if interrupt_after
-            == Some(mapped_artifacts.len() + validated_training_artifacts.len() + target_index + 1)
-        {
-            return Err(ImportError::InjectedInterruption(
-                mapped_artifacts.len() + validated_training_artifacts.len() + target_index + 1,
+    let mut planned_training_index = 0_usize;
+    for batch in &mapped_planned_training_batches {
+        for record in &batch.records {
+            ensure_not_cancelled(cancellation)?;
+            let reconciliation_started = Instant::now();
+            reconcile_planned_training_record(
+                &transaction,
+                operation_id,
+                SOURCE_PROVIDER,
+                SOURCE_ADAPTER_VERSION,
+                POLAR_PLANNED_TRAINING_MAPPING_VERSION,
+                record,
+                &mut report,
+            )?;
+            timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+            planned_training_index += 1;
+            reconciled_units += 1;
+            on_progress(ImportProgress::artifacts(
+                ImportPhase::Reconciling,
+                reconciled_units,
+                reconciliation_units,
             ));
+            if interrupt_after
+                == Some(
+                    mapped_artifacts.len()
+                        + validated_training_artifacts.len()
+                        + planned_training_index,
+                )
+            {
+                return Err(ImportError::InjectedInterruption(
+                    mapped_artifacts.len()
+                        + validated_training_artifacts.len()
+                        + planned_training_index,
+                ));
+            }
         }
+        for evidence in &batch.completed_sport_evidence {
+            reconcile_training_target_sport_evidence(
+                &transaction,
+                operation_id,
+                origin_id,
+                &batch.artifact_locator,
+                &batch.artifact_sha256,
+                evidence,
+            )?;
+        }
+        persist_favorite_snapshot(
+            &transaction,
+            operation_id,
+            SOURCE_PROVIDER,
+            SOURCE_ADAPTER_VERSION,
+            POLAR_PLANNED_TRAINING_MAPPING_VERSION,
+            batch,
+        )?;
     }
     for (sleep_index, period) in mapped_sleep_periods.iter().enumerate() {
         ensure_not_cancelled(cancellation)?;
@@ -1668,7 +1745,7 @@ fn execute_import(
             == Some(
                 mapped_artifacts.len()
                     + validated_training_artifacts.len()
-                    + mapped_training_target_sport_evidence.len()
+                    + planned_training_record_count
                     + sleep_index
                     + 1,
             )
@@ -1676,7 +1753,7 @@ fn execute_import(
             return Err(ImportError::InjectedInterruption(
                 mapped_artifacts.len()
                     + validated_training_artifacts.len()
-                    + mapped_training_target_sport_evidence.len()
+                    + planned_training_record_count
                     + sleep_index
                     + 1,
             ));
@@ -1697,7 +1774,7 @@ fn execute_import(
             == Some(
                 mapped_artifacts.len()
                     + validated_training_artifacts.len()
-                    + mapped_training_target_sport_evidence.len()
+                    + planned_training_record_count
                     + mapped_sleep_periods.len()
                     + recovery_index
                     + 1,
@@ -1706,7 +1783,7 @@ fn execute_import(
             return Err(ImportError::InjectedInterruption(
                 mapped_artifacts.len()
                     + validated_training_artifacts.len()
-                    + mapped_training_target_sport_evidence.len()
+                    + planned_training_record_count
                     + mapped_sleep_periods.len()
                     + recovery_index
                     + 1,
@@ -3054,6 +3131,416 @@ fn query_training_session_structure_discovery(
         session_ref: query.session_ref.clone(),
         structure,
     })
+}
+
+#[derive(Debug)]
+struct PlannedTrainingHead {
+    origin_id: String,
+    target_id: String,
+    source_provider: String,
+    reconciliation_state: PlannedTrainingReconciliationState,
+}
+
+fn query_planned_training_chronology_discovery(
+    database_path: &Path,
+    query: &PlannedTrainingChronologyQuery,
+) -> std::result::Result<PersistedPlannedTrainingChronologyPage, PlannedTrainingQueryPortError> {
+    let mut connection = Connection::open(database_path).map_err(planned_training_query_failure)?;
+    ensure_schema(&connection).map_err(planned_training_query_failure)?;
+    let transaction = connection
+        .transaction()
+        .map_err(planned_training_query_failure)?;
+    let (snapshot_ref, _) = planned_training_snapshots_on(&transaction)?;
+    if query
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(PlannedTrainingQueryPortError::SnapshotChanged);
+    }
+    let source_kind = match query.collection {
+        PlannedTrainingCollection::Scheduled => "scheduled",
+        PlannedTrainingCollection::FavoriteTemplates => "favorite-template",
+    };
+    let mut clauses = vec!["target.source_kind = ?1".to_owned()];
+    let mut values = vec![Value::Text(source_kind.to_owned())];
+    if let Some(completion) = query.completion {
+        let parameter = values.len() + 1;
+        let completion = match completion {
+            PlannedTrainingCompletionFilter::Pending => "pending",
+            PlannedTrainingCompletionFilter::Completed => "completed",
+        };
+        values.push(Value::Text(completion.to_owned()));
+        clauses.push(format!("revision.completion_state = ?{parameter}"));
+    }
+    if let Some(from) = &query.from {
+        let parameter = values.len() + 1;
+        values.push(Value::Text(from.clone()));
+        clauses.push(format!(
+            "substr(revision.scheduled_at_local, 1, 10) >= ?{parameter}"
+        ));
+    }
+    if let Some(through) = &query.through {
+        let parameter = values.len() + 1;
+        values.push(Value::Text(through.clone()));
+        clauses.push(format!(
+            "substr(revision.scheduled_at_local, 1, 10) <= ?{parameter}"
+        ));
+    }
+    let where_clause = clauses.join(" AND ");
+    let joined = format!(
+        "FROM planned_training_target target
+         JOIN planned_training_target_revision revision
+           ON revision.origin_id = target.origin_id
+          AND revision.target_id = target.target_id
+          AND revision.evidence_revision = target.current_evidence_revision
+          AND revision.mapping_version = target.current_mapping_version
+         WHERE {where_clause}"
+    );
+    let total_count = transaction
+        .query_row(
+            &format!("SELECT COUNT(*) {joined}"),
+            params_from_iter(values.iter()),
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(planned_training_query_failure)
+        .and_then(|count| {
+            usize::try_from(count).map_err(|_| {
+                PlannedTrainingQueryPortError::Failure(
+                    "planned-training result count is invalid".to_owned(),
+                )
+            })
+        })?;
+    let order = match query.collection {
+        PlannedTrainingCollection::Scheduled => {
+            "revision.scheduled_at_local DESC, target.target_id ASC"
+        }
+        PlannedTrainingCollection::FavoriteTemplates => "revision.name ASC, target.target_id ASC",
+    };
+    let limit = i64::try_from(query.limit).map_err(|_| {
+        PlannedTrainingQueryPortError::Failure("planned-training limit exceeds SQLite".to_owned())
+    })?;
+    let offset = i64::try_from(query.offset).map_err(|_| {
+        PlannedTrainingQueryPortError::Failure("planned-training offset exceeds SQLite".to_owned())
+    })?;
+    let limit_parameter = values.len() + 1;
+    values.push(Value::Integer(limit));
+    let offset_parameter = values.len() + 1;
+    values.push(Value::Integer(offset));
+    let sql = format!(
+        "SELECT target.origin_id, target.target_id, target.source_provider,
+                target.reconciliation_state
+         {joined}
+         ORDER BY {order}
+         LIMIT ?{limit_parameter} OFFSET ?{offset_parameter}"
+    );
+    let heads = query_planned_training_heads(&transaction, &sql, &values)?;
+    let source_indices = planned_training_source_indices_on(&transaction)?;
+    let targets = heads
+        .into_iter()
+        .map(|head| load_persisted_planned_training_target(&transaction, &source_indices, head))
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    transaction
+        .commit()
+        .map_err(planned_training_query_failure)?;
+    Ok(PersistedPlannedTrainingChronologyPage {
+        snapshot_ref,
+        total_count,
+        targets,
+    })
+}
+
+fn query_planned_training_target_discovery(
+    database_path: &Path,
+    query: &PlannedTrainingTargetQuery,
+) -> std::result::Result<PersistedPlannedTrainingTargetDetail, PlannedTrainingQueryPortError> {
+    let mut connection = Connection::open(database_path).map_err(planned_training_query_failure)?;
+    ensure_schema(&connection).map_err(planned_training_query_failure)?;
+    let transaction = connection
+        .transaction()
+        .map_err(planned_training_query_failure)?;
+    let (snapshot_ref, _) = planned_training_snapshots_on(&transaction)?;
+    if query
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(PlannedTrainingQueryPortError::SnapshotChanged);
+    }
+    let values = vec![Value::Text(query.target_ref.clone())];
+    let mut heads = query_planned_training_heads(
+        &transaction,
+        "SELECT origin_id, target_id, source_provider, reconciliation_state
+         FROM planned_training_target
+         WHERE target_id = ?1
+         ORDER BY origin_id
+         LIMIT 2",
+        &values,
+    )?;
+    if heads.is_empty() {
+        return Err(PlannedTrainingQueryPortError::NotFound);
+    }
+    if heads.len() != 1 {
+        return Err(PlannedTrainingQueryPortError::Failure(
+            "planned-training public target identity is not unique".to_owned(),
+        ));
+    }
+    let source_indices = planned_training_source_indices_on(&transaction)?;
+    let target =
+        load_persisted_planned_training_target(&transaction, &source_indices, heads.remove(0))?;
+    transaction
+        .commit()
+        .map_err(planned_training_query_failure)?;
+    Ok(PersistedPlannedTrainingTargetDetail {
+        snapshot_ref,
+        target,
+    })
+}
+
+fn query_session_planned_training_candidates_discovery(
+    database_path: &Path,
+    query: &PlannedTrainingSessionRelationQuery,
+) -> std::result::Result<PersistedSessionPlannedTrainingCandidates, PlannedTrainingQueryPortError> {
+    let mut connection = Connection::open(database_path).map_err(planned_training_query_failure)?;
+    ensure_schema(&connection).map_err(planned_training_query_failure)?;
+    let transaction = connection
+        .transaction()
+        .map_err(planned_training_query_failure)?;
+    let (snapshot_ref, training_snapshot_ref) = planned_training_snapshots_on(&transaction)?;
+    if query
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(PlannedTrainingQueryPortError::SnapshotChanged);
+    }
+    if query
+        .training_snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &training_snapshot_ref)
+    {
+        return Err(PlannedTrainingQueryPortError::TrainingSnapshotChanged);
+    }
+    let mut statement = transaction
+        .prepare(
+            "SELECT origin_id, session_id, started_at_local
+             FROM training_session
+             ORDER BY origin_id, session_id",
+        )
+        .map_err(planned_training_query_failure)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })
+        .map_err(planned_training_query_failure)?;
+    let mut session_identity = None;
+    for row in rows {
+        let (origin_id, session_id, started_at_local) =
+            row.map_err(planned_training_query_failure)?;
+        if training_session_ref(&origin_id, &session_id) == query.session_ref {
+            session_identity = Some((origin_id, started_at_local));
+            break;
+        }
+    }
+    drop(statement);
+    let (origin_id, started_at_local) =
+        session_identity.ok_or(PlannedTrainingQueryPortError::NotFound)?;
+    let values = vec![
+        Value::Text(origin_id),
+        Value::Text(started_at_local),
+        Value::Text(SOURCE_PROVIDER.to_owned()),
+    ];
+    let heads = query_planned_training_heads(
+        &transaction,
+        "SELECT target.origin_id, target.target_id, target.source_provider,
+                target.reconciliation_state
+         FROM planned_training_target target
+         JOIN planned_training_target_revision revision
+           ON revision.origin_id = target.origin_id
+          AND revision.target_id = target.target_id
+          AND revision.evidence_revision = target.current_evidence_revision
+          AND revision.mapping_version = target.current_mapping_version
+         WHERE target.origin_id = ?1
+           AND target.source_kind = 'scheduled'
+           AND revision.completion_state = 'completed'
+           AND revision.scheduled_at_local = ?2
+           AND target.source_provider = ?3
+         ORDER BY target.target_id",
+        &values,
+    )?;
+    let source_indices = planned_training_source_indices_on(&transaction)?;
+    let targets = heads
+        .into_iter()
+        .map(|head| load_persisted_planned_training_target(&transaction, &source_indices, head))
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    transaction
+        .commit()
+        .map_err(planned_training_query_failure)?;
+    Ok(PersistedSessionPlannedTrainingCandidates {
+        snapshot_ref,
+        training_snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        targets,
+    })
+}
+
+fn planned_training_snapshots_on(
+    transaction: &Transaction<'_>,
+) -> std::result::Result<(String, String), PlannedTrainingQueryPortError> {
+    let planned_revision = transaction
+        .query_row(
+            "SELECT revision FROM planned_training_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(planned_training_query_failure)?;
+    let training_revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(planned_training_query_failure)?;
+    if planned_revision < 0 || training_revision < 1 {
+        return Err(PlannedTrainingQueryPortError::Failure(
+            "planned-training discovery revisions are invalid".to_owned(),
+        ));
+    }
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:planned-training-snapshot:v1\0");
+    digest.update(planned_revision.to_be_bytes());
+    digest.update(training_revision.to_be_bytes());
+    Ok((
+        format!("planned-snapshot-{:x}", digest.finalize()),
+        training_snapshot_ref(training_revision),
+    ))
+}
+
+fn planned_training_source_indices_on(
+    transaction: &Transaction<'_>,
+) -> std::result::Result<BTreeMap<String, usize>, PlannedTrainingQueryPortError> {
+    let mut statement = transaction
+        .prepare("SELECT id FROM observation_origin ORDER BY id")
+        .map_err(planned_training_query_failure)?;
+    let origins = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(planned_training_query_failure)?
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(planned_training_query_failure)?;
+    Ok(origins
+        .into_iter()
+        .enumerate()
+        .map(|(index, origin_id)| (origin_id, index + 1))
+        .collect())
+}
+
+fn query_planned_training_heads(
+    transaction: &Transaction<'_>,
+    sql: &str,
+    values: &[Value],
+) -> std::result::Result<Vec<PlannedTrainingHead>, PlannedTrainingQueryPortError> {
+    let mut statement = transaction
+        .prepare(sql)
+        .map_err(planned_training_query_failure)?;
+    let heads = statement
+        .query_map(params_from_iter(values.iter()), |row| {
+            let reconciliation_state = match row.get::<_, String>(3)?.as_str() {
+                "current" => PlannedTrainingReconciliationState::Current,
+                "conflicted" => PlannedTrainingReconciliationState::Conflicted,
+                value => {
+                    return Err(SqliteError::FromSqlConversionFailure(
+                        3,
+                        Type::Text,
+                        format!("invalid planned-training reconciliation state: {value}").into(),
+                    ))
+                }
+            };
+            Ok(PlannedTrainingHead {
+                origin_id: row.get(0)?,
+                target_id: row.get(1)?,
+                source_provider: row.get(2)?,
+                reconciliation_state,
+            })
+        })
+        .map_err(planned_training_query_failure)?
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(planned_training_query_failure)?;
+    Ok(heads)
+}
+
+fn load_persisted_planned_training_target(
+    transaction: &Transaction<'_>,
+    source_indices: &BTreeMap<String, usize>,
+    head: PlannedTrainingHead,
+) -> std::result::Result<PersistedPlannedTrainingTarget, PlannedTrainingQueryPortError> {
+    let target =
+        load_current_planned_training_target(transaction, &head.origin_id, &head.target_id)
+            .map_err(planned_training_query_failure)?
+            .ok_or_else(|| {
+                PlannedTrainingQueryPortError::Failure(
+                    "planned-training head has no current target".to_owned(),
+                )
+            })?;
+    let candidate_session_refs = match target.kind() {
+        PlannedTrainingTargetKind::Scheduled {
+            scheduled_at_local,
+            completion: PlannedTrainingCompletion::Completed,
+        } if head.source_provider == SOURCE_PROVIDER => planned_training_session_candidates_on(
+            transaction,
+            &head.origin_id,
+            scheduled_at_local,
+        )?,
+        _ => Vec::new(),
+    };
+    let source_index = source_indices
+        .get(&head.origin_id)
+        .copied()
+        .ok_or_else(|| {
+            PlannedTrainingQueryPortError::Failure(
+                "planned-training origin has no source index".to_owned(),
+            )
+        })?;
+    Ok(PersistedPlannedTrainingTarget {
+        source_index,
+        reconciliation_state: head.reconciliation_state,
+        target,
+        candidate_session_refs,
+    })
+}
+
+fn planned_training_session_candidates_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    scheduled_at_local: &str,
+) -> std::result::Result<Vec<String>, PlannedTrainingQueryPortError> {
+    let mut statement = transaction
+        .prepare(
+            "SELECT session_id
+             FROM training_session
+             WHERE origin_id = ?1 AND started_at_local = ?2
+             ORDER BY session_id",
+        )
+        .map_err(planned_training_query_failure)?;
+    let candidates = statement
+        .query_map(params![origin_id, scheduled_at_local], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(planned_training_query_failure)?
+        .map(|session_id| {
+            session_id
+                .map(|session_id| training_session_ref(origin_id, &session_id))
+                .map_err(planned_training_query_failure)
+        })
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    Ok(candidates)
+}
+
+fn planned_training_query_failure(error: impl std::fmt::Display) -> PlannedTrainingQueryPortError {
+    PlannedTrainingQueryPortError::Failure(error.to_string())
 }
 
 fn route_snapshot_and_identity(
@@ -9021,6 +9508,12 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 30 {
             connection.execute_batch(SCHEMA_V30)?;
         }
+        if version < 31 {
+            connection.execute_batch(SCHEMA_V31)?;
+        }
+        if version < 32 {
+            connection.execute_batch(SCHEMA_V32)?;
+        }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -10041,6 +10534,32 @@ fn polar_sport_mapping(
     }
 }
 
+fn planned_training_sport_mapping(code: &str) -> Option<PlannedTrainingSportMapping> {
+    polar_sport_mapping(code).map(|(canonical_family, english_name, spanish_name)| {
+        PlannedTrainingSportMapping {
+            canonical_family,
+            english_name,
+            spanish_name,
+        }
+    })
+}
+
+fn planned_training_mapping_context(
+    origin_id: &str,
+    artifact_locator: &str,
+    artifact_sha256: &str,
+) -> PlannedTrainingMappingContext {
+    PlannedTrainingMappingContext {
+        origin_id: origin_id.to_owned(),
+        artifact_locator: artifact_locator.to_owned(),
+        artifact_sha256: artifact_sha256.to_owned(),
+        catalogue_revision: POLAR_DETAILED_SPORT_CATALOGUE_REVISION.to_owned(),
+        catalogue_retrieved_at_utc: POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC.to_owned(),
+        sport_mapping_version: POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION.to_owned(),
+        sport_mapping: planned_training_sport_mapping,
+    }
+}
+
 fn decode_sport_profiles(artifact: &str, bytes: &[u8]) -> Result<()> {
     let profiles = serde_json::from_slice::<Vec<PolarSportProfile>>(bytes).map_err(|error| {
         invalid_training_artifact(artifact, format!("invalid sport profiles: {error}"))
@@ -10062,55 +10581,6 @@ fn decode_sport_profiles(artifact: &str, bytes: &[u8]) -> Result<()> {
         }
     }
     Ok(())
-}
-
-fn decode_training_target_sport_evidence(
-    artifact: &str,
-    artifact_sha256: &str,
-    bytes: &[u8],
-) -> Result<Vec<MappedTrainingTargetSportEvidence>> {
-    let target = serde_json::from_slice::<PolarTrainingTarget>(bytes).map_err(|error| {
-        invalid_training_artifact(artifact, format!("invalid training target: {error}"))
-    })?;
-    if !valid_source_export_version(&target.export_version) || target.exercises.len() > 256 {
-        return Err(invalid_training_artifact(
-            artifact,
-            "training target metadata is invalid",
-        ));
-    }
-    let (_, started_at_local) = parse_source_datetime(&target.start_time, "startTime", artifact)?;
-    let mut encountered_codes = BTreeSet::new();
-    let mut mapped = Vec::new();
-    for (ordinal, exercise) in target.exercises.into_iter().enumerate() {
-        if !valid_polar_sport_code(&exercise.sport) {
-            return Err(invalid_training_artifact(
-                artifact,
-                "training target sport evidence is invalid",
-            ));
-        }
-        if !target.done || !encountered_codes.insert(exercise.sport.clone()) {
-            continue;
-        }
-        let Some((canonical_family, english_name, spanish_name)) =
-            polar_sport_mapping(&exercise.sport)
-        else {
-            continue;
-        };
-        mapped.push(MappedTrainingTargetSportEvidence {
-            locator: artifact.to_owned(),
-            sha256: artifact_sha256.to_owned(),
-            source_record_locator: format!("exercises/{ordinal}/sport"),
-            export_version: target.export_version.clone(),
-            started_at_local: started_at_local.clone(),
-            source_sport_code: exercise.sport,
-            canonical_family,
-            localized_names: BTreeMap::from([
-                ("en".to_owned(), english_name.to_owned()),
-                ("es".to_owned(), spanish_name.to_owned()),
-            ]),
-        });
-    }
-    Ok(mapped)
 }
 
 fn parse_source_datetime(
@@ -10875,13 +11345,6 @@ fn decode_training_session(
     })
 }
 
-static ISO_DURATION_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"^P(?:(?<days>[0-9]+)D)?(?:T(?:(?<hours>[0-9]+)H)?(?:(?<minutes>[0-9]+)M)?(?:(?<seconds>[0-9]+)(?:\.(?<fraction>[0-9]{1,9}))?S)?)?$",
-    )
-    .expect("valid ISO duration pattern")
-});
-
 fn invalid_sleep_artifact(artifact: &str, reason: impl Into<String>) -> ImportError {
     ImportError::InvalidArtifact {
         artifact: artifact.to_owned(),
@@ -10891,70 +11354,8 @@ fn invalid_sleep_artifact(artifact: &str, reason: impl Into<String>) -> ImportEr
 }
 
 fn parse_duration_milliseconds(value: &str, field: &'static str, artifact: &str) -> Result<i64> {
-    if value.ends_with('T') {
-        return Err(invalid_sleep_artifact(
-            artifact,
-            format!("{field} has an empty time component"),
-        ));
-    }
-    let captures = ISO_DURATION_PATTERN.captures(value).ok_or_else(|| {
-        invalid_sleep_artifact(
-            artifact,
-            format!("{field} is not a supported ISO 8601 duration"),
-        )
-    })?;
-    let component = |name: &str| -> Result<i64> {
-        captures.name(name).map_or(Ok(0), |matched| {
-            matched.as_str().parse::<i64>().map_err(|error| {
-                invalid_sleep_artifact(artifact, format!("{field} is too large: {error}"))
-            })
-        })
-    };
-    if ["days", "hours", "minutes", "seconds"]
-        .iter()
-        .all(|name| captures.name(name).is_none())
-    {
-        return Err(invalid_sleep_artifact(
-            artifact,
-            format!("{field} has no duration component"),
-        ));
-    }
-    let days = component("days")?;
-    let hours = component("hours")?;
-    let minutes = component("minutes")?;
-    let seconds = component("seconds")?;
-    let whole_seconds = days
-        .checked_mul(86_400)
-        .and_then(|value| {
-            hours
-                .checked_mul(3_600)
-                .and_then(|part| value.checked_add(part))
-        })
-        .and_then(|value| {
-            minutes
-                .checked_mul(60)
-                .and_then(|part| value.checked_add(part))
-        })
-        .and_then(|value| value.checked_add(seconds))
-        .ok_or_else(|| invalid_sleep_artifact(artifact, format!("{field} overflows")))?;
-    let fraction_milliseconds = captures.name("fraction").map_or(Ok(0_i64), |matched| {
-        let fraction = matched.as_str();
-        if fraction.len() > 3 && !fraction[3..].bytes().all(|digit| digit == b'0') {
-            return Err(invalid_sleep_artifact(
-                artifact,
-                format!("{field} is not representable in whole milliseconds"),
-            ));
-        }
-        let prefix = &fraction[..fraction.len().min(3)];
-        let parsed = prefix.parse::<i64>().map_err(|error| {
-            invalid_sleep_artifact(artifact, format!("invalid {field} fraction: {error}"))
-        })?;
-        Ok(parsed * 10_i64.pow((3 - prefix.len()) as u32))
-    })?;
-    whole_seconds
-        .checked_mul(1_000)
-        .and_then(|value| value.checked_add(fraction_milliseconds))
-        .ok_or_else(|| invalid_sleep_artifact(artifact, format!("{field} overflows")))
+    parse_iso_duration_milliseconds(value)
+        .map_err(|reason| invalid_sleep_artifact(artifact, format!("{field} {reason}")))
 }
 
 fn checked_sleep_sum(artifact: &str, label: &str, values: &[i64]) -> Result<i64> {
@@ -13480,7 +13881,7 @@ fn reconcile_training_session(
 fn training_target_sport_evidence_ref(
     origin_id: &str,
     session_id: &str,
-    evidence: &MappedTrainingTargetSportEvidence,
+    evidence: &CompletedTrainingTargetSportEvidence,
 ) -> String {
     let mut digest = Sha256::new();
     update_catalogue_digest(&mut digest, "fitfreed:training-target-sport-evidence:v1");
@@ -13496,8 +13897,15 @@ fn reconcile_training_target_sport_evidence(
     transaction: &Transaction<'_>,
     operation_id: i64,
     origin_id: &str,
-    evidence: &MappedTrainingTargetSportEvidence,
+    artifact_locator: &str,
+    artifact_sha256: &str,
+    evidence: &CompletedTrainingTargetSportEvidence,
 ) -> Result<()> {
+    let Some((canonical_family, english_name, spanish_name)) =
+        polar_sport_mapping(&evidence.source_sport_code)
+    else {
+        return Ok(());
+    };
     let mut statement = transaction.prepare(
         "SELECT session_id
          FROM training_session
@@ -13513,12 +13921,15 @@ fn reconcile_training_target_sport_evidence(
     let [session_id] = session_ids.as_slice() else {
         return Ok(());
     };
-    let localized_names_json =
-        serde_json::to_string(&evidence.localized_names).map_err(|error| {
-            ImportError::InvalidTrainingLibrary(format!(
-                "training target sport names cannot be serialized: {error}"
-            ))
-        })?;
+    let localized_names_json = serde_json::to_string(&BTreeMap::from([
+        ("en", english_name),
+        ("es", spanish_name),
+    ]))
+    .map_err(|error| {
+        ImportError::InvalidTrainingLibrary(format!(
+            "training target sport names cannot be serialized: {error}"
+        ))
+    })?;
     let evidence_ref = training_target_sport_evidence_ref(origin_id, session_id, evidence);
     transaction.execute(
         "INSERT INTO training_session_sport_evidence (
@@ -13535,7 +13946,7 @@ fn reconcile_training_target_sport_evidence(
             session_id,
             SOURCE_PROVIDER,
             evidence.source_sport_code,
-            evidence.canonical_family.map(SportFamily::as_code),
+            canonical_family.map(SportFamily::as_code),
             localized_names_json,
             POLAR_DETAILED_SPORT_CATALOGUE_REVISION,
             POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC,
@@ -13559,8 +13970,8 @@ fn reconcile_training_target_sport_evidence(
             SOURCE_PROVIDER,
             evidence.source_sport_code,
             POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION,
-            evidence.locator,
-            evidence.sha256,
+            artifact_locator,
+            artifact_sha256,
             evidence.source_record_locator,
             evidence.started_at_local,
             evidence.export_version,
@@ -14749,18 +15160,19 @@ impl ReportDefinitionPort for SqliteReportLibrary {
                      source_snapshot_ref = ?4,
                      origin_kind = ?5,
                      origin_session_ref = ?6,
-                     origin_question_kind = ?7,
-                     origin_question_version = ?8,
-                     origin_baseline_from = ?9,
-                     origin_baseline_through = ?10,
-                     origin_comparison_from = ?11,
-                     origin_comparison_through = ?12,
-                     provenance_policy = ?13,
+                     origin_planned_target_ref = ?7,
+                     origin_question_kind = ?8,
+                     origin_question_version = ?9,
+                     origin_baseline_from = ?10,
+                     origin_baseline_through = ?11,
+                     origin_comparison_from = ?12,
+                     origin_comparison_through = ?13,
+                     provenance_policy = ?14,
                      authorship = 'user',
-                     definition_version = ?14,
-                     revision = ?15,
+                     definition_version = ?15,
+                     revision = ?16,
                      updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-                 WHERE report_ref = ?1 AND revision = ?16",
+                 WHERE report_ref = ?1 AND revision = ?17",
                 params![
                     definition.report_ref(),
                     definition.title(),
@@ -14768,6 +15180,7 @@ impl ReportDefinitionPort for SqliteReportLibrary {
                     definition.source_snapshot_ref(),
                     origin.kind,
                     origin.session_ref,
+                    origin.planned_target_ref,
                     origin.question_kind,
                     origin.question_version,
                     origin.baseline_from,
@@ -14854,13 +15267,14 @@ fn insert_report_definition(
         .execute(
             "INSERT INTO report_definition (
                  report_ref, title, locale, source_snapshot_ref, origin_kind,
-                 origin_session_ref, origin_question_kind, origin_question_version,
+                 origin_session_ref, origin_planned_target_ref, origin_question_kind,
+                 origin_question_version,
                  origin_baseline_from, origin_baseline_through, origin_comparison_from,
                  origin_comparison_through, provenance_policy, authorship, definition_version,
                  revision, created_at_utc, updated_at_utc
              ) VALUES (
-                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-                 ?13, 'user', ?14, ?15,
+                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
+                 ?14, 'user', ?15, ?16,
                  strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                  strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
              )",
@@ -14871,6 +15285,7 @@ fn insert_report_definition(
                 definition.source_snapshot_ref(),
                 origin.kind,
                 origin.session_ref,
+                origin.planned_target_ref,
                 origin.question_kind,
                 origin.question_version,
                 origin.baseline_from,
@@ -15003,6 +15418,21 @@ fn insert_report_blocks(
                     None,
                 )?;
             }
+            ReportBlockContent::PlannedTraining { target_ref } => {
+                transaction
+                    .execute(
+                        "INSERT INTO report_block (
+                             report_ref, block_ref, ordinal, kind, planned_target_ref
+                         ) VALUES (?1, ?2, ?3, 'planned-training', ?4)",
+                        params![
+                            definition.report_ref(),
+                            block.block_ref(),
+                            ordinal,
+                            target_ref,
+                        ],
+                    )
+                    .map_err(report_database_error)?;
+            }
         }
     }
     Ok(())
@@ -15046,6 +15476,7 @@ struct PersistedReportBlock {
     block_ref: String,
     kind: String,
     session_ref: Option<String>,
+    planned_target_ref: Option<String>,
     include_physiological_context: Option<i64>,
     route_ref: Option<String>,
     endpoint_redaction_meters: Option<i64>,
@@ -15066,7 +15497,8 @@ fn load_report_definition_record(
     let header = connection
         .query_row(
             "SELECT title, locale, source_snapshot_ref, origin_kind, origin_session_ref,
-                    origin_question_kind, origin_question_version, origin_baseline_from,
+                    origin_planned_target_ref, origin_question_kind, origin_question_version,
+                    origin_baseline_from,
                     origin_baseline_through, origin_comparison_from, origin_comparison_through,
                     provenance_policy, authorship, definition_version, revision
              FROM report_definition
@@ -15080,15 +15512,16 @@ fn load_report_definition_record(
                     row.get::<_, String>(3)?,
                     row.get::<_, Option<String>>(4)?,
                     row.get::<_, Option<String>>(5)?,
-                    row.get::<_, Option<i64>>(6)?,
-                    row.get::<_, Option<String>>(7)?,
+                    row.get::<_, Option<String>>(6)?,
+                    row.get::<_, Option<i64>>(7)?,
                     row.get::<_, Option<String>>(8)?,
                     row.get::<_, Option<String>>(9)?,
                     row.get::<_, Option<String>>(10)?,
-                    row.get::<_, String>(11)?,
+                    row.get::<_, Option<String>>(11)?,
                     row.get::<_, String>(12)?,
-                    row.get::<_, i64>(13)?,
+                    row.get::<_, String>(13)?,
                     row.get::<_, i64>(14)?,
+                    row.get::<_, i64>(15)?,
                 ))
             },
         )
@@ -15100,6 +15533,7 @@ fn load_report_definition_record(
         source_snapshot_ref,
         origin_kind,
         origin_session_ref,
+        origin_planned_target_ref,
         origin_question_kind,
         origin_question_version,
         origin_baseline_from,
@@ -15120,6 +15554,7 @@ fn load_report_definition_record(
     let origin = restore_report_origin(
         &origin_kind,
         origin_session_ref,
+        origin_planned_target_ref,
         origin_question_kind,
         origin_question_version,
         origin_baseline_from,
@@ -15137,8 +15572,9 @@ fn load_report_definition_record(
         u64::try_from(revision).map_err(|_| invalid_report_record("report revision is invalid"))?;
     let mut statement = connection
         .prepare(
-            "SELECT block_ref, kind, session_ref, include_physiological_context,
-                    route_ref, endpoint_redaction_meters, narrative_body,
+            "SELECT block_ref, kind, session_ref, planned_target_ref,
+                    include_physiological_context, route_ref, endpoint_redaction_meters,
+                    narrative_body,
                     question_kind, question_version, baseline_from, baseline_through,
                     comparison_from, comparison_through, metric
              FROM report_block
@@ -15152,17 +15588,18 @@ fn load_report_definition_record(
                 block_ref: row.get(0)?,
                 kind: row.get(1)?,
                 session_ref: row.get(2)?,
-                include_physiological_context: row.get(3)?,
-                route_ref: row.get(4)?,
-                endpoint_redaction_meters: row.get(5)?,
-                narrative_body: row.get(6)?,
-                question_kind: row.get(7)?,
-                question_version: row.get(8)?,
-                baseline_from: row.get(9)?,
-                baseline_through: row.get(10)?,
-                comparison_from: row.get(11)?,
-                comparison_through: row.get(12)?,
-                metric: row.get(13)?,
+                planned_target_ref: row.get(3)?,
+                include_physiological_context: row.get(4)?,
+                route_ref: row.get(5)?,
+                endpoint_redaction_meters: row.get(6)?,
+                narrative_body: row.get(7)?,
+                question_kind: row.get(8)?,
+                question_version: row.get(9)?,
+                baseline_from: row.get(10)?,
+                baseline_through: row.get(11)?,
+                comparison_from: row.get(12)?,
+                comparison_through: row.get(13)?,
+                metric: row.get(14)?,
             })
         })
         .map_err(report_database_error)?
@@ -15223,6 +15660,11 @@ fn load_report_definition_record(
                 },
                 "training-coverage" => ReportBlockContent::TrainingCoverage {
                     query: restore_training_comparison_query(&block)?,
+                },
+                "planned-training" => ReportBlockContent::PlannedTraining {
+                    target_ref: block.planned_target_ref.ok_or_else(|| {
+                        invalid_report_record("planned-training report block has no target")
+                    })?,
                 },
                 _ => return Err(invalid_report_record("report block kind is invalid")),
             };
@@ -15289,6 +15731,7 @@ fn restore_training_report_metric(
 struct ReportOriginColumns<'a> {
     kind: &'static str,
     session_ref: Option<&'a str>,
+    planned_target_ref: Option<&'a str>,
     question_kind: Option<&'static str>,
     question_version: Option<i64>,
     baseline_from: Option<&'a str>,
@@ -15302,6 +15745,7 @@ fn report_origin_columns(definition: &ReportDefinition) -> ReportOriginColumns<'
         ReportOrigin::Session { session_ref } => ReportOriginColumns {
             kind: "session",
             session_ref: Some(session_ref),
+            planned_target_ref: None,
             question_kind: None,
             question_version: None,
             baseline_from: None,
@@ -15312,6 +15756,7 @@ fn report_origin_columns(definition: &ReportDefinition) -> ReportOriginColumns<'
         ReportOrigin::Question { question } => ReportOriginColumns {
             kind: "question",
             session_ref: None,
+            planned_target_ref: None,
             question_kind: Some(question.code()),
             question_version: Some(i64::from(question.version())),
             baseline_from: None,
@@ -15322,6 +15767,7 @@ fn report_origin_columns(definition: &ReportDefinition) -> ReportOriginColumns<'
         ReportOrigin::Exploration { query } => ReportOriginColumns {
             kind: "exploration",
             session_ref: None,
+            planned_target_ref: None,
             question_kind: Some(query.question().code()),
             question_version: Some(i64::from(query.question().version())),
             baseline_from: Some(query.baseline_range().from()),
@@ -15329,9 +15775,21 @@ fn report_origin_columns(definition: &ReportDefinition) -> ReportOriginColumns<'
             comparison_from: Some(query.comparison_range().from()),
             comparison_through: Some(query.comparison_range().through()),
         },
+        ReportOrigin::PlannedTraining { target_ref } => ReportOriginColumns {
+            kind: "planned-training",
+            session_ref: None,
+            planned_target_ref: Some(target_ref),
+            question_kind: None,
+            question_version: None,
+            baseline_from: None,
+            baseline_through: None,
+            comparison_from: None,
+            comparison_through: None,
+        },
         ReportOrigin::Blank => ReportOriginColumns {
             kind: "blank",
             session_ref: None,
+            planned_target_ref: None,
             question_kind: None,
             question_version: None,
             baseline_from: None,
@@ -15346,6 +15804,7 @@ fn report_origin_columns(definition: &ReportDefinition) -> ReportOriginColumns<'
 fn restore_report_origin(
     kind: &str,
     session_ref: Option<String>,
+    planned_target_ref: Option<String>,
     question_kind: Option<String>,
     question_version: Option<i64>,
     baseline_from: Option<String>,
@@ -15362,11 +15821,14 @@ fn restore_report_origin(
             && comparison_through.is_none()
     };
     match kind {
-        "session" if session_ref.is_some() && no_question() => Ok(ReportOrigin::Session {
-            session_ref: session_ref.expect("checked session origin"),
-        }),
+        "session" if session_ref.is_some() && planned_target_ref.is_none() && no_question() => {
+            Ok(ReportOrigin::Session {
+                session_ref: session_ref.expect("checked session origin"),
+            })
+        }
         "question"
             if session_ref.is_none()
+                && planned_target_ref.is_none()
                 && baseline_from.is_none()
                 && baseline_through.is_none()
                 && comparison_from.is_none()
@@ -15381,7 +15843,7 @@ fn restore_report_origin(
                 .ok_or_else(|| invalid_report_record("report origin question is invalid"))?;
             Ok(ReportOrigin::Question { question })
         }
-        "exploration" if session_ref.is_none() => {
+        "exploration" if session_ref.is_none() && planned_target_ref.is_none() => {
             let version = question_version
                 .and_then(|value| u32::try_from(value).ok())
                 .ok_or_else(|| invalid_report_record("report exploration question is invalid"))?;
@@ -15408,7 +15870,16 @@ fn restore_report_origin(
             .map_err(|error| invalid_report_record(&error.to_string()))?;
             Ok(ReportOrigin::Exploration { query })
         }
-        "blank" if session_ref.is_none() && no_question() => Ok(ReportOrigin::Blank),
+        "planned-training"
+            if session_ref.is_none() && planned_target_ref.is_some() && no_question() =>
+        {
+            Ok(ReportOrigin::PlannedTraining {
+                target_ref: planned_target_ref.expect("checked planned-training origin"),
+            })
+        }
+        "blank" if session_ref.is_none() && planned_target_ref.is_none() && no_question() => {
+            Ok(ReportOrigin::Blank)
+        }
         _ => Err(invalid_report_record("report origin is invalid")),
     }
 }
@@ -15493,6 +15964,48 @@ impl TrainingSessionStructurePort for SqliteTrainingLibrary {
     ) -> std::result::Result<PersistedTrainingSessionStructure, TrainingSessionStructurePortError>
     {
         query_training_session_structure_discovery(&self.database_path, query)
+    }
+}
+
+impl PlannedTrainingQueryPort for SqliteTrainingLibrary {
+    fn planned_training_snapshot_ref(
+        &self,
+    ) -> std::result::Result<Option<String>, PlannedTrainingQueryPortError> {
+        let mut connection =
+            Connection::open(&self.database_path).map_err(planned_training_query_failure)?;
+        ensure_schema(&connection).map_err(planned_training_query_failure)?;
+        let transaction = connection
+            .transaction()
+            .map_err(planned_training_query_failure)?;
+        let (snapshot_ref, _) = planned_training_snapshots_on(&transaction)?;
+        transaction
+            .commit()
+            .map_err(planned_training_query_failure)?;
+        Ok(Some(snapshot_ref))
+    }
+
+    fn query_planned_training_chronology(
+        &self,
+        query: &PlannedTrainingChronologyQuery,
+    ) -> std::result::Result<PersistedPlannedTrainingChronologyPage, PlannedTrainingQueryPortError>
+    {
+        query_planned_training_chronology_discovery(&self.database_path, query)
+    }
+
+    fn query_planned_training_target(
+        &self,
+        query: &PlannedTrainingTargetQuery,
+    ) -> std::result::Result<PersistedPlannedTrainingTargetDetail, PlannedTrainingQueryPortError>
+    {
+        query_planned_training_target_discovery(&self.database_path, query)
+    }
+
+    fn query_session_planned_training_candidates(
+        &self,
+        query: &PlannedTrainingSessionRelationQuery,
+    ) -> std::result::Result<PersistedSessionPlannedTrainingCandidates, PlannedTrainingQueryPortError>
+    {
+        query_session_planned_training_candidates_discovery(&self.database_path, query)
     }
 }
 
@@ -16274,6 +16787,20 @@ mod tests {
         )
     }
 
+    fn scheduled_training_target_json(name: &str, done: bool) -> String {
+        format!(
+            r#"{{
+              "exportVersion":"1.0",
+              "name":"{name}",
+              "description":"Synthetic progression",
+              "startTime":"2026-01-02T10:30:00.000",
+              "done":{done},
+              "nonUserEditable":false,
+              "exercises":[{{"type":"FREE","sport":"RUNNING"}}]
+            }}"#
+        )
+    }
+
     fn persisted_report_definition() -> ReportDefinition {
         persisted_report_definition_with_seed('1', "Morning progression")
     }
@@ -16455,6 +16982,32 @@ mod tests {
         .expect("exploration report definition")
     }
 
+    fn persisted_planned_training_report_definition() -> ReportDefinition {
+        let target_ref = format!("planned-target-{}", "a".repeat(64));
+        ReportDefinition::compose_report(
+            format!("report-{}", "d".repeat(64)),
+            "Progressive intervals",
+            ReportLocale::EnUs,
+            format!("planned-snapshot-{}", "b".repeat(64)),
+            ReportOrigin::PlannedTraining {
+                target_ref: target_ref.clone(),
+            },
+            vec![
+                ReportBlock::planned_training(
+                    format!("report-block-{}", "d".repeat(64)),
+                    target_ref,
+                )
+                .expect("planned-training block"),
+                ReportBlock::narrative(
+                    format!("report-block-{}", "e".repeat(64)),
+                    "The plan is intent, not recorded completion.",
+                )
+                .expect("planned-training narrative"),
+            ],
+        )
+        .expect("planned-training report definition")
+    }
+
     #[test]
     fn persists_lists_edits_and_retains_report_definitions_across_restart_and_import() {
         let harness = Harness::new();
@@ -16627,6 +17180,7 @@ mod tests {
 
         let library = list_report_library(
             &reports,
+            &training,
             &training,
             &training,
             ReportLibraryRequest {
@@ -16832,6 +17386,225 @@ mod tests {
     }
 
     #[test]
+    fn migrates_report_storage_atomically_and_reopens_one_planned_training_report() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let mut connection = Connection::open(&database_path).expect("database");
+        create_schema_baseline(&connection, 31);
+        let legacy = persisted_report_definition();
+        let transaction = connection.transaction().expect("legacy report transaction");
+        let ReportOrigin::Session { session_ref } = legacy.origin() else {
+            panic!("legacy fixture origin");
+        };
+        let [session_block, narrative_block] = legacy.blocks() else {
+            panic!("legacy fixture blocks");
+        };
+        let ReportBlockContent::SessionEvidence {
+            include_physiological_context,
+            ..
+        } = session_block.content()
+        else {
+            panic!("legacy session block");
+        };
+        let ReportBlockContent::Narrative { body } = narrative_block.content() else {
+            panic!("legacy narrative block");
+        };
+        transaction
+            .execute(
+                "INSERT INTO report_definition (
+                     report_ref, title, locale, source_snapshot_ref, origin_kind,
+                     origin_session_ref, origin_question_kind, origin_question_version,
+                     origin_baseline_from, origin_baseline_through, origin_comparison_from,
+                     origin_comparison_through, provenance_policy, authorship, definition_version,
+                     revision, created_at_utc, updated_at_utc
+                 ) VALUES (?1, ?2, ?3, ?4, 'session', ?5, NULL, NULL, NULL, NULL, NULL, NULL,
+                           'current-attribution', 'user', ?6, ?7,
+                           '2026-08-18T08:00:00.000Z', '2026-08-18T08:00:00.000Z')",
+                params![
+                    legacy.report_ref(),
+                    legacy.title(),
+                    legacy.locale().code(),
+                    legacy.source_snapshot_ref(),
+                    session_ref,
+                    i64::from(legacy.definition_version()),
+                    i64::try_from(legacy.revision()).expect("legacy revision"),
+                ],
+            )
+            .expect("legacy report definition");
+        transaction
+            .execute(
+                "INSERT INTO report_block (
+                     report_ref, block_ref, ordinal, kind, session_ref,
+                     include_physiological_context, route_ref, endpoint_redaction_meters,
+                     narrative_body, question_kind, question_version, baseline_from,
+                     baseline_through, comparison_from, comparison_through, metric
+                 ) VALUES
+                    (?1, ?2, 0, 'session-evidence', ?3, ?4, NULL, NULL, NULL, NULL, NULL,
+                     NULL, NULL, NULL, NULL, NULL),
+                    (?1, ?5, 1, 'narrative', NULL, NULL, NULL, NULL, ?6, NULL, NULL,
+                     NULL, NULL, NULL, NULL, NULL)",
+                params![
+                    legacy.report_ref(),
+                    session_block.block_ref(),
+                    session_ref,
+                    i64::from(*include_physiological_context),
+                    narrative_block.block_ref(),
+                    body,
+                ],
+            )
+            .expect("legacy report blocks");
+        transaction.commit().expect("legacy report commit");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted schema thirty-two");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("rolled-back schema marker"),
+            31
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('report_definition')
+                     WHERE name = 'origin_planned_target_ref'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back report origin columns"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM report_definition WHERE report_ref = ?1",
+                    [legacy.report_ref()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("retained legacy report"),
+            1
+        );
+
+        migrate_schema(&connection, false).expect("schema thirty-two migration");
+        assert_eq!(
+            load_report_definition_record(&connection, legacy.report_ref())
+                .expect("reopen legacy report"),
+            Some(legacy)
+        );
+        drop(connection);
+
+        let library = SqliteReportLibrary::new(database_path.clone());
+        let planned = persisted_planned_training_report_definition();
+        library
+            .create_report_definition(&planned)
+            .expect("persist planned-training report");
+        let revised = revise_report(
+            &planned,
+            "Progressive intervals reviewed",
+            ReportLocale::EsEs,
+            planned.blocks().to_vec(),
+        )
+        .expect("revise planned-training report");
+        assert!(library
+            .compare_and_save_report_definition(planned.revision(), &revised)
+            .expect("save planned-training report revision"));
+        drop(library);
+
+        let reopened = SqliteReportLibrary::new(database_path.clone())
+            .load_report_definition(revised.report_ref())
+            .expect("reopen planned-training report");
+        assert_eq!(reopened, Some(revised.clone()));
+        let connection = Connection::open(database_path).expect("reopened database");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT origin_kind, origin_planned_target_ref
+                     FROM report_definition WHERE report_ref = ?1",
+                    [revised.report_ref()],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .expect("planned-training origin columns"),
+            (
+                "planned-training".to_owned(),
+                format!("planned-target-{}", "a".repeat(64)),
+            )
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT kind, planned_target_ref FROM report_block
+                     WHERE report_ref = ?1 AND ordinal = 0",
+                    [revised.report_ref()],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .expect("planned-training block columns"),
+            (
+                "planned-training".to_owned(),
+                format!("planned-target-{}", "a".repeat(64)),
+            )
+        );
+        assert!(connection
+            .execute(
+                "UPDATE report_definition
+                 SET source_snapshot_ref = ?1
+                 WHERE report_ref = ?2",
+                params![
+                    format!("training-snapshot-{}", "f".repeat(64)),
+                    revised.report_ref(),
+                ],
+            )
+            .is_err());
+        assert!(connection
+            .execute(
+                "UPDATE report_block
+                 SET narrative_body = 'invalid mixed block shape'
+                 WHERE report_ref = ?1 AND ordinal = 0",
+                [revised.report_ref()],
+            )
+            .is_err());
+
+        let mismatched_target_ref = format!("planned-target-{}", "b".repeat(64));
+        connection
+            .pragma_update(None, "ignore_check_constraints", true)
+            .expect("enable mismatched planned target fixture");
+        connection
+            .execute(
+                "UPDATE report_block SET planned_target_ref = ?1
+                 WHERE report_ref = ?2 AND ordinal = 0",
+                params![mismatched_target_ref, revised.report_ref()],
+            )
+            .expect("mismatched planned target fixture");
+        connection
+            .pragma_update(None, "ignore_check_constraints", false)
+            .expect("restore planned report checks");
+        assert!(matches!(
+            load_report_definition_record(&connection, revised.report_ref()),
+            Err(ReportDefinitionPortError::Failure(_))
+        ));
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM report_definition WHERE report_ref = ?1",
+                    [revised.report_ref()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("mismatched planned report remains recoverable"),
+            1
+        );
+        connection
+            .execute(
+                "UPDATE report_block SET planned_target_ref = ?1
+                 WHERE report_ref = ?2 AND ordinal = 0",
+                params![
+                    format!("planned-target-{}", "a".repeat(64)),
+                    revised.report_ref()
+                ],
+            )
+            .expect("restore matched planned target");
+        assert_integrity(&connection);
+    }
+
+    #[test]
     fn lists_multiple_reports_by_effective_save_and_rejects_incompatible_rows_non_destructively() {
         let harness = Harness::new();
         let library = SqliteReportLibrary::new(harness.database());
@@ -16867,7 +17640,7 @@ mod tests {
             .expect("enable incompatible-row fixture");
         connection
             .execute(
-                "UPDATE report_definition SET definition_version = 5 WHERE report_ref = ?1",
+                "UPDATE report_definition SET definition_version = 6 WHERE report_ref = ?1",
                 [newer.report_ref()],
             )
             .expect("persist incompatible definition fixture");
@@ -19550,6 +20323,846 @@ mod tests {
     }
 
     #[test]
+    fn imports_structured_scheduled_and_favorite_targets_transactionally() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "structured-training-targets.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-structured-target-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &training_session_json(
+                        "structured-target-session",
+                        "2026-01-02T10:30:00",
+                        "2026-01-02T11:30:00",
+                        3_600_000,
+                        "structured-target-sport",
+                    ),
+                ),
+                (
+                    "training-target-2026-01-02-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                      "exportVersion":"1.0",
+                      "name":"Progressive intervals",
+                      "description":"Synthetic structured intent",
+                      "startTime":"2026-01-02T10:30:00.000",
+                      "done":true,
+                      "nonUserEditable":false,
+                      "exercises":[{
+                        "type":"PHASED",
+                        "sport":"RUNNING",
+                        "phases":[
+                          {
+                            "index":1,
+                            "name":"Warm up",
+                            "changeType":"AUTOMATIC",
+                            "goal":{"type":"DURATION","duration":"PT10M"},
+                            "intensity":{"type":"HEART_RATE_ZONES","lowerZone":1,"upperZone":2}
+                          },
+                          {
+                            "index":2,
+                            "name":"Work",
+                            "changeType":"MANUAL",
+                            "goal":{"type":"DISTANCE","distance":1000.0},
+                            "intensity":{"type":"SPEED_ZONES","lowerZone":3,"upperZone":4}
+                          },
+                          {
+                            "index":3,
+                            "name":"Recovery",
+                            "changeType":"AUTOMATIC",
+                            "goal":{"type":"DURATION","duration":"PT1M"},
+                            "intensity":{"type":"NONE"},
+                            "jumpIndex":2,
+                            "repeatCount":3
+                          }
+                        ]
+                      }]
+                    }"#,
+                ),
+                (
+                    "favourite-targets-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[
+                      {
+                        "exportVersion":"1.0",
+                        "name":"Short run",
+                        "exercises":[{"type":"FREE","sport":"RUNNING"}]
+                      },
+                      {
+                        "exportVersion":"1.0",
+                        "name":"Long run",
+                        "description":"Steady synthetic target",
+                        "exercises":[{
+                          "type":"VOLUME",
+                          "duration":"PT1H",
+                          "sport":"RUNNING"
+                        }]
+                      }
+                    ]"#,
+                ),
+            ],
+        );
+
+        let report = import_polar_archive(&harness.database(), &archive)
+            .expect("structured planned-training import");
+        assert_eq!(report.new_observations, 4);
+
+        let connection = Connection::open(harness.database()).expect("planned-training database");
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM planned_training_target", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("planned targets"),
+            3
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM planned_training_target_revision
+                     WHERE target_kind = 'scheduled' AND completion_state = 'completed'
+                       AND mapping_state = 'complete'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("scheduled target revision"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT total_iterations FROM planned_training_phase
+                     WHERE repeat_id IS NOT NULL",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("repeat semantics"),
+            4
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM planned_training_favorite_snapshot_membership",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("favorite snapshot membership"),
+            2
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM planned_training_target_provenance",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("target provenance"),
+            3
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM training_session_sport_evidence",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("retained exact target sport evidence"),
+            1
+        );
+        assert_integrity(&connection);
+
+        let repeat = import_polar_archive(&harness.database(), &archive)
+            .expect("exact structured target reimport");
+        assert!(repeat.exact_repeat);
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM planned_training_target", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("stable planned target count"),
+            3
+        );
+    }
+
+    #[test]
+    fn queries_planned_training_and_recomputes_exact_relationships_from_current_evidence() {
+        let harness = Harness::new();
+        let target = scheduled_training_target_json("Exact progression", true);
+        let first_session = training_session_json(
+            "planned-relation-first",
+            "2026-01-02T10:30:00",
+            "2026-01-02T11:30:00",
+            3_600_000,
+            "planned-relation-sport",
+        );
+        let initial = harness.archive(
+            "planned-query-initial.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-planned-query-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &first_session,
+                ),
+                (
+                    "training-target-2026-01-02-42-11111111-2222-4333-8444-555555555555.json",
+                    &target,
+                ),
+                (
+                    "favourite-targets-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"exportVersion":"1.0","name":"Reusable progression","exercises":[]}]"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &initial).expect("initial planned query import");
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let scheduled = query_planned_training_chronology(
+            &library,
+            PlannedTrainingChronologyQuery {
+                collection: PlannedTrainingCollection::Scheduled,
+                completion: None,
+                from: None,
+                through: None,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("scheduled planned chronology");
+        assert_eq!(scheduled.total_count, 1);
+        assert!(matches!(
+            scheduled.targets[0].relation,
+            fitfreed_domain::PlannedTrainingSessionRelation::Exact { .. }
+        ));
+        let target_ref = scheduled.targets[0].target.target_id().to_owned();
+        let detail = query_planned_training_target(
+            &library,
+            PlannedTrainingTargetQuery {
+                target_ref: target_ref.clone(),
+                snapshot_ref: Some(scheduled.snapshot_ref.clone()),
+            },
+        )
+        .expect("planned target detail");
+        assert_eq!(detail.target.target.name(), "Exact progression");
+        assert_eq!(detail.target.shape.exercise_count, Some(1));
+
+        let favorites = query_planned_training_chronology(
+            &library,
+            PlannedTrainingChronologyQuery {
+                collection: PlannedTrainingCollection::FavoriteTemplates,
+                completion: None,
+                from: None,
+                through: None,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: Some(scheduled.snapshot_ref.clone()),
+            },
+        )
+        .expect("favorite planned chronology");
+        assert_eq!(favorites.total_count, 1);
+        assert_eq!(favorites.targets[0].target.name(), "Reusable progression");
+
+        let training = build_training_session_search(
+            &library,
+            TrainingSessionSearchRequest {
+                from: None,
+                through: None,
+                sport_refs: Vec::new(),
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedAscending,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("recorded session for planned relation");
+        let session_ref = training.sessions[0].session_ref.clone();
+        let relation = query_session_planned_training_relation(
+            &library,
+            PlannedTrainingSessionRelationQuery {
+                session_ref: session_ref.clone(),
+                training_snapshot_ref: Some(training.snapshot_ref),
+                snapshot_ref: Some(scheduled.snapshot_ref.clone()),
+            },
+        )
+        .expect("exact session planned relation");
+        assert_eq!(
+            relation.relation,
+            fitfreed_application::CompletedSessionPlannedTrainingRelation::Exact { target_ref }
+        );
+
+        let second_session = training_session_json(
+            "planned-relation-second",
+            "2026-01-02T10:30:00",
+            "2026-01-02T11:20:00",
+            3_000_000,
+            "planned-relation-sport",
+        );
+        let extended = harness.archive(
+            "planned-query-extended.zip",
+            &[
+                (
+                    "account-data-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"username":"fixture-planned-query-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &first_session,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-12345678-90ab-4cde-8f01-234567890abc.json",
+                    &second_session,
+                ),
+                (
+                    "training-target-2026-01-02-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &target,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &extended)
+            .expect("extended planned relationship import");
+
+        assert!(matches!(
+            query_planned_training_target(
+                &library,
+                PlannedTrainingTargetQuery {
+                    target_ref: detail.target.target.target_id().to_owned(),
+                    snapshot_ref: Some(scheduled.snapshot_ref),
+                }
+            ),
+            Err(ApplicationError::PlannedTrainingChanged)
+        ));
+        let reopened = SqliteTrainingLibrary::new(harness.database());
+        let current_training = build_training_session_search(
+            &reopened,
+            TrainingSessionSearchRequest {
+                from: None,
+                through: None,
+                sport_refs: Vec::new(),
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedAscending,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("extended recorded sessions");
+        let current = query_session_planned_training_relation(
+            &reopened,
+            PlannedTrainingSessionRelationQuery {
+                session_ref,
+                training_snapshot_ref: Some(current_training.snapshot_ref),
+                snapshot_ref: None,
+            },
+        )
+        .expect("ambiguous session planned relation");
+        assert_eq!(
+            current.relation,
+            fitfreed_application::CompletedSessionPlannedTrainingRelation::Ambiguous {
+                candidate_target_count: 1,
+                candidate_session_count: 2,
+            }
+        );
+    }
+
+    #[test]
+    fn exports_complete_planned_training_history_as_deterministic_normalized_json() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "normalized-planned-training.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-normalized-planned-export-claim"}"#,
+                ),
+                (
+                    "training-target-2026-01-02-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                      "exportVersion":"1.0",
+                      "name":"Exported intervals",
+                      "startTime":"2026-01-02T10:30:00.000",
+                      "done":true,
+                      "exercises":[{
+                        "type":"PHASED",
+                        "sport":"RUNNING",
+                        "phases":[
+                          {
+                            "index":1,
+                            "name":"Work",
+                            "changeType":"AUTOMATIC",
+                            "goal":{"type":"DISTANCE","distance":800.0},
+                            "intensity":{"type":"SPEED_ZONES","lowerZone":3,"upperZone":4}
+                          },
+                          {
+                            "index":2,
+                            "name":"Recovery",
+                            "changeType":"MANUAL",
+                            "goal":{"type":"DURATION","duration":"PT2M"},
+                            "intensity":{"type":"NONE"},
+                            "jumpIndex":1,
+                            "repeatCount":2
+                          }
+                        ]
+                      }]
+                    }"#,
+                ),
+                (
+                    "favourite-targets-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"exportVersion":"1.0","name":"Exported favorite","exercises":[]}]"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive)
+            .expect("normalized planned-training source import");
+        let first_path = harness.directory.path().join("planned-training-first.json");
+        let second_path = harness
+            .directory
+            .path()
+            .join("planned-training-second.json");
+        let exporter = SqlitePlannedTrainingExporter::new(harness.database());
+
+        let first = exporter
+            .export_planned_training(&first_path, &NormalizedDataExportCancellation::new())
+            .expect("first normalized planned-training export");
+        let second = exporter
+            .export_planned_training(&second_path, &NormalizedDataExportCancellation::new())
+            .expect("second normalized planned-training export");
+
+        let first_bytes = std::fs::read(&first_path).expect("first normalized export bytes");
+        let second_bytes = std::fs::read(&second_path).expect("second normalized export bytes");
+        assert_eq!(first_bytes, second_bytes);
+        assert_eq!(first.sha256, second.sha256);
+        assert_eq!(first.byte_count, first_bytes.len() as u64);
+        assert_eq!(first.target_count, 2);
+        assert_eq!(first.target_revision_count, 2);
+        assert_eq!(first.favorite_snapshot_count, 1);
+
+        let document = serde_json::from_slice::<serde_json::Value>(&first_bytes)
+            .expect("normalized planned-training JSON");
+        assert_eq!(
+            document["format"],
+            "org.fitfreed.normalized-planned-training"
+        );
+        assert_eq!(document["schemaVersion"], 1);
+        assert_eq!(document["targets"].as_array().map(Vec::len), Some(2));
+        let scheduled = document["targets"]
+            .as_array()
+            .and_then(|targets| {
+                targets
+                    .iter()
+                    .find(|target| target["source"]["kind"] == "scheduled")
+            })
+            .expect("scheduled normalized target");
+        assert_eq!(scheduled["reconciliationState"], "current");
+        assert_eq!(scheduled["revisions"][0]["name"], "Exported intervals");
+        assert_eq!(
+            scheduled["revisions"][0]["exercises"][0]["phases"][1]["transition"]["repeat"]
+                ["totalIterations"],
+            3
+        );
+        assert_eq!(
+            scheduled["revisions"][0]["exercises"][0]["sport"]["sourceEvidence"][0]["sourceCode"],
+            "RUNNING"
+        );
+        assert_eq!(
+            scheduled["provenance"][0]["reconciliationDecision"],
+            "create"
+        );
+        assert!(scheduled["provenance"][0]["operationRef"]
+            .as_str()
+            .is_some_and(|value| !value.is_empty()));
+        assert_eq!(document["favoriteSnapshots"][0]["current"], true);
+        assert_eq!(
+            document["favoriteSnapshots"][0]["members"]
+                .as_array()
+                .map(Vec::len),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn cancelled_planned_training_export_preserves_an_existing_destination() {
+        let harness = Harness::new();
+        let destination = harness
+            .directory
+            .path()
+            .join("preserved-planned-training.json");
+        std::fs::write(&destination, b"preserved export").expect("existing export");
+        let cancellation = NormalizedDataExportCancellation::new();
+        cancellation.cancel();
+
+        let outcome = SqlitePlannedTrainingExporter::new(harness.database())
+            .export_planned_training(&destination, &cancellation);
+
+        assert!(matches!(
+            outcome,
+            Err(fitfreed_application::NormalizedDataExportPortError::Cancelled)
+        ));
+        assert_eq!(
+            std::fs::read(destination).expect("preserved export destination"),
+            b"preserved export"
+        );
+    }
+
+    #[test]
+    fn reconciles_planned_completion_favorite_snapshots_and_unordered_conflicts() {
+        let harness = Harness::new();
+        let initial_target = scheduled_training_target_json("Progression", false);
+        let initial = harness.archive(
+            "planned-training-initial.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-planned-reconciliation-claim"}"#,
+                ),
+                (
+                    "training-target-2026-01-02-42-11111111-2222-4333-8444-555555555555.json",
+                    &initial_target,
+                ),
+                (
+                    "favourite-targets-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[
+                      {"exportVersion":"1.0","name":"A","exercises":[{"type":"FREE","sport":"RUNNING"}]},
+                      {"exportVersion":"1.0","name":"B","exercises":[{"type":"FREE","sport":"RUNNING"}]}
+                    ]"#,
+                ),
+            ],
+        );
+        let initial_report =
+            import_polar_archive(&harness.database(), &initial).expect("initial planned targets");
+        assert_eq!(initial_report.new_observations, 3);
+
+        let completed_target = scheduled_training_target_json("Progression", true);
+        let completed = harness.archive(
+            "planned-training-completed.zip",
+            &[
+                (
+                    "account-data-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"username":"fixture-planned-reconciliation-claim"}"#,
+                ),
+                (
+                    "training-target-2026-01-02-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &completed_target,
+                ),
+                (
+                    "favourite-targets-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"[
+                      {"exportVersion":"1.0","name":"B","exercises":[{"type":"FREE","sport":"RUNNING"}]},
+                      {"exportVersion":"1.0","name":"C","exercises":[{"type":"FREE","sport":"RUNNING"}]}
+                    ]"#,
+                ),
+            ],
+        );
+        let completed_report = import_polar_archive(&harness.database(), &completed)
+            .expect("completed and extended planned targets");
+        assert_eq!(completed_report.new_observations, 1);
+        assert_eq!(completed_report.equivalent_observations, 1);
+        assert_eq!(completed_report.amended_observations, 1);
+
+        let conflicting_target = scheduled_training_target_json("Conflicting name", true);
+        let conflicting = harness.archive(
+            "planned-training-conflict.zip",
+            &[
+                (
+                    "account-data-42-12345678-90ab-4cde-8f01-234567890abc.json",
+                    r#"{"username":"fixture-planned-reconciliation-claim"}"#,
+                ),
+                (
+                    "training-target-2026-01-02-42-12345678-90ab-4cde-8f01-234567890abc.json",
+                    &conflicting_target,
+                ),
+            ],
+        );
+        let conflicting_report = import_polar_archive(&harness.database(), &conflicting)
+            .expect("preserved planned conflict");
+        assert_eq!(conflicting_report.conflicts, 1);
+
+        let older = harness.archive(
+            "planned-training-older.zip",
+            &[
+                (
+                    "account-data-42-fedcba98-7654-4321-8fed-cba987654321.json",
+                    r#"{"username":"fixture-planned-reconciliation-claim"}"#,
+                ),
+                (
+                    "training-target-2026-01-02-42-fedcba98-7654-4321-8fed-cba987654321.json",
+                    &initial_target,
+                ),
+            ],
+        );
+        let older_report =
+            import_polar_archive(&harness.database(), &older).expect("older pending observation");
+        assert_eq!(older_report.preserved_observations, 1);
+
+        let connection = Connection::open(harness.database()).expect("planned reconciliation DB");
+        let scheduled = connection
+            .query_row(
+                "SELECT revision.name, revision.completion_state, target.reconciliation_state
+                 FROM planned_training_target target
+                 JOIN planned_training_target_revision revision
+                   ON revision.origin_id = target.origin_id
+                  AND revision.target_id = target.target_id
+                  AND revision.evidence_revision = target.current_evidence_revision
+                  AND revision.mapping_version = target.current_mapping_version
+                 WHERE target.source_kind = 'scheduled'",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .expect("current scheduled target");
+        assert_eq!(
+            scheduled,
+            (
+                "Progression".to_owned(),
+                "completed".to_owned(),
+                "conflicted".to_owned(),
+            )
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM planned_training_target_revision revision
+                     JOIN planned_training_target target
+                       ON target.origin_id = revision.origin_id
+                      AND target.target_id = revision.target_id
+                     WHERE target.source_kind = 'scheduled'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("scheduled revisions"),
+            3
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM planned_training_conflict",
+                    [],
+                    |row| { row.get::<_, i64>(0) }
+                )
+                .expect("planned conflicts"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM planned_training_target", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("retained favorite history"),
+            4
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*)
+                     FROM planned_training_favorite_snapshot_membership membership
+                     JOIN planned_training_favorite_snapshot snapshot
+                       ON snapshot.origin_id = membership.origin_id
+                      AND snapshot.snapshot_ref = membership.snapshot_ref
+                     WHERE snapshot.import_operation_id = (
+                         SELECT MAX(import_operation_id)
+                         FROM planned_training_favorite_snapshot
+                     )",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("latest favorite membership"),
+            2
+        );
+        let export_path = harness
+            .directory
+            .path()
+            .join("reconciled-planned-training.json");
+        SqlitePlannedTrainingExporter::new(harness.database())
+            .export_planned_training(&export_path, &NormalizedDataExportCancellation::new())
+            .expect("reconciled planned-training export");
+        let export = serde_json::from_slice::<serde_json::Value>(
+            &std::fs::read(export_path).expect("reconciled planned-training bytes"),
+        )
+        .expect("reconciled planned-training JSON");
+        let scheduled_export = export["targets"]
+            .as_array()
+            .and_then(|targets| {
+                targets
+                    .iter()
+                    .find(|target| target["source"]["kind"] == "scheduled")
+            })
+            .expect("reconciled scheduled export");
+        assert_eq!(
+            scheduled_export["revisions"].as_array().map(Vec::len),
+            Some(3)
+        );
+        assert_eq!(
+            scheduled_export["provenance"].as_array().map(Vec::len),
+            Some(4)
+        );
+        assert_eq!(
+            scheduled_export["conflicts"].as_array().map(Vec::len),
+            Some(1)
+        );
+        assert_eq!(
+            export["favoriteSnapshots"].as_array().map(Vec::len),
+            Some(2)
+        );
+        assert_eq!(
+            export["favoriteSnapshots"]
+                .as_array()
+                .map(|snapshots| snapshots
+                    .iter()
+                    .filter(|snapshot| snapshot["current"] == true)
+                    .count()),
+            Some(1)
+        );
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn preserves_favorite_history_when_the_latest_planned_training_snapshot_is_empty() {
+        let harness = Harness::new();
+        let populated = harness.archive(
+            "planned-training-populated-favorites.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-empty-favorite-snapshot-claim"}"#,
+                ),
+                (
+                    "favourite-targets-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"exportVersion":"1.0","name":"Retained favorite","exercises":[]}]"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &populated).expect("populated favorite snapshot");
+
+        let empty = harness.archive(
+            "planned-training-empty-favorites.zip",
+            &[
+                (
+                    "account-data-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"username":"fixture-empty-favorite-snapshot-claim"}"#,
+                ),
+                (
+                    "favourite-targets-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    "[]",
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &empty).expect("empty favorite snapshot");
+
+        let connection = Connection::open(harness.database()).expect("favorite snapshot database");
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM planned_training_target", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("retained favorite target"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM planned_training_favorite_snapshot",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("favorite snapshot history"),
+            2
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*)
+                     FROM planned_training_favorite_snapshot_membership membership
+                     JOIN planned_training_favorite_snapshot snapshot
+                       ON snapshot.origin_id = membership.origin_id
+                      AND snapshot.snapshot_ref = membership.snapshot_ref
+                     WHERE snapshot.import_operation_id = (
+                         SELECT MAX(import_operation_id)
+                         FROM planned_training_favorite_snapshot
+                     )",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("empty latest favorite snapshot"),
+            0
+        );
+        let export_path = harness
+            .directory
+            .path()
+            .join("empty-favorite-planned-training.json");
+        SqlitePlannedTrainingExporter::new(harness.database())
+            .export_planned_training(&export_path, &NormalizedDataExportCancellation::new())
+            .expect("empty favorite snapshot export");
+        let export = serde_json::from_slice::<serde_json::Value>(
+            &std::fs::read(export_path).expect("empty favorite export bytes"),
+        )
+        .expect("empty favorite export JSON");
+        let snapshots = export["favoriteSnapshots"]
+            .as_array()
+            .expect("favorite snapshots");
+        assert_eq!(snapshots.len(), 2);
+        let current = snapshots
+            .iter()
+            .find(|snapshot| snapshot["current"] == true)
+            .expect("current empty favorite snapshot");
+        assert_eq!(current["members"].as_array().map(Vec::len), Some(0));
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn rolls_back_planned_targets_and_favorite_membership_as_one_import_unit() {
+        let harness = Harness::new();
+        let target = scheduled_training_target_json("Interrupted target", false);
+        let archive = harness.archive(
+            "planned-training-interrupted.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-planned-rollback-claim"}"#,
+                ),
+                (
+                    "training-target-2026-01-02-42-11111111-2222-4333-8444-555555555555.json",
+                    &target,
+                ),
+                (
+                    "favourite-targets-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"exportVersion":"1.0","name":"Favorite","exercises":[]}]"#,
+                ),
+            ],
+        );
+
+        let error = import_polar_archive_with_interruption(&harness.database(), &archive, Some(1))
+            .expect_err("injected planned-training interruption");
+        assert!(matches!(error, ImportError::InjectedInterruption(1)));
+        let connection = Connection::open(harness.database()).expect("rolled-back planned DB");
+        for table in [
+            "planned_training_target",
+            "planned_training_target_revision",
+            "planned_training_target_provenance",
+            "planned_training_favorite_snapshot",
+            "planned_training_favorite_snapshot_membership",
+        ] {
+            let count = connection
+                .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("rolled-back planned table");
+            assert_eq!(count, 0, "{table}");
+        }
+        assert_integrity(&connection);
+    }
+
+    #[test]
     fn scopes_training_target_sport_recognition_to_the_exact_completed_session() {
         let harness = Harness::new();
         let recognized_session = training_session_json(
@@ -20069,24 +21682,27 @@ mod tests {
                 (
                     "training-target-2026-02-01-42-11111111-2222-4333-8444-555555555555.json",
                     r#"{
-                    "exportVersion":"1.0","startTime":"2026-02-01T10:00:00.000","done":false,
-                    "exercises":[{"sport":"WATERSPORTS_KAYAKING"}]
+                    "exportVersion":"1.0","name":"Incomplete relation",
+                    "startTime":"2026-02-01T10:00:00.000","done":false,
+                    "exercises":[{"type":"FREE","sport":"WATERSPORTS_KAYAKING"}]
                     }"#,
                 ),
                 (
                     "training-target-2026-02-02-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
                     r#"{
-                    "exportVersion":"1.0","startTime":"2026-02-02T10:00:00.000","done":true,
-                    "exercises":[{"sport":"WATERSPORTS_KAYAKING"}]
+                    "exportVersion":"1.0","name":"Duplicate start relation",
+                    "startTime":"2026-02-02T10:00:00.000","done":true,
+                    "exercises":[{"type":"FREE","sport":"WATERSPORTS_KAYAKING"}]
                     }"#,
                 ),
                 (
                     "training-target-2026-02-03-42-fedcba98-7654-4321-8fed-cba987654321.json",
                     r#"{
-                    "exportVersion":"1.0","startTime":"2026-02-03T10:00:00.000","done":true,
+                    "exportVersion":"1.0","name":"Ambiguous sport relation",
+                    "startTime":"2026-02-03T10:00:00.000","done":true,
                     "exercises":[
-                        {"sport":"WATERSPORTS_KAYAKING"},
-                        {"sport":"WATERSPORTS_CANOEING"}
+                        {"type":"FREE","sport":"WATERSPORTS_KAYAKING"},
+                        {"type":"FREE","sport":"WATERSPORTS_CANOEING"}
                     ]
                     }"#,
                 ),
@@ -23991,7 +25607,7 @@ mod tests {
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
             SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29,
-            SCHEMA_V30,
+            SCHEMA_V30, SCHEMA_V31, SCHEMA_V32,
         ];
         for migration in migrations
             .iter()
@@ -24004,6 +25620,61 @@ mod tests {
         connection
             .pragma_update(None, "user_version", version)
             .expect("declared baseline marker");
+    }
+
+    #[test]
+    fn migrates_schema_thirty_to_normalized_planned_training_atomically() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 30);
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted schema thirty-one");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("rolled-back schema version"),
+            30
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master
+                     WHERE type = 'table' AND name = 'planned_training_target'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back planned table"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("schema thirty-one migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("migrated schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master
+                     WHERE type = 'table' AND name IN (
+                         'planned_training_target',
+                         'planned_training_target_revision',
+                         'planned_training_exercise',
+                         'planned_training_phase',
+                         'planned_training_target_provenance',
+                         'planned_training_favorite_snapshot',
+                         'planned_training_favorite_snapshot_membership'
+                     )",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("planned-training tables"),
+            7
+        );
+        assert_integrity(&connection);
     }
 
     #[test]
@@ -25617,6 +27288,73 @@ mod tests {
         let backup_history = query_activity(&backup_path).expect("expanded backup history");
         assert_eq!(backup_history.len(), 2);
         assert_eq!(backup_history[0].origin_id, backup_history[1].origin_id);
+    }
+
+    #[test]
+    fn preserves_planned_training_and_favorite_membership_in_a_consistent_backup() {
+        let harness = Harness::new();
+        let target = scheduled_training_target_json("Backed-up progression", true);
+        let archive = harness.archive(
+            "planned-training-backup-source.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-planned-backup-claim"}"#,
+                ),
+                (
+                    "training-target-2026-01-02-42-11111111-2222-4333-8444-555555555555.json",
+                    &target,
+                ),
+                (
+                    "favourite-targets-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"exportVersion":"1.0","name":"Backed-up favorite","exercises":[]}]"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive)
+            .expect("planned-training source import");
+        let backup_path = harness
+            .directory
+            .path()
+            .join("fitfreed-planned-training-backup.sqlite");
+
+        backup_database(&harness.database(), &backup_path).expect("planned-training backup");
+
+        let source = Connection::open(harness.database()).expect("source planned-training library");
+        let backup = Connection::open(backup_path).expect("backup planned-training library");
+        let read_state = |connection: &Connection| {
+            connection
+                .query_row(
+                    "SELECT
+                         (SELECT COUNT(*) FROM planned_training_target),
+                         (SELECT COUNT(*) FROM planned_training_target_revision),
+                         (SELECT COUNT(*) FROM planned_training_exercise),
+                         (SELECT COUNT(*) FROM planned_training_target_provenance),
+                         (SELECT COUNT(*) FROM planned_training_favorite_snapshot),
+                         (SELECT COUNT(*) FROM planned_training_favorite_snapshot_membership),
+                         (SELECT name FROM planned_training_target_revision
+                          WHERE target_kind = 'scheduled')",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, i64>(2)?,
+                            row.get::<_, i64>(3)?,
+                            row.get::<_, i64>(4)?,
+                            row.get::<_, i64>(5)?,
+                            row.get::<_, String>(6)?,
+                        ))
+                    },
+                )
+                .expect("planned-training backup state")
+        };
+        assert_eq!(read_state(&backup), read_state(&source));
+        assert_eq!(
+            read_state(&backup),
+            (2, 2, 1, 2, 1, 1, "Backed-up progression".to_owned())
+        );
+        assert_integrity(&backup);
     }
 
     #[test]

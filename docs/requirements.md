@@ -752,7 +752,9 @@ The canonical testing strategy is maintained in [`testing-strategy.md`](testing-
 
 - The application will not require an account, subscription, or hosted service to import, retain, explore, report on, back up, or recover the user's library.
 - The internal data model, persistence format, schema evolution, and recovery procedures will be documented sufficiently for independent inspection and implementation.
-- Users must have a supported path to leave the application with their information intact. A portable backup and an open normalized-data export are architectural obligations; their exact formats and delivery milestone remain open decisions.
+- Users must have a supported path to leave the application with their information intact. A portable backup and an
+  open normalized-data export are architectural obligations. Versioned capability exports may deliver this path
+  incrementally, but no partial set may be described as a complete library export.
 - Data migrations will preserve recoverability, and documented procedures will allow a library to be restored without depending on an unavailable proprietary service.
 - Provider provenance will remain attached to normalized records so that portability does not erase origin or prevent future reinterpretation.
 
@@ -824,7 +826,9 @@ The public repository will provide a clear path through four stages:
 
 1. Minimum versions and processor architectures for later Linux and Windows support. The macOS boundary is already fixed at Apple Silicon on macOS 15.0 or later.
 2. Privacy model beyond the confirmed local baseline, including user-controlled backup and possible encryption.
-3. Exact formats and delivery milestone for open normalized-data export and portable library backup.
+3. Exact composed format and delivery milestone for the complete normalized-data export and portable library backup.
+   The planned-training capability has its own version-1 portable JSON contract; that does not close this decision for
+   the complete library.
 4. Support for one person or multiple independent libraries.
 5. Long-term retention or deletion policy for original ZIP archives and extracted source artifacts. Version 0.1.0 exposes no archive-copy feature and requires users to preserve the selected ZIP independently.
 6. Governance evolution beyond the bootstrap owner-maintainer model defined in `GOVERNANCE.md`.

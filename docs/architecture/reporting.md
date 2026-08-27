@@ -31,11 +31,23 @@ when that source is still available.
 
 ## Definition and resolved output
 
-Current disposable results follow [report workflow version 5](../data-formats/insights/report-v5.md): report
-definitions remain version 4, while the result-first library and resolved report embed training sport identity
-version 1. Catalogue activation makes prior resolved evidence stale and still requires the existing deliberate
-refresh review. Self-contained HTML uses [output version 6](../data-formats/portable/report-html-v6.md) and
-records its output version independently from the unchanged definition version.
+The pre-X7-R5 disposable results follow [report workflow version 5](../data-formats/insights/report-v5.md): report
+definitions use version 4, while the result-first library and resolved report embed training sport identity version 1.
+Catalogue activation makes prior resolved evidence stale and still requires the existing deliberate refresh review.
+Self-contained HTML uses [output version 6](../data-formats/portable/report-html-v6.md) and records its output version
+independently from the definition version.
+
+The current [report workflow version 7](../data-formats/insights/report-v7.md) extends the definition to version 5 under
+[ADR 0034](decisions/0034-bind-each-report-to-one-evidence-library.md). A planned-training origin binds one exact
+provider-neutral target and one matching evidence block to a `planned-snapshot-` source revision. Session, question,
+exploration, and blank origins remain bound to a `training-snapshot-` revision. A version-5 report never combines the
+two libraries: `sourceSnapshotRef` remains the single source of truth for stale detection, deliberate refresh, and
+export authorization. Combining planned intent with recorded execution requires a future typed multi-source report
+aggregate rather than a hidden per-block snapshot.
+
+Current self-contained HTML uses [output version 7](../data-formats/portable/report-html-v7.md). It renders the exact
+authorized objective, exercise, phase, goal, intensity, transition, and repeat meaning semantically while keeping
+planned intent distinct from recorded completion. Output version and definition version remain independent contracts.
 
 `ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session
 block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session
@@ -43,8 +55,10 @@ block and one narrative, and can include each authoritative route from the origi
 adds the training-period block family. Version 4 separates stable origin intent from the evolving answer and
 accepts session, versioned-question, exact-exploration, and blank origins. A version-4 definition may contain
 zero or one narrative block when supported evidence makes it factual; versions 1–3 retain their immutable
-narrative requirement. Every block can be reordered; optional blocks can be added or removed. Existing
-identities are preserved through edits, and editing an earlier definition produces a version-4 successor
+narrative requirement. Version 5 adds a planned-training origin with exactly one matching planned-training block and
+zero or one narrative; it prohibits session, route, and training-period blocks in that single-source definition.
+Every block can be reordered; optional blocks can be added or removed. Existing
+identities are preserved through edits, and editing an earlier definition produces a version-5 successor
 without rewriting historical migration input.
 
 ## Report starts

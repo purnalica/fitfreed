@@ -8,21 +8,24 @@ use std::{
 use chrono::{Days, NaiveDate};
 use fitfreed_domain::{
     author_session_report, authorize_report_removal, refresh_report_definition, revise_report,
-    revise_session_report, ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition,
-    ReportDefinitionError, ReportLocale, ReportOrigin, ReportQuestion,
-    ReportTrainingComparisonQuery, ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS,
+    revise_session_report, PlannedTrainingTargetKind, ReportBlock, ReportBlockContent,
+    ReportDateRange, ReportDefinition, ReportDefinitionError, ReportLocale, ReportOrigin,
+    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
+    MAX_ROUTE_ENDPOINT_REDACTION_METERS,
 };
 
 use crate::{
-    query_training_comparison, query_training_route_points_for_processing,
-    query_training_session_provenance, query_training_session_routes,
-    query_training_session_selection, ApplicationError, TrainingComparison, TrainingDateRange,
-    TrainingLibraryPort, TrainingProvenanceCurrentView, TrainingRouteKindView,
-    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
-    TrainingSessionDiscoveryPort, TrainingSessionProvenancePort, TrainingSessionProvenanceQuery,
-    TrainingSessionRoutePort, TrainingSessionRouteQuery, TrainingSessionSearchItem,
-    TrainingSessionSelection, TrainingSessionSelectionRequest, TrainingSessionSport,
-    TrainingSportState, MAX_PROCESSING_EXACT_POINTS,
+    query_planned_training_target, query_training_comparison,
+    query_training_route_points_for_processing, query_training_session_provenance,
+    query_training_session_routes, query_training_session_selection, ApplicationError,
+    PlannedTrainingQueryPort, PlannedTrainingQueryPortError, PlannedTrainingTargetDetail,
+    PlannedTrainingTargetQuery, TrainingComparison, TrainingDateRange, TrainingLibraryPort,
+    TrainingProvenanceCurrentView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSessionDiscoveryPort,
+    TrainingSessionProvenancePort, TrainingSessionProvenanceQuery, TrainingSessionRoutePort,
+    TrainingSessionRouteQuery, TrainingSessionSearchItem, TrainingSessionSelection,
+    TrainingSessionSelectionRequest, TrainingSessionSport, TrainingSportState,
+    MAX_PROCESSING_EXACT_POINTS,
 };
 
 const REPORT_PREFIX: &str = "report-";
@@ -112,6 +115,9 @@ pub enum ReportBlockDraftContent {
     },
     TrainingCoverage {
         query: ReportTrainingComparisonQuery,
+    },
+    PlannedTraining {
+        target_ref: String,
     },
 }
 
@@ -226,6 +232,7 @@ pub enum ReportLibraryEvidenceState {
 pub enum ReportLibrarySubject {
     Session { sport: Box<TrainingSessionSport> },
     TrainingComparison,
+    PlannedTraining { name: Option<String> },
     AuthoredNote,
 }
 
@@ -237,6 +244,9 @@ pub enum ReportLibraryPeriod {
     TrainingComparison {
         baseline_range: ReportDateRange,
         comparison_range: ReportDateRange,
+    },
+    PlannedTraining {
+        scheduled_at_local: String,
     },
 }
 
@@ -264,6 +274,12 @@ pub enum ReportLibraryResult {
         metric: ReportTrainingMetric,
         series: Vec<ReportLibraryComparisonSeries>,
         omitted_source_count: usize,
+    },
+    PlannedTraining {
+        exercise_count: Option<usize>,
+        phase_count: Option<usize>,
+        expanded_phase_count: Option<usize>,
+        repeat_block_count: Option<usize>,
     },
 }
 
@@ -371,7 +387,14 @@ pub struct ResolvedSessionReport {
 pub enum ReportEvidenceProvenance {
     Session(TrainingProvenanceCurrentView),
     LibrarySnapshot,
+    PlannedTrainingSnapshot,
     AuthoredOnly,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReportPlannedTrainingEvidence {
+    pub block_ref: String,
+    pub target: PlannedTrainingTargetDetail,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -382,6 +405,7 @@ pub struct ResolvedReport {
     pub session: Option<ReportSessionEvidence>,
     pub routes: Vec<ReportRouteEvidence>,
     pub training_comparison: Option<TrainingComparison>,
+    pub planned_training: Option<ReportPlannedTrainingEvidence>,
     pub provenance: ReportEvidenceProvenance,
     pub sensitive_contents: Vec<ReportSensitiveContent>,
     pub limitations: Vec<ReportLimitation>,
@@ -394,6 +418,7 @@ pub struct AuthorizedReportExport {
     pub session: Option<ReportSessionEvidence>,
     pub routes: Vec<ReportRouteEvidence>,
     pub training_comparison: Option<TrainingComparison>,
+    pub planned_training: Option<ReportPlannedTrainingEvidence>,
     pub provenance: ReportEvidenceProvenance,
     pub limitations: Vec<ReportLimitation>,
     pub include_physiological_context: bool,
@@ -502,6 +527,7 @@ pub fn create_report(
     training_port: &dyn TrainingSessionDiscoveryPort,
     route_port: &dyn TrainingSessionRoutePort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
     request: CreateReportRequest,
 ) -> Result<ReportDefinition, ApplicationError> {
     if request.blocks.iter().any(|block| block.block_ref.is_some()) {
@@ -523,6 +549,14 @@ pub fn create_report(
                 &request.blocks,
             )?;
             Some(session_ref.as_str())
+        }
+        ReportOrigin::PlannedTraining { target_ref } => {
+            resolve_exact_planned_training_target(
+                planned_training_port,
+                target_ref,
+                Some(request.source_snapshot_ref.clone()),
+            )?;
+            None
         }
         ReportOrigin::Question { .. } | ReportOrigin::Exploration { .. } | ReportOrigin::Blank => {
             ensure_training_snapshot(comparison_port, &request.source_snapshot_ref)?;
@@ -678,6 +712,7 @@ pub fn update_report(
     training_port: &dyn TrainingSessionDiscoveryPort,
     route_port: &dyn TrainingSessionRoutePort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
     request: UpdateReportRequest,
 ) -> Result<ReportDefinition, ApplicationError> {
     if request.expected_revision == 0 {
@@ -703,6 +738,14 @@ pub fn update_report(
                 &request.blocks,
             )?;
             Some(session_ref.as_str())
+        }
+        ReportOrigin::PlannedTraining { target_ref } => {
+            resolve_exact_planned_training_target(
+                planned_training_port,
+                target_ref,
+                Some(existing.source_snapshot_ref().to_owned()),
+            )?;
+            None
         }
         ReportOrigin::Question { .. } | ReportOrigin::Exploration { .. } | ReportOrigin::Blank => {
             ensure_training_snapshot(comparison_port, existing.source_snapshot_ref())?;
@@ -748,6 +791,7 @@ pub fn refresh_report(
     route_port: &dyn TrainingSessionRoutePort,
     provenance_port: &dyn TrainingSessionProvenancePort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
     request: RefreshReportRequest,
 ) -> Result<ReportDefinition, ApplicationError> {
     if request.expected_revision == 0 {
@@ -767,6 +811,7 @@ pub fn refresh_report(
         route_port,
         provenance_port,
         comparison_port,
+        Some(planned_training_port),
         existing.clone(),
         None,
     )?;
@@ -782,6 +827,7 @@ pub fn refresh_report(
         route_port,
         provenance_port,
         comparison_port,
+        Some(planned_training_port),
         refreshed.clone(),
         None,
     )?;
@@ -900,6 +946,7 @@ pub fn list_report_library(
     report_port: &dyn ReportDefinitionPort,
     training_port: &dyn TrainingSessionDiscoveryPort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
     request: ReportLibraryRequest,
 ) -> Result<ReportLibraryPage, ApplicationError> {
     if request.limit == 0
@@ -911,7 +958,13 @@ pub fn list_report_library(
         ));
     }
     for attempt in 0..2 {
-        match list_report_library_once(report_port, training_port, comparison_port, &request) {
+        match list_report_library_once(
+            report_port,
+            training_port,
+            comparison_port,
+            planned_training_port,
+            &request,
+        ) {
             Err(ApplicationError::ReportSourceChanged) if attempt == 0 => continue,
             result => return result,
         }
@@ -923,6 +976,7 @@ fn list_report_library_once(
     report_port: &dyn ReportDefinitionPort,
     training_port: &dyn TrainingSessionDiscoveryPort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
     request: &ReportLibraryRequest,
 ) -> Result<ReportLibraryPage, ApplicationError> {
     let definitions = report_port
@@ -953,6 +1007,14 @@ fn list_report_library_once(
     } else {
         None
     };
+    let requires_planned_training = definitions
+        .iter()
+        .any(report_requires_planned_training_evidence);
+    let current_planned_training_snapshot_ref = if requires_planned_training {
+        current_planned_training_snapshot(planned_training_port)?
+    } else {
+        None
+    };
     let mut comparison_cache = BTreeMap::new();
     let items = definitions
         .iter()
@@ -960,14 +1022,19 @@ fn list_report_library_once(
             report_library_item(
                 training_port,
                 comparison_port,
+                planned_training_port,
                 definition,
                 current_snapshot_ref.as_deref(),
+                current_planned_training_snapshot_ref.as_deref(),
                 &mut comparison_cache,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
     if let Some(expected) = current_snapshot_ref.as_deref() {
         ensure_training_snapshot(comparison_port, expected)?;
+    }
+    if let Some(expected) = current_planned_training_snapshot_ref.as_deref() {
+        ensure_planned_training_snapshot(planned_training_port, expected)?;
     }
     let next_offset = (through < total_count).then_some(through);
     Ok(ReportLibraryPage {
@@ -984,11 +1051,17 @@ fn report_requires_library_evidence(definition: &ReportDefinition) -> bool {
         || report_training_comparison_query(definition).is_some()
 }
 
+fn report_requires_planned_training_evidence(definition: &ReportDefinition) -> bool {
+    matches!(definition.origin(), ReportOrigin::PlannedTraining { .. })
+}
+
 fn report_library_item(
     training_port: &dyn TrainingSessionDiscoveryPort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
     definition: &ReportDefinition,
     current_snapshot_ref: Option<&str>,
+    current_planned_training_snapshot_ref: Option<&str>,
     comparison_cache: &mut BTreeMap<String, TrainingComparison>,
 ) -> Result<ReportLibraryItem, ApplicationError> {
     let sensitivity = report_library_sensitivity(definition);
@@ -1058,6 +1131,53 @@ fn report_library_item(
                 started_at_local: session.started_at_local,
             }),
             Some(result),
+        ));
+    }
+    if let ReportOrigin::PlannedTraining { target_ref } = definition.origin() {
+        let Some(current_snapshot_ref) = current_planned_training_snapshot_ref else {
+            return Ok(base(
+                ReportLibraryEvidenceState::Unavailable,
+                ReportLibrarySubject::PlannedTraining { name: None },
+                None,
+                None,
+            ));
+        };
+        let target = match resolve_exact_planned_training_target(
+            planned_training_port,
+            target_ref,
+            Some(current_snapshot_ref.to_owned()),
+        ) {
+            Ok(target) => target,
+            Err(ApplicationError::ReportEvidenceUnavailable) => {
+                return Ok(base(
+                    ReportLibraryEvidenceState::Unavailable,
+                    ReportLibrarySubject::PlannedTraining { name: None },
+                    None,
+                    None,
+                ));
+            }
+            Err(error) => return Err(error),
+        };
+        let period = match target.target.target.kind() {
+            PlannedTrainingTargetKind::Scheduled {
+                scheduled_at_local, ..
+            } => Some(ReportLibraryPeriod::PlannedTraining {
+                scheduled_at_local: scheduled_at_local.clone(),
+            }),
+            PlannedTrainingTargetKind::FavoriteTemplate => None,
+        };
+        return Ok(base(
+            report_library_evidence_state(definition, current_snapshot_ref),
+            ReportLibrarySubject::PlannedTraining {
+                name: Some(target.target.target.name().to_owned()),
+            },
+            period,
+            Some(ReportLibraryResult::PlannedTraining {
+                exercise_count: target.target.shape.exercise_count,
+                phase_count: target.target.shape.phase_count,
+                expanded_phase_count: target.target.shape.expanded_phase_count,
+                repeat_block_count: target.target.shape.repeat_block_count,
+            }),
         ));
     }
     let Some(query) = report_training_comparison_query(definition) else {
@@ -1178,6 +1298,7 @@ pub fn resolve_report(
     route_port: &dyn TrainingSessionRoutePort,
     provenance_port: &dyn TrainingSessionProvenancePort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
     report_ref: &str,
 ) -> Result<ResolvedReport, ApplicationError> {
     let definition = load_report_definition(report_port, report_ref)?;
@@ -1186,6 +1307,7 @@ pub fn resolve_report(
         route_port,
         provenance_port,
         comparison_port,
+        Some(planned_training_port),
         definition,
         None,
     )
@@ -1196,6 +1318,7 @@ fn resolve_report_definition(
     route_port: &dyn TrainingSessionRoutePort,
     provenance_port: &dyn TrainingSessionProvenancePort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: Option<&dyn PlannedTrainingQueryPort>,
     definition: ReportDefinition,
     cancellation: Option<&ReportExportCancellation>,
 ) -> Result<ResolvedReport, ApplicationError> {
@@ -1216,9 +1339,44 @@ fn resolve_report_definition(
             session: Some(resolved.session),
             routes: resolved.routes,
             training_comparison: resolved.training_comparison,
+            planned_training: None,
             provenance: ReportEvidenceProvenance::Session(resolved.provenance),
             sensitive_contents: resolved.sensitive_contents,
             limitations: resolved.limitations,
+        });
+    }
+    if let ReportOrigin::PlannedTraining { target_ref } = definition.origin() {
+        let planned_training_port = planned_training_port.ok_or_else(|| {
+            ApplicationError::InvalidReportDefinition(
+                "planned-training report requires its evidence port".to_owned(),
+            )
+        })?;
+        let saved = resolve_exact_planned_training_target(
+            planned_training_port,
+            target_ref,
+            Some(definition.source_snapshot_ref().to_owned()),
+        );
+        let (status, target) = match saved {
+            Ok(target) => (ReportResolutionStatus::Current, target),
+            Err(ApplicationError::ReportSourceChanged) => (
+                ReportResolutionStatus::Stale,
+                resolve_exact_planned_training_target(planned_training_port, target_ref, None)?,
+            ),
+            Err(error) => return Err(error),
+        };
+        let block_ref = report_planned_training_block_ref(&definition)?.to_owned();
+        let resolved_snapshot_ref = target.snapshot_ref.clone();
+        return Ok(ResolvedReport {
+            definition,
+            resolved_snapshot_ref,
+            status,
+            session: None,
+            routes: Vec::new(),
+            training_comparison: None,
+            planned_training: Some(ReportPlannedTrainingEvidence { block_ref, target }),
+            provenance: ReportEvidenceProvenance::PlannedTrainingSnapshot,
+            sensitive_contents: Vec::new(),
+            limitations: Vec::new(),
         });
     }
     let resolved_snapshot_ref = current_training_snapshot(comparison_port)?;
@@ -1245,6 +1403,7 @@ fn resolve_report_definition(
         session: None,
         routes: Vec::new(),
         training_comparison,
+        planned_training: None,
         provenance,
         sensitive_contents: Vec::new(),
         limitations: Vec::new(),
@@ -1258,6 +1417,56 @@ pub fn export_report(
     route_port: &dyn TrainingSessionRoutePort,
     provenance_port: &dyn TrainingSessionProvenancePort,
     comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
+    export_port: &dyn ReportExportPort,
+    request: ReportExportRequest,
+    cancellation: &ReportExportCancellation,
+) -> Result<ReportExportReceipt, ApplicationError> {
+    export_report_resolved(
+        report_port,
+        training_port,
+        route_port,
+        provenance_port,
+        comparison_port,
+        Some(planned_training_port),
+        export_port,
+        request,
+        cancellation,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn export_session_report(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    provenance_port: &dyn TrainingSessionProvenancePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    export_port: &dyn ReportExportPort,
+    request: SessionReportExportRequest,
+    cancellation: &ReportExportCancellation,
+) -> Result<ReportExportReceipt, ApplicationError> {
+    export_report_resolved(
+        report_port,
+        training_port,
+        route_port,
+        provenance_port,
+        comparison_port,
+        None,
+        export_port,
+        request,
+        cancellation,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn export_report_resolved(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    provenance_port: &dyn TrainingSessionProvenancePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    planned_training_port: Option<&dyn PlannedTrainingQueryPort>,
     export_port: &dyn ReportExportPort,
     request: ReportExportRequest,
     cancellation: &ReportExportCancellation,
@@ -1271,6 +1480,7 @@ pub fn export_report(
         route_port,
         provenance_port,
         comparison_port,
+        planned_training_port,
         definition,
         Some(cancellation),
     )?;
@@ -1320,6 +1530,7 @@ pub fn export_report(
         session: resolved.session,
         routes,
         training_comparison: resolved.training_comparison,
+        planned_training: resolved.planned_training,
         provenance: resolved.provenance,
         limitations: resolved.limitations,
         include_physiological_context,
@@ -1330,29 +1541,6 @@ pub fn export_report(
             ReportExportPortError::Cancelled => ApplicationError::ReportExportCancelled,
             ReportExportPortError::Failure(message) => ApplicationError::ReportExport(message),
         })
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn export_session_report(
-    report_port: &dyn ReportDefinitionPort,
-    training_port: &dyn TrainingSessionDiscoveryPort,
-    route_port: &dyn TrainingSessionRoutePort,
-    provenance_port: &dyn TrainingSessionProvenancePort,
-    comparison_port: &dyn TrainingLibraryPort,
-    export_port: &dyn ReportExportPort,
-    request: SessionReportExportRequest,
-    cancellation: &ReportExportCancellation,
-) -> Result<ReportExportReceipt, ApplicationError> {
-    export_report(
-        report_port,
-        training_port,
-        route_port,
-        provenance_port,
-        comparison_port,
-        export_port,
-        request,
-        cancellation,
-    )
 }
 
 fn resolve_definition(
@@ -1465,6 +1653,31 @@ fn resolve_exact_session(
     })
 }
 
+fn resolve_exact_planned_training_target(
+    port: &dyn PlannedTrainingQueryPort,
+    target_ref: &str,
+    snapshot_ref: Option<String>,
+) -> Result<PlannedTrainingTargetDetail, ApplicationError> {
+    query_planned_training_target(
+        port,
+        PlannedTrainingTargetQuery {
+            target_ref: target_ref.to_owned(),
+            snapshot_ref,
+        },
+    )
+    .map_err(|error| match error {
+        ApplicationError::PlannedTrainingChanged => ApplicationError::ReportSourceChanged,
+        ApplicationError::PlannedTrainingNotFound => ApplicationError::ReportEvidenceUnavailable,
+        ApplicationError::InvalidPlannedTrainingQuery(message) => {
+            ApplicationError::InvalidReportDefinition(message.to_owned())
+        }
+        ApplicationError::PlannedTrainingQuery(message) => {
+            ApplicationError::ReportDefinitionQuery(message)
+        }
+        other => ApplicationError::ReportDefinitionQuery(other.to_string()),
+    })
+}
+
 fn materialize_blocks(
     report_port: &dyn ReportDefinitionPort,
     session_ref: Option<&str>,
@@ -1543,6 +1756,9 @@ fn materialize_blocks(
                 ReportBlockDraftContent::TrainingCoverage { query } => {
                     ReportBlock::training_coverage(block_ref, query)
                 }
+                ReportBlockDraftContent::PlannedTraining { target_ref } => {
+                    ReportBlock::planned_training(block_ref, target_ref)
+                }
             }
             .map_err(invalid_definition)
         })
@@ -1559,6 +1775,7 @@ fn draft_kind(content: &SessionReportBlockDraftContent) -> &'static str {
         SessionReportBlockDraftContent::TrainingChart { .. } => "training-chart",
         SessionReportBlockDraftContent::TrainingExactTable { .. } => "training-exact-table",
         SessionReportBlockDraftContent::TrainingCoverage { .. } => "training-coverage",
+        SessionReportBlockDraftContent::PlannedTraining { .. } => "planned-training",
     }
 }
 
@@ -1572,6 +1789,7 @@ fn definition_block_kind(content: &ReportBlockContent) -> &'static str {
         ReportBlockContent::TrainingChart { .. } => "training-chart",
         ReportBlockContent::TrainingExactTable { .. } => "training-exact-table",
         ReportBlockContent::TrainingCoverage { .. } => "training-coverage",
+        ReportBlockContent::PlannedTraining { .. } => "planned-training",
     }
 }
 
@@ -1591,7 +1809,8 @@ fn validate_route_drafts(
             | SessionReportBlockDraftContent::TrainingComparison { .. }
             | SessionReportBlockDraftContent::TrainingChart { .. }
             | SessionReportBlockDraftContent::TrainingExactTable { .. }
-            | SessionReportBlockDraftContent::TrainingCoverage { .. } => None,
+            | SessionReportBlockDraftContent::TrainingCoverage { .. }
+            | SessionReportBlockDraftContent::PlannedTraining { .. } => None,
         })
         .collect::<Vec<_>>();
     if requested.is_empty() {
@@ -1632,7 +1851,8 @@ fn resolve_report_routes(
             | ReportBlockContent::TrainingComparison { .. }
             | ReportBlockContent::TrainingChart { .. }
             | ReportBlockContent::TrainingExactTable { .. }
-            | ReportBlockContent::TrainingCoverage { .. } => None,
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
         })
         .collect::<Vec<_>>();
     if route_blocks.is_empty() {
@@ -2007,6 +2227,37 @@ fn current_training_snapshot(port: &dyn TrainingLibraryPort) -> Result<String, A
         .ok_or(ApplicationError::ReportEvidenceUnavailable)
 }
 
+fn current_planned_training_snapshot(
+    port: &dyn PlannedTrainingQueryPort,
+) -> Result<Option<String>, ApplicationError> {
+    port.planned_training_snapshot_ref()
+        .map_err(map_planned_training_snapshot_error)
+}
+
+fn ensure_planned_training_snapshot(
+    port: &dyn PlannedTrainingQueryPort,
+    expected_snapshot_ref: &str,
+) -> Result<(), ApplicationError> {
+    let actual = current_planned_training_snapshot(port)?;
+    if actual.as_deref() != Some(expected_snapshot_ref) {
+        return Err(ApplicationError::ReportSourceChanged);
+    }
+    Ok(())
+}
+
+fn map_planned_training_snapshot_error(error: PlannedTrainingQueryPortError) -> ApplicationError {
+    match error {
+        PlannedTrainingQueryPortError::SnapshotChanged
+        | PlannedTrainingQueryPortError::TrainingSnapshotChanged => {
+            ApplicationError::ReportSourceChanged
+        }
+        PlannedTrainingQueryPortError::NotFound => ApplicationError::ReportEvidenceUnavailable,
+        PlannedTrainingQueryPortError::Failure(message) => {
+            ApplicationError::ReportDefinitionQuery(message)
+        }
+    }
+}
+
 fn default_training_comparison_query(
     available: &TrainingDateRange,
 ) -> Result<ReportTrainingComparisonQuery, ApplicationError> {
@@ -2107,7 +2358,8 @@ fn report_training_comparison_query(
             | ReportBlockContent::TrainingCoverage { query } => Some(query),
             ReportBlockContent::SessionEvidence { .. }
             | ReportBlockContent::Route { .. }
-            | ReportBlockContent::Narrative { .. } => None,
+            | ReportBlockContent::Narrative { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
         })
 }
 
@@ -2161,7 +2413,8 @@ fn report_library_sensitivity(definition: &ReportDefinition) -> ReportLibrarySen
             | ReportBlockContent::TrainingComparison { .. }
             | ReportBlockContent::TrainingChart { .. }
             | ReportBlockContent::TrainingExactTable { .. }
-            | ReportBlockContent::TrainingCoverage { .. } => {}
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => {}
         }
     }
     ReportLibrarySensitivity {
@@ -2193,7 +2446,8 @@ fn report_library_comparison_metric(definition: &ReportDefinition) -> ReportTrai
             | ReportBlockContent::Narrative { .. }
             | ReportBlockContent::TrainingComparison { .. }
             | ReportBlockContent::TrainingExactTable { .. }
-            | ReportBlockContent::TrainingCoverage { .. } => None,
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
         })
         .unwrap_or(ReportTrainingMetric::SessionCount)
 }
@@ -2304,10 +2558,43 @@ fn report_session_ref(definition: &ReportDefinition) -> Result<&str, Application
             | ReportBlockContent::TrainingComparison { .. }
             | ReportBlockContent::TrainingChart { .. }
             | ReportBlockContent::TrainingExactTable { .. }
-            | ReportBlockContent::TrainingCoverage { .. } => None,
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
         })
         .ok_or_else(|| {
             ApplicationError::InvalidReportDefinition("report session block is missing".to_owned())
+        })
+}
+
+fn report_planned_training_block_ref(
+    definition: &ReportDefinition,
+) -> Result<&str, ApplicationError> {
+    let ReportOrigin::PlannedTraining { target_ref } = definition.origin() else {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "report origin does not contain planned training".to_owned(),
+        ));
+    };
+    definition
+        .blocks()
+        .iter()
+        .find_map(|block| match block.content() {
+            ReportBlockContent::PlannedTraining {
+                target_ref: block_target_ref,
+            } if block_target_ref == target_ref => Some(block.block_ref()),
+            ReportBlockContent::SessionEvidence { .. }
+            | ReportBlockContent::Route { .. }
+            | ReportBlockContent::Narrative { .. }
+            | ReportBlockContent::TrainingFinding { .. }
+            | ReportBlockContent::TrainingComparison { .. }
+            | ReportBlockContent::TrainingChart { .. }
+            | ReportBlockContent::TrainingExactTable { .. }
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
+        })
+        .ok_or_else(|| {
+            ApplicationError::InvalidReportDefinition(
+                "report planned-training block is missing".to_owned(),
+            )
         })
 }
 
@@ -2326,7 +2613,8 @@ fn report_includes_physiology(definition: &ReportDefinition) -> Result<bool, App
             | ReportBlockContent::TrainingComparison { .. }
             | ReportBlockContent::TrainingChart { .. }
             | ReportBlockContent::TrainingExactTable { .. }
-            | ReportBlockContent::TrainingCoverage { .. } => None,
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
         })
         .ok_or_else(|| {
             ApplicationError::InvalidReportDefinition("report session block is missing".to_owned())
@@ -2341,6 +2629,9 @@ fn report_origin_session_ref(definition: &ReportDefinition) -> Result<&str, Appl
                 "report origin does not contain a session".to_owned(),
             ))
         }
+        ReportOrigin::PlannedTraining { .. } => Err(ApplicationError::InvalidReportDefinition(
+            "report origin does not contain a session".to_owned(),
+        )),
     }
 }
 

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/planned-training-chronology-query-v1.schema.json",
+  "title": "FitFreed planned-training chronology query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "collection",
+    "completion",
+    "from",
+    "through",
+    "offset",
+    "limit",
+    "snapshotRef"
+  ],
+  "properties": {
+    "collection": { "enum": ["scheduled", "favorite-templates"] },
+    "completion": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": ["pending", "completed"] }
+      ]
+    },
+    "from": { "$ref": "#/$defs/optionalLocalDate" },
+    "through": { "$ref": "#/$defs/optionalLocalDate" },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "snapshotRef": { "$ref": "#/$defs/optionalSnapshotRef" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "collection": { "const": "favorite-templates" } },
+        "required": ["collection"]
+      },
+      "then": {
+        "properties": {
+          "completion": { "const": null },
+          "from": { "const": null },
+          "through": { "const": null }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "optionalLocalDate": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/localDate" }
+      ]
+    },
+    "snapshotRef": {
+      "type": "string",
+      "pattern": "^planned-snapshot-[0-9a-f]{64}$"
+    },
+    "optionalSnapshotRef": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/snapshotRef" }
+      ]
+    }
+  }
+}

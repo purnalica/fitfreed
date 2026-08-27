@@ -70,6 +70,28 @@ exact archive, and query the production application boundary. The slowest proces
 Every run must also preserve the exact session, series, sample, visual-bound, and page counts. The storage
 limit applies to this exact workload after a WAL checkpoint; it is not a universal maximum library size.
 
+### Structured planned-training envelope
+
+The application read-model scenario contains 520 weekly completed training plans spanning ten calendar years.
+Every plan retains one phased exercise, eight stored phases, one four-iteration repeat across four phases, intensity
+evidence, and one provenance event. The resulting envelope contains 520 targets, 520 exercises, 4,160 stored phases,
+and 520 provenance events; each plan expands to 20 phases without flattening its repeat semantics. Its exact scheduled
+instant aligns with one independently generated recorded session so relationship resolution is exercised without
+heuristic matching.
+
+Ten warm-ups and 100 measured executions must satisfy:
+
+| Scenario | Target |
+|---|---:|
+| First 50 planned targets, p95 | ≤ 500 ms |
+| Complete eight-phase target detail, p95 | ≤ 500 ms |
+| Planned-training report resolution, p95 | ≤ 500 ms |
+| Deterministic self-contained planned-training HTML export, p95 | ≤ 2 s |
+
+Every execution also verifies the exact stored and expanded phase counts. The generated database and HTML output are
+temporary, contain no personal data, and traverse the production SQLite, application, authorization, and export
+boundaries.
+
 ## Query and visualization budgets
 
 - Opening an already indexed default dashboard follows the common-navigation budget.

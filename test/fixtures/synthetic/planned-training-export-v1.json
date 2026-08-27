@@ -1,0 +1,205 @@
+{
+  "format": "org.fitfreed.normalized-planned-training",
+  "schemaVersion": 1,
+  "libraryRevision": 3,
+  "targets": [
+    {
+      "originRef": "0123456789abcdef0123456789abcdef",
+      "targetRef": "planned-target-1111111111111111111111111111111111111111111111111111111111111111",
+      "source": {
+        "provider": "polar-flow",
+        "kind": "scheduled",
+        "identity": "synthetic-scheduled-target"
+      },
+      "currentRevision": {
+        "evidenceRevision": "planned-evidence-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mappingVersion": "polar-planned-training@1"
+      },
+      "reconciliationState": "current",
+      "revisions": [
+        {
+          "evidenceRevision": "planned-evidence-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "mappingVersion": "polar-planned-training@1",
+          "targetKind": "scheduled",
+          "scheduledAtLocal": "2026-01-02T10:30:00.000",
+          "completion": "completed",
+          "name": "Synthetic progressive intervals",
+          "description": "Independent structured training intent",
+          "editability": "editable",
+          "exercises": [
+            {
+              "exerciseRef": "planned-exercise-3333333333333333333333333333333333333333333333333333333333333333",
+              "ordinal": 0,
+              "kind": "phased",
+              "durationGoalMilliseconds": null,
+              "distanceGoalMeters": null,
+              "sport": {
+                "state": "recognized",
+                "suggestion": {
+                  "canonicalFamily": "running",
+                  "localizedNames": {
+                    "en": "Running",
+                    "es": "Carrera"
+                  },
+                  "provenance": {
+                    "catalogueRevision": "synthetic-catalogue-v1",
+                    "retrievedAtUtc": "2026-01-01T00:00:00Z",
+                    "mappingVersion": "polar-flow-sport-suggestion@1",
+                    "evidenceRef": "sport-evidence-4444444444444444444444444444444444444444444444444444444444444444"
+                  }
+                },
+                "sourceEvidence": [
+                  {
+                    "provider": "polar-flow",
+                    "sourceCode": "RUNNING",
+                    "sourceRecordLocator": "/exercises/0/sport"
+                  }
+                ]
+              },
+              "phases": [
+                {
+                  "phaseRef": "planned-phase-5555555555555555555555555555555555555555555555555555555555555555",
+                  "ordinal": 0,
+                  "name": "Work",
+                  "goal": {
+                    "kind": "distance",
+                    "durationMilliseconds": null,
+                    "distanceMeters": 800.0
+                  },
+                  "intensity": {
+                    "kind": "zone-range",
+                    "metric": "speed",
+                    "lowerZone": 3,
+                    "upperZone": 4
+                  },
+                  "transition": {
+                    "transitionRef": "planned-transition-6666666666666666666666666666666666666666666666666666666666666666",
+                    "change": "automatic",
+                    "repeat": null
+                  }
+                },
+                {
+                  "phaseRef": "planned-phase-7777777777777777777777777777777777777777777777777777777777777777",
+                  "ordinal": 1,
+                  "name": "Recovery",
+                  "goal": {
+                    "kind": "duration",
+                    "durationMilliseconds": 120000,
+                    "distanceMeters": null
+                  },
+                  "intensity": {
+                    "kind": "none",
+                    "metric": null,
+                    "lowerZone": null,
+                    "upperZone": null
+                  },
+                  "transition": {
+                    "transitionRef": "planned-transition-8888888888888888888888888888888888888888888888888888888888888888",
+                    "change": "manual",
+                    "repeat": {
+                      "repeatRef": "planned-repeat-9999999999999999999999999999999999999999999999999999999999999999",
+                      "returnToPhaseOrdinal": 0,
+                      "totalIterations": 3
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "mappingCoverage": {
+            "state": "complete",
+            "unmappedFieldCount": 0,
+            "unmappedFieldLocators": []
+          },
+          "sourceExportVersion": "1.0"
+        }
+      ],
+      "provenance": [
+        {
+          "operationRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sourceProvider": "polar-flow",
+          "sourceAdapterVersion": "polar-flow-archive@13",
+          "mappingVersion": "polar-planned-training@1",
+          "sourceIdentity": "synthetic-scheduled-target",
+          "sourceArtifactLocator": "training-target-2026-01-02-synthetic.json",
+          "sourceArtifactSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "sourceRecordLocator": "/",
+          "sourceExportVersion": "1.0",
+          "reconciliationDecision": "create",
+          "contributesToVisibleState": true
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "originRef": "0123456789abcdef0123456789abcdef",
+      "targetRef": "planned-target-2222222222222222222222222222222222222222222222222222222222222222",
+      "source": {
+        "provider": "polar-flow",
+        "kind": "favorite-template",
+        "identity": "synthetic-favorite-target"
+      },
+      "currentRevision": {
+        "evidenceRevision": "planned-evidence-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "mappingVersion": "polar-planned-training@1"
+      },
+      "reconciliationState": "current",
+      "revisions": [
+        {
+          "evidenceRevision": "planned-evidence-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mappingVersion": "polar-planned-training@1",
+          "targetKind": "favorite-template",
+          "scheduledAtLocal": null,
+          "completion": null,
+          "name": "Synthetic favorite",
+          "description": null,
+          "editability": "unspecified",
+          "exercises": [],
+          "mappingCoverage": {
+            "state": "complete",
+            "unmappedFieldCount": 0,
+            "unmappedFieldLocators": []
+          },
+          "sourceExportVersion": "1.0"
+        }
+      ],
+      "provenance": [
+        {
+          "operationRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sourceProvider": "polar-flow",
+          "sourceAdapterVersion": "polar-flow-archive@13",
+          "mappingVersion": "polar-planned-training@1",
+          "sourceIdentity": "synthetic-favorite-target",
+          "sourceArtifactLocator": "favourite-targets-synthetic.json",
+          "sourceArtifactSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "sourceRecordLocator": "/0",
+          "sourceExportVersion": "1.0",
+          "reconciliationDecision": "create",
+          "contributesToVisibleState": true
+        }
+      ],
+      "conflicts": []
+    }
+  ],
+  "favoriteSnapshots": [
+    {
+      "originRef": "0123456789abcdef0123456789abcdef",
+      "snapshotRef": "favorite-snapshot-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "sourceProvider": "polar-flow",
+      "sourceAdapterVersion": "polar-flow-archive@13",
+      "mappingVersion": "polar-planned-training@1",
+      "sourceArtifactLocator": "favourite-targets-synthetic.json",
+      "sourceArtifactSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "operationRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "current": true,
+      "members": [
+        {
+          "ordinal": 0,
+          "targetRef": "planned-target-2222222222222222222222222222222222222222222222222222222222222222",
+          "evidenceRevision": "planned-evidence-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mappingVersion": "polar-planned-training@1"
+        }
+      ]
+    }
+  ]
+}

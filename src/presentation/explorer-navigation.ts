@@ -19,6 +19,12 @@ export interface TrainingComparisonNavigationRequest {
   requestId: number;
 }
 
+export interface PlannedTrainingNavigationRequest {
+  kind: "planned-training";
+  targetRef: string;
+  requestId: number;
+}
+
 export interface TrainingSportNavigationRequest {
   kind: "sport";
   sportRef: string;
@@ -41,6 +47,7 @@ export type TrainingNavigationRequest =
   | ExplorerNavigationRequest
   | TrainingSessionNavigationRequest
   | TrainingComparisonNavigationRequest
+  | PlannedTrainingNavigationRequest
   | TrainingSportNavigationRequest
   | TrainingSportSessionsNavigationRequest
   | TrainingWorkspaceNavigationRequest;

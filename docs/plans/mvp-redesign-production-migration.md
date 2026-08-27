@@ -299,7 +299,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R2 | Complete locally — exact represented-sport identity, comparison presets, and the complete natural-drill-down campaign passed 2026-08-26 | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
-| X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
+| X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Pending | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Pending | Exact local and hosted evidence plus independent falsification leave no material finding |
 
@@ -2922,6 +2922,34 @@ screenshots as report data; or a route zoom bound chosen as one arbitrary global
 ### X7-R5 — Import and explain structured training intent
 
 **Finding:** XH-18 and FR-027.
+
+**Completed locally (2026-08-27):** the provider-neutral aggregate, strict shared ISO-duration parser, synthetic Polar
+scheduled/favourite target adapter, SQLite migrations 0031 and 0032, transactional reconciliation, normalized data
+exit, whole-library backup, application queries, Tauri transport, versioned schemas, localized exploration, and
+planned-training report composition preserve revisions, ordered phases, repetitions, provenance, conflicts,
+favourite membership, and exact/ambiguous/absent completed-session relationships. ADR 0034 keeps each report bound to
+one evidence library: planned intent is not mixed with recorded-session evidence or silently flattened. The final
+requirement audit traced every model, import, application, presentation, verification, and rejection condition below
+to executable evidence and found no missing X7-R5 behavior.
+
+The complete fast campaign passes, including 433 React tests, 280 host Rust tests, 224 application tests, 62 domain
+tests, data-contract and documentation checks, localization parity for 2,115 messages, and schema 32 / adapter 13
+compatibility. The packaged macOS campaign also passes: the 148.6-second functional journey covers planned-training
+exploration, exact report return, reimport, accessibility, localization, 100% and 200% content zoom, and durable
+state; process-restart, adaptive-composition, and independent-range restart scenarios pass separately. The dense
+two-year performance journey passes every accepted budget, including route-workbench opening at 76 milliseconds p95,
+signal overview at 158 milliseconds p95, and longitudinal comparison at 36 milliseconds p95. Visual review in both
+locales and appearances found and corrected compact-navigation occlusion, stale report navigation state, and
+irrelevant recorded-route/sample warnings in planned-training report review.
+
+The final isolated ten-year read-model benchmark retains 520 targets, 4,160 stored phases, and 20 expanded phases per
+target. Chronology measured 3.056 milliseconds p95, target detail 0.878 milliseconds, report resolution 1.694
+milliseconds, and deterministic self-contained HTML export 16.741 milliseconds; peak resident memory was 29.641 MiB
+and every accepted budget passed. Production TypeScript/Vite build, Rust formatting, strict Clippy for both Rust
+trees, dependency audit, current-documentation test, repository-content scan, full-history secret scan, and
+whitespace verification also pass. The final inventory contains only project source, schemas, documentation, and one
+independently authored synthetic JSON fixture; generated icons are deterministic and no personal or unexpected
+binary artifact enters the increment.
 
 **User outcome:** exported objectives, phases, blocks, repetitions, transitions, and intensity constraints survive in
 FitFreed and become understandable without being confused with what the person actually recorded or later authored.

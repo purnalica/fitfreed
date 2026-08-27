@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-update-v5.schema.json",
+  "title": "FitFreed report update version 5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reportRef", "expectedRevision", "title", "locale", "blocks"],
+  "properties": {
+    "reportRef": { "$ref": "report-definition-v5.schema.json#/$defs/reportRef" },
+    "expectedRevision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "title": { "$ref": "report-definition-v5.schema.json#/properties/title" },
+    "locale": { "$ref": "report-definition-v5.schema.json#/properties/locale" },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/updateBlock" },
+      "contains": { "$ref": "session-report-update-v3.schema.json#/$defs/narrativeDraft" },
+      "minContains": 0,
+      "maxContains": 1
+    }
+  },
+  "$defs": {
+    "plannedTrainingDraft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "blockRef", "targetRef"],
+      "properties": {
+        "kind": { "const": "planned-training" },
+        "blockRef": { "$ref": "report-definition-v5.schema.json#/$defs/blockRef" },
+        "targetRef": { "$ref": "report-definition-v5.schema.json#/$defs/plannedTargetRef" }
+      }
+    },
+    "updateBlock": {
+      "oneOf": [
+        { "$ref": "report-update-v4.schema.json#/$defs/updateBlock" },
+        { "$ref": "#/$defs/plannedTrainingDraft" }
+      ]
+    }
+  }
+}

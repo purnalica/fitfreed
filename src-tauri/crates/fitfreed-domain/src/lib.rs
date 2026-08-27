@@ -24,6 +24,7 @@ pub use report_definition::{
     ReportOrigin, ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery,
     ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS, REPORT_DEFINITION_VERSION,
     REPORT_DEFINITION_VERSION_V1, REPORT_DEFINITION_VERSION_V2, REPORT_DEFINITION_VERSION_V3,
+    REPORT_DEFINITION_VERSION_V4,
 };
 
 #[cfg(test)]
@@ -64,6 +65,22 @@ pub use training_session::{
 
 #[cfg(test)]
 mod training_session_tests;
+
+mod planned_training;
+pub use planned_training::{
+    decide_planned_training_reconciliation,
+    order_planned_training_revisions_without_source_revision,
+    resolve_planned_training_session_relation, PlannedTrainingCompletion,
+    PlannedTrainingEditability, PlannedTrainingExercise, PlannedTrainingExerciseKind,
+    PlannedTrainingIntensity, PlannedTrainingIntensityMetric, PlannedTrainingMappingCoverage,
+    PlannedTrainingMappingState, PlannedTrainingPhase, PlannedTrainingPhaseChange,
+    PlannedTrainingPhaseGoal, PlannedTrainingRepeat, PlannedTrainingSessionRelation,
+    PlannedTrainingSport, PlannedTrainingTarget, PlannedTrainingTargetError,
+    PlannedTrainingTargetKind, PlannedTrainingTransition,
+};
+
+#[cfg(test)]
+mod planned_training_tests;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DailyActivity {

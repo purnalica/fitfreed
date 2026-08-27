@@ -15,6 +15,11 @@ export type ReportSourceTarget =
       kind: "comparison";
       reportRef: string;
       query: ReportTrainingComparisonQuery;
+    }
+  | {
+      kind: "planned-training";
+      reportRef: string;
+      targetRef: string;
     };
 
 function isAnalyticalBlock(block: ResolvedReport["definition"]["blocks"][number]): block is AnalyticalReportBlock {
@@ -50,6 +55,18 @@ export function reportSourceTarget(resolved: ResolvedReport): ReportSourceTarget
         ? { kind: "comparison", reportRef: definition.reportRef, query: evidence.query }
         : null;
     }
+    case "planned-training":
+      if (
+        !resolved.plannedTraining
+        || resolved.plannedTraining.target.target.summary.targetRef !== definition.origin.targetRef
+      ) {
+        return null;
+      }
+      return {
+        kind: "planned-training",
+        reportRef: definition.reportRef,
+        targetRef: definition.origin.targetRef,
+      };
     case "blank":
       return null;
   }

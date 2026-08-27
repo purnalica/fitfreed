@@ -17,6 +17,7 @@ import type {
   TrainingSessionStructureResult,
 } from "./training-session-detail";
 import type { SessionStory } from "./session-story";
+import type { PlannedTrainingSessionRelationResult } from "./planned-training";
 import type { TrainingSessionRangesResult } from "./training-session-range";
 import type {
   TrainingRoutePointsResult,
@@ -68,6 +69,24 @@ vi.mock("./leaflet-route-adapter", () => ({
 }));
 
 const snapshotRef = `training-snapshot-${"a".repeat(64)}`;
+
+function absentPlannedTrainingRelation(arguments_: unknown): PlannedTrainingSessionRelationResult {
+  const query = (arguments_ as {
+    query: { sessionRef: string; trainingSnapshotRef: string };
+  }).query;
+  return {
+    snapshotRef: `planned-training-snapshot-${"b".repeat(64)}`,
+    trainingSnapshotRef: query.trainingSnapshotRef,
+    sessionRef: query.sessionRef,
+    relation: {
+      state: "absent",
+      targetRef: null,
+      candidateTargetCount: null,
+      candidateSessionCount: null,
+    },
+    candidates: [],
+  };
+}
 
 function emptyWorkspaceCommand(command: string, arguments_: unknown) {
   if (command === "load_training_discovery_workspace") return Promise.resolve(null);
@@ -155,6 +174,9 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
       ranges: [],
     };
     return Promise.resolve(ranges);
+  }
+  if (command === "query_session_planned_training_relation") {
+    return Promise.resolve(absentPlannedTrainingRelation(arguments_));
   }
   return undefined;
 }
@@ -1293,6 +1315,9 @@ describe("TrainingSessionLibraryPanel", () => {
           ...trainingSegmentation(arguments_.query.sessionRef),
           snapshotRef: arguments_.query.snapshotRef,
         });
+      }
+      if (command === "query_session_planned_training_relation") {
+        return Promise.resolve(absentPlannedTrainingRelation(arguments_));
       }
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -3474,6 +3499,9 @@ describe("TrainingSessionLibraryPanel", () => {
       }
       if (command === "query_training_session_segmentation") {
         return Promise.resolve(trainingSegmentation(arguments_.query.sessionRef));
+      }
+      if (command === "query_session_planned_training_relation") {
+        return Promise.resolve(absentPlannedTrainingRelation(arguments_));
       }
       throw new Error(`Unexpected command: ${command}`);
     });

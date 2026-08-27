@@ -11,6 +11,8 @@ const digest = (character: string) => character.repeat(64);
 const sessionRef = `session-${digest("1")}`;
 const reportRef = `report-${digest("2")}`;
 const snapshotRef = `training-snapshot-${digest("3")}`;
+const plannedSnapshotRef = `planned-snapshot-${digest("8")}`;
+const plannedTargetRef = `planned-target-${digest("9")}`;
 const query: ReportTrainingComparisonQuery = {
   question: "training-period-comparison",
   questionVersion: 1,
@@ -23,11 +25,11 @@ function definition(origin: ReportDefinition["origin"]): ReportDefinition {
     reportRef,
     title: "Review",
     locale: "en-US",
-    sourceSnapshotRef: snapshotRef,
+    sourceSnapshotRef: origin.kind === "planned-training" ? plannedSnapshotRef : snapshotRef,
     origin,
     provenancePolicy: "current-attribution",
     authorship: "user",
-    definitionVersion: 4,
+    definitionVersion: origin.kind === "planned-training" ? 5 : 4,
     revision: "1",
     blocks: origin.kind === "session"
       ? [
@@ -43,7 +45,13 @@ function definition(origin: ReportDefinition["origin"]): ReportDefinition {
             body: "My interpretation",
           },
         ]
-      : [
+      : origin.kind === "planned-training"
+        ? [{
+            kind: "planned-training",
+            blockRef: `report-block-${digest("8")}`,
+            targetRef: plannedTargetRef,
+          }]
+        : [
           {
             kind: "training-finding",
             blockRef: `report-block-${digest("6")}`,
@@ -62,7 +70,7 @@ function definition(origin: ReportDefinition["origin"]): ReportDefinition {
 function resolution(origin: ReportDefinition["origin"]): ResolvedReport {
   return {
     definition: definition(origin),
-    resolvedSnapshotRef: snapshotRef,
+    resolvedSnapshotRef: origin.kind === "planned-training" ? plannedSnapshotRef : snapshotRef,
     status: "current",
     session: origin.kind === "session"
       ? {
@@ -88,6 +96,39 @@ function resolution(origin: ReportDefinition["origin"]): ResolvedReport {
       : null,
     routes: [],
     trainingComparison: null,
+    plannedTraining: origin.kind === "planned-training"
+      ? {
+          blockRef: `report-block-${digest("8")}`,
+          target: {
+            snapshotRef: plannedSnapshotRef,
+            target: {
+              summary: {
+                targetRef: plannedTargetRef,
+                sourceIndex: 1,
+                reconciliationState: "current",
+                targetKind: {
+                  kind: "favorite-template",
+                  scheduledAtLocal: null,
+                  completion: null,
+                },
+                name: "River intervals",
+                description: null,
+                editability: "editable",
+                mappingCoverage: { state: "complete", unmappedFieldCount: 0 },
+                shape: {
+                  exerciseCount: 0,
+                  phaseCount: 0,
+                  expandedPhaseCount: 0,
+                  repeatBlockCount: 0,
+                  containsIntensityEvidence: false,
+                },
+                relation: { state: "not-applicable", sessionRef: null, candidateCount: null },
+              },
+              exercises: [],
+            },
+          },
+        }
+      : null,
     provenance: origin.kind === "session"
       ? {
           kind: "session",
@@ -100,7 +141,9 @@ function resolution(origin: ReportDefinition["origin"]): ResolvedReport {
             nonContributingEventCount: 0,
           },
         }
-      : { kind: "library-snapshot" },
+      : origin.kind === "planned-training"
+        ? { kind: "planned-training-snapshot" }
+        : { kind: "library-snapshot" },
     sensitiveContents: [],
     limitations: [],
   };
@@ -130,6 +173,17 @@ describe("report source navigation", () => {
       question: "training-period-comparison",
       questionVersion: 1,
     }))).toEqual({ kind: "comparison", reportRef, query });
+  });
+
+  it("maps a planned-training report to its exact imported target", () => {
+    expect(reportSourceTarget(resolution({
+      kind: "planned-training",
+      targetRef: plannedTargetRef,
+    }))).toEqual({
+      kind: "planned-training",
+      reportRef,
+      targetRef: plannedTargetRef,
+    });
   });
 
   it("does not invent a source for blank reports or unavailable session evidence", () => {

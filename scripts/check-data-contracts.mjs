@@ -48,6 +48,13 @@ if (!sourceAdapterVersionMatch) {
   throw new Error(`${infrastructurePath} has no SOURCE_ADAPTER_VERSION`);
 }
 const sourceAdapterVersion = sourceAdapterVersionMatch[1];
+const plannedTrainingMappingVersionMatch = infrastructure.match(
+  /const POLAR_PLANNED_TRAINING_MAPPING_VERSION: &str = "([^"]+)";/,
+);
+if (!plannedTrainingMappingVersionMatch) {
+  throw new Error(`${infrastructurePath} has no POLAR_PLANNED_TRAINING_MAPPING_VERSION`);
+}
+const plannedTrainingMappingVersion = plannedTrainingMappingVersionMatch[1];
 
 const migrationDirectory = path.join(repositoryRoot, "src-tauri", "migrations");
 const migrations = readdirSync(migrationDirectory)
@@ -96,12 +103,16 @@ for (const contractValue of [
   "polar-flow-archive@9",
   "polar-flow-archive@10",
   "polar-flow-archive@11",
+  "polar-flow-archive@12",
+  "polar-flow-archive@13",
   "polar-flow-mapping-set@1",
   "polar-flow-mapping-set@2",
   "polar-flow-mapping-set@3",
   "polar-flow-mapping-set@4",
   "polar-flow-mapping-set@5",
   "polar-flow-mapping-set@6",
+  "polar-flow-mapping-set@7",
+  "polar-flow-mapping-set@8",
   "polar-flow-daily-activity@1",
   "polar-flow-training-session@1",
   "polar-flow-training-session@2",
@@ -111,6 +122,7 @@ for (const contractValue of [
   "polar-flow-training-session@6",
   "polar-flow-sleep@1",
   "polar-flow-nightly-recovery@1",
+  "polar-planned-training@1",
   "polar-nightly-recharge@1",
   "assessing",
   "planned",
@@ -181,6 +193,61 @@ for (const structure of [
 }
 for (const contractValue of ["manual", "automatic", "enrich"]) {
   requireMention(trainingStructureCanonical, contractValue, trainingStructureCanonicalPath);
+}
+
+const plannedTrainingDomainPath =
+  "src-tauri/crates/fitfreed-domain/src/planned_training.rs";
+const plannedTrainingDomain = read(plannedTrainingDomainPath);
+const plannedTrainingCanonicalPath =
+  "docs/data-formats/canonical/planned-training.md";
+const plannedTrainingCanonical = read(plannedTrainingCanonicalPath);
+for (const structure of [
+  "PlannedTrainingRepeat",
+  "PlannedTrainingTransition",
+  "PlannedTrainingPhase",
+  "PlannedTrainingExercise",
+]) {
+  const structureMatch = plannedTrainingDomain.match(
+    new RegExp(`pub struct ${structure} \\{([\\s\\S]*?)\\n\\}`),
+  );
+  if (!structureMatch) {
+    throw new Error(`${plannedTrainingDomainPath} has no ${structure}`);
+  }
+  for (const fieldMatch of structureMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+    const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    requireMention(plannedTrainingCanonical, camelCase, plannedTrainingCanonicalPath);
+  }
+}
+const plannedTargetMatch = plannedTrainingDomain.match(
+  /pub struct PlannedTrainingTarget \{([\s\S]*?)\n\}/,
+);
+if (!plannedTargetMatch) {
+  throw new Error(`${plannedTrainingDomainPath} has no PlannedTrainingTarget`);
+}
+for (const fieldMatch of plannedTargetMatch[1].matchAll(/^    ([a-z_]+):/gm)) {
+  const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  requireMention(plannedTrainingCanonical, camelCase, plannedTrainingCanonicalPath);
+}
+for (const contractValue of [
+  "scheduled",
+  "favorite-template",
+  "pending",
+  "completed",
+  "unavailable",
+  "unmapped",
+  "recognized",
+  "heart-rate",
+  "speed",
+  "power",
+  "not-applicable",
+  "absent",
+  "exact",
+  "ambiguous",
+  "equivalent",
+  "preserve",
+  "conflict",
+]) {
+  requireMention(plannedTrainingCanonical, contractValue, plannedTrainingCanonicalPath);
 }
 
 const trainingRouteCanonicalPath =
@@ -526,6 +593,93 @@ for (const targetField of [
   requireMention(trainingMapping, targetField, trainingMappingPath);
 }
 
+const plannedTrainingMappingPath =
+  "docs/data-formats/mappings/polar-flow-planned-training.md";
+const plannedTrainingMapping = read(plannedTrainingMappingPath);
+for (const contractValue of [
+  sourceAdapterVersion,
+  plannedTrainingMappingVersion,
+  "polar-flow-mapping-set@8",
+  "polar-training-target-sport@1",
+]) {
+  requireMention(plannedTrainingMapping, contractValue, plannedTrainingMappingPath);
+}
+for (const sourceField of [
+  "training-target-{date}-{numeric-token}-{uuid-token}.json",
+  "favourite-targets-{numeric-token}-{uuid-token}.json",
+  "exportVersion",
+  "name",
+  "description",
+  "startTime",
+  "done",
+  "nonUserEditable",
+  "exercises",
+  "exercises[].type",
+  "exercises[].duration",
+  "exercises[].distance",
+  "exercises[].sport",
+  "exercises[].phases",
+  "phases[].index",
+  "phases[].goal.type",
+  "phases[].goal.duration",
+  "phases[].goal.distance",
+  "phases[].intensity.type",
+  "phases[].intensity.lowerZone",
+  "phases[].intensity.upperZone",
+  "phases[].changeType",
+  "phases[].jumpIndex",
+  "phases[].repeatCount",
+]) {
+  requireMention(plannedTrainingMapping, sourceField, plannedTrainingMappingPath);
+}
+for (const targetField of [
+  "targetId",
+  "evidenceRevision",
+  "favorite-template",
+  "scheduled",
+  "completion",
+  "editability",
+  "mappingCoverage",
+  "exerciseId",
+  "durationGoalMilliseconds",
+  "distanceGoalMeters",
+  "phaseId",
+  "ordinal",
+  "transitionId",
+  "repeatId",
+  "returnToPhaseOrdinal",
+  "totalIterations",
+  "partial",
+  "conflict",
+]) {
+  requireMention(plannedTrainingMapping, targetField, plannedTrainingMappingPath);
+}
+
+const providerExportPath = "docs/data-formats/providers/polar-flow.md";
+const providerExport = read(providerExportPath);
+for (const sourceContract of [
+  "training-target-{date}-{numeric-token}-{uuid-token}.json",
+  "favourite-targets-{numeric-token}-{uuid-token}.json",
+  "phases[].goal.type",
+  "phases[].intensity.type",
+  "phases[].jumpIndex",
+  "repeatCount",
+]) {
+  requireMention(providerExport, sourceContract, providerExportPath);
+}
+
+const dataFormatIndexPath = "docs/data-formats/README.md";
+const dataFormatIndex = read(dataFormatIndexPath);
+for (const currentContract of [
+  "canonical/planned-training.md",
+  "mappings/polar-flow-planned-training.md",
+  `persistence/sqlite-v${schemaVersion}.md`,
+]) {
+  if (!dataFormatIndex.includes(`](${currentContract})`)) {
+    throw new Error(`${dataFormatIndexPath} does not link ${currentContract}`);
+  }
+}
+
 const sleepMappingPath = "docs/data-formats/mappings/polar-flow-sleep.md";
 const sleepMapping = read(sleepMappingPath);
 for (const contractValue of [
@@ -661,6 +815,379 @@ const activityOverviewSchemaPath = "schemas/activity-overview-v1.schema.json";
 const activityOverviewSchema = JSON.parse(read(activityOverviewSchemaPath));
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
+
+const plannedTrainingExportSchemaPath =
+  "schemas/planned-training-export-v1.schema.json";
+const plannedTrainingExportFixturePath =
+  "test/fixtures/synthetic/planned-training-export-v1.json";
+const plannedTrainingExportDocumentPath =
+  "docs/data-formats/portable/planned-training-v1.md";
+const validatePlannedTrainingExport = ajv.compile(
+  JSON.parse(read(plannedTrainingExportSchemaPath)),
+);
+const syntheticPlannedTrainingExport = JSON.parse(read(plannedTrainingExportFixturePath));
+if (!validatePlannedTrainingExport(syntheticPlannedTrainingExport)) {
+  throw new Error(
+    `${plannedTrainingExportSchemaPath} rejected its synthetic contract: `
+      + ajv.errorsText(validatePlannedTrainingExport.errors),
+  );
+}
+if (validatePlannedTrainingExport({
+  ...syntheticPlannedTrainingExport,
+  privateDatabasePath: "/must/not/cross/the/export/boundary",
+})) {
+  throw new Error(`${plannedTrainingExportSchemaPath} accepted an unknown member`);
+}
+
+const plannedTrainingReadModelDocumentPath =
+  "docs/data-formats/insights/planned-training-v1.md";
+const plannedTrainingReadModelDocument = read(plannedTrainingReadModelDocumentPath);
+for (const contractValue of [
+  "query_planned_training_chronology",
+  "query_planned_training_target",
+  "query_session_planned_training_relation",
+  "scheduled",
+  "favorite-templates",
+  "targetRef",
+  "sessionRef",
+  "snapshotRef",
+  "trainingSnapshotRef",
+  "mappingCoverage",
+  "reconciliationState",
+  "expandedPhaseCount",
+  "containsIntensityEvidence",
+  "returnToPhaseOrdinal",
+  "totalIterations",
+  "not-applicable",
+  "absent",
+  "exact",
+  "ambiguous",
+  "invalid-planned-training-query",
+  "planned-training-changed",
+  "planned-training-not-found",
+  "planned-training-query-failed",
+]) {
+  requireMention(
+    plannedTrainingReadModelDocument,
+    contractValue,
+    plannedTrainingReadModelDocumentPath,
+  );
+}
+
+const plannedTrainingChronologyQuerySchemaPath =
+  "schemas/planned-training-chronology-query-v1.schema.json";
+const plannedTrainingChronologySchemaPath =
+  "schemas/planned-training-chronology-v1.schema.json";
+const plannedTrainingTargetQuerySchemaPath =
+  "schemas/planned-training-target-query-v1.schema.json";
+const plannedTrainingTargetSchemaPath =
+  "schemas/planned-training-target-v1.schema.json";
+const plannedTrainingSessionRelationQuerySchemaPath =
+  "schemas/planned-training-session-relation-query-v1.schema.json";
+const plannedTrainingSessionRelationSchemaPath =
+  "schemas/planned-training-session-relation-v1.schema.json";
+const plannedSnapshotRef = `planned-snapshot-${"a".repeat(64)}`;
+const plannedTargetRef = `planned-target-${"b".repeat(64)}`;
+const plannedSessionRef = `session-${"c".repeat(64)}`;
+const plannedTrainingSnapshotRef = `training-snapshot-${"d".repeat(64)}`;
+
+const validatePlannedTrainingChronologyQuery = ajv.compile(
+  JSON.parse(read(plannedTrainingChronologyQuerySchemaPath)),
+);
+const syntheticPlannedTrainingChronologyQuery = {
+  collection: "scheduled",
+  completion: "completed",
+  from: "2026-08-01",
+  through: "2026-08-31",
+  offset: 0,
+  limit: 25,
+  snapshotRef: null,
+};
+if (!validatePlannedTrainingChronologyQuery(syntheticPlannedTrainingChronologyQuery)) {
+  throw new Error(
+    `${plannedTrainingChronologyQuerySchemaPath} rejected its synthetic query: `
+      + ajv.errorsText(validatePlannedTrainingChronologyQuery.errors),
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticPlannedTrainingChronologyQuery, limit: 101 },
+  { ...syntheticPlannedTrainingChronologyQuery, snapshotRef: "revision-1" },
+  {
+    ...syntheticPlannedTrainingChronologyQuery,
+    collection: "favorite-templates",
+    completion: "completed",
+  },
+  { ...syntheticPlannedTrainingChronologyQuery, sourceProvider: "private" },
+]) {
+  if (validatePlannedTrainingChronologyQuery(invalidQuery)) {
+    throw new Error(`${plannedTrainingChronologyQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const plannedTrainingChronologySchema = JSON.parse(read(plannedTrainingChronologySchemaPath));
+if (!ajv.getSchema(plannedTrainingChronologySchema.$id)) {
+  ajv.addSchema(plannedTrainingChronologySchema);
+}
+const validatePlannedTrainingChronology = ajv.getSchema(plannedTrainingChronologySchema.$id);
+const syntheticPlannedTrainingTargetSummary = {
+  targetRef: plannedTargetRef,
+  sourceIndex: 1,
+  reconciliationState: "current",
+  targetKind: {
+    kind: "scheduled",
+    scheduledAtLocal: "2026-08-18T07:30:00",
+    completion: "completed",
+  },
+  name: "Synthetic interval session",
+  description: "Synthetic planned intent for contract verification",
+  editability: "editable",
+  mappingCoverage: { state: "complete", unmappedFieldCount: 0 },
+  shape: {
+    exerciseCount: 1,
+    phaseCount: 2,
+    expandedPhaseCount: 4,
+    repeatBlockCount: 1,
+    containsIntensityEvidence: true,
+  },
+  relation: {
+    state: "exact",
+    sessionRef: plannedSessionRef,
+    candidateCount: null,
+  },
+};
+const syntheticPlannedTrainingChronology = {
+  snapshotRef: plannedSnapshotRef,
+  totalCount: 1,
+  offset: 0,
+  limit: 25,
+  nextOffset: null,
+  targets: [syntheticPlannedTrainingTargetSummary],
+};
+if (!validatePlannedTrainingChronology(syntheticPlannedTrainingChronology)) {
+  throw new Error(
+    `${plannedTrainingChronologySchemaPath} rejected its synthetic response: `
+      + ajv.errorsText(validatePlannedTrainingChronology.errors),
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticPlannedTrainingChronology, provider: "private" },
+  {
+    ...syntheticPlannedTrainingChronology,
+    targets: [{ ...syntheticPlannedTrainingTargetSummary, exercises: [] }],
+  },
+  {
+    ...syntheticPlannedTrainingChronology,
+    targets: [{
+      ...syntheticPlannedTrainingTargetSummary,
+      relation: { state: "ambiguous", sessionRef: null, candidateCount: 1 },
+    }],
+  },
+]) {
+  if (validatePlannedTrainingChronology(invalidResponse)) {
+    throw new Error(`${plannedTrainingChronologySchemaPath} accepted an invalid response`);
+  }
+}
+
+const validatePlannedTrainingTargetQuery = ajv.compile(
+  JSON.parse(read(plannedTrainingTargetQuerySchemaPath)),
+);
+const syntheticPlannedTrainingTargetQuery = {
+  targetRef: plannedTargetRef,
+  snapshotRef: plannedSnapshotRef,
+};
+if (!validatePlannedTrainingTargetQuery(syntheticPlannedTrainingTargetQuery)) {
+  throw new Error(`${plannedTrainingTargetQuerySchemaPath} rejected its synthetic query`);
+}
+if (validatePlannedTrainingTargetQuery({
+  ...syntheticPlannedTrainingTargetQuery,
+  targetRef: "provider-target",
+})) {
+  throw new Error(`${plannedTrainingTargetQuerySchemaPath} accepted a source target ID`);
+}
+
+const validatePlannedTrainingTarget = ajv.compile(
+  JSON.parse(read(plannedTrainingTargetSchemaPath)),
+);
+const syntheticPlannedTrainingTarget = {
+  snapshotRef: plannedSnapshotRef,
+  target: {
+    summary: syntheticPlannedTrainingTargetSummary,
+    exercises: [{
+      exerciseRef: `planned-exercise-${"e".repeat(64)}`,
+      ordinal: 0,
+      kind: "phased",
+      durationGoalMilliseconds: "1200000",
+      distanceGoalMeters: null,
+      sport: {
+        state: "recognized",
+        recognition: {
+          canonicalFamily: "running",
+          localizedNames: { en: "Running", es: "Carrera" },
+          catalogueRevision: "synthetic-catalogue-2026-08-27",
+          retrievedAtUtc: "2026-08-27T08:00:00Z",
+          mappingVersion: "synthetic-sports@1",
+          evidenceRef: `sport-evidence-${"f".repeat(64)}`,
+        },
+      },
+      phases: [{
+        phaseRef: `planned-phase-${"1".repeat(64)}`,
+        ordinal: 0,
+        name: "Work",
+        goal: {
+          kind: "duration",
+          durationMilliseconds: "300000",
+          distanceMeters: null,
+        },
+        intensity: {
+          kind: "zone-range",
+          metric: "heart-rate",
+          lowerZone: 3,
+          upperZone: 4,
+        },
+        transition: {
+          transitionRef: `planned-transition-${"2".repeat(64)}`,
+          change: "automatic",
+          repeat: null,
+        },
+      }, {
+        phaseRef: `planned-phase-${"3".repeat(64)}`,
+        ordinal: 1,
+        name: "Recovery",
+        goal: {
+          kind: "duration",
+          durationMilliseconds: "120000",
+          distanceMeters: null,
+        },
+        intensity: {
+          kind: "none",
+          metric: null,
+          lowerZone: null,
+          upperZone: null,
+        },
+        transition: {
+          transitionRef: `planned-transition-${"4".repeat(64)}`,
+          change: "automatic",
+          repeat: {
+            repeatRef: `planned-repeat-${"5".repeat(64)}`,
+            returnToPhaseOrdinal: 0,
+            totalIterations: 2,
+          },
+        },
+      }],
+    }],
+  },
+};
+if (!validatePlannedTrainingTarget(syntheticPlannedTrainingTarget)) {
+  throw new Error(
+    `${plannedTrainingTargetSchemaPath} rejected its synthetic response: `
+      + ajv.errorsText(validatePlannedTrainingTarget.errors),
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticPlannedTrainingTarget, originId: "private" },
+  (() => {
+    const value = structuredClone(syntheticPlannedTrainingTarget);
+    value.target.exercises[0].durationGoalMilliseconds = "01200000";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticPlannedTrainingTarget);
+    delete value.target.exercises[0].phases[1].transition;
+    return value;
+  })(),
+]) {
+  if (validatePlannedTrainingTarget(invalidResponse)) {
+    throw new Error(`${plannedTrainingTargetSchemaPath} accepted an invalid response`);
+  }
+}
+
+const validatePlannedTrainingSessionRelationQuery = ajv.compile(
+  JSON.parse(read(plannedTrainingSessionRelationQuerySchemaPath)),
+);
+const syntheticPlannedTrainingSessionRelationQuery = {
+  sessionRef: plannedSessionRef,
+  trainingSnapshotRef: plannedTrainingSnapshotRef,
+  snapshotRef: plannedSnapshotRef,
+};
+if (!validatePlannedTrainingSessionRelationQuery(
+  syntheticPlannedTrainingSessionRelationQuery,
+)) {
+  throw new Error(`${plannedTrainingSessionRelationQuerySchemaPath} rejected its synthetic query`);
+}
+if (validatePlannedTrainingSessionRelationQuery({
+  ...syntheticPlannedTrainingSessionRelationQuery,
+  trainingSnapshotRef: plannedSnapshotRef,
+})) {
+  throw new Error(`${plannedTrainingSessionRelationQuerySchemaPath} confused snapshot kinds`);
+}
+
+const validatePlannedTrainingSessionRelation = ajv.compile(
+  JSON.parse(read(plannedTrainingSessionRelationSchemaPath)),
+);
+const syntheticPlannedTrainingSessionRelation = {
+  snapshotRef: plannedSnapshotRef,
+  trainingSnapshotRef: plannedTrainingSnapshotRef,
+  sessionRef: plannedSessionRef,
+  relation: {
+    state: "exact",
+    targetRef: plannedTargetRef,
+    candidateTargetCount: null,
+    candidateSessionCount: null,
+  },
+  candidates: [syntheticPlannedTrainingTargetSummary],
+};
+if (!validatePlannedTrainingSessionRelation(syntheticPlannedTrainingSessionRelation)) {
+  throw new Error(
+    `${plannedTrainingSessionRelationSchemaPath} rejected its synthetic response: `
+      + ajv.errorsText(validatePlannedTrainingSessionRelation.errors),
+  );
+}
+if (validatePlannedTrainingSessionRelation({
+  ...syntheticPlannedTrainingSessionRelation,
+  sourceSessionId: "private",
+})) {
+  throw new Error(`${plannedTrainingSessionRelationSchemaPath} accepted provider identity`);
+}
+const plannedTrainingExportDocument = read(plannedTrainingExportDocumentPath);
+for (const contractValue of [
+  "application/vnd.fitfreed.planned-training+json;version=1",
+  "org.fitfreed.normalized-planned-training",
+  "schemaVersion",
+  "libraryRevision",
+  "targets",
+  "favoriteSnapshots",
+  "currentRevision",
+  "reconciliationState",
+  "mappingCoverage",
+  "sourceEvidence",
+  "operationRef",
+  "sourceArtifactSha256",
+  "current",
+]) {
+  requireMention(
+    plannedTrainingExportDocument,
+    contractValue,
+    plannedTrainingExportDocumentPath,
+  );
+}
+const dataExitApplicationPath =
+  "src-tauri/crates/fitfreed-application/src/data_exit.rs";
+const dataExitApplication = read(dataExitApplicationPath);
+if (!dataExitApplication.includes("PLANNED_TRAINING_EXPORT_SCHEMA_VERSION: u32 = 1")) {
+  throw new Error(`${dataExitApplicationPath} has a stale planned-training export version`);
+}
+const plannedTrainingExporterPath =
+  "src-tauri/src/infrastructure/planned_training_export.rs";
+const plannedTrainingExporter = read(plannedTrainingExporterPath);
+for (const implementationValue of [
+  "org.fitfreed.normalized-planned-training",
+  "PLANNED_TRAINING_EXPORT_SCHEMA_VERSION",
+  "PrivateStagingFile",
+]) {
+  if (!plannedTrainingExporter.includes(implementationValue)) {
+    throw new Error(`${plannedTrainingExporterPath} omits ${implementationValue}`);
+  }
+}
 
 const segmentationSchemaPath = "schemas/training-session-segmentation-v1.schema.json";
 const validateSegmentation = ajv.compile(JSON.parse(read(segmentationSchemaPath)));
@@ -6311,21 +6838,30 @@ const reportDefinitionCanonicalV4Path = "docs/data-formats/canonical/report-defi
 const reportDefinitionPortableV4Path = "docs/data-formats/portable/report-definition-v4.md";
 const reportV4Path = "docs/data-formats/insights/report-v4.md";
 const reportHtmlV4Path = "docs/data-formats/portable/report-html-v4.md";
+const reportDefinitionCanonicalV5Path = "docs/data-formats/canonical/report-definition-v5.md";
+const reportDefinitionPortableV5Path = "docs/data-formats/portable/report-definition-v5.md";
+const reportV7Path = "docs/data-formats/insights/report-v7.md";
+const reportHtmlV7Path = "docs/data-formats/portable/report-html-v7.md";
 const reportDefinitionSchemaPath = "schemas/report-definition-v1.schema.json";
 const reportDefinitionV2SchemaPath = "schemas/report-definition-v2.schema.json";
 const reportDefinitionV3SchemaPath = "schemas/report-definition-v3.schema.json";
 const reportDefinitionV4SchemaPath = "schemas/report-definition-v4.schema.json";
+const reportDefinitionV5SchemaPath = "schemas/report-definition-v5.schema.json";
 const reportStartSchemaPath = "schemas/report-start-v1.schema.json";
 const preparedReportStartSchemaPath = "schemas/prepared-report-start-v1.schema.json";
 const reportCreateV4SchemaPath = "schemas/report-create-v4.schema.json";
+const reportCreateV5SchemaPath = "schemas/report-create-v5.schema.json";
 const reportUpdateV4SchemaPath = "schemas/report-update-v4.schema.json";
+const reportUpdateV5SchemaPath = "schemas/report-update-v5.schema.json";
 const reportRefreshSchemaPath = "schemas/report-refresh-v1.schema.json";
+const reportRefreshV2SchemaPath = "schemas/report-refresh-v2.schema.json";
 const reportRemoveSchemaPath = "schemas/report-remove-v1.schema.json";
 const removedReportSchemaPath = "schemas/removed-report-v1.schema.json";
 const reportLibraryQuerySchemaPath = "schemas/report-library-query-v1.schema.json";
 const reportLibrarySchemaPath = "schemas/report-library-v1.schema.json";
 const reportResolutionV4SchemaPath = "schemas/report-resolution-v4.schema.json";
 const reportExportV4SchemaPath = "schemas/report-export-v4.schema.json";
+const reportExportV5SchemaPath = "schemas/report-export-v5.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
 const sessionReportCreateV2SchemaPath = "schemas/session-report-create-v2.schema.json";
 const sessionReportCreateV3SchemaPath = "schemas/session-report-create-v3.schema.json";
@@ -6396,6 +6932,26 @@ for (const [documentPath, fields] of [
   ]],
   [reportHtmlV4Path, [
     "text/html", "data-fitfreed-report-version", "library-snapshot", "authored-only", "<data>",
+  ]],
+  [reportDefinitionCanonicalV5Path, [
+    "definitionVersion", "planned-training", "planned-snapshot-", "planned-target-",
+    "planned-training-snapshot", "application/vnd.fitfreed.planned-training+json;version=1",
+  ]],
+  [reportDefinitionPortableV5Path, [
+    "application/vnd.fitfreed.report-definition+json;version=5", "report-create-v5.schema.json",
+    "report-update-v5.schema.json", "report-refresh-v2.schema.json",
+    "report-library-v4.schema.json", "report-resolution-v7.schema.json",
+    "report-export-v5.schema.json", "planned-training",
+  ]],
+  [reportV7Path, [
+    "report-library-v4.schema.json", "report-resolution-v7.schema.json",
+    "report-create-v5.schema.json", "report-update-v5.schema.json",
+    "report-refresh-v2.schema.json", "report-export-v5.schema.json",
+    "planned-training-snapshot", "report-source-changed", "report-evidence-unavailable",
+  ]],
+  [reportHtmlV7Path, [
+    "text/html", "data-fitfreed-output-version=\"7\"", "data-fitfreed-report-version",
+    "milliseconds", "metres", "planned-training-snapshot", "planned-training export version 1",
   ]],
 ]) {
   const document = read(documentPath);
@@ -7350,9 +7906,11 @@ const trainingDiscoveryWorkspaceV2SchemaPath =
 const sessionStoryV5SchemaPath = "schemas/session-story-v5.schema.json";
 const libraryHomeV6SchemaPath = "schemas/library-home-v6.schema.json";
 const reportLibraryV3SchemaPath = "schemas/report-library-v3.schema.json";
+const reportLibraryV4SchemaPath = "schemas/report-library-v4.schema.json";
 const sessionReportResolutionV5SchemaPath =
   "schemas/session-report-resolution-v5.schema.json";
 const reportResolutionV6SchemaPath = "schemas/report-resolution-v6.schema.json";
+const reportResolutionV7SchemaPath = "schemas/report-resolution-v7.schema.json";
 
 const validateProviderSportCatalogue = compileContractSchema(
   providerSportCatalogueSchemaPath,
@@ -7703,10 +8261,17 @@ const reportDependencyPaths = [
   reportDefinitionV2SchemaPath,
   reportDefinitionV3SchemaPath,
   reportDefinitionV4SchemaPath,
+  reportDefinitionV5SchemaPath,
+  reportCreateV4SchemaPath,
+  reportUpdateV4SchemaPath,
+  reportRefreshSchemaPath,
+  reportLibraryV3SchemaPath,
   trainingComparisonSchemaPath,
   trainingSessionProvenanceSchemaPath,
   trainingSessionRouteSchemaPath,
   sessionReportResolutionV3SchemaPath,
+  plannedTrainingChronologySchemaPath,
+  plannedTrainingTargetSchemaPath,
 ];
 for (const dependencyPath of reportDependencyPaths) addContractSchema(dependencyPath);
 
@@ -7978,6 +8543,227 @@ assertContract(
   syntheticReportResolutionV6,
 );
 
+const plannedReportRef = `report-${"a".repeat(64)}`;
+const plannedReportBlockRef = `report-block-${"b".repeat(64)}`;
+const plannedNarrativeBlockRef = `report-block-${"c".repeat(64)}`;
+const syntheticPlannedReportDefinitionV5 = {
+  reportRef: plannedReportRef,
+  title: "Synthetic planned interval session",
+  locale: "en-US",
+  sourceSnapshotRef: plannedSnapshotRef,
+  origin: { kind: "planned-training", targetRef: plannedTargetRef },
+  provenancePolicy: "current-attribution",
+  authorship: "user",
+  definitionVersion: 5,
+  revision: "1",
+  blocks: [{
+    kind: "planned-training",
+    blockRef: plannedReportBlockRef,
+    targetRef: plannedTargetRef,
+  }, {
+    kind: "narrative",
+    blockRef: plannedNarrativeBlockRef,
+    body: "Synthetic authored context kept separate from planned evidence.",
+  }],
+};
+const validateReportDefinitionV5 = compileContractSchema(reportDefinitionV5SchemaPath);
+assertContract(
+  validateReportDefinitionV5,
+  reportDefinitionV5SchemaPath,
+  syntheticPlannedReportDefinitionV5,
+);
+for (const invalidDefinition of [
+  {
+    ...structuredClone(syntheticPlannedReportDefinitionV5),
+    sourceSnapshotRef: plannedTrainingSnapshotRef,
+  },
+  (() => {
+    const value = structuredClone(syntheticPlannedReportDefinitionV5);
+    value.blocks.push(structuredClone(syntheticSessionDefinitionV4.blocks[0]));
+    return value;
+  })(),
+  {
+    ...structuredClone(syntheticPlannedReportDefinitionV5),
+    origin: { kind: "blank" },
+  },
+]) {
+  if (validateReportDefinitionV5(invalidDefinition)) {
+    throw new Error(`${reportDefinitionV5SchemaPath} accepted mixed or mismatched evidence`);
+  }
+}
+
+const syntheticPlannedReportCreateV5 = {
+  title: syntheticPlannedReportDefinitionV5.title,
+  locale: syntheticPlannedReportDefinitionV5.locale,
+  sourceSnapshotRef: plannedSnapshotRef,
+  origin: { kind: "planned-training", targetRef: plannedTargetRef },
+  blocks: [{ kind: "planned-training", targetRef: plannedTargetRef }],
+};
+const validateReportCreateV5 = compileContractSchema(reportCreateV5SchemaPath);
+assertContract(validateReportCreateV5, reportCreateV5SchemaPath, syntheticPlannedReportCreateV5);
+if (validateReportCreateV5({
+  ...structuredClone(syntheticPlannedReportCreateV5),
+  sourceSnapshotRef: plannedTrainingSnapshotRef,
+})) {
+  throw new Error(`${reportCreateV5SchemaPath} accepted a recorded-library snapshot`);
+}
+
+const syntheticPlannedReportUpdateV5 = {
+  reportRef: plannedReportRef,
+  expectedRevision: "1",
+  title: "Synthetic planned interval review",
+  locale: "es-ES",
+  blocks: [{
+    kind: "planned-training",
+    blockRef: plannedReportBlockRef,
+    targetRef: plannedTargetRef,
+  }],
+};
+const validateReportUpdateV5 = compileContractSchema(reportUpdateV5SchemaPath);
+assertContract(validateReportUpdateV5, reportUpdateV5SchemaPath, syntheticPlannedReportUpdateV5);
+if (validateReportUpdateV5({
+  ...structuredClone(syntheticPlannedReportUpdateV5),
+  expectedRevision: "01",
+})) {
+  throw new Error(`${reportUpdateV5SchemaPath} accepted a non-canonical revision`);
+}
+
+const syntheticPlannedReportRefreshV2 = {
+  reportRef: plannedReportRef,
+  expectedRevision: "1",
+  expectedSourceSnapshotRef: plannedSnapshotRef,
+  expectedResolvedSnapshotRef: `planned-snapshot-${"d".repeat(64)}`,
+};
+const validateReportRefreshV2 = compileContractSchema(reportRefreshV2SchemaPath);
+assertContract(
+  validateReportRefreshV2,
+  reportRefreshV2SchemaPath,
+  syntheticPlannedReportRefreshV2,
+);
+
+const syntheticPlannedReportLibraryV4 = {
+  items: [{
+    reportRef: plannedReportRef,
+    title: syntheticPlannedReportDefinitionV5.title,
+    locale: "en-US",
+    sourceSnapshotRef: plannedSnapshotRef,
+    revision: "1",
+    evidenceState: "current",
+    subject: { kind: "planned-training", name: syntheticPlannedTrainingTargetSummary.name },
+    period: {
+      kind: "planned-training",
+      scheduledAtLocal: syntheticPlannedTrainingTargetSummary.targetKind.scheduledAtLocal,
+    },
+    result: {
+      kind: "planned-training",
+      exerciseCount: 1,
+      phaseCount: 2,
+      expandedPhaseCount: 4,
+      repeatBlockCount: 1,
+    },
+    sensitivity: {
+      includesPhysiologicalContext: false,
+      preciseLocationBlockCount: 0,
+      minimumEndpointRedactionMeters: null,
+    },
+  }],
+  totalCount: 1,
+  offset: 0,
+  limit: 12,
+  nextOffset: null,
+};
+const validateReportLibraryV4 = compileContractSchema(reportLibraryV4SchemaPath);
+assertContract(
+  validateReportLibraryV4,
+  reportLibraryV4SchemaPath,
+  syntheticPlannedReportLibraryV4,
+);
+if (validateReportLibraryV4({
+  ...structuredClone(syntheticPlannedReportLibraryV4),
+  items: [{
+    ...structuredClone(syntheticPlannedReportLibraryV4.items[0]),
+    period: {
+      kind: "planned-training",
+      scheduledAtLocal: "2026-08-18 07:30:00",
+    },
+  }],
+})) {
+  throw new Error(`${reportLibraryV4SchemaPath} accepted an invalid planned schedule`);
+}
+
+const syntheticPlannedReportResolutionV7 = {
+  definition: syntheticPlannedReportDefinitionV5,
+  resolvedSnapshotRef: plannedSnapshotRef,
+  status: "current",
+  session: null,
+  routes: [],
+  trainingComparison: null,
+  plannedTraining: {
+    blockRef: plannedReportBlockRef,
+    target: syntheticPlannedTrainingTarget,
+  },
+  provenance: { kind: "planned-training-snapshot" },
+  sensitiveContents: [],
+  limitations: [],
+};
+const validateReportResolutionV7 = compileContractSchema(reportResolutionV7SchemaPath);
+assertContract(
+  validateReportResolutionV7,
+  reportResolutionV7SchemaPath,
+  syntheticPlannedReportResolutionV7,
+);
+for (const invalidResolution of [
+  {
+    ...structuredClone(syntheticPlannedReportResolutionV7),
+    provenance: { kind: "library-snapshot" },
+  },
+  {
+    ...structuredClone(syntheticPlannedReportResolutionV7),
+    session: structuredClone(syntheticReportResolutionV6.session),
+  },
+  {
+    ...structuredClone(syntheticPlannedReportResolutionV7),
+    plannedTraining: null,
+  },
+]) {
+  if (validateReportResolutionV7(invalidResolution)) {
+    throw new Error(`${reportResolutionV7SchemaPath} accepted inconsistent planned evidence`);
+  }
+}
+
+const syntheticPlannedReportExportV5 = {
+  reportRef: plannedReportRef,
+  expectedRevision: "1",
+  expectedSourceSnapshotRef: plannedSnapshotRef,
+  includePhysiologicalContext: false,
+  routeChoices: [],
+  destinationPath: "/private/synthetic/planned-report.html",
+};
+const validateReportExportV5 = compileContractSchema(reportExportV5SchemaPath);
+assertContract(
+  validateReportExportV5,
+  reportExportV5SchemaPath,
+  syntheticPlannedReportExportV5,
+);
+for (const invalidExport of [
+  {
+    ...structuredClone(syntheticPlannedReportExportV5),
+    includePhysiologicalContext: true,
+  },
+  {
+    ...structuredClone(syntheticPlannedReportExportV5),
+    routeChoices: [{
+      blockRef: plannedReportBlockRef,
+      includeGeometry: true,
+      endpointRedactionMeters: 200,
+    }],
+  },
+]) {
+  if (validateReportExportV5(invalidExport)) {
+    throw new Error(`${reportExportV5SchemaPath} accepted mixed planned-report sensitivity`);
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -8038,6 +8824,8 @@ for (const contractPath of [
   reportDefinitionPortableV4Path,
   reportV4Path,
   reportHtmlV4Path,
+  reportDefinitionCanonicalV5Path,
+  reportDefinitionPortableV5Path,
   sessionStoryV4Path,
   sessionReportV4Path,
   reportV5Path,
@@ -8050,6 +8838,10 @@ for (const contractPath of [
   libraryHomeV6Path,
   sessionReportV5Path,
   reportV6Path,
+  reportV7Path,
+  reportHtmlV7Path,
+  plannedTrainingReadModelDocumentPath,
+  plannedTrainingExportDocumentPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -8115,6 +8907,15 @@ process.stdout.write(
       trainingSignalSamplesSchemaPath,
       trainingDiscoveryWorkspaceSchemaPath,
       trainingDiscoveryWorkspaceV2SchemaPath,
+    ],
+    plannedTrainingSchemas: [
+      plannedTrainingChronologyQuerySchemaPath,
+      plannedTrainingChronologySchemaPath,
+      plannedTrainingTargetQuerySchemaPath,
+      plannedTrainingTargetSchemaPath,
+      plannedTrainingSessionRelationQuerySchemaPath,
+      plannedTrainingSessionRelationSchemaPath,
+      plannedTrainingExportSchemaPath,
     ],
     trainingSessionZoneSchemas: [
       trainingSessionZonesQuerySchemaPath,
@@ -8199,17 +9000,22 @@ process.stdout.write(
       reportDefinitionV2SchemaPath,
       reportDefinitionV3SchemaPath,
       reportDefinitionV4SchemaPath,
+      reportDefinitionV5SchemaPath,
       reportStartSchemaPath,
       preparedReportStartSchemaPath,
       reportCreateV4SchemaPath,
+      reportCreateV5SchemaPath,
       reportUpdateV4SchemaPath,
+      reportUpdateV5SchemaPath,
       reportRefreshSchemaPath,
+      reportRefreshV2SchemaPath,
       reportRemoveSchemaPath,
       removedReportSchemaPath,
       reportLibraryQuerySchemaPath,
       reportLibrarySchemaPath,
       reportLibraryV2SchemaPath,
       reportLibraryV3SchemaPath,
+      reportLibraryV4SchemaPath,
       sessionReportCreateSchemaPath,
       sessionReportCreateV2SchemaPath,
       sessionReportCreateV3SchemaPath,
@@ -8225,12 +9031,15 @@ process.stdout.write(
       reportResolutionV4SchemaPath,
       reportResolutionV5SchemaPath,
       reportResolutionV6SchemaPath,
+      reportResolutionV7SchemaPath,
       sessionReportExportSchemaPath,
       sessionReportExportV2SchemaPath,
       reportExportV4SchemaPath,
+      reportExportV5SchemaPath,
       reportExportReceiptSchemaPath,
     ],
     importControlSchemas: [importProgressSchemaPath, importOutcomeSchemaPath],
+    normalizedDataExportSchemas: [plannedTrainingExportSchemaPath],
     canonicalFields: 64,
     mappingFields: 75,
   }) + "\n",

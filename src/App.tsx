@@ -258,7 +258,7 @@ function App() {
   const [reportOrigin, setReportOrigin] = useState<ReportStartOrigin>();
   const [reportOriginRequestId, setReportOriginRequestId] = useState(0);
   const [reportReturnFocusRequest, setReportReturnFocusRequest] = useState<{
-    kind: "session" | "comparison";
+    kind: "session" | "comparison" | "planned-training";
     requestId: number;
   }>();
   const reportReturnFocusSequence = useRef(0);
@@ -680,6 +680,9 @@ function App() {
 
   function createReport(origin: ReportStartOrigin) {
     setErrorCode(undefined);
+    setReportOpenRequest(undefined);
+    setReportReturnRef(undefined);
+    reportSourceReturnDestination.current = undefined;
     setReportReturnFocusRequest(undefined);
     setReportOrigin(origin);
     setReportOriginRequestId((current) => current + 1);
@@ -889,7 +892,9 @@ function App() {
     if (!target) {
       reportReturnFocusSequence.current += 1;
       setReportReturnFocusRequest({
-        kind: reportOrigin?.kind === "session" ? "session" : "comparison",
+        kind: reportOrigin?.kind === "session"
+          ? "session"
+          : reportOrigin?.kind === "planned-training" ? "planned-training" : "comparison",
         requestId: reportReturnFocusSequence.current,
       });
       navigateHome("explore");

@@ -6,7 +6,13 @@ use fitfreed_application::{
     TrainingComparison, TrainingRouteKindView, TrainingSeriesComparison, TrainingSeriesSummary,
     TrainingSessionSport, TrainingSportState,
 };
-use fitfreed_domain::{ReportBlockContent, ReportLocale, ReportTrainingMetric};
+use fitfreed_domain::{
+    PlannedTrainingCompletion, PlannedTrainingExerciseKind, PlannedTrainingIntensity,
+    PlannedTrainingIntensityMetric, PlannedTrainingMappingState, PlannedTrainingPhaseChange,
+    PlannedTrainingPhaseGoal, PlannedTrainingRepeat, PlannedTrainingSessionRelation,
+    PlannedTrainingSport, PlannedTrainingTargetKind, ReportBlockContent, ReportLocale,
+    ReportTrainingMetric,
+};
 
 use super::{
     local_file::PrivateStagingFile,
@@ -14,7 +20,7 @@ use super::{
 };
 
 const SPORT_ICON_SPRITE: &str = include_str!("../../../assets/sport/sport-icons.svg");
-const REPORT_HTML_OUTPUT_VERSION: u32 = 6;
+const REPORT_HTML_OUTPUT_VERSION: u32 = 7;
 const SVG_NAMESPACE_DECLARATION: &str = " xmlns=\"http://www.w3.org/2000/svg\"";
 const EMBEDDED_STYLE: &str = "\
 :root{color-scheme:light dark;font-family:system-ui,-apple-system,sans-serif;line-height:1.5}\
@@ -24,7 +30,7 @@ main{background:#fff;border:1px solid #cad3cc;border-radius:1rem;padding:clamp(1
 h1,h2{line-height:1.15}section{margin-block:2rem}dl{display:grid;grid-template-columns:minmax(10rem,1fr) 2fr;gap:.5rem 1rem}\
 dt{font-weight:700}dd{margin:0}.narrative{white-space:pre-wrap}.attribution,.limitation{color:#425149}\
 .sport-identity{display:inline-flex;align-items:center;gap:.5rem}.sport-icon{width:1.75rem;height:1.75rem;padding:.3rem;color:#276749;background:#eef3ef;border-radius:50%;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;fill:none}\
-.comparison-series{border:1px solid #cad3cc;border-radius:.75rem;padding:1rem;margin-block:1rem}.comparison-chart{display:block;max-width:100%;height:auto;margin-block:1rem}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:.6rem;text-align:left;border-bottom:1px solid #cad3cc}caption{font-weight:700;text-align:left;margin-bottom:.5rem}\
+.comparison-series,.planned-exercise{border:1px solid #cad3cc;border-radius:.75rem;padding:1rem;margin-block:1rem}.comparison-chart{display:block;max-width:100%;height:auto;margin-block:1rem}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:.6rem;text-align:left;vertical-align:top;border-bottom:1px solid #cad3cc}caption{font-weight:700;text-align:left;margin-bottom:.5rem}\
 .route-visual{background:#eef3ef;border:1px solid #cad3cc;border-radius:.75rem;max-width:100%;height:auto}.route-visual rect{fill:#eef3ef}.route-visual polyline{fill:none;stroke:#276749;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.route-visual circle{fill:#17211c;stroke:#fff;stroke-width:2}\
 @media(max-width:40rem){body{padding:.5rem}main{border-radius:.5rem}dl{grid-template-columns:1fr}dd{margin-bottom:.75rem}}\
 @media(prefers-color-scheme:dark){body{color:#e7eee9;background:#121713}main{background:#1b231d;border-color:#445047}.attribution,.limitation{color:#b8c5bc}}\
@@ -98,7 +104,8 @@ fn render_report(
             | ReportBlockContent::TrainingComparison { .. }
             | ReportBlockContent::TrainingChart { .. }
             | ReportBlockContent::TrainingExactTable { .. }
-            | ReportBlockContent::TrainingCoverage { .. } => None,
+            | ReportBlockContent::TrainingCoverage { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
         })
         .unwrap_or(0);
     let mut html = String::with_capacity(8_192 + narrative_length);
@@ -211,6 +218,15 @@ fn render_report(
                     block.block_ref(),
                 );
             }
+            ReportBlockContent::PlannedTraining { target_ref } => {
+                render_planned_training_section(
+                    &mut html,
+                    report,
+                    labels,
+                    block.block_ref(),
+                    target_ref,
+                )?;
+            }
         }
     }
     html.push_str(
@@ -277,6 +293,10 @@ fn render_report(
         }
         ReportEvidenceProvenance::LibrarySnapshot => {
             html.push_str(labels.library_snapshot_attribution);
+            html.push_str("</p>");
+        }
+        ReportEvidenceProvenance::PlannedTrainingSnapshot => {
+            html.push_str(labels.planned_snapshot_attribution);
             html.push_str("</p>");
         }
         ReportEvidenceProvenance::AuthoredOnly => {
@@ -375,6 +395,342 @@ fn render_session_section(
     }
     html.push_str("</dl></section>");
     Ok(())
+}
+
+fn render_planned_training_section(
+    html: &mut String,
+    report: &AuthorizedReportExport,
+    labels: &Labels,
+    block_ref: &str,
+    target_ref: &str,
+) -> Result<(), ReportExportPortError> {
+    let evidence = report.planned_training.as_ref().ok_or_else(|| {
+        ReportExportPortError::Failure(
+            "authorized planned-training report evidence is unavailable".to_owned(),
+        )
+    })?;
+    if evidence.block_ref != block_ref || evidence.target.target.target.target_id() != target_ref {
+        return Err(invalid_planned_training_evidence());
+    }
+    let summary = &evidence.target.target;
+    let target = &summary.target;
+    html.push_str("<section aria-labelledby=\"");
+    push_escaped_attribute(html, block_ref);
+    html.push_str("-heading\"><h2 id=\"");
+    push_escaped_attribute(html, block_ref);
+    html.push_str("-heading\">");
+    html.push_str(labels.planned_training_evidence);
+    html.push_str("</h2><p class=\"attribution\">");
+    html.push_str(labels.planned_source_evidence);
+    html.push_str("</p><h3>");
+    push_escaped(html, target.name());
+    html.push_str("</h3>");
+    if let Some(description) = target.description() {
+        html.push_str("<p>");
+        push_escaped(html, description);
+        html.push_str("</p>");
+    }
+    html.push_str("<dl>");
+    match target.kind() {
+        PlannedTrainingTargetKind::Scheduled {
+            scheduled_at_local,
+            completion,
+        } => {
+            push_term(html, labels.kind, labels.scheduled_training);
+            html.push_str("<dt>");
+            html.push_str(labels.scheduled_for);
+            html.push_str("</dt><dd><time datetime=\"");
+            push_escaped_attribute(html, scheduled_at_local);
+            html.push_str("\">");
+            push_escaped(html, scheduled_at_local);
+            html.push_str("</time></dd>");
+            push_term(
+                html,
+                labels.completion,
+                match completion {
+                    PlannedTrainingCompletion::Pending => labels.pending,
+                    PlannedTrainingCompletion::Completed => labels.completed,
+                },
+            );
+        }
+        PlannedTrainingTargetKind::FavoriteTemplate => {
+            push_term(html, labels.kind, labels.favorite_template)
+        }
+    }
+    let mapping = target.mapping_coverage();
+    push_term(
+        html,
+        labels.mapping,
+        match mapping.state() {
+            PlannedTrainingMappingState::Complete => labels.mapping_complete,
+            PlannedTrainingMappingState::Partial => labels.mapping_partial,
+        },
+    );
+    if mapping.unmapped_field_count() > 0 {
+        push_data_term(
+            html,
+            labels.unmapped_fields,
+            &mapping.unmapped_field_count().to_string(),
+            &mapping.unmapped_field_count().to_string(),
+            None,
+        );
+    }
+    push_code_term(
+        html,
+        labels.source_evidence_revision,
+        target.evidence_revision(),
+    );
+    if let Some(count) = summary.shape.exercise_count {
+        push_data_term(
+            html,
+            labels.exercises,
+            &count.to_string(),
+            &count.to_string(),
+            None,
+        );
+    }
+    if let Some(count) = summary.shape.phase_count {
+        push_data_term(
+            html,
+            labels.unique_phases,
+            &count.to_string(),
+            &count.to_string(),
+            None,
+        );
+    }
+    if let Some(count) = summary.shape.expanded_phase_count {
+        push_data_term(
+            html,
+            labels.expanded_phases,
+            &count.to_string(),
+            &count.to_string(),
+            None,
+        );
+    }
+    if let Some(count) = summary.shape.repeat_block_count {
+        push_data_term(
+            html,
+            labels.repeat_blocks,
+            &count.to_string(),
+            &count.to_string(),
+            None,
+        );
+    }
+    push_term(
+        html,
+        labels.completed_session,
+        match &summary.relation {
+            PlannedTrainingSessionRelation::NotApplicable => labels.not_applicable,
+            PlannedTrainingSessionRelation::Absent => labels.no_related_session,
+            PlannedTrainingSessionRelation::Exact { .. } => labels.related_session,
+            PlannedTrainingSessionRelation::Ambiguous { .. } => labels.ambiguous_relation,
+        },
+    );
+    html.push_str("</dl>");
+
+    if let Some(exercises) = target.exercises() {
+        for exercise in exercises {
+            html.push_str("<article class=\"planned-exercise\"><h3>");
+            html.push_str(labels.exercise);
+            html.push(' ');
+            html.push_str(&(exercise.ordinal + 1).to_string());
+            html.push_str("</h3><dl>");
+            push_term(
+                html,
+                labels.kind,
+                planned_exercise_kind_label(exercise.kind, labels),
+            );
+            if let Some(duration) = exercise.duration_goal_milliseconds {
+                push_data_term(
+                    html,
+                    labels.duration_goal,
+                    &duration.to_string(),
+                    &format_duration(duration, labels),
+                    Some("ms"),
+                );
+            }
+            if let Some(distance) = exercise.distance_goal_meters {
+                push_data_term(
+                    html,
+                    labels.distance_goal,
+                    &format_finite_number(distance),
+                    &format!(
+                        "{} {}",
+                        format_decimal(distance / 1_000.0, report.definition.locale()),
+                        labels.kilometres
+                    ),
+                    Some("m"),
+                );
+            }
+            push_sport_term(
+                html,
+                labels.sport,
+                &planned_training_sport_identity(&exercise.sport, labels),
+            );
+            html.push_str("</dl>");
+            if let Some(phases) = exercise.phases.as_deref() {
+                html.push_str("<div class=\"table-scroll\"><table><caption>");
+                html.push_str(labels.phases);
+                html.push_str("</caption><thead><tr><th scope=\"col\">");
+                html.push_str(labels.phase);
+                html.push_str("</th><th scope=\"col\">");
+                html.push_str(labels.goal);
+                html.push_str("</th><th scope=\"col\">");
+                html.push_str(labels.intensity);
+                html.push_str("</th><th scope=\"col\">");
+                html.push_str(labels.transition);
+                html.push_str("</th></tr></thead><tbody>");
+                for phase in phases {
+                    html.push_str("<tr><th scope=\"row\">");
+                    html.push_str(&(phase.ordinal + 1).to_string());
+                    html.push_str(". ");
+                    push_escaped(html, &phase.name);
+                    html.push_str("</th><td>");
+                    render_planned_phase_goal(
+                        html,
+                        &phase.goal,
+                        labels,
+                        report.definition.locale(),
+                    );
+                    html.push_str("</td><td>");
+                    push_escaped(html, &planned_intensity_label(&phase.intensity, labels));
+                    html.push_str("</td><td>");
+                    push_escaped(
+                        html,
+                        &planned_transition_label(
+                            phase.transition.change,
+                            phase.transition.repeat.as_ref(),
+                            labels,
+                        ),
+                    );
+                    html.push_str("</td></tr>");
+                }
+                html.push_str("</tbody></table></div>");
+            }
+            html.push_str("</article>");
+        }
+    } else {
+        html.push_str("<p>");
+        html.push_str(labels.exercises_unavailable);
+        html.push_str("</p>");
+    }
+    html.push_str("</section>");
+    Ok(())
+}
+
+fn planned_exercise_kind_label(kind: PlannedTrainingExerciseKind, labels: &Labels) -> &'static str {
+    match kind {
+        PlannedTrainingExerciseKind::Open => labels.open_exercise,
+        PlannedTrainingExerciseKind::Phased => labels.phased_exercise,
+        PlannedTrainingExerciseKind::Volume => labels.volume_exercise,
+        PlannedTrainingExerciseKind::Strength => labels.strength_exercise,
+        PlannedTrainingExerciseKind::Unmapped => labels.unmapped,
+    }
+}
+
+fn planned_training_sport_identity(sport: &PlannedTrainingSport, labels: &Labels) -> SportIdentity {
+    match sport {
+        PlannedTrainingSport::Unavailable => SportIdentity {
+            icon: "unavailable",
+            label: labels.sport_unavailable.to_owned(),
+        },
+        PlannedTrainingSport::Unmapped => SportIdentity {
+            icon: "unknown",
+            label: labels.sport_unknown.to_owned(),
+        },
+        PlannedTrainingSport::Recognized(suggestion) => {
+            let family = suggestion
+                .canonical_family()
+                .and_then(|value| sport_family_identity(value.as_code(), labels));
+            SportIdentity {
+                icon: family.map_or("other", |(icon, _)| icon),
+                label: suggestion
+                    .localized_names()
+                    .iter()
+                    .find(|name| name.language_tag() == labels.recognition_locale)
+                    .or_else(|| {
+                        suggestion
+                            .localized_names()
+                            .iter()
+                            .find(|name| name.language_tag() == "en")
+                    })
+                    .map(|name| name.value().to_owned())
+                    .or_else(|| family.map(|(_, label)| label.to_owned()))
+                    .unwrap_or_else(|| labels.sport_unknown.to_owned()),
+            }
+        }
+    }
+}
+
+fn render_planned_phase_goal(
+    html: &mut String,
+    goal: &PlannedTrainingPhaseGoal,
+    labels: &Labels,
+    locale: ReportLocale,
+) {
+    match goal {
+        PlannedTrainingPhaseGoal::DurationMilliseconds(value) => push_data(
+            html,
+            &value.to_string(),
+            &format_duration(*value, labels),
+            Some("ms"),
+        ),
+        PlannedTrainingPhaseGoal::DistanceMeters(value) => push_data(
+            html,
+            &format_finite_number(*value),
+            &format!(
+                "{} {}",
+                format_decimal(*value / 1_000.0, locale),
+                labels.kilometres
+            ),
+            Some("m"),
+        ),
+        PlannedTrainingPhaseGoal::Unmapped => html.push_str(labels.unmapped),
+    }
+}
+
+fn planned_intensity_label(intensity: &PlannedTrainingIntensity, labels: &Labels) -> String {
+    match intensity {
+        PlannedTrainingIntensity::None => labels.no_intensity.to_owned(),
+        PlannedTrainingIntensity::ZoneRange {
+            metric,
+            lower_zone,
+            upper_zone,
+        } => format!(
+            "{} {}–{}",
+            match metric {
+                PlannedTrainingIntensityMetric::HeartRate => labels.heart_rate_zones,
+                PlannedTrainingIntensityMetric::Speed => labels.speed_zones,
+                PlannedTrainingIntensityMetric::Power => labels.power_zones,
+            },
+            lower_zone,
+            upper_zone
+        ),
+        PlannedTrainingIntensity::Unmapped => labels.unmapped.to_owned(),
+    }
+}
+
+fn planned_transition_label(
+    change: PlannedTrainingPhaseChange,
+    repeat: Option<&PlannedTrainingRepeat>,
+    labels: &Labels,
+) -> String {
+    let change = match change {
+        PlannedTrainingPhaseChange::Manual => labels.manual_transition,
+        PlannedTrainingPhaseChange::Automatic => labels.automatic_transition,
+        PlannedTrainingPhaseChange::Unmapped => labels.unmapped,
+    };
+    match repeat {
+        Some(repeat) => format!(
+            "{change}; {} {} {} {} {}",
+            labels.repeat_from_phase,
+            repeat.return_to_phase_ordinal + 1,
+            labels.for_total_iterations,
+            repeat.total_iterations,
+            labels.total_iterations,
+        ),
+        None => change.to_owned(),
+    }
 }
 
 fn render_narrative_section(html: &mut String, body: &str, labels: &Labels) {
@@ -1046,7 +1402,63 @@ fn validate_evidence(report: &AuthorizedReportExport) -> Result<(), ReportExport
         }
     }
     validate_training_comparison_evidence(report)?;
+    validate_planned_training_evidence(report)?;
     Ok(())
+}
+
+fn validate_planned_training_evidence(
+    report: &AuthorizedReportExport,
+) -> Result<(), ReportExportPortError> {
+    let expected = report
+        .definition
+        .blocks()
+        .iter()
+        .find_map(|block| match block.content() {
+            ReportBlockContent::PlannedTraining { target_ref } => {
+                Some((block.block_ref(), target_ref.as_str()))
+            }
+            ReportBlockContent::SessionEvidence { .. }
+            | ReportBlockContent::Route { .. }
+            | ReportBlockContent::Narrative { .. }
+            | ReportBlockContent::TrainingFinding { .. }
+            | ReportBlockContent::TrainingComparison { .. }
+            | ReportBlockContent::TrainingChart { .. }
+            | ReportBlockContent::TrainingExactTable { .. }
+            | ReportBlockContent::TrainingCoverage { .. } => None,
+        });
+    match (expected, report.planned_training.as_ref()) {
+        (None, None) => {
+            if matches!(
+                report.provenance,
+                ReportEvidenceProvenance::PlannedTrainingSnapshot
+            ) {
+                Err(invalid_planned_training_evidence())
+            } else {
+                Ok(())
+            }
+        }
+        (Some((block_ref, target_ref)), Some(evidence))
+            if evidence.block_ref == block_ref
+                && evidence.target.snapshot_ref == report.resolved_snapshot_ref
+                && evidence.target.target.target.target_id() == target_ref
+                && report.session.is_none()
+                && report.routes.is_empty()
+                && report.training_comparison.is_none()
+                && matches!(
+                    report.provenance,
+                    ReportEvidenceProvenance::PlannedTrainingSnapshot
+                ) =>
+        {
+            Ok(())
+        }
+        _ => Err(invalid_planned_training_evidence()),
+    }
+}
+
+fn invalid_planned_training_evidence() -> ReportExportPortError {
+    ReportExportPortError::Failure(
+        "authorized planned-training report evidence is inconsistent".to_owned(),
+    )
 }
 
 fn validate_training_comparison_evidence(
@@ -1065,7 +1477,8 @@ fn validate_training_comparison_evidence(
                 | ReportBlockContent::TrainingCoverage { query } => Some(query),
                 ReportBlockContent::SessionEvidence { .. }
                 | ReportBlockContent::Route { .. }
-                | ReportBlockContent::Narrative { .. } => None,
+                | ReportBlockContent::Narrative { .. }
+                | ReportBlockContent::PlannedTraining { .. } => None,
             });
     let Some(expected_query) = expected_query else {
         return if report.training_comparison.is_none() {
@@ -1435,6 +1848,50 @@ struct Labels {
     sport: &'static str,
     sport_families: &'static SportFamilyLabels,
     exercises: &'static str,
+    planned_training_evidence: &'static str,
+    planned_source_evidence: &'static str,
+    kind: &'static str,
+    scheduled_training: &'static str,
+    favorite_template: &'static str,
+    scheduled_for: &'static str,
+    completion: &'static str,
+    pending: &'static str,
+    completed: &'static str,
+    mapping_complete: &'static str,
+    mapping_partial: &'static str,
+    unmapped_fields: &'static str,
+    source_evidence_revision: &'static str,
+    unique_phases: &'static str,
+    expanded_phases: &'static str,
+    repeat_blocks: &'static str,
+    completed_session: &'static str,
+    not_applicable: &'static str,
+    no_related_session: &'static str,
+    related_session: &'static str,
+    ambiguous_relation: &'static str,
+    exercise: &'static str,
+    phases: &'static str,
+    phase: &'static str,
+    goal: &'static str,
+    intensity: &'static str,
+    transition: &'static str,
+    duration_goal: &'static str,
+    distance_goal: &'static str,
+    open_exercise: &'static str,
+    phased_exercise: &'static str,
+    volume_exercise: &'static str,
+    strength_exercise: &'static str,
+    exercises_unavailable: &'static str,
+    unmapped: &'static str,
+    no_intensity: &'static str,
+    heart_rate_zones: &'static str,
+    speed_zones: &'static str,
+    power_zones: &'static str,
+    manual_transition: &'static str,
+    automatic_transition: &'static str,
+    repeat_from_phase: &'static str,
+    for_total_iterations: &'static str,
+    total_iterations: &'static str,
     route: &'static str,
     precise_location: &'static str,
     route_omitted: &'static str,
@@ -1473,6 +1930,7 @@ struct Labels {
     provenance: &'static str,
     current_attribution: &'static str,
     library_snapshot_attribution: &'static str,
+    planned_snapshot_attribution: &'static str,
     authored_only_attribution: &'static str,
     source: &'static str,
     source_modified: &'static str,
@@ -1541,6 +1999,50 @@ static EN_US: Labels = Labels {
     sport: "Sport",
     sport_families: &EN_US_SPORT_FAMILIES,
     exercises: "Exercises",
+    planned_training_evidence: "Planned training evidence",
+    planned_source_evidence: "Planned intent imported from the identified local source revision",
+    kind: "Kind",
+    scheduled_training: "Scheduled training",
+    favorite_template: "Favorite template",
+    scheduled_for: "Scheduled for",
+    completion: "Completion",
+    pending: "Pending",
+    completed: "Completed",
+    mapping_complete: "Complete",
+    mapping_partial: "Partial",
+    unmapped_fields: "Unmapped source fields",
+    source_evidence_revision: "Source evidence revision",
+    unique_phases: "Defined phases",
+    expanded_phases: "Expanded phases",
+    repeat_blocks: "Repeat blocks",
+    completed_session: "Completed session",
+    not_applicable: "Not applicable",
+    no_related_session: "No related session",
+    related_session: "One related session",
+    ambiguous_relation: "Multiple possible related sessions",
+    exercise: "Exercise",
+    phases: "Phases",
+    phase: "Phase",
+    goal: "Goal",
+    intensity: "Intensity",
+    transition: "Transition",
+    duration_goal: "Duration goal",
+    distance_goal: "Distance goal",
+    open_exercise: "Open exercise",
+    phased_exercise: "Phased exercise",
+    volume_exercise: "Volume exercise",
+    strength_exercise: "Strength exercise",
+    exercises_unavailable: "The source evidence does not contain a structured exercise definition.",
+    unmapped: "Not interpreted",
+    no_intensity: "No intensity target",
+    heart_rate_zones: "Heart-rate zones",
+    speed_zones: "Speed zones",
+    power_zones: "Power zones",
+    manual_transition: "Manual transition",
+    automatic_transition: "Automatic transition",
+    repeat_from_phase: "Repeat from phase",
+    for_total_iterations: "for",
+    total_iterations: "total iterations",
     route: "Route",
     precise_location: "Recorded location evidence with user-reviewed endpoint privacy",
     route_omitted: "Route geometry was omitted during privacy review.",
@@ -1582,6 +2084,8 @@ static EN_US: Labels = Labels {
     current_attribution: "Current contributing source attribution",
     library_snapshot_attribution:
         "Calculated from the identified revision of the locally imported training library.",
+    planned_snapshot_attribution:
+        "Resolved from the identified revision of the locally imported planned-training library.",
     authored_only_attribution:
         "This report currently contains user-authored content and no imported evidence.",
     source: "Source",
@@ -1643,6 +2147,52 @@ static ES_ES: Labels = Labels {
     sport: "Deporte",
     sport_families: &ES_ES_SPORT_FAMILIES,
     exercises: "Ejercicios",
+    planned_training_evidence: "Evidencias del entrenamiento planificado",
+    planned_source_evidence:
+        "Intención planificada importada de la revisión local identificada del origen",
+    kind: "Tipo",
+    scheduled_training: "Entrenamiento programado",
+    favorite_template: "Plantilla favorita",
+    scheduled_for: "Programado para",
+    completion: "Realización",
+    pending: "Pendiente",
+    completed: "Completado",
+    mapping_complete: "Completo",
+    mapping_partial: "Parcial",
+    unmapped_fields: "Campos del origen sin interpretar",
+    source_evidence_revision: "Revisión de las evidencias de origen",
+    unique_phases: "Fases definidas",
+    expanded_phases: "Fases expandidas",
+    repeat_blocks: "Bloques de repetición",
+    completed_session: "Sesión completada",
+    not_applicable: "No aplicable",
+    no_related_session: "Sin sesión relacionada",
+    related_session: "Una sesión relacionada",
+    ambiguous_relation: "Varias sesiones posiblemente relacionadas",
+    exercise: "Ejercicio",
+    phases: "Fases",
+    phase: "Fase",
+    goal: "Objetivo",
+    intensity: "Intensidad",
+    transition: "Transición",
+    duration_goal: "Objetivo de duración",
+    distance_goal: "Objetivo de distancia",
+    open_exercise: "Ejercicio abierto",
+    phased_exercise: "Ejercicio por fases",
+    volume_exercise: "Ejercicio por volumen",
+    strength_exercise: "Ejercicio de fuerza",
+    exercises_unavailable:
+        "Las evidencias de origen no contienen una definición estructurada del ejercicio.",
+    unmapped: "Sin interpretar",
+    no_intensity: "Sin objetivo de intensidad",
+    heart_rate_zones: "Zonas de frecuencia cardíaca",
+    speed_zones: "Zonas de velocidad",
+    power_zones: "Zonas de potencia",
+    manual_transition: "Transición manual",
+    automatic_transition: "Transición automática",
+    repeat_from_phase: "Repetir desde la fase",
+    for_total_iterations: "hasta completar",
+    total_iterations: "iteraciones",
     route: "Ruta",
     precise_location:
         "Evidencias de ubicación registradas con privacidad de extremos revisada por el usuario",
@@ -1686,6 +2236,8 @@ static ES_ES: Labels = Labels {
     current_attribution: "Atribución actual del origen contribuyente",
     library_snapshot_attribution:
         "Calculado a partir de la revisión identificada de la biblioteca local de entrenamientos importados.",
+    planned_snapshot_attribution:
+        "Resuelto a partir de la revisión identificada de la biblioteca local importada de entrenamientos planificados.",
     authored_only_attribution:
         "Este informe contiene actualmente texto escrito por el usuario y ninguna evidencia importada.",
     source: "Origen",
@@ -1717,14 +2269,22 @@ mod tests {
     use std::{collections::BTreeMap, fs};
 
     use fitfreed_application::{
-        ReportSessionEvidence, TrainingComparison, TrainingDateRange,
-        TrainingProvenanceCurrentView, TrainingRoutePointView, TrainingSeriesComparison,
-        TrainingSeriesSummary, TrainingSessionSport, TrainingSourceProviderView,
-        TrainingSportClassification, TrainingSportRecognition,
+        PlannedTrainingPlanShape, PlannedTrainingReconciliationState, PlannedTrainingTargetDetail,
+        PlannedTrainingTargetSummary, ReportPlannedTrainingEvidence, ReportSessionEvidence,
+        TrainingComparison, TrainingDateRange, TrainingProvenanceCurrentView,
+        TrainingRoutePointView, TrainingSeriesComparison, TrainingSeriesSummary,
+        TrainingSessionSport, TrainingSourceProviderView, TrainingSportClassification,
+        TrainingSportRecognition,
     };
     use fitfreed_domain::{
-        ReportBlock, ReportDateRange, ReportDefinition, ReportOrigin, ReportQuestion,
-        ReportTrainingComparisonQuery, ReportTrainingMetric, REPORT_DEFINITION_VERSION,
+        PlannedTrainingCompletion, PlannedTrainingEditability, PlannedTrainingExercise,
+        PlannedTrainingExerciseKind, PlannedTrainingIntensity, PlannedTrainingIntensityMetric,
+        PlannedTrainingMappingCoverage, PlannedTrainingPhase, PlannedTrainingPhaseChange,
+        PlannedTrainingPhaseGoal, PlannedTrainingRepeat, PlannedTrainingSessionRelation,
+        PlannedTrainingSport, PlannedTrainingTarget, PlannedTrainingTargetKind,
+        PlannedTrainingTransition, ReportBlock, ReportDateRange, ReportDefinition, ReportOrigin,
+        ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
+        REPORT_DEFINITION_VERSION,
     };
     use tempfile::tempdir;
 
@@ -1778,6 +2338,7 @@ mod tests {
             }),
             routes: vec![],
             training_comparison: None,
+            planned_training: None,
             provenance: ReportEvidenceProvenance::Session(TrainingProvenanceCurrentView {
                 provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
                     .expect("provider"),
@@ -1958,6 +2519,7 @@ mod tests {
             session: None,
             routes: Vec::new(),
             training_comparison: None,
+            planned_training: None,
             provenance: ReportEvidenceProvenance::AuthoredOnly,
             limitations: Vec::new(),
             include_physiological_context: false,
@@ -1988,6 +2550,156 @@ mod tests {
         resolved.provenance = ReportEvidenceProvenance::LibrarySnapshot;
         resolved.limitations = Vec::new();
         resolved
+    }
+
+    fn planned_training_report(locale: ReportLocale) -> AuthorizedReportExport {
+        let target_ref = format!("planned-target-{}", "1".repeat(64));
+        let block_ref = format!("report-block-{}", "2".repeat(64));
+        let snapshot_ref = format!("planned-snapshot-{}", "3".repeat(64));
+        let target = PlannedTrainingTarget::restore(
+            "provider-neutral-origin-1",
+            &target_ref,
+            format!("planned-evidence-{}", "4".repeat(64)),
+            PlannedTrainingTargetKind::Scheduled {
+                scheduled_at_local: "2026-08-30T08:00:00".to_owned(),
+                completion: PlannedTrainingCompletion::Pending,
+            },
+            "Progressive <intervals>",
+            Some("Four controlled efforts & recovery.".to_owned()),
+            PlannedTrainingEditability::Editable,
+            Some(vec![PlannedTrainingExercise {
+                exercise_id: format!("planned-exercise-{}", "5".repeat(64)),
+                ordinal: 0,
+                kind: PlannedTrainingExerciseKind::Phased,
+                duration_goal_milliseconds: Some(1_800_000),
+                distance_goal_meters: None,
+                sport: PlannedTrainingSport::Unavailable,
+                phases: Some(vec![
+                    PlannedTrainingPhase {
+                        phase_id: format!("planned-phase-{}", "6".repeat(64)),
+                        ordinal: 0,
+                        name: "Warm-up".to_owned(),
+                        goal: PlannedTrainingPhaseGoal::DurationMilliseconds(300_000),
+                        intensity: PlannedTrainingIntensity::ZoneRange {
+                            metric: PlannedTrainingIntensityMetric::HeartRate,
+                            lower_zone: 1,
+                            upper_zone: 2,
+                        },
+                        transition: PlannedTrainingTransition {
+                            transition_id: format!("planned-transition-{}", "7".repeat(64)),
+                            change: PlannedTrainingPhaseChange::Automatic,
+                            repeat: None,
+                        },
+                    },
+                    PlannedTrainingPhase {
+                        phase_id: format!("planned-phase-{}", "8".repeat(64)),
+                        ordinal: 1,
+                        name: "Controlled effort".to_owned(),
+                        goal: PlannedTrainingPhaseGoal::DistanceMeters(1_000.0),
+                        intensity: PlannedTrainingIntensity::ZoneRange {
+                            metric: PlannedTrainingIntensityMetric::HeartRate,
+                            lower_zone: 2,
+                            upper_zone: 4,
+                        },
+                        transition: PlannedTrainingTransition {
+                            transition_id: format!("planned-transition-{}", "9".repeat(64)),
+                            change: PlannedTrainingPhaseChange::Manual,
+                            repeat: Some(PlannedTrainingRepeat {
+                                repeat_id: format!("planned-repeat-{}", "a".repeat(64)),
+                                return_to_phase_ordinal: 0,
+                                total_iterations: 4,
+                            }),
+                        },
+                    },
+                ]),
+            }]),
+            PlannedTrainingMappingCoverage::complete(),
+        )
+        .expect("planned target");
+        let detail = PlannedTrainingTargetDetail {
+            snapshot_ref: snapshot_ref.clone(),
+            target: PlannedTrainingTargetSummary {
+                source_index: 1,
+                reconciliation_state: PlannedTrainingReconciliationState::Current,
+                target,
+                relation: PlannedTrainingSessionRelation::Absent,
+                shape: PlannedTrainingPlanShape {
+                    exercise_count: Some(1),
+                    phase_count: Some(2),
+                    expanded_phase_count: Some(8),
+                    repeat_block_count: Some(1),
+                    contains_intensity_evidence: true,
+                },
+            },
+        };
+        let definition = ReportDefinition::compose_report(
+            format!("report-{}", "b".repeat(64)),
+            "Planned session",
+            locale,
+            &snapshot_ref,
+            ReportOrigin::PlannedTraining {
+                target_ref: target_ref.clone(),
+            },
+            vec![
+                ReportBlock::planned_training(&block_ref, &target_ref)
+                    .expect("planned-training block"),
+                ReportBlock::narrative(
+                    format!("report-block-{}", "c".repeat(64)),
+                    "My pacing notes.",
+                )
+                .expect("narrative block"),
+            ],
+        )
+        .expect("planned report definition");
+        AuthorizedReportExport {
+            definition,
+            resolved_snapshot_ref: snapshot_ref,
+            session: None,
+            routes: Vec::new(),
+            training_comparison: None,
+            planned_training: Some(ReportPlannedTrainingEvidence {
+                block_ref,
+                target: detail,
+            }),
+            provenance: ReportEvidenceProvenance::PlannedTrainingSnapshot,
+            limitations: Vec::new(),
+            include_physiological_context: false,
+        }
+    }
+
+    #[test]
+    fn renders_planned_training_evidence_semantically_in_both_locales() {
+        for locale in [ReportLocale::EnUs, ReportLocale::EsEs] {
+            let html = render_report(
+                &planned_training_report(locale),
+                &ReportExportCancellation::new(),
+            )
+            .expect("planned report HTML");
+
+            assert!(html.contains("data-fitfreed-output-version=\"7\""));
+            assert!(html.contains("Progressive &lt;intervals&gt;"));
+            assert!(html.contains("Four controlled efforts &amp; recovery."));
+            assert!(html.contains("Warm-up"));
+            assert!(html.contains("Controlled effort"));
+            assert!(html.contains("data-unit=\"ms\""));
+            assert!(html.contains("data-unit=\"m\""));
+            assert!(html.contains(match locale {
+                ReportLocale::EnUs => "Planned training evidence",
+                ReportLocale::EsEs => "Evidencias del entrenamiento planificado",
+            }));
+            assert!(html.contains(match locale {
+                ReportLocale::EnUs => "Heart-rate zones 2–4",
+                ReportLocale::EsEs => "Zonas de frecuencia cardíaca 2–4",
+            }));
+            assert!(html.contains(match locale {
+                ReportLocale::EnUs => "Repeat from phase 1 for 4 total iterations",
+                ReportLocale::EsEs => "Repetir desde la fase 1 hasta completar 4 iteraciones",
+            }));
+            assert!(html.contains(match locale {
+                ReportLocale::EnUs => "identified revision of the locally imported planned-training library",
+                ReportLocale::EsEs => "revisión identificada de la biblioteca local importada de entrenamientos planificados",
+            }));
+        }
     }
 
     #[test]
@@ -2126,7 +2838,7 @@ mod tests {
         assert!(html.contains(&format!(
             "data-fitfreed-report-version=\"{REPORT_DEFINITION_VERSION}\""
         )));
-        assert!(html.contains("data-fitfreed-output-version=\"6\""));
+        assert!(html.contains("data-fitfreed-output-version=\"7\""));
         assert!(html.contains("<svg class=\"route-visual\""));
         assert!(
             html.find(">Route</h2>").expect("route section")

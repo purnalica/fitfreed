@@ -17,6 +17,7 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
       returnWorkspace: "home" | "sports";
     };
     onReturnToSports: (sessionFilterRef: string) => void;
+    onOpenPlannedTraining: (targetRef: string) => void;
   }) => (
     <section aria-label="Session child">
       <button
@@ -47,6 +48,45 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
         )}
       >
         Return to sports child
+      </button>
+      <button
+        type="button"
+        onClick={() => properties.onOpenPlannedTraining(
+          `planned-target-${"b".repeat(64)}`,
+        )}
+      >
+        Open linked plan
+      </button>
+    </section>
+  ),
+}));
+
+vi.mock("./PlannedTrainingPanel", () => ({
+  PlannedTrainingPanel: (properties: {
+    openTargetRef?: string;
+    createReportFocusRequestId?: number;
+    onOpenSession: (sessionRef: string) => void;
+    onCreateReport: (target: unknown) => void;
+  }) => (
+    <section aria-label="Plans child">
+      <output data-testid="open-plan-ref">{properties.openTargetRef ?? "none"}</output>
+      <output data-testid="plan-report-focus">
+        {properties.createReportFocusRequestId ?? "none"}
+      </output>
+      <button
+        type="button"
+        onClick={() => properties.onOpenSession(`session-${"c".repeat(64)}`)}
+      >
+        Open linked session
+      </button>
+      <button
+        type="button"
+        onClick={() => properties.onCreateReport({
+          snapshotRef: `planned-snapshot-${"d".repeat(64)}`,
+          target: { summary: { targetRef: `planned-target-${"b".repeat(64)}` } },
+        })}
+      >
+        Create plan report
       </button>
     </section>
   ),
@@ -209,5 +249,74 @@ describe("TrainingInsightsPanel", () => {
     expect(screen.getByTestId("session-change")).toHaveTextContent("2:Trail running");
     expect(screen.getByTestId("sports-change")).toHaveTextContent("2:Trail running");
     expect(onSportClassificationChange).toHaveBeenCalledTimes(2);
+  });
+
+  it("moves naturally between an exact recorded session and its imported plan", async () => {
+    const user = userEvent.setup();
+    render(
+      <TrainingInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+        onSportClassificationChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open linked plan" }));
+    expect(screen.getByRole("button", { name: "Plans" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("open-plan-ref"))
+      .toHaveTextContent(`planned-target-${"b".repeat(64)}`);
+
+    await user.click(screen.getByRole("button", { name: "Open linked session" }));
+    expect(screen.getByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+  });
+
+  it("starts a report from the exact planned target and restores its report action", async () => {
+    const onCreateReport = vi.fn();
+    const user = userEvent.setup();
+    const view = render(
+      <TrainingInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        navigationRequest={{
+          kind: "planned-training",
+          targetRef: `planned-target-${"b".repeat(64)}`,
+          requestId: 11,
+        }}
+        onCreateReport={onCreateReport}
+        onError={vi.fn()}
+        onSportClassificationChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Plans" }))
+      .toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("button", { name: "Create plan report" }));
+    expect(onCreateReport).toHaveBeenCalledWith({
+      kind: "planned-training",
+      snapshotRef: `planned-snapshot-${"d".repeat(64)}`,
+      target: {
+        snapshotRef: `planned-snapshot-${"d".repeat(64)}`,
+        target: { summary: { targetRef: `planned-target-${"b".repeat(64)}` } },
+      },
+    });
+
+    view.rerender(
+      <TrainingInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        reportReturnFocusRequest={{ kind: "planned-training", requestId: 12 }}
+        onCreateReport={onCreateReport}
+        onError={vi.fn()}
+        onSportClassificationChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("plan-report-focus")).toHaveTextContent("12");
   });
 });

@@ -105,14 +105,20 @@ describe("packaged FitFreed application-process restart", () => {
     await goToHome("reports");
     await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);
     const reports = await $$(".report-list button");
-    expect(reports).toHaveLength(2);
-    await expect(reports[0]).toHaveText(
-      expect.stringContaining("Synthetic comparison answer"),
-    );
-    await expect(reports[1]).toHaveText(
-      expect.stringContaining("Synthetic ridge progression"),
-    );
-    await reports[0].click();
+    expect(reports).toHaveLength(3);
+    const reportLabels = [];
+    let comparisonReport;
+    for (const report of reports) {
+      const label = await report.getText();
+      reportLabels.push(label);
+      if (label.includes("Synthetic comparison answer")) comparisonReport = report;
+    }
+    expect(reportLabels.some((label) => label.includes("Synthetic ridge progression")))
+      .toBe(true);
+    expect(reportLabels.some((label) => label.includes("Training plan · Progressive intervals")))
+      .toBe(true);
+    expect(comparisonReport).toBeDefined();
+    await comparisonReport.click();
     expect(await $$(".report-preview .report-narrative")).toHaveLength(0);
 
     const removeAction = await $(`aria/${spanish.reports.delete.action}`);
@@ -134,17 +140,25 @@ describe("packaged FitFreed application-process restart", () => {
       spanish.reports.delete.removed.replace("{title}", "Synthetic comparison answer"),
     );
     const remainingReports = await $$(".report-list button");
-    expect(remainingReports).toHaveLength(1);
-    await expect(remainingReports[0]).toHaveText(
-      expect.stringContaining("Synthetic ridge progression"),
-    );
+    expect(remainingReports).toHaveLength(2);
+    const remainingLabels = [];
+    for (const report of remainingReports) remainingLabels.push(await report.getText());
+    expect(remainingLabels.some((label) => label.includes("Synthetic ridge progression")))
+      .toBe(true);
+    expect(remainingLabels.some((label) => label.includes("Training plan · Progressive intervals")))
+      .toBe(true);
 
     await goToHome("explore");
     await expect($("#training-session-detail-heading")).toHaveText(
       spanish.training.sessionLibrary.detailHeading,
     );
+    await openTrainingWorkspace("plans");
+    await expect($("#planned-training-heading")).toHaveText(spanish.training.planned.heading);
+    const plannedTargets = await $$(".planned-training-list > li");
+    expect(plannedTargets).toHaveLength(1);
+    await expect(plannedTargets[0]).toHaveText(expect.stringContaining("Progressive intervals"));
 
     await goToHome("sources");
-    await expect($("#outcome-heading")).toHaveText(spanish.outcome.changedHeading);
+    await expect($("#outcome-heading")).toHaveText(spanish.outcome.repeatHeading);
   });
 });

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/planned-training-target-query-v1.schema.json",
+  "title": "FitFreed planned-training target query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["targetRef", "snapshotRef"],
+  "properties": {
+    "targetRef": {
+      "type": "string",
+      "pattern": "^planned-target-[0-9a-f]{64}$"
+    },
+    "snapshotRef": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "pattern": "^planned-snapshot-[0-9a-f]{64}$"
+        }
+      ]
+    }
+  }
+}

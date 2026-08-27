@@ -1,9 +1,14 @@
 use std::{path::Path, sync::Mutex};
 
 use fitfreed_domain::{
-    author_session_report, ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition,
-    ReportLocale, ReportOrigin, ReportQuestion, ReportTrainingComparisonQuery,
-    ReportTrainingMetric, TrainingSession, REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1,
+    author_session_report, PlannedTrainingCompletion, PlannedTrainingEditability,
+    PlannedTrainingExercise, PlannedTrainingExerciseKind, PlannedTrainingIntensity,
+    PlannedTrainingIntensityMetric, PlannedTrainingMappingCoverage, PlannedTrainingPhase,
+    PlannedTrainingPhaseChange, PlannedTrainingPhaseGoal, PlannedTrainingSport,
+    PlannedTrainingTarget, PlannedTrainingTargetKind, PlannedTrainingTransition, ReportBlock,
+    ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
+    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric, TrainingSession,
+    REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1,
 };
 
 use super::*;
@@ -26,6 +31,14 @@ const LATER_SNAPSHOT_REF: &str =
 const ROUTE_REF: &str = "route-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const EXERCISE_REF: &str =
     "exercise-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const PLANNED_TARGET_REF: &str =
+    "planned-target-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const PLANNED_EVIDENCE_REF: &str =
+    "planned-evidence-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const PLANNED_SNAPSHOT_REF: &str =
+    "planned-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const CHANGED_PLANNED_SNAPSHOT_REF: &str =
+    "planned-snapshot-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
 #[derive(Default)]
 struct MemoryReportPort {
@@ -130,6 +143,89 @@ struct StubTrainingPort {
 struct MissingTrainingPort;
 
 struct NoComparisonPort;
+
+struct NoPlannedTrainingPort;
+
+#[derive(Clone)]
+struct StubPlannedTrainingPort {
+    snapshot_ref: String,
+    target: Option<PersistedPlannedTrainingTarget>,
+}
+
+impl PlannedTrainingQueryPort for StubPlannedTrainingPort {
+    fn planned_training_snapshot_ref(
+        &self,
+    ) -> Result<Option<String>, PlannedTrainingQueryPortError> {
+        Ok(Some(self.snapshot_ref.clone()))
+    }
+
+    fn query_planned_training_chronology(
+        &self,
+        _query: &PlannedTrainingChronologyQuery,
+    ) -> Result<PersistedPlannedTrainingChronologyPage, PlannedTrainingQueryPortError> {
+        unreachable!("planned reports resolve one exact target")
+    }
+
+    fn query_planned_training_target(
+        &self,
+        query: &PlannedTrainingTargetQuery,
+    ) -> Result<PersistedPlannedTrainingTargetDetail, PlannedTrainingQueryPortError> {
+        if query
+            .snapshot_ref
+            .as_ref()
+            .is_some_and(|expected| expected != &self.snapshot_ref)
+        {
+            return Err(PlannedTrainingQueryPortError::SnapshotChanged);
+        }
+        let target = self
+            .target
+            .clone()
+            .ok_or(PlannedTrainingQueryPortError::NotFound)?;
+        if target.target.target_id() != query.target_ref {
+            return Err(PlannedTrainingQueryPortError::NotFound);
+        }
+        Ok(PersistedPlannedTrainingTargetDetail {
+            snapshot_ref: self.snapshot_ref.clone(),
+            target,
+        })
+    }
+
+    fn query_session_planned_training_candidates(
+        &self,
+        _query: &PlannedTrainingSessionRelationQuery,
+    ) -> Result<PersistedSessionPlannedTrainingCandidates, PlannedTrainingQueryPortError> {
+        unreachable!("planned reports do not infer recorded-session relationships")
+    }
+}
+
+impl PlannedTrainingQueryPort for NoPlannedTrainingPort {
+    fn planned_training_snapshot_ref(
+        &self,
+    ) -> Result<Option<String>, PlannedTrainingQueryPortError> {
+        Ok(None)
+    }
+
+    fn query_planned_training_chronology(
+        &self,
+        _query: &PlannedTrainingChronologyQuery,
+    ) -> Result<PersistedPlannedTrainingChronologyPage, PlannedTrainingQueryPortError> {
+        unreachable!("reports without planned-training evidence do not query its chronology")
+    }
+
+    fn query_planned_training_target(
+        &self,
+        _query: &PlannedTrainingTargetQuery,
+    ) -> Result<PersistedPlannedTrainingTargetDetail, PlannedTrainingQueryPortError> {
+        unreachable!("reports without planned-training evidence do not query its targets")
+    }
+
+    fn query_session_planned_training_candidates(
+        &self,
+        _query: &PlannedTrainingSessionRelationQuery,
+    ) -> Result<PersistedSessionPlannedTrainingCandidates, PlannedTrainingQueryPortError> {
+        unreachable!("reports without planned-training evidence do not query its relationships")
+    }
+}
 
 impl TrainingLibraryPort for NoComparisonPort {
     fn training_bounds(&self) -> Result<Option<TrainingDateRange>, String> {
@@ -467,6 +563,59 @@ fn session() -> TrainingSessionSearchItem {
     }
 }
 
+fn planned_target() -> PersistedPlannedTrainingTarget {
+    PersistedPlannedTrainingTarget {
+        source_index: 1,
+        reconciliation_state: PlannedTrainingReconciliationState::Current,
+        target: PlannedTrainingTarget::restore(
+            "origin-one",
+            PLANNED_TARGET_REF,
+            PLANNED_EVIDENCE_REF,
+            PlannedTrainingTargetKind::Scheduled {
+                scheduled_at_local: "2026-08-30T08:00:00".to_owned(),
+                completion: PlannedTrainingCompletion::Pending,
+            },
+            "Progressive intervals",
+            Some("Four controlled efforts with recovery.".to_owned()),
+            PlannedTrainingEditability::Editable,
+            Some(vec![PlannedTrainingExercise {
+                exercise_id: format!("planned-exercise-{}", "1".repeat(64)),
+                ordinal: 0,
+                kind: PlannedTrainingExerciseKind::Phased,
+                duration_goal_milliseconds: Some(1_800_000),
+                distance_goal_meters: None,
+                sport: PlannedTrainingSport::Unavailable,
+                phases: Some(vec![PlannedTrainingPhase {
+                    phase_id: format!("planned-phase-{}", "2".repeat(64)),
+                    ordinal: 0,
+                    name: "Controlled effort".to_owned(),
+                    goal: PlannedTrainingPhaseGoal::DurationMilliseconds(300_000),
+                    intensity: PlannedTrainingIntensity::ZoneRange {
+                        metric: PlannedTrainingIntensityMetric::HeartRate,
+                        lower_zone: 2,
+                        upper_zone: 4,
+                    },
+                    transition: PlannedTrainingTransition {
+                        transition_id: format!("planned-transition-{}", "3".repeat(64)),
+                        change: PlannedTrainingPhaseChange::Automatic,
+                        repeat: None,
+                    },
+                }]),
+            }]),
+            PlannedTrainingMappingCoverage::complete(),
+        )
+        .expect("planned target"),
+        candidate_session_refs: Vec::new(),
+    }
+}
+
+fn planned_port(snapshot_ref: &str) -> StubPlannedTrainingPort {
+    StubPlannedTrainingPort {
+        snapshot_ref: snapshot_ref.to_owned(),
+        target: Some(planned_target()),
+    }
+}
+
 fn creation() -> CreateSessionReportRequest {
     CreateSessionReportRequest {
         title: "Morning progression".to_owned(),
@@ -687,6 +836,7 @@ fn creates_and_resolves_question_and_blank_reports_without_session_evidence() {
         },
         &StubRoutePort,
         &training,
+        &NoPlannedTrainingPort,
         CreateReportRequest {
             title: "How did my training change?".to_owned(),
             locale: ReportLocale::EnUs,
@@ -706,6 +856,7 @@ fn creates_and_resolves_question_and_blank_reports_without_session_evidence() {
         &StubRoutePort,
         &StubProvenancePort,
         &training,
+        &NoPlannedTrainingPort,
         REPORT_REF,
     )
     .expect("resolved question report");
@@ -726,6 +877,7 @@ fn creates_and_resolves_question_and_blank_reports_without_session_evidence() {
         },
         &StubRoutePort,
         &training,
+        &NoPlannedTrainingPort,
         CreateReportRequest {
             title: "Reusable notes".to_owned(),
             locale: ReportLocale::EnUs,
@@ -748,6 +900,7 @@ fn creates_and_resolves_question_and_blank_reports_without_session_evidence() {
         &StubRoutePort,
         &StubProvenancePort,
         &training,
+        &NoPlannedTrainingPort,
         REPORT_REF,
     )
     .expect("resolved blank report");
@@ -757,6 +910,203 @@ fn creates_and_resolves_question_and_blank_reports_without_session_evidence() {
         ReportEvidenceProvenance::AuthoredOnly
     ));
     assert!(resolved_blank.training_comparison.is_none());
+}
+
+#[test]
+fn creates_resolves_refreshes_lists_and_exports_one_exact_planned_target() {
+    let reports = MemoryReportPort::default();
+    let initial_plans = planned_port(PLANNED_SNAPSHOT_REF);
+    let created = create_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &NoComparisonPort,
+        &initial_plans,
+        CreateReportRequest {
+            title: "Progressive intervals".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: PLANNED_SNAPSHOT_REF.to_owned(),
+            origin: ReportOrigin::PlannedTraining {
+                target_ref: PLANNED_TARGET_REF.to_owned(),
+            },
+            blocks: vec![ReportBlockDraft {
+                block_ref: None,
+                content: ReportBlockDraftContent::PlannedTraining {
+                    target_ref: PLANNED_TARGET_REF.to_owned(),
+                },
+            }],
+        },
+    )
+    .expect("planned report");
+    assert_eq!(created.source_snapshot_ref(), PLANNED_SNAPSHOT_REF);
+    let planned_block_ref = created.blocks()[0].block_ref().to_owned();
+    let updated = update_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &NoComparisonPort,
+        &initial_plans,
+        UpdateReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: 1,
+            title: "Progressive intervals — reviewed".to_owned(),
+            locale: ReportLocale::EnUs,
+            blocks: vec![
+                ReportBlockDraft {
+                    block_ref: Some(planned_block_ref),
+                    content: ReportBlockDraftContent::PlannedTraining {
+                        target_ref: PLANNED_TARGET_REF.to_owned(),
+                    },
+                },
+                ReportBlockDraft {
+                    block_ref: None,
+                    content: ReportBlockDraftContent::Narrative {
+                        body: "Keep the authored interpretation distinct from planned intent."
+                            .to_owned(),
+                    },
+                },
+            ],
+        },
+    )
+    .expect("updated planned report");
+    assert_eq!(updated.revision(), 2);
+    assert_eq!(updated.blocks().len(), 2);
+
+    let resolved = resolve_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        &initial_plans,
+        REPORT_REF,
+    )
+    .expect("resolved planned report");
+    assert_eq!(resolved.status, ReportResolutionStatus::Current);
+    assert!(resolved.session.is_none());
+    assert!(resolved.training_comparison.is_none());
+    assert!(matches!(
+        resolved.provenance,
+        ReportEvidenceProvenance::PlannedTrainingSnapshot
+    ));
+    let evidence = resolved.planned_training.expect("planned evidence");
+    assert_eq!(
+        evidence.target.target.target.target_id(),
+        PLANNED_TARGET_REF
+    );
+    assert_eq!(evidence.target.target.shape.phase_count, Some(1));
+
+    let changed_plans = planned_port(CHANGED_PLANNED_SNAPSHOT_REF);
+    let stale = resolve_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        &changed_plans,
+        REPORT_REF,
+    )
+    .expect("stale planned report candidate");
+    assert_eq!(stale.status, ReportResolutionStatus::Stale);
+    assert_eq!(stale.resolved_snapshot_ref, CHANGED_PLANNED_SNAPSHOT_REF);
+
+    let refreshed = refresh_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        &changed_plans,
+        RefreshReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: 2,
+            expected_source_snapshot_ref: PLANNED_SNAPSHOT_REF.to_owned(),
+            expected_resolved_snapshot_ref: CHANGED_PLANNED_SNAPSHOT_REF.to_owned(),
+        },
+    )
+    .expect("refreshed planned report");
+    assert_eq!(refreshed.revision(), 3);
+    assert_eq!(
+        refreshed.source_snapshot_ref(),
+        CHANGED_PLANNED_SNAPSHOT_REF
+    );
+
+    let library = list_report_library(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &NoComparisonPort,
+        &changed_plans,
+        ReportLibraryRequest {
+            offset: 0,
+            limit: 24,
+        },
+    )
+    .expect("planned report library");
+    assert_eq!(
+        library.items[0].evidence_state,
+        ReportLibraryEvidenceState::Current
+    );
+    assert_eq!(
+        library.items[0].subject,
+        ReportLibrarySubject::PlannedTraining {
+            name: Some("Progressive intervals".to_owned()),
+        }
+    );
+    assert!(matches!(
+        library.items[0].result,
+        Some(ReportLibraryResult::PlannedTraining {
+            phase_count: Some(1),
+            ..
+        })
+    ));
+
+    let exports = RecordingExportPort::default();
+    export_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        &changed_plans,
+        &exports,
+        ReportExportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: 3,
+            expected_source_snapshot_ref: CHANGED_PLANNED_SNAPSHOT_REF.to_owned(),
+            include_physiological_context: false,
+            route_choices: Vec::new(),
+            destination: "/tmp/planned-training-report.html".into(),
+        },
+        &ReportExportCancellation::new(),
+    )
+    .expect("exported planned report");
+    let exported = exports.exports.lock().expect("exports");
+    assert_eq!(exported.len(), 1);
+    assert_eq!(
+        exported[0]
+            .planned_training
+            .as_ref()
+            .expect("authorized planned evidence")
+            .target
+            .target
+            .target
+            .target_id(),
+        PLANNED_TARGET_REF
+    );
 }
 
 #[test]
@@ -772,6 +1122,7 @@ fn expands_a_blank_report_without_replacing_its_origin_or_concurrent_revision() 
         },
         &StubRoutePort,
         &training,
+        &NoPlannedTrainingPort,
         CreateReportRequest {
             title: "Reusable notes".to_owned(),
             locale: ReportLocale::EnUs,
@@ -799,6 +1150,7 @@ fn expands_a_blank_report_without_replacing_its_origin_or_concurrent_revision() 
         },
         &StubRoutePort,
         &training,
+        &NoPlannedTrainingPort,
         UpdateReportRequest {
             report_ref: REPORT_REF.to_owned(),
             expected_revision: 1,
@@ -823,6 +1175,7 @@ fn expands_a_blank_report_without_replacing_its_origin_or_concurrent_revision() 
             },
             &StubRoutePort,
             &training,
+            &NoPlannedTrainingPort,
             UpdateReportRequest {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: 1,
@@ -847,6 +1200,7 @@ fn exports_a_blank_report_without_inventing_session_or_provider_evidence() {
         },
         &StubRoutePort,
         &training,
+        &NoPlannedTrainingPort,
         CreateReportRequest {
             title: "Reusable notes".to_owned(),
             locale: ReportLocale::EnUs,
@@ -871,6 +1225,7 @@ fn exports_a_blank_report_without_inventing_session_or_provider_evidence() {
         &StubRoutePort,
         &StubProvenancePort,
         &training,
+        &NoPlannedTrainingPort,
         &output,
         ReportExportRequest {
             report_ref: REPORT_REF.to_owned(),
@@ -1180,6 +1535,7 @@ fn projects_one_bounded_session_result_without_resolving_routes_or_provenance() 
             snapshot_ref: SNAPSHOT_REF.to_owned(),
         },
         &AnalyticalTrainingPort::current(),
+        &NoPlannedTrainingPort,
         ReportLibraryRequest {
             offset: 0,
             limit: 12,
@@ -1235,6 +1591,7 @@ fn projects_one_authored_comparison_metric_per_source_and_reuses_its_query() {
         },
         &StubRoutePort,
         &training,
+        &NoPlannedTrainingPort,
         CreateReportRequest {
             title: "Winter training comparison".to_owned(),
             locale: ReportLocale::EnUs,
@@ -1268,6 +1625,7 @@ fn projects_one_authored_comparison_metric_per_source_and_reuses_its_query() {
             snapshot_ref: SNAPSHOT_REF.to_owned(),
         },
         &training,
+        &NoPlannedTrainingPort,
         ReportLibraryRequest {
             offset: 0,
             limit: 12,
@@ -1325,6 +1683,7 @@ fn distinguishes_stale_and_unavailable_session_library_evidence() {
             snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
             queries: Mutex::new(Vec::new()),
         },
+        &NoPlannedTrainingPort,
         ReportLibraryRequest {
             offset: 0,
             limit: 12,
@@ -1341,6 +1700,7 @@ fn distinguishes_stale_and_unavailable_session_library_evidence() {
         &reports,
         &MissingTrainingPort,
         &AnalyticalTrainingPort::current(),
+        &NoPlannedTrainingPort,
         ReportLibraryRequest {
             offset: 0,
             limit: 12,
@@ -1372,6 +1732,7 @@ fn retries_one_library_snapshot_change_without_returning_mixed_report_results() 
             snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
         },
         &snapshots,
+        &NoPlannedTrainingPort,
         ReportLibraryRequest {
             offset: 0,
             limit: 12,
@@ -1415,6 +1776,7 @@ fn keeps_legacy_authored_only_reports_recognizable_without_inventing_evidence() 
             snapshot_ref: SNAPSHOT_REF.to_owned(),
         },
         &NoComparisonPort,
+        &NoPlannedTrainingPort,
         ReportLibraryRequest {
             offset: 0,
             limit: 12,
@@ -1588,6 +1950,7 @@ fn deliberately_refreshes_only_the_reviewed_stale_evidence_revision() {
         &StubRoutePort,
         &StubProvenancePort,
         &NoComparisonPort,
+        &NoPlannedTrainingPort,
         RefreshReportRequest {
             report_ref: REPORT_REF.to_owned(),
             expected_revision: original.revision(),
@@ -1617,6 +1980,7 @@ fn deliberately_refreshes_only_the_reviewed_stale_evidence_revision() {
         &StubRoutePort,
         &StubProvenancePort,
         &NoComparisonPort,
+        &NoPlannedTrainingPort,
         REPORT_REF,
     )
     .expect("current refreshed report");
@@ -1643,6 +2007,7 @@ fn rejects_unreviewed_or_concurrent_refreshes_without_mutating_the_saved_report(
             &StubRoutePort,
             &StubProvenancePort,
             &NoComparisonPort,
+            &NoPlannedTrainingPort,
             request,
         ),
         Err(ApplicationError::ReportDefinitionConflict)
@@ -1673,6 +2038,7 @@ fn rejects_unreviewed_or_concurrent_refreshes_without_mutating_the_saved_report(
             &StubRoutePort,
             &StubProvenancePort,
             &NoComparisonPort,
+            &NoPlannedTrainingPort,
             RefreshReportRequest {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: original.revision(),
@@ -1703,6 +2069,7 @@ fn rejects_unreviewed_or_concurrent_refreshes_without_mutating_the_saved_report(
             &StubRoutePort,
             &StubProvenancePort,
             &NoComparisonPort,
+            &NoPlannedTrainingPort,
             RefreshReportRequest {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: original.revision(),
@@ -1754,6 +2121,7 @@ fn rejects_a_refresh_when_the_candidate_changes_during_confirmation() {
             &StubRoutePort,
             &StubProvenancePort,
             &changing_library,
+            &NoPlannedTrainingPort,
             RefreshReportRequest {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: original.revision(),
@@ -1825,6 +2193,7 @@ fn refreshes_question_exploration_and_blank_origins_without_reauthoring_them() {
             &StubRoutePort,
             &StubProvenancePort,
             &current_library,
+            &NoPlannedTrainingPort,
             RefreshReportRequest {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: original.revision(),
