@@ -120,7 +120,7 @@ export interface PlannedTrainingTransition {
 export interface PlannedTrainingPhase {
   phaseRef: string;
   ordinal: number;
-  name: string;
+  name: string | null;
   goal: PlannedTrainingPhaseGoal;
   intensity: PlannedTrainingIntensity;
   transition: PlannedTrainingTransition;

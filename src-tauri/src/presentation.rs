@@ -2702,7 +2702,7 @@ pub struct PlannedTrainingTransitionDto {
 pub struct PlannedTrainingPhaseDto {
     phase_ref: String,
     ordinal: usize,
-    name: String,
+    name: Option<String>,
     goal: PlannedTrainingPhaseGoalDto,
     intensity: PlannedTrainingIntensityDto,
     transition: PlannedTrainingTransitionDto,
@@ -8837,7 +8837,7 @@ mod tests {
                 phases: Some(vec![PlannedTrainingPhase {
                     phase_id: format!("planned-phase-{}", "d".repeat(64)),
                     ordinal: 0,
-                    name: "Work".to_owned(),
+                    name: Some("Work".to_owned()),
                     goal: PlannedTrainingPhaseGoal::DurationMilliseconds(i64::MAX),
                     intensity: PlannedTrainingIntensity::ZoneRange {
                         metric: PlannedTrainingIntensityMetric::HeartRate,
@@ -9073,7 +9073,7 @@ mod tests {
                 phases: Some(vec![PlannedTrainingPhase {
                     phase_id: format!("planned-phase-{}", "2".repeat(64)),
                     ordinal: 0,
-                    name: "Work".to_owned(),
+                    name: Some("Work".to_owned()),
                     goal: PlannedTrainingPhaseGoal::DurationMilliseconds(300_000),
                     intensity: PlannedTrainingIntensity::ZoneRange {
                         metric: PlannedTrainingIntensityMetric::HeartRate,

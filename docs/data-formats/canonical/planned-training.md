@@ -61,7 +61,7 @@ hexadecimal characters and are unique across the aggregate.
 |---|---|---|
 | `phaseId` | `planned-phase-` plus 64 lowercase hexadecimal characters | Stable phase identity inside the target revision. |
 | `ordinal` | integer from zero | Exact canonical phase order. |
-| `name` | required string, 1–120 characters | Source-authored phase name. |
+| `name` | absent or string, 1–120 characters | Exact source-authored phase name when present; absence means the source supplied an empty name and no label is invented in canonical data. |
 | `goal` | duration, distance, or `unmapped` | One positive whole-millisecond duration, one positive finite metre distance, or an explicit unknown variant. |
 | `intensity` | `none`, zone range, or `unmapped` | Intended intensity without implying recorded compliance. |
 | `transitionId` inside `transition` | `planned-transition-` plus 64 lowercase hexadecimal characters | Stable identity of the transition after this phase. |
@@ -87,6 +87,9 @@ characters rather than encoded bytes.
 The date and time must exist in the proleptic Gregorian calendar, year zero is invalid, leap years are validated,
 seconds stop at 59, and a fractional representation never ends in zero. No offset, daylight-saving rule, or time-zone
 identifier is inferred.
+
+An absent phase name is distinct from an empty canonical string. Presentation may derive a localized ordinal label,
+such as `Phase 1`, but that label is not source evidence and never enters persistence or portable export.
 
 Durations are positive whole milliseconds. Distances are positive finite metres. Zone numbers are ordinal source
 intensity bands, not physiological measurements. Missing, present-empty, zero, and unmapped are never interchangeable.
@@ -146,4 +149,4 @@ Version 1 is implemented by the domain invariants in
 `src-tauri/crates/fitfreed-domain/src/planned_training.rs`. Synthetic tests cover identity, optional collections,
 ordering, goals, intensity bounds, repeat nesting and expansion, relationship cardinality, completion ordering,
 mapping enrichment, and unorderable conflict behavior. Provider grammar and transformation are specified separately
-in the [Polar Flow planned-training mapping](../mappings/polar-flow-planned-training.md).
+in the [Polar Flow planned-training mapping version 2](../mappings/polar-flow-planned-training-v2.md).

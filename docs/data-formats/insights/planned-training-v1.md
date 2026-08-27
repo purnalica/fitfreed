@@ -48,7 +48,8 @@ it does not claim that the completed session followed the plan.
 
 Target detail returns the same summary plus nullable ordered `exercises`. Each exercise retains `kind`, optional
 `durationGoalMilliseconds`, optional `distanceGoalMeters`, provider-neutral `sport`, and nullable ordered `phases`.
-Each phase retains `name`, `goal`, `intensity`, and `transition`. A transition can retain a `repeat` with
+Each phase retains nullable `name`, `goal`, `intensity`, and `transition`. Null means the source supplied no usable
+phase name; presentation uses the ordinal for a localized display label without inventing source evidence. A transition can retain a `repeat` with
 `returnToPhaseOrdinal` and `totalIterations`; consumers must not flatten that graph until repeat meaning is lost.
 
 Mapped sport recognition exposes only an optional `canonicalFamily`, localized `localizedNames`, and the
@@ -94,6 +95,6 @@ The command error codes are:
 - `planned-training-not-found` when the exact target or session no longer exists; and
 - `planned-training-query-failed` when persisted evidence violates the read-model contract or cannot be read.
 
-Changing collection semantics, relationship evidence, nullable versus empty meaning, identity, phase/repeat
-structure, numeric encoding, provider-neutrality, snapshot coherence, or error behavior requires a new contract
-version.
+After the first release, changing collection semantics, relationship evidence, nullable versus empty meaning,
+identity, phase/repeat structure, numeric encoding, provider-neutrality, snapshot coherence, or error behavior
+requires a new contract version. The nullable phase-name correction predates that release boundary.

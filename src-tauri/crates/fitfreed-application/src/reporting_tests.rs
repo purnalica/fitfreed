@@ -601,7 +601,7 @@ fn planned_target() -> PersistedPlannedTrainingTarget {
                 phases: Some(vec![PlannedTrainingPhase {
                     phase_id: format!("planned-phase-{}", "2".repeat(64)),
                     ordinal: 0,
-                    name: "Controlled effort".to_owned(),
+                    name: Some("Controlled effort".to_owned()),
                     goal: PlannedTrainingPhaseGoal::DurationMilliseconds(300_000),
                     intensity: PlannedTrainingIntensity::ZoneRange {
                         metric: PlannedTrainingIntensityMetric::HeartRate,

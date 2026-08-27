@@ -13,13 +13,13 @@
       },
       "currentRevision": {
         "evidenceRevision": "planned-evidence-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "mappingVersion": "polar-planned-training@1"
+        "mappingVersion": "polar-planned-training@2"
       },
       "reconciliationState": "current",
       "revisions": [
         {
           "evidenceRevision": "planned-evidence-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "mappingVersion": "polar-planned-training@1",
+          "mappingVersion": "polar-planned-training@2",
           "targetKind": "scheduled",
           "scheduledAtLocal": "2026-01-02T10:30:00.000",
           "completion": "completed",
@@ -60,7 +60,7 @@
                 {
                   "phaseRef": "planned-phase-5555555555555555555555555555555555555555555555555555555555555555",
                   "ordinal": 0,
-                  "name": "Work",
+                  "name": null,
                   "goal": {
                     "kind": "distance",
                     "durationMilliseconds": null,
@@ -118,8 +118,8 @@
         {
           "operationRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "sourceProvider": "polar-flow",
-          "sourceAdapterVersion": "polar-flow-archive@13",
-          "mappingVersion": "polar-planned-training@1",
+          "sourceAdapterVersion": "polar-flow-archive@14",
+          "mappingVersion": "polar-planned-training@2",
           "sourceIdentity": "synthetic-scheduled-target",
           "sourceArtifactLocator": "training-target-2026-01-02-synthetic.json",
           "sourceArtifactSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -141,13 +141,13 @@
       },
       "currentRevision": {
         "evidenceRevision": "planned-evidence-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "mappingVersion": "polar-planned-training@1"
+        "mappingVersion": "polar-planned-training@2"
       },
       "reconciliationState": "current",
       "revisions": [
         {
           "evidenceRevision": "planned-evidence-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "mappingVersion": "polar-planned-training@1",
+          "mappingVersion": "polar-planned-training@2",
           "targetKind": "favorite-template",
           "scheduledAtLocal": null,
           "completion": null,
@@ -167,8 +167,8 @@
         {
           "operationRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "sourceProvider": "polar-flow",
-          "sourceAdapterVersion": "polar-flow-archive@13",
-          "mappingVersion": "polar-planned-training@1",
+          "sourceAdapterVersion": "polar-flow-archive@14",
+          "mappingVersion": "polar-planned-training@2",
           "sourceIdentity": "synthetic-favorite-target",
           "sourceArtifactLocator": "favourite-targets-synthetic.json",
           "sourceArtifactSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
@@ -186,8 +186,8 @@
       "originRef": "0123456789abcdef0123456789abcdef",
       "snapshotRef": "favorite-snapshot-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "sourceProvider": "polar-flow",
-      "sourceAdapterVersion": "polar-flow-archive@13",
-      "mappingVersion": "polar-planned-training@1",
+      "sourceAdapterVersion": "polar-flow-archive@14",
+      "mappingVersion": "polar-planned-training@2",
       "sourceArtifactLocator": "favourite-targets-synthetic.json",
       "sourceArtifactSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "operationRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -197,7 +197,7 @@
           "ordinal": 0,
           "targetRef": "planned-target-2222222222222222222222222222222222222222222222222222222222222222",
           "evidenceRevision": "planned-evidence-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "mappingVersion": "polar-planned-training@1"
+          "mappingVersion": "polar-planned-training@2"
         }
       ]
     }

@@ -85,7 +85,8 @@ Directories are created with their first real contract; empty specifications are
 - [Polar Flow daily activity mapping](mappings/polar-flow-daily-activity.md)
 - [Polar Flow training session mapping](mappings/polar-flow-training-session.md)
 - [Polar Flow training-target sport-evidence mapping](mappings/polar-flow-training-target-sport.md)
-- [Polar Flow planned-training mapping](mappings/polar-flow-planned-training.md)
+- [Polar Flow planned-training mapping version 2](mappings/polar-flow-planned-training-v2.md)
+- [Polar Flow planned-training mapping version 1](mappings/polar-flow-planned-training.md) — preceding contract
 - [Portable planned-training export version 1](portable/planned-training-v1.md)
 - [Polar Flow sleep mapping](mappings/polar-flow-sleep.md)
 - [Polar Flow nightly recovery mapping](mappings/polar-flow-nightly-recovery.md)
@@ -185,7 +186,8 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 25](persistence/sqlite-v25.md)
 - [SQLite schema version 26](persistence/sqlite-v26.md)
 - [SQLite schema version 27](persistence/sqlite-v27.md)
-- [SQLite schema version 32](persistence/sqlite-v32.md)
+- [SQLite schema version 33](persistence/sqlite-v33.md)
+- [SQLite schema version 32](persistence/sqlite-v32.md) — preceding schema
 - [SQLite schema version 31](persistence/sqlite-v31.md) — preceding schema
 - [SQLite schema version 30](persistence/sqlite-v30.md) — preceding schema
 - [SQLite schema version 29](persistence/sqlite-v29.md) — preceding schema

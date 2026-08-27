@@ -105,6 +105,7 @@ for (const contractValue of [
   "polar-flow-archive@11",
   "polar-flow-archive@12",
   "polar-flow-archive@13",
+  "polar-flow-archive@14",
   "polar-flow-mapping-set@1",
   "polar-flow-mapping-set@2",
   "polar-flow-mapping-set@3",
@@ -113,6 +114,7 @@ for (const contractValue of [
   "polar-flow-mapping-set@6",
   "polar-flow-mapping-set@7",
   "polar-flow-mapping-set@8",
+  "polar-flow-mapping-set@9",
   "polar-flow-daily-activity@1",
   "polar-flow-training-session@1",
   "polar-flow-training-session@2",
@@ -123,6 +125,7 @@ for (const contractValue of [
   "polar-flow-sleep@1",
   "polar-flow-nightly-recovery@1",
   "polar-planned-training@1",
+  "polar-planned-training@2",
   "polar-nightly-recharge@1",
   "assessing",
   "planned",
@@ -594,12 +597,12 @@ for (const targetField of [
 }
 
 const plannedTrainingMappingPath =
-  "docs/data-formats/mappings/polar-flow-planned-training.md";
+  "docs/data-formats/mappings/polar-flow-planned-training-v2.md";
 const plannedTrainingMapping = read(plannedTrainingMappingPath);
 for (const contractValue of [
   sourceAdapterVersion,
   plannedTrainingMappingVersion,
-  "polar-flow-mapping-set@8",
+  "polar-flow-mapping-set@9",
   "polar-training-target-sport@1",
 ]) {
   requireMention(plannedTrainingMapping, contractValue, plannedTrainingMappingPath);
@@ -672,7 +675,7 @@ const dataFormatIndexPath = "docs/data-formats/README.md";
 const dataFormatIndex = read(dataFormatIndexPath);
 for (const currentContract of [
   "canonical/planned-training.md",
-  "mappings/polar-flow-planned-training.md",
+  "mappings/polar-flow-planned-training-v2.md",
   `persistence/sqlite-v${schemaVersion}.md`,
 ]) {
   if (!dataFormatIndex.includes(`](${currentContract})`)) {
@@ -1032,7 +1035,7 @@ const syntheticPlannedTrainingTarget = {
       phases: [{
         phaseRef: `planned-phase-${"1".repeat(64)}`,
         ordinal: 0,
-        name: "Work",
+        name: null,
         goal: {
           kind: "duration",
           durationMilliseconds: "300000",
@@ -1082,6 +1085,11 @@ if (!validatePlannedTrainingTarget(syntheticPlannedTrainingTarget)) {
     `${plannedTrainingTargetSchemaPath} rejected its synthetic response: `
       + ajv.errorsText(validatePlannedTrainingTarget.errors),
   );
+}
+const emptyPlannedPhaseName = structuredClone(syntheticPlannedTrainingTarget);
+emptyPlannedPhaseName.target.exercises[0].phases[0].name = "";
+if (validatePlannedTrainingTarget(emptyPlannedPhaseName)) {
+  throw new Error(`${plannedTrainingTargetSchemaPath} accepted an empty canonical phase name`);
 }
 for (const invalidResponse of [
   { ...syntheticPlannedTrainingTarget, originId: "private" },

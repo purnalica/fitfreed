@@ -2705,7 +2705,7 @@ describe("packaged FitFreed import journey", () => {
     await expect(provenance).toHaveText(
       expect.stringContaining(english.training.sessionLibrary.provenanceDecisions.create),
     );
-    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@13"));
+    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@14"));
     await expect(provenance).toHaveText(
       expect.stringContaining("polar-flow-training-session@6"),
     );
@@ -5418,7 +5418,9 @@ describe("packaged FitFreed import journey", () => {
         .replace("{phases}", "3")
         .replace("{passes}", "9")),
     );
-    expect(await $$(".planned-training-sequence > ol > li")).toHaveLength(3);
+    const plannedSequencePhases = await $$(".planned-training-sequence > ol > li");
+    expect(plannedSequencePhases).toHaveLength(3);
+    await expect(plannedSequencePhases[0].$("strong")).toHaveText("Fase 1");
     const exactPlannedPhases = await $(".planned-training-exact-phases");
     expect(await exactPlannedPhases.getAttribute("open")).toBeNull();
     await exactPlannedPhases.$("summary").click();
@@ -5517,7 +5519,7 @@ describe("packaged FitFreed import journey", () => {
     expect(plannedExport).toContain('data-fitfreed-output-version="7"');
     expect(plannedExport).toContain("Training plan · Progressive intervals");
     expect(plannedExport).toContain("Planned training evidence");
-    expect(plannedExport).toContain("Warm up");
+    expect(plannedExport).toContain('<th scope="row">1. Phase</th>');
     expect(plannedExport).toContain("Heart-rate zones 1–2");
     expect(plannedExport).toContain("Repeat from phase 2 for 4 total iterations");
     expect(plannedExport).not.toContain("<script");

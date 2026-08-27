@@ -117,7 +117,7 @@ const detail: PlannedTrainingTargetDetail = {
       phases: [{
         phaseRef: `planned-phase-${"3".repeat(64)}`,
         ordinal: 0,
-        name: "Work",
+        name: null,
         goal: {
           kind: "duration",
           durationMilliseconds: "300000",
@@ -247,6 +247,8 @@ describe("PlannedTrainingPanel", () => {
     expect(screen.getByText("Repeat blocks: 1")).toBeVisible();
     expect(within(screen.getByRole("heading", { name: "Plan sequence" }).parentElement!)
       .getByText("4 × phases 1–2")).toBeVisible();
+    expect(within(screen.getByRole("heading", { name: "Plan sequence" }).parentElement!)
+      .getByText("Phase 1")).toBeVisible();
     const exactDetails = screen.getByText("Exact phase definitions").closest("details");
     expect(exactDetails).not.toBeNull();
     expect(exactDetails).not.toHaveAttribute("open");
@@ -271,6 +273,18 @@ describe("PlannedTrainingPanel", () => {
     await waitFor(() => expect(screen.getByRole("button", {
       name: "Create report from this plan",
     })).toHaveFocus());
+    view.rerender(
+      <PlannedTrainingPanel
+        locale="es-ES"
+        messages={catalogs["es-ES"]}
+        refreshToken={0}
+        onError={vi.fn()}
+        onOpenSession={onOpenSession}
+        onCreateReport={onCreateReport}
+      />,
+    );
+    expect(within(screen.getByRole("heading", { name: "Secuencia del plan" }).parentElement!)
+      .getByText("Fase 1")).toBeVisible();
   });
 
   it("keeps reusable templates separate and sends only applicable filters", async () => {

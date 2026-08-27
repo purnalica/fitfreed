@@ -584,7 +584,11 @@ fn render_planned_training_section(
                     html.push_str("<tr><th scope=\"row\">");
                     html.push_str(&(phase.ordinal + 1).to_string());
                     html.push_str(". ");
-                    push_escaped(html, &phase.name);
+                    if let Some(name) = phase.name.as_deref() {
+                        push_escaped(html, name);
+                    } else {
+                        html.push_str(labels.phase);
+                    }
                     html.push_str("</th><td>");
                     render_planned_phase_goal(
                         html,
@@ -2578,7 +2582,7 @@ mod tests {
                     PlannedTrainingPhase {
                         phase_id: format!("planned-phase-{}", "6".repeat(64)),
                         ordinal: 0,
-                        name: "Warm-up".to_owned(),
+                        name: Some("Warm-up".to_owned()),
                         goal: PlannedTrainingPhaseGoal::DurationMilliseconds(300_000),
                         intensity: PlannedTrainingIntensity::ZoneRange {
                             metric: PlannedTrainingIntensityMetric::HeartRate,
@@ -2594,7 +2598,7 @@ mod tests {
                     PlannedTrainingPhase {
                         phase_id: format!("planned-phase-{}", "8".repeat(64)),
                         ordinal: 1,
-                        name: "Controlled effort".to_owned(),
+                        name: Some("Controlled effort".to_owned()),
                         goal: PlannedTrainingPhaseGoal::DistanceMeters(1_000.0),
                         intensity: PlannedTrainingIntensity::ZoneRange {
                             metric: PlannedTrainingIntensityMetric::HeartRate,

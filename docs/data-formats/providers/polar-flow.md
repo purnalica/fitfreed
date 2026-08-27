@@ -282,7 +282,7 @@ present-empty collections are distinct observed states.
 | `exercises[].sport` | optional detailed-sport string | Source vocabulary evidence for this exercise; it is not a training-session `sport.id`. |
 | `exercises[].phases` | optional array | Ordered phase definitions. Absence differs from present-empty. |
 | `phases[].index` | required positive integer | One-based contiguous source order in the evaluated shape. |
-| `phases[].name` | required string | Provider-authored phase name. |
+| `phases[].name` | required string, observed empty or non-empty | Provider-authored phase name when non-empty; an empty value means no name was supplied. |
 | `phases[].changeType` | required string | Evaluated values `MANUAL` and `AUTOMATIC` describe the transition after the phase. |
 | `phases[].goal.type` | required string | Evaluated values `DURATION` and `DISTANCE`; the matching `duration` or `distance` member supplies the exclusive goal. |
 | `phases[].intensity.type` | required string | Evaluated values `NONE`, `HEART_RATE_ZONES`, `SPEED_ZONES`, and `POWER_ZONES`. |
@@ -302,7 +302,7 @@ Distinct codes on one exact target remain ambiguous. This does not establish a g
 and it never labels other sessions that share the same opaque value.
 
 The complete provider-neutral planning transformation is normative in the
-[planned-training mapping](../mappings/polar-flow-planned-training.md). The exact completed-target relationship,
+[planned-training mapping](../mappings/polar-flow-planned-training-v2.md). The exact completed-target relationship,
 vocabulary subset, attribution, and session-recognition rules remain normative in the narrower
 [training-target sport-evidence mapping](../mappings/polar-flow-training-target-sport.md).
 

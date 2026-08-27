@@ -7,8 +7,8 @@ suggestions from completed training targets. It does not change canonical traini
 map a provider sport code to an opaque `sport.id`.
 
 - Source provider: `polar-flow`
-- Source adapter version: `polar-flow-archive@13`
-- Operation mapping set: `polar-flow-mapping-set@8`
+- Source adapter version: `polar-flow-archive@14`
+- Operation mapping set: `polar-flow-mapping-set@9`
 - Sport mapping: `polar-training-target-sport@1`
 - Vocabulary revision: `polar-accesslink-detailed-sport-info@2026-05-06`
 - Vocabulary source: [Polar AccessLink API](https://www.polar.com/accesslink-api/)
@@ -28,7 +28,7 @@ canonical non-empty `exportVersion`, parseable local `startTime`, Boolean `done`
 Every exercise requires a syntactically valid `sport` code. Unknown valid codes remain evaluated but unmapped;
 an invalid known field rejects the complete package before visible state changes.
 
-The same artifact now also enters the independent [planned-training mapping](polar-flow-planned-training.md).
+The same artifact now also enters the independent [planned-training mapping version 2](polar-flow-planned-training-v2.md).
 That mapping preserves target structure; this contract alone owns the narrower completed-target-to-session sport
 relationship and does not make planned structure recorded session evidence.
 

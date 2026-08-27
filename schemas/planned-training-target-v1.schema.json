@@ -215,7 +215,12 @@
           "pattern": "^planned-phase-[0-9a-f]{64}$"
         },
         "ordinal": { "type": "integer", "minimum": 0 },
-        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "name": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1, "maxLength": 120 }
+          ]
+        },
         "goal": { "$ref": "#/$defs/goal" },
         "intensity": { "$ref": "#/$defs/intensity" },
         "transition": { "$ref": "#/$defs/transition" }

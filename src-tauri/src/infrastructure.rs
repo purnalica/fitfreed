@@ -199,7 +199,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 32;
+const SCHEMA_VERSION: i64 = 33;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -232,9 +232,11 @@ const SCHEMA_V29: &str = include_str!("../migrations/0029_training_session_sport
 const SCHEMA_V30: &str = include_str!("../migrations/0030_training_discovery_workspace_v2.sql");
 const SCHEMA_V31: &str = include_str!("../migrations/0031_planned_training.sql");
 const SCHEMA_V32: &str = include_str!("../migrations/0032_planned_training_reports.sql");
+const SCHEMA_V33: &str =
+    include_str!("../migrations/0033_nullable_planned_training_phase_name.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@13";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@8";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@14";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@9";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
 const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@6";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
@@ -244,7 +246,7 @@ const POLAR_DETAILED_SPORT_CATALOGUE_REVISION: &str =
     "polar-accesslink-detailed-sport-info@2026-05-06";
 const POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC: &str = "2026-08-26T11:25:54Z";
 const POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION: &str = "polar-training-target-sport@1";
-const POLAR_PLANNED_TRAINING_MAPPING_VERSION: &str = "polar-planned-training@1";
+const POLAR_PLANNED_TRAINING_MAPPING_VERSION: &str = "polar-planned-training@2";
 const LEGACY_TRAINING_WORKSPACE_VERSION: u32 = 1;
 const TRAINING_WORKSPACE_VERSION: u32 = 2;
 
@@ -9515,6 +9517,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         }
         if version < 32 {
             connection.execute_batch(SCHEMA_V32)?;
+        }
+        if version < 33 {
+            connection.execute_batch(SCHEMA_V33)?;
         }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
@@ -20533,7 +20538,7 @@ mod tests {
                         "phases":[
                           {
                             "index":1,
-                            "name":"Warm up",
+                            "name":"",
                             "changeType":"AUTOMATIC",
                             "goal":{"type":"DURATION","duration":"PT10M"},
                             "intensity":{"type":"HEART_RATE_ZONES","lowerZone":1,"upperZone":2}
@@ -20627,6 +20632,14 @@ mod tests {
                 .expect("repeat semantics"),
             4
         );
+        assert!(connection
+            .query_row(
+                "SELECT name FROM planned_training_phase WHERE ordinal = 0",
+                [],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .expect("unnamed phase")
+            .is_none());
         assert_eq!(
             connection
                 .query_row(
@@ -20880,7 +20893,7 @@ mod tests {
                         "phases":[
                           {
                             "index":1,
-                            "name":"Work",
+                            "name":"",
                             "changeType":"AUTOMATIC",
                             "goal":{"type":"DISTANCE","distance":800.0},
                             "intensity":{"type":"SPEED_ZONES","lowerZone":3,"upperZone":4}
@@ -20947,6 +20960,10 @@ mod tests {
             .expect("scheduled normalized target");
         assert_eq!(scheduled["reconciliationState"], "current");
         assert_eq!(scheduled["revisions"][0]["name"], "Exported intervals");
+        assert_eq!(
+            scheduled["revisions"][0]["exercises"][0]["phases"][0]["name"],
+            serde_json::Value::Null
+        );
         assert_eq!(
             scheduled["revisions"][0]["exercises"][0]["phases"][1]["transition"]["repeat"]
                 ["totalIterations"],
@@ -25793,7 +25810,7 @@ mod tests {
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
             SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29,
-            SCHEMA_V30, SCHEMA_V31, SCHEMA_V32,
+            SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33,
         ];
         for migration in migrations
             .iter()
@@ -25860,6 +25877,119 @@ mod tests {
                 .expect("planned-training tables"),
             7
         );
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn migrates_planned_phase_names_to_nullable_without_losing_existing_names() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 32);
+        let target_id = format!("planned-target-{}", "1".repeat(64));
+        let evidence_revision = format!("planned-evidence-{}", "2".repeat(64));
+        let exercise_id = format!("planned-exercise-{}", "3".repeat(64));
+        let phase_id = format!("planned-phase-{}", "4".repeat(64));
+        let transition_id = format!("planned-transition-{}", "5".repeat(64));
+        connection
+            .execute_batch(&format!(
+                "BEGIN;
+                 INSERT INTO import_operation (
+                     id, operation_ref, package_sha256, state, source_provider,
+                     source_adapter_version, mapping_version, started_at_utc, updated_at_utc,
+                     completed_at_utc, exact_repeat, repeated_operation_id, coverage_complete,
+                     total_artifacts, supported_artifacts, unsupported_artifacts,
+                     ignored_artifacts, unrecognized_artifacts, invalid_artifacts,
+                     recognized_artifacts, new_observations, equivalent_observations,
+                     enriched_observations, preserved_observations, conflicts,
+                     canonical_history_changed, temporary_state_removed, terminal_code,
+                     recovery_note, observation_origin_id
+                 ) VALUES (
+                     1, 'synthetic-operation', NULL, 'completed', 'polar-flow',
+                     'synthetic-adapter@1', 'synthetic-mapping@1', NULL, NULL, NULL,
+                     0, NULL, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'completed', NULL, NULL
+                 );
+                 INSERT INTO observation_origin (
+                     id, source_provider, correlation_state, created_at_utc
+                 ) VALUES ('synthetic-origin', 'polar-flow', 'verified', '2026-01-01T00:00:00Z');
+                 UPDATE import_operation SET observation_origin_id = 'synthetic-origin' WHERE id = 1;
+                 INSERT INTO planned_training_target (
+                     origin_id, target_id, source_provider, source_kind, source_identity,
+                     current_evidence_revision, current_mapping_version, reconciliation_state,
+                     first_seen_import_operation_id, last_seen_import_operation_id
+                 ) VALUES (
+                     'synthetic-origin', '{target_id}', 'polar-flow', 'scheduled', 'target-1',
+                     '{evidence_revision}', 'synthetic-planned@1', 'current', 1, 1
+                 );
+                 INSERT INTO planned_training_target_revision (
+                     origin_id, target_id, evidence_revision, mapping_version, target_kind,
+                     scheduled_at_local, completion_state, name, description, editability,
+                     exercises_present, mapping_state, unmapped_field_count, source_export_version
+                 ) VALUES (
+                     'synthetic-origin', '{target_id}', '{evidence_revision}',
+                     'synthetic-planned@1', 'scheduled', '2026-01-02T10:00:00', 'pending',
+                     'Synthetic plan', NULL, 'editable', 1, 'complete', 0, '1.0'
+                 );
+                 INSERT INTO planned_training_exercise (
+                     origin_id, target_id, evidence_revision, mapping_version, exercise_id,
+                     ordinal, exercise_kind, duration_goal_milliseconds, distance_goal_meters,
+                     sport_state, canonical_family_suggestion, localized_names_json,
+                     catalogue_revision, catalogue_retrieved_at_utc, sport_mapping_version,
+                     sport_evidence_ref, phases_present
+                 ) VALUES (
+                     'synthetic-origin', '{target_id}', '{evidence_revision}',
+                     'synthetic-planned@1', '{exercise_id}', 0, 'phased', NULL, NULL,
+                     'unavailable', NULL, NULL, NULL, NULL, NULL, NULL, 1
+                 );
+                 INSERT INTO planned_training_phase (
+                     origin_id, target_id, evidence_revision, mapping_version, exercise_id,
+                     phase_id, ordinal, name, goal_kind, duration_goal_milliseconds,
+                     distance_goal_meters, intensity_kind, intensity_metric, lower_zone, upper_zone,
+                     transition_id, change_kind, repeat_id, return_to_phase_ordinal, total_iterations
+                 ) VALUES (
+                     'synthetic-origin', '{target_id}', '{evidence_revision}',
+                     'synthetic-planned@1', '{exercise_id}', '{phase_id}', 0, 'Warm up',
+                     'duration', 600000, NULL, 'none', NULL, NULL, NULL,
+                     '{transition_id}', 'automatic', NULL, NULL, NULL
+                 );
+                 COMMIT;"
+            ))
+            .expect("schema thirty-two planned phase");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted schema thirty-three");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("rolled-back schema version"),
+            32
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT name FROM planned_training_phase", [], |row| {
+                    row.get::<_, String>(0)
+                })
+                .expect("preserved old phase"),
+            "Warm up"
+        );
+
+        migrate_schema(&connection, false).expect("schema thirty-three migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("migrated schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT name FROM planned_training_phase", [], |row| {
+                    row.get::<_, Option<String>>(0)
+                })
+                .expect("preserved named phase"),
+            Some("Warm up".to_owned())
+        );
+        connection
+            .execute("UPDATE planned_training_phase SET name = NULL", [])
+            .expect("nullable phase name");
         assert_integrity(&connection);
     }
 

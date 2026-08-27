@@ -544,7 +544,7 @@ fn map_phase(
             ],
         ),
         ordinal,
-        name: source.name,
+        name: (!source.name.trim().is_empty()).then_some(source.name),
         goal,
         intensity,
         transition: PlannedTrainingTransition {

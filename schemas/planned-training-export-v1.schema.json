@@ -419,9 +419,10 @@
         "phaseRef": { "$ref": "#/$defs/phaseRef" },
         "ordinal": { "$ref": "#/$defs/nonNegativeInteger" },
         "name": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 120
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1, "maxLength": 120 }
+          ]
         },
         "goal": { "$ref": "#/$defs/phaseGoal" },
         "intensity": { "$ref": "#/$defs/intensity" },

@@ -164,7 +164,7 @@ pub struct PlannedTrainingTransition {
 pub struct PlannedTrainingPhase {
     pub phase_id: String,
     pub ordinal: usize,
-    pub name: String,
+    pub name: Option<String>,
     pub goal: PlannedTrainingPhaseGoal,
     pub intensity: PlannedTrainingIntensity,
     pub transition: PlannedTrainingTransition,
@@ -473,7 +473,9 @@ fn validate_phases<'a>(
         {
             return Err(PlannedTrainingTargetError::DuplicateIdentifier);
         }
-        validate_canonical_text(&phase.name, MAX_PHASE_NAME_CHARACTERS, false)?;
+        if let Some(name) = phase.name.as_deref() {
+            validate_canonical_text(name, MAX_PHASE_NAME_CHARACTERS, false)?;
+        }
         validate_phase_goal(&phase.goal)?;
         validate_intensity(&phase.intensity)?;
         if let Some(repeat) = phase.transition.repeat.as_ref() {

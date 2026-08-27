@@ -109,7 +109,7 @@ fn scheduled_target(
                 PlannedTrainingPhase {
                     phase_id: opaque("planned-phase-", value),
                     ordinal: 0,
-                    name: "Work".to_owned(),
+                    name: Some("Work".to_owned()),
                     goal: PlannedTrainingPhaseGoal::DurationMilliseconds(60_000),
                     intensity: PlannedTrainingIntensity::ZoneRange {
                         metric: PlannedTrainingIntensityMetric::HeartRate,
@@ -125,7 +125,7 @@ fn scheduled_target(
                 PlannedTrainingPhase {
                     phase_id: opaque("planned-phase-", next_char(value)),
                     ordinal: 1,
-                    name: "Recovery".to_owned(),
+                    name: Some("Recovery".to_owned()),
                     goal: PlannedTrainingPhaseGoal::DurationMilliseconds(30_000),
                     intensity: PlannedTrainingIntensity::None,
                     transition: PlannedTrainingTransition {

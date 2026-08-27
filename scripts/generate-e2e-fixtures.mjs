@@ -496,7 +496,7 @@ await createArchive("planned-training.zip", [
         type: "PHASED",
         phases: [{
           index: 1,
-          name: "Warm up",
+          name: "  ",
           changeType: "AUTOMATIC",
           goal: { type: "DURATION", duration: "PT10M" },
           intensity: { type: "HEART_RATE_ZONES", lowerZone: 1, upperZone: 2 },

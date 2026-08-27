@@ -64,7 +64,9 @@ archive therefore remains necessary for later reinterpretation of unsupported va
 ## Exercises, phases, and repeats
 
 Exercises and phases retain stable references and zero-based semantic order. Null and empty phase collections remain
-distinct. Duration values are positive whole milliseconds; distance values are positive metres.
+distinct. Phase `name` is either the exact non-empty source-authored name or null when the source supplied no usable
+name; consumers may present a localized ordinal label but must not rewrite it as source evidence. Duration values are
+positive whole milliseconds; distance values are positive metres.
 
 Phase `goal` is one of:
 
@@ -122,7 +124,8 @@ A version-1 consumer validates the complete document before use. An unknown `sch
 revision, broken current reference, non-contiguous order, invalid repeat graph, inconsistent coverage count, or
 cross-origin membership is unsupported. A backup-oriented tool may preserve an unknown later version as opaque
 bytes, but must not rewrite it as version 1. Future compatible additions require a new schema version; version 1 is
-never changed in place after release.
+never changed in place after release. The nullable phase-name correction was made before the first release and
+therefore has no released predecessor bytes.
 
 ## Independent synthetic evidence
 

@@ -533,7 +533,8 @@ owner to execute the functional checklist or characterize the rejected archive f
 
 ### XH-24 — A previously accepted provider export is rejected before import
 
-- **Status:** blocking finding in the X7 repeated production-native profile on 2026-08-27.
+- **Status:** machine-corrected on 2026-08-27; the reviewed candidate remains rejected and requires a later bounded
+  experience-only review of new exact bytes.
 - **Observed task:** import an authorized Polar Flow export after completing the empty-library acquisition checks.
 - **Observed behavior:** FitFreed recognizes the provider export but rejects it because a required file is incomplete
   or malformed. The participant reports that the same archive imported successfully during the preceding human
@@ -548,9 +549,17 @@ owner to execute the functional checklist or characterize the rejected archive f
 - **Evidence boundary:** this record retains no archive name, path, fingerprint, member name, source value, date,
   count, or personal history. Prior successful import is participant-reported evidence and does not by itself identify
   the regressing component.
-- **Disposition:** the collection is closed. Trace archive classification through package validation, provider
-  recognition, correlation evidence, artifact decoding, mapping, and compatibility-version reuse before designing a
-  correction; return the complete functional journey to automated regression evidence.
+- **Root cause:** planned-training support introduced after the earlier successful import promoted every provider
+  phase name into a required non-empty canonical string. The authorized export contains legitimate empty phase names,
+  so the newly supported artifact decoder rejected the package before atomic publication.
+- **Correction evidence:** canonical, persistence, query, report, and portable contracts now retain an absent phase
+  name as null; presentation derives only a localized ordinal label. Adapter `polar-flow-archive@14`, operation
+  mapping set `polar-flow-mapping-set@9`, and planned-training mapping `polar-planned-training@2` force exact ZIPs to
+  be reassessed. Synthetic unit, integration, migration, export, localization, and contract tests pass. The
+  privacy-minimized real-reference predicate completed with full coverage, one opaque origin, every required history
+  domain available, and exact reimport, without recording private archive metadata or content.
+- **Disposition:** functional correction is complete locally. The collection remains closed; a new candidate may
+  reach the product owner only after the remaining automated gates pass.
 
 ## Passing observations
 

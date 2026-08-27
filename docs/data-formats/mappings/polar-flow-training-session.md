@@ -18,7 +18,7 @@ and the independent [training-session structure](../canonical/training-session-s
 - Source adapter version introducing observed minute-precision pause compatibility: `polar-flow-archive@11`
 - Source adapter version introducing training-target sport evidence: `polar-flow-archive@12`
 - Source adapter version introducing planned-training intent: `polar-flow-archive@13`
-- Current source adapter version: `polar-flow-archive@13`
+- Current source adapter version: `polar-flow-archive@14`
 - Historical summary mapping: `polar-flow-training-session@1`
 - Historical summary-and-structure mapping: `polar-flow-training-session@2`
 - Historical summary, structure, and route mapping: `polar-flow-training-session@3`
@@ -26,7 +26,7 @@ and the independent [training-session structure](../canonical/training-session-s
 - Historical summary, structure, route, signal, and zone mapping: `polar-flow-training-session@5`
 - Current summary, structure, route, signal, and zone mapping: `polar-flow-training-session@6`
 - Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`, `polar-flow-mapping-set@3`, `polar-flow-mapping-set@4`, `polar-flow-mapping-set@5`, `polar-flow-mapping-set@6`, `polar-flow-mapping-set@7`
-- Current operation mapping set: `polar-flow-mapping-set@8`
+- Current operation mapping set: `polar-flow-mapping-set@9`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)
 
 ## Supported artifact boundary
@@ -218,14 +218,14 @@ Identity remains `(originId, identifier.id)`. Reconciliation compares the comple
 Two artifacts with the same mapped identity in one ZIP are invalid independently of order. Whole-package
 exact-repeat reuse requires equal archive fingerprint, adapter version, and operation mapping-set version.
 Consequently, a package completed under any earlier mapping set is reassessed under
-`polar-flow-mapping-set@8`; identical bytes enrich missing structure, route, signal, zone, or exact completed-target
+`polar-flow-mapping-set@9`; identical bytes enrich missing structure, route, signal, zone, or exact completed-target
 sport evidence without
 duplicating sessions, exercises, routes, points, series, samples, groups, or bands. Per-observation provenance
 records `polar-flow-training-session@6` for current mapping decisions. Mapping set 6 reassessed packages
 previously completed or rejected under mapping set 5 so observed minute-precision pause times could be mapped
 without weakening validation of other date-time fields. Mapping set 7 retains that session contract and adds the
 independent [training-target sport-evidence mapping](polar-flow-training-target-sport.md). Mapping set 8 retains both
-contracts and adds the separate [planned-training mapping](polar-flow-planned-training.md).
+contracts and adds the separate [planned-training mapping version 2](polar-flow-planned-training-v2.md).
 
 ## Historical version 1 behavior
 

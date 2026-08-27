@@ -8,7 +8,7 @@ fn phase(ordinal: usize, name: &str, repeat: Option<(usize, u16)>) -> PlannedTra
     PlannedTrainingPhase {
         phase_id: digest("planned-phase-", char::from(b'a' + ordinal as u8)),
         ordinal,
-        name: name.to_owned(),
+        name: Some(name.to_owned()),
         goal: PlannedTrainingPhaseGoal::DurationMilliseconds(60_000),
         intensity: PlannedTrainingIntensity::ZoneRange {
             metric: PlannedTrainingIntensityMetric::HeartRate,
@@ -92,6 +92,27 @@ fn restores_a_provider_neutral_repeated_phase_graph() {
             .expect("repeat transition")
             .total_iterations,
         4
+    );
+}
+
+#[test]
+fn preserves_an_unnamed_phase_as_absent_source_text() {
+    let mut unnamed = phase(0, "Temporary", None);
+    unnamed.name = None;
+
+    let target = target(
+        'a',
+        PlannedTrainingMappingCoverage::complete(),
+        Some(vec![unnamed]),
+    );
+
+    assert_eq!(
+        target.exercises().expect("exercises")[0]
+            .phases
+            .as_ref()
+            .expect("phases")[0]
+            .name,
+        None
     );
 }
 

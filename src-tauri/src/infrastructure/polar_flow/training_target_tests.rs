@@ -175,6 +175,25 @@ fn maps_the_complete_flat_takeout_graph_without_losing_repeat_meaning() {
 }
 
 #[test]
+fn accepts_an_unnamed_phase_without_inventing_source_text() {
+    let json = phased_target_json("Unnamed phase target").replacen(
+        "\"name\":\"Warm up\"",
+        "\"name\":\"\"",
+        1,
+    );
+
+    let batch = decode_scheduled_training_target(context(SCHEDULED_A, 'a'), json.as_bytes())
+        .expect("mapped target with an unnamed phase");
+
+    let phases = batch.records[0].target.exercises().expect("exercises")[0]
+        .phases
+        .as_ref()
+        .expect("phases");
+    assert_eq!(phases.len(), 3);
+    assert_eq!(phases[0].name, None);
+}
+
+#[test]
 fn keeps_the_scheduled_identity_stable_across_locator_and_evidence_revisions() {
     let first = decode_scheduled_training_target(
         context(SCHEDULED_A, 'a'),

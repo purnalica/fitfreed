@@ -215,7 +215,7 @@ struct ExportSourceSportEvidence {
 struct ExportPhase {
     phase_ref: String,
     ordinal: u64,
-    name: String,
+    name: Option<String>,
     goal: ExportPhaseGoal,
     intensity: ExportIntensity,
     transition: ExportTransition,

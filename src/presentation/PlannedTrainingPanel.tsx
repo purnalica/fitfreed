@@ -174,6 +174,16 @@ function repeatLabel(
   });
 }
 
+function phaseLabel(
+  phase: PlannedTrainingPhase,
+  locale: Locale,
+  messages: Messages["training"]["planned"],
+): string {
+  return phase.name ?? interpolate(messages.phase, {
+    number: integerCountFormatter(locale).format(phase.ordinal + 1),
+  });
+}
+
 function ExercisePlan({
   exercise,
   locale,
@@ -251,7 +261,7 @@ function ExercisePlan({
                       <span className="planned-training-phase-number">
                         {number.format(phase.ordinal + 1)}
                       </span>
-                      <strong>{phase.name}</strong>
+                      <strong>{phaseLabel(phase, locale, copy)}</strong>
                       <span>{phaseGoal(phase, locale, messages)}</span>
                       {repeat && <em>{repeat}</em>}
                     </li>
@@ -275,7 +285,7 @@ function ExercisePlan({
                         <span>{interpolate(copy.phase, {
                           number: number.format(phase.ordinal + 1),
                         })}</span>
-                        <strong>{phase.name}</strong>
+                        {phase.name !== null && <strong>{phase.name}</strong>}
                       </header>
                       <dl>
                         <div><dt>{copy.summary}</dt><dd>{phaseGoal(phase, locale, messages)}</dd></div>
