@@ -103,3 +103,26 @@ test("rejects public guidance or evaluation that drops implemented MVP journeys"
     },
   );
 });
+
+test("rejects a candidate procedure that transfers deterministic verification to the product owner", () => {
+  const candidate = bundle();
+  const evaluationPath = "docs/testing/macos-candidate-manual-evaluation.md";
+  candidate.documents[evaluationPath] = candidate.documents[evaluationPath]
+    .replace(
+      "It is not part of\nthe product-owner experience review.",
+      "It is part of\nthe product-owner experience review.",
+    )
+    .replace(
+      "Deterministic functional behavior must already have passed its automated unit,",
+      "Deterministic functional behavior may be checked manually after the automated unit,",
+    );
+
+  assert.throws(
+    () => validatePublicDocumentationBundle(candidate),
+    (error) => {
+      assert.match(error.message, /manualEvaluation does not document product-owner scope boundary/);
+      assert.match(error.message, /manualEvaluation does not document automated functional responsibility/);
+      return true;
+    },
+  );
+});

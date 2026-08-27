@@ -6,7 +6,7 @@ This is the shared privacy-safe manual acceptance procedure for an exact FitFree
 
 Execution requires an authorized candidate, controlled participant, and one explicit distribution profile: the [private alpha candidate guide](../user/private-alpha-candidate.md) or the [public macOS guide](../user/public-macos-0.1.0.md). The evaluated bytes and installation trust behavior must match that profile. Until its gates close, the interaction procedure may be rehearsed only with independently generated synthetic packages and cannot be recorded as candidate acceptance.
 
-### X6 product-experience profile
+### Product-owner experience profile
 
 The interaction sections of this procedure are also the canonical human gate for the systemic MVP
 redesign. That gate occurs before Apple authority or a sealed public candidate exists and has a deliberately
@@ -66,7 +66,19 @@ value, but the privacy-safe recording boundary still applies. Detailed manual ac
 trust evaluation, where automation cannot supply sufficient evidence, require a separately scheduled qualified
 evaluator and are never implicit product-owner work.
 
-## Evaluation record
+For this bounded product-owner review, record only the source label, accepted or rejected outcome, and privacy-safe
+experience findings needed to explain that decision. Do not ask the product owner to complete a control matrix,
+collect timings, identify technical causes, reproduce a functional defect, or certify accessibility or release trust.
+
+## Exact-candidate and specialist procedure
+
+Everything below this heading belongs to release automation or a separately designated evaluator. It is not part of
+the product-owner experience review. Deterministic functional behavior must already have passed its automated unit,
+integration, contract, packaged E2E, restart, installation, update, recovery, accessibility, and performance gates
+before this procedure begins. Manual work is retained only where the operating-system trust boundary, assistive
+technology, or a subjective observation cannot be established responsibly by automation.
+
+### Evaluation record
 
 Record only:
 

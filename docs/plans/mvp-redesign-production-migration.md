@@ -3241,7 +3241,7 @@ Human intervention is required only for:
 - destructive operations on a real personal library;
 - Apple credentials, signing, notarization, tags, releases, public application downloads, or
   production update-channel authority; or
-- the final product-owner usability/accessibility gate after X7-R7 repeats X6.
+- the final bounded product-owner experience gate after X7-R7 repeats X6.
 
 Pages content publication within the existing authorized workflow remains autonomous. Alpha review
 findings for reports or personal ranges are documented and corrected when they are critical or major;

@@ -76,7 +76,7 @@ const documentContracts = Object.freeze({
     title: () => "macOS Candidate Manual Evaluation",
     headings: [
       "Status and boundary",
-      "Evaluation record",
+      "Exact-candidate and specialist procedure",
       "Preconditions",
       "Installation and first-run session",
       "Keyboard session",
@@ -89,6 +89,11 @@ const documentContracts = Object.freeze({
     evidence: () => [
       [/private alpha candidate guide/, "private distribution profile"],
       [/public macOS guide/, "public distribution profile"],
+      [/not part of\s+the product-owner experience review/, "product-owner scope boundary"],
+      [
+        /Deterministic functional behavior must already have passed its automated unit/,
+        "automated functional responsibility",
+      ],
       [/sealed Actions artifact awaiting promotion/, "exact public candidate boundary"],
       [/without coaching/, "unassisted usability boundary"],
       [/Start a report from a session[\s\S]*source-return/, "keyboard report evaluation"],
