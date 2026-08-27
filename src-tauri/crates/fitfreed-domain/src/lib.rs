@@ -365,6 +365,32 @@ pub struct ArtifactFamilyCoverage {
     pub artifact_count: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImportPackageIdentity {
+    ExpectedProviderExport,
+    UnsupportedProviderExport,
+    Unrecognized,
+}
+
+impl ImportPackageIdentity {
+    pub fn from_code(code: &str) -> Option<Self> {
+        match code.as_bytes() {
+            b"expected-provider-export" => Some(Self::ExpectedProviderExport),
+            b"unsupported-provider-export" => Some(Self::UnsupportedProviderExport),
+            b"unrecognized" => Some(Self::Unrecognized),
+            _ => None,
+        }
+    }
+
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::ExpectedProviderExport => "expected-provider-export",
+            Self::UnsupportedProviderExport => "unsupported-provider-export",
+            Self::Unrecognized => "unrecognized",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportOutcome {
     pub operation_ref: String,
@@ -372,6 +398,7 @@ pub struct ImportOutcome {
     pub source_provider: String,
     pub source_adapter_version: String,
     pub mapping_version: String,
+    pub package_identity: Option<ImportPackageIdentity>,
     pub exact_repeat: bool,
     pub coverage_complete: bool,
     pub coverage: ArtifactCoverageSummary,
@@ -976,6 +1003,21 @@ mod tests {
             );
         }
         assert_eq!(ArtifactClassification::from_code("future"), None);
+    }
+
+    #[test]
+    fn round_trips_every_import_package_identity_code() {
+        for identity in [
+            ImportPackageIdentity::ExpectedProviderExport,
+            ImportPackageIdentity::UnsupportedProviderExport,
+            ImportPackageIdentity::Unrecognized,
+        ] {
+            assert_eq!(
+                ImportPackageIdentity::from_code(identity.code()),
+                Some(identity)
+            );
+        }
+        assert_eq!(ImportPackageIdentity::from_code("provider-guess"), None);
     }
 
     #[test]

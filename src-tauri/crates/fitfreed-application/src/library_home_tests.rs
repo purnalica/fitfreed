@@ -561,6 +561,7 @@ fn completed_outcome(operation_ref: &str) -> ImportOutcome {
         source_provider: "synthetic-provider".to_owned(),
         source_adapter_version: "1".to_owned(),
         mapping_version: "1".to_owned(),
+        package_identity: None,
         exact_repeat: false,
         coverage_complete: true,
         coverage: ArtifactCoverageSummary {

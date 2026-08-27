@@ -1821,6 +1821,11 @@
     "historyEffect": "Efecto sobre el historial",
     "sourceAdapterVersion": "Versión del lector del origen",
     "mappingVersion": "Versión de correspondencia de la biblioteca",
+    "packageIdentities": {
+      "expected-provider-export": "Este ZIP sigue la estructura de archivos esperada de una exportación de Polar Flow.",
+      "unsupported-provider-export": "Este ZIP se parece a una exportación de Polar Flow, pero esta versión de FitFreed no admite su estructura de archivos.",
+      "unrecognized": "Este ZIP no sigue una estructura de archivos reconocida de una exportación de Polar Flow."
+    },
     "historyChanged": "El historial utilizable ha cambiado",
     "historyUnchanged": "El historial utilizable no ha cambiado",
     "coverageHeading": "Cobertura del paquete",

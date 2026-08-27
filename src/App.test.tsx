@@ -746,6 +746,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
     sourceProvider: "polar-flow",
     sourceAdapterVersion: "polar-flow-archive@4",
     mappingVersion: "polar-flow-mapping-set@1",
+    packageIdentity: "expected-provider-export",
     exactRepeat: false,
     coverageComplete: true,
     coverage: {

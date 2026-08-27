@@ -7309,6 +7309,7 @@ pub struct ImportOutcomeDto {
     source_provider: String,
     source_adapter_version: String,
     mapping_version: String,
+    package_identity: Option<&'static str>,
     exact_repeat: bool,
     coverage_complete: bool,
     coverage: ArtifactCoverageSummaryDto,
@@ -7327,6 +7328,7 @@ impl From<ImportOutcome> for ImportOutcomeDto {
             source_provider: outcome.source_provider,
             source_adapter_version: outcome.source_adapter_version,
             mapping_version: outcome.mapping_version,
+            package_identity: outcome.package_identity.map(|identity| identity.code()),
             exact_repeat: outcome.exact_repeat,
             coverage_complete: outcome.coverage_complete,
             coverage: outcome.coverage.into(),
@@ -7402,8 +7404,8 @@ mod tests {
     };
     use fitfreed_domain::{
         ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState,
-        PlannedTrainingMappingCoverage, PlannedTrainingRepeat, PlannedTrainingTarget,
-        PlannedTrainingTransition, ReportBlock,
+        ImportPackageIdentity, PlannedTrainingMappingCoverage, PlannedTrainingRepeat,
+        PlannedTrainingTarget, PlannedTrainingTransition, ReportBlock,
     };
     use serde_json::{from_value, json, to_value};
 
@@ -10636,6 +10638,7 @@ mod tests {
             source_provider: "polar-flow".to_owned(),
             source_adapter_version: "polar-flow-archive@3".to_owned(),
             mapping_version: "polar-flow-daily-activity@1".to_owned(),
+            package_identity: Some(ImportPackageIdentity::ExpectedProviderExport),
             exact_repeat: false,
             coverage_complete: true,
             coverage: ArtifactCoverageSummary {
@@ -10668,6 +10671,7 @@ mod tests {
 
         let json = serde_json::to_value(ImportOutcomeDto::from(outcome)).expect("outcome JSON");
 
+        assert_eq!(json["packageIdentity"], "expected-provider-export");
         assert_eq!(
             json["artifactFamilies"],
             serde_json::json!([

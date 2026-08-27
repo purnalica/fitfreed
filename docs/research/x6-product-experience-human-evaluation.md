@@ -111,8 +111,8 @@ owner to execute the functional checklist or characterize the rejected archive f
 
 ### XH-03 — Wrong archive produces a hidden, alarming, and unactionable explanation
 
-- **Status:** reopened in the X7 repeated profile; the exact resource limit is now named, but it still does not make
-  an ordinary unrelated-archive selection understandable.
+- **Status:** machine-corrected on 2026-08-27; the reviewed candidate remains rejected and requires a later bounded
+  experience-only review of new exact bytes.
 - **Observed task:** recover after selecting a ZIP that is not the intended fitness-history export.
 - **Observed behavior:** the result gives visual priority to `This archive was not imported` without an immediately
   visible explanation. Expanding `Why the import stopped` reveals `The package contains an unsafe file layout. Keep
@@ -139,6 +139,18 @@ owner to execute the functional checklist or characterize the rejected archive f
   context of an ordinary wrong-package selection. The observation does not establish whether the limit result is
   technically incorrect; it establishes that the result does not help the person understand package identity or the
   likely recovery action.
+- **Root cause:** the adapter established package identity before the protection scan, but persistence and the desktop
+  transport discarded that identity when a later resource limit became terminal. Presentation therefore had only the
+  technically correct limit and no independent fact explaining that the ZIP did not resemble a Polar Flow export.
+- **Correction evidence:** import-control transport version 2 and SQLite schema 34 retain the closed provider-neutral
+  package identity independently from `terminalCode`. The primary result renders the identity and exact protection as
+  two factual statements without weakening archive validation or persisting member names. Domain, migration,
+  persistence, transport, localization, component, and packaged tests cover unrelated and provider-shaped inventories
+  stopped by the same 64 MB declaration, unchanged history, restart, and the absence of the generic unsafe-layout
+  explanation.
+- **Disposition:** deterministic correction is complete locally. Tone, hierarchy, recovery comprehension, and whether
+  the two statements feel calm and useful remain part of a later bounded product-owner experience review only after
+  the exact automated gates pass.
 
 ### XH-04 — Archive reselection updates content outside the visible viewport
 

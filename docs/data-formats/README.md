@@ -92,7 +92,8 @@ Directories are created with their first real contract; empty specifications are
 - [Polar Flow nightly recovery mapping](mappings/polar-flow-nightly-recovery.md)
 - [Source acquisition guide version 1](guidance/source-acquisition-guide-v1.md)
 - [Official source link opening version 1](guidance/official-source-link-opening-v1.md)
-- [Import control transport version 1](guidance/import-control-v1.md)
+- [Import control transport version 2](guidance/import-control-v2.md)
+- [Import control transport version 1](guidance/import-control-v1.md) — preceding contract
 - [Daily activity overview read model version 1](insights/daily-activity-overview-v1.md)
 - [Daily activity overview read model version 2](insights/daily-activity-overview-v2.md)
 - [Daily activity comparison read model version 1](insights/daily-activity-comparison-v1.md)
@@ -186,7 +187,8 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 25](persistence/sqlite-v25.md)
 - [SQLite schema version 26](persistence/sqlite-v26.md)
 - [SQLite schema version 27](persistence/sqlite-v27.md)
-- [SQLite schema version 33](persistence/sqlite-v33.md)
+- [SQLite schema version 34](persistence/sqlite-v34.md)
+- [SQLite schema version 33](persistence/sqlite-v33.md) — preceding schema
 - [SQLite schema version 32](persistence/sqlite-v32.md) — preceding schema
 - [SQLite schema version 31](persistence/sqlite-v31.md) — preceding schema
 - [SQLite schema version 30](persistence/sqlite-v30.md) — preceding schema

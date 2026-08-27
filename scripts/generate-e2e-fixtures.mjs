@@ -1,5 +1,5 @@
 import { createWriteStream } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { ZipFile } from "yazl";
@@ -257,6 +257,19 @@ async function createArchive(name, entries) {
       .on("close", resolve)
       .on("error", reject);
   });
+  return outputPath;
+}
+
+async function declareFirstMemberExpandedSize(archivePath, expandedSize) {
+  const archive = await readFile(archivePath);
+  const localHeader = archive.indexOf(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+  const centralHeader = archive.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  if (localHeader < 0 || centralHeader < 0) {
+    throw new Error(`ZIP headers were not found in ${path.basename(archivePath)}`);
+  }
+  archive.writeUInt32LE(expandedSize, localHeader + 22);
+  archive.writeUInt32LE(expandedSize, centralHeader + 24);
+  await writeFile(archivePath, archive);
 }
 
 await mkdir(outputDirectory, { recursive: true });
@@ -264,6 +277,10 @@ await createArchive("unrelated.zip", [
   ["documents/readme.txt", "ordinary synthetic notes"],
   ["backup.zip", "not an embedded fitness-history export"],
 ]);
+const unrelatedResourceLimitArchive = await createArchive("unrelated-resource-limit.zip", [
+  ["notes.bin", "small synthetic content with deliberately oversized ZIP metadata"],
+]);
+await declareFirstMemberExpandedSize(unrelatedResourceLimitArchive, 64 * 1_024 * 1_024 + 1);
 await createArchive("invalid.zip", [
   [
     `account-data-42-${uuidC}.json`,
@@ -636,4 +653,4 @@ await createArchive("adaptive-sessions.zip", [
   ],
 ]);
 
-process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 7 })}\n`);
+process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 8 })}\n`);

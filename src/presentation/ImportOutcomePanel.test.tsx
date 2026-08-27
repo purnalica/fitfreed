@@ -14,6 +14,7 @@ const completedOutcome: ImportOutcome = {
   sourceProvider: "polar-flow",
   sourceAdapterVersion: "polar-flow@1",
   mappingVersion: "canonical@1",
+  packageIdentity: "expected-provider-export",
   exactRepeat: false,
   coverageComplete: true,
   coverage: {
@@ -149,6 +150,7 @@ describe("ImportOutcomePanel", () => {
           },
           terminalCode: "invalid-supported-artifact",
         }}
+        packageIdentityMessage="This ZIP does not use a recognized provider export pattern."
         terminalMessage="Recognized content failed validation; no history was changed."
         onOpenHome={vi.fn()}
         onChooseAnother={vi.fn()}
@@ -157,6 +159,9 @@ describe("ImportOutcomePanel", () => {
 
     const result = screen.getByRole("region", { name: "This archive was not imported" });
     expect(result).toHaveTextContent("Your existing library was not changed");
+    expect(result).toHaveTextContent(
+      "This ZIP does not use a recognized provider export pattern.",
+    );
     expect(result).toHaveTextContent(
       "Recognized content failed validation; no history was changed.",
     );

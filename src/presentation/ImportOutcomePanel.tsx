@@ -20,6 +20,10 @@ export interface ImportReport {
 }
 
 export type ImportOutcomeState = "completed" | "rejected" | "cancelled" | "failed";
+export type ImportPackageIdentity =
+  | "expected-provider-export"
+  | "unsupported-provider-export"
+  | "unrecognized";
 
 export interface ArtifactCoverageSummary {
   total: number;
@@ -50,6 +54,7 @@ export interface ImportOutcome {
   sourceProvider: string;
   sourceAdapterVersion: string;
   mappingVersion: string;
+  packageIdentity: ImportPackageIdentity | null;
   exactRepeat: boolean;
   coverageComplete: boolean;
   coverage: ArtifactCoverageSummary;
@@ -67,6 +72,7 @@ interface ImportOutcomePanelProps {
   locale: Locale;
   messages: OutcomeMessages;
   outcome: ImportOutcome;
+  packageIdentityMessage?: string;
   terminalMessage?: string;
   onOpenHome: () => void;
   onChooseAnother: () => Promise<void> | void;
@@ -101,6 +107,7 @@ export function ImportOutcomePanel({
   locale,
   messages,
   outcome,
+  packageIdentityMessage,
   terminalMessage,
   onOpenHome,
   onChooseAnother,
@@ -171,8 +178,11 @@ export function ImportOutcomePanel({
         <p className="outcome-consequence" role="status" aria-live="polite">
           {consequence(messages, outcome)}
         </p>
-        {terminalMessage && outcome.state !== "completed" && (
-          <p className="outcome-terminal-message">{terminalMessage}</p>
+        {(packageIdentityMessage || terminalMessage) && outcome.state !== "completed" && (
+          <div className="outcome-terminal-message">
+            {packageIdentityMessage && <p>{packageIdentityMessage}</p>}
+            {terminalMessage && <p>{terminalMessage}</p>}
+          </div>
         )}
         {outcome.state === "completed" && !outcome.exactRepeat && visibleChanges.length > 0 && (
           <ul className="outcome-change-summary" aria-label={messages.incorporationHeading}>

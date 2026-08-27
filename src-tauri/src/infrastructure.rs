@@ -108,7 +108,7 @@ use fitfreed_domain::{
     decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
     reconcile_training_session_range, ArtifactClassification, ArtifactCoverageSummary,
     ArtifactFamilyCoverage, DailyActivity, ExistingObservation, ImportOperationState,
-    ImportOutcome, ImportReport, NightlyRecovery, PlannedTrainingCompletion,
+    ImportOutcome, ImportPackageIdentity, ImportReport, NightlyRecovery, PlannedTrainingCompletion,
     PlannedTrainingTargetKind, ProviderNeutralSportSuggestion, ReconciliationDecision,
     RemovedTrainingSessionRange, ReportAuthorship, ReportBlock, ReportBlockContent,
     ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
@@ -199,7 +199,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 33;
+const SCHEMA_VERSION: i64 = 34;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -234,6 +234,7 @@ const SCHEMA_V31: &str = include_str!("../migrations/0031_planned_training.sql")
 const SCHEMA_V32: &str = include_str!("../migrations/0032_planned_training_reports.sql");
 const SCHEMA_V33: &str =
     include_str!("../migrations/0033_nullable_planned_training_phase_name.sql");
+const SCHEMA_V34: &str = include_str!("../migrations/0034_import_package_identity.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@14";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@9";
@@ -337,6 +338,8 @@ pub enum ImportError {
     InvalidPersistedOperationState(String),
     #[error("invalid persisted artifact classification: {0}")]
     InvalidPersistedArtifactClassification(String),
+    #[error("invalid persisted import package identity: {0}")]
+    InvalidPersistedPackageIdentity(String),
     #[error("invalid activity library: {0}")]
     InvalidActivityLibrary(String),
     #[error("invalid training library: {0}")]
@@ -835,6 +838,7 @@ struct PersistedImportOutcome {
     source_provider: String,
     source_adapter_version: String,
     mapping_version: String,
+    package_identity: Option<String>,
     exact_repeat: bool,
     coverage_complete: bool,
     total_artifacts: i64,
@@ -1112,6 +1116,7 @@ fn execute_import(
         archive_names.push(archive.by_index(index)?.name().to_owned());
     }
     let package_identity = classify_package_identity(archive_names.iter().map(String::as_str));
+    record_package_identity(connection, operation_id, package_identity)?;
     on_progress(ImportProgress::artifacts(
         ImportPhase::Validating,
         0,
@@ -8773,7 +8778,8 @@ pub fn query_latest_import_outcome(database_path: &Path) -> Result<Option<Import
     let persisted = connection
         .query_row(
             "SELECT id, operation_ref, state, source_provider, source_adapter_version,
-                    mapping_version, exact_repeat, coverage_complete, total_artifacts,
+                    mapping_version, package_identity, exact_repeat, coverage_complete,
+                    total_artifacts,
                     supported_artifacts, unsupported_artifacts, ignored_artifacts,
                     unrecognized_artifacts, invalid_artifacts, recognized_artifacts,
                     new_observations, equivalent_observations, enriched_observations,
@@ -8791,24 +8797,25 @@ pub fn query_latest_import_outcome(database_path: &Path) -> Result<Option<Import
                     source_provider: row.get(3)?,
                     source_adapter_version: row.get(4)?,
                     mapping_version: row.get(5)?,
-                    exact_repeat: row.get(6)?,
-                    coverage_complete: row.get(7)?,
-                    total_artifacts: row.get(8)?,
-                    supported_artifacts: row.get(9)?,
-                    unsupported_artifacts: row.get(10)?,
-                    ignored_artifacts: row.get(11)?,
-                    unrecognized_artifacts: row.get(12)?,
-                    invalid_artifacts: row.get(13)?,
-                    recognized_artifacts: row.get(14)?,
-                    new_observations: row.get(15)?,
-                    equivalent_observations: row.get(16)?,
-                    enriched_observations: row.get(17)?,
-                    amended_observations: row.get(18)?,
-                    preserved_observations: row.get(19)?,
-                    conflicts: row.get(20)?,
-                    canonical_history_changed: row.get(21)?,
-                    terminal_code: row.get(22)?,
-                    recovery_note: row.get(23)?,
+                    package_identity: row.get(6)?,
+                    exact_repeat: row.get(7)?,
+                    coverage_complete: row.get(8)?,
+                    total_artifacts: row.get(9)?,
+                    supported_artifacts: row.get(10)?,
+                    unsupported_artifacts: row.get(11)?,
+                    ignored_artifacts: row.get(12)?,
+                    unrecognized_artifacts: row.get(13)?,
+                    invalid_artifacts: row.get(14)?,
+                    recognized_artifacts: row.get(15)?,
+                    new_observations: row.get(16)?,
+                    equivalent_observations: row.get(17)?,
+                    enriched_observations: row.get(18)?,
+                    amended_observations: row.get(19)?,
+                    preserved_observations: row.get(20)?,
+                    conflicts: row.get(21)?,
+                    canonical_history_changed: row.get(22)?,
+                    terminal_code: row.get(23)?,
+                    recovery_note: row.get(24)?,
                 })
             },
         )
@@ -8906,12 +8913,20 @@ fn import_outcome_from_persistence(
 ) -> Result<ImportOutcome> {
     let state = ImportOperationState::from_code(&persisted.state)
         .ok_or_else(|| ImportError::InvalidPersistedOperationState(persisted.state.clone()))?;
+    let package_identity = persisted
+        .package_identity
+        .map(|identity| {
+            ImportPackageIdentity::from_code(&identity)
+                .ok_or(ImportError::InvalidPersistedPackageIdentity(identity))
+        })
+        .transpose()?;
     Ok(ImportOutcome {
         operation_ref: persisted.operation_ref,
         state,
         source_provider: persisted.source_provider,
         source_adapter_version: persisted.source_adapter_version,
         mapping_version: persisted.mapping_version,
+        package_identity,
         exact_repeat: persisted.exact_repeat,
         coverage_complete: persisted.coverage_complete,
         coverage: ArtifactCoverageSummary {
@@ -9521,6 +9536,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 33 {
             connection.execute_batch(SCHEMA_V33)?;
         }
+        if version < 34 {
+            connection.execute_batch(SCHEMA_V34)?;
+        }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -9632,6 +9650,28 @@ fn set_total_artifacts(
              updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
          WHERE id = ?1",
         params![operation_id, total_artifacts],
+    )?;
+    Ok(())
+}
+
+fn record_package_identity(
+    connection: &Connection,
+    operation_id: i64,
+    identity: PolarFlowPackageIdentity,
+) -> Result<()> {
+    let identity = match identity {
+        PolarFlowPackageIdentity::Current => ImportPackageIdentity::ExpectedProviderExport,
+        PolarFlowPackageIdentity::UnsupportedVersion => {
+            ImportPackageIdentity::UnsupportedProviderExport
+        }
+        PolarFlowPackageIdentity::Unrecognized => ImportPackageIdentity::Unrecognized,
+    };
+    connection.execute(
+        "UPDATE import_operation
+         SET package_identity = ?2,
+             updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+         WHERE id = ?1 AND state = 'assessing'",
+        params![operation_id, identity.code()],
     )?;
     Ok(())
 }
@@ -10013,6 +10053,7 @@ fn complete_exact_repeat(
              completed_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
              exact_repeat = 1,
              repeated_operation_id = ?2,
+             package_identity = source.package_identity,
              coverage_complete = 1,
              total_artifacts = source.total_artifacts,
              supported_artifacts = source.supported_artifacts,
@@ -10136,6 +10177,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::OutcomePersistence { .. } => "outcome-persistence-failure",
         ImportError::InvalidPersistedOperationState(_)
         | ImportError::InvalidPersistedArtifactClassification(_)
+        | ImportError::InvalidPersistedPackageIdentity(_)
         | ImportError::InvalidPersistedCount { .. } => "invalid-persisted-import-outcome",
         ImportError::InvalidPersistedUpdateState(_) => "invalid-update-state",
         ImportError::InvalidActivityLibrary(_) => "invalid-activity-library",
@@ -16805,6 +16847,23 @@ mod tests {
             }
             writer.finish().expect("complete ZIP");
             path
+        }
+
+        fn declare_first_member_expanded_size(&self, archive: &Path, expanded_size: u32) {
+            let mut bytes = std::fs::read(archive).expect("ZIP bytes");
+            let local_header = bytes
+                .windows(4)
+                .position(|candidate| candidate == b"PK\x03\x04")
+                .expect("local ZIP entry");
+            let central_header = bytes
+                .windows(4)
+                .position(|candidate| candidate == b"PK\x01\x02")
+                .expect("central-directory entry");
+            bytes[local_header + 22..local_header + 26]
+                .copy_from_slice(&expanded_size.to_le_bytes());
+            bytes[central_header + 24..central_header + 28]
+                .copy_from_slice(&expanded_size.to_le_bytes());
+            std::fs::write(archive, bytes).expect("modified ZIP metadata");
         }
     }
 
@@ -25373,6 +25432,61 @@ mod tests {
     }
 
     #[test]
+    fn preserves_package_identity_when_a_resource_limit_stops_validation() {
+        let cases = [
+            (
+                "unrelated-limit.zip",
+                "notes.bin",
+                ImportPackageIdentity::Unrecognized,
+            ),
+            (
+                "provider-limit.zip",
+                "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                ImportPackageIdentity::ExpectedProviderExport,
+            ),
+        ];
+
+        for (archive_name, member_name, expected_identity) in cases {
+            let harness = Harness::new();
+            let archive = harness.archive(archive_name, &[(member_name, "synthetic")]);
+            harness.declare_first_member_expanded_size(
+                &archive,
+                u32::try_from(MAX_ENTRY_BYTES + 1).expect("test limit fits in ZIP metadata"),
+            );
+
+            let error = import_polar_archive(&harness.database(), &archive)
+                .expect_err("expanded-member limit");
+            assert!(matches!(
+                error,
+                ImportError::ResourceLimit(ArchiveResourceLimit::ExpandedMemberSize { .. })
+            ));
+            let connection = Connection::open(harness.database()).expect("database");
+            let persisted = connection
+                .query_row(
+                    "SELECT package_identity, terminal_code
+                     FROM import_operation ORDER BY id DESC LIMIT 1",
+                    [],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .expect("rejected package context");
+            assert_eq!(
+                persisted,
+                (
+                    expected_identity.code().to_owned(),
+                    "archive-expanded-member-size-limit".to_owned(),
+                )
+            );
+            assert_eq!(
+                query_latest_import_outcome(&harness.database())
+                    .expect("outcome query")
+                    .expect("rejected outcome")
+                    .package_identity,
+                Some(expected_identity)
+            );
+        }
+    }
+
+    #[test]
     fn gives_a_genuine_safety_violation_precedence_over_ordinary_nesting() {
         let harness = Harness::new();
         let archive = harness.archive(
@@ -25810,7 +25924,7 @@ mod tests {
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
             SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29,
-            SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33,
+            SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34,
         ];
         for migration in migrations
             .iter()
@@ -25990,6 +26104,77 @@ mod tests {
         connection
             .execute("UPDATE planned_training_phase SET name = NULL", [])
             .expect("nullable phase name");
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn migrates_import_package_identity_atomically_with_a_closed_vocabulary() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 33);
+        connection
+            .execute(
+                "INSERT INTO import_operation (
+                     operation_ref, package_sha256, state, source_provider,
+                     source_adapter_version, mapping_version, started_at_utc, updated_at_utc,
+                     completed_at_utc, exact_repeat, repeated_operation_id, coverage_complete,
+                     total_artifacts, supported_artifacts, unsupported_artifacts, ignored_artifacts,
+                     unrecognized_artifacts, invalid_artifacts, recognized_artifacts,
+                     new_observations, equivalent_observations, enriched_observations,
+                     amended_observations, preserved_observations, conflicts,
+                     canonical_history_changed, temporary_state_removed, terminal_code,
+                     recovery_note, observation_origin_id
+                 ) VALUES (
+                     'synthetic-operation', NULL, 'rejected', 'polar-flow',
+                     'synthetic-adapter@1', 'synthetic-mapping@1', NULL, NULL, NULL,
+                     0, NULL, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+                     0, 1, 'not-supported-export', NULL, NULL
+                 )",
+                [],
+            )
+            .expect("schema thirty-three import outcome");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted schema thirty-four");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("rolled-back schema version"),
+            33
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('import_operation')
+                     WHERE name = 'package_identity'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back package identity column"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("schema thirty-four migration");
+        assert_eq!(
+            connection
+                .query_row("SELECT package_identity FROM import_operation", [], |row| {
+                    row.get::<_, Option<String>>(0)
+                })
+                .expect("historical package identity"),
+            None
+        );
+        connection
+            .execute(
+                "UPDATE import_operation SET package_identity = 'unrecognized'",
+                [],
+            )
+            .expect("valid package identity");
+        assert!(connection
+            .execute(
+                "UPDATE import_operation SET package_identity = 'provider-guess'",
+                [],
+            )
+            .is_err());
         assert_integrity(&connection);
     }
 

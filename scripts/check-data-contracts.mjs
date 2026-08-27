@@ -2376,7 +2376,7 @@ for (const invalid of [
     throw new Error(`${officialSourceLinkOpeningSchemaPath} accepted invalid evidence`);
   }
 }
-const importControlPath = "docs/data-formats/guidance/import-control-v1.md";
+const importControlPath = "docs/data-formats/guidance/import-control-v2.md";
 const importControl = read(importControlPath);
 for (const field of [
   "phase",
@@ -2391,6 +2391,10 @@ for (const field of [
   "sourceProvider",
   "sourceAdapterVersion",
   "mappingVersion",
+  "packageIdentity",
+  "expected-provider-export",
+  "unsupported-provider-export",
+  "unrecognized",
   "exactRepeat",
   "coverageComplete",
   "coverage",
@@ -2456,7 +2460,7 @@ for (const invalid of [
     throw new Error(`${importProgressSchemaPath} accepted invalid evidence`);
   }
 }
-const importOutcomeSchemaPath = "schemas/import-outcome-v1.schema.json";
+const importOutcomeSchemaPath = "schemas/import-outcome-v2.schema.json";
 const validateImportOutcome = ajv.compile(JSON.parse(read(importOutcomeSchemaPath)));
 const syntheticImportOutcome = {
   operationRef: "a".repeat(32),
@@ -2464,6 +2468,7 @@ const syntheticImportOutcome = {
   sourceProvider: "polar-flow",
   sourceAdapterVersion: "polar-flow-archive@11",
   mappingVersion: "polar-flow-mapping-set@6",
+  packageIdentity: "expected-provider-export",
   exactRepeat: false,
   coverageComplete: true,
   coverage: {
@@ -2504,6 +2509,12 @@ for (const invalid of [
   { ...syntheticImportOutcome, operationRef: "private-path" },
   { ...syntheticImportOutcome, canonicalHistoryChanged: "false" },
   { ...syntheticImportOutcome, canonicalHistoryChanged: true },
+  (() => {
+    const value = structuredClone(syntheticImportOutcome);
+    delete value.packageIdentity;
+    return value;
+  })(),
+  { ...syntheticImportOutcome, packageIdentity: "provider-guess" },
   { ...syntheticImportOutcome, extra: true },
 ]) {
   if (validateImportOutcome(invalid)) {

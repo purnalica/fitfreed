@@ -1821,6 +1821,11 @@
     "historyEffect": "History effect",
     "sourceAdapterVersion": "Source reader version",
     "mappingVersion": "Library mapping version",
+    "packageIdentities": {
+      "expected-provider-export": "This ZIP uses the expected Polar Flow export file pattern.",
+      "unsupported-provider-export": "This ZIP resembles a Polar Flow export, but its file pattern is not supported by this version of FitFreed.",
+      "unrecognized": "This ZIP does not use a recognized Polar Flow export file pattern."
+    },
     "historyChanged": "Usable history changed",
     "historyUnchanged": "Usable history unchanged",
     "coverageHeading": "Package coverage",

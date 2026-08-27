@@ -80,6 +80,14 @@ import { APPLICATION_ERROR_ID, useInvalidForm } from "./presentation/useInvalidF
 
 const rendererStartedAt = performance.now();
 const INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS = 1_000;
+const ARCHIVE_PROTECTION_TERMINAL_CODES = new Set([
+  "suspicious-archive-layout",
+  "archive-entry-count-limit",
+  "archive-expanded-member-size-limit",
+  "archive-total-expanded-size-limit",
+  "archive-compression-ratio-limit",
+  "archive-bounded-read-limit",
+]);
 
 const ActivityComparisonPanel = lazy(() =>
   import("./presentation/ActivityComparisonPanel").then((module) => ({
@@ -1447,6 +1455,11 @@ function App() {
                     locale={locale}
                     messages={messages.outcome}
                     outcome={outcome}
+                    packageIdentityMessage={outcome.packageIdentity
+                      && outcome.terminalCode
+                      && ARCHIVE_PROTECTION_TERMINAL_CODES.has(outcome.terminalCode)
+                      ? messages.outcome.packageIdentities[outcome.packageIdentity]
+                      : undefined}
                     terminalMessage={outcome.state === "rejected" || outcome.state === "failed"
                       ? errorMessages[outcome.terminalCode ?? "unexpected"]
                         ?? messages.errors.unexpected

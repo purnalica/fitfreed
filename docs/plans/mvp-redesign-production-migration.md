@@ -22,13 +22,18 @@ cold launch, full-scale import, dense History, Insights, the complete packaged j
 installation boundaries, update replacement, deliberate rejection, and recovery for executable-input fingerprint
 `dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`.
 
-The earlier [production-native human evaluation](../research/x6-product-experience-human-evaluation.md) remains the
-authoritative rejection of its reviewed X6 sources; automation does not reinterpret that result. X7 is now eligible
-for a bounded product-owner experience review from a clean, revision-isolated production-native package. Five-second
-comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved for that
-gate. Functional native selection, external opening, import, persistence, keyboard, accessibility mechanics, and
-every other deterministic outcome belong to automated or separately assigned specialist evidence rather than a
-product-owner checklist. External-tile cartography, additional providers, advanced personalization, and
+The [production-native human evaluation](../research/x6-product-experience-human-evaluation.md) remains the
+authoritative rejection of every reviewed X6 source; automation does not reinterpret that result. Its repeated profile
+reopened planned-training compatibility as XH-24 and unrelated-package explanation as XH-03. Both causes are now
+machine-corrected: unnamed provider phases retain truthful absence, while package identity persists independently from
+the exact archive protection that stopped processing. Complete fast and packaged local campaigns pass for the
+corrections. A new bounded product-owner experience review remains ineligible until private-reference compatibility,
+exact clean-source gates, hosted verification, and production-native package inspection pass again.
+
+Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
+for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
+mechanics, and every other deterministic outcome belong to automated or separately assigned specialist evidence
+rather than a product-owner checklist. External-tile cartography, additional providers, advanced personalization, and
 public-candidate work remain outside X7.
 
 The [increment status](#increment-status) gives the one-line phase view. The
@@ -267,13 +272,13 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C4 | Superseded by X7 — its reopened navigation findings are implemented and verified in X7-R2 | Prominent summaries and collections open useful evidence |
 | X6-C5 | Superseded by X7 — its reopened presentation findings are implemented and verified in X7-R3 through X7-R6 | Data is concise, aligned, precise, visual, and progressively disclosed |
 | X7-P0 | Complete — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
-| X7-R1 | Machine-complete — X7A-01 corrected and packaged; actual browser appearance remains in the final production-native human gate | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
+| X7-R1 | Reopened by repeated-review XH-03; package identity and typed protection cause are machine-corrected locally, exact clean and hosted gates remain | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
 | X7-R2 | Machine-complete — exact represented-sport identity, comparison presets, natural drill-down, and complete hosted campaign passed | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Machine-complete — independent density review and exact local and hosted presentation gates passed | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Machine-complete — mature renderers, route-relative zoom, and exact local and hosted analytical gates passed | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
-| X7-R5 | Machine-complete — the provider-neutral structured-training vertical passed every local and hosted lifecycle gate | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
+| X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
-| X7-R7 | Machine-complete — independent falsification, exact local and hosted campaigns, immutable marker, and production-native bundle scan pass; repeated human evaluation remains | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R7 | Reopened — XH-24 and XH-03 corrections require a new exact local/hosted campaign and production-native handoff before bounded experience review | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2346,7 +2351,7 @@ continuing progress until one visible terminal result.
 
 **Execution state:** the correction is implemented locally through package-inventory identity, an independent complete
 member-protection scan, stable compatibility and safety outcomes, and the versioned
-[import-control contract](../data-formats/guidance/import-control-v1.md) under
+[import-control contract](../data-formats/guidance/import-control-v2.md) under
 [ADR 0029](../architecture/decisions/0029-separate-package-identity-compatibility-and-safety.md). Reconciliation now
 emits monotonic canonical-item progress and remains rollback-cancellable; commit begins only afterward and exposes no
 fabricated count. The primary result distinguishes an unrelated ZIP, malformed current content, an unsupported

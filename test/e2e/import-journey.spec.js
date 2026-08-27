@@ -1873,6 +1873,26 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(
       dialogMock,
+      path.join(fixtureDirectory, "unrelated-resource-limit.zip"),
+      english.outcome.chooseAnother,
+    );
+    await $("aria/Import selected package").click();
+    await expectImportOutcomeWithinInitialViewport(
+      english.outcome.rejectedHeading,
+      english.outcome.packageIdentities.unrecognized,
+    );
+    await expect($(".outcome-terminal-message")).toHaveText(
+      expect.stringContaining(
+        "At least one file in this ZIP expands beyond the 64 MB per-file limit",
+      ),
+    );
+    await expect($(".outcome-panel")).not.toHaveText(
+      expect.stringContaining("unsafe file layout"),
+    );
+    expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
+
+    await selectArchive(
+      dialogMock,
       path.join(fixtureDirectory, "invalid.zip"),
       english.outcome.chooseAnother,
     );
