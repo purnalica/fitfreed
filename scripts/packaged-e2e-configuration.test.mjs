@@ -185,3 +185,24 @@ test("observes exact signal rendering without background-throttled polling timer
   assert.doesNotMatch(exactPage, /setTimeout\(observeResult/);
   assert.match(exactPage, /getBoundingClientRect\(\)/);
 });
+
+test("observes independent signal reveal without background-throttled polling timers", () => {
+  const performanceJourney = readFileSync(
+    path.resolve("test/e2e/support/insights-performance.js"),
+    "utf8",
+  );
+  const revealStart = performanceJourney.indexOf(
+    "async function measureTrainingRouteIndependentSignalReveal",
+  );
+  const revealEnd = performanceJourney.indexOf(
+    "async function expectDenseRouteExactEndpoint",
+    revealStart,
+  );
+  assert.ok(revealStart >= 0 && revealEnd > revealStart);
+  const reveal = performanceJourney.slice(revealStart, revealEnd);
+
+  assert.match(reveal, /new MutationObserver/);
+  assert.match(reveal, /new MessageChannel/);
+  assert.doesNotMatch(reveal, /setTimeout\(observeResult/);
+  assert.match(reveal, /getBoundingClientRect\(\)/);
+});

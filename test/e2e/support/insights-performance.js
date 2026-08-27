@@ -710,7 +710,33 @@ async function measureTrainingRouteIndependentSignalReveal() {
       return;
     }
     const started = window.performance.now();
-    signals.click();
+    let complete = false;
+    const channel = new MessageChannel();
+    const observer = new MutationObserver(observeResult);
+    const deadline = setTimeout(() => finish({
+      duration: null,
+      error: "independent signal section did not open",
+    }), 5_000);
+
+    function finish(outcome) {
+      if (complete) return;
+      complete = true;
+      clearTimeout(deadline);
+      observer.disconnect();
+      channel.port1.close();
+      channel.port2.close();
+      done(outcome);
+    }
+
+    function finishRenderedResult(section) {
+      section.getBoundingClientRect();
+      channel.port1.onmessage = () => finish({
+        duration: window.performance.now() - started,
+        error: null,
+      });
+      channel.port2.postMessage(null);
+    }
+
     function observeResult() {
       const section = document.querySelector("#training-detail-signals");
       const series = section?.querySelectorAll(".training-signal");
@@ -718,20 +744,17 @@ async function measureTrainingRouteIndependentSignalReveal() {
         ".training-route-signal-lane-chart, .training-route-map .fitfreed-route-overlay",
       ).length === 0;
       if (!section?.hasAttribute("hidden") && series?.length === 4 && noInventedAlignment) {
-        section.getBoundingClientRect();
-        setTimeout(() => done({
-          duration: window.performance.now() - started,
-          error: null,
-        }));
-        return;
+        finishRenderedResult(section);
       }
-      if (window.performance.now() - started > 5_000) {
-        done({ duration: null, error: "independent signal section did not open" });
-        return;
-      }
-      setTimeout(observeResult, 16);
     }
-    setTimeout(observeResult, 0);
+
+    observer.observe(document.body, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+    signals.click();
+    observeResult();
   }, {
     signals: english.training.sessionLibrary.detailSections.signals,
   });
