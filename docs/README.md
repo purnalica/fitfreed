@@ -27,7 +27,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
 - Use the [performance benchmark guide](development/performance-benchmarks.md) for synthetic scales, timed boundaries, budgets, and regression evidence.
 - Use [private reference export acceptance](testing/private-reference-acceptance.md) only for the explicitly supplied local compatibility input.
-- Use [macOS candidate manual evaluation](testing/macos-candidate-manual-evaluation.md) for privacy-safe keyboard, VoiceOver, scaling, contrast, realistic usability, and controlled recovery acceptance.
+- Use [macOS product-owner experience evaluation](testing/macos-candidate-manual-evaluation.md) for the bounded privacy-safe human judgment of comprehension, trust, usefulness, navigation, and presentation quality after automated correctness gates pass.
 - Use the [public-release readiness ledger](testing/public-release-readiness.md) as the current status source; the linked procedures remain authoritative for execution.
 - Read the [module map](architecture/module-map.md), [testing strategy](testing-strategy.md), and [data-contract index](data-formats/README.md) before changing product behavior.
 - Follow the [localization guide](development/localization.md) for interface copy or language support.

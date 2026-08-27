@@ -86,9 +86,8 @@ test("rejects public guidance or evaluation that drops implemented MVP journeys"
     .replace("user-authored segmentation", "personal views")
     .replace("privacy-reviewed self-contained HTML export", "local output");
   candidate.documents[evaluationPath] = candidate.documents[evaluationPath]
-    .replace("Start a report from a session", "Start a note from a session")
-    .replace("Create and reopen a report", "Create and reopen a note")
-    .replace("From a training session, create a report", "From a training session, create a note");
+    .replace("Inspect one training session", "Inspect one library item")
+    .replace("Find or create one relevant report", "Find or create one relevant note");
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
@@ -96,9 +95,8 @@ test("rejects public guidance or evaluation that drops implemented MVP journeys"
       assert.match(error.message, /userGuide does not document bundled source acquisition/);
       assert.match(error.message, /userGuide does not document implemented training exploration/);
       assert.match(error.message, /userGuide does not document implemented report export/);
-      assert.match(error.message, /manualEvaluation does not document keyboard report evaluation/);
-      assert.match(error.message, /manualEvaluation does not document VoiceOver report evaluation/);
-      assert.match(error.message, /manualEvaluation does not document realistic report evaluation/);
+      assert.match(error.message, /manualEvaluation does not document training-depth experience review/);
+      assert.match(error.message, /manualEvaluation does not document report experience review/);
       return true;
     },
   );
@@ -109,12 +107,12 @@ test("rejects a candidate procedure that transfers deterministic verification to
   const evaluationPath = "docs/testing/macos-candidate-manual-evaluation.md";
   candidate.documents[evaluationPath] = candidate.documents[evaluationPath]
     .replace(
-      "It is not part of\nthe product-owner experience review.",
-      "It is part of\nthe product-owner experience review.",
+      "not asked to execute a control matrix",
+      "asked to execute a control matrix",
     )
     .replace(
-      "Deterministic functional behavior must already have passed its automated unit,",
-      "Deterministic functional behavior may be checked manually after the automated unit,",
+      "Functional correctness belongs to automated unit, integration, contract, packaged end-to-end (E2E)",
+      "Functional correctness may be checked manually after unit, integration, contract, and packaged E2E",
     );
 
   assert.throws(

@@ -124,9 +124,10 @@ The following absence of evidence is deliberate and is not converted into an aut
 - synthetic histories prove composition and safety, not whether a person recognizes and values their own
   history.
 
-The final evaluation follows the privacy-safe
-[macOS candidate manual procedure](../testing/macos-candidate-manual-evaluation.md). A critical or major
-human finding reopens the owning increment. Acceptance of this machine-assisted audit cannot override it.
+The final experience evaluation follows the bounded privacy-safe
+[macOS product-owner procedure](../testing/macos-candidate-manual-evaluation.md). A critical or major
+human experience finding reopens the owning increment. Acceptance of this machine-assisted audit cannot override it,
+and the product-owner procedure does not absorb deterministic functional or specialist accessibility verification.
 
 ## Disposition
 

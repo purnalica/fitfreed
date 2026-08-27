@@ -110,7 +110,7 @@ The [performance benchmark guide](performance-benchmarks.md) documents cold laun
 
 The [private release preparation guide](release-preparation.md) owns the clean-revision package and installation evidence lane. It remains separate from `verify:full` because preparation must bind its output to a clean, reviewable commit.
 
-The [public release guide](public-release.md) owns the inactive production trust boundary, exact-tag preflight, protected inputs, signed candidate, immutable Release, Pages deployment, provenance, and remote verification workflow. `npm run check:docs` also binds the version-matched public user guide, maintainer runbook, manual evaluation, readiness ledger, supporting policies, reviewed release notes, release policy, and both initial locale catalogs. Contributor commands may verify that workflow, but normal setup and CI cannot publish a binary.
+The [public release guide](public-release.md) owns the inactive production trust boundary, exact-tag preflight, protected inputs, signed candidate, immutable Release, Pages deployment, provenance, and remote verification workflow. `npm run check:docs` also binds the version-matched public user guide, maintainer runbook, product-owner experience evaluation, readiness ledger, supporting policies, reviewed release notes, release policy, and both initial locale catalogs. Contributor commands may verify that workflow, but normal setup and CI cannot publish a binary.
 
 ## Continuous integration
 

@@ -81,7 +81,7 @@ Hosted evidence on 2026-08-18: source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe`
 1. Publish version-matched `en-US` and `es-ES` application guidance plus English web documentation for download, Gatekeeper-safe installation, first launch, updates, offline behavior, recovery, data retention, removal, and support.
 2. Document key custody, rotation, compromise, release promotion, partial-publication recovery, release withdrawal, Pages rollback, and incident communication.
 3. Verify clean installation, first launch, update, migration, interruption recovery, preserved library behavior, and removal from public-release-shaped artifacts.
-4. Complete keyboard, VoiceOver, scaling, contrast, realistic usability, and update/recovery evaluation for the exact candidate.
+4. Complete automated keyboard, scaling, appearance, localized update, recovery, and automatable accessibility verification for the exact candidate; keep the product-owner review limited to experience quality and schedule separate specialist judgment only for irreducibly subjective accessibility properties.
 5. Consolidate Milestone 2 deferred gates and Milestone 3 release gates into one readiness ledger with no implicit closure.
 
 **Acceptance evidence:** the exact candidate has complete hosted automation, real Apple trust evidence, public-channel evidence, version-matched user and maintainer documentation, and completed human evaluation. Every applicable readiness row is passed; no open or unauthorized gate is described as complete.

@@ -71,8 +71,8 @@ While `publish-candidate` waits at the second `public-macos-release` environment
 1. Download the candidate artifact from that exact workflow run.
 2. Confirm its name, version, source revision, and recorded transport digest.
 3. From the exact tagged source, run `npm run unpack:public-release -- <archive> <sha256> <candidate-directory>`. This validates the transport digest, rejects unsafe archive entries, extracts into a new isolated directory, and reopens the complete candidate. A separate `npm run verify:public-release -- <candidate-directory>` may repeat the evidence check but cannot replace the digest-bound extraction.
-4. Perform the public profile of the shared [macOS candidate manual evaluation](../testing/macos-candidate-manual-evaluation.md) against the DMG and application inside that sealed candidate.
-5. Record only the privacy-safe result defined by the procedure and dispose every serious finding before promotion.
+4. After the candidate's automated functional, installation, update, recovery, accessibility, and performance evidence passes, perform the public profile of the bounded [product-owner experience evaluation](../testing/macos-candidate-manual-evaluation.md) against the DMG and application inside that sealed candidate.
+5. Record only the privacy-safe experience result defined by the procedure and dispose every serious finding before promotion.
 6. Confirm that the signed stable envelope is still within its seven-day validity window.
 
 Do not approve promotion when the artifact is unavailable, its digest or evidence fails, evaluation used different bytes, an applicable scenario is blocked, a serious finding remains open, or channel metadata has expired. Cancel the waiting run and prepare a fresh candidate after correcting the cause. Never edit, replace, re-sign, or repackage the sealed candidate.
@@ -91,7 +91,7 @@ Promotion then:
 6. deploys the already uploaded Pages artifact only after immutable Release publication; and
 7. downloads and re-verifies the public Release, release-linked assets, source-bound provenance, direct non-redirecting stable envelope, and exact updater bytes.
 
-The run is accepted only when `verify-publication` succeeds. Record the immutable workflow URL, version, source revision, Release URL, Pages deployment, manual-evaluation result, and final readiness decision. Never record tokens, private identities, local paths, participant data, or raw notarization credentials.
+The run is accepted only when `verify-publication` succeeds. Record the immutable workflow URL, version, source revision, Release URL, Pages deployment, product-experience result, and final readiness decision. Never record tokens, private identities, local paths, participant data, or raw notarization credentials.
 
 ## Failure and restart matrix
 

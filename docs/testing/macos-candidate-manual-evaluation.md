@@ -1,230 +1,94 @@
-# macOS Candidate Manual Evaluation
+# macOS Product-Owner Experience Evaluation
 
 ## Status and boundary
 
-This is the shared privacy-safe manual acceptance procedure for an exact FitFreed 0.1.0 macOS candidate. It complements automated component, packaged E2E, accessibility, installation, update, recovery, and performance gates; it does not replace them.
+This is the canonical human product-owner gate for the FitFreed macOS experience. It is deliberately short and
+subjective. Its purpose is to decide whether the product is understandable, trustworthy, useful, natural to
+navigate, and worth using again.
 
-Execution requires an authorized candidate, controlled participant, and one explicit distribution profile: the [private alpha candidate guide](../user/private-alpha-candidate.md) or the [public macOS guide](../user/public-macos-0.1.0.md). The evaluated bytes and installation trust behavior must match that profile. Until its gates close, the interaction procedure may be rehearsed only with independently generated synthetic packages and cannot be recorded as candidate acceptance.
+Functional correctness belongs to automated unit, integration, contract, packaged end-to-end (E2E), restart,
+installation, update, recovery, accessibility, and performance verification. The product owner is not a manual QA
+operator and is not asked to execute a control matrix, prove persistence, exercise validation branches, collect
+timings, reproduce defects, or certify technical conformance.
 
-### Product-owner experience profile
+A functional failure encountered incidentally during this review is a test-gap defect. Record it once, stop the
+affected journey, diagnose it outside the review, add automated regression evidence, and provide a corrected native
+build. Do not ask the product owner to characterize or repeatedly reproduce it.
 
-The interaction sections of this procedure are also the canonical human gate for the systemic MVP
-redesign. That gate occurs before Apple authority or a sealed public candidate exists and has a deliberately
-narrower claim:
+## X6 product-experience profile
 
-- it may accept or reopen the X6 product experience only;
-- it does not accept installation trust, update recovery, signing, notarization, a release candidate, or
-  public distribution; and
-- it does not remove or defer the later exact-candidate execution of this complete procedure.
-
-An exploratory X6 session may start after the complete local verification lane and native-bundle inspection pass
-for the exact clean source handed to review. Repository safety and the complete hosted campaign may continue in
-parallel, but X6 cannot be accepted until both pass for the same executable inputs. If hosted verification fails,
-the session cannot close X6 and any observation affected by that failure must be repeated after correction. Build,
-inspect, and launch the revision-isolated native review application from that clean source:
+An X6 review is eligible only after the exact clean source has passed the complete local verification lane, native
+bundle inspection, repository-safety workflow, and hosted continuous-integration campaign. Build and inspect the
+revision-isolated native review application with:
 
 ```sh
-npm run review:x6
+npm run build:x6-review
+npm run check:x6-review-bundle
 ```
 
-This profile derives a distinct bundle identifier from the exact source revision, which gives the review its own
-application-data location without substituting the user home or enabling a database-path override. Its build has
-no E2E feature, frontend test routing, WebDriver capability, dialog mock, or opener mock. The mandatory bundle
-inspection scans the complete application for those markers before launch. Archive selection and external links
-therefore use the production native adapters. **Never use `build:e2e`, its generated application, or an E2E
-database override for human review.**
+The resulting application must have its own revision-derived application-data location and must contain no E2E
+feature, frontend test routing, WebDriver capability, dialog mock, opener mock, or database-path override. Archive
+selection and external links therefore use the production native adapters. Never hand the product owner an E2E
+build.
 
-The revision-isolated library may receive the independently generated fixtures or an explicitly authorized
-personal export. A personal export never changes the privacy-safe recording boundary below. After closing the
-application, `npm run launch:x6-review` reopens the already inspected build and its same isolated library while the
-source remains unchanged.
+The native application is launched only when the product owner chooses to begin the review. It may use independently
+generated synthetic packages or an explicitly authorized personal export. A personal export never changes the
+privacy-safe recording boundary below.
 
-For X6, use the bounded product-owner experience review below. The detailed functional, keyboard, VoiceOver,
-scaling, installation, removal, and update sessions in this document are not a checklist for the product owner.
-They remain exact-candidate or specialist-evaluation gates executed by project automation or a designated evaluator.
-Record the product-owner outcome explicitly as **X6 product experience**, never as candidate or release acceptance.
-Any critical or major product-experience finding reopens its owning redesign increment.
+## Exact-candidate profile
 
-### Product-owner experience review
+The same bounded experience review may be repeated against an exact private or public macOS candidate after all
+applicable automated candidate gates pass. The evaluated bytes and trust behavior must match the selected
+[private alpha candidate guide](../user/private-alpha-candidate.md) or
+[public macOS guide](../user/public-macos-0.1.0.md). A public candidate must be the sealed Actions artifact awaiting
+promotion.
 
-The product owner's scarce review time is reserved for evidence that automation cannot establish: first impression,
-purpose and trust comprehension, perceived usefulness, information hierarchy, discoverability, natural navigation,
-visual and textual quality, confidence during long or sensitive operations, and credible reasons to continue using the
-product. Review is task-led rather than control-led and may stop as soon as a material finding prevents the intended
-journey.
+This review does not prove signing, notarization, Gatekeeper, installation, update, recovery, data preservation,
+keyboard mechanics, or assistive-technology conformance. Those remain automated release evidence or, where
+automation cannot establish a subjective accessibility property responsibly, a separately scheduled specialist
+evaluation. They are never implicit product-owner work.
 
-The product owner is not responsible for exhaustively proving that imports, reimports, persistence, every control,
-validation branch, locale, keyboard path, assistive-technology state, installation, update, or recovery mechanism
-functions correctly. Unit, integration, contract, packaged E2E, restart, accessibility, performance, installation,
-and recovery automation must prove those outcomes with synthetic evidence before handoff. A functional failure found
-incidentally during experience review is a test-gap defect: record it once, stop the affected journey, and return it
-to automated diagnosis and regression coverage instead of asking the product owner to reproduce or characterize it.
+## Product-owner experience review
 
-Run one short, coherent task at a time. Ask only what the person understood, expected, trusted, found useful, found
-confusing, or would do next. The participant may use an explicitly authorized personal export to judge recognizable
-value, but the privacy-safe recording boundary still applies. Detailed manual accessibility conformance and release
-trust evaluation, where automation cannot supply sufficient evidence, require a separately scheduled qualified
-evaluator and are never implicit product-owner work.
+The review is one short, uncoached exploration rather than an exhaustive script. The product owner may follow the
+journeys that best expose value and may stop as soon as a material problem invalidates the experience. The useful
+questions are what the person understood, expected, trusted, found valuable, found confusing, or wanted to do next.
 
-For this bounded product-owner review, record only the source label, accepted or rejected outcome, and privacy-safe
-experience findings needed to explain that decision. Do not ask the product owner to complete a control matrix,
-collect timings, identify technical causes, reproduce a functional defect, or certify accessibility or release trust.
+## Experience tasks
 
-## Exact-candidate and specialist procedure
+1. Start without coaching. Judge whether the first screen explains what FitFreed is, why it is useful, what remains
+   local, and how to begin without sounding promotional or making unsupported promises.
+2. Use a recognizable library to answer one personally relevant question. Judge whether Home reveals useful facts
+   and creates a natural path into evidence instead of exposing a wall of data.
+3. Inspect one training session and, when route data exists, its route, ranges, signals, structure, and exact detail.
+   Judge whether progressive disclosure preserves both clarity and analytical depth.
+4. Find or create one relevant report, inspect its result, and locate its local export. Judge whether reports have a
+   clear identity and whether data freedom is visible without turning the product into an editor by default.
+5. Move between Home, History, Reports, Sources, Settings, and one deep detail. Judge navigation, return paths,
+   status feedback, information density, typography, alignment, localization, and overall visual quality.
 
-Everything below this heading belongs to release automation or a separately designated evaluator. It is not part of
-the product-owner experience review. Deterministic functional behavior must already have passed its automated unit,
-integration, contract, packaged E2E, restart, installation, update, recovery, accessibility, and performance gates
-before this procedure begins. Manual work is retained only where the operating-system trust boundary, assistive
-technology, or a subjective observation cannot be established responsibly by automation.
+These are prompts for experience judgment, not proof that every named control works. Automation must have exercised
+the complete functional journeys before handoff.
 
-### Evaluation record
+## Recording boundary
 
 Record only:
 
-- candidate version, source revision, manifest digest, and evaluated package architecture;
-- whether the environment satisfies the candidate's platform boundary, whether it is hosted macOS or local Apple Silicon, plus the input and assistive technologies used;
-- scenario identifier, pass, fail, blocked, or not-applicable result, and elapsed task time where requested;
-- stable interface text or privacy-safe error code needed to identify a failure;
-- accessibility impact, reproducibility, and the issue reference created after sanitization; and
-- whether the participant completed each task without intervention and where guidance was needed.
+- the source-revision or candidate label;
+- accepted or rejected product-experience outcome; and
+- concise privacy-safe findings needed to explain that outcome.
 
-Exact participant hardware and operating-system details may be retained only in a controlled local evaluation record when needed to reproduce a finding. Never copy them into versioned documentation or a public issue. Do not record or attach names, account claims, archive names or paths, dates, fitness or health values, routes, identifiers, library content, package fingerprints, private endpoints, screenshots of imported history, screen recordings, VoiceOver transcripts containing personal values, or raw logs. The participant owns the real export and may stop the session or decline any observation.
-
-## Preconditions
-
-1. Verify the complete candidate evidence, distribution profile, and controlled handoff before mounting the DMG. A public candidate must be the sealed Actions artifact awaiting promotion from the same workflow run.
-2. Preserve the original provider ZIP independently.
-3. Confirm that no production or personally important FitFreed library already occupies the candidate's application-data location.
-4. Disable unrelated screen sharing, recording, cloud clipboard, and public diagnostic capture for the session.
-5. Confirm the evaluator knows the privacy-safe reporting boundary and the recovery contact.
-6. Record the default language, display scaling, appearance, keyboard settings, VoiceOver state, and network state before changing them for a scenario.
-
-## Installation and first-run session
-
-1. Complete the profile-matched DMG drag-copy installation without a development toolchain, terminal, global security change, or unverified replacement. A public candidate must open through the ordinary Developer ID and Gatekeeper path with no launch exception.
-2. Launch the exact installed application and confirm version 0.1.0.
-3. Verify that the initial locale follows a supported operating-system preference or falls back to English, then switch between English (United States) and Spanish (Spain).
-4. Quit and reopen FitFreed. Confirm the explicit locale persists and the empty-library Home returns with
-   both direct starts: choosing an existing ZIP and learning how to obtain one. Confirm that Sources becomes
-   current only after either acquisition action is selected and that returning to Home preserves no false
-   import result.
-5. Import the authorized synthetic package, choose one Home question, quit, and reopen. Confirm that the populated library restores only that valid exploration destination. Return explicitly to Home, restart, and confirm that no explorer is resumed.
-6. Remove only the application and confirm the separate library remains. Reinstall the same candidate and confirm it reopens that library through Home or its valid saved destination.
-
-Any checksum, mount, copy, launch, version, locale-persistence, application-removal, or library-retention failure blocks the candidate.
-
-## Keyboard session
-
-Enable the macOS setting that permits keyboard focus on all controls. Starting from a fresh launch:
-
-1. Traverse the five persistent workspace destinations and every Home question, source-coverage link,
-   return-to-Home action, language, package-selection, import, update, filter, reset, comparison, session-section,
-   route, range, report-authoring, privacy-review, export, close, table-scroll, and acknowledgement control in
-   both forward and reverse order.
-2. Confirm a visible focus indicator, logical focus order, localized accessible name, and expected enabled or disabled state at each stop.
-3. Operate every included action using the keyboard. Native file selection must support selection and cancellation without trapping focus.
-4. Enter valid and invalid values in every date field. Confirm errors are associated with the relevant control and that invalid input preserves the last valid result.
-5. Open every offered Home question and confirm only its explorer enters the navigation order. Open and close
-   every detail view, follow each longitudinal navigation target, return to its source workspace, scroll every
-   wide exact table, and clear every disposable comparison result. In a routed session, operate map pan, zoom,
-   complete-track reset, focus mode, recorded-position traversal, exact-point entry, every available session
-   section, and personal-range boundaries without a pointer. Confirm that route and regular signal selection
-   stay independent when the source provides no exact relationship.
-6. Start and cancel an import before the visibility boundary. Confirm focus remains usable while progress changes and returns to a meaningful control after the terminal outcome.
-7. Start a report from a session and operate every title, optional commentary, block, period, metric, add,
-   remove, reorder, save, preview, privacy review, destination, cancel, export, source-return, and report-return
-   control. Reopen the saved report into its result rather than its editor, enter composition deliberately,
-   cancel back to the unchanged result, and exercise deletion and its cancellation. Confirm revealed review
-   and result headings receive focus and each close, cancellation, or contextual return restores the correct
-   initiating control.
-8. Confirm no component creates a keyboard trap, requires pointer-only operation, loses focus into hidden content, or changes history from a navigation-only action.
-
-## VoiceOver session
-
-Run VoiceOver against English and Spanish at least once each:
-
-1. Navigate by window, landmark, heading, form control, table, and link. Confirm the hierarchy identifies Home, its available period, questions and domain coverage, import, updates, each detailed explorer, longitudinal dashboard, comparisons, and details without relying on visual position.
-2. Confirm controls expose their name, role, state, current value, invalid state, and busy state. Repeated detail actions must include the date or session context.
-3. Start a valid import and confirm phase progress and the terminal result are announced without continuously repeating unchanged content.
-4. Trigger invalid input and an invalid synthetic archive. Confirm the failure and recovery action are announced without exposing a source locator or personal value.
-5. Inspect every summary, sport icon label, local route map, chart, range, and exact table. Decorative geometry
-   must not duplicate noisy content; the structured or tabular alternative must preserve every value, unit,
-   missing state, route-point identity, and origin separation. No announcement may imply route-to-signal
-   synchronization when the source supplies no exact relationship.
-6. Change locale and confirm new interface text, dates, durations, numbers, coverage reasons, and update messages are announced in the selected language.
-7. Reopen the application and confirm that only the valid saved explorer, or Home after an explicit return, and any update-recovery notice enter the navigation order predictably.
-8. Create and reopen a report. Confirm the ordered composer, authored content, source context, stale state, privacy review, export progress, cancellation, completion, and contextual navigation are announced once and that each report visual has an equivalent exact table.
-
-Missing names, incorrect roles or states, unannounced errors, inaccessible exact values, focus loss, or personal-data leakage blocks the candidate.
-
-## Scaling, appearance, and contrast session
-
-1. Test the minimum supported window and the evaluator's normal full-screen size at default text and 200% root text size.
-2. Complete Home, both first-run acquisition paths, import, every question entry and return, every explorer,
-   filter, session section, route workbench, personal range, comparison, longitudinal navigation, Reports
-   Library, deliberate composition, result Preview, privacy and stale-evidence review, local export, the
-   Settings update panel, and every terminal outcome at 200%.
-3. Confirm there is no page-level horizontal overflow, clipped control, overlapping text, hidden error, or unreachable action. Labeled exact-table containers may scroll horizontally.
-4. Repeat the primary journey in light and dark operating-system appearance and with increased contrast where available.
-5. Confirm text, focus, controls, states, charts, and table values remain perceivable. Supported, ignored, unavailable, missing, invalid, comparison direction, and selected state must never depend on color alone.
-6. Enable reduced motion and confirm optional width transitions are removed without changing information or interaction.
-
-Record a contrast failure only after identifying the exact foreground, background, state, appearance, and control. Do not capture personal screen content.
-
-## Realistic usability session
-
-The participant performs the complete journey without coaching; the evaluator may ask the participant to describe expectations but does not explain controls before first use.
-
-1. Install and launch FitFreed, choose a language, and identify what data stays local.
-2. From empty-library Home, identify both direct starts and choose the bundled source guide. Explain how to
-   obtain a provider export, what leaves FitFreed for the default browser, and why provider credentials never
-   enter the application. Return to Home, use the direct ZIP action, select an authorized compatible archive,
-   understand the progress phases, and explain whether cancellation is currently safe.
-3. From the post-import Home reveal, interpret the usable period, available domains, one safe next question, and the terminal canonical effect without first reviewing source diagnostics. Then find all five source-coverage totals, at least one family reason, and its next action.
-4. Use the Home questions to find an exact daily activity value, training session, sleep period, and recovery
-   night; distinguish missing, unavailable, and zero. In Training, classify an unknown sport, combine meaningful
-   history filters, use chronology and calendar, compare multiple sessions, and open one routed and one partial
-   session as focused stories. Investigate the dominant local map through pan, zoom, fit, focus mode,
-   recorded-position traversal, range selection, and exact route points; inspect independent signals, recorded
-   structure, zones, and provenance without inferring unsupported alignment. Create, reopen, rename, adjust,
-   review, and remove a personal range on an explicit timeline. Where source phases are absent, create, edit,
-   reorder, reuse, and remove user-authored segment criteria without mistaking either authored construct for
-   provider facts.
-5. Apply and reset a range in each explorer, open and close detail, and complete a two-period comparison.
-6. Use the longitudinal view to inspect one aligned day, navigate to an authoritative explorer, return to the shared range, and explain the non-causality notice.
-7. Reimport the same ZIP and explain why history did not duplicate. Import a later authorized export when available and explain the cumulative outcome.
-8. From a training session, create a report with an authored title and optional commentary; add, remove, and
-   reorder analytical and route views; choose valid periods and metrics; and explain the Preview result's
-   source separation, exact alternatives, missing evidence, and limitations. Save it, return to the Reports
-   Library, recognize its subject and primary result without opening an editor, then reopen it directly into
-   Preview. Enter composition deliberately, cancel once without changing the result, edit and save once, review
-   included and excluded sensitive content, export a local self-contained HTML file, cancel a second export
-   without replacing the first, and navigate to the exact source and back. After a source-changing reimport,
-   explain why export is blocked, review the candidate evidence, refresh explicitly, and confirm authorship
-   remains unchanged. Delete a disposable synthetic report only after verifying that cancellation preserves it
-   and that successful removal changes no imported history.
-9. Leave one explorer active, quit and reopen FitFreed, and confirm that exact explorer and the locale return without loading unrelated explorers. Return to Home, restart, confirm the exploration is no longer resumed, and find the application version and explicit update check in Settings.
-10. Explain the difference between removing the application and deleting the library, where the library lives, why the original ZIP must be preserved, and what backup capability is absent.
-11. Encounter one controlled invalid package or recoverable failure and identify the safe next action without editing the library or exposing diagnostics.
-
-Record task completion, intervention, misunderstanding, abandonment, and privacy or trust concerns. Do not reinterpret participant confusion as success because the underlying command completed.
-
-## Update and recovery session
-
-Run only after the profile's real channel and protected signing authority exist for distinct authorized versions:
-
-1. Verify offline startup remains usable and a manual offline check is non-disruptive.
-2. Confirm a newer compatible candidate shows installed and available versions plus localized notes; exercise postponement and explicit rediscovery.
-3. Accept installation and confirm imports, locale changes, and competing update actions are disabled while replacement owns the operation.
-4. Confirm successful replacement reopens the exact library and presents an acknowledgement-retained result.
-5. Execute the controlled rejected-candidate scenario and confirm bounded automatic restoration reopens the previous application and same valid library with recovery guidance.
-6. Confirm acknowledgement removes only the terminal notice and that application removal leaves the library intact.
-
-No real participant library may be used for deliberate update failure until the exact candidate and recovery pair have already passed synthetic release-shaped evidence and an independent protected backup exists under the controlled evaluation plan.
+Do not ask for a completed control checklist, technical diagnosis, reproduction recipe, hardware inventory, timing
+sheet, screenshots of personal history, or raw logs. Never record names, account claims, archive or library names,
+filesystem paths, dates, fitness or health values, routes, identifiers, package fingerprints, private endpoints, or
+database contents. The product owner owns any real export and may stop the review at any time.
 
 ## Acceptance rule
 
-The candidate is not accepted while any scenario is blocked, any installation/update matrix case fails, any automated gate is red, any critical or serious accessibility defect remains, any participant cannot recover safely from the prescribed failure, or any evidence collection crosses the privacy boundary.
+Accept the experience only when the product communicates its purpose and privacy boundary honestly, exposes useful
+answers quickly, retains credible analytical depth, makes navigation and long operations understandable, presents
+data with exceptional care, and gives the user visible control over data and exit paths.
 
-Minor findings still require an issue, owner, severity rationale, and explicit disposition before the candidate decision. Passing one participant session does not establish universal usability or provider compatibility; it supplies bounded evidence for the named candidate, distribution profile, and participant audience.
+Any critical or major experience finding reopens its owning redesign increment. A passing experience review does not
+make a release candidate technically acceptable and cannot override failed or missing automation, specialist
+accessibility evidence, distribution authority, or public-release approval.

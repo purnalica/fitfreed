@@ -143,6 +143,6 @@ The [private alpha readiness ledger](../testing/private-alpha-readiness.md) reco
 - the private update endpoint and protected production signing authority are configured and verified;
 - the controlled handoff defines integrity verification and the exact unsigned macOS launch procedure without a global security change;
 - the participant understands that no supported user backup/restore or portable normalized export exists in 0.1.0; and
-- the controlled [realistic usability, keyboard, VoiceOver, scaling, contrast, and recovery evaluation](../testing/macos-candidate-manual-evaluation.md) is ready.
+- the bounded [product-owner experience evaluation](../testing/macos-candidate-manual-evaluation.md) is ready, after automated functional, accessibility, installation, update, and recovery evidence has passed.
 
 Until then, use the [synthetic development preview](development-preview.md), not a personal export.
