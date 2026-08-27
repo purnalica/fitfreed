@@ -300,7 +300,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
-| X7-R6 | In progress — duplicate aggregate semantics are implemented and protected at the domain boundary; application, transport, persistence, presentation, examples, and full gates remain | Relevant built-in examples and duplication make reports understandable and reusable |
+| X7-R6 | Complete locally — built-in examples, independent duplication, exact clean-revision verification, and all release-shaped gates passed 2026-08-27 | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Pending | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
@@ -3020,8 +3020,7 @@ protects durable report cardinality, not total action cardinality, so both resta
 functional journey, exact application-process restart, evidence-adaptive composition, independent-signal range
 restart, and isolated two-year dense-history scenario all passed. Every measured dense interaction remained within its
 budget; the largest observed p95 was 154 milliseconds for the signal overview against a 1,000-millisecond budget.
-Resume by running the complete X7-R6 verification matrix and correcting every finding before creating the focused
-commit and bounded push. All work in this checkpoint remains uncommitted. The structured-intent example preserves the
+This restart checkpoint preceded the focused candidate commit. The structured-intent example preserves the
 one-evidence-library-per-report invariant and must not become a fabricated mixed planned-versus-recorded report.
 
 The first resumed full-matrix run stopped at `check:ui-contracts`. X7-R6 had correctly replaced the former empty editor
@@ -3080,6 +3079,17 @@ kept every interaction within budget, and the packaged WebView campaign's larges
 for signal overview against its 1,000-millisecond budget. X7-R6 is now a verified pre-commit candidate. It remains open
 until the focused commit exists and the exact clean revision passes `verify:full`; no push is permitted before that
 clean-revision evidence.
+
+The focused candidate `6170f75` then passed `verify:full` from a clean source tree on 2026-08-27. The repeated matrix
+preserved every pre-commit result and bound all performance and packaged evidence to that exact revision. The clean
+import campaign measured 20.788 seconds p95 for first import, 91.286 milliseconds for exact repeat, 2.703 milliseconds
+for bounded queries, and 34.313 MiB peak resident memory. The dense-history campaign retained 7,490,080 samples with a
+12.921-millisecond Library Home p95. Every Insights and packaged WebView interaction remained within budget; the
+largest packaged p95 was 163 milliseconds for signal overview against 1,000 milliseconds. One hundred fresh
+production processes reached the first painted localized interactive shell in 405.327 milliseconds p95 against the
+2.5-second budget. Production-bundle inspection accepted the exact application identity and minimum macOS version,
+and the real macOS copy adapter prepared a recovery pair for application version 0.1.0 and library schema 32 while
+preserving locale. X7-R6 is complete locally; X7-R7 now owns whole-product falsification.
 
 **User outcome:** Reports opens with relevant examples that demonstrate real supported value; a person can use one as
 the basis of a report, duplicate an existing report, review the result first, refine it deliberately, and export it
