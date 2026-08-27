@@ -12,8 +12,8 @@ results outside the platform that recorded them.
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
 > **No supported release is available yet.** The current source contains the tested macOS engineering
-> baseline and the implemented MVP experience; whole-product hardening, the independent experience
-> audit, and exact-candidate acceptance remain in progress. Real
+> baseline and the implemented MVP experience. The independent machine-assisted audit has passed; production-native
+> human evaluation and exact-candidate acceptance remain in progress. Real
 > personal exports remain outside the public-evaluation boundary until an exact release candidate
 > passes its privacy, installation, update, and usability gates.
 
@@ -52,8 +52,9 @@ change it, inspect sensitive location or physiological content, and export an in
 artifact under your control.
 
 The sports, session-evidence, map-led route, navigation, personal-range, and result-first report
-experiences are implemented in the current source. Whole-product hardening and the independent audit
-are tracked in the [active delivery plan](docs/plans/mvp-redesign-production-migration.md).
+experiences are implemented in the current source. Whole-product hardening has passed its independent
+machine-assisted audit; production-native human evaluation is tracked in the [active delivery
+plan](docs/plans/mvp-redesign-production-migration.md).
 The evidence boundary remains explicit in the
 [experience assessment](docs/research/mvp-experience-boundary-assessment.md), while release readiness
 is governed independently by the [current ledger](docs/testing/public-release-readiness.md).
@@ -96,10 +97,10 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 </details>
 
 <details data-status="active" open>
-<summary><strong>Work in progress — MVP release preparation and independent audit</strong></summary>
+<summary><strong>Work in progress — MVP release preparation and human evaluation</strong></summary>
 <ul>
 <li>Whole-product presentation, documentation, installation, update, and recovery validation</li>
-<li>Independent pre-release product-experience audit</li>
+<li>Final production-native usability and accessibility evaluation</li>
 <li>Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition</li>
 </ul>
 <p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>

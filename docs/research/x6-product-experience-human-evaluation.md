@@ -28,6 +28,14 @@ boundaries. The current [readiness ledger](../testing/public-release-readiness.m
 makes the corrected native package eligible to restart the profile; it does not replace, reinterpret, or pass the
 rejected human session.
 
+The later X7 corrective sequence is machine-complete. Exact source `a130343607016e40bb833f5b63246cb6adccd5e5`
+passes [repository safety](https://github.com/purnalica/fitfreed/actions/runs/33057603547), the complete [hosted
+campaign](https://github.com/purnalica/fitfreed/actions/runs/33057603540), its immutable evidence marker, and the
+revision-isolated production-native full-bundle scan for executable-input fingerprint
+`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`. This evidence makes the X7-corrected product
+eligible for a new complete profile after the final clean handoff revision is rebuilt and scanned. It does not alter
+the rejected X6 observations or constitute human acceptance.
+
 This evaluation can accept or reopen the X6 product experience only. It cannot accept signing,
 notarization, installation trust, update recovery, a release candidate, or public distribution.
 
@@ -554,3 +562,6 @@ exact hosted verification, and the human evaluation is completed successfully fr
 The repeated profile on 2026-08-26 uses review source `de0ba3dd149a95ee96e8a48ea7aaf1cb74453d6d`, whose
 executable inputs are the corrected source `31751b2ef9291fc23d7aa50e14a2ecfe46280c21`. XH-01 reproduced at the
 real default-browser boundary: FitFreed displayed local action outcomes, but neither Polar destination appeared.
+
+X7 now owns the corrected-product continuation. Its machine evidence is complete, but the repeated human profile has
+not started; this record remains rejected until a new privacy-safe result explicitly replaces that disposition.

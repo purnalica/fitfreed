@@ -2,17 +2,16 @@
 
 ## Status and authority
 
-**Accepted X3 contract as of 2026-08-21; implemented through X5-R10.** This document is the single
+**Accepted X3 contract as of 2026-08-21; implemented through X7-R7.** This document is the single
 source of truth for the screen, interaction, navigation, state, responsive, localization, and
 accessibility contract of the systemic MVP experience redesign. The production application now
-implements its R1 through R10 vertical slices. The renewed X6 machine-assisted reaudit has no unresolved
-critical or major finding, and exact repository safety and hosted verification pass for its product corrections.
-The first human session was invalidated by an instrumented native boundary. Its revision-isolated production-native
-replacement and exact hosted campaign pass, but the restarted valid human gate rejects source `41ffad2` during the
-first-value journey. The implementation work defined by corrective increments X6-C1 through X6-C5 in the
-[production migration plan](../plans/mvp-redesign-production-migration.md) and exact hosted verification for corrected
-source `31751b2` are complete. The remaining provider-catalogue, native-browser, and repeated human gates must restore
-the accepted contract before release preparation resumes. Implementation does not by itself authorize a release claim.
+implements X5-R1 through X5-R10 and the corrective X7-R1 through X7-R7 vertical slices.
+The first human session was invalidated by an instrumented native boundary, and the restarted valid human gate later
+rejected its reviewed X6 sources. Corrective X7-R1 through X7-R7 in the [production migration
+plan](../plans/mvp-redesign-production-migration.md) now pass their independent audit, exact local and hosted
+campaigns, immutable marker, and production-native bundle scan. The remaining provider-catalogue, native-browser,
+and repeated human gates must restore human acceptance before release preparation resumes. Implementation and machine
+evidence do not by themselves authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

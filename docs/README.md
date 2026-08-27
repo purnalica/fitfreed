@@ -53,6 +53,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [MVP redesign R5 checkpoint audit](research/mvp-redesign-r5-checkpoint-audit.md) independently checks the implemented first-run-to-session journey, reopens contradicted increments, and separates current findings from planned R6–R9 work.
 - [MVP product-experience reaudit](research/mvp-product-experience-reaudit.md) records the renewed X6 machine-assisted result, corrections found during inspection, and the exact human evidence that remains.
 - [X6 product-experience human evaluation](research/x6-product-experience-human-evaluation.md) is the live privacy-safe record of observed human findings and their disposition.
+- [X7 product-experience reaudit](research/x7-product-experience-reaudit.md) records the independent corrected-product challenge, its exact machine evidence, and the observations reserved for the repeated human gate.
 
 ## Documentation ownership
 

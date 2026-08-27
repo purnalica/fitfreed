@@ -43,10 +43,10 @@
     {
       "key": "active",
       "label": "Work in progress",
-      "title": "MVP release preparation and independent audit",
+      "title": "MVP release preparation and human evaluation",
       "items": [
         { "key": "wholeProductHardening", "text": "Whole-product presentation, documentation, installation, update, and recovery validation" },
-        { "key": "independentAudit", "text": "Independent pre-release product-experience audit" },
+        { "key": "independentAudit", "text": "Final production-native usability and accessibility evaluation" },
         { "key": "polarSportCatalogue", "text": "Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition" }
       ],
       "source": {

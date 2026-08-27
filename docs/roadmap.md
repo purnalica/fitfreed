@@ -7,20 +7,16 @@ Milestone 1 and Milestone 2 capability implementation and the current Milestone 
 The active stage is the production migration defined by the accepted [UI and UX redesign
 plan](plans/ui-redesign.md) and [MVP redesign production migration
 plan](plans/mvp-redesign-production-migration.md). X3 is accepted, X4 converted the contract into functional vertical
-increments, and X5-R1 through X5-R10 retain their engineering evidence. The renewed machine-assisted X6 audit has no
-unresolved material finding, but the completed repeated [production-native human
-evaluation](research/x6-product-experience-human-evaluation.md) rejects the product experience. The review reopened
-first-use trust, import responsiveness, sport recognition, natural drill-down, comparison defaults, data precision
-and density, tabular alignment, charting, route zoom, structured training intent, Settings actions, and reusable
-report starts. X7 in the active migration plan owns their ordered correction. X7-R2 through X7-R5 are complete
-locally. X7-R5 adds its provider-neutral domain, source mapping, schema 31 durable reconciliation, schema 32
-planned-report persistence, backup and normalized data exit, application queries, localized exploration, report
-composition, and deterministic HTML under complete fast, packaged, restart, accessibility, localization, visual,
-performance, repository, and privacy evidence. External-tile cartography, additional providers, public-candidate
-preparation, and advanced personalization remain outside that loop. The production
-application remains the only implementation and the [MVP experience delivery
-plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline. Milestone 3 resumes only after the
-X7 corrective loop and repeated X6 gate pass.
+increments, X5-R1 through X5-R10 retain their engineering evidence, and X7-R1 through X7-R7 are machine-complete. The
+independent [X7 product-experience reaudit](research/x7-product-experience-reaudit.md), exact local and hosted
+campaigns, immutable evidence marker, and revision-isolated production-native bundle scan pass without an unresolved
+critical or major finding. The earlier [production-native human
+evaluation](research/x6-product-experience-human-evaluation.md) remains the authoritative rejection of its reviewed
+X6 sources; X7 still requires a complete repeated human evaluation and the separate provider-catalogue and
+default-browser observations. External-tile cartography, additional providers, public-candidate preparation, and
+advanced personalization remain outside this loop. The production application remains the only implementation and
+the [MVP experience delivery plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline.
+Milestone 3 resumes only after the repeated human gate accepts the corrected experience.
 
 ## Purpose
 

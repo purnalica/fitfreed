@@ -7,61 +7,32 @@ Authorized for autonomous execution as of 2026-08-21. The independent R5 checkpo
 [R5 checkpoint audit](../research/mvp-redesign-r5-checkpoint-audit.md).
 The X5-R1 product entrance is live and its CI resource policy is covered by the current hosted
 portable checks. The product owner accepted the X3 direction and its amendments on 2026-08-21. This
-document is the single implementation-facing plan for X4 and X5 of the systemic MVP redesign.
+document is the single implementation-facing plan for X4 through X7 of the systemic MVP redesign.
 
 ### Current execution snapshot
 
-Updated 2026-08-26. X4-P0 and X5-R1 through X5-R10 retain their engineering evidence. The renewed X6 machine-assisted
-[product-experience reaudit](../research/mvp-product-experience-reaudit.md) has no unresolved critical or major
-finding after two TDD corrections. Exact [repository-safety run
-`32743509862`](https://github.com/purnalica/fitfreed/actions/runs/32743509862) and [hosted campaign
-`32743509696`](https://github.com/purnalica/fitfreed/actions/runs/32743509696) pass for corrected source `246faed`.
-The campaign passes the portable lane, every performance and lifecycle gate, the complete functional package,
-native replacement, deliberate candidate rejection, exact recovery, and the immutable evidence-marker job for
-executable-input fingerprint `3e0c2eb1dddc33cd295c8b6b504650b32e392589d396b7f835f53dec4f68e9d8`.
-The portable job completed in 4 minutes and 27 seconds and the macOS job in 1 hour, 3 minutes, and 27 seconds;
-the bounded 75-minute allowance remained sufficient without changing an operation watchdog,
-product-performance budget, or acceptance criterion. The first human session then exposed an evaluation-process
-defect: the documented launch used the instrumented E2E application, whose mocked native boundaries make it
-invalid for archive-picker and external-link evaluation. A revision-isolated production-native profile corrected
-that boundary. Exact [repository-safety run
-`32827945310`](https://github.com/purnalica/fitfreed/actions/runs/32827945310) and [hosted campaign
-`32827945185`](https://github.com/purnalica/fitfreed/actions/runs/32827945185) pass for source `41ffad2`.
+Updated 2026-08-27. X4-P0, X5-R1 through X5-R10, and the X7-R1 through X7-R7 automatable boundaries are complete.
+The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) closes its only material
+finding after an exact clean rebuild and accepts no additional critical or major finding. Exact [repository safety
+`33057603547`](https://github.com/purnalica/fitfreed/actions/runs/33057603547) and the complete [hosted campaign
+`33057603540`](https://github.com/purnalica/fitfreed/actions/runs/33057603540) pass for source `a130343`. The hosted
+campaign passes portable checks in 4 minutes and 3 seconds, the packaged macOS campaign in 1 hour, 2 minutes, and 31
+seconds, and the immutable evidence marker in 4 seconds. It covers production-native package construction and scan,
+cold launch, full-scale import, dense History, Insights, the complete packaged journey, restart, adaptive sessions,
+installation boundaries, update replacement, deliberate rejection, and recovery for executable-input fingerprint
+`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`.
 
-The completed repeated [production-native human evaluation](../research/x6-product-experience-human-evaluation.md)
-still rejects the product experience. X6-C1 through X6-C5 retain their verified engineering corrections, but real use
-reopened external destination completion, resource-limit explanations, progress responsiveness, sport recognition,
-and sport-level drill-down. The wider review also established material Settings, empty-state, number grouping,
-duration precision, comparison-default, route-zoom, structured-training, table-alignment, information-density,
-charting, and report-reuse findings. These findings contradict product-experience acceptance without invalidating
-lower-layer safety, data-preservation, lifecycle, or already measured performance evidence.
-
-The first exact hosted campaign after those corrections reached every native product gate for source `23631be` before
-the Insights benchmark rejected self-contained maximum-route HTML export at 2,057.706 milliseconds p95 against the
-unchanged 2,000-millisecond budget. [Repository-safety run
-`32898559229`](https://github.com/purnalica/fitfreed/actions/runs/32898559229) passed; [hosted campaign
-`32898559348`](https://github.com/purnalica/fitfreed/actions/runs/32898559348) remains a failed result and created no
-executable evidence marker. Root-cause tracing found that both bounded-memory endpoint-redaction passes retrieved
-the 250,000-point route in 10,000-point pages through positional `OFFSET`; later pages repeatedly discarded every
-preceding row. Exact route pagination now seeks from its contiguous source ordinal through the existing composite
-index. A controlled local Apple Silicon comparison against unchanged source `23631be` reduced route-report resolution
-from 729.691 to 442.691 milliseconds p95, self-contained export from 735.299 to 447.263 milliseconds p95, and a deep
-exact page from 15.539 to 6.606 milliseconds p95. The complete fast, Rust lint, Rust format, packaged functional,
-restart, adaptive-session, and performance gates pass for the corrected tree. Correction `31751b2` then passed exact
-[repository safety `32904901418`](https://github.com/purnalica/fitfreed/actions/runs/32904901418) and the complete
-[hosted campaign `32904901151`](https://github.com/purnalica/fitfreed/actions/runs/32904901151). Hosted route-report
-resolution measured 766.714 milliseconds p95, self-contained export 698.089 milliseconds p95, and a deep exact page
-10.784 milliseconds p95. The portable job completed in 4 minutes and 23 seconds, the macOS job in 53 minutes and
-20 seconds, and the immutable marker records executable-input fingerprint
-`81de4cd9104612488f7eab6c84bfa95cb5a3afdb0a801b237f44cf6e77d4e793`. This closes the corrected exact-source
-automation gate without changing a product budget. It does not close findings that the hosted campaign did not
-exercise or make perceptible to a person. X7 below owns the post-review corrective sequence, including the newly
-confirmed FR-027 structured-training vertical and FR-005 report-example and duplication contracts. External-tile
-cartography, additional providers, advanced personalization, and public-candidate work stay outside this sequence.
+The earlier [production-native human evaluation](../research/x6-product-experience-human-evaluation.md) remains the
+authoritative rejection of its reviewed X6 sources; automation does not reinterpret that result. X7 is now eligible
+for a complete repeated evaluation from a clean, revision-isolated production-native package. Actual default-browser
+appearance, native selection, VoiceOver usefulness, five-second comprehension, recognizable personal value, natural
+navigation, and the participant's trust judgment remain reserved for that gate. External-tile cartography,
+additional providers, advanced personalization, and public-candidate work remain outside X7.
 
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
-[X6](#x6--repeat-the-independent-product-experience-audit) defines the final independent audit.
+[X7-R7](#x7-r7--falsify-the-complete-corrected-product-before-handoff) defines the final independent audit and human
+handoff.
 
 The [MVP experience specification](../design/experience-specification.md) owns screen, interaction,
 state, navigation, adaptive, localization, and accessibility behavior. The
@@ -71,9 +42,8 @@ and evidence history for D0 through E6; it is not edited into a fictional record
 This plan maps that implemented baseline into small production migrations without creating another
 executable or a second product path.
 
-The ordinary application does not yet conform to the accepted experience merely because the design
-contract and prototype do. Each increment below becomes current product behavior only after its own
-code, data, test, documentation, and release-shaped gates pass.
+The ordinary application now implements the accepted automatable experience contract. That machine-complete state
+does not constitute human acceptance or release authorization.
 
 Reports and personal range definition remain **Alpha UX** throughout this plan. Alpha permits
 substantial later interaction and composition refinement; it does not relax identity, persistence,
@@ -289,19 +259,19 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
 | X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
 | X6 | Rejected — the completed production-native review reopened material behavior through XH-23 | Independent audit has no unresolved material finding |
-| X6-C1 | Reopened by XH-08 — temporal meaning and provider-neutral identity infrastructure remain valid, but an ordinary archive still yields unknown sports | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
-| X6-C2 | Reopened by XH-01 — visible local outcomes remain valid, but accepted delegation does not prove default-browser appearance | Every successful or failed acquisition action produces a visible, reachable result |
-| X6-C3 | Reopened by XH-03 and XH-06 — classification and progress units exist, but resource-limit meaning and runtime responsiveness fail in real use | Import recovery is calm and specific, and long work remains perceptibly active |
-| X6-C4 | Reopened by XH-09 — shell operation truth remains valid, but represented sport collections still contain dead ends | Prominent summaries and collections open useful evidence |
-| X6-C5 | Reopened by XH-12 through XH-22 — the geometry correction remains valid but does not constitute a coherent data-presentation system | Data is concise, aligned, precise, visual, and progressively disclosed |
-| X7-P0 | Complete in working tree — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
+| X6-C1 | Superseded by X7 — its reopened sport-identity and temporal findings are implemented in X7-R2; provider-catalogue authority remains a separate gate | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
+| X6-C2 | Superseded by X7 — its reopened acquisition findings are implemented in X7-R1; default-browser appearance remains a human observation | Every successful or failed acquisition action produces a visible, reachable result |
+| X6-C3 | Superseded by X7 — its reopened import findings are implemented and verified in X7-R1 | Import recovery is calm and specific, and long work remains perceptibly active |
+| X6-C4 | Superseded by X7 — its reopened navigation findings are implemented and verified in X7-R2 | Prominent summaries and collections open useful evidence |
+| X6-C5 | Superseded by X7 — its reopened presentation findings are implemented and verified in X7-R3 through X7-R6 | Data is concise, aligned, precise, visual, and progressively disclosed |
+| X7-P0 | Complete — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
 | X7-R1 | Machine-complete — X7A-01 corrected and packaged; actual browser appearance remains in the final production-native human gate | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
-| X7-R2 | Complete locally — exact represented-sport identity, comparison presets, and the complete natural-drill-down campaign passed 2026-08-26 | Sports are evidence-backed and every represented collection opens its exact sessions |
-| X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
-| X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
-| X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
-| X7-R6 | Complete locally — built-in examples, independent duplication, exact clean-revision verification, and all release-shaped gates passed 2026-08-27 | Relevant built-in examples and duplication make reports understandable and reusable |
-| X7-R7 | In progress — independent falsification and exact local gate pass; hosted and native-package gates remain | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R2 | Machine-complete — exact represented-sport identity, comparison presets, natural drill-down, and complete hosted campaign passed | Sports are evidence-backed and every represented collection opens its exact sessions |
+| X7-R3 | Machine-complete — independent density review and exact local and hosted presentation gates passed | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
+| X7-R4 | Machine-complete — mature renderers, route-relative zoom, and exact local and hosted analytical gates passed | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
+| X7-R5 | Machine-complete — the provider-neutral structured-training vertical passed every local and hosted lifecycle gate | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
+| X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
+| X7-R7 | Machine-complete — independent falsification, exact local and hosted campaigns, immutable marker, and production-native bundle scan pass; repeated human evaluation remains | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3142,12 +3112,12 @@ mode; or introducing community exchange before the local contract is accepted.
 
 ### X7-R7 — Falsify the complete corrected product before handoff
 
-**Execution checkpoint — 2026-08-27 restart boundary:** X7-R6 remains closed locally. X7-R7 evidence was collected
-from clean audit revision `7aa38af`; this documentation-only checkpoint preserves its latest executable correction
-`c7cc208` and executable-input fingerprint
-`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`. The focused outgoing range remains ahead of
-the last known `origin/main`. Normal synchronization is pending because the configured SSH signing agent did not
-complete a bounded push attempt. The working tree is clean before ignored synthetic audit evidence.
+**Machine-complete checkpoint — 2026-08-27:** X7-R6 remains closed and X7-R7 evidence was collected from clean audit
+revision `7aa38af`. Latest executable correction `c7cc208` has executable-input fingerprint
+`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`. Exact source `a130343` is synchronized and
+passes repository safety, the complete hosted campaign, its immutable marker, and a revision-isolated
+production-native full-bundle scan. Synthetic audit archives, databases, screenshots, exports, and packages remain
+ignored and outside the repository.
 
 Whole-product falsification has established the X7-R1 native-link disposition, inventoried the visual,
 accessibility, geometry, and review-package automation, and traced every X7 production path to a registered host
@@ -3169,8 +3139,14 @@ Exact revision `ae49508` passed `verify:full` from a clean source tree on 2026-0
 documentation, localization, repository structure, 174 automation tests, 440 presentation tests, two vendored-updater
 tests, 578 workspace Rust tests, strict Rust lint and formatting, import, dense-history, insights, packaged functional,
 restart, adaptive, performance, update, failed-update recovery, production packaging, production-bundle inspection,
-cold launch, and recovery preparation all passed. The deterministic continuation is now the executable-input-selected
-hosted campaign and revision-isolated production-native review-package scan.
+cold launch, and recovery preparation all passed. That local result admitted the candidate to the matching hosted
+campaign and revision-isolated production-native review-package scan.
+
+Exact source `a130343` then passed repository-safety run `33057603547` and hosted campaign `33057603540`. The portable
+job completed in 4 minutes and 3 seconds, the packaged macOS job in 1 hour, 2 minutes, and 31 seconds, and the immutable
+marker in 4 seconds. The revision-isolated production-native profile reports the same source and executable-input
+fingerprint, includes production adapters, and excludes instrumented E2E routing. The profile must always be rebuilt
+and scanned from the final clean handoff revision immediately before launch; no package is published.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) accepted X7A-01 on its
 first packaged acquisition pass. Sources-local chooser cancellation tried to restore focus before React re-enabled
@@ -3216,7 +3192,7 @@ credible reason to continue using FitFreed. Any unresolved critical or major fin
 | E4 session evidence and segmentation | X5-R6 through X5-R8 compose and present the same evidence, adding only accepted story/range contracts |
 | E5 reports and export | X5-R9 replaces report hierarchy and adds the accepted missing lifecycle contracts |
 | E6 hardening | X5-R10 reruns it against the redesigned product rather than reusing obsolete experience evidence |
-| Independent audit | X6 repeats it from clean first use and may reopen any increment |
+| Independent audit | X6 preserved the rejected human baseline; X7 repeated the machine audit and exact gates before the production-native human handoff |
 | Repeated-review corrections | X7-P0 through X7-R7 own the accepted post-review causes, new vertical contracts, and exact repeat gate |
 
 ## Documentation ownership

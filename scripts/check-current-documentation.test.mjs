@@ -31,22 +31,22 @@ test("rejects pre-migration status across current experience documents", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/design/experience-specification.md"] = replaceRequired(
     candidate.sources["docs/design/experience-specification.md"],
-    "The production application now\nimplements its R1 through R10 vertical slices.",
+    "The production application now\nimplements X5-R1 through X5-R10 and the corrective X7-R1 through X7-R7 vertical slices.",
     "It does not describe the current production presentation.",
   );
   candidate.sources["docs/plans/ui-redesign.md"] = replaceRequired(
     candidate.sources["docs/plans/ui-redesign.md"],
-    "X5-R1 through X5-R10 retain their engineering evidence",
+    "X7-R1 through X7-R7 are machine-complete",
     "X4 derives the incremental production migration before X5 changes production",
   );
   candidate.sources["docs/roadmap.md"] = replaceRequired(
     candidate.sources["docs/roadmap.md"],
-    "X5-R1 through X5-R10 retain their engineering evidence",
+    "X7-R1 through X7-R7 are machine-complete",
     "X5 is migrating the public entrance and ordinary application",
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R10 implement and harden the accepted replacement experience",
+    "X5-R1 through X5-R10 implement the replacement experience, and X7-R1 through X7-R7 correct every accepted finding from the valid X6 review",
     "PX-01 and PX-02 still require correction",
   );
 
@@ -76,7 +76,7 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R10 implement and harden the accepted replacement experience",
+    "X5-R1 through X5-R10 implement the replacement experience, and X7-R1 through X7-R7 correct every accepted finding from the valid X6 review",
     "The accepted E1–E6 experience scope is not implemented",
   );
 

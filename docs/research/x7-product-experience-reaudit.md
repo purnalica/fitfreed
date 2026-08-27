@@ -2,9 +2,10 @@
 
 ## Status
 
-In progress on 2026-08-27. This audit challenges the corrected X7 product before the revision-isolated
-production-native handoff. It does not inherit the accepted X6 machine verdict: the later production-native human
-evaluation rejected that experience and is the regression baseline for this independent repeat.
+Machine-complete on 2026-08-27; awaiting the repeated production-native human evaluation. This audit challenges the
+corrected X7 product before that handoff. It does not inherit the accepted X6 machine verdict: the later
+production-native human evaluation rejected that experience and is the regression baseline for this independent
+repeat.
 
 The current machine audit uses the packaged macOS E2E application rebuilt from clean revision `7aa38af`. Its latest
 executable change is candidate `c7cc208`, with executable-input fingerprint
@@ -12,9 +13,10 @@ executable change is candidate `c7cc208`, with executable-input fingerprint
 exports are synthetic, local, and ignored. No personal history or machine-local locator is versioned.
 
 The independent machine-assisted product-experience verdict is **pass** on 2026-08-27. The exact clean-rebuild repeat
-closes the corrected material finding without accepting another critical or major finding. This verdict admits the
-candidate to the complete local and hosted gates; it does not close X7-R7, authorize a production-native package, or
-replace the reserved human observations.
+closes the corrected material finding without accepting another critical or major finding. The complete local and
+hosted gates, immutable evidence marker, and revision-isolated production-native full-bundle scan also pass. This
+machine verdict closes the automatable X7-R7 boundary; it does not accept the human experience, authorize a release,
+or replace the reserved human observations.
 
 ## Method and evidence boundary
 
@@ -125,16 +127,19 @@ material finding.
    recovery scenarios, the production application and disk-image build, and the production-bundle scan. One hundred
    fresh production launches measured 434.871 ms p95 against the 2,500 ms budget. Update-recovery preparation retained
    locale and accepted library schema 32.
+10. Exact source `a130343` passed repository-safety run `33057603547` and hosted campaign `33057603540`. The portable
+    job completed in 4 minutes and 3 seconds, the packaged macOS job in 1 hour, 2 minutes, and 31 seconds, and the
+    immutable marker in 4 seconds. The matching production-native profile passed the full-bundle scan with production
+    adapters and without E2E routing or mocked native boundaries.
 
 ## Continuation boundary
 
 The audit evidence was collected from clean audit revision `7aa38af`; later documentation-only checkpoints preserve
-the executable fingerprint. All production changes are committed locally, and the independent screenshots,
-observations, databases, and one-off journeys remain ignored synthetic audit evidence. The live-surface trace and
-independent machine-assisted product-experience audit are complete. The focused outgoing range remains ahead of the
-last known `origin/main`; synchronization is pending after the configured SSH signing agent did not complete a
-bounded attempt.
+the executable fingerprint. All production changes are synchronized, and the independent screenshots, observations,
+databases, and one-off journeys remain ignored synthetic audit evidence. The live-surface trace, independent
+machine-assisted audit, exact local and hosted campaigns, immutable marker, and production-native package scan are
+complete.
 
-The deterministic continuation is the executable-input-selected hosted campaign and revision-isolated
-production-native review-package scan. A successful machine gate may prepare but must not publish the package. No
-production-native human claim has been made.
+The deterministic continuation is a final clean-revision rebuild and scan of the same production-native profile,
+followed by the documented human evaluation. The package must not be published. No production-native human claim has
+been made.
