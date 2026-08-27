@@ -6,13 +6,13 @@ In progress on 2026-08-27. This audit challenges the corrected X7 product before
 production-native handoff. It does not inherit the accepted X6 machine verdict: the later production-native human
 evaluation rejected that experience and is the regression baseline for this independent repeat.
 
-The current machine audit uses the packaged macOS E2E application built from clean executable source `6170f75`.
-Later documentation-only commits retain executable-input fingerprint
-`a67fad4667ab253dfded6c3906fa5f4adc8994be57b0dc84ee5f6eedd00870cc`. All archives, databases, screenshots, and
+The current machine audit uses the packaged macOS E2E application rebuilt from clean revision `7aa38af`. Its latest
+executable change is candidate `c7cc208`, with executable-input fingerprint
+`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`. All archives, databases, screenshots, and
 exports are synthetic, local, and ignored. No personal history or machine-local locator is versioned.
 
-No verdict has been reached. A material finding remains open, so X7-R7 and its production-native review package
-remain blocked by the product gate rather than by an external dependency.
+No verdict has been reached. The corrected material finding still awaits the exact clean-revision repeat, so X7-R7
+and its production-native review package remain blocked by the product gate rather than by an external dependency.
 
 ## Method and evidence boundary
 
@@ -83,3 +83,25 @@ directly, so it proves the transport is reachable through the product surface ra
    Sources-local cancellation before continuing through import, global progress, sports, comparisons, route and
    signal workbenches, personal ranges, report examples, independent duplication, localization at 200%, reimport,
    refresh, structured training intent, export, and restart preparation.
+6. A clean `build:e2e` repeat produced the current package from revision `7aa38af`. An independent X7-specific
+   packaged journey then passed 13 captured product states: first value, exact sport collection, useful comparison
+   defaults, route workbench and minimum zoom, cross-signal analysis, report examples, a valid maximum-pressure
+   user-authored title, result-first review, independent duplication, planned-training shape, and exact phases.
+   Its Spanish, dark, compact-window, 200% states had no root horizontal overflow, escaped visible controls, clipped
+   visible leaf text, or Axe violations. Direct visual inspection accepted no additional material finding. The audit
+   helper first rejected an intentionally visually hidden chart legend and the journey first supplied a title beyond
+   the documented 120-character contract; both were audit defects, not production corrections.
+
+## Restart checkpoint
+
+This is a safe continuation boundary recorded on 2026-08-27. Its evidence was collected from clean audit revision
+`7aa38af`; this documentation-only checkpoint preserves the executable fingerprint. All production changes are
+committed locally, and the independent screenshots, observations, databases, and one-off journey remain ignored
+synthetic audit evidence. The live-surface trace is complete. The focused outgoing range remains ahead of the last
+known `origin/main`; synchronization is pending after the configured SSH signing agent did not complete a bounded
+attempt.
+
+The deterministic continuation is to replay the three independent X6 regression journeys and the maintained complete
+packaged journey against the exact clean rebuild, finish the required state/viewport/zoom/input audit matrix, and
+update the finding and verdict from that evidence. Only then may the complete local and hosted gates and the
+revision-isolated production-native review-package scan run. No production-native human claim has been made.

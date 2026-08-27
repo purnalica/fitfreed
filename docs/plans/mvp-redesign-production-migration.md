@@ -301,7 +301,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Complete locally — built-in examples, independent duplication, exact clean-revision verification, and all release-shaped gates passed 2026-08-27 | Relevant built-in examples and duplication make reports understandable and reusable |
-| X7-R7 | In progress — restart-safe falsification boundary recorded 2026-08-27 | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R7 | In progress — live trace and X7-specific independent audit pass; exact whole-product repeat remains | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3142,20 +3142,27 @@ mode; or introducing community exchange before the local contract is accepted.
 
 ### X7-R7 — Falsify the complete corrected product before handoff
 
-**Execution checkpoint — 2026-08-27 restart boundary:** X7-R6 is closed locally at clean candidate `6170f75`, and
-documentation-only evidence commit `392081f` leaves the executable-input fingerprint unchanged at
-`a67fad4667ab253dfded6c3906fa5f4adc8994be57b0dc84ee5f6eedd00870cc`. The complete outgoing range contains fifteen
-focused commits over the last known `origin/main`; its content, email-privacy, secret, merge, and diff audits pass.
-Normal synchronization remains pending because the configured SSH signing agent rejected the bounded push attempt.
-The working tree is clean.
+**Execution checkpoint — 2026-08-27 restart boundary:** X7-R6 remains closed locally. X7-R7 evidence was collected
+from clean audit revision `7aa38af`; this documentation-only checkpoint preserves its latest executable correction
+`c7cc208` and executable-input fingerprint
+`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`. The focused outgoing range remains ahead of
+the last known `origin/main`. Normal synchronization is pending because the configured SSH signing agent did not
+complete a bounded push attempt. The working tree is clean before ignored synthetic audit evidence.
 
-Whole-product falsification has started. The X7 acceptance contract, the rejected X6 production-native evaluation,
-and the retained machine-audit evidence have been re-read. At this restart boundary, no new X7-R7 finding had yet
-been accepted or corrected. The deterministic continuation was to establish the current X7-R1 native-link disposition from its introducing
-change and live evidence; inventory the existing visual, accessibility, geometry, and review-package automation;
-trace every X7 production path to a reachable surface and complete behavior test; then execute the independent
-screen-and-state audit. Every critical or major finding reopens its owning increment and must be corrected before the
-complete gates, executable-input-selected hosted campaign, and revision-isolated production-native review package.
+Whole-product falsification has established the X7-R1 native-link disposition, inventoried the visual,
+accessibility, geometry, and review-package automation, and traced every X7 production path to a registered host
+command, reachable product surface, and complete behavior test. X7A-01 was accepted and corrected: Sources-local
+archive-chooser cancellation now restores focus only after the initiating control is enabled. A clean E2E rebuild and
+an independent X7-specific packaged journey passed 13 captured states, including exact sport drill-down, comparison
+defaults, route limits, cross-signal analysis, report examples and independent duplication, and exact planned phases
+under Spanish, dark appearance, a compact window, and 200% zoom. No horizontal overflow, escaped control, clipped
+visible text, Axe violation, or additional material visual finding was accepted.
+
+The deterministic continuation is to replay the three independent X6 regression journeys and the maintained complete
+packaged journey against the exact clean rebuild, finish the full state/viewport/zoom/input audit matrix, and update
+the finding and verdict. Every critical or major finding still reopens its owning increment. Only a clean verdict may
+start the complete gates, executable-input-selected hosted campaign, and revision-isolated production-native review
+package.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) accepted X7A-01 on its
 first packaged acquisition pass. Sources-local chooser cancellation tries to restore focus before React re-enables
