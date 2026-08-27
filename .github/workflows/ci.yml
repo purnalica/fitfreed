@@ -90,7 +90,8 @@ jobs:
       - name: Install locked JavaScript dependencies
         if: >-
           steps.decision.outputs.full-verification == 'true' ||
-          steps.impact.outputs.product-surface-verification == 'true'
+          steps.impact.outputs.product-surface-verification == 'true' ||
+          steps.impact.outputs.automation-verification == 'true'
         run: npm ci
 
       - name: Verify public product surfaces
@@ -110,6 +111,15 @@ jobs:
           npm run check:pages-workflow
           npm run build:pages
           npm run verify:pages:preflight
+
+      - name: Verify documentation and CI automation
+        if: >-
+          steps.decision.outputs.full-verification == 'true' ||
+          steps.impact.outputs.automation-verification == 'true'
+        run: |
+          node --test scripts/classify-ci-impact.test.mjs
+          node --test scripts/check-current-documentation.test.mjs scripts/check-public-documentation.test.mjs
+          npm run check:workflows
 
       - name: Verify architecture boundaries
         if: steps.decision.outputs.full-verification == 'true'

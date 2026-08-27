@@ -26,6 +26,7 @@ test("reuses packaged evidence for an explicit documentation-only change", () =>
     {
       fullVerification: false,
       productSurfaceVerification: true,
+      automationVerification: false,
       reason: "documentation-only",
       changedPathCount: 7,
     },
@@ -36,11 +37,13 @@ test("requires full verification when any executable or release input changes", 
   for (const changedPath of [
     "package.json",
     "schemas/release-manifest-v2.schema.json",
-    "scripts/check-markdown-links.mjs",
     "src/App.tsx",
     "src-tauri/src/lib.rs",
     "site/app.js",
     ".github/workflows/ci.yml",
+    ".github/workflows/repository-safety.yml",
+    "scripts/classify-ci-impact.mjs",
+    "scripts/classify-ci-impact.test.mjs",
     "docs/art/proposed-logo.svg",
   ]) {
     assert.deepEqual(
@@ -52,6 +55,7 @@ test("requires full verification when any executable or release input changes", 
       {
         fullVerification: true,
         productSurfaceVerification: false,
+        automationVerification: false,
         reason: "release-affecting-change",
         changedPathCount: 2,
       },
@@ -89,6 +93,7 @@ test("always performs an explicitly requested hosted verification", () => {
     {
       fullVerification: true,
       productSurfaceVerification: false,
+      automationVerification: false,
       reason: "explicit-verification",
       changedPathCount: 1,
     },
@@ -124,8 +129,33 @@ test("verifies product surfaces without rebuilding unchanged executable inputs",
     {
       fullVerification: false,
       productSurfaceVerification: true,
+      automationVerification: false,
       reason: "documentation-only",
       changedPathCount: 18,
+    },
+  );
+});
+
+test("verifies documentation automation without rebuilding unchanged application inputs", () => {
+  assert.deepEqual(
+    classifyCiImpact({
+      eventName: "push",
+      comparisonAvailable: true,
+      changedPaths: [
+        "docs/testing/public-release-readiness.md",
+        "scripts/check-current-documentation.mjs",
+        "scripts/check-current-documentation.test.mjs",
+        "scripts/check-markdown-links.mjs",
+        "scripts/check-public-documentation.mjs",
+        "scripts/check-public-documentation.test.mjs",
+      ],
+    }),
+    {
+      fullVerification: false,
+      productSurfaceVerification: false,
+      automationVerification: true,
+      reason: "documentation-only",
+      changedPathCount: 6,
     },
   );
 });
@@ -160,6 +190,16 @@ test("keys reusable evidence to every executable and release input", () => {
       "100644 blob site-hash\tsite/index.html",
     ]),
     original,
+  );
+  assert.equal(
+    fingerprintExecutableEntries([
+      "100644 blob source-hash\tsrc/App.tsx",
+      "100644 blob changed-documentation-test\tscripts/check-current-documentation.test.mjs",
+    ]),
+    fingerprintExecutableEntries([
+      "100644 blob source-hash\tsrc/App.tsx",
+      "100644 blob documentation-test\tscripts/check-current-documentation.test.mjs",
+    ]),
   );
 });
 
@@ -206,6 +246,8 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   assert.match(workflow, /npm run test:product-site/);
   assert.match(workflow, /npm run build:pages/);
   assert.match(workflow, /npm run verify:pages:preflight/);
+  assert.match(workflow, /steps\.impact\.outputs\.automation-verification == 'true'/);
+  assert.match(workflow, /node --test scripts\/classify-ci-impact\.test\.mjs/);
   assert.match(workflow, /npm run check:workflows/);
   assert.match(workflow, /npm run check:public-release-workflow/);
   assert.match(

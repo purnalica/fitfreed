@@ -30,6 +30,16 @@ function productSurfacePath(candidatePath) {
   );
 }
 
+function automationVerificationPath(candidatePath) {
+  return [
+    "scripts/check-current-documentation.mjs",
+    "scripts/check-current-documentation.test.mjs",
+    "scripts/check-markdown-links.mjs",
+    "scripts/check-public-documentation.mjs",
+    "scripts/check-public-documentation.test.mjs",
+  ].includes(candidatePath);
+}
+
 function documentationOnlyPath(candidatePath) {
   return (
     /^(?:AGENTS|CODE_OF_CONDUCT|CONTRIBUTING|DISCLAIMER|GOVERNANCE|README|SECURITY|SUPPORT)\.md$/.test(
@@ -37,6 +47,7 @@ function documentationOnlyPath(candidatePath) {
     ) ||
     /^docs\/.*\.md$/.test(candidatePath) ||
     productSurfacePath(candidatePath) ||
+    automationVerificationPath(candidatePath) ||
     /^\.github\/ISSUE_TEMPLATE\/[^/]+\.(?:md|ya?ml)$/.test(candidatePath) ||
     candidatePath === ".github/PULL_REQUEST_TEMPLATE.md"
   );
@@ -60,6 +71,7 @@ export function classifyCiImpact({ eventName, comparisonAvailable, changedPaths 
   const result = (fullVerification, reason) => ({
     fullVerification,
     productSurfaceVerification: uniquePaths.some(productSurfacePath),
+    automationVerification: uniquePaths.some(automationVerificationPath),
     reason,
     changedPathCount: uniquePaths.length,
   });
@@ -147,6 +159,7 @@ function runClassification(environment) {
     "changed-path-count": result.changedPathCount,
     "executable-fingerprint": fingerprint,
     "product-surface-verification": result.productSurfaceVerification,
+    "automation-verification": result.automationVerification,
   });
   process.stdout.write(`${JSON.stringify({ ...result, executableFingerprint: fingerprint })}\n`);
 }
