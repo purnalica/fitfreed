@@ -301,7 +301,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Complete locally — built-in examples, independent duplication, exact clean-revision verification, and all release-shaped gates passed 2026-08-27 | Relevant built-in examples and duplication make reports understandable and reusable |
-| X7-R7 | In progress — live trace and X7-specific independent audit pass; exact whole-product repeat remains | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R7 | In progress — independent whole-product falsification passes; exact local, hosted, and native-package gates remain | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3158,15 +3158,17 @@ defaults, route limits, cross-signal analysis, report examples and independent d
 under Spanish, dark appearance, a compact window, and 200% zoom. No horizontal overflow, escaped control, clipped
 visible text, Axe violation, or additional material visual finding was accepted.
 
-The deterministic continuation is to replay the three independent X6 regression journeys and the maintained complete
-packaged journey against the exact clean rebuild, finish the full state/viewport/zoom/input audit matrix, and update
-the finding and verdict. Every critical or major finding still reopens its owning increment. Only a clean verdict may
-start the complete gates, executable-input-selected hosted campaign, and revision-isolated production-native review
-package.
+The exact clean package subsequently passed the three independent X6 regression journeys, the X7-specific capability
+journey, and the complete maintained packaged campaign. The campaign includes application-process restart,
+adaptive-session composition, personal-range restart after exact reimport, and the isolated large-library performance
+scenario. The completed viewport, zoom, locale, appearance, input, accessibility, adverse-state, and direct visual
+matrix accepted no additional critical or major finding. The deterministic continuation is the complete local gates,
+executable-input-selected hosted campaign, and revision-isolated production-native review-package scan.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) accepted X7A-01 on its
-first packaged acquisition pass. Sources-local chooser cancellation tries to restore focus before React re-enables
-the initiating action. X7-R1 is reopened until the pending, settled, and packaged focus sequence passes.
+first packaged acquisition pass. Sources-local chooser cancellation tried to restore focus before React re-enabled
+the initiating action. The settled component sequence and exact packaged repeats now pass, so the finding is closed;
+the production-native human gate still owns the subjective and native-boundary observations.
 
 **User outcome:** the next review build is a credible product candidate for the agreed private macOS alpha journey,
 not a collection of individually green corrections.

@@ -11,8 +11,10 @@ executable change is candidate `c7cc208`, with executable-input fingerprint
 `dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`. All archives, databases, screenshots, and
 exports are synthetic, local, and ignored. No personal history or machine-local locator is versioned.
 
-No verdict has been reached. The corrected material finding still awaits the exact clean-revision repeat, so X7-R7
-and its production-native review package remain blocked by the product gate rather than by an external dependency.
+The independent machine-assisted product-experience verdict is **pass** on 2026-08-27. The exact clean-rebuild repeat
+closes the corrected material finding without accepting another critical or major finding. This verdict admits the
+candidate to the complete local and hosted gates; it does not close X7-R7, authorize a production-native package, or
+replace the reserved human observations.
 
 ## Method and evidence boundary
 
@@ -62,11 +64,30 @@ inventory and UI-contract checks reject unreachable production modules, direct t
 and visualization-library leakage. The maintained packaged journey invokes controls rather than host commands
 directly, so it proves the transport is reachable through the product surface rather than merely callable in tests.
 
+## Challenge matrix
+
+| Required challenge | Current evidence | Result |
+| --- | --- | --- |
+| Wide, short-laptop, compact, and narrow windows | The maintained journey exercises 1440×900, 1280×820, 1280×720, 900×760, and 720×760 application windows. The independent X7 journey adds a 760×700 compact high-zoom stress state. | No root horizontal overflow or escaped control was observed. Required controls remain reachable through ordinary vertical scrolling. |
+| 100% through 200% zoom | The sport-classification composition runs all 40 combinations of 720/1280 widths, both locales, both explicit appearances, and 100%, 125%, 150%, 175%, and 200%. High-risk Home, reports, route, range, signal, and planned-training states repeat at 200%. | Geometry contracts pass at every level. Long controls stack at 150% and above without reducing the accepted content boundary. |
+| English/light and Spanish/dark | Independent and maintained journeys cover both locales, light, dark, and system appearance. The Spanish/dark/200% repeat includes navigation, exact values, user-authored reports, duplication, ranges, and structured phases. | Locale-specific formatting and navigation remain usable; imported and user-authored names remain intentionally untranslated. |
+| Long and evidence-dense content | The candidate is challenged with an 80-character personal sport name, a valid long report title near its contract boundary, multi-signal charts, exact route samples, personal ranges, and structured planned phases. | Normal single-line inputs scroll their value; visible reading content wraps without clipping. Exact evidence remains behind explicit disclosure. |
+| Pointer, keyboard, focus, scroll, and return | Packaged controls are activated through their production surfaces. The journeys exercise keyboard route position and pan, range handles, form controls, cancellation, saved-result focus, origin-aware return, compact navigation, and scroll placement below persistent navigation. | All asserted focus and return destinations pass, including the corrected Sources-local chooser cancellation. |
+| Motion and accessibility | The UI-contract gate rejects motion outside `prefers-reduced-motion: no-preference`; the Sources component proves smooth and reduced-motion scroll branches. Axe runs across 60 independent captured states plus the maintained high-risk surfaces. | No Axe violation is reported. VoiceOver usefulness remains a production-native human observation. |
+| Empty, loading, partial, stale, invalid, failure, and recovery | Independent journeys cover clean first use, acquisition guidance, active import, cancellation, unsafe and malformed archives, resource limits, exact repeat, extension, preserved history, partial sessions, stale reports, explicit refresh, invalid ranges, export, and retry. | Every state presents a reachable consequence or recovery action without mutating the library on cancellation or rejection. |
+| Restart and large-library responsiveness | The complete packaged campaign starts a new application process for durable library, preference, report, and personal-range evidence. The isolated performance fixture contains 731 sessions, 20,001 route points, four signal series, 731 sleep periods, and 731 recovery nights. | Both restart journeys pass. Every measured interaction remains inside its documented p95 budget; the largest observed p95 is 157 ms for signal overview. |
+
+The independent observation sets contain 27 first-use/data-exit states, 11 import-outcome states, nine adaptive and
+report-lifecycle states, and 13 X7-specific capability states. None reports horizontal overflow or an Axe violation.
+The X7-specific geometry probe additionally reports no escaped visible control or clipped visible leaf text. Direct
+visual inspection of the current core, analytical, adverse-state, and report capture sheets accepted no additional
+material finding.
+
 ## Findings
 
 | ID | Severity | State | Observable finding | Root cause | Required correction and evidence |
 |---|---|---|---|---|---|
-| X7A-01 | Major accessibility and interaction defect | Corrected; exact clean-revision repeat pending | Cancelling the native archive chooser from the already-open Sources workspace did not restore focus to `Choose ZIP package`. The independent packaged journey timed out after the chooser returned without a selection. | `SourcesPanel.chooseArchive` called `focus()` while `archiveChoosing` still disabled the referenced button, then re-enabled it in `finally`. The immediate component test retained focus from its synthetic click and therefore missed the real WebView sequence. The Home shortcut followed a different remount path, so the maintained E2E journey did not exercise this Sources-local cancellation. | The component now records pending restoration and focuses only after React commits the enabled state. Its test holds the chooser pending, proves the disabled state, displaces focus, resolves cancellation, and requires enabled focus. The previously failing independent packaged first-use journey now passes. The maintained packaged journey contains the Sources-local regression and passed its complete 2-minute-35-second acquisition-through-restart-preparation run. |
+| X7A-01 | Major accessibility and interaction defect | Closed by exact clean-rebuild repeat | Cancelling the native archive chooser from the already-open Sources workspace did not restore focus to `Choose ZIP package`. The independent packaged journey timed out after the chooser returned without a selection. | `SourcesPanel.chooseArchive` called `focus()` while `archiveChoosing` still disabled the referenced button, then re-enabled it in `finally`. The immediate component test retained focus from its synthetic click and therefore missed the real WebView sequence. The Home shortcut followed a different remount path, so the maintained E2E journey did not exercise this Sources-local cancellation. | The component records pending restoration and focuses only after React commits the enabled state. Its test holds the chooser pending, proves the disabled state, displaces focus, resolves cancellation, and requires enabled focus. The exact clean rebuild passes the independent first-use journey, the complete maintained acquisition journey, and the complete packaged campaign containing the Sources-local regression. |
 
 ## Audit trail
 
@@ -91,17 +112,23 @@ directly, so it proves the transport is reachable through the product surface ra
    visible leaf text, or Axe violations. Direct visual inspection accepted no additional material finding. The audit
    helper first rejected an intentionally visually hidden chart legend and the journey first supplied a title beyond
    the documented 120-character contract; both were audit defects, not production corrections.
+7. After the restart checkpoint, the exact clean package passed the three independent regression journeys again: 27
+   first-use/data-exit states, 11 import-outcome states, and the adaptive route/partial/stale/refresh lifecycle. The
+   complete maintained journey then passed again in 2 minutes and 35 seconds, including the Sources-local chooser
+   cancellation.
+8. The complete packaged campaign repeated the maintained journey, application-process restart, adaptive-session
+   composition, personal-range restart after exact reimport, and the isolated large-library performance scenario.
+   Every scenario and documented interaction budget passed.
 
-## Restart checkpoint
+## Continuation boundary
 
-This is a safe continuation boundary recorded on 2026-08-27. Its evidence was collected from clean audit revision
-`7aa38af`; this documentation-only checkpoint preserves the executable fingerprint. All production changes are
-committed locally, and the independent screenshots, observations, databases, and one-off journey remain ignored
-synthetic audit evidence. The live-surface trace is complete. The focused outgoing range remains ahead of the last
-known `origin/main`; synchronization is pending after the configured SSH signing agent did not complete a bounded
-attempt.
+The audit evidence was collected from clean audit revision `7aa38af`; later documentation-only checkpoints preserve
+the executable fingerprint. All production changes are committed locally, and the independent screenshots,
+observations, databases, and one-off journeys remain ignored synthetic audit evidence. The live-surface trace and
+independent machine-assisted product-experience audit are complete. The focused outgoing range remains ahead of the
+last known `origin/main`; synchronization is pending after the configured SSH signing agent did not complete a
+bounded attempt.
 
-The deterministic continuation is to replay the three independent X6 regression journeys and the maintained complete
-packaged journey against the exact clean rebuild, finish the required state/viewport/zoom/input audit matrix, and
-update the finding and verdict from that evidence. Only then may the complete local and hosted gates and the
-revision-isolated production-native review-package scan run. No production-native human claim has been made.
+The deterministic continuation is the exact complete local verification, executable-input-selected hosted campaign,
+and revision-isolated production-native review-package scan. A successful machine gate may prepare but must not
+publish the package. No production-native human claim has been made.
