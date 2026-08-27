@@ -96,6 +96,10 @@ export function TrainingInsightsPanel({
     && navigationRequest.kind === "sessions"
     ? navigationRequest
     : undefined;
+  const planWorkspaceNavigation = navigationRequest && "kind" in navigationRequest
+    && navigationRequest.kind === "plans"
+    ? navigationRequest
+    : undefined;
   const sportWorkspaceNavigation = navigationRequest && "kind" in navigationRequest
     && navigationRequest.kind === "sports"
     ? navigationRequest
@@ -107,7 +111,7 @@ export function TrainingInsightsPanel({
   const sportSessionsNavigation = externalSportSessionsNavigation
     ?? localSportSessionsNavigation;
   const [workspace, setWorkspace] = useState<TrainingWorkspace>(
-    externalPlannedTargetNavigation
+    externalPlannedTargetNavigation || planWorkspaceNavigation
       ? "plans"
       : comparisonNavigation
       ? "comparison"
@@ -127,6 +131,7 @@ export function TrainingInsightsPanel({
       setWorkspace("sports");
     } else if (
       externalPlannedTargetNavigation
+      || planWorkspaceNavigation
       || reportReturnFocusRequest?.kind === "planned-training"
     ) {
       setPlansVisited(true);
@@ -143,6 +148,7 @@ export function TrainingInsightsPanel({
   }, [
     comparisonNavigation?.requestId,
     externalPlannedTargetNavigation?.requestId,
+    planWorkspaceNavigation?.requestId,
     reportReturnFocusRequest?.kind,
     reportReturnFocusRequest?.requestId,
     sessionNavigation?.requestId,
@@ -243,6 +249,7 @@ export function TrainingInsightsPanel({
           initialSessionRef={plannedSessionNavigation?.sessionRef ?? sessionNavigation?.sessionRef}
           sportSessionsNavigation={sportSessionsNavigation}
           navigationRequestId={plannedSessionNavigation?.requestId ?? sessionNavigation?.requestId}
+          resetWorkspaceRequestId={sessionWorkspaceNavigation?.requestId}
           createReportFocusRequestId={reportReturnFocusRequest?.kind === "session"
             ? reportReturnFocusRequest.requestId
             : undefined}

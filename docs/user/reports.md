@@ -6,13 +6,22 @@ This guide describes the implemented report vertical in development builds. It d
 
 ## Choose how to start
 
-Open **Reports** to see saved results. When the Library already contains reports, **New comparison** remains
-a compact secondary action beside **Reload** so the first useful result stays in view. An empty Library
-expands the same start with enough guidance to create the first report:
+Open **Reports** to see reusable starting structures followed by saved results. The structures are not sample
+results and contain no synthetic fitness data. FitFreed checks the current local library and states the exact
+evidence each structure needs:
 
-- **Compare recent training periods** prepares two bounded adjacent periods from the current local library,
-  selects the five analytical views, and lets the calculated evidence stand on its own. Add commentary only
-  when your own words improve the report.
+- **Recent training, side by side** is available when the library contains training sessions. **Use as basis**
+  prepares bounded adjacent periods and opens an unsaved draft with session count, a duration chart, and
+  evidence coverage. Nothing is written until you select **Save report**.
+- **One session, clearly explained** and **Investigate an outdoor route** first open the training-session
+  explorer. Choose the exact session that should provide the report evidence; FitFreed never chooses one on
+  your behalf.
+- **Understand a training plan** first opens Training plans. Choose the exact imported structured target that
+  should provide the report evidence.
+
+When required evidence is unavailable, the structure remains visible and names what is missing rather than
+opening a draft that cannot be supported. Cancelling any unsaved example-based composition creates no report.
+All saved definitions remain under **Saved reports** and open on their result rather than their editor.
 
 Reports can also begin from a completed training-period comparison, a specific training session, or an imported
 planned-training target. These
@@ -98,6 +107,19 @@ names the exact report, and offers an explicit cancel action. Confirming removes
 revision and its owned composition; imported fitness history and every other report remain unchanged. If the
 report changed after it was opened, FitFreed keeps the newest revision, reloads it, and asks you to review it
 instead of claiming that anything was removed.
+
+## Duplicate independently
+
+Open a saved result and select **Duplicate report**, or use the matching duplicate action on its Library card.
+Review or replace the proposed title and select **Create duplicate**. FitFreed creates a new independent report
+at revision one, opens its result, and leaves the source report unchanged.
+
+The duplicate initially has the same composition, authored commentary, privacy choices, origin, and reviewed
+evidence relationship as the source. It has its own report and block identities: editing, refreshing, exporting,
+or removing either report cannot alter the other, and the duplicate remains available if the source is later
+removed. If the reviewed source revision changed before creation, FitFreed rejects the request instead of
+copying an unreviewed revision. Cancelling duplication writes nothing and restores focus to the action that
+opened it.
 
 If the training snapshot changed after the report was saved, the report is marked **Source changed**. The
 complete preview shows the current compatible candidate, while **Edit composition**, **Compose**, and export

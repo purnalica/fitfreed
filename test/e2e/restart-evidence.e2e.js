@@ -104,8 +104,8 @@ describe("packaged FitFreed application-process restart", () => {
 
     await goToHome("reports");
     await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);
-    const reports = await $$(".report-list button");
-    expect(reports).toHaveLength(3);
+    const reports = await $$(".report-list .report-library-open");
+    expect(reports).toHaveLength(4);
     const reportLabels = [];
     let comparisonReport;
     for (const report of reports) {
@@ -114,6 +114,8 @@ describe("packaged FitFreed application-process restart", () => {
       if (label.includes("Synthetic comparison answer")) comparisonReport = report;
     }
     expect(reportLabels.some((label) => label.includes("Synthetic ridge progression")))
+      .toBe(true);
+    expect(reportLabels.some((label) => label.includes("Synthetic reusable comparison copy")))
       .toBe(true);
     expect(reportLabels.some((label) => label.includes("Training plan · Progressive intervals")))
       .toBe(true);
@@ -139,11 +141,13 @@ describe("packaged FitFreed application-process restart", () => {
     await expect($(".report-library [role='status']")).toHaveText(
       spanish.reports.delete.removed.replace("{title}", "Synthetic comparison answer"),
     );
-    const remainingReports = await $$(".report-list button");
-    expect(remainingReports).toHaveLength(2);
+    const remainingReports = await $$(".report-list .report-library-open");
+    expect(remainingReports).toHaveLength(3);
     const remainingLabels = [];
     for (const report of remainingReports) remainingLabels.push(await report.getText());
     expect(remainingLabels.some((label) => label.includes("Synthetic ridge progression")))
+      .toBe(true);
+    expect(remainingLabels.some((label) => label.includes("Synthetic reusable comparison copy")))
       .toBe(true);
     expect(remainingLabels.some((label) => label.includes("Training plan · Progressive intervals")))
       .toBe(true);

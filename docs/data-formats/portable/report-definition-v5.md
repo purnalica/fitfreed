@@ -30,6 +30,9 @@ invariants documented in [canonical report definition version
   preserves supplied owned block identities.
 - [`report-refresh-v2.schema.json`](../../../schemas/report-refresh-v2.schema.json) accepts either snapshot family and
   binds deliberate confirmation to the exact saved and reviewed revisions.
+- [`report-duplicate-v1.schema.json`](../../../schemas/report-duplicate-v1.schema.json) binds an independent copy to
+  one exact saved source revision and accepts only its caller-confirmed title. The application owns every fresh report
+  and block identity; the returned copy is another complete version-5 definition at revision one.
 - [`report-library-v4.schema.json`](../../../schemas/report-library-v4.schema.json) adds planned-training subject,
   scheduled period, and plan-shape result variants.
 - [`report-resolution-v7.schema.json`](../../../schemas/report-resolution-v7.schema.json) carries one exact normalized
@@ -81,3 +84,8 @@ snapshot.
 Refresh preserves title, locale, origin, provenance policy, authorship, block identities, order, target capability,
 and narrative; only `sourceSnapshotRef` and `revision` advance. Exact target content remains independently portable
 through `application/vnd.fitfreed.planned-training+json;version=1`.
+
+Duplication is not an alternative portable representation. It copies one exact definition into fresh durable
+identities and returns the same version-5 representation. The duplicate retains the source snapshot and authored
+content but has no reference to the source report, so either aggregate may subsequently change or be removed without
+affecting the other.

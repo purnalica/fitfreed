@@ -2,12 +2,15 @@
 
 ## Status
 
-Implemented session, route, training-period comparison, question, exploration, and blank composition under
+Implemented session, route, training-period comparison, question, exploration, planned-training, and blank
+composition under
 [ADR 0022](decisions/0022-persist-reproducible-evidence-reports.md) and E5 of the
 [MVP experience delivery plan](../plans/mvp-experience-delivery.md). The application persists, reopens,
 edits, resolves, privacy-reviews, and exports immutable version-1 definitions, composable version-2
-definitions, analytical version-3 definitions, and provider-neutral multi-origin version-4 definitions.
-It also detects stale evidence and deliberately refreshes an exact reviewed candidate without rewriting
+definitions, analytical version-3 definitions, provider-neutral multi-origin version-4 definitions, and
+single-evidence-library version-5 definitions. It also provides capability-aware built-in starting structures
+and exact revision-bound independent duplication without persisting examples or linking the resulting copies.
+The application detects stale evidence and deliberately refreshes an exact reviewed candidate without rewriting
 authored content. A stale definition cannot be edited or exported until that decision completes.
 Resolved reports expose an origin-aware path to their exact current session or training-period comparison
 when that source is still available.
@@ -37,13 +40,29 @@ Catalogue activation makes prior resolved evidence stale and still requires the 
 Self-contained HTML uses [output version 6](../data-formats/portable/report-html-v6.md) and records its output version
 independently from the definition version.
 
-The current [report workflow version 7](../data-formats/insights/report-v7.md) extends the definition to version 5 under
+The current [report workflow version 8](../data-formats/insights/report-v8.md) retains the version-7 planned-training
+extension and adds exact revision-bound report duplication. Definition version 5 remains the durable contract under
 [ADR 0034](decisions/0034-bind-each-report-to-one-evidence-library.md). A planned-training origin binds one exact
 provider-neutral target and one matching evidence block to a `planned-snapshot-` source revision. Session, question,
 exploration, and blank origins remain bound to a `training-snapshot-` revision. A version-5 report never combines the
 two libraries: `sourceSnapshotRef` remains the single source of truth for stale detection, deliberate refresh, and
 export authorization. Combining planned intent with recorded execution requires a future typed multi-source report
 aggregate rather than a hidden per-block snapshot.
+
+Duplication is an application use case over one exact saved definition revision. The domain constructs an independent
+version-5, revision-one aggregate from a fresh report identity and fresh ordered block identities while preserving the
+source snapshot, origin, queries, authorship, provenance, locale, and authored content. Presentation supplies the
+editable localized title; persistence atomically creates the returned aggregate through the existing schema. Neither
+aggregate stores a relationship to the other, so source edits or removal cannot alter the duplicate and each follows
+its own stale, refresh, export, and removal lifecycle.
+
+Built-in examples are immutable application descriptors projected against a bounded canonical capability summary.
+They are neither domain report aggregates nor seeded persistence rows. The catalog exposes stable semantic codes for
+localized presentation, required evidence, explicit parameter selection, and ordered block recipes without carrying
+provider identity, personal results, or preallocated report identities. Only the adjacent-period example is
+parameter-free. Session, routed-session, and planned-target examples navigate to their authoritative explorer for
+explicit selection; the application never guesses a candidate. Saving a resolved draft returns to the ordinary
+version-5 creation path. The structured example stays within the planned library required by ADR 0034.
 
 Current self-contained HTML uses [output version 7](../data-formats/portable/report-html-v7.md). It renders the exact
 authorized objective, exercise, phase, goal, intensity, transition, and repeat meaning semantically while keeping

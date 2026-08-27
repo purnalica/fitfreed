@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import {
   evaluateImportBenchmarkRuns,
+  importBenchmarkBuildPlan,
+  importBenchmarkExecutable,
   validateImportBenchmarkFixture,
   validateImportBenchmarkRun,
 } from "./run-import-benchmark.mjs";
+import {
+  performanceBenchmarkTargetDirectory,
+  repositoryRoot,
+} from "./performance-benchmark-profile.mjs";
 
 const phaseNames = [
   "fingerprintMilliseconds",
@@ -38,6 +45,35 @@ function validRun(overrides = {}) {
     ...overrides,
   };
 }
+
+test("isolates the import benchmark in the shared performance Cargo profile", () => {
+  const plan = importBenchmarkBuildPlan({ RETAINED: "value" });
+
+  assert.equal(
+    performanceBenchmarkTargetDirectory,
+    path.join(repositoryRoot, "src-tauri/target/performance-benchmarks"),
+  );
+  assert.equal(plan.program, "cargo");
+  assert.deepEqual(plan.arguments_, [
+    "build",
+    "--quiet",
+    "--release",
+    "--manifest-path",
+    "src-tauri/Cargo.toml",
+    "--example",
+    "import_benchmark",
+  ]);
+  assert.equal(plan.options.cwd, repositoryRoot);
+  assert.equal(
+    plan.options.env.CARGO_TARGET_DIR,
+    performanceBenchmarkTargetDirectory,
+  );
+  assert.equal(plan.options.env.RETAINED, "value");
+  assert.equal(
+    importBenchmarkExecutable,
+    path.join(performanceBenchmarkTargetDirectory, "release/examples/import_benchmark"),
+  );
+});
 
 test("requires the complete five-GiB, ten-thousand-entry fixture envelope", () => {
   const fixture = {
@@ -162,9 +198,10 @@ test("wires the same full-scale import gate into local and hosted verification",
     "node scripts/run-import-benchmark.mjs",
   );
   assert.match(
-    packageMetadata.scripts["verify:full"],
+    packageMetadata.scripts["verify:precommit"],
     /benchmark:import.*benchmark:insights/,
   );
+  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:precommit/);
   assert.match(
     workflow,
     /name: Verify full-scale import budgets\n\s+run: npm run benchmark:import/,

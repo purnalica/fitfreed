@@ -9,15 +9,16 @@ use fitfreed_application::{
     ApplicationPreferences, ApplicationPreferencesLoad, AppliedTrainingSegmentCriterion,
     CompletedSessionPlannedTrainingRelation, CreateComposedSessionReportRequest,
     CreateReportRequest, CreateSessionReportRequest, CreateTrainingSegmentCriterionRequest,
-    CreateTrainingSessionRangeRequest, ExpectedSourceArchive, ExplorationWorkspace,
-    ExploreDestination, HistoricalTrainingHighlight, HistoricalTrainingReason, ImportPhase,
-    ImportProgress, InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage,
-    LibraryHistoryHighlight, LibraryHome, LibraryHomeDateRange, LibraryHomeHighlight,
-    LibraryHomePrimaryRange, LibraryHomeRangeScope, LibraryHomeRecentSession, LibraryHomeRequest,
-    LibraryHomeSportSummary, LibraryHomeTraining, LibraryHomeTrainingComparison,
-    LibraryHomeTrainingPeriod, LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion,
-    LibraryQuestionKind, LocalePreference, LongitudinalActivityComparison, LongitudinalActivityDay,
-    LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
+    CreateTrainingSessionRangeRequest, DuplicateReportRequest, ExpectedSourceArchive,
+    ExplorationWorkspace, ExploreDestination, HistoricalTrainingHighlight,
+    HistoricalTrainingReason, ImportPhase, ImportProgress, InvalidApplicationPreferences,
+    LibraryDomain, LibraryDomainCoverage, LibraryHistoryHighlight, LibraryHome,
+    LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomePrimaryRange, LibraryHomeRangeScope,
+    LibraryHomeRecentSession, LibraryHomeRequest, LibraryHomeSportSummary, LibraryHomeTraining,
+    LibraryHomeTrainingComparison, LibraryHomeTrainingPeriod, LibraryMeasurement,
+    LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind, LocalePreference,
+    LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
+    LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
@@ -33,31 +34,34 @@ use fitfreed_application::{
     RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
     RecoverySeriesOverview, RecoverySeriesSummary, RefreshReportRequest, RemoveReportRequest,
     RemoveTrainingSessionRangeRequest, RemovedReport, RenameTrainingSessionRangeRequest,
-    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest,
-    ReportLibraryComparisonSeries, ReportLibraryEvidenceState, ReportLibraryItem,
-    ReportLibraryMetricValue, ReportLibraryPage, ReportLibraryPeriod, ReportLibraryRequest,
-    ReportLibraryResult, ReportLibrarySensitivity, ReportLibrarySubject, ReportLimitation,
-    ReportPlannedTrainingEvidence, ReportResolutionStatus, ReportRouteEvidence,
-    ReportRouteExportChoice, ReportSensitiveContent, ReportSensitiveContentKind,
-    ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport, ResolvedSessionReport,
-    SaveSportClassificationRequest, SavedTrainingSportClassification, SegmentApplicabilityView,
-    SegmentMeasurementView, SessionReportBlockDraft, SessionReportBlockDraftContent, SessionStory,
-    SessionStoryAlignedSampleView, SessionStoryAlignmentStateView, SessionStoryAssessmentStateView,
-    SessionStoryCompositionView, SessionStoryExactRoute, SessionStoryExactSignal,
-    SessionStoryExercise, SessionStoryExerciseEvidenceView, SessionStoryMetricView,
-    SessionStoryOverlayView, SessionStoryProvenance, SessionStoryQuery, SessionStoryRole,
-    SessionStoryRoleEvidenceView, SessionStoryValueTransform, SleepComparison, SleepDateRange,
-    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
-    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
-    SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
-    TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
-    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
-    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
-    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
-    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRangeBoundaryEvidence,
-    TrainingRangeBoundaryEvidenceState, TrainingRangeBoundaryPair, TrainingRangeCardinalDirection,
-    TrainingRangeCoordinateEvidence, TrainingRangeDirectionSummary, TrainingRangeDistanceSummary,
-    TrainingRangeEvidenceCoverage, TrainingRangeEvidenceLocation, TrainingRangeExactEvidenceKind,
+    ReportEvidenceProvenance, ReportExampleAvailability, ReportExampleBlockRecipe,
+    ReportExampleCapability, ReportExampleCatalog, ReportExampleDescriptor,
+    ReportExampleDestination, ReportExampleId, ReportExampleParameter, ReportExamplePurpose,
+    ReportExampleQuestion, ReportExportReceipt, ReportExportRequest, ReportLibraryComparisonSeries,
+    ReportLibraryEvidenceState, ReportLibraryItem, ReportLibraryMetricValue, ReportLibraryPage,
+    ReportLibraryPeriod, ReportLibraryRequest, ReportLibraryResult, ReportLibrarySensitivity,
+    ReportLibrarySubject, ReportLimitation, ReportPlannedTrainingEvidence, ReportResolutionStatus,
+    ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
+    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
+    ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
+    SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
+    SessionReportBlockDraftContent, SessionStory, SessionStoryAlignedSampleView,
+    SessionStoryAlignmentStateView, SessionStoryAssessmentStateView, SessionStoryCompositionView,
+    SessionStoryExactRoute, SessionStoryExactSignal, SessionStoryExercise,
+    SessionStoryExerciseEvidenceView, SessionStoryMetricView, SessionStoryOverlayView,
+    SessionStoryProvenance, SessionStoryQuery, SessionStoryRole, SessionStoryRoleEvidenceView,
+    SessionStoryValueTransform, SleepComparison, SleepDateRange, SleepDayAvailability,
+    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
+    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
+    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter,
+    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
+    TrainingProvenanceEventView, TrainingRangeBoundaryEvidence, TrainingRangeBoundaryEvidenceState,
+    TrainingRangeBoundaryPair, TrainingRangeCardinalDirection, TrainingRangeCoordinateEvidence,
+    TrainingRangeDirectionSummary, TrainingRangeDistanceSummary, TrainingRangeEvidenceCoverage,
+    TrainingRangeEvidenceLocation, TrainingRangeExactEvidenceKind,
     TrainingRangeIndependentEvidence, TrainingRangeMeasurementSummary, TrainingRangeMetricCoverage,
     TrainingRangeMissingInterval, TrainingRangeSourceOverlap, TrainingRangeSourceOverlapRelation,
     TrainingRangeSourceRangeKind, TrainingRangeSummaryCoverageState,
@@ -4091,6 +4095,156 @@ impl From<PreparedReportStart> for PreparedReportStartDto {
     }
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportExampleCatalogDto {
+    examples: Vec<ReportExampleDescriptorDto>,
+}
+
+impl From<ReportExampleCatalog> for ReportExampleCatalogDto {
+    fn from(catalog: ReportExampleCatalog) -> Self {
+        Self {
+            examples: catalog.examples.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReportExampleDescriptorDto {
+    id: &'static str,
+    version: u32,
+    purpose: &'static str,
+    question: &'static str,
+    required_capabilities: Vec<&'static str>,
+    parameter: &'static str,
+    block_recipe: Vec<&'static str>,
+    availability: ReportExampleAvailabilityDto,
+}
+
+impl From<ReportExampleDescriptor> for ReportExampleDescriptorDto {
+    fn from(descriptor: ReportExampleDescriptor) -> Self {
+        Self {
+            id: report_example_id(descriptor.id),
+            version: descriptor.version,
+            purpose: report_example_purpose(descriptor.purpose),
+            question: report_example_question(descriptor.question),
+            required_capabilities: descriptor
+                .required_capabilities
+                .into_iter()
+                .map(report_example_capability)
+                .collect(),
+            parameter: report_example_parameter(descriptor.parameter),
+            block_recipe: descriptor
+                .block_recipe
+                .into_iter()
+                .map(report_example_block_recipe)
+                .collect(),
+            availability: descriptor.availability.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+enum ReportExampleAvailabilityDto {
+    Ready,
+    SelectionRequired {
+        destination: &'static str,
+    },
+    Unavailable {
+        missing_capabilities: Vec<&'static str>,
+    },
+}
+
+impl From<ReportExampleAvailability> for ReportExampleAvailabilityDto {
+    fn from(availability: ReportExampleAvailability) -> Self {
+        match availability {
+            ReportExampleAvailability::Ready => Self::Ready,
+            ReportExampleAvailability::SelectionRequired { destination } => {
+                Self::SelectionRequired {
+                    destination: report_example_destination(destination),
+                }
+            }
+            ReportExampleAvailability::Unavailable {
+                missing_capabilities,
+            } => Self::Unavailable {
+                missing_capabilities: missing_capabilities
+                    .into_iter()
+                    .map(report_example_capability)
+                    .collect(),
+            },
+        }
+    }
+}
+
+fn report_example_id(value: ReportExampleId) -> &'static str {
+    match value {
+        ReportExampleId::AdjacentPeriodVolume => "adjacent-period-volume",
+        ReportExampleId::SessionVisualStory => "session-visual-story",
+        ReportExampleId::OutdoorRoute => "outdoor-route",
+        ReportExampleId::StructuredTrainingPlan => "structured-training-plan",
+    }
+}
+
+fn report_example_purpose(value: ReportExamplePurpose) -> &'static str {
+    match value {
+        ReportExamplePurpose::CompareTrainingVolume => "compare-training-volume",
+        ReportExamplePurpose::UnderstandOneSession => "understand-one-session",
+        ReportExamplePurpose::InvestigateOutdoorRoute => "investigate-outdoor-route",
+        ReportExamplePurpose::ReviewStructuredTraining => "review-structured-training",
+    }
+}
+
+fn report_example_question(value: ReportExampleQuestion) -> &'static str {
+    match value {
+        ReportExampleQuestion::HowHasTrainingChanged => "how-has-training-changed",
+        ReportExampleQuestion::WhatHappenedInThisSession => "what-happened-in-this-session",
+        ReportExampleQuestion::WhereDidThisSessionChange => "where-did-this-session-change",
+        ReportExampleQuestion::HowWasThisTrainingStructured => "how-was-this-training-structured",
+    }
+}
+
+fn report_example_capability(value: ReportExampleCapability) -> &'static str {
+    match value {
+        ReportExampleCapability::TrainingHistory => "training-history",
+        ReportExampleCapability::TrainingSession => "training-session",
+        ReportExampleCapability::RouteEvidence => "route-evidence",
+        ReportExampleCapability::StructuredTraining => "structured-training",
+    }
+}
+
+fn report_example_parameter(value: ReportExampleParameter) -> &'static str {
+    match value {
+        ReportExampleParameter::None => "none",
+        ReportExampleParameter::TrainingSession => "training-session",
+        ReportExampleParameter::RoutedTrainingSession => "routed-training-session",
+        ReportExampleParameter::PlannedTrainingTarget => "planned-training-target",
+    }
+}
+
+fn report_example_block_recipe(value: ReportExampleBlockRecipe) -> &'static str {
+    match value {
+        ReportExampleBlockRecipe::TrainingFindingSessionCount => "training-finding-session-count",
+        ReportExampleBlockRecipe::TrainingChartDuration => "training-chart-duration",
+        ReportExampleBlockRecipe::TrainingCoverage => "training-coverage",
+        ReportExampleBlockRecipe::SessionEvidence => "session-evidence",
+        ReportExampleBlockRecipe::Route => "route",
+        ReportExampleBlockRecipe::PlannedTraining => "planned-training",
+    }
+}
+
+fn report_example_destination(value: ReportExampleDestination) -> &'static str {
+    match value {
+        ReportExampleDestination::TrainingSessions => "training-sessions",
+        ReportExampleDestination::PlannedTraining => "planned-training",
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateReportRequestDto {
@@ -4127,6 +4281,29 @@ pub struct UpdateReportRequestDto {
     title: String,
     locale: String,
     blocks: Vec<SessionReportBlockDraftDto>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DuplicateReportRequestDto {
+    source_report_ref: String,
+    expected_source_revision: String,
+    title: String,
+}
+
+impl TryFrom<DuplicateReportRequestDto> for DuplicateReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: DuplicateReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            source_report_ref: request.source_report_ref,
+            expected_source_revision: parse_canonical_u64(
+                &request.expected_source_revision,
+                "invalid-report-definition",
+            )?,
+            title: request.title,
+        })
+    }
 }
 
 impl TryFrom<UpdateReportRequestDto> for UpdateReportRequest {
@@ -10933,6 +11110,36 @@ mod tests {
             assert!(UpdateSessionReportRequest::try_from(invalid).is_err());
         }
 
+        let duplicate: DuplicateReportRequestDto = from_value(json!({
+            "sourceReportRef":
+                "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedSourceRevision": "2",
+            "title": "Morning progression copy"
+        }))
+        .expect("report duplication request");
+        let duplicate =
+            DuplicateReportRequest::try_from(duplicate).expect("valid report duplication");
+        assert_eq!(duplicate.expected_source_revision, 2);
+        assert_eq!(duplicate.title, "Morning progression copy");
+        assert!(from_value::<DuplicateReportRequestDto>(json!({
+            "sourceReportRef":
+                "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedSourceRevision": "2",
+            "title": "Morning progression copy",
+            "providerIdentity": "must-not-cross-the-boundary"
+        }))
+        .is_err());
+        for revision in ["0", "02", "+2", "18446744073709551616"] {
+            let invalid: DuplicateReportRequestDto = from_value(json!({
+                "sourceReportRef":
+                    "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedSourceRevision": revision,
+                "title": "Morning progression copy"
+            }))
+            .expect("structurally valid duplication request");
+            assert!(DuplicateReportRequest::try_from(invalid).is_err());
+        }
+
         let refresh: RefreshReportRequestDto = from_value(json!({
             "reportRef":
                 "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -11024,6 +11231,80 @@ mod tests {
                 .expect("structurally valid export request");
             assert!(ReportExportRequest::try_from(invalid).is_err());
         }
+    }
+
+    #[test]
+    fn serializes_versioned_report_examples_without_provider_or_result_fields() {
+        let catalog = ReportExampleCatalogDto::from(ReportExampleCatalog {
+            examples: vec![
+                ReportExampleDescriptor {
+                    id: ReportExampleId::AdjacentPeriodVolume,
+                    version: 1,
+                    purpose: ReportExamplePurpose::CompareTrainingVolume,
+                    question: ReportExampleQuestion::HowHasTrainingChanged,
+                    required_capabilities: vec![ReportExampleCapability::TrainingHistory],
+                    parameter: ReportExampleParameter::None,
+                    block_recipe: vec![
+                        ReportExampleBlockRecipe::TrainingFindingSessionCount,
+                        ReportExampleBlockRecipe::TrainingChartDuration,
+                        ReportExampleBlockRecipe::TrainingCoverage,
+                    ],
+                    availability: ReportExampleAvailability::Ready,
+                },
+                ReportExampleDescriptor {
+                    id: ReportExampleId::OutdoorRoute,
+                    version: 1,
+                    purpose: ReportExamplePurpose::InvestigateOutdoorRoute,
+                    question: ReportExampleQuestion::WhereDidThisSessionChange,
+                    required_capabilities: vec![
+                        ReportExampleCapability::TrainingSession,
+                        ReportExampleCapability::RouteEvidence,
+                    ],
+                    parameter: ReportExampleParameter::RoutedTrainingSession,
+                    block_recipe: vec![
+                        ReportExampleBlockRecipe::SessionEvidence,
+                        ReportExampleBlockRecipe::Route,
+                    ],
+                    availability: ReportExampleAvailability::SelectionRequired {
+                        destination: ReportExampleDestination::TrainingSessions,
+                    },
+                },
+                ReportExampleDescriptor {
+                    id: ReportExampleId::StructuredTrainingPlan,
+                    version: 1,
+                    purpose: ReportExamplePurpose::ReviewStructuredTraining,
+                    question: ReportExampleQuestion::HowWasThisTrainingStructured,
+                    required_capabilities: vec![ReportExampleCapability::StructuredTraining],
+                    parameter: ReportExampleParameter::PlannedTrainingTarget,
+                    block_recipe: vec![ReportExampleBlockRecipe::PlannedTraining],
+                    availability: ReportExampleAvailability::Unavailable {
+                        missing_capabilities: vec![ReportExampleCapability::StructuredTraining],
+                    },
+                },
+            ],
+        });
+        let value = to_value(catalog).expect("report example catalog JSON");
+
+        assert_eq!(value["examples"][0]["id"], "adjacent-period-volume");
+        assert_eq!(value["examples"][0]["availability"]["kind"], "ready");
+        assert_eq!(
+            value["examples"][1]["availability"],
+            json!({
+                "kind": "selection-required",
+                "destination": "training-sessions"
+            })
+        );
+        assert_eq!(
+            value["examples"][2]["availability"],
+            json!({
+                "kind": "unavailable",
+                "missingCapabilities": ["structured-training"]
+            })
+        );
+        let serialized = value.to_string();
+        assert!(!serialized.contains("provider"));
+        assert!(!serialized.contains("result"));
+        assert!(!serialized.contains("reportRef"));
     }
 
     #[test]

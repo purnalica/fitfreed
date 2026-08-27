@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-08-25",
+  "updated": "2026-08-27",
   "statuses": [
     {
       "key": "available",
@@ -31,7 +31,7 @@
         { "key": "recoveryAnswers", "text": "Result-first recovery-period answers with factual interval relationships, source boundaries, exact evidence, and no medical interpretation" },
         { "key": "alignedHistoryAnswers", "text": "Result-first aligned-history answers with four-lane daily evidence, exact cross-domain navigation, factual period comparisons, and an explicit non-causality boundary" },
         { "key": "answerCanvasContinuity", "text": "Coherent question-led entry, exact initiating-control focus, and Home return across all five History Answer Canvases" },
-        { "key": "authoredReports", "text": "Result-first report library with contextual question, exploration, and session starts, plus compatible reopening of existing blank-origin reports" },
+        { "key": "authoredReports", "text": "Result-first report library with four curated evidence-aware examples, contextual starts, independent duplication, and compatible reopening" },
         { "key": "staleReportRefresh", "text": "Deliberate stale-report refresh through an exact current-evidence review" },
         { "key": "reportOriginNavigation", "text": "Origin-aware navigation between saved reports and their exact session or comparison source" }
       ],

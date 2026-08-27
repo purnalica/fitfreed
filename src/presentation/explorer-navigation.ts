@@ -39,7 +39,7 @@ export interface TrainingSportSessionsNavigationRequest {
 }
 
 export interface TrainingWorkspaceNavigationRequest {
-  kind: "sessions" | "sports";
+  kind: "sessions" | "plans" | "sports";
   requestId: number;
 }
 

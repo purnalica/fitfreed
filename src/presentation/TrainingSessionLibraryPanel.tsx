@@ -120,6 +120,7 @@ interface TrainingSessionLibraryPanelProps {
     requestId: number;
   };
   navigationRequestId?: number;
+  resetWorkspaceRequestId?: number;
   createReportFocusRequestId?: number;
   onAvailableRange: (range: { from: string; through: string } | null) => void;
   onCreateReport: (origin: SessionReportOrigin) => void;
@@ -288,6 +289,7 @@ export function TrainingSessionLibraryPanel({
   initialSessionRef,
   sportSessionsNavigation,
   navigationRequestId,
+  resetWorkspaceRequestId,
   createReportFocusRequestId,
   onAvailableRange,
   onCreateReport,
@@ -529,7 +531,7 @@ export function TrainingSessionLibraryPanel({
     void (async () => {
       const [sportsResult, workspaceResult] = await Promise.allSettled([
         invoke<TrainingSportsOverview>("query_training_sports"),
-        initialDate || sportSessionsNavigation
+        initialDate || sportSessionsNavigation || resetWorkspaceRequestId !== undefined
           ? Promise.resolve(null)
           : invoke<TrainingDiscoveryWorkspace | null>("load_training_discovery_workspace"),
       ]);
@@ -706,6 +708,7 @@ export function TrainingSessionLibraryPanel({
     initialSessionRef,
     sportSessionsNavigation?.requestId,
     navigationRequestId,
+    resetWorkspaceRequestId,
     onAvailableRange,
     onError,
   ]);

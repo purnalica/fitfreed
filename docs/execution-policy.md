@@ -64,6 +64,10 @@ A necessary pause reports:
 - Private reference exports may be read only when they have been explicitly supplied for local analysis. They may not be modified, copied into the workspace, committed, or published.
 - Project files and non-destructive local verification may be created or changed within the active task and confirmed scope.
 - The project owner has authorized focused local commits throughout autonomous execution. Each commit must contain one coherent verified increment, use public-safe identity metadata, and pass the repository publication safeguards before creation.
+- Run the dirty-tree-compatible `npm run verify:precommit` gate before creating an executable candidate commit. Then
+  run `npm run verify:full` from that exact clean revision so startup identity, production bundle, and recovery evidence
+  remain source-bound. A failed clean-revision gate keeps the candidate local and requires a corrective focused commit
+  plus a complete rerun before push.
 - The project owner has authorized a normal push to `origin/main` after every verified commit. The complete outgoing range must pass content, secret, and identity checks immediately before each push.
 - Creating tags, force-pushing, pushing another target, publishing releases or packages, or changing remote settings remains a separate action that requires explicit authority. The project owner authorized the GitHub Pages product-site setting and deployment on 2026-08-18; this does not authorize an application release or update channel.
 - Creating or changing external repositories, packages, releases, update channels, or public communications requires explicit authority for the exact target and action.

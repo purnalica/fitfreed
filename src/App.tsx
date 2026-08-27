@@ -64,7 +64,10 @@ import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import type { ImportOutcome, ImportReport } from "./presentation/ImportOutcomePanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
-import type { ReportStartOrigin } from "./presentation/session-report";
+import type {
+  ReportExampleDestination,
+  ReportStartOrigin,
+} from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
 import { SportIconDefinitions } from "./presentation/SportFamilyIcon";
 import {
@@ -687,6 +690,41 @@ function App() {
     setReportOrigin(origin);
     setReportOriginRequestId((current) => current + 1);
     navigateHome("reports");
+  }
+
+  async function openReportExampleDestination(destination: ReportExampleDestination) {
+    if (homeNavigationOperation) return;
+    setErrorCode(undefined);
+    setHomeNavigationOperation({ kind: "open", destination: "training" });
+    setReportOrigin(undefined);
+    setReportOpenRequest(undefined);
+    setReportReturnRef(undefined);
+    reportSourceReturnDestination.current = undefined;
+    setReportReturnFocusRequest(undefined);
+    navigationSequence.current += 1;
+    const navigation = {
+      domain: "training" as const,
+      kind: destination === "planned-training" ? "plans" as const : "sessions" as const,
+      requestId: navigationSequence.current,
+    };
+    setExplorerNavigation(navigation);
+    try {
+      if (destination === "training-sessions") {
+        await invoke("clear_training_discovery_workspace");
+      }
+      if (!(await openExploration("training"))) {
+        setExplorerNavigation((current) => current?.requestId === navigation.requestId
+          ? undefined
+          : current);
+      }
+    } catch (reason) {
+      setExplorerNavigation((current) => current?.requestId === navigation.requestId
+        ? undefined
+        : current);
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setHomeNavigationOperation(undefined);
+    }
   }
 
   async function openSourceLink(request: OpenOfficialSourceLinkRequest, url: string) {
@@ -1432,8 +1470,11 @@ function App() {
                 originRequestId={reportOriginRequestId}
                 openReportRef={reportOpenRequest?.reportRef}
                 openReportRequestId={reportOpenRequest?.requestId}
-                disabled={!libraryReady || busy || updateInstalling}
+                disabled={!libraryReady || busy || updateInstalling || homeNavigationOperation !== undefined}
                 onReturnToOrigin={navigateFromReport}
+                onOpenExampleDestination={(destination) => {
+                  void openReportExampleDestination(destination);
+                }}
               />
             </Suspense>
           )}

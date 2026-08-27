@@ -20,24 +20,37 @@ use fitfreed_domain::{
 
 mod reporting;
 pub use reporting::{
-    create_composed_session_report, create_report, create_session_report, export_report,
-    export_session_report, list_report_library, list_reports, load_report_definition,
-    prepare_report_start, refresh_report, remove_report, resolve_report, resolve_session_report,
-    update_composed_session_report, update_report, update_session_report, AuthorizedReportExport,
-    AuthorizedSessionReportExport, CreateComposedSessionReportRequest, CreateReportRequest,
-    CreateSessionReportRequest, PreparedReportStart, RefreshReportRequest, RemoveReportRequest,
-    RemovedReport, ReportBlockDraft, ReportBlockDraftContent, ReportDefinitionPort,
-    ReportDefinitionPortError, ReportEvidenceProvenance, ReportExportCancellation,
-    ReportExportPort, ReportExportPortError, ReportExportReceipt, ReportExportRequest,
-    ReportLibraryComparisonSeries, ReportLibraryEvidenceState, ReportLibraryItem,
-    ReportLibraryMetricValue, ReportLibraryPage, ReportLibraryPeriod, ReportLibraryRequest,
-    ReportLibraryResult, ReportLibrarySensitivity, ReportLibrarySubject, ReportLimitation,
-    ReportPlannedTrainingEvidence, ReportResolutionStatus, ReportRouteEvidence,
-    ReportRouteExportChoice, ReportSensitiveContent, ReportSensitiveContentKind,
-    ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport, ResolvedSessionReport,
-    SessionReportBlockDraft, SessionReportBlockDraftContent, SessionReportExportRequest,
-    UpdateComposedSessionReportRequest, UpdateReportRequest, UpdateSessionReportRequest,
+    create_composed_session_report, create_report, create_session_report, duplicate_report,
+    export_report, export_session_report, list_report_library, list_reports,
+    load_report_definition, prepare_report_start, refresh_report, remove_report, resolve_report,
+    resolve_session_report, update_composed_session_report, update_report, update_session_report,
+    AuthorizedReportExport, AuthorizedSessionReportExport, CreateComposedSessionReportRequest,
+    CreateReportRequest, CreateSessionReportRequest, DuplicateReportRequest, PreparedReportStart,
+    RefreshReportRequest, RemoveReportRequest, RemovedReport, ReportBlockDraft,
+    ReportBlockDraftContent, ReportDefinitionPort, ReportDefinitionPortError,
+    ReportEvidenceProvenance, ReportExportCancellation, ReportExportPort, ReportExportPortError,
+    ReportExportReceipt, ReportExportRequest, ReportLibraryComparisonSeries,
+    ReportLibraryEvidenceState, ReportLibraryItem, ReportLibraryMetricValue, ReportLibraryPage,
+    ReportLibraryPeriod, ReportLibraryRequest, ReportLibraryResult, ReportLibrarySensitivity,
+    ReportLibrarySubject, ReportLimitation, ReportPlannedTrainingEvidence, ReportResolutionStatus,
+    ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
+    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
+    ResolvedSessionReport, SessionReportBlockDraft, SessionReportBlockDraftContent,
+    SessionReportExportRequest, UpdateComposedSessionReportRequest, UpdateReportRequest,
+    UpdateSessionReportRequest,
 };
+
+mod report_examples;
+pub use report_examples::{
+    list_report_examples, ReportExampleAvailability, ReportExampleBlockRecipe,
+    ReportExampleCapability, ReportExampleCatalog, ReportExampleDescriptor,
+    ReportExampleDestination, ReportExampleEvidence, ReportExampleEvidencePort, ReportExampleId,
+    ReportExampleParameter, ReportExamplePurpose, ReportExampleQuestion,
+    REPORT_EXAMPLE_DESCRIPTOR_VERSION,
+};
+
+#[cfg(test)]
+mod report_examples_tests;
 
 mod data_exit;
 pub use data_exit::{

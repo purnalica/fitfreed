@@ -100,10 +100,37 @@ async function expectDocumentFocus(selector, timeoutMsg) {
 }
 
 async function expectElementFocus(element, timeoutMsg) {
-  await browser.waitUntil(
-    () => element.isFocused(),
-    { timeout: 10_000, timeoutMsg },
-  );
+  try {
+    await browser.waitUntil(
+      () => element.isFocused(),
+      { timeout: 10_000, timeoutMsg },
+    );
+  } catch (reason) {
+    const focusState = await browser.execute((target) => {
+      const active = document.activeElement;
+      return {
+        targetConnected: target instanceof HTMLElement ? target.isConnected : null,
+        targetDisabled: target instanceof HTMLButtonElement ? target.disabled : null,
+        targetHiddenByAncestor: target instanceof HTMLElement
+          ? target.closest("[hidden]") !== null
+          : null,
+        targetIsActive: target === active,
+        targetText: target instanceof HTMLElement ? target.innerText.slice(0, 120) : null,
+        manualFocusSucceeded: target instanceof HTMLElement
+          ? (target.focus(), document.activeElement === target)
+          : null,
+        activeElement: active instanceof HTMLElement ? {
+          tagName: active.tagName,
+          id: active.id,
+          className: active.className,
+          text: active.innerText.slice(0, 120),
+        } : null,
+      };
+    }, element).catch(() => ({ targetUnavailable: true }));
+    throw new Error(`${timeoutMsg}; focus state: ${JSON.stringify(focusState)}`, {
+      cause: reason,
+    });
+  }
 }
 
 async function expectFocusedStatus(fragment, timeoutMsg) {
@@ -2984,26 +3011,142 @@ describe("packaged FitFreed import journey", () => {
     );
     await openReportWorkspace(english, "library");
     expect(await $$(".report-list > li")).toHaveLength(1);
+    const reportExamples = await $$(".report-example-list > li");
+    expect(reportExamples).toHaveLength(4);
+    await expect(reportExamples[0]).toHaveText(
+      expect.stringContaining(english.reports.examples.items["adjacent-period-volume"].title),
+    );
+    await expect(reportExamples[1]).toHaveText(
+      expect.stringContaining(english.reports.examples.selectionRequired),
+    );
+    await expect(reportExamples[2]).toHaveText(
+      expect.stringContaining(english.reports.examples.selectionRequired),
+    );
+    await expect(reportExamples[3]).toHaveText(
+      expect.stringContaining(english.reports.examples.capabilities["structured-training"]),
+    );
+    await expect($(".report-examples")).not.toHaveText(expect.stringContaining("Polar Flow"));
+
+    await $(`aria/${english.reports.examples.items["session-visual-story"].action}`).click();
+    await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
+    await expect($(`aria/${english.training.workspaces.sessions}`))
+      .toHaveAttribute("aria-current", "page");
+    expect(await $$("#training-session-detail-heading")).toHaveLength(0);
+    await goToHome("reports");
+    await $(".report-example-list").waitForDisplayed({ timeout: 10_000 });
+
+    const useExample = await $(`aria/${
+      english.reports.examples.items["adjacent-period-volume"].action
+    }`);
+    await useExample.click();
+    expect(await $$(".report-block-editor:has(.report-analysis-block-help)"))
+      .toHaveLength(3);
+    const exampleTitle = await $('.report-editor input[maxlength="120"]');
+    await expect(exampleTitle).toHaveValue(
+      english.reports.examples.items["adjacent-period-volume"].defaultTitle,
+    );
+    await $(`aria/${english.reports.cancelComposition}`).click();
+    await expectDocumentFocus(
+      "#saved-reports-heading",
+      "cancelling an example draft did not restore the report library",
+    );
+    expect(await $$(".report-list > li")).toHaveLength(1);
+
+    await $(`aria/${
+      english.reports.examples.items["adjacent-period-volume"].action
+    }`).click();
+    const savedExampleTitle = await $('.report-editor input[maxlength="120"]');
+    await savedExampleTitle.clearValue();
+    await savedExampleTitle.setValue("Synthetic reusable comparison");
+    await $(`aria/${english.reports.create}`).click();
+    await waitForNotice(english.reports.saved);
+    await expect($(".report-preview h3")).toHaveText("Synthetic reusable comparison");
+
+    const duplicateAction = await $(".report-preview")
+      .$(`aria/${english.reports.duplicate.action}`);
+    await duplicateAction.click();
+    await expectDocumentFocus(
+      "#report-duplicate-heading",
+      "opening report duplication did not focus its heading",
+    );
+    await $(`aria/${english.reports.duplicate.cancel}`).click();
+    await expectElementFocus(
+      duplicateAction,
+      "cancelling report duplication did not restore its source action",
+    );
+    await duplicateAction.click();
+    const duplicateTitle = await $('.report-duplicate-task input[maxlength="120"]');
+    await duplicateTitle.clearValue();
+    await duplicateTitle.setValue("Synthetic reusable comparison copy");
+    await $(`aria/${english.reports.duplicate.submit}`).click();
+    await waitForNotice("Synthetic reusable comparison copy was created");
+    await expectDocumentFocus(
+      "#report-preview-heading",
+      "report duplication did not focus its independent result",
+    );
+    await expect($(".report-preview h3")).toHaveText("Synthetic reusable comparison copy");
+
+    await openReportWorkspace(english, "library");
+    expect(await $$(".report-list > li")).toHaveLength(3);
+    await $(`aria/${english.reports.library.open.replace(
+      "{title}",
+      "Synthetic reusable comparison",
+    )}`).click();
+    await $(`aria/${english.reports.delete.action}`).click();
+    await $(".report-delete-review").$(`aria/${english.reports.delete.confirm.replace(
+      "{title}",
+      "Synthetic reusable comparison",
+    )}`).click();
+    await expect($(".report-library [role='status']")).toHaveText(
+      english.reports.delete.removed.replace(
+        "{title}",
+        "Synthetic reusable comparison",
+      ),
+    );
+    expect(await $$(".report-list > li")).toHaveLength(2);
+    expect(await $$(`aria/${english.reports.library.open.replace(
+      "{title}",
+      "Synthetic reusable comparison",
+    )}`)).toHaveLength(0);
+    const independentExampleCopy = await $(`aria/${english.reports.library.open.replace(
+      "{title}",
+      "Synthetic reusable comparison copy",
+    )}`);
+    await independentExampleCopy.click();
+    await expect($(".report-preview h3")).toHaveText("Synthetic reusable comparison copy");
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(english.reports.analysis.blocks["training-finding"].heading),
+    );
+    await openReportWorkspace(english, "library");
+    await browser.execute(() => {
+      document.querySelector(".report-library").scrollIntoView({
+        block: "start",
+        inline: "nearest",
+      });
+    });
     const wideReportLibraryGeometry = await browser.execute(() => {
       const root = document.documentElement;
       const library = document.querySelector(".report-library").getBoundingClientRect();
-      const creation = document.querySelector(".report-library-new-comparison")
-        .getBoundingClientRect();
+      const examples = document.querySelector(".report-examples").getBoundingClientRect();
+      const example = document.querySelector(".report-example-list > li").getBoundingClientRect();
+      const savedHeading = document.querySelector("#saved-reports-heading").getBoundingClientRect();
       const list = document.querySelector(".report-list").getBoundingClientRect();
       const card = document.querySelector(".report-list > li").getBoundingClientRect();
       return {
         hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
         hasExpandedStart: document.querySelector(".report-library-start") !== null,
-        compactCreationBeforeResults: creation.bottom <= list.top,
-        resultBeginsInViewport: card.top < window.innerHeight,
+        examplesBeforeResults: examples.bottom <= savedHeading.top && savedHeading.bottom <= list.top,
+        usefulStartBeginsInViewport: example.top >= 0 && example.top < window.innerHeight,
+        exampleInsideLibrary: example.left >= library.left && example.right <= library.right,
         cardInsideLibrary: card.left >= library.left && card.right <= library.right,
       };
     });
     expect(wideReportLibraryGeometry).toEqual({
       hasHorizontalOverflow: false,
       hasExpandedStart: false,
-      compactCreationBeforeResults: true,
-      resultBeginsInViewport: true,
+      examplesBeforeResults: true,
+      usefulStartBeginsInViewport: true,
+      exampleInsideLibrary: true,
       cardInsideLibrary: true,
     });
     const wideReportLibraryAccessibility = await new AxeBuilder({ client: browser })
@@ -3015,7 +3158,10 @@ describe("packaged FitFreed import journey", () => {
       evidenceDirectory,
       "r9-report-library-en-wide.png",
     ));
-    await openReportWorkspace(english, "preview");
+    await $(`aria/${english.reports.library.open.replace(
+      "{title}",
+      "Synthetic ridge progression",
+    )}`).click();
 
     const reviewExport = await $(`aria/${english.reports.reviewExport}`);
     await reviewExport.click();
@@ -3183,10 +3329,11 @@ describe("packaged FitFreed import journey", () => {
       reviewExport,
       "leaving the cancelled export review did not restore its initiating action",
     );
-    await $(`aria/${english.reports.backToSession}`).click();
+    await $(`aria/${english.reports.viewSourceSession}`).click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
-    await $("aria/Back to calendar").click();
-    await $("aria/Chronology").click();
+    await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
+    await $(".training-session-applied-query")
+      .$(`aria/${english.training.sessionLibrary.clearApplied}`).click();
     await expectTrainingRows([
       [enJan5Card, "30 min"],
       [enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"],
@@ -3460,32 +3607,37 @@ describe("packaged FitFreed import journey", () => {
       const root = document.documentElement;
       const library = document.querySelector(".report-library").getBoundingClientRect();
       const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
-      const creation = document.querySelector(".report-library-new-comparison")
-        .getBoundingClientRect();
+      const examples = document.querySelector(".report-examples").getBoundingClientRect();
+      const example = document.querySelector(".report-example-list > li").getBoundingClientRect();
+      const savedHeading = document.querySelector("#saved-reports-heading").getBoundingClientRect();
       const list = document.querySelector(".report-list").getBoundingClientRect();
       const card = document.querySelector(".report-list > li").getBoundingClientRect();
-      const visibleCardHeight = Math.max(
+      const visibleExampleHeight = Math.max(
         0,
-        Math.min(card.bottom, window.innerHeight) - Math.max(card.top, navigation.bottom),
+        Math.min(example.bottom, window.innerHeight) - Math.max(example.top, navigation.bottom),
       );
       return {
         viewportHeight: window.innerHeight,
         navigationBottom: navigation.bottom,
         libraryTop: library.top,
-        creationBottom: creation.bottom,
+        examplesBottom: examples.bottom,
+        exampleTop: example.top,
+        exampleBottom: example.bottom,
+        exampleHeight: example.height,
         listTop: list.top,
         cardTop: card.top,
         cardBottom: card.bottom,
         cardHeight: card.height,
-        visibleCardHeight,
+        visibleExampleHeight,
         hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
         libraryBelowNavigation: library.top >= navigation.bottom - 1,
         hasExpandedStart: document.querySelector(".report-library-start") !== null,
-        compactCreationBeforeResults: creation.bottom <= list.top,
-        usefulResultVisible: visibleCardHeight >= Math.min(
-          card.height,
+        examplesBeforeResults: examples.bottom <= savedHeading.top && savedHeading.bottom <= list.top,
+        usefulStartVisible: visibleExampleHeight >= Math.min(
+          example.height,
           window.innerHeight - navigation.bottom,
         ) * 0.6,
+        exampleInsideLibrary: example.left >= library.left && example.right <= library.right,
         cardInsideLibrary: card.left >= library.left && card.right <= library.right,
       };
     });
@@ -3493,26 +3645,32 @@ describe("packaged FitFreed import journey", () => {
       viewportHeight,
       navigationBottom,
       libraryTop,
-      creationBottom,
+      examplesBottom,
+      exampleTop,
+      exampleBottom,
+      exampleHeight,
       listTop,
       cardTop,
       cardBottom,
       cardHeight,
-      visibleCardHeight,
+      visibleExampleHeight,
       ...compactReportLibraryContract
     } = compactReportLibraryGeometry;
-    if (!compactReportLibraryContract.usefulResultVisible) {
+    if (!compactReportLibraryContract.usefulStartVisible) {
       process.stderr.write(`${JSON.stringify({
         reportLibraryGeometry: {
           viewportHeight,
           navigationBottom,
           libraryTop,
-          creationBottom,
+          examplesBottom,
+          exampleTop,
+          exampleBottom,
+          exampleHeight,
           listTop,
           cardTop,
           cardBottom,
           cardHeight,
-          visibleCardHeight,
+          visibleExampleHeight,
         },
       })}\n`);
     }
@@ -3520,8 +3678,9 @@ describe("packaged FitFreed import journey", () => {
       hasHorizontalOverflow: false,
       libraryBelowNavigation: true,
       hasExpandedStart: false,
-      compactCreationBeforeResults: true,
-      usefulResultVisible: true,
+      examplesBeforeResults: true,
+      usefulStartVisible: true,
+      exampleInsideLibrary: true,
       cardInsideLibrary: true,
     });
     const compactReportLibraryAccessibility = await new AxeBuilder({ client: browser })
@@ -4122,7 +4281,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
     expect(await $$(".report-preview .report-narrative")).toHaveLength(0);
     await expect($(".report-preview")).not.toHaveText(expect.stringContaining("Polar Flow"));
-    expect(await $$(".report-list > li")).toHaveLength(2);
+    expect(await $$(".report-list > li")).toHaveLength(3);
     await $(`aria/${english.reports.backToComparison}`).click();
     await expectComparisonHeading(
       "#training-comparison-heading",
@@ -4935,15 +5094,20 @@ describe("packaged FitFreed import journey", () => {
     await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
     await goToHome("reports");
     await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);
-    const sessionRestoredReports = await $$(".report-list button");
-    expect(sessionRestoredReports).toHaveLength(2);
-    await expect(sessionRestoredReports[0]).toHaveText(
-      expect.stringContaining("Synthetic comparison answer"),
-    );
-    await expect(sessionRestoredReports[1]).toHaveText(
-      expect.stringContaining("Synthetic ridge progression"),
-    );
-    await sessionRestoredReports[0].click();
+    const sessionRestoredReports = await $$(".report-list .report-library-open");
+    expect(sessionRestoredReports).toHaveLength(3);
+    await expect($(`aria/${spanish.reports.library.open.replace(
+      "{title}",
+      "Synthetic reusable comparison copy",
+    )}`)).toBeDisplayed();
+    await expect($(`aria/${spanish.reports.library.open.replace(
+      "{title}",
+      "Synthetic ridge progression",
+    )}`)).toBeDisplayed();
+    await $(`aria/${spanish.reports.library.open.replace(
+      "{title}",
+      "Synthetic comparison answer",
+    )}`).click();
     await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
     expect(await $$(".report-preview .report-narrative")).toHaveLength(0);
 
@@ -4958,9 +5122,12 @@ describe("packaged FitFreed import journey", () => {
     await expectLibraryHome(spanish, { coverageExpanded: true });
     expect(await $$(".library-home-resume")).toHaveLength(1);
     await goToHome("reports");
-    const reportsAfterRefreshImport = await $$(".report-list button");
-    expect(reportsAfterRefreshImport).toHaveLength(2);
-    await reportsAfterRefreshImport[0].click();
+    const reportsAfterRefreshImport = await $$(".report-list .report-library-open");
+    expect(reportsAfterRefreshImport).toHaveLength(3);
+    await $(`aria/${spanish.reports.library.open.replace(
+      "{title}",
+      "Synthetic comparison answer",
+    )}`).click();
     await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
     await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
     await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
@@ -5154,7 +5321,10 @@ describe("packaged FitFreed import journey", () => {
     );
 
     await openReportWorkspace(spanish, "library");
-    await (await $$(".report-list button"))[1].click();
+    await $(`aria/${spanish.reports.library.open.replace(
+      "{title}",
+      "Synthetic ridge progression",
+    )}`).click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
     await expect($(".report-preview")).toHaveText(
       expect.stringContaining(
@@ -5224,12 +5394,14 @@ describe("packaged FitFreed import journey", () => {
       },
     ]);
 
-    await openHomeQuestion(
-      spanish,
-      "explore-training-sessions",
-      ".training-insights",
-    );
-    await openTrainingWorkspace(spanish, "plans");
+    await goToHome("reports");
+    await $(".report-example-list").waitForDisplayed({ timeout: 10_000 });
+    await $(`aria/${
+      spanish.reports.examples.items["structured-training-plan"].action
+    }`).click();
+    await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
+    await expect($(`aria/${spanish.training.workspaces.plans}`))
+      .toHaveAttribute("aria-current", "page");
     const plannedCards = await $$(".planned-training-list > li");
     expect(plannedCards).toHaveLength(1);
     await plannedCards[0].$("button").click();

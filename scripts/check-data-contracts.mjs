@@ -6841,6 +6841,7 @@ const reportHtmlV4Path = "docs/data-formats/portable/report-html-v4.md";
 const reportDefinitionCanonicalV5Path = "docs/data-formats/canonical/report-definition-v5.md";
 const reportDefinitionPortableV5Path = "docs/data-formats/portable/report-definition-v5.md";
 const reportV7Path = "docs/data-formats/insights/report-v7.md";
+const reportV8Path = "docs/data-formats/insights/report-v8.md";
 const reportHtmlV7Path = "docs/data-formats/portable/report-html-v7.md";
 const reportDefinitionSchemaPath = "schemas/report-definition-v1.schema.json";
 const reportDefinitionV2SchemaPath = "schemas/report-definition-v2.schema.json";
@@ -6855,6 +6856,8 @@ const reportUpdateV4SchemaPath = "schemas/report-update-v4.schema.json";
 const reportUpdateV5SchemaPath = "schemas/report-update-v5.schema.json";
 const reportRefreshSchemaPath = "schemas/report-refresh-v1.schema.json";
 const reportRefreshV2SchemaPath = "schemas/report-refresh-v2.schema.json";
+const reportExampleCatalogSchemaPath = "schemas/report-example-catalog-v1.schema.json";
+const reportDuplicateSchemaPath = "schemas/report-duplicate-v1.schema.json";
 const reportRemoveSchemaPath = "schemas/report-remove-v1.schema.json";
 const removedReportSchemaPath = "schemas/removed-report-v1.schema.json";
 const reportLibraryQuerySchemaPath = "schemas/report-library-query-v1.schema.json";
@@ -6939,7 +6942,7 @@ for (const [documentPath, fields] of [
   ]],
   [reportDefinitionPortableV5Path, [
     "application/vnd.fitfreed.report-definition+json;version=5", "report-create-v5.schema.json",
-    "report-update-v5.schema.json", "report-refresh-v2.schema.json",
+    "report-update-v5.schema.json", "report-refresh-v2.schema.json", "report-duplicate-v1.schema.json",
     "report-library-v4.schema.json", "report-resolution-v7.schema.json",
     "report-export-v5.schema.json", "planned-training",
   ]],
@@ -6948,6 +6951,12 @@ for (const [documentPath, fields] of [
     "report-create-v5.schema.json", "report-update-v5.schema.json",
     "report-refresh-v2.schema.json", "report-export-v5.schema.json",
     "planned-training-snapshot", "report-source-changed", "report-evidence-unavailable",
+  ]],
+  [reportV8Path, [
+    "report-example-catalog-v1.schema.json", "list_report_examples", "id", "version",
+    "purpose", "question", "requiredCapabilities", "parameter", "blockRecipe", "availability",
+    "report-duplicate-v1.schema.json", "sourceReportRef", "expectedSourceRevision",
+    "report-definition-v5.schema.json", "definitionVersion", "revision", "report-revision-conflict",
   ]],
   [reportHtmlV7Path, [
     "text/html", "data-fitfreed-output-version=\"7\"", "data-fitfreed-report-version",
@@ -8641,6 +8650,135 @@ assertContract(
   syntheticPlannedReportRefreshV2,
 );
 
+const syntheticReportDuplicate = {
+  sourceReportRef: plannedReportRef,
+  expectedSourceRevision: "1",
+  title: "Synthetic planned interval session copy",
+};
+const validateReportDuplicate = compileContractSchema(reportDuplicateSchemaPath);
+assertContract(
+  validateReportDuplicate,
+  reportDuplicateSchemaPath,
+  syntheticReportDuplicate,
+);
+for (const invalidDuplicate of [
+  { ...syntheticReportDuplicate, expectedSourceRevision: "0" },
+  { ...syntheticReportDuplicate, expectedSourceRevision: "01" },
+  { ...syntheticReportDuplicate, expectedSourceRevision: "-1" },
+  { ...syntheticReportDuplicate, title: "" },
+  { ...syntheticReportDuplicate, providerIdentity: "synthetic-provider" },
+]) {
+  if (validateReportDuplicate(invalidDuplicate)) {
+    throw new Error(`${reportDuplicateSchemaPath} accepted an invalid duplication request`);
+  }
+}
+
+const syntheticReportExampleCatalog = {
+  examples: [
+    {
+      id: "adjacent-period-volume",
+      version: 1,
+      purpose: "compare-training-volume",
+      question: "how-has-training-changed",
+      requiredCapabilities: ["training-history"],
+      parameter: "none",
+      blockRecipe: [
+        "training-finding-session-count",
+        "training-chart-duration",
+        "training-coverage",
+      ],
+      availability: { kind: "ready" },
+    },
+    {
+      id: "session-visual-story",
+      version: 1,
+      purpose: "understand-one-session",
+      question: "what-happened-in-this-session",
+      requiredCapabilities: ["training-session"],
+      parameter: "training-session",
+      blockRecipe: ["session-evidence"],
+      availability: {
+        kind: "selection-required",
+        destination: "training-sessions",
+      },
+    },
+    {
+      id: "outdoor-route",
+      version: 1,
+      purpose: "investigate-outdoor-route",
+      question: "where-did-this-session-change",
+      requiredCapabilities: ["training-session", "route-evidence"],
+      parameter: "routed-training-session",
+      blockRecipe: ["session-evidence", "route"],
+      availability: {
+        kind: "unavailable",
+        missingCapabilities: ["route-evidence"],
+      },
+    },
+    {
+      id: "structured-training-plan",
+      version: 1,
+      purpose: "review-structured-training",
+      question: "how-was-this-training-structured",
+      requiredCapabilities: ["structured-training"],
+      parameter: "planned-training-target",
+      blockRecipe: ["planned-training"],
+      availability: {
+        kind: "selection-required",
+        destination: "planned-training",
+      },
+    },
+  ],
+};
+const validateReportExampleCatalog = compileContractSchema(reportExampleCatalogSchemaPath);
+assertContract(
+  validateReportExampleCatalog,
+  reportExampleCatalogSchemaPath,
+  syntheticReportExampleCatalog,
+);
+for (const invalidCatalog of [
+  {
+    examples: syntheticReportExampleCatalog.examples.slice(0, 3),
+  },
+  (() => {
+    const value = structuredClone(syntheticReportExampleCatalog);
+    value.examples[0].version = 2;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportExampleCatalog);
+    value.examples[0].result = { sessionCount: 42 };
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportExampleCatalog);
+    value.examples[1] = structuredClone(value.examples[0]);
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportExampleCatalog);
+    value.examples[2].blockRecipe = ["training-coverage"];
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportExampleCatalog);
+    value.examples[3].availability = { kind: "ready" };
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportExampleCatalog);
+    value.examples[1].availability = {
+      kind: "selection-required",
+      destination: "provider-account",
+    };
+    return value;
+  })(),
+]) {
+  if (validateReportExampleCatalog(invalidCatalog)) {
+    throw new Error(`${reportExampleCatalogSchemaPath} accepted an invalid example catalog`);
+  }
+}
+
 const syntheticPlannedReportLibraryV4 = {
   items: [{
     reportRef: plannedReportRef,
@@ -8839,6 +8977,7 @@ for (const contractPath of [
   sessionReportV5Path,
   reportV6Path,
   reportV7Path,
+  reportV8Path,
   reportHtmlV7Path,
   plannedTrainingReadModelDocumentPath,
   plannedTrainingExportDocumentPath,
@@ -9009,6 +9148,8 @@ process.stdout.write(
       reportUpdateV5SchemaPath,
       reportRefreshSchemaPath,
       reportRefreshV2SchemaPath,
+      reportExampleCatalogSchemaPath,
+      reportDuplicateSchemaPath,
       reportRemoveSchemaPath,
       removedReportSchemaPath,
       reportLibraryQuerySchemaPath,

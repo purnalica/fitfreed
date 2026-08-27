@@ -1984,6 +1984,7 @@
     "heading": "Crea y exporta informes",
     "intro": "Los informes guardados se abren mostrando sus resultados. Crea uno desde una sesión, un plan de entrenamiento o una comparación, revisa sus evidencias y exporta un archivo HTML autocontenido cuando lo decidas.",
     "workspaceNavigation": "Espacio de trabajo de informes",
+    "libraryWorkspace": "Biblioteca de informes",
     "workspaces": {
       "library": "Biblioteca",
       "compose": "Componer",
@@ -2000,9 +2001,57 @@
     "reload": "Actualizar",
     "loading": "Cargando los informes guardados…",
     "empty": "Todavía no hay informes guardados.",
+    "examples": {
+      "heading": "Empieza por una pregunta útil",
+      "intro": "Son estructuras reutilizables de informes, no resultados de ejemplo. FitFreed comprueba tu biblioteca local e indica qué necesita cada una.",
+      "loading": "Comprobando qué ejemplos de informes admite tu biblioteca…",
+      "failed": "FitFreed no ha podido comprobar los ejemplos de informes de esta biblioteca.",
+      "retry": "Volver a comprobar los ejemplos",
+      "selectionRequired": "Elige las evidencias exactas antes de que FitFreed abra un borrador.",
+      "unavailable": "Necesita: {capabilities}.",
+      "capabilities": {
+        "training-history": "un historial de entrenamientos",
+        "training-session": "una sesión de entrenamiento",
+        "route-evidence": "una ruta registrada con suficientes puntos",
+        "structured-training": "un plan de entrenamiento estructurado importado"
+      },
+      "items": {
+        "adjacent-period-volume": {
+          "title": "Entrenamiento reciente, periodo a periodo",
+          "purpose": "Compara el volumen y la regularidad del entrenamiento entre periodos consecutivos.",
+          "question": "¿Cómo ha cambiado mi entrenamiento reciente?",
+          "recipe": "Empieza con el número de sesiones, un gráfico de duración y la cobertura de las evidencias.",
+          "defaultTitle": "¿Cómo ha cambiado mi entrenamiento reciente?",
+          "action": "Usar como base"
+        },
+        "session-visual-story": {
+          "title": "Una sesión explicada con claridad",
+          "purpose": "Construye un relato centrado en las evidencias registradas de una sesión.",
+          "question": "¿Qué ocurrió en esta sesión?",
+          "recipe": "Empieza después de que elijas la sesión exacta.",
+          "defaultTitle": "Historia de una sesión de entrenamiento",
+          "action": "Elegir una sesión"
+        },
+        "outdoor-route": {
+          "title": "Investiga una ruta al aire libre",
+          "purpose": "Revisa la ruta registrada junto a la sesión que la produjo.",
+          "question": "¿Dónde cambió esta sesión?",
+          "recipe": "Empieza después de que elijas una sesión con una ruta registrada.",
+          "defaultTitle": "Análisis de una ruta al aire libre",
+          "action": "Elegir una sesión con ruta"
+        },
+        "structured-training-plan": {
+          "title": "Comprende un plan de entrenamiento",
+          "purpose": "Revisa los ejercicios, las fases, las repeticiones y las restricciones importadas como intención planificada.",
+          "question": "¿Cómo estaba estructurado este entrenamiento?",
+          "recipe": "Empieza después de que elijas el plan de entrenamiento importado exacto.",
+          "defaultTitle": "Plan de entrenamiento estructurado",
+          "action": "Elegir un plan de entrenamiento"
+        }
+      }
+    },
     "library": {
       "count": "Se muestran {shown} de {total}",
-      "newComparison": "Nueva comparación",
       "open": "Abrir {title}",
       "trainingComparison": "Comparación de periodos de entrenamiento",
       "plannedTraining": "Plan de entrenamiento importado",
@@ -2247,6 +2296,19 @@
     "chooseDestination": "Elegir destino y exportar",
     "cancelExport": "Cancelar exportación",
     "closeReview": "Volver al informe",
+    "duplicate": {
+      "action": "Duplicar informe",
+      "libraryAction": "Duplicar {title}",
+      "eyebrow": "Copia independiente",
+      "heading": "Duplicar {title}",
+      "intro": "Elige un título para el nuevo informe independiente. El informe de origen guardado no cambiará.",
+      "titleLabel": "Título de la copia",
+      "defaultTitle": "Copia de {title}",
+      "submit": "Crear copia",
+      "creating": "Creando la copia…",
+      "cancel": "Cancelar duplicación",
+      "completed": "Se ha creado {title} como informe independiente."
+    },
     "delete": {
       "action": "Eliminar informe",
       "eyebrow": "Eliminación de un informe guardado",
@@ -2260,6 +2322,7 @@
     },
     "errors": {
       "invalid-report-definition": "Añade un título y conserva evidencias compatibles o comentarios antes de guardar el informe.",
+      "invalid-report-duplicate-title": "Introduce un título para el informe independiente.",
       "invalid-report-comparison-range": "Elige fechas reales y ordenadas, con un máximo de 366 días, para ambos periodos de comparación.",
       "report-not-found": "Ese informe ya no existe en la biblioteca local. Actualiza la lista.",
       "report-definition-conflict": "El informe cambió mientras estaba abierto. Vuelve a cargarlo antes de guardarlo de nuevo.",

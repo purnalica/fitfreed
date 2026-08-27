@@ -1984,6 +1984,7 @@
     "heading": "Create and export reports",
     "intro": "Saved reports open as results. Create one from a training session, training plan, or comparison, review its evidence, and export a self-contained HTML file when you choose.",
     "workspaceNavigation": "Report workspace",
+    "libraryWorkspace": "Report library",
     "workspaces": {
       "library": "Library",
       "compose": "Compose",
@@ -2000,9 +2001,57 @@
     "reload": "Reload",
     "loading": "Loading saved reports…",
     "empty": "No reports have been saved yet.",
+    "examples": {
+      "heading": "Start from a useful question",
+      "intro": "These are reusable report structures, not sample results. FitFreed checks your local library and states what each one needs.",
+      "loading": "Checking which report examples your library can support…",
+      "failed": "FitFreed could not check the report examples in this library.",
+      "retry": "Check examples again",
+      "selectionRequired": "Choose the exact evidence before FitFreed opens a draft.",
+      "unavailable": "Needs: {capabilities}.",
+      "capabilities": {
+        "training-history": "training history",
+        "training-session": "a training session",
+        "route-evidence": "a recorded route with enough points",
+        "structured-training": "an imported structured training plan"
+      },
+      "items": {
+        "adjacent-period-volume": {
+          "title": "Recent training, side by side",
+          "purpose": "Compare training volume and consistency across adjacent periods.",
+          "question": "How has my recent training changed?",
+          "recipe": "Starts with session count, a duration chart, and evidence coverage.",
+          "defaultTitle": "How has my recent training changed?",
+          "action": "Use as basis"
+        },
+        "session-visual-story": {
+          "title": "One session, clearly explained",
+          "purpose": "Build a focused account from one session's recorded evidence.",
+          "question": "What happened in this session?",
+          "recipe": "Starts after you choose the exact session.",
+          "defaultTitle": "Training session story",
+          "action": "Choose a session"
+        },
+        "outdoor-route": {
+          "title": "Investigate an outdoor route",
+          "purpose": "Review the recorded route alongside the session that produced it.",
+          "question": "Where did this session change?",
+          "recipe": "Starts after you choose a session with a recorded route.",
+          "defaultTitle": "Outdoor route investigation",
+          "action": "Choose a session with a route"
+        },
+        "structured-training-plan": {
+          "title": "Understand a training plan",
+          "purpose": "Review imported exercises, phases, repetitions, and constraints as planned intent.",
+          "question": "How was this training structured?",
+          "recipe": "Starts after you choose the exact imported training plan.",
+          "defaultTitle": "Structured training plan",
+          "action": "Choose a training plan"
+        }
+      }
+    },
     "library": {
       "count": "Showing {shown} of {total}",
-      "newComparison": "New comparison",
       "open": "Open {title}",
       "trainingComparison": "Training-period comparison",
       "plannedTraining": "Imported training plan",
@@ -2247,6 +2296,19 @@
     "chooseDestination": "Choose destination and export",
     "cancelExport": "Cancel export",
     "closeReview": "Back to report",
+    "duplicate": {
+      "action": "Duplicate report",
+      "libraryAction": "Duplicate {title}",
+      "eyebrow": "Independent copy",
+      "heading": "Duplicate {title}",
+      "intro": "Choose a title for a new independent report. The saved source will not change.",
+      "titleLabel": "Duplicate title",
+      "defaultTitle": "{title} copy",
+      "submit": "Create duplicate",
+      "creating": "Creating duplicate…",
+      "cancel": "Cancel duplication",
+      "completed": "{title} was created as an independent report."
+    },
     "delete": {
       "action": "Remove report",
       "eyebrow": "Saved report removal",
@@ -2260,6 +2322,7 @@
     },
     "errors": {
       "invalid-report-definition": "Add a title and keep supported evidence or commentary before saving the report.",
+      "invalid-report-duplicate-title": "Enter a title for the independent report.",
       "invalid-report-comparison-range": "Choose real, ordered dates of no more than 366 days for both comparison periods.",
       "report-not-found": "That report no longer exists in the local library. Reload the list.",
       "report-definition-conflict": "This report changed while it was open. Reload it before saving again.",

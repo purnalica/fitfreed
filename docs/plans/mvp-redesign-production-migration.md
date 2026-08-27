@@ -300,7 +300,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
-| X7-R6 | Pending | Relevant built-in examples and duplication make reports understandable and reusable |
+| X7-R6 | In progress — duplicate aggregate semantics are implemented and protected at the domain boundary; application, transport, persistence, presentation, examples, and full gates remain | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Pending | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
@@ -2995,6 +2995,91 @@ layers.
 ### X7-R6 — Make reports understandable and reusable from the first visit
 
 **Finding:** XH-23 and the retained Alpha report direction.
+
+**Execution checkpoint — 2026-08-27 restart boundary:** report duplication is implemented end to end through the
+domain aggregate, application use case, SQLite persistence, typed desktop command, and result-first report interface.
+Versioned duplication and built-in-example schemas and canonical workflow documentation are present. The application
+layer exposes four static, provider-neutral example descriptors and evaluates their prerequisites from bounded
+current-library evidence without persisting examples, fabricating results, or choosing an ambiguous session or plan.
+The report library now presents those examples before saved reports. A ready example opens an unsaved draft; examples
+that require a session or structured plan navigate to the exact natural selection workspace. Cancellation writes
+nothing, failures preserve the saved-report library, and localized presentation remains separate from the
+provider-neutral descriptors. Canonical user, architecture, portable-format, insight-workflow, and schema documentation
+now covers the example and duplication behavior. Focused domain, application, SQLite, contract, localization,
+documentation, production-build, and presentation tests pass. The complete packaged functional journey also passes in
+2 minutes 35 seconds, covering example readiness, exact natural-workspace routing, cancellation without writes, save,
+duplication cancellation and focus restoration, independent deletion, reimport, and structured-plan routing. During
+that campaign, explicit Sessions navigation could restore stale persisted detail while the requested workspace was
+settling; the session library now treats that navigation request as authoritative, and focused regression tests protect
+the behavior. Duplication cancellation could also target an action hidden in an inactive context; focus restoration now
+runs after the duplicate dialog has been removed, and both component and packaged coverage use the visible result
+action. The subsequent new-process scenario first exposed an obsolete broad selector that counted both Open and
+Duplicate actions, reporting eight buttons for four persisted reports. Repository history shows that this assertion
+protects durable report cardinality, not total action cardinality, so both restart assertions now count
+`.report-library-open` actions. The complete packaged campaign then passed on 2026-08-27: the 2-minute-35-second
+functional journey, exact application-process restart, evidence-adaptive composition, independent-signal range
+restart, and isolated two-year dense-history scenario all passed. Every measured dense interaction remained within its
+budget; the largest observed p95 was 154 milliseconds for the signal overview against a 1,000-millisecond budget.
+Resume by running the complete X7-R6 verification matrix and correcting every finding before creating the focused
+commit and bounded push. All work in this checkpoint remains uncommitted. The structured-intent example preserves the
+one-evidence-library-per-report invariant and must not become a fabricated mixed planned-versus-recorded report.
+
+The first resumed full-matrix run stopped at `check:ui-contracts`. X7-R6 had correctly replaced the former empty editor
+with useful examples and a saved-library empty state, but the role-based composition contract still targeted the removed
+`.report-empty-editor p` selector. Repository history confirms that the contract protects task and status prose from
+arbitrary character limits, not that obsolete component structure. The current `.report-library-empty` state now has
+an explicit full-composition rule and replaces the dead selector in the unchanged no-`max-width` assertion. The focused
+UI contract and all 31 report presentation tests pass. The architecture, dependency, data, release, workflow,
+product-surface, documentation, site, localization, and presentation-inventory gates before the finding also passed;
+the complete matrix must still be rerun from the start.
+
+The second full-matrix run passed every fast gate, 172 script tests, 440 presentation tests, two vendored-updater tests,
+282 desktop infrastructure tests, 231 application tests, 63 domain tests, and warning-free `clippy`. It then stopped at
+`format:check` because one backup-path expression in the new report-duplication persistence test had not been wrapped by
+`rustfmt`. The official formatter changed that expression only, and the focused format check now passes; another
+complete run remains required.
+
+The third full-matrix run passed all fast, Rust, lint, and format gates, then stopped while building the import
+benchmark. The active repository build attempted to resolve vendored updater permissions from a removed
+`fitfreed-insights-baseline.*` temporary source tree. This indicates cross-campaign Cargo build-state contamination;
+build output proved that a temporary baseline source had previously populated the repository's default release target,
+and Cargo then reused build-script output containing absolute paths into that deleted source. The structural correction
+defines one shared `src-tauri/target/performance-benchmarks` profile for the import, dense-history, and Insights
+campaigns while requiring temporary comparison sources to use independent targets. Sixteen focused automation tests
+now bind all three benchmark commands to that profile and pass. The first clean-profile import campaign then passed
+across seven fresh processes: first import measured 19.934 seconds p95, exact repeat 92.261 milliseconds p95, bounded
+queries 2.577 milliseconds p95, and peak resident memory 33.938 MiB p95. Rerun the complete verification matrix from
+the start before closing X7-R6.
+
+That rerun passed every dirty-tree-compatible gate, including 174 automation tests, 440 presentation tests, 282 host
+tests, 231 application tests, 63 domain tests, all three performance campaigns, the complete packaged functional and
+restart campaign, the 6-minute-43-second packaged dense-history campaign, both packaged update outcomes, and production
+packaging. It then rejected cold launch before starting a process because the source tree was not a clean revision. The
+failure exposed a workflow contradiction rather than a product defect: `verify:full` contained both the pre-commit
+acceptance chain and gates deliberately bound to a committed source identity. The versioned workflow now defines
+`verify:precommit` for the complete changed-tree-compatible chain and reserves `verify:full` for repetition on the exact
+clean candidate plus cold launch, production-bundle inspection, and recovery preparation. X7-R6 may create its focused
+candidate only after the new command contract and publication safeguards pass; it remains unpushable until the clean
+`verify:full` result passes.
+
+The first exact `verify:precommit` execution stopped in the script-test stage before repeating costly benchmarks. Three
+historical wiring assertions inspected the literal `verify:full` command to prove that import, dense-history, and
+Insights benchmarks remained in complete local verification. Their introducing commits establish inclusion as the
+protected behavior, not one flat command string. The assertions now require each benchmark in `verify:precommit` and
+also require `verify:full` to compose that command, preserving the original contract across the explicit two-stage
+workflow.
+
+The corrected `verify:precommit` command passed in full on 2026-08-27. Its evidence includes 174 automation tests,
+440 presentation tests, two vendored-updater tests, 282 desktop infrastructure tests, 231 application tests, 63 domain
+tests, warning-free `clippy`, exact `rustfmt`, all three release-mode performance campaigns, the packaged functional
+and restart journeys, the packaged dense-history interaction campaign, successful update and recovery outcomes, and a
+production application plus DMG. The import campaign measured a 22.067-second p95 first import, 91.733-millisecond p95
+exact repeat, 2.361-millisecond p95 bounded query, and 34.344 MiB p95 peak resident memory. The dense-history campaign
+covered 520 sessions and 7,490,080 samples; its largest read-model p95 was 13.432 milliseconds. The Insights campaign
+kept every interaction within budget, and the packaged WebView campaign's largest recorded p95 was 151 milliseconds
+for signal overview against its 1,000-millisecond budget. X7-R6 is now a verified pre-commit candidate. It remains open
+until the focused commit exists and the exact clean revision passes `verify:full`; no push is permitted before that
+clean-revision evidence.
 
 **User outcome:** Reports opens with relevant examples that demonstrate real supported value; a person can use one as
 the basis of a report, duplicate an existing report, review the result first, refine it deliberately, and export it

@@ -23,8 +23,13 @@ import { reportSourceTarget, type ReportSourceTarget } from "./report-navigation
 import { routeSvgPoints } from "./route-svg";
 import type {
   AnalyticalReportBlock,
+  DuplicateReportRequest,
   ReportBlock,
   ReportDefinition,
+  ReportExampleBlockRecipe,
+  ReportExampleCatalog,
+  ReportExampleDescriptor,
+  ReportExampleDestination,
   ReportExportReceipt,
   ReportLibraryItem,
   ReportLibraryMetricValue,
@@ -102,6 +107,7 @@ interface ReportsPanelProps {
   openReportRequestId?: number;
   disabled: boolean;
   onReturnToOrigin: (target: ReportSourceTarget | null) => void;
+  onOpenExampleDestination: (destination: ReportExampleDestination) => void;
 }
 
 interface EditorState {
@@ -119,6 +125,13 @@ interface EditorState {
 interface RouteExportChoice {
   includeGeometry: boolean;
   endpointRedactionInput: string;
+}
+
+interface DuplicateDraft {
+  sourceReportRef: string;
+  expectedSourceRevision: string;
+  sourceTitle: string;
+  title: string;
 }
 
 function draftFromBlock(block: ReportBlock): SessionReportBlockDraft {
@@ -252,6 +265,24 @@ function analyticalDrafts(
   ];
 }
 
+function exampleAnalyticalDrafts(
+  query: ReportTrainingComparisonQuery,
+  recipe: ReportExampleBlockRecipe[],
+): SessionReportBlockDraft[] {
+  return recipe.map((item): SessionReportBlockDraft => {
+    switch (item) {
+      case "training-finding-session-count":
+        return { kind: "training-finding", query, metric: "session-count" };
+      case "training-chart-duration":
+        return { kind: "training-chart", query, metric: "duration" };
+      case "training-coverage":
+        return { kind: "training-coverage", query };
+      default:
+        throw new Error("invalid-report-definition");
+    }
+  });
+}
+
 function flattenRoutes(result: TrainingSessionRoutesResult): TrainingRouteOverview[] {
   const routes: TrainingRouteOverview[] = [];
   for (const exercise of result.routes?.exercises ?? []) {
@@ -292,11 +323,15 @@ export function ReportsPanel({
   openReportRequestId,
   disabled,
   onReturnToOrigin,
+  onOpenExampleDestination,
 }: ReportsPanelProps) {
   const copy = messages.reports;
   const [reports, setReports] = useState<ReportLibraryItem[]>([]);
   const [reportCount, setReportCount] = useState(0);
   const [nextReportOffset, setNextReportOffset] = useState<number | null>(null);
+  const [examples, setExamples] = useState<ReportExampleDescriptor[]>([]);
+  const [examplesLoading, setExamplesLoading] = useState(true);
+  const [examplesFailed, setExamplesFailed] = useState(false);
   const [workspace, setWorkspace] = useState<ReportWorkspace>("library");
   const [listLoading, setListLoading] = useState(true);
   const [listLoadingMore, setListLoadingMore] = useState(false);
@@ -317,9 +352,16 @@ export function ReportsPanel({
   const [deleteReviewOpen, setDeleteReviewOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removedNotice, setRemovedNotice] = useState<string>();
+  const [duplicateDraft, setDuplicateDraft] = useState<DuplicateDraft>();
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicatedNotice, setDuplicatedNotice] = useState<string>();
   const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
   const deleteReviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const deleteReviewOriginRef = useRef<HTMLElement>(null);
+  const duplicateHeadingRef = useRef<HTMLHeadingElement>(null);
+  const duplicateOriginRef = useRef<HTMLElement>(null);
+  const duplicateOutcomeOriginRef = useRef<HTMLElement>(null);
+  const duplicateCancelFocusPendingRef = useRef(false);
   const requestedReportHeadingRef = useRef<HTMLHeadingElement>(null);
   const refreshReviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const refreshReviewOriginRef = useRef<HTMLElement>(null);
@@ -342,6 +384,10 @@ export function ReportsPanel({
   const compositionCancelTargetRef = useRef<"library" | "preview" | undefined>(undefined);
   const compositionCancelOriginRef = useRef<HTMLElement>(null);
   const number = useMemo(() => measurementDecimalFormatter(locale), [locale]);
+  const capabilityList = useMemo(
+    () => new Intl.ListFormat(locale, { style: "long", type: "conjunction" }),
+    [locale],
+  );
   const commentaryPresent = editor?.blocks.some((block) => block.kind === "narrative") ?? false;
 
   useEffect(() => {
@@ -378,13 +424,31 @@ export function ReportsPanel({
     await loadReportPage(0, false);
   }
 
+  async function refreshExamples() {
+    setExamplesLoading(true);
+    setExamplesFailed(false);
+    try {
+      const catalog = await invoke<ReportExampleCatalog>("list_report_examples");
+      setExamples(catalog.examples);
+    } catch {
+      setExamples([]);
+      setExamplesFailed(true);
+    } finally {
+      setExamplesLoading(false);
+    }
+  }
+
+  async function refreshLibrary() {
+    await Promise.all([refreshList(), refreshExamples()]);
+  }
+
   async function loadMoreReports() {
     if (nextReportOffset === null || listLoadingMore) return;
     await loadReportPage(nextReportOffset, true);
   }
 
   useEffect(() => {
-    void refreshList();
+    void refreshLibrary();
   }, []);
 
   function resetTransientReportState() {
@@ -397,9 +461,15 @@ export function ReportsPanel({
     setPrivacyReviewOpen(false);
     setExportedBytes(undefined);
     setRemovedNotice(undefined);
+    setDuplicateDraft(undefined);
+    setDuplicatedNotice(undefined);
   }
 
-  async function beginPreparedReport(start: ReportStart, title: string) {
+  async function beginPreparedReport(
+    start: ReportStart,
+    title: string,
+    recipe?: ReportExampleBlockRecipe[],
+  ) {
     setWorkspace("compose");
     setResolving(true);
     setLocalError(undefined);
@@ -409,7 +479,9 @@ export function ReportsPanel({
       if (prepared.origin.kind === "blank") {
         blocks = [{ kind: "narrative", body: "" }];
       } else if (prepared.suggestedQuery) {
-        blocks = analyticalDrafts(prepared.suggestedQuery);
+        blocks = recipe
+          ? exampleAnalyticalDrafts(prepared.suggestedQuery, recipe)
+          : analyticalDrafts(prepared.suggestedQuery);
       } else {
         throw new Error("invalid-report-definition");
       }
@@ -430,15 +502,23 @@ export function ReportsPanel({
     }
   }
 
-  function beginTrainingComparisonReport() {
-    void beginPreparedReport(
-      {
-        kind: "question",
-        question: "training-period-comparison",
-        questionVersion: 1,
-      },
-      copy.questionDefaultTitle,
-    );
+  function beginReportExample(example: ReportExampleDescriptor) {
+    if (example.availability.kind === "ready") {
+      const itemCopy = copy.examples.items[example.id];
+      void beginPreparedReport(
+        {
+          kind: "question",
+          question: "training-period-comparison",
+          questionVersion: 1,
+        },
+        itemCopy.defaultTitle,
+        example.blockRecipe,
+      );
+      return;
+    }
+    if (example.availability.kind === "selection-required") {
+      onOpenExampleDestination(example.availability.destination);
+    }
   }
 
   useEffect(() => {
@@ -537,6 +617,34 @@ export function ReportsPanel({
       { align: "start" },
     );
   }, [deleteReviewOpen]);
+
+  useEffect(() => {
+    if (!duplicateDraft) return;
+    return restoreFocusAfterReveal(
+      duplicateHeadingRef.current,
+      duplicateOriginRef.current,
+      { align: "start", forceInitialFocus: true },
+    );
+  }, [duplicateDraft?.sourceReportRef]);
+
+  useEffect(() => {
+    if (duplicateDraft || !duplicateCancelFocusPendingRef.current) return;
+    duplicateCancelFocusPendingRef.current = false;
+    return restoreFocusAfterReveal(
+      duplicateOriginRef.current,
+      null,
+      { forceInitialFocus: true },
+    );
+  }, [duplicateDraft]);
+
+  useEffect(() => {
+    if (!duplicatedNotice) return;
+    return restoreFocusAfterReveal(
+      requestedReportHeadingRef.current ?? libraryHeadingRef.current,
+      duplicateOutcomeOriginRef.current,
+      { align: "start" },
+    );
+  }, [duplicatedNotice]);
 
   useEffect(() => {
     if (!removedNotice) return;
@@ -650,6 +758,7 @@ export function ReportsPanel({
     setRemovedNotice(undefined);
     setSavedNotice(false);
     setRefreshedNotice(false);
+    setDuplicatedNotice(undefined);
     setEditor(undefined);
     setResolved(undefined);
     const report = await resolveReport(reportRef);
@@ -678,6 +787,60 @@ export function ReportsPanel({
     }
     compositionCancelTargetRef.current = "library";
     setWorkspace("library");
+  }
+
+  function beginDuplicate(
+    source: Pick<ReportDefinition, "reportRef" | "revision" | "title">,
+    originElement: HTMLElement,
+  ) {
+    duplicateOriginRef.current = originElement;
+    duplicateCancelFocusPendingRef.current = false;
+    setLocalError(undefined);
+    setDuplicatedNotice(undefined);
+    setDuplicateDraft({
+      sourceReportRef: source.reportRef,
+      expectedSourceRevision: source.revision,
+      sourceTitle: source.title,
+      title: interpolate(copy.duplicate.defaultTitle, { title: source.title }),
+    });
+  }
+
+  function closeDuplicate(initiatingElement: HTMLElement) {
+    duplicateCancelFocusPendingRef.current = true;
+    setDuplicateDraft(undefined);
+    setLocalError(undefined);
+    initiatingElement.blur();
+  }
+
+  async function submitDuplicate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!duplicateDraft) return;
+    const title = duplicateDraft.title.trim();
+    if (!title) {
+      setLocalError("invalid-report-duplicate-title");
+      return;
+    }
+    const request: DuplicateReportRequest = {
+      sourceReportRef: duplicateDraft.sourceReportRef,
+      expectedSourceRevision: duplicateDraft.expectedSourceRevision,
+      title,
+    };
+    duplicateOutcomeOriginRef.current = duplicateOriginRef.current;
+    setDuplicating(true);
+    setLocalError(undefined);
+    try {
+      const definition = await invoke<ReportDefinition>("duplicate_report", { request });
+      setDuplicateDraft(undefined);
+      await refreshList();
+      await openReport(definition.reportRef);
+      setDuplicatedNotice(interpolate(copy.duplicate.completed, {
+        title: definition.title,
+      }));
+    } catch (reason) {
+      setLocalError(commandErrorCode(reason));
+    } finally {
+      setDuplicating(false);
+    }
   }
 
   function beginDeleteReview(originElement: HTMLElement) {
@@ -1704,6 +1867,7 @@ export function ReportsPanel({
         <button
           type="button"
           className="secondary"
+          disabled={duplicateDraft !== undefined}
           onClick={() => onReturnToOrigin(origin ? null : canonicalSourceTarget)}
         >
           <span aria-hidden="true">← </span>
@@ -1715,27 +1879,152 @@ export function ReportsPanel({
         label={copy.workspaceNavigation}
         current={workspace}
         options={[
-          { workspace: "library", label: copy.workspaces.library },
+          {
+            workspace: "library",
+            label: copy.workspaces.library,
+            disabled: duplicateDraft !== undefined,
+          },
           {
             workspace: "compose",
             label: copy.workspaces.compose,
-            disabled: !editor || resolved?.status === "stale",
+            disabled: duplicateDraft !== undefined || !editor || resolved?.status === "stale",
           },
           {
             workspace: "preview",
             label: copy.workspaces.preview,
-            disabled: !resolved,
+            disabled: duplicateDraft !== undefined || !resolved,
           },
         ]}
         onSelect={setWorkspace}
       />
 
-      <div className={`reports-layout reports-layout-${workspace}`}>
+      {duplicateDraft && (
+        <form
+          className="report-duplicate-task"
+          role="dialog"
+          aria-labelledby="report-duplicate-heading"
+          aria-busy={duplicating}
+          onSubmit={(event) => void submitDuplicate(event)}
+        >
+          <p className="eyebrow">{copy.duplicate.eyebrow}</p>
+          <h2 id="report-duplicate-heading" ref={duplicateHeadingRef} tabIndex={-1}>
+            {interpolate(copy.duplicate.heading, { title: duplicateDraft.sourceTitle })}
+          </h2>
+          <p>{copy.duplicate.intro}</p>
+          <label className="report-field">
+            <span>{copy.duplicate.titleLabel}</span>
+            <input
+              value={duplicateDraft.title}
+              maxLength={120}
+              required
+              disabled={duplicating}
+              aria-invalid={localError === "invalid-report-duplicate-title" || undefined}
+              aria-describedby={localError ? "report-duplicate-error" : undefined}
+              onChange={(event) => {
+                setLocalError(undefined);
+                setDuplicateDraft({ ...duplicateDraft, title: event.target.value });
+              }}
+            />
+          </label>
+          {localError && (
+            <p id="report-duplicate-error" className="error" role="alert">
+              {copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
+            </p>
+          )}
+          <div className="report-actions">
+            <button type="submit" disabled={duplicating || disabled}>
+              {copy.duplicate.submit}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={duplicating}
+              onClick={(event) => closeDuplicate(event.currentTarget)}
+            >
+              {copy.duplicate.cancel}
+            </button>
+            {duplicating && (
+              <span className="progress-submit-status" role="status" aria-live="polite">
+                {copy.duplicate.creating}
+              </span>
+            )}
+          </div>
+        </form>
+      )}
+
+      <div
+        className={`reports-layout reports-layout-${workspace}`}
+        hidden={duplicateDraft !== undefined}
+      >
         <section
           className="report-library"
-          aria-labelledby="saved-reports-heading"
+          aria-label={copy.libraryWorkspace}
           hidden={workspace !== "library"}
         >
+          <section className="report-examples" aria-labelledby="report-examples-heading">
+            <div className="report-examples-heading">
+              <h2 id="report-examples-heading">{copy.examples.heading}</h2>
+              <p>{copy.examples.intro}</p>
+            </div>
+            {examplesLoading && <p role="status">{copy.examples.loading}</p>}
+            {examplesFailed && (
+              <div className="report-examples-failure">
+                <p className="error" role="alert">{copy.examples.failed}</p>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={disabled}
+                  onClick={() => void refreshExamples()}
+                >
+                  {copy.examples.retry}
+                </button>
+              </div>
+            )}
+            {!examplesLoading && !examplesFailed && (
+              <ul className="report-example-list">
+                {examples.map((example) => {
+                  const itemCopy = copy.examples.items[example.id];
+                  return (
+                    <li key={`${example.id}:${example.version}`}>
+                      <article className="report-example-card">
+                        <div>
+                          <h3>{itemCopy.title}</h3>
+                          <p className="report-example-question">{itemCopy.question}</p>
+                          <p>{itemCopy.purpose}</p>
+                          <p className="report-example-recipe">{itemCopy.recipe}</p>
+                        </div>
+                        {example.availability.kind === "unavailable" ? (
+                          <p className="report-example-unavailable">
+                            {interpolate(copy.examples.unavailable, {
+                              capabilities: capabilityList.format(
+                                example.availability.missingCapabilities.map(
+                                  (capability) => copy.examples.capabilities[capability],
+                                ),
+                              ),
+                            })}
+                          </p>
+                        ) : (
+                          <div className="report-example-action">
+                            {example.availability.kind === "selection-required" && (
+                              <p>{copy.examples.selectionRequired}</p>
+                            )}
+                            <button
+                              type="button"
+                              className="secondary"
+                              disabled={disabled || resolving}
+                              onClick={() => beginReportExample(example)}
+                            >
+                              {itemCopy.action}
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
           <div className="report-section-heading">
             <div>
               <h2 id="saved-reports-heading" ref={libraryHeadingRef} tabIndex={-1}>
@@ -1751,21 +2040,11 @@ export function ReportsPanel({
               )}
             </div>
             <div className="report-library-heading-actions">
-              {!listLoading && !listFailed && reports.length > 0 && (
-                <button
-                  type="button"
-                  className="secondary report-library-new-comparison"
-                  disabled={disabled}
-                  onClick={beginTrainingComparisonReport}
-                >
-                  {copy.library.newComparison}
-                </button>
-              )}
               <button
                 type="button"
                 className="secondary"
-                onClick={() => void refreshList()}
-                disabled={listLoading}
+                onClick={() => void refreshLibrary()}
+                disabled={listLoading || examplesLoading}
               >
                 {copy.reload}
               </button>
@@ -1778,77 +2057,78 @@ export function ReportsPanel({
             </p>
           )}
           {!listLoading && !listFailed && reports.length === 0 && (
-            <section className="report-empty-editor report-library-start">
-              <div>
-                <h2>{copy.chooseHeading}</h2>
-                <p>{copy.empty}</p>
-                <p>{copy.chooseBody}</p>
-              </div>
-              <div className="report-start-actions">
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={beginTrainingComparisonReport}
-                >
-                  {copy.startQuestion}
-                </button>
-              </div>
-            </section>
+            <p className="report-library-empty">{copy.empty}</p>
           )}
           {removedNotice && <p className="notice" role="status">{removedNotice}</p>}
           {reports.length > 0 && (
             <ul className="report-list">
               {reports.map((report) => (
                 <li key={report.reportRef}>
-                  <button
-                    type="button"
-                    aria-label={interpolate(copy.library.open, { title: report.title })}
-                    aria-current={resolved?.definition.reportRef === report.reportRef
-                      ? "page"
-                      : undefined}
-                    onClick={() => void openReport(report.reportRef)}
-                    disabled={resolving}
-                  >
-                    <span className="report-library-card-heading">
-                      <strong>{report.title}</strong>
-                      <span className={`report-status report-status-${report.evidenceState}`}>
-                        {copy.status[report.evidenceState]}
+                  <article className="report-library-card">
+                    <button
+                      type="button"
+                      className="report-library-open"
+                      aria-label={interpolate(copy.library.open, { title: report.title })}
+                      aria-current={resolved?.definition.reportRef === report.reportRef
+                        ? "page"
+                        : undefined}
+                      onClick={() => void openReport(report.reportRef)}
+                      disabled={resolving}
+                    >
+                      <span className="report-library-card-heading">
+                        <strong>{report.title}</strong>
+                        <span className={`report-status report-status-${report.evidenceState}`}>
+                          {copy.status[report.evidenceState]}
+                        </span>
                       </span>
-                    </span>
-                    <span className="report-library-subject">
-                      {report.subject.kind === "session" && (
-                        <>
-                          <SportFamilyIcon
-                            family={sportCanonicalFamily(report.subject.sport)}
-                            state={report.subject.sport.state}
-                          />
-                          <span>{sportLabel(report.subject.sport)}</span>
-                        </>
-                      )}
-                      {report.subject.kind === "training-comparison"
-                        && <span>{copy.library.trainingComparison}</span>}
-                      {report.subject.kind === "planned-training"
-                        && <span>{report.subject.name ?? copy.library.plannedTraining}</span>}
-                      {report.subject.kind === "authored-note"
-                        && <span>{copy.library.authoredNote}</span>}
-                    </span>
-                    {report.period?.kind === "session" || report.period?.kind === "planned-training"
-                      ? (
-                        <time
-                          className="report-library-period"
-                          dateTime={report.period.kind === "session"
-                            ? report.period.startedAtLocal
-                            : report.period.scheduledAtLocal}
-                        >
-                          {libraryPeriod(report)}
-                        </time>
-                      )
-                      : libraryPeriod(report) && (
-                        <span className="report-library-period">{libraryPeriod(report)}</span>
-                      )}
-                    {renderLibraryResult(report)}
-                    {renderLibrarySensitivity(report)}
-                  </button>
+                      <span className="report-library-subject">
+                        {report.subject.kind === "session" && (
+                          <>
+                            <SportFamilyIcon
+                              family={sportCanonicalFamily(report.subject.sport)}
+                              state={report.subject.sport.state}
+                            />
+                            <span>{sportLabel(report.subject.sport)}</span>
+                          </>
+                        )}
+                        {report.subject.kind === "training-comparison"
+                          && <span>{copy.library.trainingComparison}</span>}
+                        {report.subject.kind === "planned-training"
+                          && <span>{report.subject.name ?? copy.library.plannedTraining}</span>}
+                        {report.subject.kind === "authored-note"
+                          && <span>{copy.library.authoredNote}</span>}
+                      </span>
+                      {report.period?.kind === "session" || report.period?.kind === "planned-training"
+                        ? (
+                          <time
+                            className="report-library-period"
+                            dateTime={report.period.kind === "session"
+                              ? report.period.startedAtLocal
+                              : report.period.scheduledAtLocal}
+                          >
+                            {libraryPeriod(report)}
+                          </time>
+                        )
+                        : libraryPeriod(report) && (
+                          <span className="report-library-period">{libraryPeriod(report)}</span>
+                        )}
+                      {renderLibraryResult(report)}
+                      {renderLibrarySensitivity(report)}
+                    </button>
+                    <div className="report-library-card-actions">
+                      <button
+                        type="button"
+                        className="secondary"
+                        aria-label={interpolate(copy.duplicate.libraryAction, {
+                          title: report.title,
+                        })}
+                        disabled={disabled || resolving}
+                        onClick={(event) => beginDuplicate(report, event.currentTarget)}
+                      >
+                        {copy.duplicate.action}
+                      </button>
+                    </div>
+                  </article>
                 </li>
               ))}
             </ul>
@@ -2268,6 +2548,11 @@ export function ReportsPanel({
           )}
 
           {savedNotice && <p className="notice" role="status">{copy.saved}</p>}
+          {duplicatedNotice && (
+            <p className="notice" role="status">
+              {duplicatedNotice}
+            </p>
+          )}
           {refreshedNotice && (
             <p ref={refreshedNoticeRef} className="notice" role="status" tabIndex={-1}>
               {copy.refresh.completed}
@@ -2330,6 +2615,17 @@ export function ReportsPanel({
                   onClick={() => setWorkspace("compose")}
                 >
                   {copy.editComposition}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={disabled || duplicating}
+                  onClick={(event) => beginDuplicate(
+                    resolved.definition,
+                    event.currentTarget,
+                  )}
+                >
+                  {copy.duplicate.action}
                 </button>
                 <button
                   type="button"

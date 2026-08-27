@@ -713,6 +713,50 @@ pub fn refresh_report_definition(
     )
 }
 
+pub fn duplicate_report_definition(
+    source: &ReportDefinition,
+    report_ref: impl Into<String>,
+    title: &str,
+    block_refs: &[String],
+) -> Result<ReportDefinition, ReportDefinitionError> {
+    let report_ref = report_ref.into();
+    if report_ref == source.report_ref {
+        return Err(ReportDefinitionError::DuplicateReportIdentityReused);
+    }
+    if block_refs.len() != source.blocks.len() {
+        return Err(ReportDefinitionError::DuplicateBlockIdentityCountMismatch);
+    }
+    let source_block_refs = source
+        .blocks
+        .iter()
+        .map(ReportBlock::block_ref)
+        .collect::<BTreeSet<_>>();
+    if block_refs
+        .iter()
+        .any(|block_ref| source_block_refs.contains(block_ref.as_str()))
+    {
+        return Err(ReportDefinitionError::DuplicateBlockIdentityReused);
+    }
+    let blocks = source
+        .blocks
+        .iter()
+        .zip(block_refs)
+        .map(|(block, block_ref)| ReportBlock::restore(block_ref, block.content.clone()))
+        .collect::<Result<Vec<_>, _>>()?;
+    ReportDefinition::restore(
+        report_ref,
+        normalize_title(title)?,
+        source.locale,
+        source.source_snapshot_ref.clone(),
+        source.origin.clone(),
+        source.provenance_policy,
+        source.authorship,
+        REPORT_DEFINITION_VERSION,
+        1,
+        blocks,
+    )
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemovedReportDefinition {
     report_ref: String,
@@ -1243,6 +1287,9 @@ pub enum ReportDefinitionError {
     InvalidVersionFiveComposition,
     DuplicateBlockIdentifier,
     DuplicateRouteIdentifier,
+    DuplicateReportIdentityReused,
+    DuplicateBlockIdentityCountMismatch,
+    DuplicateBlockIdentityReused,
     InvalidRouteEndpointRedaction,
     SessionOriginMismatch,
     PlannedTrainingOriginMismatch,
@@ -1293,6 +1340,15 @@ impl fmt::Display for ReportDefinitionError {
             }
             Self::DuplicateBlockIdentifier => "report block identifiers are duplicated",
             Self::DuplicateRouteIdentifier => "report route identifiers are duplicated",
+            Self::DuplicateReportIdentityReused => {
+                "a duplicated report reuses the source report identifier"
+            }
+            Self::DuplicateBlockIdentityCountMismatch => {
+                "a duplicated report does not provide one identity per source block"
+            }
+            Self::DuplicateBlockIdentityReused => {
+                "a duplicated report reuses a source block identifier"
+            }
             Self::InvalidRouteEndpointRedaction => {
                 "report route endpoint redaction exceeds 5000 metres"
             }

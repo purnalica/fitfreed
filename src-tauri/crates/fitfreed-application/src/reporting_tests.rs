@@ -14,6 +14,8 @@ use fitfreed_domain::{
 use super::*;
 
 const REPORT_REF: &str = "report-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const DUPLICATE_REPORT_REF: &str =
+    "report-8888888888888888888888888888888888888888888888888888888888888888";
 const SESSION_BLOCK_REF: &str =
     "report-block-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const NARRATIVE_BLOCK_REF: &str =
@@ -43,13 +45,24 @@ const CHANGED_PLANNED_SNAPSHOT_REF: &str =
 #[derive(Default)]
 struct MemoryReportPort {
     reports: Mutex<Vec<ReportDefinition>>,
+    next_report: Mutex<usize>,
     next_block: Mutex<usize>,
     reject_saves: bool,
 }
 
 impl ReportDefinitionPort for MemoryReportPort {
     fn new_report_ref(&self) -> Result<String, ReportDefinitionPortError> {
-        Ok(REPORT_REF.to_owned())
+        let mut next = self.next_report.lock().expect("report sequence");
+        let report_ref = [REPORT_REF, DUPLICATE_REPORT_REF]
+            .get(*next)
+            .map(|value| (*value).to_owned())
+            .unwrap_or_else(|| {
+                let digit = char::from_digit(u32::try_from(*next + 7).expect("report digit"), 16)
+                    .expect("hexadecimal report digit");
+                format!("report-{}", digit.to_string().repeat(64))
+            });
+        *next += 1;
+        Ok(report_ref)
     }
 
     fn new_report_block_ref(&self) -> Result<String, ReportDefinitionPortError> {
@@ -1508,6 +1521,171 @@ fn creates_lists_and_loads_a_session_report_after_exact_evidence_resolution() {
             .expect("loaded report")
             .report_ref(),
         REPORT_REF
+    );
+}
+
+#[test]
+fn duplicates_one_exact_report_revision_as_an_independent_revision_one_aggregate() {
+    let port = MemoryReportPort::default();
+    let source = created_report(&port);
+    let source_before = source.clone();
+
+    let duplicate = duplicate_report(
+        &port,
+        DuplicateReportRequest {
+            source_report_ref: REPORT_REF.to_owned(),
+            expected_source_revision: source.revision(),
+            title: "  Morning progression copy  ".to_owned(),
+        },
+    )
+    .expect("independent duplicate");
+
+    assert_eq!(duplicate.report_ref(), DUPLICATE_REPORT_REF);
+    assert_eq!(duplicate.title(), "Morning progression copy");
+    assert_eq!(duplicate.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(duplicate.revision(), 1);
+    assert_eq!(duplicate.locale(), source.locale());
+    assert_eq!(duplicate.origin(), source.origin());
+    assert_eq!(
+        duplicate.source_snapshot_ref(),
+        source.source_snapshot_ref()
+    );
+    assert_eq!(duplicate.provenance_policy(), source.provenance_policy());
+    assert_eq!(duplicate.authorship(), source.authorship());
+    assert_eq!(
+        duplicate
+            .blocks()
+            .iter()
+            .map(ReportBlock::content)
+            .collect::<Vec<_>>(),
+        source
+            .blocks()
+            .iter()
+            .map(ReportBlock::content)
+            .collect::<Vec<_>>()
+    );
+    assert!(duplicate.blocks().iter().all(|duplicate_block| {
+        source
+            .blocks()
+            .iter()
+            .all(|source_block| source_block.block_ref() != duplicate_block.block_ref())
+    }));
+    assert_eq!(
+        load_report_definition(&port, REPORT_REF).expect("unchanged source"),
+        source_before
+    );
+    assert_eq!(
+        load_report_definition(&port, DUPLICATE_REPORT_REF).expect("persisted duplicate"),
+        duplicate
+    );
+}
+
+#[test]
+fn refreshes_and_exports_a_duplicate_without_mutating_its_source() {
+    let reports = MemoryReportPort::default();
+    let source = created_report(&reports);
+    let duplicate = duplicate_report(
+        &reports,
+        DuplicateReportRequest {
+            source_report_ref: REPORT_REF.to_owned(),
+            expected_source_revision: source.revision(),
+            title: "Morning progression copy".to_owned(),
+        },
+    )
+    .expect("independent duplicate");
+    let current_training = StubTrainingPort {
+        snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+    };
+
+    let refreshed = refresh_report(
+        &reports,
+        &current_training,
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        &NoPlannedTrainingPort,
+        RefreshReportRequest {
+            report_ref: duplicate.report_ref().to_owned(),
+            expected_revision: duplicate.revision(),
+            expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            expected_resolved_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        },
+    )
+    .expect("refreshed duplicate");
+
+    assert_eq!(refreshed.revision(), 2);
+    assert_eq!(refreshed.source_snapshot_ref(), CHANGED_SNAPSHOT_REF);
+    assert_eq!(refreshed.blocks(), duplicate.blocks());
+    assert_eq!(
+        load_report_definition(&reports, REPORT_REF).expect("unchanged source"),
+        source
+    );
+
+    let output = RecordingExportPort::default();
+    export_session_report(
+        &reports,
+        &current_training,
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        &output,
+        SessionReportExportRequest {
+            report_ref: refreshed.report_ref().to_owned(),
+            expected_revision: refreshed.revision(),
+            expected_source_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            include_physiological_context: false,
+            route_choices: vec![],
+            destination: "/tmp/fitfreed-duplicate-report.html".into(),
+        },
+        &ReportExportCancellation::new(),
+    )
+    .expect("export refreshed duplicate");
+    assert_eq!(output.exports.lock().expect("exports").len(), 1);
+}
+
+#[test]
+fn rejects_stale_or_invalid_duplicate_requests_without_persisting_a_copy() {
+    let stale_port = MemoryReportPort::default();
+    let source = created_report(&stale_port);
+    let next_report_before = *stale_port.next_report.lock().expect("report sequence");
+    let next_block_before = *stale_port.next_block.lock().expect("block sequence");
+
+    assert!(matches!(
+        duplicate_report(
+            &stale_port,
+            DuplicateReportRequest {
+                source_report_ref: REPORT_REF.to_owned(),
+                expected_source_revision: source.revision() + 1,
+                title: "Stale copy".to_owned(),
+            },
+        ),
+        Err(ApplicationError::ReportDefinitionConflict)
+    ));
+    assert_eq!(
+        *stale_port.next_report.lock().expect("report sequence"),
+        next_report_before
+    );
+    assert_eq!(
+        *stale_port.next_block.lock().expect("block sequence"),
+        next_block_before
+    );
+    assert_eq!(stale_port.reports.lock().expect("reports").len(), 1);
+
+    assert!(matches!(
+        duplicate_report(
+            &stale_port,
+            DuplicateReportRequest {
+                source_report_ref: REPORT_REF.to_owned(),
+                expected_source_revision: source.revision(),
+                title: "  ".to_owned(),
+            },
+        ),
+        Err(ApplicationError::InvalidReportDefinition(_))
+    ));
+    assert_eq!(stale_port.reports.lock().expect("reports").len(), 1);
+    assert_eq!(
+        load_report_definition(&stale_port, REPORT_REF).expect("unchanged source"),
+        source
     );
 }
 

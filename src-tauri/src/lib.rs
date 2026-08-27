@@ -28,8 +28,10 @@ use fitfreed_application::{
     create_session_report as create_session_report_through_port,
     create_training_segment_criterion as create_segment_criterion_through_port,
     create_training_session_range as create_training_session_range_through_port,
-    dismiss_update as persist_update_dismissal, export_report as export_report_through_port,
+    dismiss_update as persist_update_dismissal, duplicate_report as duplicate_report_through_port,
+    export_report as export_report_through_port,
     export_session_report as export_session_report_through_port,
+    list_report_examples as list_report_examples_through_port,
     list_report_library as list_report_library_through_port,
     list_reports as list_reports_through_port,
     load_application_preferences as load_preferences_from_port,
@@ -96,16 +98,17 @@ use presentation::{
     ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
     CreateComposedSessionReportRequestDto, CreateReportRequestDto, CreateSessionReportRequestDto,
     CreateTrainingSegmentCriterionRequestDto, CreateTrainingSessionRangeRequestDto,
-    ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
-    ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
-    LongitudinalDateRangeDto, LongitudinalOverviewDto, MoveTrainingSegmentCriterionRequestDto,
-    OpenOfficialSourceLinkOutcomeDto, OpenOfficialSourceLinkRequestDto,
-    PlannedTrainingChronologyPageDto, PlannedTrainingChronologyQueryDto,
-    PlannedTrainingSessionRelationQueryDto, PlannedTrainingSessionRelationResultDto,
-    PlannedTrainingTargetDetailDto, PlannedTrainingTargetQueryDto, PreparedReportStartDto,
-    RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto,
-    RefreshReportRequestDto, RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto,
-    RemovedReportDto, RenameTrainingSessionRangeRequestDto, ReportDefinitionDto,
+    DuplicateReportRequestDto, ExplorationWorkspaceDto, ExploreDestinationInputDto,
+    ImportOutcomeDto, ImportProgressDto, ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto,
+    LongitudinalComparisonDto, LongitudinalDateRangeDto, LongitudinalOverviewDto,
+    MoveTrainingSegmentCriterionRequestDto, OpenOfficialSourceLinkOutcomeDto,
+    OpenOfficialSourceLinkRequestDto, PlannedTrainingChronologyPageDto,
+    PlannedTrainingChronologyQueryDto, PlannedTrainingSessionRelationQueryDto,
+    PlannedTrainingSessionRelationResultDto, PlannedTrainingTargetDetailDto,
+    PlannedTrainingTargetQueryDto, PreparedReportStartDto, RecoveryComparisonDto,
+    RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, RefreshReportRequestDto,
+    RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto, RemovedReportDto,
+    RenameTrainingSessionRangeRequestDto, ReportDefinitionDto, ReportExampleCatalogDto,
     ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto, ReportLibraryRequestDto,
     ReportListDto, ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto,
     SaveSportClassificationRequestDto, SavedTrainingSportClassificationDto,
@@ -935,6 +938,26 @@ fn create_report(
     )
     .map(Into::into)
     .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn duplicate_report(
+    app: AppHandle,
+    request: DuplicateReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    duplicate_report_through_port(&SqliteReportLibrary::new(path), request)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn list_report_examples(app: AppHandle) -> Result<ReportExampleCatalogDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    list_report_examples_through_port(&SqliteTrainingLibrary::new(path))
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -2186,7 +2209,9 @@ pub fn run() {
             query_training_sports,
             save_training_sport_classification,
             prepare_report_start,
+            list_report_examples,
             create_report,
+            duplicate_report,
             update_report,
             refresh_report,
             remove_report,

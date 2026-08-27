@@ -68,7 +68,8 @@ npm run test:fast
 | Build and run the instrumented functional, real-process restart, and performance E2E campaigns | `npm run verify:e2e` |
 | Build, inspect, and launch the revision-isolated native X6 human-review application | `npm run review:x6` |
 | Verify signed packaged update replacement and recovery | `npm run verify:update-e2e` |
-| Run the broad local product-verification lane | `npm run verify:full` |
+| Run every acceptance gate that supports a changed working tree before creating a candidate commit | `npm run verify:precommit` |
+| Re-run the broad product-verification lane and clean-revision gates from the exact candidate commit | `npm run verify:full` |
 
 Generated application, database, fixture, log, screenshot, icon, and bundle output is ignored. Never replace the synthetic generators with a real provider export or a record copied from one.
 

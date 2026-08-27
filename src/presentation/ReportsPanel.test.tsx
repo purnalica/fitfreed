@@ -8,6 +8,7 @@ import { ReportsPanel } from "./ReportsPanel";
 import type { PlannedTrainingTargetDetail } from "./planned-training";
 import type {
   ReportDefinition,
+  ReportExampleCatalog,
   ReportLibraryItem,
   ReportLibraryPage,
   ResolvedReport,
@@ -17,6 +18,7 @@ import type {
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  reportExamples: vi.fn(),
   save: vi.fn(),
 }));
 const originalScrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
@@ -24,7 +26,11 @@ const originalScrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
   "scrollIntoView",
 );
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (command: string, arguments_?: unknown) => command === "list_report_examples"
+    ? mocks.reportExamples(command, arguments_)
+    : mocks.invoke(command, arguments_),
+}));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ save: mocks.save }));
 
 const digest = (character: string) => character.repeat(64);
@@ -32,6 +38,7 @@ const sessionRef = `session-${digest("1")}`;
 const snapshotRef = `training-snapshot-${digest("2")}`;
 const changedSnapshotRef = `training-snapshot-${digest("a")}`;
 const reportRef = `report-${digest("3")}`;
+const duplicateReportRef = `report-${digest("4")}`;
 const routeRef = `route-${digest("7")}`;
 const routeBlockRef = `report-block-${digest("8")}`;
 const plannedSnapshotRef = `planned-snapshot-${digest("d")}`;
@@ -319,9 +326,26 @@ function questionDefinition(): ReportDefinition {
       question: "training-period-comparison",
       questionVersion: 1,
     },
-    blocks: analyticalDefinition().blocks.filter(
-      (block) => block.kind !== "session-evidence",
-    ),
+    blocks: [
+      {
+        blockRef: `report-block-${digest("a")}`,
+        kind: "training-finding",
+        query: comparisonQuery,
+        metric: "session-count",
+      },
+      {
+        blockRef: `report-block-${digest("c")}`,
+        kind: "training-chart",
+        query: comparisonQuery,
+        metric: "duration",
+      },
+      {
+        blockRef: `report-block-${digest("e")}`,
+        kind: "training-coverage",
+        query: comparisonQuery,
+      },
+      definition().blocks[1],
+    ],
   };
 }
 
@@ -592,8 +616,69 @@ function isAnalyticalTestBlock(
   return "query" in block;
 }
 
+function reportExampleCatalog(): ReportExampleCatalog {
+  return {
+    examples: [
+      {
+        id: "adjacent-period-volume",
+        version: 1,
+        purpose: "compare-training-volume",
+        question: "how-has-training-changed",
+        requiredCapabilities: ["training-history"],
+        parameter: "none",
+        blockRecipe: [
+          "training-finding-session-count",
+          "training-chart-duration",
+          "training-coverage",
+        ],
+        availability: { kind: "ready" },
+      },
+      {
+        id: "session-visual-story",
+        version: 1,
+        purpose: "understand-one-session",
+        question: "what-happened-in-this-session",
+        requiredCapabilities: ["training-session"],
+        parameter: "training-session",
+        blockRecipe: ["session-evidence"],
+        availability: {
+          kind: "selection-required",
+          destination: "training-sessions",
+        },
+      },
+      {
+        id: "outdoor-route",
+        version: 1,
+        purpose: "investigate-outdoor-route",
+        question: "where-did-this-session-change",
+        requiredCapabilities: ["training-session", "route-evidence"],
+        parameter: "routed-training-session",
+        blockRecipe: ["session-evidence", "route"],
+        availability: {
+          kind: "unavailable",
+          missingCapabilities: ["route-evidence"],
+        },
+      },
+      {
+        id: "structured-training-plan",
+        version: 1,
+        purpose: "review-structured-training",
+        question: "how-was-this-training-structured",
+        requiredCapabilities: ["structured-training"],
+        parameter: "planned-training-target",
+        blockRecipe: ["planned-training"],
+        availability: {
+          kind: "selection-required",
+          destination: "planned-training",
+        },
+      },
+    ],
+  };
+}
+
 function renderPanel(properties: Partial<ComponentProps<typeof ReportsPanel>> = {}) {
   const onReturnToOrigin = vi.fn();
+  const onOpenExampleDestination = properties.onOpenExampleDestination ?? vi.fn();
   render(
     <ReportsPanel
       locale="en-US"
@@ -601,15 +686,18 @@ function renderPanel(properties: Partial<ComponentProps<typeof ReportsPanel>> = 
       origin={origin}
       originRequestId={1}
       disabled={false}
-      onReturnToOrigin={onReturnToOrigin}
       {...properties}
+      onReturnToOrigin={properties.onReturnToOrigin ?? onReturnToOrigin}
+      onOpenExampleDestination={onOpenExampleDestination}
     />,
   );
-  return { onReturnToOrigin };
+  return { onReturnToOrigin, onOpenExampleDestination };
 }
 
 beforeEach(() => {
   mocks.invoke.mockReset();
+  mocks.reportExamples.mockReset();
+  mocks.reportExamples.mockResolvedValue(reportExampleCatalog());
   mocks.save.mockReset();
 });
 
@@ -627,6 +715,87 @@ afterEach(() => {
 });
 
 describe("ReportsPanel", () => {
+  it("presents reusable structures honestly and routes parameterized examples to exact evidence", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    const callbacks = renderPanel({ origin: undefined, originRequestId: 0 });
+
+    expect(await screen.findByRole("heading", { name: "Start from a useful question" }))
+      .toBeVisible();
+    expect(screen.getByRole("heading", { name: "Recent training, side by side" }))
+      .toBeVisible();
+    expect(screen.getByRole("heading", { name: "One session, clearly explained" }))
+      .toBeVisible();
+    const routeCard = screen.getByRole("heading", {
+      name: "Investigate an outdoor route",
+    }).closest("article")!;
+    expect(within(routeCard).getByText("Needs: a recorded route with enough points."))
+      .toBeVisible();
+    expect(within(routeCard).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Understand a training plan" }))
+      .toBeVisible();
+    expect(screen.queryByText("Polar Flow")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Choose a session" }));
+    expect(callbacks.onOpenExampleDestination).toHaveBeenLastCalledWith("training-sessions");
+    await user.click(screen.getByRole("button", { name: "Choose a training plan" }));
+    expect(callbacks.onOpenExampleDestination).toHaveBeenLastCalledWith("planned-training");
+    expect(mocks.invoke).not.toHaveBeenCalledWith("prepare_report_start", expect.anything());
+    expect(mocks.invoke).not.toHaveBeenCalledWith("create_report", expect.anything());
+  });
+
+  it("recovers a failed example-catalog check without losing the saved-report library", async () => {
+    mocks.reportExamples
+      .mockRejectedValueOnce({ code: "report-definition-query-failed" })
+      .mockResolvedValueOnce(reportExampleCatalog());
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([sessionLibraryItem()]));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "FitFreed could not check the report examples in this library.",
+    );
+    expect(screen.getByRole("button", { name: "Open Ridge progression" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Check examples again" }));
+    expect(await screen.findByRole("heading", { name: "Recent training, side by side" }))
+      .toBeVisible();
+    expect(mocks.reportExamples).toHaveBeenCalledTimes(2);
+  });
+
+  it("localizes report examples independently from their provider-neutral descriptors", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel({
+      locale: "es-ES",
+      messages: catalogs["es-ES"],
+      origin: undefined,
+      originRequestId: 0,
+    });
+
+    expect(await screen.findByRole("heading", { name: "Empieza por una pregunta útil" }))
+      .toBeVisible();
+    const routeCard = screen.getByRole("heading", {
+      name: "Investiga una ruta al aire libre",
+    }).closest("article")!;
+    expect(within(routeCard).getByText(
+      "Necesita: una ruta registrada con suficientes puntos.",
+    )).toBeVisible();
+    expect(screen.queryByText("Polar Flow")).not.toBeInTheDocument();
+  });
+
   it("creates a result-first report from one exact planned-training snapshot", async () => {
     const created = plannedDefinition();
     mocks.invoke.mockImplementation((command, arguments_) => {
@@ -793,10 +962,9 @@ describe("ReportsPanel", () => {
     expect(reportCard).not.toHaveTextContent("training-snapshot-");
     expect(reportCard).not.toHaveTextContent("revision 1");
     expect(screen.queryByRole("button", { name: "Start a blank report" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "New comparison" })).toBeVisible();
-    expect(screen.queryByRole("heading", {
-      name: "What do you want to understand or explain?",
-    })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Use as basis" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Start from a useful question" }))
+      .toBeVisible();
     expect(document.querySelector(".report-library-start")).not.toBeInTheDocument();
 
     await user.click(reportCard);
@@ -949,6 +1117,102 @@ describe("ReportsPanel", () => {
     expect(screen.getByRole("heading", { name: "Saved reports" })).toHaveFocus();
   });
 
+  it("duplicates a library report under an editable title and opens the independent result", async () => {
+    let duplicated = false;
+    const duplicateDefinition: ReportDefinition = {
+      ...definition(),
+      reportRef: duplicateReportRef,
+      title: "My independent copy",
+      definitionVersion: 5,
+      blocks: definition().blocks.map((block, index) => ({
+        ...block,
+        blockRef: `report-block-${digest(index === 0 ? "d" : "e")}`,
+      })),
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([
+          sessionLibraryItem(),
+          ...(duplicated ? [sessionLibraryItem({
+            reportRef: duplicateReportRef,
+            title: duplicateDefinition.title,
+          })] : []),
+        ]));
+      }
+      if (command === "duplicate_report") {
+        expect(arguments_).toEqual({
+          request: {
+            sourceReportRef: reportRef,
+            expectedSourceRevision: "1",
+            title: "My independent copy",
+          },
+        });
+        duplicated = true;
+        return Promise.resolve(duplicateDefinition);
+      }
+      if (command === "resolve_report") {
+        expect(arguments_).toEqual({ reportRef: duplicateReportRef });
+        return Promise.resolve(resolution(duplicateDefinition));
+      }
+      if (command === "query_training_session_routes") {
+        return Promise.resolve(routeQueryResult());
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: "Duplicate Ridge progression" }));
+    const duplicateTitle = screen.getByLabelText("Duplicate title");
+    expect(duplicateTitle).toHaveValue("Ridge progression copy");
+    await user.clear(duplicateTitle);
+    await user.type(duplicateTitle, "My independent copy");
+    await user.click(screen.getByRole("button", { name: "Create duplicate" }));
+
+    expect(await screen.findByRole("heading", {
+      name: "My independent copy",
+      level: 3,
+    })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "My independent copy was created as an independent report.",
+    );
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Report preview" }))
+      .toHaveFocus());
+    await user.click(screen.getByRole("button", { name: "Library" }));
+    expect(screen.getByRole("button", { name: "Open Ridge progression" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open My independent copy" })).toBeVisible();
+  });
+
+  it("offers duplication from a saved result and restores focus when the title task is cancelled", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([sessionLibraryItem()]));
+      }
+      if (command === "resolve_report") return Promise.resolve(resolution());
+      if (command === "query_training_session_routes") {
+        return Promise.resolve(routeQueryResult());
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: "Open Ridge progression" }));
+    const duplicateAction = await screen.findByRole("button", { name: "Duplicate report" });
+    duplicateAction.focus();
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByRole("dialog", { name: "Duplicate Ridge progression" })).toBeVisible();
+    const cancel = screen.getByRole("button", { name: "Cancel duplication" });
+    cancel.focus();
+    await user.keyboard("{Enter}");
+
+    expect(screen.queryByRole("dialog", { name: "Duplicate Ridge progression" }))
+      .not.toBeInTheDocument();
+    expect(duplicateAction).toHaveFocus();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("duplicate_report", expect.anything());
+  });
+
   it("keeps a concurrently changed report and reloads it after removal conflicts", async () => {
     let revision = "1";
     mocks.invoke.mockImplementation((command) => {
@@ -1005,14 +1269,11 @@ describe("ReportsPanel", () => {
       .toHaveAttribute("aria-current", "page");
     expect(within(navigation).getByRole("button", { name: "Compose" })).toBeDisabled();
     expect(within(navigation).getByRole("button", { name: "Preview" })).toBeDisabled();
-    expect(await screen.findByRole("heading", {
-      name: "What do you want to understand or explain?",
-    })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "New comparison" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Start from a useful question" }))
+      .toBeVisible();
+    expect(screen.getByRole("button", { name: "Use as basis" })).toBeVisible();
 
-    await user.click(await screen.findByRole("button", {
-      name: "Compare recent training periods",
-    }));
+    await user.click(await screen.findByRole("button", { name: "Use as basis" }));
     expect(within(navigation).getByRole("button", { name: "Compose" }))
       .toHaveAttribute("aria-current", "page");
     await user.clear(screen.getByLabelText("Report title"));
@@ -1109,9 +1370,7 @@ describe("ReportsPanel", () => {
     const user = userEvent.setup();
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", {
-      name: "Compare recent training periods",
-    }));
+    await user.click(await screen.findByRole("button", { name: "Use as basis" }));
     await user.clear(screen.getByLabelText("Report title"));
     await user.type(screen.getByLabelText("Report title"), "Unsaved library report");
     const cancel = screen.getByRole("button", { name: "Cancel composition" });
@@ -1138,7 +1397,7 @@ describe("ReportsPanel", () => {
     const user = userEvent.setup();
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", { name: /Unavailable report/ }));
+    await user.click(await screen.findByRole("button", { name: "Open Unavailable report" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "FitFreed could not read saved reports",
@@ -1146,7 +1405,7 @@ describe("ReportsPanel", () => {
     const navigation = screen.getByRole("navigation", { name: "Report workspace" });
     expect(within(navigation).getByRole("button", { name: "Library" }))
       .toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: /Unavailable report/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open Unavailable report" })).toBeVisible();
     expect(within(navigation).getByRole("button", { name: "Compose" })).toBeDisabled();
     expect(within(navigation).getByRole("button", { name: "Preview" })).toBeDisabled();
   });
@@ -1191,7 +1450,7 @@ describe("ReportsPanel", () => {
       .toBeVisible();
   });
 
-  it("starts with a question, saves all analytical views, and exports only reviewed evidence", async () => {
+  it("uses a built-in question as an unsaved basis and exports only reviewed evidence", async () => {
     const user = userEvent.setup();
     let saved = false;
     mocks.save.mockResolvedValue("/private/output/question-report.html");
@@ -1218,9 +1477,7 @@ describe("ReportsPanel", () => {
     });
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", {
-      name: "Compare recent training periods",
-    }));
+    await user.click(await screen.findByRole("button", { name: "Use as basis" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
       "prepare_report_start",
       {
@@ -1235,7 +1492,7 @@ describe("ReportsPanel", () => {
       "How has my recent training changed?",
     );
     expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-01");
-    expect(screen.getAllByRole("button", { name: "Remove block" })).toHaveLength(5);
+    expect(screen.getAllByRole("button", { name: "Remove block" })).toHaveLength(3);
     await user.click(screen.getByRole("button", { name: "Add commentary" }));
     await user.type(
       screen.getByLabelText(/^Your commentary/),
@@ -1255,9 +1512,7 @@ describe("ReportsPanel", () => {
         },
         blocks: [
           { kind: "training-finding", query: comparisonQuery, metric: "session-count" },
-          { kind: "training-comparison", query: comparisonQuery },
           { kind: "training-chart", query: comparisonQuery, metric: "duration" },
-          { kind: "training-exact-table", query: comparisonQuery },
           { kind: "training-coverage", query: comparisonQuery },
           {
             kind: "narrative",
@@ -1325,9 +1580,7 @@ describe("ReportsPanel", () => {
     });
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", {
-      name: "Compare recent training periods",
-    }));
+    await user.click(await screen.findByRole("button", { name: "Use as basis" }));
 
     expect(screen.getByRole("heading", { name: "Compose report" })).toBeVisible();
     expect(screen.queryByLabelText(/^Your commentary/)).not.toBeInTheDocument();
@@ -1346,9 +1599,7 @@ describe("ReportsPanel", () => {
         },
         blocks: [
           { kind: "training-finding", query: comparisonQuery, metric: "session-count" },
-          { kind: "training-comparison", query: comparisonQuery },
           { kind: "training-chart", query: comparisonQuery, metric: "duration" },
-          { kind: "training-exact-table", query: comparisonQuery },
           { kind: "training-coverage", query: comparisonQuery },
         ],
       },
@@ -1591,7 +1842,7 @@ describe("ReportsPanel", () => {
     });
 
     const callbacks = renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", { name: /Session report/ }));
+    await user.click(await screen.findByRole("button", { name: "Open Session report" }));
     await user.click(screen.getByRole("button", { name: "View source session" }));
     expect(callbacks.onReturnToOrigin).toHaveBeenLastCalledWith({
       kind: "session",
@@ -1601,7 +1852,7 @@ describe("ReportsPanel", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Library" }));
-    await user.click(screen.getByRole("button", { name: /Comparison report/ }));
+    await user.click(screen.getByRole("button", { name: "Open Comparison report" }));
     await user.click(screen.getByRole("button", { name: "View source comparison" }));
     expect(callbacks.onReturnToOrigin).toHaveBeenLastCalledWith({
       kind: "comparison",
@@ -1610,7 +1861,7 @@ describe("ReportsPanel", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Library" }));
-    await user.click(screen.getByRole("button", { name: /Blank report/ }));
+    await user.click(screen.getByRole("button", { name: "Open Blank report" }));
     await waitFor(() => expect(screen.getByLabelText("Report title")).toHaveValue(
       "My training notes",
     ));
@@ -1755,7 +2006,7 @@ describe("ReportsPanel", () => {
       ([command]) => command === "resolve_report",
     ).length;
     await user.click(within(savedReports!).getByRole("button", {
-      name: /Ridge progression review/,
+      name: "Open Ridge progression review",
     }));
     await waitFor(() => expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "resolve_report",
@@ -1789,7 +2040,7 @@ describe("ReportsPanel", () => {
     });
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", { name: /Ridge progression/ }));
+    await user.click(await screen.findByRole("button", { name: "Open Ridge progression" }));
     await screen.findByRole("region", { name: "Report preview" });
     scrollIntoView.mockClear();
     await user.click(await screen.findByRole("button", { name: "Review and export" }));
@@ -2092,7 +2343,7 @@ describe("ReportsPanel", () => {
     const savedReports = screen.getByRole("heading", { name: "Saved reports" })
       .closest(".report-library") as HTMLElement | null;
     await user.click(within(savedReports!).getByRole("button", {
-      name: /Winter training comparison/,
+      name: "Open Winter training comparison",
     }));
     expect(await screen.findByLabelText("Baseline starts")).toHaveValue("2026-01-01");
     const reopenedMetrics = screen.getAllByLabelText("Measurement");
@@ -2130,9 +2381,9 @@ describe("ReportsPanel", () => {
     });
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    expect(await screen.findByRole("button", { name: /Ridge progression/ })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Recovery run/ })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: /Ridge progression/ }));
+    expect(await screen.findByRole("button", { name: "Open Ridge progression" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open Recovery run" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Open Ridge progression" }));
     await user.click(await screen.findByRole("button", { name: "Review and export" }));
     const exportAction = screen.getByRole("button", {
       name: "Choose destination and export",
@@ -2234,7 +2485,7 @@ describe("ReportsPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
     renderPanel({ locale: "es-ES", messages: catalogs["es-ES"], origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", { name: /Sesión sostenida/ }));
+    await user.click(await screen.findByRole("button", { name: "Abrir Sesión sostenida" }));
     expect(await screen.findByText(/La biblioteca de entrenamientos cambió/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Componer" })).toBeDisabled();
@@ -2328,7 +2579,7 @@ describe("ReportsPanel", () => {
     });
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", { name: /Ridge progression/ }));
+    await user.click(await screen.findByRole("button", { name: "Open Ridge progression" }));
     await user.click(screen.getByRole("button", { name: "Review evidence refresh" }));
     const review = screen.getByRole("region", { name: "Review the current library evidence" });
     await user.click(within(review).getByRole("button", { name: "Use this evidence revision" }));

@@ -128,7 +128,8 @@ Directories are created with their first real contract; empty specifications are
 - [Session report read models version 3](insights/session-report-v3.md) — preceding contract
 - [Session report read models version 2](insights/session-report-v2.md) — preceding contract
 - [Session report read models version 1](insights/session-report-v1.md) — initial contract
-- [Report workflow version 7](insights/report-v7.md)
+- [Report workflow version 8](insights/report-v8.md)
+- [Report workflow version 7](insights/report-v7.md) — preceding contract
 - [Report workflow version 6](insights/report-v6.md) — preceding contract
 - [Report workflow version 5](insights/report-v5.md) — preceding contract
 - [Report workflow version 4](insights/report-v4.md) — preceding contract

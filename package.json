@@ -91,7 +91,8 @@
     "verify:pages:preflight": "node scripts/pages-publication.mjs preflight .artifacts/pages",
     "verify:pages:remote": "node scripts/pages-publication.mjs verify .artifacts/pages",
     "verify:remote-public-release": "node scripts/public-release-remote.mjs",
-    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:import && npm run benchmark:dense-history && npm run benchmark:insights && npm run verify:e2e && npm run verify:update-e2e && npm run package && npm run benchmark:cold-launch && npm run check:production-bundle && npm run verify:update-recovery-preparation",
+    "verify:precommit": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:import && npm run benchmark:dense-history && npm run benchmark:insights && npm run verify:e2e && npm run verify:update-e2e && npm run package",
+    "verify:full": "npm run verify:precommit && npm run benchmark:cold-launch && npm run check:production-bundle && npm run verify:update-recovery-preparation",
     "tauri": "tauri"
   },
   "dependencies": {

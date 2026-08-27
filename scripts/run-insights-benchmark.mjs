@@ -2,15 +2,10 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const repositoryRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-);
-
-export const insightsBenchmarkTargetDirectory = path.join(
+import {
+  performanceBenchmarkEnvironment,
   repositoryRoot,
-  "src-tauri/target/insights-benchmark",
-);
+} from "./performance-benchmark-profile.mjs";
 
 export function insightsBenchmarkPlan(inheritedEnvironment = process.env) {
   return {
@@ -26,10 +21,7 @@ export function insightsBenchmarkPlan(inheritedEnvironment = process.env) {
     ],
     options: {
       cwd: repositoryRoot,
-      env: {
-        ...inheritedEnvironment,
-        CARGO_TARGET_DIR: insightsBenchmarkTargetDirectory,
-      },
+      env: performanceBenchmarkEnvironment(inheritedEnvironment),
       stdio: "inherit",
     },
   };

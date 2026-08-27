@@ -2098,6 +2098,59 @@ describe("TrainingSessionLibraryPanel", () => {
     })).toHaveFocus());
   });
 
+  it("starts from the complete chronology when an explicit workspace reset replaces a detail", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      if (command === "query_training_session_selection") {
+        return Promise.resolve({ snapshotRef, sessions: [newest] });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    const rendered = renderPanel(vi.fn(), {
+      initialDate: "2026-08-18",
+      initialSessionRef: newest.sessionRef,
+      navigationRequestId: 7,
+    });
+    expect(await screen.findByRole("heading", { name: "Session summary" })).toBeVisible();
+
+    rendered.rerender(
+      <TrainingSessionLibraryPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        resetWorkspaceRequestId={8}
+        onAvailableRange={rendered.onAvailableRange}
+        onCreateReport={rendered.onCreateReport}
+        onError={rendered.onError}
+      />,
+    );
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Session summary" }))
+      .not.toBeInTheDocument());
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "load_training_discovery_workspace",
+    )).toHaveLength(0);
+    expect(mocks.invoke).toHaveBeenLastCalledWith("query_training_sessions", {
+      request: {
+        from: null,
+        through: null,
+        sportRefs: [],
+        requiredMeasurements: [],
+        text: null,
+        sort: "started-desc",
+        offset: 0,
+        limit: 25,
+        snapshotRef: null,
+      },
+    });
+  });
+
   it("switches chronology and calendar, selects comparisons, and returns to the exact calendar origin", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);

@@ -88,7 +88,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>Result-first recovery-period answers with factual interval relationships, source boundaries, exact evidence, and no medical interpretation</li>
 <li>Result-first aligned-history answers with four-lane daily evidence, exact cross-domain navigation, factual period comparisons, and an explicit non-causality boundary</li>
 <li>Coherent question-led entry, exact initiating-control focus, and Home return across all five History Answer Canvases</li>
-<li>Result-first report library with contextual question, exploration, and session starts, plus compatible reopening of existing blank-origin reports</li>
+<li>Result-first report library with four curated evidence-aware examples, contextual starts, independent duplication, and compatible reopening</li>
 <li>Deliberate stale-report refresh through an exact current-evidence review</li>
 <li>Origin-aware navigation between saved reports and their exact session or comparison source</li>
 </ul>

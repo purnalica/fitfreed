@@ -6,6 +6,7 @@ import App from "./App";
 import { catalogs } from "./locales/catalogs";
 import type { ApplicationPreferencesLoad } from "./presentation/application-preferences";
 import type {
+  ReportExampleCatalog,
   ReportLibraryItem,
   ReportLibraryPage,
   ReportTrainingComparisonQuery,
@@ -244,6 +245,68 @@ function reportLibraryPage(items: ReportLibraryItem[] = []): ReportLibraryPage {
     offset: 0,
     limit: 12,
     nextOffset: null,
+  };
+}
+
+function reportExampleCatalog(hasEvidence = false): ReportExampleCatalog {
+  return {
+    examples: [
+      {
+        id: "adjacent-period-volume",
+        version: 1,
+        purpose: "compare-training-volume",
+        question: "how-has-training-changed",
+        requiredCapabilities: ["training-history"],
+        parameter: "none",
+        blockRecipe: [
+          "training-finding-session-count",
+          "training-chart-duration",
+          "training-coverage",
+        ],
+        availability: hasEvidence
+          ? { kind: "ready" }
+          : { kind: "unavailable", missingCapabilities: ["training-history"] },
+      },
+      {
+        id: "session-visual-story",
+        version: 1,
+        purpose: "understand-one-session",
+        question: "what-happened-in-this-session",
+        requiredCapabilities: ["training-session"],
+        parameter: "training-session",
+        blockRecipe: ["session-evidence"],
+        availability: hasEvidence
+          ? { kind: "selection-required", destination: "training-sessions" }
+          : { kind: "unavailable", missingCapabilities: ["training-session"] },
+      },
+      {
+        id: "outdoor-route",
+        version: 1,
+        purpose: "investigate-outdoor-route",
+        question: "where-did-this-session-change",
+        requiredCapabilities: ["training-session", "route-evidence"],
+        parameter: "routed-training-session",
+        blockRecipe: ["session-evidence", "route"],
+        availability: hasEvidence
+          ? { kind: "selection-required", destination: "training-sessions" }
+          : {
+              kind: "unavailable",
+              missingCapabilities: ["training-session", "route-evidence"],
+            },
+      },
+      {
+        id: "structured-training-plan",
+        version: 1,
+        purpose: "review-structured-training",
+        question: "how-was-this-training-structured",
+        requiredCapabilities: ["structured-training"],
+        parameter: "planned-training-target",
+        blockRecipe: ["planned-training"],
+        availability: hasEvidence
+          ? { kind: "selection-required", destination: "planned-training" }
+          : { kind: "unavailable", missingCapabilities: ["structured-training"] },
+      },
+    ],
   };
 }
 
@@ -749,6 +812,7 @@ function sourceAcquisitionGuides() {
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  reportExamplesInvoke: vi.fn(),
   homeInvoke: vi.fn(),
   preferencesInvoke: vi.fn(),
   interactiveShellInvoke: vi.fn(),
@@ -768,7 +832,9 @@ vi.mock("@tauri-apps/api/core", () => ({
     onmessage?: (message: T) => void;
   },
   invoke: (command: string, arguments_: Record<string, unknown>) =>
-    command === "report_interactive_shell"
+    command === "list_report_examples"
+      ? mocks.reportExamplesInvoke(command, arguments_)
+      : command === "report_interactive_shell"
       ? mocks.interactiveShellInvoke(command, arguments_)
       : command === "query_library_home"
         || command === "save_exploration_workspace"
@@ -814,6 +880,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   mocks.invoke.mockReset();
+  mocks.reportExamplesInvoke.mockReset();
   mocks.homeInvoke.mockReset();
   mocks.preferencesInvoke.mockReset();
   mocks.interactiveShellInvoke.mockReset();
@@ -848,6 +915,7 @@ beforeEach(() => {
     scheduledFrames.delete(frame);
   }));
   mocks.interactiveShellInvoke.mockResolvedValue(undefined);
+  mocks.reportExamplesInvoke.mockResolvedValue(reportExampleCatalog());
   mocks.homeInvoke.mockImplementation((command) => {
     if (command === "query_library_home") return Promise.resolve(emptyLibraryHome());
     if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
@@ -2381,6 +2449,59 @@ describe("FitFreed import interface", () => {
     ).toHaveLength(2));
   });
 
+  it("routes parameterized report examples to the required evidence workspace", async () => {
+    emptyLibrary();
+    mocks.reportExamplesInvoke.mockResolvedValue(reportExampleCatalog(true));
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(emptyLibraryHome());
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+      if (command === "query_training_sessions") {
+        return Promise.resolve(emptyTrainingSessionSearchPage());
+      }
+      if (command === "query_planned_training_chronology") {
+        return Promise.resolve({
+          snapshotRef: `planned-snapshot-${"a".repeat(64)}`,
+          totalCount: 0,
+          offset: 0,
+          limit: 25,
+          nextOffset: null,
+          targets: [],
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Reports" }));
+    await user.click(await screen.findByRole("button", { name: "Choose a session" }));
+    const training = await screen.findByRole("region", { name: "Training history" });
+    expect(within(training).getByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_training_discovery_workspace", undefined);
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("save_exploration_workspace", {
+      destination: "training",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Reports" }));
+    await user.click(await screen.findByRole("button", { name: "Choose a training plan" }));
+    const plannedTraining = await screen.findByRole("region", { name: "Training history" });
+    expect(within(plannedTraining).getByRole("button", { name: "Plans" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(mocks.homeInvoke.mock.calls.filter(
+      ([command]) => command === "clear_training_discovery_workspace",
+    )).toHaveLength(1);
+  });
+
   it("announces a contextual report failure exactly once", async () => {
     emptyLibrary();
     mocks.invoke.mockImplementation((command) => {
@@ -2467,7 +2588,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByRole("button", { name: "Reports" }));
-    await user.click(await screen.findByRole("button", { name: /Winter review/ }));
+    await user.click(await screen.findByRole("button", { name: "Open Winter review" }));
     await user.click(await screen.findByRole("button", { name: "View source comparison" }));
 
     const comparisonHeading = await screen.findByRole("heading", {

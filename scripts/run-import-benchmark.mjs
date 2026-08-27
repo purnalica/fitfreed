@@ -10,6 +10,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  performanceBenchmarkBuildPlan,
+  performanceBenchmarkExecutable,
+  repositoryRoot,
+} from "./performance-benchmark-profile.mjs";
+
 const measuredProcesses = 7;
 const expectedArtifacts = 10_000;
 const expectedDailyActivityObservations = 5_999;
@@ -206,11 +212,16 @@ function parseJson(output, description) {
   }
 }
 
+export const importBenchmarkExecutable = performanceBenchmarkExecutable("import_benchmark");
+
+export function importBenchmarkBuildPlan(inheritedEnvironment = process.env) {
+  return performanceBenchmarkBuildPlan("import_benchmark", inheritedEnvironment);
+}
+
 function executeImportBenchmark() {
   if (process.platform !== "darwin") {
     throw new Error("the import memory benchmark requires macOS");
   }
-  const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-import-benchmark-"));
   try {
     const archivePath = path.join(temporaryDirectory, "large.zip");
@@ -223,27 +234,12 @@ function executeImportBenchmark() {
       "large-fixture generator",
     );
     validateImportBenchmarkFixture(generator);
-    run(
-      "cargo",
-      [
-        "build",
-        "--quiet",
-        "--release",
-        "--manifest-path",
-        "src-tauri/Cargo.toml",
-        "--example",
-        "import_benchmark",
-      ],
-      repositoryRoot,
-    );
-    const benchmarkExecutable = path.join(
-      repositoryRoot,
-      "src-tauri/target/release/examples/import_benchmark",
-    );
+    const buildPlan = importBenchmarkBuildPlan();
+    execFileSync(buildPlan.program, buildPlan.arguments_, buildPlan.options);
     const runs = Array.from({ length: measuredProcesses }, (_, index) =>
       parseJson(
         run(
-          benchmarkExecutable,
+          importBenchmarkExecutable,
           [archivePath, path.join(temporaryDirectory, `library-${index}.sqlite`)],
           repositoryRoot,
         ),

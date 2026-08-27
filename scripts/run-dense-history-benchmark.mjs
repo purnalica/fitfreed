@@ -10,6 +10,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  performanceBenchmarkBuildPlan,
+  performanceBenchmarkExecutable,
+  repositoryRoot,
+} from "./performance-benchmark-profile.mjs";
+
 const measuredProcesses = 3;
 const firstImportBudgetMilliseconds = 10 * 60 * 1_000;
 const exactRepeatBudgetMilliseconds = 30 * 1_000;
@@ -244,11 +250,18 @@ function parseJson(output, description) {
   }
 }
 
+export const denseHistoryBenchmarkExecutable = performanceBenchmarkExecutable(
+  "dense_history_benchmark",
+);
+
+export function denseHistoryBenchmarkBuildPlan(inheritedEnvironment = process.env) {
+  return performanceBenchmarkBuildPlan("dense_history_benchmark", inheritedEnvironment);
+}
+
 function executeDenseHistoryBenchmark() {
   if (process.platform !== "darwin") {
     throw new Error("the dense-history benchmark requires macOS");
   }
-  const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-dense-history-"));
   try {
     const archivePath = path.join(temporaryDirectory, "dense-history.zip");
@@ -261,28 +274,13 @@ function executeDenseHistoryBenchmark() {
       "dense-history fixture generator",
     );
     validateDenseHistoryBenchmarkFixture(fixture);
-    run(
-      "cargo",
-      [
-        "build",
-        "--quiet",
-        "--release",
-        "--manifest-path",
-        "src-tauri/Cargo.toml",
-        "--example",
-        "dense_history_benchmark",
-      ],
-      repositoryRoot,
-    );
-    const benchmarkExecutable = path.join(
-      repositoryRoot,
-      "src-tauri/target/release/examples/dense_history_benchmark",
-    );
+    const buildPlan = denseHistoryBenchmarkBuildPlan();
+    execFileSync(buildPlan.program, buildPlan.arguments_, buildPlan.options);
     const runs = [];
     for (let index = 0; index < measuredProcesses; index += 1) {
       const databasePath = path.join(temporaryDirectory, `library-${index}.sqlite`);
       runs.push(parseJson(
-        run(benchmarkExecutable, [archivePath, databasePath], repositoryRoot),
+        run(denseHistoryBenchmarkExecutable, [archivePath, databasePath], repositoryRoot),
         "dense-history benchmark process",
       ));
       for (const suffix of ["", "-wal", "-shm"]) {

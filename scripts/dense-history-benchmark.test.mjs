@@ -1,13 +1,20 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import {
+  denseHistoryBenchmarkBuildPlan,
+  denseHistoryBenchmarkExecutable,
   denseHistoryScenario,
   evaluateDenseHistoryBenchmarkRuns,
   validateDenseHistoryBenchmarkFixture,
   validateDenseHistoryBenchmarkRun,
 } from "./run-dense-history-benchmark.mjs";
+import {
+  performanceBenchmarkTargetDirectory,
+  repositoryRoot,
+} from "./performance-benchmark-profile.mjs";
 
 function validRun(overrides = {}) {
   return {
@@ -34,6 +41,35 @@ function validRun(overrides = {}) {
     ...overrides,
   };
 }
+
+test("isolates the dense-history benchmark in the shared performance Cargo profile", () => {
+  const plan = denseHistoryBenchmarkBuildPlan({ RETAINED: "value" });
+
+  assert.equal(
+    performanceBenchmarkTargetDirectory,
+    path.join(repositoryRoot, "src-tauri/target/performance-benchmarks"),
+  );
+  assert.equal(plan.program, "cargo");
+  assert.deepEqual(plan.arguments_, [
+    "build",
+    "--quiet",
+    "--release",
+    "--manifest-path",
+    "src-tauri/Cargo.toml",
+    "--example",
+    "dense_history_benchmark",
+  ]);
+  assert.equal(plan.options.cwd, repositoryRoot);
+  assert.equal(
+    plan.options.env.CARGO_TARGET_DIR,
+    performanceBenchmarkTargetDirectory,
+  );
+  assert.equal(plan.options.env.RETAINED, "value");
+  assert.equal(
+    denseHistoryBenchmarkExecutable,
+    path.join(performanceBenchmarkTargetDirectory, "release/examples/dense_history_benchmark"),
+  );
+});
 
 test("defines a long distributed supported-signal history independently of a private export", () => {
   assert.deepEqual(denseHistoryScenario(), {
@@ -148,9 +184,10 @@ test("wires the dense-history gate into local and hosted complete verification",
     "node scripts/run-dense-history-benchmark.mjs",
   );
   assert.match(
-    packageMetadata.scripts["verify:full"],
+    packageMetadata.scripts["verify:precommit"],
     /benchmark:import.*benchmark:dense-history.*benchmark:insights/,
   );
+  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:precommit/);
   assert.match(
     workflow,
     /name: Verify dense training-history budgets\n\s+run: npm run benchmark:dense-history/,

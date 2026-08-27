@@ -23,9 +23,12 @@ Small corrections that preserve confirmed behavior and scope do not require a se
 1. Create a focused branch from the current default branch.
 2. Make the smallest complete change that proves its intended outcome.
 3. Add or update behavioral tests and canonical documentation in the same change.
-4. Run `npm run test:fast` during development and `npm run verify:full` before proposing the completed change.
-5. Review the complete diff for personal data, secrets, generated files, dependency licenses, and unrelated changes.
-6. Open a pull request using the repository template and report any verification that could not be executed.
+4. Run `npm run test:fast` during development and `npm run verify:precommit` before creating the focused candidate
+   commit.
+5. Run `npm run verify:full` from that clean candidate revision before proposing the completed change. A failed
+   clean-revision gate keeps the candidate local until a corrective commit and a complete rerun pass.
+6. Review the complete diff for personal data, secrets, generated files, dependency licenses, and unrelated changes.
+7. Open a pull request using the repository template and report any verification that could not be executed.
 
 Do not weaken tests, architecture rules, accessibility, localization, installation, update, privacy, or data-integrity requirements to make a change pass.
 

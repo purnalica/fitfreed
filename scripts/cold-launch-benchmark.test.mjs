@@ -256,8 +256,16 @@ test("wires production identity and cold launch into local and hosted gates", ()
     "node scripts/run-cold-launch-benchmark.mjs",
   );
   assert.match(
+    packageMetadata.scripts["verify:precommit"],
+    /doctor.*package$/,
+  );
+  assert.doesNotMatch(
+    packageMetadata.scripts["verify:precommit"],
+    /benchmark:cold-launch|check:production-bundle|verify:update-recovery-preparation/,
+  );
+  assert.equal(
     packageMetadata.scripts["verify:full"],
-    /package.*benchmark:cold-launch.*check:production-bundle/,
+    "npm run verify:precommit && npm run benchmark:cold-launch && npm run check:production-bundle && npm run verify:update-recovery-preparation",
   );
   assert.match(
     workflow,

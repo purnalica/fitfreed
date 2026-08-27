@@ -7,11 +7,11 @@ use std::{
 
 use chrono::{Days, NaiveDate};
 use fitfreed_domain::{
-    author_session_report, authorize_report_removal, refresh_report_definition, revise_report,
-    revise_session_report, PlannedTrainingTargetKind, ReportBlock, ReportBlockContent,
-    ReportDateRange, ReportDefinition, ReportDefinitionError, ReportLocale, ReportOrigin,
-    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
-    MAX_ROUTE_ENDPOINT_REDACTION_METERS,
+    author_session_report, authorize_report_removal, duplicate_report_definition,
+    refresh_report_definition, revise_report, revise_session_report, PlannedTrainingTargetKind,
+    ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition, ReportDefinitionError,
+    ReportLocale, ReportOrigin, ReportQuestion, ReportTrainingComparisonQuery,
+    ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS,
 };
 
 use crate::{
@@ -164,6 +164,13 @@ pub struct UpdateReportRequest {
     pub title: String,
     pub locale: ReportLocale,
     pub blocks: Vec<ReportBlockDraft>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DuplicateReportRequest {
+    pub source_report_ref: String,
+    pub expected_source_revision: u64,
+    pub title: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -582,6 +589,39 @@ pub fn create_report(
         .create_report_definition(&definition)
         .map_err(map_definition_update_error)?;
     Ok(definition)
+}
+
+pub fn duplicate_report(
+    report_port: &dyn ReportDefinitionPort,
+    request: DuplicateReportRequest,
+) -> Result<ReportDefinition, ApplicationError> {
+    if request.expected_source_revision == 0 {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "expected source report revision is zero".to_owned(),
+        ));
+    }
+    let source = load_report_definition(report_port, &request.source_report_ref)?;
+    if source.revision() != request.expected_source_revision {
+        return Err(ApplicationError::ReportDefinitionConflict);
+    }
+    let report_ref = report_port
+        .new_report_ref()
+        .map_err(map_definition_query_error)?;
+    let block_refs = source
+        .blocks()
+        .iter()
+        .map(|_| {
+            report_port
+                .new_report_block_ref()
+                .map_err(map_definition_query_error)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let duplicate = duplicate_report_definition(&source, report_ref, &request.title, &block_refs)
+        .map_err(invalid_definition)?;
+    report_port
+        .create_report_definition(&duplicate)
+        .map_err(map_definition_update_error)?;
+    Ok(duplicate)
 }
 
 pub fn create_session_report(

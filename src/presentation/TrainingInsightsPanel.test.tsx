@@ -16,6 +16,7 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
       sessionFilterRefs: string[];
       returnWorkspace: "home" | "sports";
     };
+    resetWorkspaceRequestId?: number;
     onReturnToSports: (sessionFilterRef: string) => void;
     onOpenPlannedTraining: (targetRef: string) => void;
   }) => (
@@ -40,6 +41,9 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
       </output>
       <output data-testid="session-filter">
         {properties.sportSessionsNavigation?.sessionFilterRefs.join(",") ?? "none"}
+      </output>
+      <output data-testid="session-reset-request">
+        {properties.resetWorkspaceRequestId ?? "none"}
       </output>
       <button
         type="button"
@@ -196,7 +200,7 @@ describe("TrainingInsightsPanel", () => {
     expect(screen.getByTestId("open-sport-ref")).toHaveTextContent("sport-local-unknown");
   });
 
-  it("honors explicit complete-session and complete-sport workspace requests", () => {
+  it("honors explicit complete-session, sport, and plan workspace requests", () => {
     const common = {
       locale: "en-US" as const,
       messages: catalogs["en-US"],
@@ -224,6 +228,17 @@ describe("TrainingInsightsPanel", () => {
     );
     expect(screen.getByRole("button", { name: "Sessions" }))
       .toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("session-reset-request")).toHaveTextContent("9");
+
+    view.rerender(
+      <TrainingInsightsPanel
+        {...common}
+        navigationRequest={{ kind: "plans", requestId: 10 }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Plans" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("region", { name: "Plans child" })).toBeVisible();
   });
 
   it("broadcasts each classification to both workspaces and the application owner", async () => {

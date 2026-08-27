@@ -28,26 +28,27 @@ use zip::ZipArchive;
 #[cfg(test)]
 use fitfreed_application::{
     adjust_training_session_range, apply_training_segment_criterion, clear_exploration_workspace,
-    create_training_segment_criterion, create_training_session_range, list_report_library,
-    move_training_segment_criterion, query_default_recovery_overview, query_default_sleep_overview,
-    query_default_training_overview, query_library_home, query_longitudinal_overview,
-    query_planned_training_chronology, query_planned_training_target, query_recovery_detail,
-    query_session_planned_training_relation, query_training_route_points,
-    query_training_session_provenance, query_training_session_range_summary,
-    query_training_session_ranges, query_training_session_routes,
-    query_training_session_segmentation, query_training_session_signals,
-    query_training_session_structure, query_training_session_zones,
+    create_training_segment_criterion, create_training_session_range, duplicate_report,
+    list_report_examples, list_report_library, move_training_segment_criterion,
+    query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
+    query_library_home, query_longitudinal_overview, query_planned_training_chronology,
+    query_planned_training_target, query_recovery_detail, query_session_planned_training_relation,
+    query_training_route_points, query_training_session_provenance,
+    query_training_session_range_summary, query_training_session_ranges,
+    query_training_session_routes, query_training_session_segmentation,
+    query_training_session_signals, query_training_session_structure, query_training_session_zones,
     query_training_sessions as build_training_session_search, query_training_signal_samples,
     query_training_sports, remove_training_segment_criterion, remove_training_session_range,
     rename_training_session_range, save_exploration_workspace, save_training_sport_classification,
     update_training_segment_criterion, AdjustTrainingSessionRangeRequest, AppearancePreference,
     ApplicationError, CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest,
-    LibraryDomain, LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion,
-    LibraryQuestionKind, LocalePreference, MoveTrainingSegmentCriterionRequest,
-    NormalizedDataExportCancellation, NormalizedDataExportPort, RemoveTrainingSessionRangeRequest,
-    RenameTrainingSessionRangeRequest, ReportLibraryMetricValue, ReportLibraryRequest,
-    ReportLibraryResult, SaveSportClassificationRequest, SegmentApplicabilityView,
-    SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
+    DuplicateReportRequest, LibraryDomain, LibraryHomeDateRange, LibraryHomeHighlight,
+    LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind, LocalePreference,
+    MoveTrainingSegmentCriterionRequest, NormalizedDataExportCancellation,
+    NormalizedDataExportPort, RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
+    ReportExampleAvailability, ReportExampleDestination, ReportExampleId, ReportLibraryMetricValue,
+    ReportLibraryRequest, ReportLibraryResult, SaveSportClassificationRequest,
+    SegmentApplicabilityView, SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
     TrainingRangeSummaryCoverageState, TrainingSegmentCriterionMutationRequest, TrainingSportState,
     UpdateTrainingSegmentCriterionRequest,
 };
@@ -71,12 +72,13 @@ use fitfreed_application::{
     PlannedTrainingQueryPortError, PlannedTrainingReconciliationState,
     PlannedTrainingSessionRelationQuery, PlannedTrainingTargetQuery, ProfiledImport,
     RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
-    ReportDefinitionPortError, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
-    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
-    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
-    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
-    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
+    ReportDefinitionPortError, ReportExampleEvidence, ReportExampleEvidencePort,
+    SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample, SleepDateRange,
+    SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences, StoredExplorationWorkspace,
+    TrainingDateRange, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView, TrainingExerciseSignalsView,
+    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
+    TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
     TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
     TrainingRangeEvidenceStreamItem, TrainingRangeSourceRangeKind, TrainingRouteCollectionView,
     TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
@@ -15931,6 +15933,58 @@ impl TrainingLibraryPort for SqliteTrainingLibrary {
     }
 }
 
+impl ReportExampleEvidencePort for SqliteTrainingLibrary {
+    fn report_example_evidence(&self) -> std::result::Result<ReportExampleEvidence, String> {
+        let connection =
+            Connection::open(&self.database_path).map_err(|error| error.to_string())?;
+        ensure_schema(&connection).map_err(|error| error.to_string())?;
+        let counts = connection
+            .query_row(
+                "SELECT
+                    (SELECT COUNT(*) FROM training_session),
+                    (
+                        SELECT COUNT(*)
+                        FROM (
+                            SELECT origin_id, session_id
+                            FROM training_route
+                            WHERE point_count >= 2
+                            GROUP BY origin_id, session_id
+                        ) routed_sessions
+                    ),
+                    (
+                        SELECT COUNT(*)
+                        FROM planned_training_target target
+                        WHERE target.reconciliation_state = 'current'
+                          AND EXISTS (
+                              SELECT 1
+                              FROM planned_training_exercise exercise
+                              WHERE exercise.origin_id = target.origin_id
+                                AND exercise.target_id = target.target_id
+                                AND exercise.evidence_revision = target.current_evidence_revision
+                                AND exercise.mapping_version = target.current_mapping_version
+                          )
+                    )",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .map_err(|error| error.to_string())?;
+        Ok(ReportExampleEvidence {
+            training_session_count: usize::try_from(counts.0)
+                .map_err(|_| "training-session evidence count is invalid".to_owned())?,
+            routed_session_count: usize::try_from(counts.1)
+                .map_err(|_| "route evidence count is invalid".to_owned())?,
+            structured_training_target_count: usize::try_from(counts.2)
+                .map_err(|_| "structured-training evidence count is invalid".to_owned())?,
+        })
+    }
+}
+
 impl TrainingSessionDiscoveryPort for SqliteTrainingLibrary {
     fn query_training_sessions(
         &self,
@@ -16711,7 +16765,7 @@ impl ApplicationPreferencesPort for SqliteApplicationPreferences {
 mod tests {
     use fitfreed_domain::{
         author_session_report, refresh_report_definition, revise_report, revise_session_report,
-        ReportQuestion,
+        ReportQuestion, REPORT_DEFINITION_VERSION,
     };
     use std::io::Write;
     use tempfile::TempDir;
@@ -17061,6 +17115,108 @@ mod tests {
                 .expect("reopen report definition"),
             Some(edited)
         );
+    }
+
+    #[test]
+    fn persists_an_independent_duplicate_after_the_source_is_edited_and_removed() {
+        let harness = Harness::new();
+        let library = SqliteReportLibrary::new(harness.database());
+        let source = persisted_report_definition();
+        library
+            .create_report_definition(&source)
+            .expect("persist source report");
+
+        let duplicate = duplicate_report(
+            &library,
+            DuplicateReportRequest {
+                source_report_ref: source.report_ref().to_owned(),
+                expected_source_revision: source.revision(),
+                title: "Morning progression copy".to_owned(),
+            },
+        )
+        .expect("persist independent duplicate");
+
+        assert_ne!(duplicate.report_ref(), source.report_ref());
+        assert_eq!(duplicate.revision(), 1);
+        assert_eq!(duplicate.definition_version(), REPORT_DEFINITION_VERSION);
+        assert_eq!(duplicate.origin(), source.origin());
+        assert_eq!(
+            duplicate.source_snapshot_ref(),
+            source.source_snapshot_ref()
+        );
+        assert_eq!(
+            duplicate
+                .blocks()
+                .iter()
+                .map(ReportBlock::content)
+                .collect::<Vec<_>>(),
+            source
+                .blocks()
+                .iter()
+                .map(ReportBlock::content)
+                .collect::<Vec<_>>()
+        );
+        assert!(duplicate.blocks().iter().all(|duplicate_block| {
+            source
+                .blocks()
+                .iter()
+                .all(|source_block| source_block.block_ref() != duplicate_block.block_ref())
+        }));
+        assert_eq!(
+            library
+                .load_report_definition(source.report_ref())
+                .expect("unchanged source after duplication"),
+            Some(source.clone())
+        );
+
+        let revised_source = author_session_report(
+            &source,
+            "Source edited later",
+            ReportLocale::EsEs,
+            false,
+            "The source now has independent content.",
+        )
+        .expect("revise source independently");
+        assert!(library
+            .compare_and_save_report_definition(source.revision(), &revised_source)
+            .expect("save source revision"));
+        assert!(library
+            .compare_and_remove_report_definition(source.report_ref(), revised_source.revision(),)
+            .expect("remove source report"));
+
+        let reopened = SqliteReportLibrary::new(harness.database());
+        assert_eq!(
+            reopened
+                .load_report_definition(source.report_ref())
+                .expect("source remains removed"),
+            None
+        );
+        assert_eq!(
+            reopened
+                .load_report_definition(duplicate.report_ref())
+                .expect("duplicate survives restart"),
+            Some(duplicate.clone())
+        );
+
+        let backup_path = harness
+            .directory
+            .path()
+            .join("fitfreed-report-backup.sqlite");
+        backup_database(&harness.database(), &backup_path).expect("report library backup");
+        let restored = SqliteReportLibrary::new(backup_path.clone());
+        assert_eq!(
+            restored
+                .load_report_definition(source.report_ref())
+                .expect("removed source remains absent from backup"),
+            None
+        );
+        assert_eq!(
+            restored
+                .load_report_definition(duplicate.report_ref())
+                .expect("duplicate restored from backup"),
+            Some(duplicate)
+        );
+        assert_integrity(&Connection::open(backup_path).expect("backup database"));
     }
 
     #[test]
@@ -17794,13 +17950,25 @@ mod tests {
                 .expect("route columns"),
             2
         );
-        let reopened = SqliteReportLibrary::new(database_path)
+        let reopened = SqliteReportLibrary::new(database_path.clone())
             .load_report_definition(&report_ref)
             .expect("reopen migrated report")
             .expect("migrated report");
         assert_eq!(reopened.definition_version(), 1);
         assert_eq!(reopened.blocks().len(), 2);
         assert_eq!(reopened.title(), "Version twenty report");
+        let duplicate = duplicate_report(
+            &SqliteReportLibrary::new(database_path),
+            DuplicateReportRequest {
+                source_report_ref: report_ref.clone(),
+                expected_source_revision: reopened.revision(),
+                title: "Migrated report copy".to_owned(),
+            },
+        )
+        .expect("duplicate migrated report");
+        assert_eq!(duplicate.definition_version(), REPORT_DEFINITION_VERSION);
+        assert_eq!(duplicate.revision(), 1);
+        assert_eq!(duplicate.blocks().len(), reopened.blocks().len());
         assert_integrity(&connection);
     }
 
@@ -18405,6 +18573,14 @@ mod tests {
         .expect("empty training range")
         .is_empty());
         let library = SqliteTrainingLibrary::new(harness.database());
+        let route_examples = list_report_examples(&library).expect("route example evidence");
+        assert!(route_examples.examples.iter().any(|example| {
+            example.id == ReportExampleId::OutdoorRoute
+                && example.availability
+                    == ReportExampleAvailability::SelectionRequired {
+                        destination: ReportExampleDestination::TrainingSessions,
+                    }
+        }));
         let overview = query_default_training_overview(&library).expect("training read model");
         assert_eq!(overview.series.len(), 1);
         assert_eq!(overview.series[0].summary.session_count, 1);
@@ -20408,6 +20584,16 @@ mod tests {
         let report = import_polar_archive(&harness.database(), &archive)
             .expect("structured planned-training import");
         assert_eq!(report.new_observations, 4);
+
+        let example_library = SqliteTrainingLibrary::new(harness.database());
+        let examples = list_report_examples(&example_library).expect("planned example evidence");
+        assert!(examples.examples.iter().any(|example| {
+            example.id == ReportExampleId::StructuredTrainingPlan
+                && example.availability
+                    == ReportExampleAvailability::SelectionRequired {
+                        destination: ReportExampleDestination::PlannedTraining,
+                    }
+        }));
 
         let connection = Connection::open(harness.database()).expect("planned-training database");
         assert_eq!(

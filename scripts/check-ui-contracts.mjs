@@ -315,7 +315,7 @@ for (const selector of [
   ".training-cross-signal > header p",
   ".training-provenance-disclosure > div p",
   ".training-ranges-heading p",
-  ".report-empty-editor p",
+  ".report-library-empty",
   ".settings-section-heading p",
   ".settings-field > small",
 ]) {

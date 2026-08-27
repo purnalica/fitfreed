@@ -34,6 +34,14 @@ const PLANNED_SNAPSHOT_REF: &str =
     "planned-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const CHANGED_PLANNED_SNAPSHOT_REF: &str =
     "planned-snapshot-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+const DUPLICATE_REPORT_REF: &str =
+    "report-8888888888888888888888888888888888888888888888888888888888888888";
+const DUPLICATE_SESSION_BLOCK_REF: &str =
+    "report-block-9999999999999999999999999999999999999999999999999999999999999999";
+const DUPLICATE_ROUTE_BLOCK_REF: &str =
+    "report-block-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const DUPLICATE_NARRATIVE_BLOCK_REF: &str =
+    "report-block-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 fn session_block(include_physiological_context: bool) -> ReportBlock {
     ReportBlock::session_evidence(
@@ -403,6 +411,113 @@ fn refreshes_a_planned_report_without_rewriting_target_or_authorship() {
         refresh_report_definition(&refreshed, CHANGED_SNAPSHOT_REF)
             .expect_err("planned report cannot refresh from recorded training"),
         ReportDefinitionError::InvalidSnapshotIdentifier
+    );
+}
+
+#[test]
+fn duplicates_a_report_with_fresh_identities_and_independent_revision_one_state() {
+    let source = ReportDefinition::compose_session_report(
+        REPORT_REF,
+        "Routed progression",
+        ReportLocale::EsEs,
+        SNAPSHOT_REF,
+        SESSION_REF,
+        vec![
+            session_block(true),
+            route_block(450),
+            narrative_block("Preserve this authored interpretation."),
+        ],
+    )
+    .expect("source report");
+    let source_before = source.clone();
+
+    let duplicate = duplicate_report_definition(
+        &source,
+        DUPLICATE_REPORT_REF,
+        "  Routed progression copy  ",
+        &[
+            DUPLICATE_SESSION_BLOCK_REF.to_owned(),
+            DUPLICATE_ROUTE_BLOCK_REF.to_owned(),
+            DUPLICATE_NARRATIVE_BLOCK_REF.to_owned(),
+        ],
+    )
+    .expect("independent duplicate");
+
+    assert_eq!(duplicate.report_ref(), DUPLICATE_REPORT_REF);
+    assert_eq!(duplicate.title(), "Routed progression copy");
+    assert_eq!(duplicate.locale(), source.locale());
+    assert_eq!(
+        duplicate.source_snapshot_ref(),
+        source.source_snapshot_ref()
+    );
+    assert_eq!(duplicate.origin(), source.origin());
+    assert_eq!(duplicate.provenance_policy(), source.provenance_policy());
+    assert_eq!(duplicate.authorship(), source.authorship());
+    assert_eq!(duplicate.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(duplicate.revision(), 1);
+    assert_eq!(
+        duplicate
+            .blocks()
+            .iter()
+            .map(ReportBlock::block_ref)
+            .collect::<Vec<_>>(),
+        [
+            DUPLICATE_SESSION_BLOCK_REF,
+            DUPLICATE_ROUTE_BLOCK_REF,
+            DUPLICATE_NARRATIVE_BLOCK_REF,
+        ]
+    );
+    assert_eq!(
+        duplicate
+            .blocks()
+            .iter()
+            .map(ReportBlock::content)
+            .collect::<Vec<_>>(),
+        source
+            .blocks()
+            .iter()
+            .map(ReportBlock::content)
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(source, source_before);
+
+    assert_eq!(
+        duplicate_report_definition(
+            &source,
+            REPORT_REF,
+            "Invalid copy",
+            &[
+                DUPLICATE_SESSION_BLOCK_REF.to_owned(),
+                DUPLICATE_ROUTE_BLOCK_REF.to_owned(),
+                DUPLICATE_NARRATIVE_BLOCK_REF.to_owned(),
+            ],
+        )
+        .expect_err("source report identity cannot be reused"),
+        ReportDefinitionError::DuplicateReportIdentityReused
+    );
+    assert_eq!(
+        duplicate_report_definition(
+            &source,
+            DUPLICATE_REPORT_REF,
+            "Invalid copy",
+            &[DUPLICATE_SESSION_BLOCK_REF.to_owned()],
+        )
+        .expect_err("every source block needs a fresh identity"),
+        ReportDefinitionError::DuplicateBlockIdentityCountMismatch
+    );
+    assert_eq!(
+        duplicate_report_definition(
+            &source,
+            DUPLICATE_REPORT_REF,
+            "Invalid copy",
+            &[
+                SESSION_BLOCK_REF.to_owned(),
+                DUPLICATE_ROUTE_BLOCK_REF.to_owned(),
+                DUPLICATE_NARRATIVE_BLOCK_REF.to_owned(),
+            ],
+        )
+        .expect_err("source block identity cannot be reused"),
+        ReportDefinitionError::DuplicateBlockIdentityReused
     );
 }
 

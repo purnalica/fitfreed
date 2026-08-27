@@ -179,7 +179,14 @@ the last active boundary.
 
 ## Automation and evidence handling
 
-`npm run verify:full` includes the cold-launch, full-scale import, dense training-history, read-model, and packaged-UI gates. The macOS GitHub Actions job runs the same commands explicitly, so local and hosted paths share the same versioned entry points. After fast checks and production-package preparation, hosted automation evaluates cold launch before the longer import, dense-history, and Insights campaigns. This fail-fast order reduces wasted runner time after a startup regression without removing any successful-path gate. A budget failure is not retried or converted into a pass.
+`npm run verify:precommit` includes the full-scale import, dense training-history, read-model, and packaged-UI gates
+that can run truthfully against a changed working tree. `npm run verify:full` repeats that complete chain from the exact
+clean candidate revision, then adds the source-bound cold-launch, production-bundle, and update-recovery-preparation
+gates. The macOS GitHub Actions job runs the same underlying commands explicitly, so local and hosted paths share the
+same versioned entry points. After fast checks and production-package preparation, hosted automation evaluates cold
+launch before the longer import, dense-history, and Insights campaigns. This fail-fast order reduces wasted runner
+time after a startup regression without removing any successful-path gate. A budget failure is not retried or
+converted into a pass.
 
 Generated archives, databases, raw benchmark output, exact local host profiles, screenshots, and logs remain ignored local or short-lived CI evidence. Only the synthetic generators, executable assertions, budgets, methodology, privacy-safe aggregate measurements, and broad execution-environment classification are versioned. Do not replace them with a provider export, values derived from one, or a maintainer's or participant's workstation details.
 

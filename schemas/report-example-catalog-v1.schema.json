@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-example-catalog-v1.schema.json",
+  "title": "FitFreed built-in report example catalog version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["examples"],
+  "properties": {
+    "examples": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        { "$ref": "#/$defs/adjacentPeriodVolume" },
+        { "$ref": "#/$defs/sessionVisualStory" },
+        { "$ref": "#/$defs/outdoorRoute" },
+        { "$ref": "#/$defs/structuredTrainingPlan" }
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "enum": [
+        "adjacent-period-volume",
+        "session-visual-story",
+        "outdoor-route",
+        "structured-training-plan"
+      ]
+    },
+    "purpose": {
+      "enum": [
+        "compare-training-volume",
+        "understand-one-session",
+        "investigate-outdoor-route",
+        "review-structured-training"
+      ]
+    },
+    "question": {
+      "enum": [
+        "how-has-training-changed",
+        "what-happened-in-this-session",
+        "where-did-this-session-change",
+        "how-was-this-training-structured"
+      ]
+    },
+    "capability": {
+      "enum": [
+        "training-history",
+        "training-session",
+        "route-evidence",
+        "structured-training"
+      ]
+    },
+    "parameter": {
+      "enum": [
+        "none",
+        "training-session",
+        "routed-training-session",
+        "planned-training-target"
+      ]
+    },
+    "blockRecipeItem": {
+      "enum": [
+        "training-finding-session-count",
+        "training-chart-duration",
+        "training-coverage",
+        "session-evidence",
+        "route",
+        "planned-training"
+      ]
+    },
+    "destination": {
+      "enum": ["training-sessions", "planned-training"]
+    },
+    "availability": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "ready" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "destination"],
+          "properties": {
+            "kind": { "const": "selection-required" },
+            "destination": { "$ref": "#/$defs/destination" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "missingCapabilities"],
+          "properties": {
+            "kind": { "const": "unavailable" },
+            "missingCapabilities": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/capability" }
+            }
+          }
+        }
+      ]
+    },
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "purpose",
+        "question",
+        "requiredCapabilities",
+        "parameter",
+        "blockRecipe",
+        "availability"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "version": { "const": 1 },
+        "purpose": { "$ref": "#/$defs/purpose" },
+        "question": { "$ref": "#/$defs/question" },
+        "requiredCapabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/capability" }
+        },
+        "parameter": { "$ref": "#/$defs/parameter" },
+        "blockRecipe": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/blockRecipeItem" }
+        },
+        "availability": { "$ref": "#/$defs/availability" }
+      }
+    },
+    "ready": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": { "kind": { "const": "ready" } }
+    },
+    "trainingSessionSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "destination"],
+      "properties": {
+        "kind": { "const": "selection-required" },
+        "destination": { "const": "training-sessions" }
+      }
+    },
+    "plannedTrainingSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "destination"],
+      "properties": {
+        "kind": { "const": "selection-required" },
+        "destination": { "const": "planned-training" }
+      }
+    },
+    "missingTrainingHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "missingCapabilities"],
+      "properties": {
+        "kind": { "const": "unavailable" },
+        "missingCapabilities": { "const": ["training-history"] }
+      }
+    },
+    "missingTrainingSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "missingCapabilities"],
+      "properties": {
+        "kind": { "const": "unavailable" },
+        "missingCapabilities": { "const": ["training-session"] }
+      }
+    },
+    "missingRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "missingCapabilities"],
+      "properties": {
+        "kind": { "const": "unavailable" },
+        "missingCapabilities": {
+          "enum": [
+            ["route-evidence"],
+            ["training-session", "route-evidence"]
+          ]
+        }
+      }
+    },
+    "missingStructuredTraining": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "missingCapabilities"],
+      "properties": {
+        "kind": { "const": "unavailable" },
+        "missingCapabilities": { "const": ["structured-training"] }
+      }
+    },
+    "adjacentPeriodVolume": {
+      "allOf": [
+        { "$ref": "#/$defs/descriptor" },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "const": "adjacent-period-volume" },
+            "purpose": { "const": "compare-training-volume" },
+            "question": { "const": "how-has-training-changed" },
+            "requiredCapabilities": { "const": ["training-history"] },
+            "parameter": { "const": "none" },
+            "blockRecipe": {
+              "const": [
+                "training-finding-session-count",
+                "training-chart-duration",
+                "training-coverage"
+              ]
+            },
+            "availability": {
+              "oneOf": [
+                { "$ref": "#/$defs/ready" },
+                { "$ref": "#/$defs/missingTrainingHistory" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "sessionVisualStory": {
+      "allOf": [
+        { "$ref": "#/$defs/descriptor" },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "const": "session-visual-story" },
+            "purpose": { "const": "understand-one-session" },
+            "question": { "const": "what-happened-in-this-session" },
+            "requiredCapabilities": { "const": ["training-session"] },
+            "parameter": { "const": "training-session" },
+            "blockRecipe": { "const": ["session-evidence"] },
+            "availability": {
+              "oneOf": [
+                { "$ref": "#/$defs/trainingSessionSelection" },
+                { "$ref": "#/$defs/missingTrainingSession" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "outdoorRoute": {
+      "allOf": [
+        { "$ref": "#/$defs/descriptor" },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "const": "outdoor-route" },
+            "purpose": { "const": "investigate-outdoor-route" },
+            "question": { "const": "where-did-this-session-change" },
+            "requiredCapabilities": { "const": ["training-session", "route-evidence"] },
+            "parameter": { "const": "routed-training-session" },
+            "blockRecipe": { "const": ["session-evidence", "route"] },
+            "availability": {
+              "oneOf": [
+                { "$ref": "#/$defs/trainingSessionSelection" },
+                { "$ref": "#/$defs/missingRoute" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "structuredTrainingPlan": {
+      "allOf": [
+        { "$ref": "#/$defs/descriptor" },
+        {
+          "type": "object",
+          "properties": {
+            "id": { "const": "structured-training-plan" },
+            "purpose": { "const": "review-structured-training" },
+            "question": { "const": "how-was-this-training-structured" },
+            "requiredCapabilities": { "const": ["structured-training"] },
+            "parameter": { "const": "planned-training-target" },
+            "blockRecipe": { "const": ["planned-training"] },
+            "availability": {
+              "oneOf": [
+                { "$ref": "#/$defs/plannedTrainingSelection" },
+                { "$ref": "#/$defs/missingStructuredTraining" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

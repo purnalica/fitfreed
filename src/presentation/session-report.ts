@@ -247,6 +247,72 @@ export interface RefreshReportRequest {
   expectedResolvedSnapshotRef: string;
 }
 
+export interface DuplicateReportRequest {
+  sourceReportRef: string;
+  expectedSourceRevision: string;
+  title: string;
+}
+
+export type ReportExampleId =
+  | "adjacent-period-volume"
+  | "session-visual-story"
+  | "outdoor-route"
+  | "structured-training-plan";
+
+export type ReportExamplePurpose =
+  | "compare-training-volume"
+  | "understand-one-session"
+  | "investigate-outdoor-route"
+  | "review-structured-training";
+
+export type ReportExampleQuestion =
+  | "how-has-training-changed"
+  | "what-happened-in-this-session"
+  | "where-did-this-session-change"
+  | "how-was-this-training-structured";
+
+export type ReportExampleCapability =
+  | "training-history"
+  | "training-session"
+  | "route-evidence"
+  | "structured-training";
+
+export type ReportExampleParameter =
+  | "none"
+  | "training-session"
+  | "routed-training-session"
+  | "planned-training-target";
+
+export type ReportExampleBlockRecipe =
+  | "training-finding-session-count"
+  | "training-chart-duration"
+  | "training-coverage"
+  | "session-evidence"
+  | "route"
+  | "planned-training";
+
+export type ReportExampleDestination = "training-sessions" | "planned-training";
+
+export type ReportExampleAvailability =
+  | { kind: "ready" }
+  | { kind: "selection-required"; destination: ReportExampleDestination }
+  | { kind: "unavailable"; missingCapabilities: ReportExampleCapability[] };
+
+export interface ReportExampleDescriptor {
+  id: ReportExampleId;
+  version: 1;
+  purpose: ReportExamplePurpose;
+  question: ReportExampleQuestion;
+  requiredCapabilities: ReportExampleCapability[];
+  parameter: ReportExampleParameter;
+  blockRecipe: ReportExampleBlockRecipe[];
+  availability: ReportExampleAvailability;
+}
+
+export interface ReportExampleCatalog {
+  examples: ReportExampleDescriptor[];
+}
+
 export type ReportLimitation =
   | "distance-unavailable"
   | "energy-unavailable"
