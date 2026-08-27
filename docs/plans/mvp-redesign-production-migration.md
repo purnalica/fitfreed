@@ -301,7 +301,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Complete locally — the complete vertical passed its domain, contract, migration, backup, export, presentation, packaged, restart, accessibility, localization, visual, performance, repository, and privacy gates on 2026-08-27 | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Complete locally — built-in examples, independent duplication, exact clean-revision verification, and all release-shaped gates passed 2026-08-27 | Relevant built-in examples and duplication make reports understandable and reusable |
-| X7-R7 | In progress — independent whole-product falsification passes; exact local, hosted, and native-package gates remain | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R7 | In progress — independent falsification and exact local gate pass; hosted and native-package gates remain | Exact local and hosted evidence plus independent falsification leave no material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3162,8 +3162,15 @@ The exact clean package subsequently passed the three independent X6 regression 
 journey, and the complete maintained packaged campaign. The campaign includes application-process restart,
 adaptive-session composition, personal-range restart after exact reimport, and the isolated large-library performance
 scenario. The completed viewport, zoom, locale, appearance, input, accessibility, adverse-state, and direct visual
-matrix accepted no additional critical or major finding. The deterministic continuation is the complete local gates,
-executable-input-selected hosted campaign, and revision-isolated production-native review-package scan.
+matrix accepted no additional critical or major finding. That clean verdict admitted the candidate to the exact
+local, hosted, and revision-isolated production-native gates.
+
+Exact revision `ae49508` passed `verify:full` from a clean source tree on 2026-08-27. Architecture, contracts,
+documentation, localization, repository structure, 174 automation tests, 440 presentation tests, two vendored-updater
+tests, 578 workspace Rust tests, strict Rust lint and formatting, import, dense-history, insights, packaged functional,
+restart, adaptive, performance, update, failed-update recovery, production packaging, production-bundle inspection,
+cold launch, and recovery preparation all passed. The deterministic continuation is now the executable-input-selected
+hosted campaign and revision-isolated production-native review-package scan.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) accepted X7A-01 on its
 first packaged acquisition pass. Sources-local chooser cancellation tried to restore focus before React re-enabled

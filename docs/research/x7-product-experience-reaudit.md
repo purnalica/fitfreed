@@ -119,6 +119,12 @@ material finding.
 8. The complete packaged campaign repeated the maintained journey, application-process restart, adaptive-session
    composition, personal-range restart after exact reimport, and the isolated large-library performance scenario.
    Every scenario and documented interaction budget passed.
+9. Exact revision `ae49508` passed `verify:full` from a clean source tree. The gate passed 174 automation tests, 440
+   presentation tests, two vendored-updater tests, 578 workspace Rust tests, strict Rust lint and formatting, all
+   import/dense-history/insight benchmarks, a fresh packaged E2E rebuild, both successful-update and failed-update
+   recovery scenarios, the production application and disk-image build, and the production-bundle scan. One hundred
+   fresh production launches measured 434.871 ms p95 against the 2,500 ms budget. Update-recovery preparation retained
+   locale and accepted library schema 32.
 
 ## Continuation boundary
 
@@ -129,6 +135,6 @@ independent machine-assisted product-experience audit are complete. The focused 
 last known `origin/main`; synchronization is pending after the configured SSH signing agent did not complete a
 bounded attempt.
 
-The deterministic continuation is the exact complete local verification, executable-input-selected hosted campaign,
-and revision-isolated production-native review-package scan. A successful machine gate may prepare but must not
-publish the package. No production-native human claim has been made.
+The deterministic continuation is the executable-input-selected hosted campaign and revision-isolated
+production-native review-package scan. A successful machine gate may prepare but must not publish the package. No
+production-native human claim has been made.
