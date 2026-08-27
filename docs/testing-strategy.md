@@ -14,6 +14,10 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Never delete or weaken an assertion merely because production structure changed. Preserve the protected behavior through an appropriate observation path.
 - Never disable strict test-double validation or hide flaky behavior through unconditional retries.
 - Keep exhaustive campaign watchdogs separate from bounded operation waits and product-performance budgets; extending a campaign cannot make a stalled operation or slow interaction pass.
+- Automated verification owns functional correctness. Product-owner review is a bounded experience evaluation, not a
+  manual regression suite: it supplies comprehension, trust, usefulness, and quality evidence that automation cannot
+  establish. Any functional failure observed there identifies a missing automated regression and must return to the
+  appropriate unit, integration, contract, packaged E2E, restart, installation, update, or recovery gate.
 
 ## Test levels
 

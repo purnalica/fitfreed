@@ -39,11 +39,32 @@ personal export. A personal export never changes the privacy-safe recording boun
 application, `npm run launch:x6-review` reopens the already inspected build and its same isolated library while the
 source remains unchanged.
 
-For X6, execute the first-run interaction from step 3 onward without the installation/removal claims, then
-complete the Keyboard, VoiceOver, Scaling/appearance/contrast, and Realistic usability sessions. Skip the
-Installation trust, application-removal/reinstallation, and Update/recovery claims; they remain exact-candidate
-gates. Record the outcome explicitly as **X6 product experience**, never as candidate or release acceptance.
-Any critical or major product-experience or accessibility finding reopens its owning redesign increment.
+For X6, use the bounded product-owner experience review below. The detailed functional, keyboard, VoiceOver,
+scaling, installation, removal, and update sessions in this document are not a checklist for the product owner.
+They remain exact-candidate or specialist-evaluation gates executed by project automation or a designated evaluator.
+Record the product-owner outcome explicitly as **X6 product experience**, never as candidate or release acceptance.
+Any critical or major product-experience finding reopens its owning redesign increment.
+
+### Product-owner experience review
+
+The product owner's scarce review time is reserved for evidence that automation cannot establish: first impression,
+purpose and trust comprehension, perceived usefulness, information hierarchy, discoverability, natural navigation,
+visual and textual quality, confidence during long or sensitive operations, and credible reasons to continue using the
+product. Review is task-led rather than control-led and may stop as soon as a material finding prevents the intended
+journey.
+
+The product owner is not responsible for exhaustively proving that imports, reimports, persistence, every control,
+validation branch, locale, keyboard path, assistive-technology state, installation, update, or recovery mechanism
+functions correctly. Unit, integration, contract, packaged E2E, restart, accessibility, performance, installation,
+and recovery automation must prove those outcomes with synthetic evidence before handoff. A functional failure found
+incidentally during experience review is a test-gap defect: record it once, stop the affected journey, and return it
+to automated diagnosis and regression coverage instead of asking the product owner to reproduce or characterize it.
+
+Run one short, coherent task at a time. Ask only what the person understood, expected, trusted, found useful, found
+confusing, or would do next. The participant may use an explicitly authorized personal export to judge recognizable
+value, but the privacy-safe recording boundary still applies. Detailed manual accessibility conformance and release
+trust evaluation, where automation cannot supply sufficient evidence, require a separately scheduled qualified
+evaluator and are never implicit product-owner work.
 
 ## Evaluation record
 

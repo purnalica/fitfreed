@@ -5,6 +5,11 @@
 **Rejected again on 2026-08-26 for review source `de0ba3dd149a95ee96e8a48ea7aaf1cb74453d6d`. The valid native session may
 continue for diagnostic coverage, but the current experience cannot pass X6.**
 
+**A new X7 repeated profile started on 2026-08-27. Native archive selection and both official browser destinations
+pass, but an authorized Polar Flow export that the participant previously imported successfully is now rejected as
+recognized but incomplete or malformed. The populated-library evaluation cannot continue through that archive, and
+X7 remains unaccepted.**
+
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
 the [X6 profile](../testing/macos-candidate-manual-evaluation.md#x6-product-experience-profile). It records
 observable behavior and bounded participant impact without retaining personal fitness data, source paths,
@@ -46,15 +51,19 @@ implementation, testing, prioritization, or solution design. This preserves the 
 changing the evaluated product between observations. Consolidation, root-cause analysis, planning, correction, and
 verification begin only after the participant explicitly ends the review session.
 
-The participant ended observation collection on 2026-08-26. Post-session consolidation, root-cause analysis,
-planning, correction, and verification may begin when the blocked autonomous execution goal is resumed.
+The participant ended the earlier observation collection on 2026-08-26. The X7 repeated collection started on
+2026-08-27 and ended when XH-24 blocked the first import. The product owner then established that future participation
+is limited to bounded experience judgment; deterministic functional correctness belongs to automated E2E and lower
+test levels. The canonical [manual-evaluation procedure](../testing/macos-candidate-manual-evaluation.md#product-owner-experience-review)
+owns that responsibility boundary. Diagnosis, correction, and regression work may proceed without asking the product
+owner to execute the functional checklist or characterize the rejected archive further.
 
 ## Findings
 
 ### XH-01 — Acquisition actions do not complete in the default browser
 
-- **Status:** reopened; production-native human re-evaluation on 2026-08-26 confirms that both Polar destinations
-  still fail to appear in the default browser.
+- **Status:** passed in the X7 repeated profile on 2026-08-27; the rejection of the earlier reviewed sources remains
+  part of their evaluation history.
 - **Observed task:** obtain guidance from the empty-library `Import your fitness history` journey using a
   pointer.
 - **Observed behavior:** `Show me how` produced no visible transition. `Open official account page` and
@@ -81,6 +90,8 @@ planning, correction, and verification may begin when the blocked autonomous exe
   in-application outcome after each Polar action, but neither destination appears in the default browser. This
   contradicts the user outcome while preserving evidence that the presentation now exposes the attempted action.
   Diagnose the native launch chain to its operating-system boundary before changing behavior or tests.
+- **X7 repeated-profile observation:** both official actions open the default browser at the expected destination.
+  The participant considers their behavior and destinations correct.
 
 ### XH-02 — Instrumented application invalidated the native-boundary evaluation
 
@@ -100,8 +111,8 @@ planning, correction, and verification may begin when the blocked autonomous exe
 
 ### XH-03 — Wrong archive produces a hidden, alarming, and unactionable explanation
 
-- **Status:** reopened; production-native human re-evaluation on 2026-08-26 finds the corrected resource-limit
-  explanation unintelligible.
+- **Status:** reopened in the X7 repeated profile; the exact resource limit is now named, but it still does not make
+  an ordinary unrelated-archive selection understandable.
 - **Observed task:** recover after selecting a ZIP that is not the intended fitness-history export.
 - **Observed behavior:** the result gives visual priority to `This archive was not imported` without an immediately
   visible explanation. Expanding `Why the import stopped` reveals `The package contains an unsafe file layout. Keep
@@ -123,6 +134,11 @@ planning, correction, and verification may begin when the blocked autonomous exe
   was reached, what that says about the selected archive, or what practical recovery is available. Separating the
   internal category and making it primary did not make the result understandable; the user-facing reason must be
   traced from the exact validation outcome rather than collapsed into a generic resource-limit label.
+- **X7 repeated-profile observation:** an archive unrelated to a Polar Flow export is rejected because at least one
+  member would exceed the 64 MB expanded-file limit. The participant finds that explanation surprising in the
+  context of an ordinary wrong-package selection. The observation does not establish whether the limit result is
+  technically incorrect; it establishes that the result does not help the person understand package identity or the
+  likely recovery action.
 
 ### XH-04 — Archive reselection updates content outside the visible viewport
 
@@ -323,7 +339,7 @@ planning, correction, and verification may begin when the blocked autonomous exe
 
 ### XH-12 — Settings actions obscure their relationship and outcome
 
-- **Status:** open; observed in the repeated production-native profile on 2026-08-26.
+- **Status:** remains a minor usability concern in the X7 repeated profile.
 - **Observed task:** change appearance or language preferences and decide whether to keep, revert, or reset them.
 - **Observed behavior:** the three actions occupy a visually unbalanced wrapped region, with `Restore defaults`
   separated from `Discard preview` and `Save changes` and the primary action on a second row. The participant could
@@ -339,6 +355,9 @@ planning, correction, and verification may begin when the blocked autonomous exe
 - **Disposition:** evaluate the complete action hierarchy and responsive composition as one settings workflow. Retain
   the existing application and persistence contracts, and require comprehension, pointer, keyboard, unsaved-change,
   save, revert, defaults, restart, both-locale, and supported-zoom evidence before closure.
+- **X7 repeated-profile observation:** the three transaction actions remain permanently visible, including when they
+  are disabled. Their behavior does not block the task, but the participant considers the persistent disabled action
+  cluster a poor use of attention and space.
 
 ### XH-13 — Empty-library privacy copy describes data that does not yet exist
 
@@ -512,6 +531,27 @@ planning, correction, and verification may begin when the blocked autonomous exe
 - **Disposition:** retain the confirmed requirement for post-session domain, application, persistence, presentation,
   export, documentation, and lifecycle planning before either control is exposed.
 
+### XH-24 — A previously accepted provider export is rejected before import
+
+- **Status:** blocking finding in the X7 repeated production-native profile on 2026-08-27.
+- **Observed task:** import an authorized Polar Flow export after completing the empty-library acquisition checks.
+- **Observed behavior:** FitFreed recognizes the provider export but rejects it because a required file is incomplete
+  or malformed. The participant reports that the same archive imported successfully during the preceding human
+  evaluation.
+- **Expected behavior:** an unchanged export inside the supported compatibility boundary remains importable across a
+  corrective presentation release. If newly enforced evidence establishes a real incompatibility, the result must
+  identify the affected documented contract and a practical privacy-safe recovery path without exposing personal
+  content.
+- **Participant impact:** the primary value journey stops before any history becomes available, so recognizable
+  sports, natural navigation, session exploration, reports, and the remaining populated-library evaluation cannot be
+  assessed.
+- **Evidence boundary:** this record retains no archive name, path, fingerprint, member name, source value, date,
+  count, or personal history. Prior successful import is participant-reported evidence and does not by itself identify
+  the regressing component.
+- **Disposition:** the collection is closed. Trace archive classification through package validation, provider
+  recognition, correlation evidence, artifact decoding, mapping, and compatibility-version reuse before designing a
+  correction; return the complete functional journey to automated regression evidence.
+
 ## Passing observations
 
 ### XH-P01 — Import cancellation permits an immediate retry
@@ -530,6 +570,13 @@ planning, correction, and verification may begin when the blocked autonomous exe
 - **Boundary:** the runtime transition and navigation recovery pass. X6-C3 and X6-C4 now supply the missing-progress,
   continuing-operation, disabled-state explanation, and recovery behavior in automation; the repeated native profile
   must establish that they are perceptible and trustworthy to a person.
+
+### XH-P03 — Official provider destinations open in the default browser
+
+- **Observed task:** use both official acquisition destinations from the empty-library journey.
+- **Observed behavior:** each action opens the default browser at the expected official destination.
+- **Boundary:** native external opening and destination selection pass for the current X7 review source. This does not
+  accept the complete acquisition or import journey.
 
 ## Interim human disposition
 
@@ -563,5 +610,12 @@ The repeated profile on 2026-08-26 uses review source `de0ba3dd149a95ee96e8a48ea
 executable inputs are the corrected source `31751b2ef9291fc23d7aa50e14a2ecfe46280c21`. XH-01 reproduced at the
 real default-browser boundary: FitFreed displayed local action outcomes, but neither Polar destination appeared.
 
-X7 now owns the corrected-product continuation. Its machine evidence is complete, but the repeated human profile has
-not started; this record remains rejected until a new privacy-safe result explicitly replaces that disposition.
+X7 now owns the corrected-product continuation. The repeated profile ran on 2026-08-27 from exact source
+`bd79b95c41a075a8e9383875c7dd898a4f5517d7` with revision-isolated bundle identifier
+`org.fitfreed.desktop.x6-review.rbd79b95c41a0`. [Repository safety
+`33064152469`](https://github.com/purnalica/fitfreed/actions/runs/33064152469), the complete [hosted campaign
+`33064152396`](https://github.com/purnalica/fitfreed/actions/runs/33064152396), its immutable evidence marker, and the
+production-native full-bundle scan pass for that exact source. Human evidence passes the visible native selector and
+official browser experience, retains a minor Settings-action concern, and blocks at XH-24 before populated-library
+review. Functional diagnosis and regression now return to automation. This record remains rejected until a later
+bounded product-owner experience result explicitly replaces that disposition.
