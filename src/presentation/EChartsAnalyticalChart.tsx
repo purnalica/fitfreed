@@ -20,6 +20,11 @@ export default function EChartsAnalyticalChart({
   const chartRef = useRef<ReturnType<typeof mountEChartsAnalyticalChart> | undefined>(undefined);
   const renderedModelRef = useRef<AnalyticalChartModel | undefined>(undefined);
   const renderedSelectionRef = useRef<typeof onSelection>(undefined);
+  const renderedGeometryRef = useRef<{
+    width: number;
+    height: number;
+    devicePixelRatio: number;
+  } | undefined>(undefined);
   const latestModelRef = useRef(model);
   const latestSelectionRef = useRef(onSelection);
   latestModelRef.current = model;
@@ -29,9 +34,20 @@ export default function EChartsAnalyticalChart({
     const container = containerRef.current;
     if (!container) return;
     const renderAtCurrentSize = () => {
-      if (container.clientWidth <= 0 || container.clientHeight <= 0) return;
+      const geometry = {
+        width: container.clientWidth,
+        height: container.clientHeight,
+        devicePixelRatio: window.devicePixelRatio,
+      };
+      if (geometry.width <= 0 || geometry.height <= 0) return;
       if (chartRef.current) {
+        const renderedGeometry = renderedGeometryRef.current;
+        if (renderedGeometry
+          && renderedGeometry.width === geometry.width
+          && renderedGeometry.height === geometry.height
+          && renderedGeometry.devicePixelRatio === geometry.devicePixelRatio) return;
         chartRef.current.resize();
+        renderedGeometryRef.current = geometry;
       } else {
         const latestModel = latestModelRef.current;
         const latestSelection = latestSelectionRef.current;
@@ -42,6 +58,7 @@ export default function EChartsAnalyticalChart({
         );
         renderedModelRef.current = latestModel;
         renderedSelectionRef.current = latestSelection;
+        renderedGeometryRef.current = geometry;
       }
     };
     const observer = typeof ResizeObserver === "undefined"
@@ -57,6 +74,7 @@ export default function EChartsAnalyticalChart({
       chartRef.current = undefined;
       renderedModelRef.current = undefined;
       renderedSelectionRef.current = undefined;
+      renderedGeometryRef.current = undefined;
     };
   }, [model.renderer]);
 

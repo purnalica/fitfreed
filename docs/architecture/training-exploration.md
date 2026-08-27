@@ -279,7 +279,9 @@ annotations, and restrained interaction contract. `AnalyticalChart` validates th
 only that model into a locally bundled renderer. ECharts option objects do not cross the adapter. The adapter uses
 the inherited application palette, font family, and content-zoom scale; disables animation; formats axes through the
 shared presentation boundary; preserves explicit source gaps; and renders selection or range annotations only when
-the model carries authoritative coordinates. A localized error boundary fails closed without logging private
+the model carries authoritative coordinates. The React boundary records the last rendered width, height, and device
+pixel ratio, so a chart is resized only after an actual geometry change; hiding and revealing an unchanged evidence
+section cannot trigger redundant renderer work. A localized error boundary fails closed without logging private
 evidence. Every live chart retains its semantic heading, controls, explanation, and exact tabular or structured
 alternative outside the renderer, so canvas pixels never become the sole meaning or interaction path.
 

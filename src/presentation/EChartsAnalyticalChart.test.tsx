@@ -18,6 +18,7 @@ vi.mock("./echarts-analytical-chart-adapter", () => ({
 let observedResize: ResizeObserverCallback | undefined;
 let hostWidth = 640;
 let hostHeight = 320;
+let hostDevicePixelRatio = 1;
 
 class TestResizeObserver implements ResizeObserver {
   constructor(callback: ResizeObserverCallback) {
@@ -78,10 +79,13 @@ beforeEach(() => {
   observedResize = undefined;
   hostWidth = 640;
   hostHeight = 320;
+  hostDevicePixelRatio = 1;
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get")
     .mockImplementation(() => hostWidth);
   vi.spyOn(HTMLElement.prototype, "clientHeight", "get")
     .mockImplementation(() => hostHeight);
+  vi.spyOn(window, "devicePixelRatio", "get")
+    .mockImplementation(() => hostDevicePixelRatio);
   vi.stubGlobal("ResizeObserver", TestResizeObserver);
 });
 
@@ -92,7 +96,7 @@ afterEach(() => {
 });
 
 describe("EChartsAnalyticalChart", () => {
-  it("owns one disposable renderer and resizes it with its host", () => {
+  it("owns one disposable renderer and resizes it only when host geometry changes", () => {
     const onSelection = vi.fn<(selection: AnalyticalChartSelection) => void>();
     const { unmount } = render(
       <EChartsAnalyticalChart model={model()} onSelection={onSelection} />,
@@ -106,10 +110,25 @@ describe("EChartsAnalyticalChart", () => {
     expect(adapter.mount).toHaveBeenCalledWith(renderer, expect.any(Object), onSelection);
 
     act(() => observedResize?.([], {} as ResizeObserver));
+    expect(adapter.resize).not.toHaveBeenCalled();
+
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(adapter.resize).not.toHaveBeenCalled();
+
+    hostWidth = 720;
+    act(() => observedResize?.([], {} as ResizeObserver));
     expect(adapter.resize).toHaveBeenCalledTimes(1);
 
     act(() => window.dispatchEvent(new Event("resize")));
+    expect(adapter.resize).toHaveBeenCalledTimes(1);
+
+    hostHeight = 360;
+    act(() => window.dispatchEvent(new Event("resize")));
     expect(adapter.resize).toHaveBeenCalledTimes(2);
+
+    hostDevicePixelRatio = 2;
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(adapter.resize).toHaveBeenCalledTimes(3);
 
     unmount();
     expect(adapter.dispose).toHaveBeenCalledTimes(1);
@@ -156,6 +175,10 @@ describe("EChartsAnalyticalChart", () => {
     expect(adapter.mount).toHaveBeenCalledTimes(1);
     expect(adapter.mount).toHaveBeenCalledWith(expect.any(HTMLElement), updated, undefined);
 
+    act(() => observedResize?.([], {} as ResizeObserver));
+    expect(adapter.resize).not.toHaveBeenCalled();
+
+    hostHeight = 360;
     act(() => observedResize?.([], {} as ResizeObserver));
     expect(adapter.resize).toHaveBeenCalledTimes(1);
 
