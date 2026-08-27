@@ -1708,6 +1708,10 @@ describe("packaged FitFreed import journey", () => {
       .setLegacyMode()
       .analyze();
     expect(sourcesAccessibility.violations).toEqual([]);
+    const sourceDialogMock = await browser.tauri.mock("plugin:dialog|open");
+    await openArchivePicker(sourceDialogMock, null, english.choose);
+    await expect($(".path")).toHaveText(english.noPackage);
+    await expect($("aria/Import selected package")).toBeDisabled();
 
     await goToHome("home");
     await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);

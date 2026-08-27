@@ -295,7 +295,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C4 | Reopened by XH-09 — shell operation truth remains valid, but represented sport collections still contain dead ends | Prominent summaries and collections open useful evidence |
 | X6-C5 | Reopened by XH-12 through XH-22 — the geometry correction remains valid but does not constitute a coherent data-presentation system | Data is concise, aligned, precise, visual, and progressively disclosed |
 | X7-P0 | Complete in working tree — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
-| X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
+| X7-R1 | Machine-complete — X7A-01 corrected and packaged; actual browser appearance remains in the final production-native human gate | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
 | X7-R2 | Complete locally — exact represented-sport identity, comparison presets, and the complete natural-drill-down campaign passed 2026-08-26 | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
@@ -3150,12 +3150,16 @@ Normal synchronization remains pending because the configured SSH signing agent 
 The working tree is clean.
 
 Whole-product falsification has started. The X7 acceptance contract, the rejected X6 production-native evaluation,
-and the retained machine-audit evidence have been re-read. No new X7-R7 finding has yet been accepted or corrected.
-The deterministic continuation is to establish the current X7-R1 native-link disposition from its introducing
+and the retained machine-audit evidence have been re-read. At this restart boundary, no new X7-R7 finding had yet
+been accepted or corrected. The deterministic continuation was to establish the current X7-R1 native-link disposition from its introducing
 change and live evidence; inventory the existing visual, accessibility, geometry, and review-package automation;
 trace every X7 production path to a reachable surface and complete behavior test; then execute the independent
 screen-and-state audit. Every critical or major finding reopens its owning increment and must be corrected before the
 complete gates, executable-input-selected hosted campaign, and revision-isolated production-native review package.
+
+The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) accepted X7A-01 on its
+first packaged acquisition pass. Sources-local chooser cancellation tries to restore focus before React re-enables
+the initiating action. X7-R1 is reopened until the pending, settled, and packaged focus sequence passes.
 
 **User outcome:** the next review build is a credible product candidate for the agreed private macOS alpha journey,
 not a collection of individually green corrections.

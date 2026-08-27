@@ -559,6 +559,10 @@ describe("SourcesPanel", () => {
   it("returns focus to archive selection when the native chooser is cancelled", async () => {
     const user = userEvent.setup();
     const onArchiveError = vi.fn();
+    let completeSelection!: (selected: string | null) => void;
+    const onChooseArchive = vi.fn(() => new Promise<string | null>((resolve) => {
+      completeSelection = resolve;
+    }));
     render(
       <SourcesPanel
         locale="en-US"
@@ -572,7 +576,7 @@ describe("SourcesPanel", () => {
         cancellable={false}
         updateInstalling={false}
         cancelRequested={false}
-        onChooseArchive={vi.fn().mockResolvedValue(null)}
+        onChooseArchive={onChooseArchive}
         onArchiveError={onArchiveError}
         onImport={vi.fn()}
         onCancel={vi.fn()}
@@ -583,7 +587,13 @@ describe("SourcesPanel", () => {
 
     const choose = screen.getByRole("button", { name: "Choose ZIP package" });
     await user.click(choose);
+    expect(choose).toBeDisabled();
+    screen.getByRole("button", { name: "Show me how" }).focus();
+    expect(choose).not.toHaveFocus();
 
+    await act(async () => completeSelection(null));
+
+    await waitFor(() => expect(choose).toBeEnabled());
     expect(choose).toHaveFocus();
     expect(onArchiveError).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

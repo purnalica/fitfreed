@@ -108,6 +108,7 @@ export function SourcesPanel({
   const archiveContainer = useRef<HTMLElement>(null);
   const archiveHeading = useRef<HTMLHeadingElement>(null);
   const chooseArchiveButton = useRef<HTMLButtonElement>(null);
+  const archiveChoiceFocusPending = useRef(false);
   const linkFailure = useRef<HTMLDivElement>(null);
 
   function reveal(target: HTMLElement | null, scrollTarget = target) {
@@ -136,6 +137,12 @@ export function SourcesPanel({
       chooseArchiveButton.current?.focus();
     }
   }, [archivePickerRecoveryFocusRequestId]);
+
+  useEffect(() => {
+    if (archiveChoosing || !archiveChoiceFocusPending.current) return;
+    archiveChoiceFocusPending.current = false;
+    chooseArchiveButton.current?.focus();
+  }, [archiveChoosing]);
 
   useEffect(() => {
     if (mode !== "active" || cancelRequested) {
@@ -199,10 +206,10 @@ export function SourcesPanel({
     setArchiveChoosing(true);
     try {
       const selected = await onChooseArchive();
-      if (selected === null) chooseArchiveButton.current?.focus();
+      if (selected === null) archiveChoiceFocusPending.current = true;
     } catch {
       onArchiveError();
-      chooseArchiveButton.current?.focus();
+      archiveChoiceFocusPending.current = true;
     } finally {
       setArchiveChoosing(false);
     }
