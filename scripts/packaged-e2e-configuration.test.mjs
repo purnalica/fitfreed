@@ -164,3 +164,24 @@ test("keeps packaged layout timing independent of animation-frame visibility", (
   assert.match(comparison, /setTimeout\(\(\) => \{/);
   assert.match(comparison, /querySelector\("table"\)\.getBoundingClientRect\(\)/);
 });
+
+test("observes exact signal rendering without background-throttled polling timers", () => {
+  const performanceJourney = readFileSync(
+    path.resolve("test/e2e/support/insights-performance.js"),
+    "utf8",
+  );
+  const exactPageStart = performanceJourney.indexOf(
+    "async function measureTrainingSignalExactPage",
+  );
+  const exactPageEnd = performanceJourney.indexOf(
+    "async function measureTrainingRouteWorkbenchOpen",
+    exactPageStart,
+  );
+  assert.ok(exactPageStart >= 0 && exactPageEnd > exactPageStart);
+  const exactPage = performanceJourney.slice(exactPageStart, exactPageEnd);
+
+  assert.match(exactPage, /new MutationObserver/);
+  assert.match(exactPage, /new MessageChannel/);
+  assert.doesNotMatch(exactPage, /setTimeout\(observeResult/);
+  assert.match(exactPage, /getBoundingClientRect\(\)/);
+});

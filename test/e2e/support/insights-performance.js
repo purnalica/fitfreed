@@ -114,7 +114,7 @@ function evidence(measurements) {
       commonMeasuredRuns: 20,
       maximumMeasuredRuns: 7,
       percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-      completionBoundary: "expected answer boundary observed after synchronous layout on the following browser task",
+      completionBoundary: "mutation-observed answer boundary after synchronous layout on a message-channel browser task",
       scope: "packaged Tauri command, SQLite and application work, transport, React update, and laid-out domain or longitudinal answer",
     },
     measurements,
@@ -508,36 +508,61 @@ async function measureTrainingSignalExactPage() {
   ).click();
   await $("#training-detail-signals").waitForDisplayed({ timeout: 5_000 });
   await browser.waitUntil(
-    async () => (await $$(".training-signal button[aria-expanded]")).length === 4,
+    async () => (await $$(".training-signal button[aria-expanded='false']")).length === 4,
     { timeout: 5_000, timeoutMsg: "training signal exact-sample action was not available" },
   );
   const result = await browser.executeAsync((done) => {
-    const exactButton = document.querySelector(".training-signal button[aria-expanded]");
+    const exactButton = document.querySelector(
+      ".training-signal button[aria-expanded='false']",
+    );
     if (!exactButton) {
       done({ duration: null, error: "training signal exact-sample action was not available" });
       return;
     }
     const started = window.performance.now();
-    exactButton.click();
+    let complete = false;
+    const channel = new MessageChannel();
+    const observer = new MutationObserver(observeResult);
+    const deadline = setTimeout(() => finish({
+      duration: null,
+      error: "exact training signal sample page was not rendered",
+    }), 5_000);
+
+    function finish(outcome) {
+      if (complete) return;
+      complete = true;
+      clearTimeout(deadline);
+      observer.disconnect();
+      channel.port1.close();
+      channel.port2.close();
+      done(outcome);
+    }
+
+    function finishRenderedResult() {
+      document.documentElement.getBoundingClientRect();
+      channel.port1.onmessage = () => finish({
+        duration: window.performance.now() - started,
+        error: null,
+      });
+      channel.port2.postMessage(null);
+    }
+
     function observeResult() {
       const rows = document.querySelectorAll(".training-signal-exact tbody tr");
       const status = document.querySelector(".training-signal-exact [aria-live='polite']")
         ?.textContent;
       if (rows.length === 100 && status === "Samples 1–100 of 20,001") {
-        document.documentElement.getBoundingClientRect();
-        setTimeout(() => done({
-          duration: window.performance.now() - started,
-          error: null,
-        }));
-        return;
+        finishRenderedResult();
       }
-      if (window.performance.now() - started > 5_000) {
-        done({ duration: null, error: "exact training signal sample page was not rendered" });
-        return;
-      }
-      setTimeout(observeResult, 16);
     }
-    setTimeout(observeResult, 16);
+
+    observer.observe(document.body, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+    exactButton.click();
+    observeResult();
   });
   if (result.error) throw new Error(result.error);
   await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
