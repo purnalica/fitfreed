@@ -11,26 +11,25 @@ document is the single implementation-facing plan for X4 through X7 of the syste
 
 ### Current execution snapshot
 
-Updated 2026-08-27. X4-P0, X5-R1 through X5-R10, and the X7-R1 through X7-R7 automatable boundaries are complete.
+Updated 2026-08-28. X4-P0, X5-R1 through X5-R10, and the X7-R1 through X7-R7 automatable boundaries are complete.
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) closes its only material
 finding after an exact clean rebuild and accepts no additional critical or major finding. Exact [repository safety
-`33057603547`](https://github.com/purnalica/fitfreed/actions/runs/33057603547) and the complete [hosted campaign
-`33057603540`](https://github.com/purnalica/fitfreed/actions/runs/33057603540) pass for source `a130343`. The hosted
-campaign passes portable checks in 4 minutes and 3 seconds, the packaged macOS campaign in 1 hour, 2 minutes, and 31
-seconds, and the immutable evidence marker in 4 seconds. It covers production-native package construction and scan,
-cold launch, full-scale import, dense History, Insights, the complete packaged journey, restart, adaptive sessions,
-installation boundaries, update replacement, deliberate rejection, and recovery for executable-input fingerprint
-`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`.
+`33128051754`](https://github.com/purnalica/fitfreed/actions/runs/33128051754) and the complete [hosted campaign
+`33128051685`](https://github.com/purnalica/fitfreed/actions/runs/33128051685) pass for source `78d2d54`. The hosted
+campaign passes portable checks in 5 minutes, the packaged macOS campaign in 1 hour, 1 minute, and 28 seconds, and the
+immutable evidence marker in 5 seconds. It covers production-native package construction and scan, cold launch,
+full-scale import, dense History, Insights, the complete packaged journey, restart, adaptive sessions, installation
+boundaries, update replacement, deliberate rejection, and recovery for executable-input fingerprint
+`813ba487a1684f98d09b67cfa0dd635cc66ffbd862f0fe282d925abdbf8ce172`.
 
 The [production-native human evaluation](../research/x6-product-experience-human-evaluation.md) remains the
 authoritative rejection of every reviewed X6 source; automation does not reinterpret that result. Its repeated profile
 reopened planned-training compatibility as XH-24 and unrelated-package explanation as XH-03. Both causes are now
 machine-corrected: unnamed provider phases retain truthful absence, while package identity persists independently from
-the exact archive protection that stopped processing. Complete fast and packaged local campaigns pass for the
+the exact archive protection that stopped processing. Complete exact local and hosted campaigns pass for the
 corrections. The privacy-minimized private-reference predicate and the revision-isolated production-native package
-scan pass for clean executable source `13e4a3a`; the latter contains production adapters and no E2E routing. A new
-bounded product-owner experience review remains ineligible until the complete exact local and hosted campaigns pass
-again and the final clean handoff package is rebuilt and inspected.
+scan pass; the latter contains production adapters and no E2E routing. A new bounded product-owner experience review
+remains pending until this evidence update is committed and the final clean handoff package is rebuilt and inspected.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -3123,12 +3122,11 @@ mode; or introducing community exchange before the local contract is accepted.
 
 ### X7-R7 — Falsify the complete corrected product before handoff
 
-**Machine-complete checkpoint — 2026-08-27:** X7-R6 remains closed and X7-R7 evidence was collected from clean audit
-revision `7aa38af`. Latest executable correction `c7cc208` has executable-input fingerprint
-`dc0b344b9f363b5ba810f766820ba0d5270a2c238cb0444242ad96c5f04e96d2`. Exact source `a130343` is synchronized and
-passes repository safety, the complete hosted campaign, its immutable marker, and a revision-isolated
-production-native full-bundle scan. Synthetic audit archives, databases, screenshots, exports, and packages remain
-ignored and outside the repository.
+**Machine-complete checkpoint — 2026-08-28:** X7-R6 remains closed and X7-R7 evidence was collected from clean audit
+revision `7aa38af`. Latest executable source `78d2d54` has executable-input fingerprint
+`813ba487a1684f98d09b67cfa0dd635cc66ffbd862f0fe282d925abdbf8ce172`, is synchronized, and passes repository safety,
+the complete hosted campaign, its immutable marker, and a revision-isolated production-native full-bundle scan.
+Synthetic audit archives, databases, screenshots, exports, and packages remain ignored and outside the repository.
 
 Whole-product falsification has established the X7-R1 native-link disposition, inventoried the visual,
 accessibility, geometry, and review-package automation, and traced every X7 production path to a registered host
@@ -3158,6 +3156,25 @@ job completed in 4 minutes and 3 seconds, the packaged macOS job in 1 hour, 2 mi
 marker in 4 seconds. The revision-isolated production-native profile reports the same source and executable-input
 fingerprint, includes production adapters, and excludes instrumented E2E routing. The profile must always be rebuilt
 and scanned from the final clean handoff revision immediately before launch; no package is published.
+
+A later exact hosted campaign [`33119307033`](https://github.com/purnalica/fitfreed/actions/runs/33119307033) for
+source `529c56e` rejected the independent-signal reveal at 287 milliseconds p95 against the unchanged 250-millisecond
+budget. Every preceding portable, native-package, cold-launch, full-scale import, dense-History, Insights,
+installation, and packaged functional boundary had passed. Root-cause tracing found that returning to the already
+mounted Signals section resized all five ECharts renderers even when width, height, and device pixel ratio were
+unchanged. The hosted virtual M1 exposed the product cost that the local machine did not; the failure was neither
+reclassified nor hidden by a larger budget.
+
+The chart boundary now records its rendered geometry and resizes only after a real width, height, or pixel-ratio
+change. Focused lifecycle tests fail without that correction and prove both unchanged and changed geometry after it.
+Exact clean local verification for source `78d2d54` passes every gate, with independent-signal reveal measured at 70
+milliseconds p95. Replacement [repository-safety run
+`33128051754`](https://github.com/purnalica/fitfreed/actions/runs/33128051754) and [hosted campaign
+`33128051685`](https://github.com/purnalica/fitfreed/actions/runs/33128051685) pass for the same source. On the hosted
+virtual M1, the reveal measures 193 milliseconds p95 against the retained 250-millisecond budget; all five packaged
+journeys, production update replacement, deliberate rejection, recovery, and the immutable evidence marker pass. The
+marker records executable-input fingerprint
+`813ba487a1684f98d09b67cfa0dd635cc66ffbd862f0fe282d925abdbf8ce172`.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) accepted X7A-01 on its
 first packaged acquisition pass. Sources-local chooser cancellation tried to restore focus before React re-enabled
