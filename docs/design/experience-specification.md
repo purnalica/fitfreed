@@ -2,16 +2,18 @@
 
 ## Status and authority
 
-**Accepted X3 contract as of 2026-08-21; implemented through X7-R7.** This document is the single
+**Accepted X3 contract as of 2026-08-21; X7-R8 correction active.** This document is the single
 source of truth for the screen, interaction, navigation, state, responsive, localization, and
-accessibility contract of the systemic MVP experience redesign. The production application now
-implements X5-R1 through X5-R10 and the corrective X7-R1 through X7-R7 vertical slices.
+accessibility contract of the systemic MVP experience redesign. The production application implements
+X5-R1 through X5-R10 and the earlier corrective X7-R1 through X7-R7 vertical slices, while X7-R8 owns
+the contract corrections established by the paused production-native review.
 The first human session was invalidated by an instrumented native boundary, and the restarted valid human gate later
 rejected its reviewed X6 sources. Corrective X7-R1 through X7-R7 in the [production migration
-plan](../plans/mvp-redesign-production-migration.md) now pass their independent audit, exact local and hosted
-campaigns, immutable marker, and production-native bundle scan. The remaining provider-catalogue, native-browser,
-and repeated human gates must restore human acceptance before release preparation resumes. Implementation and machine
-evidence do not by themselves authorize a release claim.
+plan](../plans/mvp-redesign-production-migration.md) passed their independent audit, exact local and hosted
+campaigns, immutable marker, and production-native bundle scan, but the resulting candidate was rejected after the
+product-owner review exposed material lower-layer and experience defects. X7-R8 must correct them, repeat the audit,
+and restore human acceptance before release preparation resumes. Implementation and machine evidence do not by
+themselves authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and
@@ -105,6 +107,12 @@ an explicit unbounded state. Free text searches session names or helps with impr
 not replace those selectors. All refinements update a single result set, expose their active state,
 and can be removed individually or cleared together to restore the default set.
 
+The calendar is another session-discovery view, not a count heatmap. Every activity shown in a day
+uses the same recognizable sport identity as session discovery, includes its human-scale duration,
+and opens that exact session. Multiple activities follow local start order. The calendar exposes the
+years represented in the current query and one direct return to the current month; month-by-month
+stepping is never the only way to reach a long history.
+
 An empty result belongs to the current refinements, not to the library. It names the active query,
 confirms that imported sessions remain unchanged, and offers a clear-refinements action.
 
@@ -112,7 +120,10 @@ An unresolved provider sport never blocks its sessions. The affected sessions ap
 with one classification task. The person chooses a canonical family and an authored display label;
 the family supplies the matching provider-neutral icon. Blank labels fail locally with a precise
 message. Save updates all affected history views; cancel restores the last saved classification.
-Source evidence remains unchanged and the classification survives navigation and restart.
+Source evidence remains unchanged and the classification survives navigation and restart. The task
+names its exact scope before save. Classifying an unresolved remainder does not silently absorb
+sessions that already carry stronger exact recognition; deliberately unifying identities is a
+separate explicit operation with a visible affected-session account.
 
 ### Session
 
@@ -192,6 +203,14 @@ range, and manual-boundary concepts when their required evidence exists. Save an
 edit and cancel preserve the last saved criterion. Derived sections are attributed to the person and
 never replace provider structure or modify imported samples.
 
+Independent recorded signals use a mature analytical chart with one through four deliberately chosen
+series. A single series remains a valid inspection state. When both are recorded, speed and heart rate
+are the initial pair; otherwise defaults follow a documented sport-aware relevance order rather than
+source enumeration. Cumulative distance remains available when its monotonic progression answers the
+current question, but it is not selected merely because it appears early in source order. Each lane
+has an unambiguous horizontal label, scale, and unit that cannot collide with adjacent lanes at any
+supported locale, allocation, or content zoom.
+
 ### Reports
 
 A report is a named, deliberately created, durable analytical document about one supported session,
@@ -211,11 +230,24 @@ Reports opens on a visual library. Each item communicates subject, one meaningfu
 state, period or date, and sensitive-content indication where relevant. An empty library defines the
 object and offers supported session or comparison starts. Selecting an item opens its resolved result.
 
+A report example or contextual start that requires a bounded subject keeps the person inside the
+report task. It presents only eligible candidates, preserves the initiating example and destination,
+and requires an explicit **Use this session**, **Use this comparison**, or equivalent choice. A route
+example never delegates to an unfiltered session list that includes sessions without route evidence.
+
 The result leads with the finding and visual evidence. Source navigation, evidence state, export,
 deliberate edit, and deletion are visible but secondary. Editing uses three coordinated regions: an
 ordered document outline, a substantial result preview, and a focused inspector. Blocks can be
 added only when compatible, removed when optional, and moved explicitly. Save returns to the result;
 cancel restores the saved definition.
+
+The result also owns the effective parameters of its current run. Date periods and every other
+supported frequently changed filter appear beside the result, use the same semantic paired presets
+as ordinary comparisons, and retain manual selection. Changing a run parameter resolves a new result
+without mutating the saved report. The definition editor changes durable structure and saved defaults;
+it is not required for ordinary month-to-month or quarter-to-quarter exploration. The result and
+export review identify the effective values and whether they came from saved defaults or a transient
+run.
 
 When source evidence changes, the saved report remains on its reviewed revision until the person
 reviews a current candidate. Title, authored interpretation, chosen subject, and order do not change

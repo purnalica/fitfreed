@@ -99,6 +99,11 @@ Importing a later export will incorporate new information and reconcile previous
 
 The application will provide understandable navigation and querying of imported information. Specific entities, filters, searches, and relationships will be defined after the real takeout format has been inventoried.
 
+Calendar exploration will present each training session as an activity rather than reduce a day to an unexplained
+count. Each visible activity will include its recognizable sport identity and duration, and multiple sessions on one
+day will follow their local start order. Navigation will provide direct access to every year represented in the
+current library and one action that returns to the current month.
+
 ### FR-005 — Reports
 
 The application will let users compose, save, revisit, refresh, and export their own reports. A report may begin from a question, exploration, session, or reusable blank definition and combine periods, sports, sessions, measurements, comparisons, user-defined segmentation, narrative, exact values, tables, charts, maps, provenance, coverage, and limitations.
@@ -107,10 +112,22 @@ Saved reports will retain a documented, versioned, reproducible definition rathe
 
 The ordinary report journey is result-first. Opening a saved report, or starting one from a question, exploration, or session, will show a useful rendered result before exposing composition mechanics. Editing is a deliberate secondary mode, and returning from it restores the report result without placing that result below the editor or a long report list. Blank composition and advanced block controls remain available without becoming the default path for people who only need to review, refresh, or export a result.
 
+A report definition will distinguish its durable structure, its saved default parameters, and the effective
+parameters of one viewing run. Supported run parameters—at least report date periods and any other frequently changed
+filter admitted by the report subject—will remain directly adjustable beside the rendered result. Changing them will
+rerun the report without silently rewriting its saved definition; editing the definition remains the deliberate way
+to change durable structure or defaults. Period controls will offer meaningful paired presets such as current and
+preceding week, month, quarter, or year while preserving manual selection. Export will identify the effective run
+parameters and will not imply that transient values were saved as report defaults.
+
 Reports will include a curated set of relevant built-in examples that demonstrate meaningful product capabilities over
 the evidence actually available in the person's local library. An example with unmet prerequisites will explain them
 rather than fabricate a result. A person can use an example as the basis of a new independently owned report without
 mutating the built-in definition.
+
+When an example or contextual start requires a session, comparison, route, or another bounded subject, the report
+journey will present eligible candidates in context and require an explicit selection. It will not abandon the report
+task in an unfiltered general workspace or require the person to infer a hidden continuation action.
 
 A saved report can be duplicated deliberately. Duplication creates a new local report identity and an independently
 editable definition while retaining the source report unchanged. Exact naming, evidence-snapshot, stale-state, origin,
@@ -468,7 +485,12 @@ All user-facing features included in the first release will be available in Engl
   reference. One exact candidate is recognized, multiple candidates remain ambiguous, no candidate remains unknown,
   and absence of recorded sport evidence remains unavailable; candidate order never selects a winner.
 - Provider identifiers, catalogue keys, and provider hierarchy remain inside the source adapter. Home, History, session, report, filter, and export projections receive only localized names, an optional provider-neutral family suggestion, candidate cardinality, and opaque local evidence capabilities.
-- User-authored meaning produces a personally overridden identity and always wins in presentation without deleting recognition evidence. Reimport or catalogue enrichment may update the retained source recognition but may not silently replace the personal choice.
+- User-authored meaning produces a personally overridden identity and wins within its explicitly declared scope
+  without deleting recognition evidence. Classifying the unresolved remainder of an opaque source profile will not
+  silently replace a more specific session-scoped or catalogue-backed identity merely because both records carry the
+  same opaque reference. Deliberately unifying those identities requires an explicit relationship whose affected
+  sessions and precedence are visible before save. Reimport or catalogue enrichment may update retained source
+  recognition but may not silently replace the personal choice within that declared scope.
 - Activating another catalogue or mapping revision invalidates earlier training-discovery snapshots before any new identity is projected.
 - Training history will use a recognizable provider-neutral sport label and visual identifier wherever trustworthy identity evidence exists. Unresolved references remain honest but are classifiable from the affected history itself; assigning or revising a display label and sport family updates every relevant view without requiring reimport.
 - Every sport identity available to the current history will be visibly discoverable at supported widths and zoom levels. Discovery will wrap complete labels and actions instead of relying on unannounced horizontal scrolling, truncation, or hidden continuation.

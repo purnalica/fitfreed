@@ -323,6 +323,19 @@ product owner.
   participant-assisted session that correlates selected source sessions with the sport names shown in the
   participant's Polar account. Request that session after observation collection ends. No date, sport, route,
   identifier, value, account content, or other personal evidence may enter the repository or retained diagnostics.
+- **Post-session root cause:** privacy-minimized, read-only predicates over the authorized local library establish that
+  one opaque source sport reference can occur both with and without exact session-scoped sport evidence, and can be
+  associated with more than one exact sport code. The discovery projection deliberately separates exact recognition
+  from the opaque remainder, but the current personal-classification key covers the complete opaque reference. Saving
+  that classification therefore reunites the previously separated records and replaces their visible grouping. This
+  explains the disappearing recognized group, the changed session total, and the disagreement between the Home card
+  and classification task; it is a scope and precedence defect, not a stale React projection. The repository retains
+  no predicate result, source reference, code, sport, date, count, or personal value.
+- **Remaining evidence gate:** the structural correction can preserve exact recognition independently of a fallback
+  classification, but trustworthy automatic naming still requires the bounded participant-assisted correlation. The
+  session must test whether the provider account presents stable sport meaning for carefully selected examples across
+  the ambiguous source-reference shapes. It cannot turn one observed personal association into a universal mapping;
+  any reusable correlation still requires explicit provenance, ambiguity, update, and correction rules.
 
 ### XH-09 — Home aggregates look actionable but do not lead to exploration
 
@@ -500,8 +513,9 @@ product owner.
 - **Observed behavior:** both comparison sides can begin with the same date range, producing no useful contrast.
 - **Visual confirmation:** the participant supplied a screenshot showing identical initial reference and comparison
   ranges. The image and its displayed dates are not retained.
-- **Expected behavior:** the product proposes distinct contextual pairs such as current and preceding week, month, or
-  year, while keeping manual selection of both ranges available at all times.
+- **Expected behavior:** the product provides semantic range pairs such as current and preceding week, month, quarter,
+  or year, while keeping manual selection of both ranges available at all times. The same period-selection capability
+  is reused wherever a person compares bounded periods rather than being reimplemented as unrelated date controls.
 - **Participant impact:** the person must repair a meaningless initial state before learning anything, and the product
   fails to demonstrate what comparison is for.
 - **Disposition:** retain the observation and product direction for joint post-session evaluation without changing
@@ -662,6 +676,20 @@ product owner.
 - **Product-owner direction:** show at least the sport icon and activity duration. When a day contains multiple
   activities, present them in activity-start order. Calendar navigation must provide direct access to the years that
   exist in the imported history and a clear action that returns quickly to the current month.
+
+### XH-26 — Report viewing freezes frequently changed filters into the definition
+
+- **Status:** observed when the bounded X7 product-owner experience review was paused; no concurrent analysis or
+  disposition.
+- **Observed behavior:** a saved report fixes its date range and other filters inside the editable definition. Changing
+  the compared months or another exploratory filter requires leaving the result and editing the report itself.
+- **Expected behavior:** report viewing exposes at least date periods, and any other filter established as an execution
+  parameter, directly beside the result. Changing those parameters reruns the same report without silently rewriting
+  its saved definition. Editing remains the separate operation for changing the report structure, defaults, or
+  durable configuration. Period parameters reuse the semantic and manual selection capability recorded in XH-17.
+- **Design boundary to resolve:** the report contract must distinguish structural definition, saved default parameter
+  values, and the current viewing run before presentation controls are changed. Exported results must identify the
+  effective parameters used for that run.
 
 ## Passing observations
 

@@ -7,11 +7,17 @@ Authorized for autonomous execution as of 2026-08-21. The independent R5 checkpo
 [R5 checkpoint audit](../research/mvp-redesign-r5-checkpoint-audit.md).
 The X5-R1 product entrance is live and its CI resource policy is covered by the current hosted
 portable checks. The product owner accepted the X3 direction and its amendments on 2026-08-21. This
-document is the single implementation-facing plan for X4 through X7 of the systemic MVP redesign.
+document is the single implementation-facing plan for X4 through the corrective X7-R8 sequence of the systemic MVP
+redesign.
 
 ### Current execution snapshot
 
-Updated 2026-08-28. X4-P0, X5-R1 through X5-R10, and the X7-R1 through X7-R7 automatable boundaries are complete.
+Updated 2026-08-28. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
+machine-complete historical evidence. The production-native review of that result was paused and rejected after it
+found material defects in sport identity, calendar discovery, information density, analytical charts, route
+interaction, and report execution. X7-R8 is now the active corrective sequence; no prior green campaign or audit
+overrides the observed product failure.
+
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) closes its only material
 finding after an exact clean rebuild and accepts no additional critical or major finding. Exact [repository safety
 `33128051754`](https://github.com/purnalica/fitfreed/actions/runs/33128051754) and the complete [hosted campaign
@@ -23,13 +29,17 @@ boundaries, update replacement, deliberate rejection, and recovery for executabl
 `813ba487a1684f98d09b67cfa0dd635cc66ffbd862f0fe282d925abdbf8ce172`.
 
 The [production-native human evaluation](../research/x6-product-experience-human-evaluation.md) remains the
-authoritative rejection of every reviewed X6 source; automation does not reinterpret that result. Its repeated profile
-reopened planned-training compatibility as XH-24 and unrelated-package explanation as XH-03. Both causes are now
-machine-corrected: unnamed provider phases retain truthful absence, while package identity persists independently from
-the exact archive protection that stopped processing. Complete exact local and hosted campaigns pass for the
-corrections. The privacy-minimized private-reference predicate and the revision-isolated production-native package
-scan pass; the latter contains production adapters and no E2E routing. A new bounded product-owner experience review
-remains pending until this evidence update is committed and the final clean handoff package is rebuilt and inspected.
+authoritative rejection record for every reviewed source; automation does not reinterpret that result. Earlier
+corrections for planned-training compatibility and unrelated-package explanation retain their machine evidence, but
+the later bounded review exposed deeper causal gaps. In particular, the current sport-classification scope can absorb
+stronger exact recognition, calendar discovery lacks individual session data, saved reports have no transient run
+parameter contract, and the report example journey delegates to a generic workspace instead of selecting an eligible
+subject. These are lower-layer defects, not isolated copy or CSS issues.
+
+X7-R8 begins with the completed causal analysis and a bounded participant-assisted Polar correlation gate. It then
+delivers small end-to-end corrections in dependency order, repeats an independent whole-product UX audit, and creates
+one new production-native candidate only after the complete exact campaign passes. The previous review application is
+not a candidate and must not be handed back for incremental spot checking.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -40,7 +50,8 @@ public-candidate work remain outside X7.
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
 [X7-R7](#x7-r7--falsify-the-complete-corrected-product-before-handoff) defines the final independent audit and human
-handoff.
+handoff that was rejected. [X7-R8](#x7-r8--correct-the-paused-production-native-review) defines the active recovery
+sequence and its next human gate.
 
 The [MVP experience specification](../design/experience-specification.md) owns screen, interaction,
 state, navigation, adaptive, localization, and accessibility behavior. The
@@ -279,7 +290,8 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R4 | Machine-complete — mature renderers, route-relative zoom, and exact local and hosted analytical gates passed | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
-| X7-R7 | Reopened — XH-24 and XH-03 corrections require a new exact local/hosted campaign and production-native handoff before bounded experience review | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
+| X7-R8 | In progress — review frozen, causal analysis active, bounded Polar correlation gate next | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3208,6 +3220,216 @@ five-second comprehension, trust, time to recognizable value, natural navigation
 progressive detail, report usefulness, data exit, Settings clarity, localization, accessibility, factual tone, and a
 credible reason to continue using FitFreed. Any unresolved critical or major finding reopens its owning X7 increment.
 
+## X7-R8 — Correct the paused production-native review
+
+**Active checkpoint — 2026-08-28:** the X7 handoff candidate is rejected and the product-owner review is paused. The
+review record is complete through XH-26. Root-cause tracing has established the lower-layer gaps below; implementation
+must not begin by adjusting isolated labels, CSS, or test expectations. Earlier corrections that remain behaviorally
+valid stay covered, but their prior green campaign cannot admit another candidate.
+
+**User outcome:** a first import produces recognizable, naturally explorable training history; session and route
+investigation answer useful questions without drowning the person in raw evidence; report examples lead to an
+unambiguous result and that result can be rerun with ordinary date parameters. A person no longer has to understand
+FitFreed's storage, mapping, or editor structure to discover value.
+
+### Established causal map
+
+| Review problem | Lowest established cause | Correction boundary |
+|---|---|---|
+| Recognized sports disappear or change size after personal naming | Exact session recognition and an unresolved opaque source profile are separated for discovery, but the persisted personal classification is keyed to the complete opaque reference and reunites them on save | Domain identity scope, classification precedence, persistence, projections, importer evidence, and one bounded provider-correlation gate |
+| Calendar days expose only a number | The application calendar read model, SQL query, and transport DTO contain daily aggregates only; presentation never receives individual sessions | Bounded calendar-session projection from persistence through UI |
+| Report examples lose the selection task | The example action clears its context and navigates to generic History; no eligible-subject selection use case exists | Report application use case, eligibility query, explicit selection state, navigation continuity |
+| Report dates can change only through editing | The persisted definition query is the only report-resolution input; there is no transient run-parameter contract | Domain/application report-run parameters, resolution, export provenance, result controls |
+| Ordinary values look raw and same-day time is repeated | A distance wrapper requests exact significant-digit formatting in ordinary surfaces, while the session overview independently renders complete start, end, offset, and duration fields | Shared semantic presentation roles and concise temporal composition; exact evidence remains separate |
+| Combined signals overlap and enforce arbitrary choices | Chart state fixes a two-series minimum, chooses source order, and compiles vertical lane names into insufficient stacked geometry | Signal-selection policy and ECharts analytical-layout adapter, not a replacement CSS chart |
+| Map selection does not create or refine an investigable range | The range domain and persistence exist, but the route renderer exposes navigation and existing range display without a pointer-selection gesture | Route interaction adapter over the existing range commands, guarded by exact coordinate authority |
+| Import and Settings present competing or permanently irrelevant actions | Sources result composition mounts another ready-state chooser, while Settings presents reset, revert, and save as one persistent peer group | Task-state composition and action hierarchy; existing application transactions remain unchanged |
+| Calendar, tables, summaries, and session detail remain noisy | Prior audits checked presence and geometry but did not apply one question-first density review to every ordinary surface | Transversal content-role audit followed by focused corrections at each owning projection |
+
+Official Polar documentation establishes two important limits. The Dynamic API exposes an authenticated sports
+catalogue and identifies a sport profile as configurable user state, but those facts do not grant redistribution
+rights or prove that every opaque takeout reference has one universal name. The same API nests interval samples and a
+timestamped route under an exercise, while the supported takeout contract does not currently record an authoritative
+origin that joins its independent regular-signal files to route time. FitFreed therefore preserves the existing
+no-invented-correlation rule until a source contract proves a stronger relationship.
+
+### X7-R8.0 — Freeze the corrective contract and prepare the only near-term human gate
+
+1. Reconcile XH-01 through XH-26 with requirements, the experience specification, source-format contracts, and this
+   sequence. Record structural conclusions in their existing canonical homes; do not create a second backlog.
+2. Build a privacy-minimized local selector for a small set of sport-correlation examples. It must cover an opaque
+   profile with exact and unresolved sessions, an opaque profile associated with more than one exact candidate, an
+   unresolved-only profile, and absent source sport evidence when present. It may reveal the selected dates only in
+   the live local session and must never write them, source identifiers, sport names, counts, archive paths, or account
+   content to repository artifacts or diagnostics.
+3. Ask the participant to inspect only those selected sessions in Polar Flow and report the displayed sport name.
+   Record in canonical documentation only the non-identifying structural conclusion: stable one-to-one evidence,
+   one-to-many ambiguity, missing evidence, or a mixture. A personal association is evidence for the local library,
+   not authority for a bundled global catalogue.
+4. Use that conclusion to finish the source-evidence decision before changing sport grouping. Any reusable automatic
+   mapping requires provenance, confidence, ambiguity, version, update, licence, and user-correction rules. An
+   authenticated provider catalogue remains local-only and opt-in unless a separate connected-provider increment is
+   explicitly admitted later.
+
+**Gate:** this is the next human intervention. It is bounded to reading a few locally selected session dates in the
+participant's own Polar Flow account. No code review, functional acceptance, archive inspection, credential transfer,
+or broad manual checklist is requested.
+
+### X7-R8.1 — Make sport identity stable, recognizable, and explicitly adaptable
+
+1. Introduce failing domain tests for the observed mixed-evidence shape. Exact session recognition must remain stable
+   when a fallback classification is saved for the unresolved remainder; candidate order and projection refresh must
+   not alter grouping.
+2. Model identity scope explicitly: source evidence, exact recognized identity, unresolved fallback classification,
+   and any deliberate user-authored unified-sport relationship remain distinguishable. A user action names its affected
+   sessions and precedence before save. No operation deletes provider evidence.
+3. Carry the revised contract through canonical records, application commands and queries, SQLite migrations,
+   portable backup, reports, export, Home, History, calendar, filters, session detail, reimport, restart, and rollback.
+4. Where trustworthy provider evidence exists, resolve it through the versioned catalogue or mapping boundary. Where
+   it does not, offer one adaptable classification per coherent unresolved group rather than one task per session.
+   `Unknown sport` and absent sport evidence use distinct plain-language states.
+5. Verify recognized, unresolved, ambiguous, personally classified, deliberately unified, reclassified, enriched,
+   restarted, reimported, migrated, backed-up, and restored histories with synthetic fixtures. Add a privacy-safe local
+   predicate that catches the authorized real-library shape without retaining its values.
+
+**Rejection conditions:** treating one observed personal mapping as universal; deriving sport from GPS or measurements;
+allowing a fallback to absorb exact recognition silently; exposing provider identifiers; or hiding ambiguity behind a
+generic unknown label.
+
+### X7-R8.2 — Turn History and Home into direct session discovery
+
+1. Extend the calendar read model, bounded month query, persistence adapter, transport DTO, and presentation model with
+   the individual sessions needed for activity cards: stable local reference, local start order, duration, recognizable
+   sport identity, and exact navigation capability. Keep payload and query cost bounded to the requested month.
+2. Render each calendar activity with sport icon, label available to assistive technology, and human-scale duration;
+   order multiple activities by local start. Each activity opens the exact session and returns to the same month,
+   filters, scroll position, and focus.
+3. Derive available years from the current discovery boundary and provide direct year navigation plus **Today**.
+   Empty months and dates outside the current library remain calm and explicit.
+4. Audit every prominent count and represented collection on Home and History. It either opens the exact records it
+   summarizes or becomes visually unambiguously non-interactive; no badge or sport card promises a dead-end.
+5. Verify dense days, multiple source-separated sessions, unknown and recognized sports, long labels, both locales,
+   keyboard, VoiceOver semantics, 100%–200% zoom, compact and wide windows, query limits, restart, and return context.
+
+### X7-R8.3 — Make ordinary presentation concise, aligned, and state-aware
+
+1. Replace surface-specific exact formatting with documented semantic roles for summary, comparison, detail, and exact
+   evidence. Distance, duration, accumulated values, ratios, percentages, and units receive magnitude-appropriate
+   precision. Exact source values remain reachable only through deliberate evidence inspection.
+2. Compose same-day session time as one localized date plus start–end time and duration. Show an offset only when it
+   changes interpretation or the person requests provenance. Apply the same rule to cards, reports, tables, and export
+   previews without changing normative exact export evidence.
+3. Run a screen-by-screen density audit. Each ordinary state leads with the question, answer, visual relationship, and
+   next action; exhaustive tables, repeated attribution, complete boundaries, and source mechanics move behind named
+   disclosure. Numeric and temporal table columns use alignment appropriate to comparison.
+4. Consolidate Sources to one archive-selection action per task state. A selected archive can be changed, a result can
+   start another import, and an error can recover without mounting two competing choosers or revealing content below
+   the viewport silently.
+5. Present Settings actions only when meaningful. Save and cancel form the dirty-draft transaction; reset belongs to
+   the affected preference group and explains its scope. Preserve draft survival, immediate preview, validation,
+   persistence, navigation guard, and restart behavior.
+6. Retain the accepted atomic import and projection boundaries. Apply one explicit grouping policy to both sides of a
+   progress ratio, keep active-work feedback global and monotonic, and avoid blocking unrelated navigation through
+   renderer work.
+
+**Verification:** formatter unit contracts, every presentation consumer, semantic HTML tables, screen-reader order,
+both locales, long authored values, compact/wide geometry, 100%–200% zoom, Sources recovery states, Settings dirty and
+clean states, dense reconciliation, cancellation, close-before-commit rollback, reimport, restart, and a fresh visual
+self-review before packaged evidence.
+
+### X7-R8.4 — Make signal charts answer a question
+
+1. Keep the evaluated ECharts dependency and repair the product composition around it. One through four recorded
+   signals are valid; no lower bound exists merely because the surface was named a comparison.
+2. Select speed and heart rate initially when both are recorded. Otherwise use a documented provider-neutral,
+   sport-aware relevance order and expose available metrics in that order. Cumulative distance is not a default
+   comparison series; it remains available only with copy and scale that make its monotonic meaning useful.
+3. Replace overlapping vertical lane names with a layout that gives each lane an unambiguous horizontal identity,
+   scale, unit, color-independent marker, and exact-value path. Preserve gaps and never imply causation.
+4. Keep route and regular signals independent unless their importer contract records the same origin. Selection and
+   zoom synchronize only inside a proven shared coordinate.
+5. Verify single-series, default pair, three- and four-series states; missing speed or heart rate; long Spanish labels;
+   short and wide allocations; 100%–200% zoom; keyboard selection; accessible exact tables; large-series performance;
+   deterministic report export; resize lifecycle; and no axis, legend, or control collision.
+
+### X7-R8.5 — Complete the local route workbench without inventing a map service
+
+1. Retain route-relative zoom limits, complete-track reset, local geometry, and the explicit first-MVP no-basemap
+   boundary. External cartography remains the post-MVP work recorded by FR-025; its absence is not disguised as a
+   loading failure.
+2. Make pointer and keyboard traversal select an exact recorded route point and show its route-native time, distance,
+   altitude, and geometry evidence. Add signal values only when the importer establishes the exact shared coordinate.
+3. Add drag or two-point range creation over the map and equivalent keyboard controls. Feed the temporary boundaries
+   into the existing range-summary query, then allow precise adjustment, naming, save, reopen, edit, and removal without
+   shrinking the map below the accepted workbench allocation.
+4. If the Polar source-contract investigation does not establish route-to-signal authority, keep regular signal values
+   outside the map selection and explain their independent clock once. Do not approximate by index, nearest timestamp,
+   sample count, or visual coincidence.
+5. Verify routed and non-routed sessions, gaps, single-point and dense tracks, antimeridian and degenerate extents,
+   range reversal, exact boundaries, compact stacking, focused map, both locales, keyboard, reduced motion, local-only
+   network assertions, export privacy review, and persisted range recovery.
+
+### X7-R8.6 — Give reports an explicit subject and transient run parameters
+
+1. Add an application-level report-subject eligibility query for each built-in example and contextual start. Preserve
+   the initiating task, filter candidates by required evidence, and make **Use this session** or its equivalent the
+   explicit commit. Cancel returns to the exact report origin; route examples cannot show route-less candidates.
+2. Introduce a provider-neutral `ReportRunParameters` request distinct from `ReportDefinition`. It contains supported
+   transient overrides, beginning with comparison periods, validates them against current bounds and evidence, and
+   resolves a result without writing the report.
+3. Record saved defaults, effective values, and override origin in the resolved-result contract. Editing changes
+   structure or defaults deliberately; viewing changes only the current run. Refresh and stale-evidence review preserve
+   that distinction.
+4. Extend the shared comparison-period value object with quarter presets. Current versus preceding week, month,
+   quarter, and year use locale-aware calendar boundaries; manual dates remain available in comparison workspaces,
+   report defaults, and report results.
+5. Pass effective run parameters into deterministic HTML export and display them in export review and provenance.
+   Export never rewrites saved defaults. Duplication copies the saved definition and defaults, not an incidental
+   transient run, unless the person explicitly saves those values first.
+6. Verify every built-in example, no-eligible-candidate explanation, explicit selection and cancellation, saved and
+   transient parameters, invalid bounds, stale evidence, refresh, duplicate, restart, migration, deterministic export,
+   both locales, keyboard, accessibility, and large-library query performance.
+
+### X7-R8.7 — Falsify the whole product before spending another human review
+
+1. Perform an independent question-first UX audit of every ordinary path from acquisition through export. Inspect
+   actual behavior, responsive geometry, copy hierarchy, clickable expectations, loading and failure feedback, and
+   progressive detail; do not accept presence of fields or a green E2E test as usability evidence.
+2. Repeat the complete functional campaign with real production adapters and synthetic data: every input, validation,
+   save, cancel, add, remove, move, selector, navigation origin, persistence, reload, reimport, migration, backup,
+   restore, export, update, and recovery path. Preserve behavior assertions when structure changes.
+3. Challenge both locales, light and dark, wide and short laptop, compact window, 100%–200% zoom, long values, keyboard,
+   VoiceOver semantics, reduced motion, empty, loading, partial, stale, invalid, cancelled, failed, and dense states.
+4. Audit first-use comprehension and first useful value separately from expert depth. The product must show a credible
+   reason to continue within minutes while retaining exact evidence, provenance, user control, and data exit on demand.
+5. Correct every accepted critical or major finding at its causal boundary and repeat the audit. Do not hand a known
+   defect to the product owner for discovery.
+
+### X7-R8.8 — Build one exact production-native candidate
+
+1. Run the complete clean local gate, strict formatting and linting, architecture and format contracts, localization,
+   documentation, repository safety, all packaged journeys, restart, adaptive, performance, migration, install, update,
+   failed-update recovery, production packaging, and bundle inspection from one clean source revision.
+2. Push the focused verified commits under standing authority, then run repository safety and the complete hosted
+   campaign only when the executable-input fingerprint changed. Do not repeat an identical campaign.
+3. Build and scan one revision-isolated production-native application from the exact passing source. It must contain
+   production adapters and no E2E routing, synthetic personal-looking data, local diagnostics, or unpublished archive
+   material. Do not publish it.
+4. Only then request a bounded product-owner UX evaluation. Functional correctness remains automated; the participant
+   assesses comprehension, usefulness, trust, natural navigation, information density, analytical value, and desire to
+   continue using the product.
+
+### Scope retained outside X7-R8
+
+- External cartographic basemaps remain a deliberate post-MVP capability with unresolved data-source, attribution,
+  caching, offline, privacy, and service-operation decisions.
+- Curated preset themes remain the first experience-personalization increment after the accepted MVP gate; arbitrary
+  theme editing remains later.
+- Connected provider synchronization, additional providers, MCP, community report exchange, signing, notarization,
+  and public application release remain governed by their existing roadmap gates.
+- X7-R8 may improve existing import responsiveness and task-state composition, but it does not replace the atomic
+  library transaction or publish partially reconciled data.
+
 ## Traceability to the retained D0–E6 baseline
 
 | Retained baseline | Redesign migration |
@@ -3221,7 +3443,7 @@ credible reason to continue using FitFreed. Any unresolved critical or major fin
 | E5 reports and export | X5-R9 replaces report hierarchy and adds the accepted missing lifecycle contracts |
 | E6 hardening | X5-R10 reruns it against the redesigned product rather than reusing obsolete experience evidence |
 | Independent audit | X6 preserved the rejected human baseline; X7 repeated the machine audit and exact gates before the production-native human handoff |
-| Repeated-review corrections | X7-P0 through X7-R7 own the accepted post-review causes, new vertical contracts, and exact repeat gate |
+| Repeated-review corrections | X7-P0 through X7-R7 retain the rejected-candidate history; X7-R8 owns the paused-review causes, new vertical contracts, independent audit, and exact repeat gate |
 
 ## Documentation ownership
 
@@ -3247,7 +3469,7 @@ evidence.
 
 ## Autonomous execution and human intervention
 
-Execution continues through X7-R1 to X7-R7 without routine confirmation. Each verified increment is
+Execution continues through X7-R8 without routine confirmation. Each verified increment is
 committed and pushed under the repository's standing authority. If SSH approval is unavailable, the
 bounded push stops and later local increments continue; synchronization is retried when possible.
 
@@ -3258,7 +3480,8 @@ Human intervention is required only for:
 - destructive operations on a real personal library;
 - Apple credentials, signing, notarization, tags, releases, public application downloads, or
   production update-channel authority; or
-- the final bounded product-owner experience gate after X7-R7 repeats X6.
+- the bounded participant-assisted sport-correlation step in X7-R8.0; and
+- the final bounded product-owner experience gate after X7-R8.8 repeats the rejected handoff.
 
 Pages content publication within the existing authorized workflow remains autonomous. Alpha review
 findings for reports or personal ranges are documented and corrected when they are critical or major;
@@ -3266,7 +3489,8 @@ they do not create routine approval stops.
 
 ## Completion rule
 
-This plan is complete only when X5-R1 through X5-R10 retain their evidence, X7-P0 through X7-R7 pass, X6 is repeated
+This plan is complete only when X5-R1 through X5-R10 retain their evidence, X7-P0 through X7-R7 retain their historical
+evidence, X7-R8 passes, X6 is repeated
 and has no unresolved critical or major
 finding, every user-visible capability has verified lower-layer support, all affected documentation is
 current, all provider and FitFreed-owned formats remain fully specified, one exact release-shaped source

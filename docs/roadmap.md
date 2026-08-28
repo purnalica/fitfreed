@@ -7,16 +7,18 @@ Milestone 1 and Milestone 2 capability implementation and the current Milestone 
 The active stage is the production migration defined by the accepted [UI and UX redesign
 plan](plans/ui-redesign.md) and [MVP redesign production migration
 plan](plans/mvp-redesign-production-migration.md). X3 is accepted, X4 converted the contract into functional vertical
-increments, X5-R1 through X5-R10 retain their engineering evidence, and X7-R1 through X7-R7 are machine-complete. The
-independent [X7 product-experience reaudit](research/x7-product-experience-reaudit.md), exact local and hosted
-campaigns, immutable evidence marker, and revision-isolated production-native bundle scan pass without an unresolved
-critical or major finding. The earlier [production-native human
-evaluation](research/x6-product-experience-human-evaluation.md) remains the authoritative rejection of its reviewed
-X6 sources; X7 still requires a complete repeated human evaluation and the separate provider-catalogue and
-default-browser observations. External-tile cartography, additional providers, public-candidate preparation, and
-advanced personalization remain outside this loop. The production application remains the only implementation and
-the [MVP experience delivery plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline.
-Milestone 3 resumes only after the repeated human gate accepts the corrected experience.
+increments, X5-R1 through X5-R10 retain their engineering evidence, and X7-R1 through X7-R7 retain the machine evidence
+that admitted a production-native candidate. The product-owner review rejected and paused that candidate after finding
+material sport-identity, calendar-discovery, information-density, analytical-chart, route-interaction, and report-run
+defects that the prior machine audit did not detect. The active X7-R8 sequence traces and corrects those defects at
+their lowest contract, performs one bounded participant-assisted provider correlation, repeats the independent audit,
+and builds a new exact candidate only after the complete local and hosted campaign passes.
+
+The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) remains the authoritative
+rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate
+preparation, and advanced personalization remain outside this loop. The production application remains the only
+implementation and the [MVP experience delivery plan](plans/mvp-experience-delivery.md) remains its engineering
+evidence baseline. Milestone 3 resumes only after X7-R8 and the repeated human gate accept the corrected experience.
 
 ## Purpose
 
