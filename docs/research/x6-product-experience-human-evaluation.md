@@ -10,6 +10,14 @@ pass, but an authorized Polar Flow export that the participant previously import
 recognized but incomplete or malformed. The populated-library evaluation cannot continue through that archive, and
 X7 remains unaccepted.**
 
+**A bounded X7 product-owner experience review started on 2026-08-28 with production-native handoff source
+`0e11b03a26f8ea4293c83ba40d043e5063ab7b33`. Observations are being collected without concurrent diagnosis,
+prioritization, implementation, or verification.**
+
+**The bounded review paused before completion on 2026-08-28 so its observed defects can be corrected before further
+product-owner time is spent. The handoff source is not accepted. Observation collection is closed until a new exact
+candidate passes the corrective automated and independent UX gates.**
+
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
 the [X6 profile](../testing/macos-candidate-manual-evaluation.md#x6-product-experience-profile). It records
 observable behavior and bounded participant impact without retaining personal fitness data, source paths,
@@ -57,6 +65,15 @@ is limited to bounded experience judgment; deterministic functional correctness 
 test levels. The canonical [manual-evaluation procedure](../testing/macos-candidate-manual-evaluation.md#product-owner-experience-review)
 owns that responsibility boundary. Diagnosis, correction, and regression work may proceed without asking the product
 owner to execute the functional checklist or characterize the rejected archive further.
+
+The bounded X7 product-owner experience collection started on 2026-08-28. It records only comprehension, trust,
+usefulness, navigation, and presentation-quality observations from normal use. Deterministic behavior was verified
+before handoff and is not participant work.
+
+The participant paused the incomplete collection on 2026-08-28 and requested correction before continuing. Diagnosis,
+planning, implementation, and automated verification may now proceed. The required participant-assisted Polar
+web/takeout correlation session is a separate bounded evidence gate; no other functional QA is reassigned to the
+product owner.
 
 ## Findings
 
@@ -171,6 +188,8 @@ owner to execute the functional checklist or characterize the rejected archive f
   Packaged WebKit asserts that the selected archive and enabled import action are visible together after every
   selection. The first complete run found a genuine 200%-zoom failure; the composition was corrected and the entire
   packaged journey then passed. Human spatial-comprehension confirmation remains pending.
+- **Bounded X7 experience observation:** the import journey presents two controls for selecting the archive. The
+  participant finds the duplication unusual and attention-drawing, although not critical.
 
 ### XH-05 — Text wraps prematurely across otherwise wider content regions
 
@@ -216,6 +235,13 @@ owner to execute the functional checklist or characterize the rejected archive f
 - **Corrected-build re-evaluation:** during reconciliation, the participant selected Reports. Perceptible progress
   stopped, the requested change took a long time to appear, and the application seemed inoperative until it eventually
   changed. The observation is recorded without diagnosis while the participant review remains active.
+- **Bounded X7 experience observation:** during reconciliation, other application destinations remain responsive, but
+  transitions are perceptibly slow. The participant considers the behavior acceptable and non-critical, while noting
+  that improved responsiveness would be desirable.
+- **Bounded X7 interruption observation:** closing the application during reconciliation terminates the application
+  immediately, without a visible transition or warning. On the next launch, the library contains no imported data.
+  The participant considers that resulting state acceptable because reconciliation had not completed. No diagnosis is
+  attached while collection remains active.
 
 ### XH-07 — History is unavailable during opaque finalization without an explanation
 
@@ -269,11 +295,34 @@ owner to execute the functional checklist or characterize the rejected archive f
 - **Additional repeated-build observation:** at least one imported session is labelled `Unrecorded sport` in the
   participant's locale. The participant cannot understand how that state differs from an unknown sport or whether it
   means absent source evidence, unsupported interpretation, or a product failure. No session detail is retained.
+- **Bounded X7 experience observation:** production-native handoff source `0e11b03` recognizes some imported sports
+  but leaves others unrecognized. This is the third product-owner review to report the unresolved recognition problem,
+  previously established as an acceptance-blocking defect. The observed grouping suggests, but does not establish,
+  that one provider sport may be represented by more than one source identifier. No personal sport, count, source
+  value, or archive detail is retained.
+- **Bounded X7 classification observation:** after the participant assigns a personal name to one unrecognized sport,
+  a different sport that had previously appeared as recognized with a small session group disappears from the view.
+  The observation establishes an inconsistent visible transition between personal classification and existing sport
+  recognition; no cause is inferred while collection remains active.
+- **Additional bounded X7 classification observation:** Home presents another sport group as unknown, while opening its
+  classification exposes the correct sport identity. Before the change, a provider-recognized card represents a small
+  subset of sessions; afterward, the same visible sport identity is marked as participant-named and represents a
+  materially larger collection. The locally inspected screenshots confirm the visible discrepancy but are not retained,
+  and no sport, count, date, or other personal value enters this record.
+- **Residual bounded X7 observation:** after the participant applies classifications, a substantial number of sport
+  groups remain unrecognized, including groups that represent a very large number of sessions. The critical recognition
+  problem therefore remains visible; exact group and session counts are deliberately not retained.
 - **Product-owner direction:** do not exclude a maintained identifier-correlation catalogue as a structural solution.
   The post-session evaluation must assess independently established mappings from user-owned exports alongside an
   authenticated local-only catalogue path. For every correlation it must distinguish interpretation of a person's
   exported evidence from redistribution of provider-owned catalogue material, and establish provenance, confidence,
-  licence basis, update policy, ambiguity handling, and correction governance before product use.
+  licence basis, update policy, ambiguity handling, and correction governance before product use. The assessment must
+  include an explicit, user-adaptable correlation from provider sport evidence to FitFreed's unified sport identities.
+- **Authorized evidence boundary:** after observation collection ends, local diagnosis may inspect the currently
+  loaded participant-authorized takeout data. The sport-recognition diagnosis must include a bounded interactive
+  participant-assisted session that correlates selected source sessions with the sport names shown in the
+  participant's Polar account. Request that session after observation collection ends. No date, sport, route,
+  identifier, value, account content, or other personal evidence may enter the repository or retained diagnostics.
 
 ### XH-09 — Home aggregates look actionable but do not lead to exploration
 
@@ -414,6 +463,9 @@ owner to execute the functional checklist or characterize the rejected archive f
   accumulated results harder to compare quickly.
 - **Disposition:** retain the observation for the post-session evaluation across all accumulated durations and
   measurements. Do not retain the participant's displayed value in this record.
+- **Bounded X7 experience observation:** the handoff candidate still presents an ordinary distance with a long raw
+  decimal expansion. The precision is visibly meaningless for the measurement and remains unacceptable; the displayed
+  personal value is deliberately not retained.
 
 ### XH-16 — Recorded tracks lack cartographic context
 
@@ -431,6 +483,14 @@ owner to execute the functional checklist or characterize the rejected archive f
 - **Product-owner direction:** after the review, evaluate OSS renderers and openly licensed cartographic data or
   services as structural options. Do not treat an open-source rendering library as proof that its map tiles, hosting,
   caching, attribution, or location-disclosure model are unrestricted.
+- **Bounded X7 experience observation:** the handoff candidate still presents recorded track geometry without streets,
+  terrain, or place context. This matches the explicit first-MVP boundary and does not indicate a failed map request;
+  the participant reiterates that the missing cartographic context materially limits outdoor-session value.
+- **Product-owner interaction direction:** selecting a recorded track point must reveal the measurements available at
+  that exact instant, including speed or pace, heart rate, and other supported signals. Only source evidence with an
+  authoritative shared coordinate may appear as correlated; independent signals must remain explicitly independent.
+  The map must also support pointer-based range selection, reveal the measurements summarized over that selected
+  interval, and provide precise subsequent adjustment of both boundaries.
 - **Disposition:** retain the observation without selecting or integrating a map source during the active review.
 
 ### XH-17 — Comparison starts without a meaningful contrast
@@ -496,6 +556,13 @@ owner to execute the functional checklist or characterize the rejected archive f
   and obscuring the value of the underlying history.
 - **Product-owner direction:** exceptional UX requires a global information-density and progressive-disclosure review
   across the complete application, not isolated removal of one table or field.
+- **Bounded X7 experience observation:** a same-day session presents the complete local date separately in both start
+  and end fields, exposes the UTC offset at the same visual level, and then presents duration. The participant expects
+  one concise same-day presentation of date, start time, end time, and duration; timezone evidence belongs in
+  deliberate detail unless it changes the meaning. No personal date or time is retained.
+- **Evaluation-process finding:** the participant identifies this as another obvious instance of the repeatedly stated
+  transversal density problem. Its survival into the handoff candidate shows that the pre-handoff UX self-review did
+  not apply the accepted comprehension and progressive-disclosure requirement rigorously enough.
 - **Disposition:** retain the observation for systemic post-session evaluation. The participant's screenshot and
   displayed values are not retained.
 
@@ -522,6 +589,17 @@ owner to execute the functional checklist or characterize the rejected archive f
 - **Expected behavior:** mature charts make scale, units, gaps, series identity, selection, exact values, and accessible
   alternatives clear. Several exercise signals can be compared or overlaid when an exact shared coordinate supports
   that relationship, for example to inspect co-variation without claiming causation.
+- **Bounded X7 visual observation:** the combined-signal chart overlaps its vertical-axis labels, making both identity
+  and scale difficult to read. A cumulative-distance series plotted against elapsed time does not communicate a clear
+  analytical purpose to the participant and appears unnecessary in this comparison. The supplied image and its
+  personal values are not retained.
+- **Bounded X7 interaction observation:** the combined-signal control prevents selecting fewer than two metrics because
+  FitFreed currently defines it as a two-to-four-series comparison, not because the data or renderer requires that
+  minimum. The surface neither explains the restriction nor makes the path for inspecting one metric clear, so the
+  constraint appears arbitrary to the participant. No redesign is selected while collection remains active.
+- **Product-owner signal-order direction:** when available, speed and heart rate are the default selected metrics.
+  Present available metrics from most relevant on the left to least relevant on the right. How relevance varies by
+  sport remains unanalysed while collection is active.
 - **Product-owner direction:** evaluate a maintained specialized OSS charting library rather than continuing to build
   a general chart engine inside FitFreed. Keep product-specific evidence composition and interaction under FitFreed's
   control, and retain the existing prohibition against invented signal alignment.
@@ -542,6 +620,9 @@ owner to execute the functional checklist or characterize the rejected archive f
   Community template exchange remains outside the first MVP.
 - **Disposition:** retain the confirmed requirement for post-session domain, application, persistence, presentation,
   export, documentation, and lifecycle planning before either control is exposed.
+- **Bounded X7 report observation:** `Choose a session` reveals a session list, but the participant cannot identify how
+  to confirm which listed session should become the report input. The selection journey lacks a clear visible commit
+  action or an unambiguous immediate-selection outcome. No report or session value is retained.
 
 ### XH-24 — A previously accepted provider export is rejected before import
 
@@ -572,6 +653,15 @@ owner to execute the functional checklist or characterize the rejected archive f
   domain available, and exact reimport, without recording private archive metadata or content.
 - **Disposition:** functional correction is complete locally. The collection remains closed; a new candidate may
   reach the product owner only after the remaining automated gates pass.
+
+### XH-25 — Calendar days show counts instead of recognizable activities
+
+- **Status:** observed during the bounded X7 product-owner experience review; no concurrent analysis or disposition.
+- **Observed behavior:** a calendar day represents its training activity with a number that does not communicate what
+  the activity was.
+- **Product-owner direction:** show at least the sport icon and activity duration. When a day contains multiple
+  activities, present them in activity-start order. Calendar navigation must provide direct access to the years that
+  exist in the imported history and a clear action that returns quickly to the current month.
 
 ## Passing observations
 
