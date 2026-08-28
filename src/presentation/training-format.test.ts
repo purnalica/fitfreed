@@ -6,6 +6,7 @@ import {
   formatSessionCardDistance,
   formatSessionCardDuration,
   formatSessionCardTime,
+  formatSessionTimeSpan,
   formatTrainingDateTime,
 } from "./training-format";
 import { formatExactDuration } from "./presentation-format";
@@ -68,5 +69,30 @@ describe("human-scale training-session formatting", () => {
       meters: "m",
       kilometers: "km",
     })).toBe("421 m");
+  });
+
+  it("composes same-day timing once and keeps exact source timing separate", () => {
+    expect(formatSessionTimeSpan(
+      "2026-08-18T07:30:47.123",
+      "2026-08-18T08:24:58.987",
+      "3241234",
+      "en-US",
+      units,
+    )).toEqual({
+      date: "Aug 18, 2026",
+      time: "7:30 – 8:24 AM",
+      duration: "54 min 1 s",
+    });
+    expect(formatSessionTimeSpan(
+      "2026-08-18T23:55:00",
+      "2026-08-19T00:10:00",
+      "900000",
+      "es-ES",
+      units,
+    )).toEqual({
+      date: "18 ago 2026, 23:55 – 19 ago 2026, 0:10",
+      time: null,
+      duration: "15 min",
+    });
   });
 });

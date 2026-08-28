@@ -14,6 +14,7 @@ import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { PlannedTrainingEvidence } from "./PlannedTrainingPanel";
 import {
+  formatExactDuration,
   formatSummaryDuration,
   mediumDateFormatter,
   measurementDecimalFormatter,
@@ -54,6 +55,7 @@ import {
   formatSessionCardDate,
   formatSessionCardDistance,
   formatSessionCardDuration,
+  formatSessionTimeSpan,
   formatTrainingDateTime,
 } from "./training-format";
 import type {
@@ -1372,6 +1374,7 @@ export function ReportsPanel({
   function trainingMetricValue(
     summary: TrainingSeriesSummary,
     metric: ReportTrainingMetric,
+    role: "summary" | "exact-evidence" = "summary",
   ): string {
     switch (metric) {
       case "session-count":
@@ -1379,17 +1382,24 @@ export function ReportsPanel({
       case "training-days":
         return number.format(summary.trainingDays);
       case "duration":
-        return formatSummaryDuration(
-          summary.totalDurationMilliseconds,
-          locale,
-          messages.training.durationUnits,
-        );
+        return role === "exact-evidence"
+          ? formatExactDuration(
+            summary.totalDurationMilliseconds,
+            locale,
+            messages.training.durationUnits,
+          )
+          : formatSummaryDuration(
+            summary.totalDurationMilliseconds,
+            locale,
+            messages.training.durationUnits,
+          );
       case "distance":
         return formatDistance(
           summary.totalDistanceMeters,
           locale,
           copy.unavailable,
-          messages.training.units.meters,
+          messages.training.units,
+          role,
         );
       case "energy":
         return formatExactMetric(
@@ -1434,8 +1444,8 @@ export function ReportsPanel({
           series.distanceMetersChange,
           locale,
           copy.unavailable,
-          messages.training.units.meters,
-          true,
+          messages.training.units,
+          "comparison",
         );
       case "energy":
         return formatExactMetric(
@@ -1498,8 +1508,8 @@ export function ReportsPanel({
             {metrics.map((metric) => (
                 <tr key={metric}>
                   <th scope="row">{copy.analysis.metrics[metric]}</th>
-                  <NumericTableCell>{trainingMetricValue(series.baseline, metric)}</NumericTableCell>
-                  <NumericTableCell>{trainingMetricValue(series.comparison, metric)}</NumericTableCell>
+                  <NumericTableCell>{trainingMetricValue(series.baseline, metric, "exact-evidence")}</NumericTableCell>
+                  <NumericTableCell>{trainingMetricValue(series.comparison, metric, "exact-evidence")}</NumericTableCell>
                   <NumericTableCell>{trainingMetricChange(series, metric)}</NumericTableCell>
                 </tr>
             ))}
@@ -1734,14 +1744,27 @@ export function ReportsPanel({
     if (isAnalyticalReportBlock(block)) return renderAnalyticalPreview(block);
     if (block.kind === "session-evidence") {
       if (!resolved.session) return null;
+      const timing = formatSessionTimeSpan(
+        resolved.session.startedAtLocal,
+        resolved.session.stoppedAtLocal,
+        resolved.session.durationMilliseconds,
+        locale,
+        messages.training.durationUnits,
+      );
       return (
         <article key={block.blockRef}>
           <h3>{copy.sessionBlockHeading}</h3>
           <p className="report-attribution">{copy.recordedAttribution}</p>
           <dl className="report-evidence-summary">
-            <div><dt>{copy.started}</dt><dd>{formatTrainingDateTime(resolved.session.startedAtLocal, locale)}</dd></div>
-            <div><dt>{messages.training.duration}</dt><dd>{formatSummaryDuration(resolved.session.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
-            <div><dt>{messages.training.distance}</dt><dd>{formatDistance(resolved.session.distanceMeters, locale, copy.unavailable, messages.training.units.meters)}</dd></div>
+            <div>
+              <dt>{messages.training.timing}</dt>
+              <dd className="session-time-summary">
+                <span>{timing.date}</span>
+                {timing.time && <span>{timing.time}</span>}
+                <span>{timing.duration}</span>
+              </dd>
+            </div>
+            <div><dt>{messages.training.distance}</dt><dd>{formatDistance(resolved.session.distanceMeters, locale, copy.unavailable, messages.training.units)}</dd></div>
             <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(resolved.session.energyKilocalories, locale, copy.unavailable, messages.training.units.kilocalories)}</dd></div>
             {resolved.session.averageHeartRateBpm !== null && (
               <div><dt>{messages.training.averageHeartRate}</dt><dd>{formatExactMetric(resolved.session.averageHeartRateBpm, locale, copy.unavailable, messages.training.units.beatsPerMinute)}</dd></div>

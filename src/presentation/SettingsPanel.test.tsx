@@ -91,6 +91,12 @@ describe("SettingsPanel", () => {
     expect(within(preview).getByText("Running")).toBeVisible();
     expect(within(preview).getByText("42 min")).toBeVisible();
     expect(within(preview).getByText("8.2 km")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Restore defaults" }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel changes" }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save changes" }))
+      .not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: "Dark" }));
     await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
@@ -216,8 +222,10 @@ describe("SettingsPanel", () => {
     expect(screen.getByRole("radio", { name: "System" })).toBeDisabled();
     expect(screen.getByLabelText("Default content zoom")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel changes" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Cancel changes" }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save changes" }))
+      .not.toBeInTheDocument();
 
     view.rerender(
       <SettingsPanel
@@ -236,6 +244,8 @@ describe("SettingsPanel", () => {
     expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
     expect(screen.getByLabelText("Default content zoom")).toHaveValue("100");
     expect(screen.getByRole("status")).toHaveTextContent("Changes not saved");
+    expect(screen.queryByRole("button", { name: "Restore defaults" }))
+      .not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
@@ -257,7 +267,10 @@ describe("SettingsPanel", () => {
 
     expect(screen.getByRole("form", { name: "Appearance and language" }))
       .toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Restore defaults" }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel changes" }))
+      .not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("Saving…");
   });
@@ -283,7 +296,8 @@ describe("SettingsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Restore defaults" }));
     const form = screen.getByRole("form", { name: "Appearance and language" });
     expect(form).toHaveAttribute("aria-busy", "false");
-    expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Restore defaults" }))
+      .not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel changes" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
     expect(screen.getByRole("status")).toHaveTextContent("Changes not saved");

@@ -64,12 +64,13 @@ export async function persistSettings() {
   const status = await $(".settings-status");
   const previewStatus = await status.getText();
   const save = await $(".settings-actions button[type='submit']");
+  await save.waitForExist({ timeout: 10_000 });
   await save.waitForEnabled({ timeout: 10_000 });
   await save.click();
   await browser.waitUntil(async () => {
     const currentStatus = await $(".settings-status").getText();
-    const currentSave = await $(".settings-actions button[type='submit']");
-    return currentStatus !== previewStatus && !(await currentSave.isEnabled());
+    const currentSave = await $$(".settings-actions button[type='submit']");
+    return currentStatus !== previewStatus && currentSave.length === 0;
   }, { timeout: 10_000, timeoutMsg: "the application settings were not saved" });
 }
 

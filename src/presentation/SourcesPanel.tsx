@@ -280,9 +280,21 @@ export function SourcesPanel({
         </section>
       ) : (
         <>
-          {mode === "result" && children}
+          {mode === "result" && (
+            <>
+              {children}
+              {errorMessage && (
+                <section className="source-operation-error" role="alert">
+                  <h3>{messages.operationProblemTitle}</h3>
+                  <p>{errorMessage}</p>
+                </section>
+              )}
+            </>
+          )}
 
-          <div className="source-paths">
+          {mode !== "result" && (
+            <>
+              <div className="source-paths">
             <article
               ref={archiveContainer}
               className="source-path source-path-import"
@@ -360,10 +372,10 @@ export function SourcesPanel({
                 </span>
               )}
             </article>
-          </div>
+              </div>
 
-          {guideVisible && !guideLoading && (
-            guide ? (
+              {guideVisible && !guideLoading && (
+                guide ? (
               <section
                 id="source-acquisition-guide"
                 className="source-guide"
@@ -453,11 +465,13 @@ export function SourcesPanel({
                 <p className="source-external-note">{messages.externalNotice}</p>
                 <p className="source-boundary">{messages.providerBoundary}</p>
               </section>
-            ) : (
-              <p id="source-acquisition-guide" className="notice" role="status">
-                {messages.guideUnavailable}
-              </p>
-            )
+                ) : (
+                  <p id="source-acquisition-guide" className="notice" role="status">
+                    {messages.guideUnavailable}
+                  </p>
+                )
+              )}
+            </>
           )}
 
           {mode === "ready" && children}

@@ -413,6 +413,11 @@ describe("packaged evidence-adaptive session composition", () => {
     await backToResults(english);
 
     await goToHome("sources");
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "adaptive-sessions.zip"),
+      english.outcome.chooseAnother,
+    );
     await $(`aria/${english.import}`).click();
     await waitForNotice(english.home.postImportExactRepeat);
     await openHomeQuestion(

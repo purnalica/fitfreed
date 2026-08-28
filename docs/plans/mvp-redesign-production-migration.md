@@ -3338,6 +3338,21 @@ count audit found no remaining action-styled dead end in the represented session
 
 ### X7-R8.3 — Make ordinary presentation concise, aligned, and state-aware
 
+**Machine-complete checkpoint — 2026-08-28:** one shared presentation boundary now assigns summary,
+comparison, detail, or exact-evidence precision without changing canonical values or normative exports. Ordinary
+distance and duration consumers use human-scale units; comparisons retain explicit direction; exact elapsed,
+coordinate, and source quantities remain reachable through named evidence disclosures. A same-day session composes
+one localized date, one start-to-end time range, and one duration, while full boundaries and UTC offset move to its
+closed exact-timing evidence. Numeric table cells share right alignment and tabular figures, and derived-segment
+authorship is stated once outside the exact rows. Sources ready and result states each own one archive-selection
+action, and a successful follow-up selection reveals the selected-file task instead of mounting controls below the
+result. Settings shows reset only beside a non-default draft and shows cancel/save only for a pending transaction.
+The accepted import transaction, phase-local monotonic progress, bounded IPC coalescing, and global shell feedback
+remain unchanged; no synthetic cross-phase percentage was introduced. Formatter, component, localization,
+accessibility, cancellation, reimport, restart, adaptive-session, compact, wide, dark, Spanish, and 200%-zoom evidence
+uses synthetic data. The fresh visual review covered clean Settings, source guidance, a cancelled result, History,
+session evidence, and adaptive session composition without finding a new critical or major defect.
+
 1. Replace surface-specific exact formatting with documented semantic roles for summary, comparison, detail, and exact
    evidence. Distance, duration, accumulated values, ratios, percentages, and units receive magnitude-appropriate
    precision. Exact source values remain reachable only through deliberate evidence inspection.

@@ -866,6 +866,12 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-detail-overview dl { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
 .training-detail-overview dl div { display: block; min-width: 0; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
 .training-detail-overview dd { margin-top: 7px; text-align: left; font-size: 1rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.session-time-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 9px; font-variant-numeric: tabular-nums; }
+.session-time-summary > span { white-space: nowrap; }
+.session-time-summary > span + span::before { margin-right: 9px; color: var(--muted); content: "·"; }
+.training-exact-timing > dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); gap: 10px; margin: 0; padding: 14px 16px 16px; }
+.training-exact-timing > dl > div { min-width: 0; }
+.training-exact-timing dd { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .training-structure { margin-top: 18px; }
 .training-structure > h3 { margin: 0 0 5px; font-size: 1.1rem; }
 .training-structure > h3 + p { margin: 0; color: var(--muted); }
@@ -2299,6 +2305,9 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 .appearance-option-copy strong { color: var(--ink); font-size: .9rem; }
 .appearance-option-copy small { margin-top: 3px; color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.35; }
 .settings-local-note { margin: 20px 0 0; padding: 14px 16px; color: var(--ink-soft); background: var(--surface-soft); border-left: 4px solid var(--accent); border-radius: 10px; }
+.settings-reset { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 14px 0 0; border-top: 1px solid var(--line); }
+.settings-reset p { max-width: var(--measure-reading); margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+.settings-reset button { flex: 0 0 auto; }
 .settings-status { margin: 16px 0 0; color: var(--accent-deep); font-weight: 700; }
 .settings-navigation-guard { margin-top: 18px; padding: 16px; color: var(--ink); background: var(--warning-soft); border: 1px solid var(--warning); border-radius: 12px; scroll-margin-block: var(--shell-reveal-offset); }
 .settings-navigation-guard h3 { margin: 0; font-size: 1rem; }

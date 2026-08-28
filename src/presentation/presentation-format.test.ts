@@ -13,6 +13,9 @@ import {
   formatFractionAsPercentage,
   formatLocalDate,
   formatPace,
+  formatPresentationDecimal,
+  formatPresentationDistance,
+  formatPresentationDuration,
   formatAnalyticalPace,
   formatAnalyticalDuration,
   formatSummaryDecimal,
@@ -87,6 +90,35 @@ describe("shared presentation formatting", () => {
     expect(formatPace(302_400, "en-US", "min/km")).toBe("5:02 min/km");
     expect(formatEnergy(645.8, "en-US", "kcal")).toBe("646 kcal");
     expect(formatFractionAsPercentage(0.873, "es-ES")).toBe("87 %");
+  });
+
+  it("selects precision and sign from an explicit semantic presentation role", () => {
+    expect(formatPresentationDecimal(8_830.599609375, "en-US", "summary"))
+      .toBe("8,830.6");
+    expect(formatPresentationDecimal(8_830.599609375, "en-US", "detail"))
+      .toBe("8,830.6");
+    expect(formatPresentationDecimal(8_830.599609375, "en-US", "exact-evidence"))
+      .toBe("8,830.599609375");
+    expect(formatPresentationDecimal(12.25, "en-US", "comparison"))
+      .toBe("+12.3");
+
+    expect(formatPresentationDuration("23897586", "en-US", durationUnits, "summary"))
+      .toBe("6 h 38 min");
+    expect(formatPresentationDuration("23897586", "en-US", durationUnits, "detail"))
+      .toBe("6 h 38 min 18 s");
+    expect(formatPresentationDuration("23897586", "en-US", durationUnits, "exact-evidence"))
+      .toBe("6 h 38 min 17 s 586 ms");
+    expect(formatPresentationDuration("-60500", "en-US", durationUnits, "comparison"))
+      .toBe("−1 min");
+
+    expect(formatPresentationDistance(8_830.599609375, "en-US", distanceUnits, "summary"))
+      .toBe("8.8 km");
+    expect(formatPresentationDistance(8_830.599609375, "en-US", distanceUnits, "detail"))
+      .toBe("8.83 km");
+    expect(formatPresentationDistance(8_830.599609375, "en-US", distanceUnits, "exact-evidence"))
+      .toBe("8,830.599609375 m");
+    expect(formatPresentationDistance(-1_549, "en-US", distanceUnits, "comparison"))
+      .toBe("-1.5 km");
   });
 
   it("centralizes signed, coordinate, plural, and source-precision policies", () => {

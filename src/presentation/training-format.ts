@@ -2,15 +2,15 @@ import type { Locale } from "../locales/catalogs";
 import {
   type DistanceUnitLabels,
   type DurationUnitLabels,
+  type PresentationRole,
   decimalSeparator,
-  exactDecimalFormatter,
-  formatDistance as formatPresentedDistance,
+  formatPresentationDistance,
   formatSummaryDuration,
+  formatDetailDuration,
   integerCountFormatter,
   mediumDateFormatter,
   mediumDateTimeFormatter,
   shortTimeFormatter,
-  signedExactDecimalFormatter,
   signedIntegerCountFormatter,
   sourcePrecisionDateTimeFormatter,
 } from "./presentation-format";
@@ -47,6 +47,37 @@ export function formatSessionCardDateTime(value: string, locale: Locale): string
   return mediumDateTimeFormatter(locale).format(trainingLocalDateTime(value));
 }
 
+export interface SessionTimeSpan {
+  date: string;
+  time: string | null;
+  duration: string;
+}
+
+export function formatSessionTimeSpan(
+  startedAtLocal: string,
+  stoppedAtLocal: string,
+  durationMilliseconds: string,
+  locale: Locale,
+  units: DurationUnitLabels,
+): SessionTimeSpan {
+  const startedAt = trainingLocalDateTime(startedAtLocal);
+  const stoppedAt = trainingLocalDateTime(stoppedAtLocal);
+  const duration = formatDetailDuration(durationMilliseconds, locale, units);
+  const sameDay = startedAtLocal.slice(0, 10) === stoppedAtLocal.slice(0, 10);
+  if (sameDay) {
+    return {
+      date: mediumDateFormatter(locale).format(startedAt),
+      time: shortTimeFormatter(locale).formatRange(startedAt, stoppedAt),
+      duration,
+    };
+  }
+  return {
+    date: mediumDateTimeFormatter(locale).formatRange(startedAt, stoppedAt),
+    time: null,
+    duration,
+  };
+}
+
 export function formatSessionCardDuration(
   value: string,
   locale: Locale,
@@ -60,7 +91,7 @@ export function formatSessionCardDistance(
   locale: Locale,
   units: DistanceUnitLabels,
 ): string {
-  return formatPresentedDistance(value, locale, units);
+  return formatPresentationDistance(value, locale, units, "detail");
 }
 
 export function formatExactMetric(
@@ -82,14 +113,11 @@ export function formatDistance(
   value: number | null,
   locale: Locale,
   unavailable: string,
-  unit: string,
-  showSign = false,
+  units: DistanceUnitLabels,
+  role: PresentationRole = "detail",
 ): string {
   if (value === null) return unavailable;
-  const number = showSign
-    ? signedExactDecimalFormatter(locale)
-    : exactDecimalFormatter(locale);
-  return `${number.format(value)} ${unit}`;
+  return formatPresentationDistance(value, locale, units, role);
 }
 
 export function formatUtcOffset(value: number | null, unavailable: string): string {

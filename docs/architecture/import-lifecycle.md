@@ -138,7 +138,10 @@ The Sources presentation replaces competing acquisition choices with one dominan
 keeps cancellation explicit, and states that the existing library remains unchanged until commit. It
 announces immediate localized importing or cancellation-requested feedback while the detailed phase stream
 continues to report authoritative application progress. The chosen archive is rendered by filename only;
-the presentation never exposes its local directory.
+the presentation never exposes its local directory. Ready state owns one archive chooser and one import action;
+result state owns one follow-up chooser and does not mount the ready-state controls underneath it. A successful
+follow-up choice returns to ready state with the new filename, while chooser cancellation or failure preserves
+the result and its recovery context.
 
 Every terminal outcome includes:
 

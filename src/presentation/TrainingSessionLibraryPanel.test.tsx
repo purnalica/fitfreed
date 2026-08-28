@@ -2224,7 +2224,7 @@ describe("TrainingSessionLibraryPanel", () => {
     }));
     const comparison = within(region).getByRole("region", { name: "Session comparison" });
     expect(comparison).toHaveTextContent("2 sessions selected");
-    expect(within(comparison).getByRole("table")).toHaveTextContent("10,000.5 m");
+    expect(within(comparison).getByRole("table")).toHaveTextContent("10 km");
     expect(within(comparison).getAllByTestId("sport-family-icon")).toHaveLength(2);
     expect(within(comparison).getAllByText("Trail running")).toHaveLength(2);
     await user.click(within(comparison).getByRole("button", { name: "Clear comparison" }));
@@ -2577,11 +2577,24 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(workbench).getByText("Heart rate on the recorded track")).toBeVisible();
     expect(workbench.compareDocumentPosition(detailNavigation))
       .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(detail).toHaveTextContent("10,000.5 m");
+    expect(detail).toHaveTextContent("10 km");
+    expect(detail).not.toHaveTextContent("10,000.5 m");
     expect(detail).toHaveTextContent("650 kcal");
     expect(detail).toHaveTextContent("145 bpm");
     expect(detail).toHaveTextContent("175 bpm");
-    expect(detail).toHaveTextContent("UTC+02:00");
+    const summaryMeasurements = within(detail!).getByRole("group", {
+      name: "Session summary measurements",
+    });
+    expect(within(summaryMeasurements).getByText("Aug 18, 2026")).toBeVisible();
+    expect(within(summaryMeasurements).getByText(/7:30.*8:30.*AM/)).toBeVisible();
+    expect(within(summaryMeasurements).getByText("1 h")).toBeVisible();
+    const exactTiming = within(detail!).getByText("Inspect exact timing evidence")
+      .closest("details");
+    expect(exactTiming).not.toHaveAttribute("open");
+    expect(within(exactTiming!).getByText("UTC+02:00")).not.toBeVisible();
+    await user.click(within(exactTiming!).getByText("Inspect exact timing evidence"));
+    expect(within(exactTiming!).getByText("UTC+02:00")).toBeVisible();
+    expect(within(exactTiming!).getByText("1 h")).toBeVisible();
     expect(within(detailNavigation).getByRole("button", { name: "Overview" }))
       .toHaveAttribute("aria-current", "page");
     expect(within(region).queryByRole("form", { name: "Filter sessions" }))
@@ -2875,7 +2888,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(secondExercise).toHaveTextContent(
       "The source did not provide a zone container for this exercise.",
     );
-    expect(detail).toHaveTextContent("5,000.25 m");
+    expect(detail).toHaveTextContent("5 km");
     expect(detail).toHaveTextContent("Provided by the source with no entries.");
     expect(detail).not.toHaveTextContent("exercise-");
     expect(detail).not.toHaveTextContent("lap-");
@@ -3167,7 +3180,7 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Explore recorded speed zones",
     })).toBeVisible();
     expect(within(workbench).getByRole("img", {
-      name: "Speed distribution for exercise 1: 2 of 2 zones have recorded distance; recorded total 10,000 m. This is not a timeline.",
+      name: "Speed distribution for exercise 1: 2 of 2 zones have recorded distance; recorded total 10 km. This is not a timeline.",
     })).toBeVisible();
     expect(workbench).toHaveTextContent("8–10 km/h");
     await user.selectOptions(

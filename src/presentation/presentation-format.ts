@@ -14,6 +14,12 @@ export interface DistanceUnitLabels {
 
 type NumericValue = bigint | number;
 
+export type PresentationRole =
+  | "summary"
+  | "comparison"
+  | "detail"
+  | "exact-evidence";
+
 function signPrefix(negative: boolean, hasVisibleValue: boolean, showSign: boolean): string {
   if (negative && hasVisibleValue) return "−";
   return showSign && hasVisibleValue ? "+" : "";
@@ -196,6 +202,23 @@ export function formatExactDecimal(value: number, locale: Locale): string {
   return exactDecimalFormatter(locale).format(value);
 }
 
+export function formatPresentationDecimal(
+  value: number,
+  locale: Locale,
+  role: PresentationRole,
+): string {
+  switch (role) {
+    case "summary":
+      return summaryDecimalFormatter(locale).format(value);
+    case "comparison":
+      return signedSummaryDecimalFormatter(locale).format(value);
+    case "detail":
+      return detailDecimalFormatter(locale).format(value);
+    case "exact-evidence":
+      return exactDecimalFormatter(locale).format(value);
+  }
+}
+
 export function formatLocalDate(value: string, locale: Locale): string {
   return mediumDateFormatter(locale).format(new Date(`${value}T00:00:00Z`));
 }
@@ -281,6 +304,24 @@ export function formatExactDuration(
   return `${signPrefix(negative, exact !== 0n, showSign)}${parts.join(" ")}`;
 }
 
+export function formatPresentationDuration(
+  value: string,
+  locale: Locale,
+  units: DurationUnitLabels,
+  role: PresentationRole,
+): string {
+  switch (role) {
+    case "summary":
+      return formatSummaryDuration(value, locale, units);
+    case "comparison":
+      return formatSummaryDuration(value, locale, units, true);
+    case "detail":
+      return formatDetailDuration(value, locale, units);
+    case "exact-evidence":
+      return formatExactDuration(value, locale, units);
+  }
+}
+
 export function formatDistance(
   meters: number,
   locale: Locale,
@@ -301,6 +342,37 @@ export function formatSummaryDistance(
     return `${summaryDecimalFormatter(locale).format(meters / 1_000)} ${units.kilometers}`;
   }
   return `${integerCountFormatter(locale).format(meters)} ${units.meters}`;
+}
+
+export function formatPresentationDistance(
+  meters: number,
+  locale: Locale,
+  units: DistanceUnitLabels,
+  role: PresentationRole,
+): string {
+  if (role === "exact-evidence") {
+    return `${exactDecimalFormatter(locale).format(meters)} ${units.meters}`;
+  }
+
+  const useKilometers = Math.abs(meters) >= 1_000;
+  const value = useKilometers ? meters / 1_000 : meters;
+  const unit = useKilometers ? units.kilometers : units.meters;
+  if (role === "comparison") {
+    const formatter = useKilometers
+      ? signedSummaryDecimalFormatter(locale)
+      : signedIntegerCountFormatter(locale);
+    return `${formatter.format(value)} ${unit}`;
+  }
+  if (role === "summary") {
+    const formatter = useKilometers
+      ? summaryDecimalFormatter(locale)
+      : integerCountFormatter(locale);
+    return `${formatter.format(value)} ${unit}`;
+  }
+  const formatter = useKilometers
+    ? detailDecimalFormatter(locale)
+    : integerCountFormatter(locale);
+  return `${formatter.format(value)} ${unit}`;
 }
 
 export function formatPace(

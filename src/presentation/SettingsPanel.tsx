@@ -198,6 +198,20 @@ export function SettingsPanel({
 
           <p className="settings-local-note">{messages.localOnly}</p>
 
+          {!defaultsSelected && !busy && (
+            <section className="settings-reset" aria-label={messages.restore}>
+              <p>{messages.restoreBody}</p>
+              <button
+                type="button"
+                className="secondary"
+                disabled={disabled}
+                onClick={() => preview(defaultPreferences)}
+              >
+                {messages.restore}
+              </button>
+            </section>
+          )}
+
           {dirty && navigationGuard && (
             <section
               className="settings-navigation-guard"
@@ -234,31 +248,27 @@ export function SettingsPanel({
             </p>
           )}
 
-          <div className="settings-actions">
-            <button
-              type="button"
-              className="secondary"
-              disabled={disabled || busy || defaultsSelected}
-              onClick={() => preview(defaultPreferences)}
-            >
-              {messages.restore}
-            </button>
-            <button
-              ref={cancelChangesButton}
-              type="button"
-              className="secondary settings-cancel"
-              disabled={disabled || busy || !dirty}
-              onClick={discardPreview}
-            >
-              {messages.cancel}
-            </button>
-            <ProgressSubmitButton
-              loading={operation === "save"}
-              disabled={disabled || busy || !dirty}
-              actionLabel={messages.save}
-              progressLabel={messages.saving}
-            />
-          </div>
+          {(dirty || busy) && (
+            <div className="settings-actions">
+              {!busy && (
+                <button
+                  ref={cancelChangesButton}
+                  type="button"
+                  className="secondary settings-cancel"
+                  disabled={disabled}
+                  onClick={discardPreview}
+                >
+                  {messages.cancel}
+                </button>
+              )}
+              <ProgressSubmitButton
+                loading={operation === "save"}
+                disabled={disabled || busy || !dirty}
+                actionLabel={messages.save}
+                progressLabel={messages.saving}
+              />
+            </div>
+          )}
         </form>
 
         <aside className="settings-preview" aria-label={messages.preview}>

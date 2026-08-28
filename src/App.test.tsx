@@ -1054,12 +1054,14 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
 }
 
 async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: string) {
-  if (!screen.queryByRole("button", { name: "Choose ZIP package" })) {
+  if (!screen.queryByRole("button", { name: /Choose (?:another ZIP|ZIP package)/ })) {
     await user.click(await screen.findByRole("button", { name: "Sources" }));
     await screen.findByRole("heading", { name: "Import your fitness history" });
   }
   mocks.open.mockResolvedValue(path);
-  await user.click(await screen.findByRole("button", { name: "Choose ZIP package" }));
+  await user.click(await screen.findByRole("button", {
+    name: /Choose (?:another ZIP|ZIP package)/,
+  }));
   const name = path.split(/[\\/]/).filter(Boolean).at(-1)!;
   expect(screen.getByText(name)).toBeVisible();
   if (name !== path) expect(screen.queryByText(path)).not.toBeInTheDocument();
@@ -2341,8 +2343,8 @@ describe("FitFreed import interface", () => {
     )).toHaveLength(0);
     const settingsForm = screen.getByRole("form", { name: "Appearance and language" });
     expect(settingsForm).toHaveAttribute("aria-busy", "false");
-    expect(screen.getByRole("button", { name: "Restore defaults" }))
-      .toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Restore defaults" }))
+      .not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel changes" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
     expect(screen.getByRole("status")).toHaveTextContent(
@@ -4016,7 +4018,9 @@ describe("FitFreed import interface", () => {
       name: spanish.outcome.cancelledHeading,
     });
     expect(cancelledOutcome).toHaveTextContent(spanish.outcome.cancelledConsequence);
-    expect(screen.getByRole("button", { name: spanish.import })).toBeEnabled();
+    expect(within(cancelledOutcome).getByRole("button", {
+      name: spanish.outcome.chooseAnother,
+    })).toBeEnabled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryAllByRole("row")).toHaveLength(0);
   });
@@ -4206,6 +4210,7 @@ describe("FitFreed import interface", () => {
     expect(within(rows[3]).getByText("Not available")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Sources" }));
+    await chooseArchive(user, "/synthetic/valid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
     expect(await screen.findByRole("status", { name: "Already in your library" }))
       .toHaveTextContent("exact repeat");
@@ -4574,7 +4579,7 @@ describe("FitFreed import interface", () => {
     });
     const summaryDistance = within(summaryMeasurements).getByText("Distance").closest("div");
     expect(summaryDistance).not.toBeNull();
-    expect(within(summaryDistance!).getByText("5,000.25 m")).toBeVisible();
+    expect(within(summaryDistance!).getByText("5 km")).toBeVisible();
     expect(within(detail!).getByText("140 bpm")).toBeVisible();
     const summaryType = within(summaryMeasurements).getByText("Training type").closest("div");
     expect(summaryType).not.toBeNull();

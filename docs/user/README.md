@@ -9,7 +9,8 @@ learning how to obtain one. The latter path opens Sources, where a versioned off
 obtain a Polar Flow ZIP through explicit allowlisted official links. Sources replaces acquisition choices
 with one protected active task while importing, then leads with the exact effect on the local library.
 Reconciliation counts, compatibility evidence, and family coverage remain available on request instead of
-competing with that consequence.
+competing with that consequence. A ready import and a completed result each expose one clear archive-choice
+path; choosing another archive replaces the result with the selected-file task instead of duplicating controls.
 FitFreed never handles provider credentials or requests and downloads an export on the person's behalf. A
 populated library opens a result-led Home with the complete usable period, training-session and sport-profile
 counts, current provider-neutral sport identities, recent exact sessions, and either an equal-period recent comparison or
@@ -40,7 +41,8 @@ Current builds also demonstrate import safety, source-subject correlation, recon
 family coverage. Settings separates **Appearance & language** from **Updates**, so maintenance does not
 compete with the preference preview. Language, appearance, and content size can be previewed against one
 recognizable fictional session. Restoring defaults changes only this draft; cancelling restores the saved
-values without writing, and saving is the only durable change. FitFreed asks before discarding an unsaved
+values without writing, and saving is the only durable change. Reset appears only when the draft differs from
+the defaults; cancel and save appear only while changes are pending. FitFreed asks before discarding an unsaved
 draft during navigation. The Updates category
 identifies the installed version as soon as update state is available. Builds expose trusted update checking
 at ready startup, in the Updates category on explicit request, and
@@ -64,7 +66,8 @@ the optional facts that were recorded. Summary totals use magnitude-aware precis
 seconds, and milliseconds appear only when exact elapsed evidence makes them material. Counts and both sides of
 a count ratio use the locale's grouping consistently. Exact timestamps,
 unrounded quantities, source separation, and provenance remain available through the relevant exact-evidence or
-source disclosure. A calendar
+source disclosure. A same-day session uses one date, its start-to-end time, and its duration; UTC offset and
+complete timestamps stay in the exact timing disclosure. A calendar
 date shows its activities in local-start order with sport icons, human-scale durations, and direct session opening.
 The year selector crosses long histories directly, **Today** returns to the current month, and a date contributed by
 more than one separated history says so directly instead of presenting an unexplained source number.

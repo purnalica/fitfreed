@@ -117,7 +117,7 @@ export function TrainingZoneWorkbench({
         totalNumber,
         locale,
         sessionCopy.zoneNotRecorded,
-        messages.training.units.meters,
+        messages.training.units,
       )
       : measure === "muscleLoad"
         ? number.format(totalNumber)
@@ -153,7 +153,7 @@ export function TrainingZoneWorkbench({
         zone.distanceMeters,
         locale,
         sessionCopy.zoneNotRecorded,
-        messages.training.units.meters,
+        messages.training.units,
       );
     }
     if (measure === "muscleLoad") {

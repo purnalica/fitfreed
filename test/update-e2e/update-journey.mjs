@@ -144,8 +144,8 @@ async function selectSpanish(browser) {
   await save.click();
   await browser.waitUntil(async () => {
     const status = await (await browser.$(".settings-status")).getText();
-    const currentSave = await browser.$(".settings-actions button[type='submit']");
-    return status !== previewStatus && !(await currentSave.isEnabled());
+    const currentSave = await browser.$$(".settings-actions button[type='submit']");
+    return status !== previewStatus && currentSave.length === 0;
   }, {
     timeout: 15_000,
     timeoutMsg: "the Spanish locale was not saved",

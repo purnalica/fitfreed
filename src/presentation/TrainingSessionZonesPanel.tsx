@@ -64,7 +64,8 @@ export function TrainingSessionZonesPanel({
       zone.distanceMeters,
       locale,
       copy.zoneNotRecorded,
-      messages.training.units.meters,
+      messages.training.units,
+      "exact-evidence",
     );
   }
 

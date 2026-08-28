@@ -22,6 +22,7 @@ import {
   formatSessionCardDistance,
   formatSessionCardDuration,
   formatSessionCardTime,
+  formatSessionTimeSpan,
   formatTrainingDateTime,
   formatUtcOffset,
 } from "./training-format";
@@ -1482,7 +1483,7 @@ export function TrainingSessionLibraryPanel({
                     <NumericTableHeader scope="row">{number.format(lap.ordinal + 1)}</NumericTableHeader>
                     <NumericTableCell>{formatDetailDuration(lap.splitTimeMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
                     <NumericTableCell>{formatDetailDuration(lap.durationMilliseconds, locale, messages.training.durationUnits)}</NumericTableCell>
-                    <NumericTableCell>{formatDistance(lap.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</NumericTableCell>
+                    <NumericTableCell>{formatDistance(lap.distanceMeters, locale, copy.metricUnavailable, messages.training.units)}</NumericTableCell>
                   </tr>
                 ))}</tbody>
             </DataTable>
@@ -2222,6 +2223,13 @@ export function TrainingSessionLibraryPanel({
   ) ?? [];
 
   function exerciseSummary(exercise: TrainingExerciseStructure) {
+    const timing = formatSessionTimeSpan(
+      exercise.startedAtLocal,
+      exercise.stoppedAtLocal,
+      exercise.durationMilliseconds,
+      locale,
+      messages.training.durationUnits,
+    );
     return (
       <>
         <header>
@@ -2240,10 +2248,15 @@ export function TrainingSessionLibraryPanel({
           number: number.format(exercise.ordinal + 1),
         })}>
           <dl>
-            <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(exercise.startedAtLocal, locale)}</dd></div>
-            <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(exercise.stoppedAtLocal, locale)}</dd></div>
-            <div><dt>{messages.training.duration}</dt><dd>{formatDetailDuration(exercise.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
-            <div><dt>{messages.training.distance}</dt><dd>{formatDistance(exercise.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
+            <div>
+              <dt>{messages.training.timing}</dt>
+              <dd className="session-time-summary">
+                <span>{timing.date}</span>
+                {timing.time && <span>{timing.time}</span>}
+                <span>{timing.duration}</span>
+              </dd>
+            </div>
+            <div><dt>{messages.training.distance}</dt><dd>{formatDistance(exercise.distanceMeters, locale, copy.metricUnavailable, messages.training.units)}</dd></div>
             <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(exercise.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
           </dl>
         </div>
@@ -2272,6 +2285,13 @@ export function TrainingSessionLibraryPanel({
   }
 
   const contextSport = sports?.sports.find((sport) => sport.sportRef === contextSportRef);
+  const selectedTiming = selected ? formatSessionTimeSpan(
+    selected.startedAtLocal,
+    selected.stoppedAtLocal,
+    selected.durationMilliseconds,
+    locale,
+    messages.training.durationUnits,
+  ) : undefined;
 
   return (
     <section
@@ -3026,7 +3046,8 @@ export function TrainingSessionLibraryPanel({
                           summary.totalDistanceMeters,
                           locale,
                           messages.unavailable,
-                          messages.training.units.meters,
+                          messages.training.units,
+                          "summary",
                         )}</strong>
                         <span>
                           {messages.training.totalDistance} · {coverageLabel(
@@ -3124,7 +3145,7 @@ export function TrainingSessionLibraryPanel({
                           session.distanceMeters,
                           locale,
                           copy.metricUnavailable,
-                          messages.training.units.meters,
+                          messages.training.units,
                         )}</NumericTableCell>)}
                       </tr>
                       <tr>
@@ -3286,14 +3307,18 @@ export function TrainingSessionLibraryPanel({
             <div role="group" aria-label={copy.summaryMeasurements}>
               <dl>
                 <div><dt>{messages.training.trainingType}</dt><dd>{sessionSportTitle(selected)}</dd></div>
-                <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(selected.startedAtLocal, locale)}</dd></div>
-                <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(selected.stoppedAtLocal, locale)}</dd></div>
-                {selected.utcOffsetMinutes !== null && (
-                  <div><dt>{messages.training.utcOffset}</dt><dd>{formatUtcOffset(selected.utcOffsetMinutes, copy.metricUnavailable)}</dd></div>
+                {selectedTiming && (
+                  <div>
+                    <dt>{messages.training.timing}</dt>
+                    <dd className="session-time-summary">
+                      <span>{selectedTiming.date}</span>
+                      {selectedTiming.time && <span>{selectedTiming.time}</span>}
+                      <span>{selectedTiming.duration}</span>
+                    </dd>
+                  </div>
                 )}
-                <div><dt>{messages.training.duration}</dt><dd>{formatDetailDuration(selected.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
                 {selected.distanceMeters !== null && (
-                  <div><dt>{messages.training.distance}</dt><dd>{formatDistance(selected.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
+                  <div><dt>{messages.training.distance}</dt><dd>{formatDistance(selected.distanceMeters, locale, copy.metricUnavailable, messages.training.units)}</dd></div>
                 )}
                 {selected.energyKilocalories !== null && (
                   <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(selected.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
@@ -3309,6 +3334,18 @@ export function TrainingSessionLibraryPanel({
                 )}
               </dl>
             </div>
+            <details className="answer-exact-values training-exact-timing">
+              <summary>{copy.exactTiming}</summary>
+              <p>{copy.exactTimingIntro}</p>
+              <dl>
+                <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(selected.startedAtLocal, locale)}</dd></div>
+                <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(selected.stoppedAtLocal, locale)}</dd></div>
+                {selected.utcOffsetMinutes !== null && (
+                  <div><dt>{messages.training.utcOffset}</dt><dd>{formatUtcOffset(selected.utcOffsetMinutes, copy.metricUnavailable)}</dd></div>
+                )}
+                <div><dt>{messages.training.duration}</dt><dd>{formatExactDuration(selected.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+              </dl>
+            </details>
             {page && (
               <SessionPlannedTrainingPanel
                 sessionRef={selected.sessionRef}

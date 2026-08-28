@@ -64,10 +64,13 @@ measurement, but it never isolates the unit from its value on another line.
 Duration precision follows the information role. A summary rounds sub-minute values to seconds,
 ordinary values to minutes, and totals of at least 100 hours to whole hours. Detail may retain seconds
 but not sub-second residue. Exact evidence retains every recorded millisecond when present. The same
-role distinction applies to decimal quantities: summary and detail formatting never rewrite the
-underlying value or the exact export. Counts always use locale grouping, including both sides of one
-ratio, and values plus units remain one reading unit. A screen chooses a named shared policy rather
-than constructing an independent number or date formatter.
+role distinction applies to decimal quantities: summaries use magnitude-aware everyday precision,
+comparisons add an explicit sign without exposing floating-point residue, detail may add only useful
+precision, and exact evidence preserves the recorded value. None of these roles rewrites the underlying
+value or the exact export. Counts always use locale grouping, including both sides of one ratio, and values
+plus units remain one reading unit. A screen chooses a named shared policy rather than constructing an
+independent number or date formatter. An ordinary same-day session appears as one localized date, one
+start-to-end time range, and one duration; complete timestamps and UTC offset remain deliberate evidence.
 
 Severity follows consequence. A failed or rejected operation first states what happened to the
 existing library or saved document, then offers one safe next action. Technical detail is optional,
@@ -265,7 +268,9 @@ imported history and other reports remain unchanged.
 
 Sources owns provider guidance, archive selection, active processing, source history, incorporation
 coverage, compatibility, and technical provenance. Import is a task state that temporarily dominates
-the content region; source choices do not compete with an active operation.
+the content region; source choices do not compete with an active operation. Each task state owns no more
+than one archive-selection action. A terminal result can start another choice without also exposing the
+ready-state chooser or placing a newly selected archive below the current viewport.
 
 The general acquisition explanation appears only while Sources is ready for a decision. During an
 operation and when presenting its result, the page identity becomes compact so that progress or the
@@ -301,8 +306,10 @@ Settings is a dedicated space for lasting preferences. The initial groups contai
 Changes immediately affect one concrete fictional session preview and save explicitly. The preview
 must expose the actual effects of locale, appearance, and zoom rather than decorate the form. An
 unsaved draft is named and survives movement between Settings categories. **Restore defaults** changes
-only that draft and its preview. **Cancel changes** restores the complete persisted preference set without
-writing, and **Save changes** is the sole durable Settings write. Navigation away from an unsaved draft
+only that draft and its preview, appears in the affected preference group only while useful, and disappears
+once the draft already contains the defaults. **Cancel changes** restores the complete persisted preference
+set without writing, and **Save changes** is the sole durable Settings write. Cancel and save appear only
+for a dirty or completing transaction. Navigation away from an unsaved draft
 requires an explicit choice to keep editing or discard and continue. Appearance choices use recognizable
 visual samples in addition to names.
 

@@ -840,7 +840,7 @@ describe("SourcesPanel", () => {
     vi.useRealTimers();
   });
 
-  it("places the latest result before follow-up source actions and hides the local path", () => {
+  it("lets the latest result own the only follow-up archive action", () => {
     render(
       <SourcesPanel
         locale="en-US"
@@ -866,10 +866,12 @@ describe("SourcesPanel", () => {
       </SourcesPanel>,
     );
 
-    const result = screen.getByTestId("latest-result");
-    const actions = screen.getByRole("heading", { name: "I have the ZIP" }).closest("article");
-    expect(result.compareDocumentPosition(actions!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(screen.getByText("export.zip")).toBeVisible();
+    expect(screen.getByTestId("latest-result")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "I have the ZIP" }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Choose ZIP package" }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText("export.zip")).not.toBeInTheDocument();
     expect(screen.queryByText("/synthetic/private-folder/export.zip")).not.toBeInTheDocument();
   });
 });

@@ -1465,7 +1465,10 @@ function App() {
                         ?? messages.errors.unexpected
                       : undefined}
                     onOpenHome={() => navigateHome("home", "start")}
-                    onChooseAnother={async () => { await chooseArchive(); }}
+                    onChooseAnother={async () => {
+                      const selected = await chooseArchive();
+                      if (selected !== null) setOutcome(undefined);
+                    }}
                     onArchiveError={() => setSourceErrorCode("archive-picker-failed")}
                   />
                 )}
