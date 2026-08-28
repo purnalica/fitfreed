@@ -40,8 +40,8 @@ Catalogue activation makes prior resolved evidence stale and still requires the 
 Self-contained HTML uses [output version 6](../data-formats/portable/report-html-v6.md) and records its output version
 independently from the definition version.
 
-The current [report workflow version 8](../data-formats/insights/report-v8.md) retains the version-7 planned-training
-extension and adds exact revision-bound report duplication. Definition version 5 remains the durable contract under
+The current [report workflow version 9](../data-formats/insights/report-v9.md) retains the version-8 examples and
+duplication behavior plus the version-7 planned-training extension. Definition version 5 remains the durable contract under
 [ADR 0034](decisions/0034-bind-each-report-to-one-evidence-library.md). A planned-training origin binds one exact
 provider-neutral target and one matching evidence block to a `planned-snapshot-` source revision. Session, question,
 exploration, and blank origins remain bound to a `training-snapshot-` revision. A version-5 report never combines the
@@ -64,7 +64,7 @@ parameter-free. Session, routed-session, and planned-target examples navigate to
 explicit selection; the application never guesses a candidate. Saving a resolved draft returns to the ordinary
 version-5 creation path. The structured example stays within the planned library required by ADR 0034.
 
-Current self-contained HTML uses [output version 7](../data-formats/portable/report-html-v7.md). It renders the exact
+Current self-contained HTML uses [output version 8](../data-formats/portable/report-html-v8.md). It renders the exact
 authorized objective, exercise, phase, goal, intensity, transition, and repeat meaning semantically while keeping
 planned intent distinct from recorded completion. Output version and definition version remain independent contracts.
 

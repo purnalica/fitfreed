@@ -81,6 +81,7 @@ fn classified_sport() -> TrainingSessionSport {
         ),
         state: TrainingSportState::PersonallyOverridden,
         classification: Some(TrainingSportClassification {
+            scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
             canonical_family: Some("running".to_owned()),
             display_label: Some("Trail running".to_owned()),
             authorship: Some("user".to_owned()),
@@ -98,6 +99,7 @@ fn recognized_sport(localized_name: String) -> TrainingSessionSport {
         ),
         state: TrainingSportState::Recognized,
         classification: Some(TrainingSportClassification {
+            scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
             canonical_family: None,
             display_label: None,
             authorship: None,
@@ -349,7 +351,7 @@ fn rejects_oversized_duplicate_or_incomplete_comparison_selections() {
 
 fn workspace() -> TrainingDiscoveryWorkspace {
     TrainingDiscoveryWorkspace {
-        version: 2,
+        version: 3,
         snapshot_ref: SNAPSHOT.to_owned(),
         from: Some("2024-01-01".to_owned()),
         through: Some("2026-08-31".to_owned()),
@@ -432,7 +434,7 @@ fn rejects_inconsistent_training_discovery_workspaces_before_writing() {
     }
     let cases = [
         TrainingDiscoveryWorkspace {
-            version: 3,
+            version: 4,
             ..workspace()
         },
         TrainingDiscoveryWorkspace {

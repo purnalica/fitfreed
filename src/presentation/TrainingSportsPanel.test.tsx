@@ -20,6 +20,7 @@ const unknownSport: TrainingSport = {
   sourceIndex: 2,
   state: "unknown",
   classification: {
+    scope: "unresolved-source-profile" as const,
     canonicalFamily: null,
     displayLabel: null,
     authorship: null,
@@ -43,6 +44,7 @@ const classifiedSport: TrainingSport = {
   sourceIndex: 1,
   state: "personally-overridden",
   classification: {
+    scope: "unresolved-source-profile" as const,
     canonicalFamily: "running",
     displayLabel: "Trail running",
     authorship: "user",
@@ -233,6 +235,7 @@ describe("TrainingSportsPanel", () => {
             ? "unknown"
             : "personally-overridden",
           classification: {
+            scope: "unresolved-source-profile" as const,
             canonicalFamily: request.canonicalFamily,
             displayLabel: request.displayLabel,
             authorship: "user",
@@ -367,6 +370,7 @@ describe("TrainingSportsPanel", () => {
           ...unknownSport,
           state: "personally-overridden",
           classification: {
+            scope: "unresolved-source-profile" as const,
             canonicalFamily: "running",
             displayLabel: "Concurrent running",
             authorship: "user",
@@ -406,6 +410,7 @@ describe("TrainingSportsPanel", () => {
       ...unknownSport,
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
         authorship: "user" as const,
@@ -487,6 +492,7 @@ describe("TrainingSportsPanel", () => {
       sessionFilterRef: `sport-${"9".repeat(64)}`,
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: null,
         displayLabel: "Gravel cycling",
         authorship: "user" as const,
@@ -544,6 +550,7 @@ describe("TrainingSportsPanel", () => {
       ...classifiedSport,
       state: "unknown",
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: null,
         displayLabel: null,
         authorship: "user",

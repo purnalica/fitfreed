@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-structure-v3.schema.json",
+  "title": "FitFreed training-session structure version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["snapshotRef", "sessionRef", "structure"],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "#/$defs/sessionRef" },
+    "structure": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/structure" }
+      ]
+    }
+  },
+  "$defs": {
+    "snapshotRef": {
+      "type": "string",
+      "pattern": "^training-snapshot-[0-9a-f]{64}$"
+    },
+    "sessionRef": {
+      "type": "string",
+      "pattern": "^session-[0-9a-f]{64}$"
+    },
+    "exerciseRef": {
+      "type": "string",
+      "pattern": "^exercise-[0-9a-f]{64}$"
+    },
+    "lapRef": {
+      "type": "string",
+      "pattern": "^lap-[0-9a-f]{64}$"
+    },
+    "pauseRef": {
+      "type": "string",
+      "pattern": "^pause-[0-9a-f]{64}$"
+    },
+    "localDateTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?$"
+    },
+    "unsignedDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "optionalUnsignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/unsignedDecimal" }
+      ]
+    },
+    "optionalDistance": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number", "minimum": 0 }
+      ]
+    },
+    "optionalOffset": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      ]
+    },
+    "lap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lapRef",
+        "ordinal",
+        "splitTimeMilliseconds",
+        "durationMilliseconds",
+        "distanceMeters"
+      ],
+      "properties": {
+        "lapRef": { "$ref": "#/$defs/lapRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "splitTimeMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "durationMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "distanceMeters": { "$ref": "#/$defs/optionalDistance" }
+      }
+    },
+    "pause": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pauseRef", "ordinal", "startedAtLocal", "endedAtLocal"],
+      "properties": {
+        "pauseRef": { "$ref": "#/$defs/pauseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "startedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "endedAtLocal": { "$ref": "#/$defs/localDateTime" }
+      }
+    },
+    "optionalLaps": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/lap" }
+        }
+      ]
+    },
+    "optionalPauses": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pause" }
+        }
+      ]
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exerciseRef",
+        "ordinal",
+        "startedAtLocal",
+        "stoppedAtLocal",
+        "utcOffsetMinutes",
+        "durationMilliseconds",
+        "distanceMeters",
+        "energyKilocalories",
+        "sport",
+        "manualLaps",
+        "automaticLaps",
+        "pauses"
+      ],
+      "properties": {
+        "exerciseRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "startedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "stoppedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "utcOffsetMinutes": { "$ref": "#/$defs/optionalOffset" },
+        "durationMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "distanceMeters": { "$ref": "#/$defs/optionalDistance" },
+        "energyKilocalories": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "sport": {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/sport"
+        },
+        "manualLaps": { "$ref": "#/$defs/optionalLaps" },
+        "automaticLaps": { "$ref": "#/$defs/optionalLaps" },
+        "pauses": { "$ref": "#/$defs/optionalPauses" }
+      }
+    },
+    "structure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercises"],
+      "properties": {
+        "exercises": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/exercise" }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

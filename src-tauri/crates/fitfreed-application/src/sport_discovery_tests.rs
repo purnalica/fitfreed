@@ -9,7 +9,7 @@ use fitfreed_domain::{
 use super::{
     query_training_sports, save_training_sport_classification, ApplicationError,
     DetectedTrainingSport, SaveSportClassificationRequest, SportClassificationSaveOutcome,
-    TrainingSportState, TrainingSportsPort,
+    TrainingSportClassificationScope, TrainingSportState, TrainingSportsPort,
 };
 
 fn detected_sport(
@@ -195,6 +195,8 @@ fn composes_classified_unknown_and_unavailable_sports_without_source_references(
 fn keeps_exact_representations_separate_from_one_classifiable_source_profile() {
     let mut kayaking = detected_sport("sport-shared", "origin-a", "opaque-1", 2);
     kayaking.session_filter_ref = "filter-kayaking".to_owned();
+    kayaking.sport_ref = None;
+    kayaking.classification = None;
     kayaking.recognition_candidates = vec![recognized_suggestion(
         "Kayaking",
         Some(SportFamily::WaterSport),
@@ -211,9 +213,19 @@ fn keeps_exact_representations_separate_from_one_classifiable_source_profile() {
     assert_eq!(overview.sports.len(), 2);
     assert_eq!(overview.sports[0].state, TrainingSportState::Recognized);
     assert_eq!(overview.sports[0].session_filter_ref, "filter-kayaking");
+    assert!(overview.sports[0].sport_ref.is_none());
+    assert!(overview.sports[0].classification.is_none());
     assert_eq!(overview.sports[1].state, TrainingSportState::Unknown);
     assert_eq!(overview.sports[1].session_filter_ref, "filter-unresolved");
-    assert_eq!(overview.sports[0].sport_ref, overview.sports[1].sport_ref);
+    assert!(overview.sports[1].sport_ref.is_some());
+    assert_eq!(
+        overview.sports[1]
+            .classification
+            .as_ref()
+            .expect("unresolved fallback classification")
+            .scope,
+        TrainingSportClassificationScope::UnresolvedSourceProfile
+    );
 }
 
 #[test]

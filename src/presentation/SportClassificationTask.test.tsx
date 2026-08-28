@@ -21,6 +21,7 @@ const unknownSport: TrainingSport = {
   sourceIndex: 1,
   state: "unknown",
   classification: {
+    scope: "unresolved-source-profile" as const,
     canonicalFamily: null,
     displayLabel: null,
     authorship: null,
@@ -83,6 +84,7 @@ describe("SportClassificationTask", () => {
       ...unknownSport,
       state: "personally-overridden",
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "running",
         displayLabel: "Concurrent running",
         authorship: "user",
@@ -92,6 +94,7 @@ describe("SportClassificationTask", () => {
     const savedSport: TrainingSport = {
       ...concurrentSport,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "water-sport",
         displayLabel: "River paddling",
         authorship: "user",

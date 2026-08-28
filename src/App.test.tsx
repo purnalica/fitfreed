@@ -385,7 +385,7 @@ function testSessionStory(
   };
 
   return {
-    schemaVersion: 4,
+    schemaVersion: 6,
     snapshotRef,
     session,
     structure: { exercises: exercise ? [exercise] : null },
@@ -1243,6 +1243,7 @@ describe("FitFreed import interface", () => {
         sportRef: recentSession.sportRef,
         state: "personally-overridden" as const,
         classification: {
+          scope: "unresolved-source-profile" as const,
           canonicalFamily: "running" as const,
           displayLabel: "Road running",
           authorship: "user" as const,
@@ -4297,6 +4298,7 @@ describe("FitFreed import interface", () => {
       sourceIndex: 1,
       state: "unknown" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: null,
         displayLabel: null,
         authorship: null,
@@ -4317,6 +4319,7 @@ describe("FitFreed import interface", () => {
       ...unknownSport,
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
         authorship: "user" as const,

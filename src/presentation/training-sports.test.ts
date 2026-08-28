@@ -23,6 +23,7 @@ const recognition: TrainingSportRecognition = {
 const recognized: TrainingSportIdentity = {
   state: "recognized",
   classification: {
+    scope: "unresolved-source-profile" as const,
     canonicalFamily: null,
     displayLabel: null,
     authorship: null,
@@ -64,6 +65,7 @@ describe("training sport identity presentation", () => {
       ...recognized,
       state: "personally-overridden",
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "other",
         displayLabel: "Remo de travesía",
         authorship: "user",

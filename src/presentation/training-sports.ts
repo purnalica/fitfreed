@@ -35,6 +35,7 @@ export const sportFamilies: SportFamily[] = [
 ];
 
 export interface TrainingSportClassification {
+  scope: "unresolved-source-profile";
   canonicalFamily: SportFamily | null;
   displayLabel: string | null;
   authorship: "user" | null;

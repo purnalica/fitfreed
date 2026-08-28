@@ -111,7 +111,7 @@ either evidence class.
 
 The normative input and output fragments are the
 [provider sport catalogue evidence](../data-formats/providers/provider-sport-catalogue-v1.md) and
-[training sport identity](../data-formats/insights/training-sport-identity-v1.md) contracts. No real catalogue
+[training sport identity](../data-formats/insights/training-sport-identity-v3.md) contracts. No real catalogue
 is bundled until its official retrieval provenance, update procedure, and lawful redistribution basis are
 established. Route, speed, distance, heart rate, device, and other session evidence are never recognition
 substitutes.

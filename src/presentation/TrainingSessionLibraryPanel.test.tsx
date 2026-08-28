@@ -191,6 +191,7 @@ const sports: TrainingSportsOverview = {
       sourceIndex: 1,
       state: "personally-overridden",
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "running",
         displayLabel: "Trail running",
         authorship: "user",
@@ -213,6 +214,7 @@ const sports: TrainingSportsOverview = {
       sourceIndex: 2,
       state: "unknown",
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: null,
         displayLabel: null,
         authorship: null,
@@ -291,6 +293,7 @@ function trainingStructure(sessionRef: string): TrainingSessionStructureResult {
           sportRef: `sport-${"9".repeat(64)}`,
           state: "personally-overridden",
           classification: {
+            scope: "unresolved-source-profile" as const,
             canonicalFamily: null,
             displayLabel: "Intervals",
             authorship: "user",
@@ -702,7 +705,7 @@ function trainingStory(
   }));
 
   return {
-    schemaVersion: 4,
+    schemaVersion: 6,
     snapshotRef: acceptedSnapshotRef,
     session: storySession(sessionRef),
     structure,
@@ -1149,6 +1152,7 @@ describe("TrainingSessionLibraryPanel", () => {
       ...sports.sports[1],
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
         authorship: "user" as const,
@@ -1232,6 +1236,7 @@ describe("TrainingSessionLibraryPanel", () => {
       ...sports.sports[1],
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
         authorship: "user" as const,
@@ -1253,7 +1258,7 @@ describe("TrainingSessionLibraryPanel", () => {
       },
     };
     const restoredWorkspace: TrainingDiscoveryWorkspace = {
-      version: 2,
+      version: 3,
       snapshotRef,
       from: null,
       through: null,
@@ -1421,6 +1426,7 @@ describe("TrainingSessionLibraryPanel", () => {
       ...sports.sports[1],
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
         authorship: "user" as const,
@@ -1580,6 +1586,7 @@ describe("TrainingSessionLibraryPanel", () => {
           sportRef: `sport-${"e".repeat(64)}`,
           sourceIndex: 2,
           classification: {
+            scope: "unresolved-source-profile" as const,
             canonicalFamily: "cycling",
             displayLabel: null,
             authorship: "user",
@@ -1985,7 +1992,7 @@ describe("TrainingSessionLibraryPanel", () => {
   it("keeps an unavailable saved sport refinement explicit and removable without exposing its ref", async () => {
     const savedSportRef = `sport-${"9".repeat(64)}`;
     const workspace: TrainingDiscoveryWorkspace = {
-      version: 2,
+      version: 3,
       snapshotRef,
       from: null,
       through: null,
@@ -3493,7 +3500,7 @@ describe("TrainingSessionLibraryPanel", () => {
 
   it("restores filters, calendar origin, comparison, open detail, and the exact snapshot", async () => {
     const restoredWorkspace: TrainingDiscoveryWorkspace = {
-      version: 2,
+      version: 3,
       snapshotRef,
       from: "2026-01-01",
       through: "2026-08-18",

@@ -48,6 +48,11 @@ pub enum SportClassificationAuthorship {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SportClassificationScope {
+    UnresolvedSourceProfile,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SportFamily {
     Running,
     Cycling,
@@ -183,6 +188,10 @@ impl SportClassification {
 
     pub const fn state(&self) -> SportClassificationState {
         self.state
+    }
+
+    pub const fn scope(&self) -> SportClassificationScope {
+        SportClassificationScope::UnresolvedSourceProfile
     }
 
     pub const fn canonical_family(&self) -> Option<SportFamily> {

@@ -11,7 +11,7 @@ into [canonical planned training version 1](../canonical/planned-training.md).
 - Planned-training mapping: `polar-planned-training@2`
 - Planned-sport mapping: `polar-training-target-sport@1`
 - Source-format evidence: [Polar Flow personal data export](../providers/polar-flow.md)
-- Persistence: [SQLite schema version 34](../persistence/sqlite-v34.md)
+- Persistence: [SQLite schema version 35](../persistence/sqlite-v35.md)
 - Structural decision: [ADR 0033](../../architecture/decisions/0033-model-planned-training-as-versioned-intent.md)
 
 ## Accepted artifacts and bounds

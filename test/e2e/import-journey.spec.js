@@ -3284,7 +3284,7 @@ describe("packaged FitFreed import journey", () => {
     );
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
     expect(exportedReport).toContain('data-fitfreed-report-version="5"');
-    expect(exportedReport).toContain('data-fitfreed-output-version="7"');
+    expect(exportedReport).toContain('data-fitfreed-output-version="8"');
     expect(exportedReport).toContain('id="sport-icon-running"');
     expect(exportedReport).toContain('href="#sport-icon-running"');
     expect(exportedReport).toContain(">Trail running<");
@@ -5311,7 +5311,7 @@ describe("packaged FitFreed import journey", () => {
     );
     const refreshedExport = fs.readFileSync(refreshedReportOutput, "utf8");
     expect(refreshedExport).toContain('data-fitfreed-report-version="5"');
-    expect(refreshedExport).toContain('data-fitfreed-output-version="7"');
+    expect(refreshedExport).toContain('data-fitfreed-output-version="8"');
     expect(refreshedExport).toContain("Synthetic comparison answer");
     expect(refreshedExport).not.toContain(
       "The recorded duration decreased; the reason remains my interpretation.",
@@ -5536,7 +5536,7 @@ describe("packaged FitFreed import journey", () => {
     });
     const plannedExport = fs.readFileSync(plannedReportOutput, "utf8");
     expect(plannedExport).toContain('data-fitfreed-report-version="5"');
-    expect(plannedExport).toContain('data-fitfreed-output-version="7"');
+    expect(plannedExport).toContain('data-fitfreed-output-version="8"');
     expect(plannedExport).toContain("Training plan · Progressive intervals");
     expect(plannedExport).toContain("Planned training evidence");
     expect(plannedExport).toContain('<th scope="row">1. Phase</th>');

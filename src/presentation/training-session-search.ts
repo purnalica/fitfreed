@@ -110,7 +110,7 @@ export interface TrainingSessionSelection {
 }
 
 export interface TrainingDiscoveryWorkspace {
-  version: 2;
+  version: 3;
   snapshotRef: string;
   from: string | null;
   through: string | null;

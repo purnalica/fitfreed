@@ -27,7 +27,7 @@ Every read model retains layer attribution and provenance. Reimport or recalcula
 
 ## Sport-identity and classification boundary
 
-The [training sport identity contract](../data-formats/insights/training-sport-identity-v1.md) resolves
+The [training sport identity contract](../data-formats/insights/training-sport-identity-v3.md) resolves
 provider evidence and the independent
 [canonical sport-classification contract](../data-formats/canonical/sport-classification.md) without changing
 either. Application and persistence may handle the exact `(originId, sourceSportRef)` key, but presentation
@@ -42,9 +42,12 @@ mapping version, retrieval instant, and opaque evidence reference.
 [ADR 0027](decisions/0027-resolve-sport-identity-from-versioned-provider-evidence.md) owns the immutable
 catalogue and activation boundary. No sport is inferred from session measurements.
 
-An absent authored value leaves recognition authoritative or retains revision-zero unresolved state. Saving
-a classification produces `personally-overridden`; its personal label or family wins without deleting
-recognition. Resetting a value writes a new user-authored unknown
+An absent authored value leaves recognition authoritative or retains revision-zero unresolved state. A
+classification has the explicit `unresolved-source-profile` scope: it applies only to the source-profile remainder
+that lacks stronger exact-session evidence. Exact recognized and ambiguous collections carry no fallback
+classification capability. Saving changes only the remainder to `personally-overridden`; it never absorbs an exact
+collection, changes that collection's filter identity, or deletes recognition. A deliberate relationship that
+unifies identities is a separate future aggregate and operation. Resetting a value writes a new user-authored unknown
 revision rather than deleting the history of user intent. Compare-and-save revision checks reject stale
 editors. Import and reimport can reveal a new source reference but cannot create or overwrite its meaning.
 
@@ -82,7 +85,7 @@ otherwise equal labels would create ambiguity.
 
 Session identity and lightweight structure load independently from large routes and series. Visual queries request bounded windows and an explicit resolution; exact queries are stable and paginated. A downsampled point never masquerades as a recorded sample, and every visual offers an exact accessible path.
 
-The [training-session search version 2 contract](../data-formats/insights/training-session-search-v2.md) is the
+The [training-session search version 4 contract](../data-formats/insights/training-session-search-v4.md) is the
 complete-history discovery path. It combines optional local-date bounds, opaque sports, required-measurement
 coverage, and identity text without loading detail evidence. Text matches personal labels plus recognized
 localized names and provider-neutral family codes, but never provider identifiers or ambiguous candidates.
@@ -97,8 +100,8 @@ against that snapshot rather than searching the currently visible page. Presenta
 versioned applied query, page, view, calendar origin, comparison order, and open session. A stale snapshot
 retains still-valid query intent but clears session-specific evidence; explicit return to Home clears the
 detailed workspace. The normative contracts are the
-[training-session search](../data-formats/insights/training-session-search-v2.md) and
-[training-discovery workspace](../data-formats/insights/training-discovery-workspace-v1.md) specifications.
+[training-session search](../data-formats/insights/training-session-search-v4.md) and
+[training-discovery workspace](../data-formats/insights/training-discovery-workspace-v3.md) specifications.
 
 Training-period comparison remains a distinct bounded calendar read model. Its `availableRange` reports the
 first and last recorded session dates, but an ordered period of at most 366 inclusive dates may extend beyond

@@ -20,8 +20,8 @@ test("accepts current documentation derived from the release compatibility sourc
     validateCurrentDocumentation(loadCurrentDocumentation(repositoryRoot)),
     {
       releaseVersion: "0.1.0",
-      currentLibrarySchemaVersion: 34,
-      supportedLibrarySchemaVersions: Array.from({ length: 34 }, (_, index) => index + 1),
+      currentLibrarySchemaVersion: 35,
+      supportedLibrarySchemaVersions: Array.from({ length: 35 }, (_, index) => index + 1),
       checkedDocuments: 11,
     },
   );
@@ -31,22 +31,22 @@ test("rejects pre-migration status across current experience documents", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/design/experience-specification.md"] = replaceRequired(
     candidate.sources["docs/design/experience-specification.md"],
-    "The production application now\nimplements X5-R1 through X5-R10 and the corrective X7-R1 through X7-R7 vertical slices.",
+    "The production application implements\nX5-R1 through X5-R10 and the earlier corrective X7-R1 through X7-R7 vertical slices",
     "It does not describe the current production presentation.",
   );
   candidate.sources["docs/plans/ui-redesign.md"] = replaceRequired(
     candidate.sources["docs/plans/ui-redesign.md"],
-    "X7-R1 through X7-R7 are machine-complete",
+    "X5-R1 through X5-R10 and X7-R1 through X7-R7 retain\ntheir engineering evidence",
     "X4 derives the incremental production migration before X5 changes production",
   );
   candidate.sources["docs/roadmap.md"] = replaceRequired(
     candidate.sources["docs/roadmap.md"],
-    "X7-R1 through X7-R7 are machine-complete",
+    "X5-R1 through X5-R10 retain their engineering evidence, and X7-R1 through X7-R7 retain the machine evidence",
     "X5 is migrating the public entrance and ordinary application",
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R10 implement the replacement experience, and X7-R1 through X7-R7 correct every accepted finding from the valid X6 review",
+    "X5-R1 through X5-R10 and X7-R1 through X7-R7 retain their prior evidence",
     "PX-01 and PX-02 still require correction",
   );
 
@@ -66,7 +66,7 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/architecture/storage.md"] = replaceRequired(
     candidate.sources["docs/architecture/storage.md"],
-    "SQLite version 34",
+    "SQLite version 35",
     "SQLite version 33",
   );
   candidate.sources["docs/user/public-macos-0.1.0.md"] = replaceRequired(
@@ -76,14 +76,14 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R10 implement the replacement experience, and X7-R1 through X7-R7 correct every accepted finding from the valid X6 review",
+    "X5-R1 through X5-R10 and X7-R1 through X7-R7 retain their prior evidence",
     "The accepted E1–E6 experience scope is not implemented",
   );
 
   assert.throws(
     () => validateCurrentDocumentation(candidate),
     (error) => {
-      assert.match(error.message, /storage architecture does not identify SQLite schema 34/);
+      assert.match(error.message, /storage architecture does not identify SQLite schema 35/);
       assert.match(error.message, /public guide does not describe every implemented report start/);
       assert.match(error.message, /release readiness still presents the implemented experience as absent/);
       return true;

@@ -31,6 +31,7 @@ function structureStory(): SessionStory {
       sportRef: `sport-${"e".repeat(64)}`,
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "running" as const,
         displayLabel: "Intervals",
         authorship: "user" as const,

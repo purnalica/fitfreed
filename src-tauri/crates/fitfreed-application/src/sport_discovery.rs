@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use chrono::NaiveDate;
 use fitfreed_domain::{
     author_sport_classification, resolve_sport_identity, ProviderNeutralSportSuggestion,
-    SportClassification, SportClassificationAuthorship, SportClassificationError, SportFamily,
-    SportIdentityState,
+    SportClassification, SportClassificationAuthorship, SportClassificationError,
+    SportClassificationScope, SportFamily, SportIdentityState,
 };
 
 use crate::{ApplicationError, TrainingSessionSport};
@@ -49,7 +49,13 @@ pub enum TrainingSportState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TrainingSportClassificationScope {
+    UnresolvedSourceProfile,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingSportClassification {
+    pub scope: TrainingSportClassificationScope,
     pub canonical_family: Option<String>,
     pub display_label: Option<String>,
     pub authorship: Option<String>,
@@ -438,6 +444,11 @@ fn map_identity_state(state: SportIdentityState) -> TrainingSportState {
 
 fn map_classification(classification: &SportClassification) -> TrainingSportClassification {
     TrainingSportClassification {
+        scope: match classification.scope() {
+            SportClassificationScope::UnresolvedSourceProfile => {
+                TrainingSportClassificationScope::UnresolvedSourceProfile
+            }
+        },
         canonical_family: classification
             .canonical_family()
             .map(SportFamily::as_code)

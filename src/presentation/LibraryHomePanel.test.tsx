@@ -14,7 +14,7 @@ const presentationUnits = {
 
 function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
   return {
-    version: 6,
+    version: 7,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     recordedRange: { from: "2024-01-02", through: "2026-08-17" },
     usableRange: { from: "2024-01-02", through: "2026-08-17" },
@@ -693,7 +693,7 @@ describe("LibraryHomePanel", () => {
       <LibraryHomePanel
         {...presentationUnits}
         home={{
-          version: 6,
+          version: 7,
           libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           recordedRange: null,
           usableRange: null,

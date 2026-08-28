@@ -42,6 +42,7 @@ fn persisted() -> PersistedTrainingSessionStructure {
                     sport_ref: Some(opaque("sport-", 'f')),
                     state: TrainingSportState::Unknown,
                     classification: Some(TrainingSportClassification {
+                        scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                         canonical_family: None,
                         display_label: None,
                         authorship: None,

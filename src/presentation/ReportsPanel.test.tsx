@@ -69,6 +69,7 @@ const origin: SessionReportOrigin = {
       sportRef: `sport-${digest("4")}`,
       state: "personally-overridden",
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "running",
         displayLabel: "Trail running",
         authorship: "user",
@@ -899,6 +900,7 @@ describe("ReportsPanel", () => {
       sportRef: `sport-${digest("9")}`,
       state: "recognized" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: null,
         displayLabel: null,
         authorship: null,

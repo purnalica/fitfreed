@@ -80,7 +80,7 @@ function signalStory(): SessionStory {
     exactSignals: [],
   };
   return {
-    schemaVersion: 4,
+    schemaVersion: 6,
     snapshotRef: "snapshot-current",
     session: {
       sessionRef: `session-${"d".repeat(64)}`,
@@ -98,6 +98,7 @@ function signalStory(): SessionStory {
         sportRef: `sport-${"e".repeat(64)}`,
         state: "personally-overridden",
         classification: {
+          scope: "unresolved-source-profile" as const,
           canonicalFamily: "running",
           displayLabel: "Trail running",
           authorship: "user",

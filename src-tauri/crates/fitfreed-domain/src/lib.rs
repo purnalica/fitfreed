@@ -1,7 +1,8 @@
 mod sport_classification;
 pub use sport_classification::{
     author_sport_classification, SportClassification, SportClassificationAuthorship,
-    SportClassificationError, SportClassificationKey, SportClassificationState, SportFamily,
+    SportClassificationError, SportClassificationKey, SportClassificationScope,
+    SportClassificationState, SportFamily,
 };
 
 #[cfg(test)]

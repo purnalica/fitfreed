@@ -129,7 +129,7 @@ export interface SessionStoryProvenance {
 }
 
 export interface SessionStory {
-  schemaVersion: 4;
+  schemaVersion: 6;
   snapshotRef: string;
   session: TrainingSessionSearchItem;
   structure: TrainingStructure | null;

@@ -13,7 +13,7 @@ use super::{
     TrainingSportsPort,
 };
 
-const LIBRARY_HOME_VERSION: u32 = 6;
+const LIBRARY_HOME_VERSION: u32 = 7;
 const RECENT_SESSION_LIMIT: usize = 4;
 const SPORT_SUMMARY_LIMIT: usize = 6;
 const COMPARISON_PERIOD_DAYS: u64 = 7;

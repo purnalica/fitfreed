@@ -17,6 +17,11 @@ catalogue and does not turn an opaque source reference into a display name.
 - equal labels or families do not merge classifications, origins, or sessions; and
 - a session without a source sport reference remains `unavailable` and cannot be classified by inference.
 
+Its semantic scope is always `unresolved-source-profile`: it interprets only the sessions represented by that
+source profile which lack stronger exact-session sport evidence. Exact recognized or ambiguous evidence has no
+classification capability, even when its session also records the same source reference. Equal labels and families
+do not unify those identities; deliberate unification requires a separate user-authored relationship.
+
 The classification read model always has one of three states:
 
 - `unknown`: a source reference exists but has no user-authored meaning;
@@ -30,6 +35,7 @@ An absent persistence row is read as `unknown` at revision zero. Returning a pri
 
 | Field | Type | Required | Semantics |
 |---|---|---|---|
+| `scope` | `unresolved-source-profile` | yes | Fixed target of this classification aggregate. |
 | `state` | `unknown` or `classified` | yes | Explicit current interpretation. |
 | `canonicalFamily` | family code or null | yes | Optional broad FitFreed category; null means no family was chosen. |
 | `displayLabel` | string or null | yes | Optional user text for this exact source classification. |

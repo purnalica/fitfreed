@@ -124,6 +124,7 @@ fn classified_sport(family: &str) -> TrainingSessionSport {
         sport_ref: Some(SPORT.to_owned()),
         state: TrainingSportState::PersonallyOverridden,
         classification: Some(TrainingSportClassification {
+            scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
             canonical_family: Some(family.to_owned()),
             display_label: Some("User sport".to_owned()),
             authorship: Some("user".to_owned()),
@@ -377,7 +378,7 @@ fn composes_a_running_story_at_one_authoritative_snapshot() {
     let story = query_session_story(ports(&port), query()).unwrap();
 
     assert_eq!(story.schema_version, TRAINING_SESSION_STORY_SCHEMA_VERSION);
-    assert_eq!(TRAINING_SESSION_STORY_SCHEMA_VERSION, 5);
+    assert_eq!(TRAINING_SESSION_STORY_SCHEMA_VERSION, 6);
     assert_eq!(story.snapshot_ref, SNAPSHOT);
     assert_eq!(story.session.session_ref, SESSION);
     assert_eq!(port.accepted_snapshots.borrow().as_slice(), [SNAPSHOT; 5]);

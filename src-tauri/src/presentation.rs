@@ -83,13 +83,14 @@ use fitfreed_application::{
     TrainingSessionZonesView, TrainingSignalCollectionView, TrainingSignalKindView,
     TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
     TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
-    TrainingSourceProviderView, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
-    TrainingSportRecognition, TrainingSportState, TrainingSportsOverview, TrainingStructure,
-    TrainingZoneCollectionView, TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView,
-    TrainingZoneView, UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest,
-    UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary,
-    UpdateReportRequest, UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest,
-    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    TrainingSourceProviderView, TrainingSport, TrainingSportClassification,
+    TrainingSportClassificationScope, TrainingSportCoverage, TrainingSportRecognition,
+    TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
+    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
+    UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest, UpdateError,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
+    UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
+    UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -1989,6 +1990,7 @@ impl From<SaveSportClassificationRequestDto> for SaveSportClassificationRequest 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrainingSportClassificationDto {
+    scope: &'static str,
     canonical_family: Option<String>,
     display_label: Option<String>,
     authorship: Option<String>,
@@ -1998,6 +2000,11 @@ pub struct TrainingSportClassificationDto {
 impl From<TrainingSportClassification> for TrainingSportClassificationDto {
     fn from(classification: TrainingSportClassification) -> Self {
         Self {
+            scope: match classification.scope {
+                TrainingSportClassificationScope::UnresolvedSourceProfile => {
+                    "unresolved-source-profile"
+                }
+            },
             canonical_family: classification.canonical_family,
             display_label: classification.display_label,
             authorship: classification.authorship,
@@ -8204,6 +8211,7 @@ mod tests {
             source_index: 1,
             state: TrainingSportState::Recognized,
             classification: Some(TrainingSportClassification {
+                scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                 canonical_family: None,
                 display_label: None,
                 authorship: None,
@@ -8237,6 +8245,10 @@ mod tests {
             "Carrera en asfalto"
         );
         assert_eq!(recognized_json["recognitionCandidateCount"], 1);
+        assert_eq!(
+            recognized_json["classification"]["scope"],
+            "unresolved-source-profile"
+        );
         assert!(recognized_json.get("sourceIdentifier").is_none());
         assert!(recognized_json["recognition"]
             .get("sourceProvider")
@@ -8248,6 +8260,7 @@ mod tests {
             source_index: 2,
             state: TrainingSportState::PersonallyOverridden,
             classification: Some(TrainingSportClassification {
+                scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                 canonical_family: Some("cycling".to_owned()),
                 display_label: Some("Gravel cycling".to_owned()),
                 authorship: Some("user".to_owned()),
@@ -8300,6 +8313,7 @@ mod tests {
                     "sourceIndex": 2,
                     "state": "personally-overridden",
                     "classification": {
+                        "scope": "unresolved-source-profile",
                         "canonicalFamily": "cycling",
                         "displayLabel": "Gravel cycling",
                         "authorship": "user",
@@ -8484,6 +8498,7 @@ mod tests {
                     sport_ref: Some("sport-synthetic".to_owned()),
                     state: TrainingSportState::PersonallyOverridden,
                     classification: Some(TrainingSportClassification {
+                        scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                         canonical_family: Some("running".to_owned()),
                         display_label: Some("Trail running".to_owned()),
                         authorship: Some("user".to_owned()),
@@ -8521,6 +8536,10 @@ mod tests {
         assert_eq!(
             json["sessions"][0]["sport"]["classification"]["displayLabel"],
             "Trail running"
+        );
+        assert_eq!(
+            json["sessions"][0]["sport"]["classification"]["scope"],
+            "unresolved-source-profile"
         );
         assert!(json["sessions"][0]
             .to_string()
@@ -8718,6 +8737,7 @@ mod tests {
                         ),
                         state: TrainingSportState::PersonallyOverridden,
                         classification: Some(TrainingSportClassification {
+                            scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                             canonical_family: Some("running".to_owned()),
                             display_label: Some("Trail running".to_owned()),
                             authorship: Some("user".to_owned()),
@@ -9463,6 +9483,7 @@ mod tests {
                 ),
                 state: TrainingSportState::PersonallyOverridden,
                 classification: Some(TrainingSportClassification {
+                    scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                     canonical_family: Some("running".to_owned()),
                     display_label: Some("Trail running".to_owned()),
                     authorship: Some("user".to_owned()),
@@ -9473,7 +9494,7 @@ mod tests {
             },
         };
         let story = SessionStory {
-            schema_version: 5,
+            schema_version: 6,
             snapshot_ref:
                 "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                     .to_owned(),
@@ -9586,7 +9607,7 @@ mod tests {
 
         let json =
             serde_json::to_value(SessionStoryDto::from(story)).expect("session story response");
-        assert_eq!(json["schemaVersion"], 5);
+        assert_eq!(json["schemaVersion"], 6);
         assert_eq!(
             json["session"]["durationMilliseconds"],
             i64::MAX.to_string()
@@ -10731,7 +10752,7 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
-            version: 6,
+            version: 7,
             library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             recorded_range: Some(LibraryHomeDateRange {
                 from: "2025-12-31".to_owned(),
@@ -10849,7 +10870,7 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "version": 6,
+                "version": 7,
                 "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "recordedRange": { "from": "2025-12-31", "through": "2026-01-06" },
                 "usableRange": { "from": "2025-12-31", "through": "2026-01-06" },

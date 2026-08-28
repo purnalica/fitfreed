@@ -1,6 +1,7 @@
 use super::{
     author_sport_classification, SportClassification, SportClassificationAuthorship,
-    SportClassificationError, SportClassificationKey, SportClassificationState, SportFamily,
+    SportClassificationError, SportClassificationKey, SportClassificationScope,
+    SportClassificationState, SportFamily,
 };
 
 fn key() -> SportClassificationKey {
@@ -11,6 +12,10 @@ fn key() -> SportClassificationKey {
 #[test]
 fn preserves_explicit_unknown_and_user_authored_revisions() {
     let unresolved = SportClassification::unresolved(key());
+    assert_eq!(
+        unresolved.scope(),
+        SportClassificationScope::UnresolvedSourceProfile
+    );
     assert_eq!(unresolved.state(), SportClassificationState::Unknown);
     assert_eq!(unresolved.authorship(), None);
     assert_eq!(unresolved.revision(), 0);

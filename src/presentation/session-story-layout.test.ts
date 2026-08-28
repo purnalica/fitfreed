@@ -77,6 +77,7 @@ function story(options: {
       sportRef: "sport-1",
       state: "personally-overridden" as const,
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "running" as const,
         displayLabel: "Running",
         authorship: "user" as const,
@@ -110,7 +111,7 @@ function story(options: {
   const unsupportedSignals = options.signal === "unsupported" ? 1 : 0;
 
   return {
-    schemaVersion: 4,
+    schemaVersion: 6,
     snapshotRef: "snapshot-1",
     session: {
       sessionRef: "session-1",

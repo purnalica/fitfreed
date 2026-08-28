@@ -16,7 +16,7 @@ const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
 const SPORT_PREFIX: &str = "sport-";
 const TRAINING_WORKSPACE_PAGE_SIZE: usize = 25;
-const TRAINING_WORKSPACE_VERSION: u32 = 2;
+const TRAINING_WORKSPACE_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TrainingMeasurementFilter {

@@ -41,6 +41,13 @@ delivers small end-to-end corrections in dependency order, repeats an independen
 one new production-native candidate only after the complete exact campaign passes. The previous review application is
 not a candidate and must not be handed back for incremental spot checking.
 
+The first X7-R8.1 vertical increment now keeps exact recognized session collections separate from the unresolved
+source-profile remainder when a personal fallback classification is saved. The scoped classification, stable filter
+identity, workspace-v3 migration, downstream projections, report contracts, and SQLite-v35 transition are covered by
+synthetic regression evidence. The privacy-minimized X7-R8.0 selector is prepared and the participant correlation
+observations remain pending; neither X7-R8.0 nor X7-R8.1 is complete until that structural conclusion is recorded and
+the remaining identity cases in X7-R8.1 are closed.
+
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
 mechanics, and every other deterministic outcome belong to automated or separately assigned specialist evidence
@@ -291,7 +298,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | In progress — review frozen, causal analysis active, bounded Polar correlation gate next | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | In progress — the first R8.1 stable-identity slice is verified; bounded Polar correlation observations and the remaining corrective slices are pending | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 

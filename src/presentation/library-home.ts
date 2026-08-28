@@ -129,7 +129,7 @@ export interface ExplorationWorkspace {
 }
 
 export interface LibraryHome {
-  version: 6;
+  version: 7;
   libraryRevisionRef: string;
   recordedRange: LibraryHomeDateRange | null;
   usableRange: LibraryHomeDateRange | null;

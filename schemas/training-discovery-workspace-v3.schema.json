@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-discovery-workspace-v3.schema.json",
+  "title": "FitFreed training-discovery workspace version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "snapshotRef",
+    "from",
+    "through",
+    "sportRefs",
+    "requiredMeasurements",
+    "text",
+    "sort",
+    "offset",
+    "limit",
+    "view",
+    "calendarMonth",
+    "calendarDay",
+    "selectedSessionRefs",
+    "openSessionRef"
+  ],
+  "properties": {
+    "version": { "const": 3 },
+    "snapshotRef": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/snapshotRef"
+    },
+    "from": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v2.schema.json#/$defs/optionalLocalDate"
+    },
+    "through": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v2.schema.json#/$defs/optionalLocalDate"
+    },
+    "sportRefs": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v2.schema.json#/$defs/sportRef"
+      }
+    },
+    "requiredMeasurements": {
+      "type": "array",
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": { "enum": ["distance", "energy", "heart-rate"] }
+    },
+    "text": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^(?=\\S)(?:(?![\\u0000-\\u001F\\u007F-\\u009F])[\\s\\S])*\\S$"
+        }
+      ]
+    },
+    "sort": { "enum": ["started-desc", "started-asc", "duration-desc", "distance-desc"] },
+    "offset": { "type": "integer", "minimum": 0, "multipleOf": 25 },
+    "limit": { "const": 25 },
+    "view": { "enum": ["chronology", "calendar"] },
+    "calendarMonth": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" }
+      ]
+    },
+    "calendarDay": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v2.schema.json#/$defs/optionalLocalDate"
+    },
+    "selectedSessionRefs": {
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/sessionRef"
+      }
+    },
+    "openSessionRef": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/sessionRef"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "view": { "const": "chronology" } } },
+      "then": {
+        "properties": {
+          "calendarMonth": { "type": "null" },
+          "calendarDay": { "type": "null" }
+        }
+      },
+      "else": {
+        "properties": {
+          "calendarMonth": { "type": "string" }
+        }
+      }
+    }
+  ]
+}

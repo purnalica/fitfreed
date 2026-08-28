@@ -20,7 +20,7 @@ use super::{
 };
 
 const SPORT_ICON_SPRITE: &str = include_str!("../../../assets/sport/sport-icons.svg");
-const REPORT_HTML_OUTPUT_VERSION: u32 = 7;
+const REPORT_HTML_OUTPUT_VERSION: u32 = 8;
 const SVG_NAMESPACE_DECLARATION: &str = " xmlns=\"http://www.w3.org/2000/svg\"";
 const EMBEDDED_STYLE: &str = "\
 :root{color-scheme:light dark;font-family:system-ui,-apple-system,sans-serif;line-height:1.5}\
@@ -2278,7 +2278,7 @@ mod tests {
         TrainingComparison, TrainingDateRange, TrainingProvenanceCurrentView,
         TrainingRoutePointView, TrainingSeriesComparison, TrainingSeriesSummary,
         TrainingSessionSport, TrainingSourceProviderView, TrainingSportClassification,
-        TrainingSportRecognition,
+        TrainingSportClassificationScope, TrainingSportRecognition,
     };
     use fitfreed_domain::{
         PlannedTrainingCompletion, PlannedTrainingEditability, PlannedTrainingExercise,
@@ -2680,7 +2680,7 @@ mod tests {
             )
             .expect("planned report HTML");
 
-            assert!(html.contains("data-fitfreed-output-version=\"7\""));
+            assert!(html.contains("data-fitfreed-output-version=\"8\""));
             assert!(html.contains("Progressive &lt;intervals&gt;"));
             assert!(html.contains("Four controlled efforts &amp; recovery."));
             assert!(html.contains("Warm-up"));
@@ -2766,6 +2766,7 @@ mod tests {
             ),
             state: TrainingSportState::Recognized,
             classification: Some(TrainingSportClassification {
+                scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                 canonical_family: None,
                 display_label: None,
                 authorship: None,
@@ -2799,6 +2800,7 @@ mod tests {
             ),
             state: TrainingSportState::PersonallyOverridden,
             classification: Some(TrainingSportClassification {
+                scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                 canonical_family: Some("water-sport".to_owned()),
                 display_label: None,
                 authorship: Some("user".to_owned()),
@@ -2820,6 +2822,7 @@ mod tests {
             ),
             state: TrainingSportState::PersonallyOverridden,
             classification: Some(TrainingSportClassification {
+                scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
                 canonical_family: None,
                 display_label: Some("River paddling".to_owned()),
                 authorship: Some("user".to_owned()),
@@ -2842,7 +2845,7 @@ mod tests {
         assert!(html.contains(&format!(
             "data-fitfreed-report-version=\"{REPORT_DEFINITION_VERSION}\""
         )));
-        assert!(html.contains("data-fitfreed-output-version=\"7\""));
+        assert!(html.contains("data-fitfreed-output-version=\"8\""));
         assert!(html.contains("<svg class=\"route-visual\""));
         assert!(
             html.find(">Route</h2>").expect("route section")

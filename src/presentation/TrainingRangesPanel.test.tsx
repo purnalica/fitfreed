@@ -75,6 +75,7 @@ const story = {
       sportRef: `sport-${"3".repeat(64)}`,
       state: "personally-overridden",
       classification: {
+        scope: "unresolved-source-profile" as const,
         canonicalFamily: "running",
         displayLabel: "Canal run",
         authorship: "user",

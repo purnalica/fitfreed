@@ -779,7 +779,7 @@ export function TrainingSessionLibraryPanel({
   useEffect(() => {
     if (!workspaceReady || !page || failed || loading || calendarLoading) return;
     const workspace: TrainingDiscoveryWorkspace = {
-      version: 2,
+      version: 3,
       snapshotRef: page.snapshotRef,
       from: applied.from || null,
       through: applied.through || null,

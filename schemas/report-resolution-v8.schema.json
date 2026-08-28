@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-resolution-v8.schema.json",
+  "title": "FitFreed resolved report version 8",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "definition", "resolvedSnapshotRef", "status", "session", "routes",
+    "trainingComparison", "plannedTraining", "provenance", "sensitiveContents",
+    "limitations"
+  ],
+  "properties": {
+    "definition": {
+      "oneOf": [
+        { "$ref": "report-definition-v1.schema.json" },
+        { "$ref": "report-definition-v2.schema.json" },
+        { "$ref": "report-definition-v3.schema.json" },
+        { "$ref": "report-definition-v4.schema.json" },
+        { "$ref": "report-definition-v5.schema.json" }
+      ]
+    },
+    "resolvedSnapshotRef": { "$ref": "report-definition-v5.schema.json#/$defs/snapshotRef" },
+    "status": { "enum": ["current", "stale"] },
+    "session": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/session"
+        }
+      ]
+    },
+    "routes": {
+      "type": "array",
+      "maxItems": 30,
+      "items": { "$ref": "session-report-resolution-v3.schema.json#/$defs/routeEvidence" }
+    },
+    "trainingComparison": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-comparison-v1.schema.json"
+        }
+      ]
+    },
+    "plannedTraining": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/plannedTrainingEvidence" }
+      ]
+    },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "sensitiveContents": {
+      "type": "array",
+      "maxItems": 31,
+      "items": {
+        "oneOf": [
+          { "$ref": "session-report-resolution-v3.schema.json#/$defs/heartRateSensitivity" },
+          { "$ref": "session-report-resolution-v3.schema.json#/$defs/locationSensitivity" }
+        ]
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "distance-unavailable", "energy-unavailable", "heart-rate-unavailable",
+          "sport-unclassified", "sport-unavailable"
+        ]
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "object",
+                "properties": { "kind": { "const": "planned-training" } }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "resolvedSnapshotRef": {
+            "$ref": "report-definition-v5.schema.json#/$defs/plannedSnapshotRef"
+          },
+          "session": { "type": "null" },
+          "routes": { "type": "array", "maxItems": 0 },
+          "trainingComparison": { "type": "null" },
+          "plannedTraining": { "$ref": "#/$defs/plannedTrainingEvidence" },
+          "provenance": {
+            "type": "object",
+            "properties": { "kind": { "const": "planned-training-snapshot" } },
+            "required": ["kind"]
+          },
+          "sensitiveContents": { "type": "array", "maxItems": 0 }
+        }
+      },
+      "else": {
+        "properties": { "plannedTraining": { "type": "null" } }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "object",
+                "properties": { "kind": { "const": "session" } }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "session": {
+            "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/session"
+          },
+          "provenance": {
+            "type": "object",
+            "properties": { "kind": { "const": "session" } },
+            "required": ["kind"]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "session": { "type": "null" },
+          "routes": { "type": "array", "maxItems": 0 },
+          "sensitiveContents": { "type": "array", "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "object",
+                "properties": { "kind": { "enum": ["question", "exploration"] } }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "trainingComparison": {
+            "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-comparison-v1.schema.json"
+          },
+          "provenance": {
+            "type": "object",
+            "properties": { "kind": { "const": "library-snapshot" } },
+            "required": ["kind"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "object",
+                "properties": { "kind": { "const": "blank" } }
+              }
+            }
+          },
+          "trainingComparison": { "type": "null" }
+        }
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "const": "authored-only" } }
+          }
+        }
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "definition": {
+              "type": "object",
+              "properties": {
+                "origin": {
+                  "type": "object",
+                  "properties": { "kind": { "const": "blank" } }
+                }
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": ["kind"],
+              "properties": { "kind": { "const": "library-snapshot" } }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "plannedTrainingEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "target"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v5.schema.json#/$defs/blockRef" },
+        "target": { "$ref": "planned-training-target-v1.schema.json" }
+      }
+    },
+    "provenance": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "current"],
+          "properties": {
+            "kind": { "const": "session" },
+            "current": { "$ref": "training-session-provenance-v1.schema.json#/$defs/current" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "library-snapshot" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "planned-training-snapshot" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "authored-only" } }
+        }
+      ]
+    }
+  }
+}
