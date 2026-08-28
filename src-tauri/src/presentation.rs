@@ -69,13 +69,13 @@ use fitfreed_application::{
     TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
-    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
-    TrainingSessionProvenanceResult, TrainingSessionRangeCoordinateContext,
-    TrainingSessionRangeExerciseContext, TrainingSessionRangeSummary,
-    TrainingSessionRangeSummaryQuery, TrainingSessionRangesQuery, TrainingSessionRangesResult,
-    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
-    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionCalendarActivity, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
+    TrainingSessionProvenanceQuery, TrainingSessionProvenanceResult,
+    TrainingSessionRangeCoordinateContext, TrainingSessionRangeExerciseContext,
+    TrainingSessionRangeSummary, TrainingSessionRangeSummaryQuery, TrainingSessionRangesQuery,
+    TrainingSessionRangesResult, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
+    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
     TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
     TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
@@ -2278,6 +2278,26 @@ impl From<TrainingSessionSearchPage> for TrainingSessionSearchPageDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrainingSessionCalendarActivityDto {
+    session_ref: String,
+    started_at_local: String,
+    duration_milliseconds: String,
+    sport: TrainingSessionSportDto,
+}
+
+impl From<TrainingSessionCalendarActivity> for TrainingSessionCalendarActivityDto {
+    fn from(activity: TrainingSessionCalendarActivity) -> Self {
+        Self {
+            session_ref: activity.session_ref,
+            started_at_local: activity.started_at_local,
+            duration_milliseconds: activity.duration_milliseconds.to_string(),
+            sport: activity.sport.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingSessionCalendarDayDto {
     local_date: String,
     source_index: usize,
@@ -2286,6 +2306,7 @@ pub struct TrainingSessionCalendarDayDto {
     distance_session_count: usize,
     total_distance_meters: Option<f64>,
     heart_rate_session_count: usize,
+    activities: Vec<TrainingSessionCalendarActivityDto>,
 }
 
 impl From<TrainingSessionCalendarDay> for TrainingSessionCalendarDayDto {
@@ -2298,6 +2319,7 @@ impl From<TrainingSessionCalendarDay> for TrainingSessionCalendarDayDto {
             distance_session_count: day.distance_session_count,
             total_distance_meters: day.total_distance_meters,
             heart_rate_session_count: day.heart_rate_session_count,
+            activities: day.activities.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -8546,6 +8568,23 @@ mod tests {
             .find("sourceSessionId")
             .is_none());
 
+        let calendar_sport = TrainingSessionSport {
+            sport_ref: None,
+            state: TrainingSportState::Recognized,
+            classification: None,
+            recognition: Some(TrainingSportRecognition {
+                canonical_family: Some("running".to_owned()),
+                localized_names: BTreeMap::from([
+                    ("en".to_owned(), "Road running".to_owned()),
+                    ("es".to_owned(), "Carrera en asfalto".to_owned()),
+                ]),
+                catalogue_revision: "catalogue-2026-08-25".to_owned(),
+                retrieved_at_utc: "2026-08-25T10:00:00Z".to_owned(),
+                mapping_version: "sport-mapping@1".to_owned(),
+                evidence_ref: format!("sport-evidence-{}", "e".repeat(64)),
+            }),
+            recognition_candidate_count: 1,
+        };
         let calendar_json = serde_json::to_value(TrainingSessionCalendarDto::from(
             TrainingSessionCalendar {
                 available_range: Some(TrainingDateRange {
@@ -8564,6 +8603,20 @@ mod tests {
                     distance_session_count: 1,
                     total_distance_meters: Some(10_000.5),
                     heart_rate_session_count: 2,
+                    activities: vec![
+                        TrainingSessionCalendarActivity {
+                            session_ref: format!("session-{}", "d".repeat(64)),
+                            started_at_local: "2026-08-18T07:30:00".to_owned(),
+                            duration_milliseconds: i64::MAX,
+                            sport: calendar_sport.clone(),
+                        },
+                        TrainingSessionCalendarActivity {
+                            session_ref: format!("session-{}", "e".repeat(64)),
+                            started_at_local: "2026-08-18T09:30:00".to_owned(),
+                            duration_milliseconds: i64::MAX,
+                            sport: calendar_sport,
+                        },
+                    ],
                 }],
             },
         ))
@@ -8574,6 +8627,21 @@ mod tests {
             "18446744073709551614"
         );
         assert_eq!(calendar_json["days"][0]["sourceIndex"], 2);
+        assert_eq!(
+            calendar_json["days"][0]["activities"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(
+            calendar_json["days"][0]["activities"][0]["durationMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(
+            calendar_json["days"][0]["activities"][0]["sport"]["state"],
+            "recognized"
+        );
 
         let selection_input: TrainingSessionSelectionRequestDto =
             serde_json::from_value(serde_json::json!({

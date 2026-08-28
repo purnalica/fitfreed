@@ -83,8 +83,8 @@ use fitfreed_application::{
     TrainingRangeEvidenceStreamItem, TrainingRangeSourceRangeKind, TrainingRouteCollectionView,
     TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
-    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
-    TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
+    TrainingSessionCalendarActivity, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
+    TrainingSessionDiscoveryPort, TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
     TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery,
     TrainingSessionRangeCoordinateContext, TrainingSessionRangeExerciseContext,
     TrainingSessionRangePort, TrainingSessionRangePortError, TrainingSessionRangeSummaryPort,
@@ -2761,6 +2761,15 @@ fn query_training_calendar_discovery(
         .enumerate()
         .map(|(index, origin)| (origin, index + 1))
         .collect::<BTreeMap<_, _>>();
+    let sport_by_identity = source_sport_entries
+        .iter()
+        .map(|entry| {
+            (
+                (entry.origin_id.clone(), entry.source_sport_ref.clone()),
+                entry,
+            )
+        })
+        .collect::<HashMap<_, _>>();
     let (where_clause, values) = training_discovery_filter(&sport_filter_entries, &search_request)?;
     let query = format!(
         "SELECT substr(session.started_at_local, 1, 10), session.origin_id,
@@ -2821,9 +2830,84 @@ fn query_training_calendar_discovery(
                 "calendar_heart_rate_session_count",
             )
             .map_err(discovery_failure)?,
+            activities: Vec::new(),
         });
     }
     drop(statement);
+
+    let activity_query = format!(
+        "SELECT substr(session.started_at_local, 1, 10), session.origin_id,
+                session.session_id, session.started_at_local,
+                session.duration_milliseconds, session.sport_ref
+         FROM training_session AS session
+         WHERE {where_clause}
+         ORDER BY substr(session.started_at_local, 1, 10), session.origin_id,
+                  session.started_at_local, session.session_id"
+    );
+    let mut activity_statement = transaction
+        .prepare(&activity_query)
+        .map_err(discovery_failure)?;
+    let activity_rows = activity_statement
+        .query_map(params_from_iter(values.iter()), |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, Option<String>>(5)?,
+            ))
+        })
+        .map_err(discovery_failure)?;
+    let mut activities_by_day = BTreeMap::<(String, usize), Vec<_>>::new();
+    for row in activity_rows {
+        let (
+            local_date,
+            origin_id,
+            session_id,
+            started_at_local,
+            duration_milliseconds,
+            source_sport_ref,
+        ) = row.map_err(discovery_failure)?;
+        let source_index = source_indices.get(&origin_id).copied().ok_or_else(|| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "training calendar activity origin has no source index".to_owned(),
+            )
+        })?;
+        let sport_entry = sport_by_identity
+            .get(&(origin_id.clone(), source_sport_ref))
+            .ok_or_else(|| {
+                TrainingSessionDiscoveryPortError::Failure(
+                    "training calendar activity sport context is unavailable".to_owned(),
+                )
+            })?;
+        let (sport, _) = resolve_training_session_sport_with_exact_evidence(
+            &transaction,
+            sport_entry,
+            &session_id,
+        )
+        .map_err(discovery_failure)?;
+        activities_by_day
+            .entry((local_date, source_index))
+            .or_default()
+            .push(TrainingSessionCalendarActivity {
+                session_ref: training_session_ref(&origin_id, &session_id),
+                started_at_local,
+                duration_milliseconds,
+                sport,
+            });
+    }
+    drop(activity_statement);
+    for day in &mut days {
+        day.activities = activities_by_day
+            .remove(&(day.local_date.clone(), day.source_index))
+            .unwrap_or_default();
+    }
+    if !activities_by_day.is_empty() {
+        return Err(TrainingSessionDiscoveryPortError::Failure(
+            "training calendar activities have no aggregate day".to_owned(),
+        ));
+    }
     transaction.commit().map_err(discovery_failure)?;
     Ok(PersistedTrainingSessionCalendar {
         available_range,
@@ -21849,6 +21933,15 @@ mod tests {
         assert_eq!(calendar.days.len(), 1);
         assert_eq!(calendar.days[0].local_date, "2026-01-04");
         assert_eq!(calendar.days[0].session_count, 1);
+        assert_eq!(calendar.days[0].activities.len(), 1);
+        assert_eq!(
+            calendar.days[0].activities[0].started_at_local,
+            "2026-01-04T09:00:00"
+        );
+        assert_eq!(
+            calendar.days[0].activities[0].sport.state,
+            TrainingSportState::Recognized
+        );
     }
 
     #[test]
@@ -22520,6 +22613,19 @@ mod tests {
         assert_eq!(calendar.days[0].distance_session_count, 1);
         assert_eq!(calendar.days[0].total_distance_meters, Some(10_000.0));
         assert_eq!(calendar.days[0].heart_rate_session_count, 1);
+        assert_eq!(calendar.days[0].activities.len(), 1);
+        assert_eq!(
+            calendar.days[0].activities[0].session_ref,
+            filtered.sessions[0].session_ref
+        );
+        assert_eq!(
+            calendar.days[0].activities[0]
+                .sport
+                .classification
+                .as_ref()
+                .and_then(|classification| classification.display_label.as_deref()),
+            Some("Trail running")
+        );
 
         let selected_refs = first_page
             .sessions
@@ -22574,6 +22680,145 @@ mod tests {
             stale,
             Err(ApplicationError::TrainingSessionSearchChanged)
         ));
+    }
+
+    #[test]
+    fn projects_ordered_calendar_activities_across_source_separated_histories() {
+        let harness = Harness::new();
+        let early = training_session_json(
+            "calendar-early",
+            "2026-02-10T07:00:00",
+            "2026-02-10T07:30:00",
+            1_800_000,
+            "opaque-running",
+        );
+        let recognized = training_session_json_without_sport(
+            "calendar-recognized",
+            "2026-02-10T09:00:00",
+            "2026-02-10T10:00:00",
+            3_600_000,
+        );
+        let late = training_session_json(
+            "calendar-late",
+            "2026-02-10T11:00:00",
+            "2026-02-10T11:45:00",
+            2_700_000,
+            "opaque-running",
+        );
+        let first_archive = harness.archive(
+            "calendar-first-history.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-calendar-first-claim"}"#,
+                ),
+                (
+                    "training-session_2026-02-10T07-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &early,
+                ),
+                (
+                    "training-session_2026-02-10T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &recognized,
+                ),
+                (
+                    "training-session_2026-02-10T11-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &late,
+                ),
+                (
+                    "training-target-2026-02-10-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic river session",
+                    "description":"",
+                    "startTime":"2026-02-10T09:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"WATERSPORTS_KAYAKING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &first_archive)
+            .expect("first calendar history import");
+        let connection = Connection::open(harness.database()).expect("calendar database");
+        connection
+            .execute_batch(
+                "BEGIN;
+                 INSERT INTO observation_origin (
+                     id, source_provider, correlation_state, created_at_utc
+                 ) VALUES (
+                     'synthetic-second-origin', 'synthetic-provider', 'verified',
+                     '2026-02-10T12:00:00Z'
+                 );
+                 INSERT INTO training_session (
+                     origin_id, session_id, source_modified_at_utc,
+                     started_at_local, stopped_at_local, duration_milliseconds, sport_ref
+                 ) VALUES (
+                     'synthetic-second-origin', 'calendar-other-history',
+                     '2026-02-10T12:00:00Z', '2026-02-10T08:00:00',
+                     '2026-02-10T08:20:00', 1200000, 'opaque-cycling'
+                 );
+                 UPDATE training_discovery_revision SET revision = revision + 1 WHERE id = 1;
+                 COMMIT;",
+            )
+            .expect("second synthetic calendar origin");
+        let calendar = fitfreed_application::query_training_session_calendar(
+            &SqliteTrainingLibrary::new(harness.database()),
+            TrainingSessionCalendarRequest {
+                month: "2026-02".to_owned(),
+                from: None,
+                through: None,
+                sport_refs: Vec::new(),
+                required_measurements: Vec::new(),
+                text: None,
+                snapshot_ref: None,
+            },
+        )
+        .expect("source-separated calendar activities");
+
+        assert_eq!(calendar.days.len(), 2);
+        assert!(calendar
+            .days
+            .windows(2)
+            .all(|days| days[0].source_index < days[1].source_index));
+        let dense_day = calendar
+            .days
+            .iter()
+            .find(|day| day.session_count == 3)
+            .expect("dense calendar history");
+        assert_eq!(dense_day.local_date, "2026-02-10");
+        assert_eq!(dense_day.activities.len(), 3);
+        assert_eq!(
+            dense_day
+                .activities
+                .iter()
+                .map(|activity| activity.started_at_local.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "2026-02-10T07:00:00",
+                "2026-02-10T09:00:00",
+                "2026-02-10T11:00:00",
+            ]
+        );
+        assert_eq!(
+            dense_day.activities[1].sport.state,
+            TrainingSportState::Recognized
+        );
+        let other_day = calendar
+            .days
+            .iter()
+            .find(|day| day.session_count == 1)
+            .expect("separate calendar history");
+        assert_eq!(other_day.activities.len(), 1);
+        assert_eq!(
+            other_day.activities[0].sport.state,
+            TrainingSportState::Unknown
+        );
+        assert!(calendar
+            .days
+            .iter()
+            .flat_map(|day| &day.activities)
+            .all(|activity| activity.session_ref.starts_with("session-")
+                && !activity.session_ref.contains("calendar-")));
     }
 
     #[test]

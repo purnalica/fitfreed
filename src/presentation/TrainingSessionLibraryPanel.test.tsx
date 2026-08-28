@@ -1018,6 +1018,12 @@ const calendar: TrainingSessionCalendar = {
       distanceSessionCount: 1,
       totalDistanceMeters: 10000.5,
       heartRateSessionCount: 1,
+      activities: [{
+        sessionRef: second.sessionRef,
+        startedAtLocal: second.startedAtLocal,
+        durationMilliseconds: second.durationMilliseconds,
+        sport: second.sport,
+      }],
     },
     {
       localDate: "2026-08-18",
@@ -1027,6 +1033,12 @@ const calendar: TrainingSessionCalendar = {
       distanceSessionCount: 1,
       totalDistanceMeters: 10000.5,
       heartRateSessionCount: 1,
+      activities: [{
+        sessionRef: newest.sessionRef,
+        startedAtLocal: newest.startedAtLocal,
+        durationMilliseconds: newest.durationMilliseconds,
+        sport: newest.sport,
+      }],
     },
   ],
 };
@@ -1367,7 +1379,7 @@ describe("TrainingSessionLibraryPanel", () => {
     const user = userEvent.setup();
     render(<Harness />);
     const region = await screen.findByRole("region", { name: "Find a training session" });
-    expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
+    expect(await within(region).findByRole("heading", { name: "Session summary" })).toBeVisible();
     await user.click(within(region).getByRole("button", {
       name: "Structure and segments",
     }));
@@ -1526,6 +1538,9 @@ describe("TrainingSessionLibraryPanel", () => {
       if (command === "query_training_sports") return Promise.resolve(sports);
       if (command === "query_training_sessions") {
         return Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      if (command === "query_training_session_selection") {
+        return Promise.resolve({ snapshotRef, sessions: [newest] });
       }
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -1956,6 +1971,9 @@ describe("TrainingSessionLibraryPanel", () => {
       if (command === "query_training_sessions") {
         return Promise.resolve(page([newest], 0, 1, null));
       }
+      if (command === "query_training_session_calendar") {
+        return Promise.resolve(calendar);
+      }
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -1986,6 +2004,17 @@ describe("TrainingSessionLibraryPanel", () => {
     })).toBeVisible();
     expect(within(appliedQuery).getByRole("button", {
       name: "Quitar Orden: Más largas primero",
+    })).toBeVisible();
+
+    await user.click(within(region).getByRole("radio", { name: "Calendario" }));
+    expect(await within(region).findByRole("heading", { name: /agosto de 2026/i })).toBeVisible();
+    expect(within(region).getByLabelText("Año del calendario")).toHaveValue("2026");
+    expect(within(region).getByRole("button", { name: "Hoy" })).toBeVisible();
+    const activities = within(region).getByRole("list", {
+      name: /Actividades del 18 de agosto de 2026/i,
+    });
+    expect(within(activities).getByRole("button", {
+      name: /Abrir Trail running.*7:30.*1 h/,
     })).toBeVisible();
   });
 
@@ -2178,6 +2207,9 @@ describe("TrainingSessionLibraryPanel", () => {
         }
         return Promise.resolve(page([newest, second], 0, 26, 25));
       }
+      if (command === "query_training_session_selection") {
+        return Promise.resolve({ snapshotRef, sessions: [newest] });
+      }
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -2216,6 +2248,13 @@ describe("TrainingSessionLibraryPanel", () => {
         snapshotRef,
       },
     });
+    await user.selectOptions(within(region).getByLabelText("Calendar year"), "2024");
+    expect(await within(region).findByRole("heading", { name: "August 2024" })).toBeVisible();
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_calendar", {
+      request: expect.objectContaining({ month: "2024-08", snapshotRef }),
+    });
+    await user.click(within(region).getByRole("button", { name: "Today" }));
+    expect(await within(region).findByRole("heading", { name: "August 2026" })).toBeVisible();
     await user.click(within(region).getByRole("button", { name: "Previous month" }));
     expect(await within(region).findByRole("heading", { name: "July 2026" })).toBeVisible();
     await user.click(within(region).getByRole("button", { name: "Next month" }));
@@ -2231,10 +2270,13 @@ describe("TrainingSessionLibraryPanel", () => {
       }),
     });
     const calendarDetailOrigin = within(region).getByRole("button", {
-      name: /View session details for/,
+      name: /Open Trail running.*August 18, 2026/,
     });
     await user.click(calendarDetailOrigin);
-    expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_selection", {
+      request: { sessionRefs: [newest.sessionRef], snapshotRef },
+    });
+    expect(await within(region).findByRole("heading", { name: "Session summary" })).toBeVisible();
     const createReport = within(region).getByRole("button", {
       name: "Build a report from this session",
     });
@@ -2262,13 +2304,45 @@ describe("TrainingSessionLibraryPanel", () => {
   });
 
   it("keeps source-separated calendar evidence legible without opaque ordinals", async () => {
+    const longRecognizedLabel =
+      "Long-distance trail running with hills, intervals, and technical terrain";
+    const recognizedCalendarSport = {
+      sportRef: null,
+      state: "recognized" as const,
+      classification: null,
+      recognition: {
+        canonicalFamily: "running" as const,
+        localizedNames: { "en-US": longRecognizedLabel },
+        catalogueRevision: "synthetic-catalogue-1",
+        retrievedAtUtc: "2026-08-01T00:00:00Z",
+        mappingVersion: "synthetic-mapping-1",
+        evidenceRef: `sport-evidence-${"a".repeat(64)}`,
+      },
+      recognitionCandidateCount: 1,
+    };
     const twoHistoryCalendar: TrainingSessionCalendar = {
       ...calendar,
       days: [
-        calendar.days[1],
+        {
+          ...calendar.days[1],
+          activities: [{
+            ...calendar.days[1].activities[0],
+            sport: recognizedCalendarSport,
+          }],
+        },
         {
           ...calendar.days[1],
           sourceIndex: 2,
+          totalDurationMilliseconds: "1800000",
+          distanceSessionCount: 0,
+          totalDistanceMeters: null,
+          heartRateSessionCount: 0,
+          activities: [{
+            sessionRef: unknownSession.sessionRef,
+            startedAtLocal: "2026-08-18T06:15:00",
+            durationMilliseconds: "1800000",
+            sport: unknownSession.sport,
+          }],
         },
       ],
     };
@@ -2296,6 +2370,17 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(day).toHaveTextContent("2 separate histories");
     expect(day).not.toHaveTextContent("Source 1");
     expect(day).not.toHaveTextContent("Source 2");
+    const activities = within(region).getByRole("list", {
+      name: "Activities on August 18, 2026",
+    });
+    const activityLinks = within(activities).getAllByRole("button");
+    expect(activityLinks).toHaveLength(2);
+    expect(activityLinks[0]).toHaveAccessibleName(/Open Unknown sport.*6:15 AM.*30 min/);
+    expect(activityLinks[1]).toHaveAccessibleName(
+      new RegExp(`Open ${longRecognizedLabel}.*7:30 AM.*1 h`),
+    );
+    expect(activityLinks[1]).toHaveTextContent(longRecognizedLabel);
+    expect(within(activities).getAllByTestId("sport-family-icon")).toHaveLength(2);
   });
 
   it("opens the calendar inside the applied search window", async () => {

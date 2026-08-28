@@ -333,8 +333,11 @@ async function navigateTrainingCalendar(scenario) {
     navigation.click();
     function observeResult() {
       const heading = document.querySelector(".training-calendar h3")?.textContent;
-      const days = document.querySelectorAll(".training-calendar-grid button");
-      if (heading === expected.heading && days.length === expected.dayCount) {
+      const days = document.querySelectorAll(".training-calendar-day-summary");
+      const activities = document.querySelectorAll(".training-calendar-activities button");
+      if (heading === expected.heading
+        && days.length === expected.dayCount
+        && activities.length === expected.dayCount) {
         document.documentElement.getBoundingClientRect();
         setTimeout(() => done({
           duration: window.performance.now() - started,

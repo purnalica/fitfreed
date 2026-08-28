@@ -708,19 +708,33 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-session-empty-result h3, .training-session-empty-result p { margin: 0; }
 .training-session-empty-result h3 { font-size: 1.02rem; }
 .training-session-empty-result p { color: var(--muted); font-size: .84rem; }
-.training-calendar { margin-top: 22px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
+.training-calendar { margin-top: 22px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; scroll-margin-block-start: var(--shell-reveal-offset); }
 .training-calendar > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
 .training-calendar > header h3 { margin: 0; text-align: center; text-transform: capitalize; }
-.training-calendar > header button { width: 44px; padding: 8px; }
+.training-calendar > header > button { width: 44px; padding: 8px; }
+.training-calendar-current-period { display: grid; justify-items: center; gap: 7px; }
+.training-calendar-current-period > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.training-calendar-current-period select, .training-calendar-today { min-height: 34px; padding: 5px 9px; font-size: .72rem; }
+.training-calendar-today { width: auto; }
 .training-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin: 16px 0 0; padding: 0; list-style: none; }
 .training-calendar-grid li { min-width: 0; min-height: 58px; }
 .training-calendar-weekday { min-height: auto !important; padding: 5px; color: var(--muted); font-size: .7rem; font-weight: 750; text-align: center; text-transform: uppercase; }
-.training-calendar-grid li > span, .training-calendar-grid li > button { display: grid; align-content: space-between; width: 100%; min-height: 58px; padding: 7px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; text-align: left; }
-.training-calendar-grid li > button { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
-.training-calendar-grid li > button:hover, .training-calendar-grid li > button.selected { background: var(--accent-soft); border-color: var(--accent-deep); }
-.training-calendar-grid li > button > span { color: var(--muted); font-size: .72rem; }
-.training-calendar-grid li > button strong { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
-.training-calendar-grid li > button small { overflow: hidden; color: var(--muted); font-size: .6rem; text-overflow: ellipsis; white-space: nowrap; }
+.training-calendar-grid > li > span, .training-calendar-grid > li > div { display: grid; align-content: start; width: 100%; min-height: 58px; padding: 6px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; text-align: left; }
+.training-calendar-grid > li > div { gap: 5px; color: var(--ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.training-calendar-grid > li > div.selected { background: var(--accent-soft); border-color: var(--accent-deep); }
+.training-calendar-day-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 5px; min-height: 27px; padding: 2px 3px; color: var(--ink); background: transparent; border: 0; border-radius: 6px; text-align: left; }
+.training-calendar-day-summary:hover { background: var(--accent-soft); }
+.training-calendar-day-summary > span { color: var(--muted); font-size: .7rem; }
+.training-calendar-day-summary strong { font-size: .82rem; font-variant-numeric: tabular-nums; }
+.training-calendar-day-summary small { overflow: hidden; color: var(--muted); font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
+.training-calendar-activities { display: grid; gap: 3px; max-height: 102px; margin: 0; padding: 0 2px 1px 0; overflow-y: auto; list-style: none; }
+.training-calendar-activities li { min-height: 0; }
+.training-calendar-activities button { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 5px; align-items: center; width: 100%; min-height: 34px; padding: 4px 5px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 7px; text-align: left; }
+.training-calendar-activities button:hover { background: var(--accent-soft); border-color: var(--accent-deep); }
+.training-calendar-activities .sport-family-icon { width: 22px; height: 22px; padding: 3px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.training-calendar-activities button span, .training-calendar-activities button strong, .training-calendar-activities button small { display: block; min-width: 0; }
+.training-calendar-activities button strong { font-size: .72rem; overflow-wrap: anywhere; }
+.training-calendar-activities button small { margin-top: 1px; overflow: hidden; color: var(--muted); font-size: .64rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .training-calendar > p { margin: 14px 0 0; color: var(--muted); text-align: center; }
 .training-sessions-unavailable { color: var(--danger-ink); }
 .training-session-summaries { display: grid; gap: 18px; padding: 16px; }
@@ -1783,6 +1797,14 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .training-session-evidence-empty { grid-column: 1; }
   .training-route-selection { grid-template-columns: 1fr; }
   .training-route-selection dl { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+  .training-calendar { padding: 12px 8px; }
+  .training-calendar > header { grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px; }
+  .training-calendar-grid { grid-template-columns: 1fr; gap: 7px; }
+  .training-calendar-weekday, .training-calendar-empty-cell, .training-calendar-date-empty { display: none; }
+  .training-calendar-grid li, .training-calendar-grid > li > span, .training-calendar-grid > li > div { min-height: 0; }
+  .training-calendar-grid > li > div { grid-template-columns: minmax(7rem, .36fr) minmax(0, 1fr); align-items: start; padding: 7px; }
+  .training-calendar-day-summary { align-self: stretch; }
+  .training-calendar-activities { max-height: 140px; }
   .sleep-detail-metrics { grid-template-columns: 1fr; }
   .recovery-detail-metrics { grid-template-columns: 1fr; }
   .recovery-guidance { grid-template-columns: 1fr; }
@@ -2111,10 +2133,6 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .planned-training-exact-phases dl > div { grid-template-columns: 1fr; }
   .planned-training-exact-phases dd { text-align: left; }
   .session-planned-training > header > button { width: 100%; }
-  .training-calendar { padding: 12px 8px; }
-  .training-calendar-grid { gap: 2px; }
-  .training-calendar-grid li, .training-calendar-grid li > span, .training-calendar-grid li > button { min-height: 50px; }
-  .training-calendar-grid li > span, .training-calendar-grid li > button { padding: 5px; }
   .training-session-pagination { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-session-pagination span { grid-column: 1 / 3; grid-row: 1; }
   .training-session-pagination button { grid-row: 2; }

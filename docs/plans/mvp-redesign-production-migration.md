@@ -48,6 +48,13 @@ synthetic regression evidence. The privacy-minimized X7-R8.0 selector is prepare
 observations remain pending; neither X7-R8.0 nor X7-R8.1 is complete until that structural conclusion is recorded and
 the remaining identity cases in X7-R8.1 are closed.
 
+X7-R8.2 is machine-complete locally. The month-bounded calendar now carries ordered individual activities through a
+versioned read contract, opens an exact session, restores its calendar origin and focus, and supports direct year and
+current-month navigation. Wide and compact 200% layouts, both locales, source-separated days, long sport names,
+accessibility, restart, and dense-history performance have executable evidence. The Home and History interaction audit
+also confirms that prominent session, sport, recent-session, and omitted-collection summaries either open the records
+they represent or are styled as status rather than as an inert action. X7-R8.3 is the next implementation increment.
+
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
 mechanics, and every other deterministic outcome belong to automated or separately assigned specialist evidence
@@ -3304,6 +3311,17 @@ allowing a fallback to absorb exact recognition silently; exposing provider iden
 generic unknown label.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
+
+**Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,
+duration, and resolved sport identity needed to render the requested month. The SQLite adapter retains the bounded
+aggregate query and adds one bounded ordered activity projection rather than loading the general session library. Each
+visible activity is a labeled button with a semantic sport icon and human-scale duration; it resolves through the exact
+selection use case and returns to the same calendar control with focus restored. Available years come from the applied
+discovery boundary, **Today** returns directly to the current month, and a compact calendar becomes an ordered date list
+instead of seven compressed columns. A visual review corrected dark-theme icon contrast, the compact breakpoint, and
+sticky-navigation reveal behavior before the packaged journey passed. Contract, application, persistence, transport,
+component, localization, accessibility, restart, and performance evidence use synthetic data. The Home and History
+count audit found no remaining action-styled dead end in the represented session and sport collections.
 
 1. Extend the calendar read model, bounded month query, persistence adapter, transport DTO, and presentation model with
    the individual sessions needed for activity cards: stable local reference, local start order, duration, recognizable

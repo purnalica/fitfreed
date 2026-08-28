@@ -85,7 +85,7 @@ otherwise equal labels would create ambiguity.
 
 Session identity and lightweight structure load independently from large routes and series. Visual queries request bounded windows and an explicit resolution; exact queries are stable and paginated. A downsampled point never masquerades as a recorded sample, and every visual offers an exact accessible path.
 
-The [training-session search version 4 contract](../data-formats/insights/training-session-search-v4.md) is the
+The [training-session search version 5 contract](../data-formats/insights/training-session-search-v5.md) is the
 complete-history discovery path. It combines optional local-date bounds, opaque sports, required-measurement
 coverage, and identity text without loading detail evidence. Text matches personal labels plus recognized
 localized names and provider-neutral family codes, but never provider identifiers or ambiguous candidates.
@@ -95,12 +95,15 @@ pages share an opaque mutation snapshot; session or classification changes inval
 shifting them silently. Period-comparison windows remain a separate read model and cannot limit discovery.
 
 Calendar discovery projects the same complete-history filters and snapshot into exact source-separated local
-day aggregates. Comparison and open-detail restoration resolve an ordered set of opaque session capabilities
-against that snapshot rather than searching the currently visible page. Presentation persists only the
+day aggregates plus a bounded ordered activity list for the requested month. Each lightweight activity carries
+only its opaque session capability, local start, duration, and provider-neutral sport identity; opening it resolves
+the exact session against the shared snapshot rather than trusting the calendar card as detail evidence. Comparison
+and open-detail restoration resolve an ordered set of opaque session capabilities against that snapshot rather than
+searching the currently visible page. Presentation persists only the
 versioned applied query, page, view, calendar origin, comparison order, and open session. A stale snapshot
 retains still-valid query intent but clears session-specific evidence; explicit return to Home clears the
 detailed workspace. The normative contracts are the
-[training-session search](../data-formats/insights/training-session-search-v4.md) and
+[training-session search](../data-formats/insights/training-session-search-v5.md) and
 [training-discovery workspace](../data-formats/insights/training-discovery-workspace-v3.md) specifications.
 
 Training-period comparison remains a distinct bounded calendar read model. Its `availableRange` reports the
@@ -135,9 +138,11 @@ Session cards are evidence-adaptive: duration is the only required summary fact,
 and average heart rate create rows only when recorded. Presentation
 formatters reduce dates, times, durations, and distances to locale-appropriate human precision for scanning;
 they never mutate, round, or replace the exact application result. Deliberate detail, comparison, result-summary,
-and provenance surfaces continue to expose exact source-separated evidence. Calendar cells describe multiple
-source-separated entries as separate histories without exposing their opaque references or unexplained ordinal
-badges.
+and provenance surfaces continue to expose exact source-separated evidence. Calendar cells render every bounded
+activity in local-start order with the same sport icon and label as chronology, a human-scale duration, and direct
+exact-session navigation. The day summary remains a direct route to that day's result set. Year selection spans the
+current query boundary and **Today** returns directly to the current month. Multiple source-separated entries are
+described as separate histories without exposing opaque references or unexplained ordinal badges.
 The aggregate summary remains calculated over the complete filtered set, but follows the paginated result
 list behind **Result summary** so numeric coverage does not displace the sessions a person came to find.
 Chronology, calendar, comparison selection, pagination, and workspace restoration retain their application

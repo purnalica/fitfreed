@@ -316,6 +316,50 @@ async function captureR10WorkspaceEvidence(fileName, selector) {
   await browser.saveScreenshot(path.join(evidenceDirectory, fileName));
 }
 
+async function expectTrainingCalendarGeometry(expectedColumns) {
+  const geometry = await browser.execute(() => {
+    const root = document.documentElement;
+    const calendar = document.querySelector(".training-calendar");
+    const grid = calendar.querySelector(".training-calendar-grid");
+    const calendarBounds = calendar.getBoundingClientRect();
+    const periodBounds = calendar.querySelector(".training-calendar-current-period")
+      .getBoundingClientRect();
+    const navigationBounds = document.querySelector(".app-sidebar").getBoundingClientRect();
+    const compactNavigation = navigationBounds.width >= root.clientWidth - 1;
+    const activities = [...calendar.querySelectorAll(".training-calendar-activities button")];
+    const activityBounds = activities.map((activity) => activity.getBoundingClientRect());
+    const columns = getComputedStyle(grid).gridTemplateColumns
+      .split(" ")
+      .filter(Boolean)
+      .length;
+    return {
+      columns,
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+      calendarInsideViewport: calendarBounds.left >= 0
+        && calendarBounds.right <= root.clientWidth + 1,
+      calendarBelowCompactNavigation: !compactNavigation
+        || calendarBounds.top >= navigationBounds.bottom - 1,
+      periodInsideCalendar: periodBounds.left >= calendarBounds.left - 1
+        && periodBounds.right <= calendarBounds.right + 1,
+      activitiesInsideCalendar: activityBounds.every((bounds) => (
+        bounds.left >= calendarBounds.left - 1 && bounds.right <= calendarBounds.right + 1
+      )),
+      activityContentFits: activities.every((activity) => (
+        activity.scrollWidth <= activity.clientWidth + 1
+      )),
+    };
+  });
+  expect(geometry).toEqual({
+    columns: expectedColumns,
+    hasHorizontalOverflow: false,
+    calendarInsideViewport: true,
+    calendarBelowCompactNavigation: true,
+    periodInsideCalendar: true,
+    activitiesInsideCalendar: true,
+    activityContentFits: true,
+  });
+}
+
 async function expectSportClassificationComposition(expectedColumns) {
   const geometry = await browser.execute(() => {
     const root = document.documentElement;
@@ -2194,9 +2238,51 @@ describe("packaged FitFreed import journey", () => {
 
     await $("aria/Calendar").click();
     await expect($(".training-calendar h3")).toHaveText("January 2026");
-    await $('button[aria-label*="January 4, 2026"]').click();
+    const calendarActivity = await $(
+      '.training-calendar-activities button[aria-label^="Open Trail running"]',
+    );
+    await expect(calendarActivity).toHaveText(expect.stringContaining("Trail running"));
+    await expect(calendarActivity).toHaveText(expect.stringContaining("1 h"));
+    await expectTrainingCalendarGeometry(7);
+    await captureR10WorkspaceEvidence(
+      "x7-r8-2-calendar-en-wide.png",
+      ".training-calendar",
+    );
+    const previousCalendarPresentation = await browser.execute(() => ({
+      zoom: document.documentElement.style.getPropertyValue("--content-zoom"),
+      zoomState: document.documentElement.dataset.contentZoom ?? null,
+    }));
+    await resizeApplication(720, 760);
+    await browser.execute(() => {
+      document.documentElement.style.setProperty("--content-zoom", "2");
+      document.documentElement.dataset.contentZoom = "200";
+      document.querySelector(".training-calendar").scrollIntoView({
+        block: "start",
+        inline: "nearest",
+      });
+    });
+    await expectTrainingCalendarGeometry(1);
+    const compactCalendarAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-calendar")
+      .analyze();
+    expect(compactCalendarAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x7-r8-2-calendar-en-dark-compact-200.png",
+    ));
+    await browser.execute((previous) => {
+      document.documentElement.style.setProperty("--content-zoom", previous.zoom);
+      if (previous.zoomState === null) {
+        delete document.documentElement.dataset.contentZoom;
+      } else {
+        document.documentElement.dataset.contentZoom = previous.zoomState;
+      }
+    }, previousCalendarPresentation);
+    await resizeApplication(1280, 820);
+    await $('.training-calendar-day-summary[aria-label*="January 4, 2026"]').click();
     await expectTrainingRows([[enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"]]);
-    await $(".training-session-results button.secondary").click();
+    await calendarActivity.click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
     const routeWorkbench = await $(".training-route-workbench");
     await routeWorkbench.waitForDisplayed({ timeout: 10_000 });
@@ -5039,7 +5125,7 @@ describe("packaged FitFreed import journey", () => {
     await $('button[aria-label*="4 de enero de 2026"]').click();
     await expectTrainingRows([[esJan4Card, "1 h", "10,5 km", "600 kcal", "142 ppm"]]);
     const restoredDetailButton = await $(
-      'button[aria-label^="Ver detalles de la sesión del"]',
+      '.training-calendar-activities button[aria-label^="Abrir Carrera de montaña"]',
     );
     await restoredDetailButton.click();
     await expect($("#training-session-detail-heading")).toHaveText(
@@ -5605,7 +5691,7 @@ describe("packaged FitFreed import journey", () => {
     await $(`aria/${spanish.training.sessionLibrary.calendar}`).click();
     await expect($(".training-calendar h3")).toHaveText("enero de 2026");
     await $('button[aria-label*="4 de enero de 2026"]').click();
-    await $('.training-session-results button[aria-label^="Ver detalles de la sesión del"]').click();
+    await $('.training-calendar-activities button[aria-label^="Abrir Carrera de montaña"]').click();
     await browser.waitUntil(async () => {
       const persisted = await browser.executeAsync((done) => {
         window.__TAURI__.core.invoke("load_training_discovery_workspace")

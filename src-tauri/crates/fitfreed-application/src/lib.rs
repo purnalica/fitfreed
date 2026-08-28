@@ -97,11 +97,11 @@ pub use training_discovery::{
     save_training_discovery_workspace, PersistedTrainingSessionCalendar,
     PersistedTrainingSessionSearchPage, PersistedTrainingSessionSelection, TrainingDiscoveryView,
     TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingMeasurementFilter,
-    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
-    TrainingSessionDiscoveryPort, TrainingSessionDiscoveryPortError, TrainingSessionSearchItem,
-    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
-    TrainingSessionSelection, TrainingSessionSelectionRequest, TrainingSessionSort,
-    TrainingSessionSport,
+    TrainingSessionCalendar, TrainingSessionCalendarActivity, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    TrainingSessionDiscoveryPortError, TrainingSessionSearchItem, TrainingSessionSearchPage,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelection,
+    TrainingSessionSelectionRequest, TrainingSessionSort, TrainingSessionSport,
 };
 
 mod training_detail;

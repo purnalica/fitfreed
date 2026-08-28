@@ -82,6 +82,13 @@ export interface TrainingSessionSearchPage {
   sessions: TrainingSessionSearchItem[];
 }
 
+export interface TrainingSessionCalendarActivity {
+  sessionRef: string;
+  startedAtLocal: string;
+  durationMilliseconds: string;
+  sport: TrainingSessionSport;
+}
+
 export interface TrainingSessionCalendarDay {
   localDate: string;
   sourceIndex: number;
@@ -90,6 +97,7 @@ export interface TrainingSessionCalendarDay {
   distanceSessionCount: number;
   totalDistanceMeters: number | null;
   heartRateSessionCount: number;
+  activities: TrainingSessionCalendarActivity[];
 }
 
 export interface TrainingSessionCalendar {

@@ -562,8 +562,12 @@
       "calendar": "Calendar",
       "previousMonth": "Previous month",
       "nextMonth": "Next month",
+      "calendarYear": "Calendar year",
+      "calendarToday": "Today",
       "calendarEmpty": "No matching sessions in this month.",
       "calendarDay": "{date}, {count} {unit}",
+      "calendarActivities": "Activities on {date}",
+      "openCalendarActivity": "Open {sport} on {date} at {time}, {duration}",
       "calendarHistories": {
         "one": "{count} separate history",
         "other": "{count} separate histories"

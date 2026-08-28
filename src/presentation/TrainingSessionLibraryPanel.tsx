@@ -39,6 +39,7 @@ import type {
   TrainingDiscoveryWorkspace,
   TrainingMeasurementFilter,
   TrainingSessionCalendar,
+  TrainingSessionCalendarActivity,
   TrainingSessionCalendarRequest,
   TrainingSessionSearchItem,
   TrainingSessionSearchPage,
@@ -191,6 +192,10 @@ function criteriaForCalendarDay(draft: SearchDraft, localDate: string | null): S
 
 function localDate(value: string): Date {
   return new Date(`${value}T00:00:00Z`);
+}
+
+function localMonth(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function withoutRefinement(
@@ -1092,8 +1097,7 @@ export function TrainingSessionLibraryPanel({
     }
   }
 
-  function navigateMonth(delta: number) {
-    const next = shiftMonth(calendarMonth, delta);
+  function navigateCalendarMonth(next: string) {
     const previousDay = selectedCalendarDay;
     setSelectedCalendarDay(undefined);
     const snapshotRef = calendar?.snapshotRef ?? page?.snapshotRef ?? null;
@@ -1103,10 +1107,73 @@ export function TrainingSessionLibraryPanel({
     })();
   }
 
+  function navigateMonth(delta: number) {
+    navigateCalendarMonth(shiftMonth(calendarMonth, delta));
+  }
+
+  function navigateYear(year: string) {
+    if (!calendarBounds) return;
+    const month = calendarMonth.slice(5, 7);
+    const firstMonth = calendarBounds.from.slice(0, 7);
+    const lastMonth = calendarBounds.through.slice(0, 7);
+    const candidate = `${year}-${month}`;
+    const next = candidate < firstMonth
+      ? firstMonth
+      : candidate > lastMonth ? lastMonth : candidate;
+    navigateCalendarMonth(next);
+  }
+
   function openCalendarDay(localDate: string) {
     const criteria = { ...applied, from: localDate, through: localDate };
     setSelectedCalendarDay(localDate);
     void loadPage(criteria, 0, null);
+  }
+
+  async function openCalendarActivity(
+    activity: TrainingSessionCalendarActivity,
+    origin: HTMLButtonElement,
+  ) {
+    const initialSnapshotRef = calendar?.snapshotRef ?? page?.snapshotRef;
+    if (!initialSnapshotRef) return;
+    setCalendarLoading(true);
+    setStatus(undefined);
+    onError(undefined);
+    try {
+      let snapshotRef = initialSnapshotRef;
+      let selection: TrainingSessionSelection;
+      try {
+        selection = await invoke<TrainingSessionSelection>(
+          "query_training_session_selection",
+          { request: { sessionRefs: [activity.sessionRef], snapshotRef } },
+        );
+      } catch (reason) {
+        if (commandErrorCode(reason) !== "training-session-search-changed") throw reason;
+        const restarted = await loadPage(pageCriteria, 0, null);
+        if (!restarted) return;
+        snapshotRef = restarted.snapshotRef;
+        await loadCalendar(applied, calendarMonth, snapshotRef);
+        selection = await invoke<TrainingSessionSelection>(
+          "query_training_session_selection",
+          { request: { sessionRefs: [activity.sessionRef], snapshotRef } },
+        );
+        setStatus(copy.libraryChanged);
+      }
+      const session = selection.snapshotRef === snapshotRef
+        ? selection.sessions.find((candidate) => candidate.sessionRef === activity.sessionRef)
+        : undefined;
+      if (!session || selection.sessions.length !== 1) {
+        throw new Error("calendar activity selection is inconsistent");
+      }
+      setDetailOrigin("calendar");
+      setDetailSection("overview");
+      setZoneDetailTarget(undefined);
+      detailOriginButtonRef.current = origin;
+      setSelected(session);
+    } catch (reason) {
+      onError(commandErrorCode(reason));
+    } finally {
+      setCalendarLoading(false);
+    }
   }
 
   function toggleComparison(session: TrainingSessionSearchItem) {
@@ -2117,6 +2184,17 @@ export function TrainingSessionLibraryPanel({
     from: applied.from || page.availableRange.from,
     through: applied.through || page.availableRange.through,
   } : undefined;
+  const calendarYears = calendarBounds
+    ? Array.from(
+      {
+        length: Number(calendarBounds.through.slice(0, 4))
+          - Number(calendarBounds.from.slice(0, 4)) + 1,
+      },
+      (_, index) => String(Number(calendarBounds.from.slice(0, 4)) + index),
+    )
+    : [];
+  const currentCalendarYear = calendarMonth.slice(0, 4);
+  const todayMonth = localMonth(new Date());
   const monthStart = calendarMonth ? new Date(`${calendarMonth}-01T00:00:00Z`) : undefined;
   const calendarDayCount = monthStart
     ? new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)).getUTCDate()
@@ -2623,7 +2701,35 @@ export function TrainingSessionLibraryPanel({
                 >
                   <span aria-hidden="true">←</span>
                 </button>
-                <h3>{monthName.format(new Date(`${calendarMonth}-01T00:00:00Z`))}</h3>
+                <div className="training-calendar-current-period">
+                  <h3>{monthName.format(new Date(`${calendarMonth}-01T00:00:00Z`))}</h3>
+                  <div>
+                    <label>
+                      <span className="sr-only">{copy.calendarYear}</span>
+                      <select
+                        aria-label={copy.calendarYear}
+                        value={calendarYears.includes(currentCalendarYear)
+                          ? currentCalendarYear
+                          : ""}
+                        disabled={calendarLoading || calendarYears.length === 0}
+                        onChange={(event) => navigateYear(event.currentTarget.value)}
+                      >
+                        {!calendarYears.includes(currentCalendarYear) && (
+                          <option value="">{currentCalendarYear}</option>
+                        )}
+                        {calendarYears.map((year) => <option value={year} key={year}>{year}</option>)}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="secondary training-calendar-today"
+                      disabled={calendarLoading || calendarMonth === todayMonth}
+                      onClick={() => navigateCalendarMonth(todayMonth)}
+                    >
+                      {copy.calendarToday}
+                    </button>
+                  </div>
+                </div>
                 <button
                   type="button"
                   className="secondary"
@@ -2651,31 +2757,83 @@ export function TrainingSessionLibraryPanel({
                     (candidate) => candidate.localDate === localDate,
                   ) ?? [];
                   const count = entries.reduce((total, entry) => total + entry.sessionCount, 0);
+                  const activities = entries
+                    .flatMap((entry) => entry.activities)
+                    .sort((left, right) => left.startedAtLocal.localeCompare(
+                      right.startedAtLocal,
+                    ) || left.sessionRef.localeCompare(right.sessionRef));
                   const formattedDate = calendarDate.format(new Date(`${localDate}T00:00:00Z`));
                   return (
-                    <li key={localDate}>
+                    <li
+                      className={count === 0
+                        ? "training-calendar-date-empty"
+                        : "training-calendar-date"}
+                      key={localDate}
+                    >
                       {count === 0 ? (
                         <span><span>{number.format(day)}</span></span>
                       ) : (
-                        <button
-                          type="button"
-                          className={selectedCalendarDay === localDate ? "selected" : undefined}
-                          aria-label={interpolate(copy.calendarDay, {
-                            date: formattedDate,
-                            count: number.format(count),
-                            unit: sessionUnit(count),
-                          })}
-                          aria-pressed={selectedCalendarDay === localDate}
-                          onClick={() => openCalendarDay(localDate)}
-                        >
-                          <span>{number.format(day)}</span>
-                          <strong>{number.format(count)}</strong>
-                          {entries.length > 1 && (
-                            <small>{interpolate(copy.calendarHistories.other, {
-                              count: number.format(entries.length),
-                            })}</small>
-                          )}
-                        </button>
+                        <div className={selectedCalendarDay === localDate ? "selected" : undefined}>
+                          <button
+                            type="button"
+                            className="training-calendar-day-summary"
+                            aria-label={interpolate(copy.calendarDay, {
+                              date: formattedDate,
+                              count: number.format(count),
+                              unit: sessionUnit(count),
+                            })}
+                            aria-pressed={selectedCalendarDay === localDate}
+                            onClick={() => openCalendarDay(localDate)}
+                          >
+                            <span>{number.format(day)}</span>
+                            <strong>{number.format(count)}</strong>
+                            {entries.length > 1 && (
+                              <small>{interpolate(copy.calendarHistories.other, {
+                                count: number.format(entries.length),
+                              })}</small>
+                            )}
+                          </button>
+                          <ol
+                            className="training-calendar-activities"
+                            aria-label={interpolate(copy.calendarActivities, {
+                              date: formattedDate,
+                            })}
+                          >
+                            {activities.map((activity) => {
+                              const sport = trainingSportTitle(activity.sport);
+                              const time = formatSessionCardTime(activity.startedAtLocal, locale);
+                              const duration = formatSessionCardDuration(
+                                activity.durationMilliseconds,
+                                locale,
+                                messages.training.durationUnits,
+                              );
+                              return (
+                                <li key={activity.sessionRef}>
+                                  <button
+                                    type="button"
+                                    disabled={calendarLoading}
+                                    aria-label={interpolate(copy.openCalendarActivity, {
+                                      sport,
+                                      date: formattedDate,
+                                      time,
+                                      duration,
+                                    })}
+                                    onClick={(event) => openCalendarActivity(
+                                      activity,
+                                      event.currentTarget,
+                                    )}
+                                  >
+                                    <SportFamilyIcon
+                                      family={sportFamily(activity.sport)}
+                                      state={activity.sport.state}
+                                    />
+                                    <span><strong>{sport}</strong><small>{time} · {duration}</small></span>
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        </div>
                       )}
                     </li>
                   );

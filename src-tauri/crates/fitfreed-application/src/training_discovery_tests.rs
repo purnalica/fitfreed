@@ -37,6 +37,20 @@ impl TrainingSessionDiscoveryPort for ControlledDiscoveryPort {
                 distance_session_count: 1,
                 total_distance_meters: Some(10_000.0),
                 heart_rate_session_count: 2,
+                activities: vec![
+                    TrainingSessionCalendarActivity {
+                        session_ref: SESSION.to_owned(),
+                        started_at_local: "2026-08-16T07:30:00.000".to_owned(),
+                        duration_milliseconds: 3_600_000,
+                        sport: classified_sport(),
+                    },
+                    TrainingSessionCalendarActivity {
+                        session_ref: format!("session-{}", "d".repeat(64)),
+                        started_at_local: "2026-08-16T09:00:00.000".to_owned(),
+                        duration_milliseconds: 1_800_000,
+                        sport: recognized_sport("Road running".to_owned()),
+                    },
+                ],
             }],
         })
     }
@@ -193,6 +207,16 @@ fn returns_an_exact_source_separated_calendar_month() {
     assert_eq!(result.days[0].session_count, 2);
     assert_eq!(result.days[0].distance_session_count, 1);
     assert_eq!(result.days[0].heart_rate_session_count, 2);
+    assert_eq!(result.days[0].activities.len(), 2);
+    assert_eq!(result.days[0].activities[0].session_ref, SESSION);
+    assert_eq!(
+        result.days[0].activities[1].started_at_local,
+        "2026-08-16T09:00:00.000"
+    );
+    assert_eq!(
+        result.days[0].activities[1].sport.state,
+        TrainingSportState::Recognized
+    );
 }
 
 #[test]
@@ -244,6 +268,7 @@ fn rejects_invalid_calendar_requests_and_persisted_days() {
                     distance_session_count: 0,
                     total_distance_meters: None,
                     heart_rate_session_count: 1,
+                    activities: Vec::new(),
                 }],
             })
         }

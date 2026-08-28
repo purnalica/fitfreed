@@ -7792,6 +7792,8 @@ const trainingSportIdentityV3Path =
 const trainingSportsV4Path = "docs/data-formats/insights/training-sports-v4.md";
 const trainingSessionSearchV4Path =
   "docs/data-formats/insights/training-session-search-v4.md";
+const trainingSessionSearchV5Path =
+  "docs/data-formats/insights/training-session-search-v5.md";
 const trainingDiscoveryWorkspaceV3Path =
   "docs/data-formats/insights/training-discovery-workspace-v3.md";
 const trainingSessionStructureV3Path =
@@ -7900,6 +7902,11 @@ for (const [documentPath, fields] of [
     "sessionFilterRef", "training-session-search-v4.schema.json",
     "training-session-selection-v4.schema.json",
   ]],
+  [trainingSessionSearchV5Path, [
+    "query_training_sessions", "query_training_session_selection",
+    "query_training_session_calendar", "training-session-calendar-v2.schema.json",
+    "activities", "sessionRef", "startedAtLocal", "durationMilliseconds", "sport",
+  ]],
   [trainingDiscoveryWorkspaceV3Path, [
     "load_training_discovery_workspace", "save_training_discovery_workspace",
     "clear_training_discovery_workspace", "version", "sportRefs", "sessionFilterRef",
@@ -8003,6 +8010,8 @@ const trainingSessionSearchV4SchemaPath =
   "schemas/training-session-search-v4.schema.json";
 const trainingSessionSelectionV4SchemaPath =
   "schemas/training-session-selection-v4.schema.json";
+const trainingSessionCalendarV2SchemaPath =
+  "schemas/training-session-calendar-v2.schema.json";
 const trainingDiscoveryWorkspaceV3SchemaPath =
   "schemas/training-discovery-workspace-v3.schema.json";
 const trainingSessionStructureV3SchemaPath =
@@ -9083,6 +9092,48 @@ assertContract(
   },
 );
 
+const validateTrainingSessionCalendarV2 = compileContractSchema(
+  trainingSessionCalendarV2SchemaPath,
+);
+const syntheticTrainingSessionCalendarV2 = {
+  ...structuredClone(syntheticTrainingSessionCalendar),
+  days: [{
+    ...structuredClone(syntheticTrainingSessionCalendar.days[0]),
+    activities: [{
+      sessionRef: sessionRefDigest,
+      startedAtLocal: "2026-08-18T07:30:00",
+      durationMilliseconds: "3600000",
+      sport: structuredClone(syntheticExactRecognizedSportV3),
+    }],
+  }],
+};
+assertContract(
+  validateTrainingSessionCalendarV2,
+  trainingSessionCalendarV2SchemaPath,
+  syntheticTrainingSessionCalendarV2,
+);
+for (const invalidCalendar of [
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionCalendarV2);
+    delete value.days[0].activities;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionCalendarV2);
+    value.days[0].activities[0].durationMilliseconds = "03600000";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionCalendarV2);
+    value.days[0].activities[0].sourceSessionId = "must-not-cross-the-boundary";
+    return value;
+  })(),
+]) {
+  if (validateTrainingSessionCalendarV2(invalidCalendar)) {
+    throw new Error(`${trainingSessionCalendarV2SchemaPath} accepted an invalid response`);
+  }
+}
+
 const validateTrainingDiscoveryWorkspaceV3 = compileContractSchema(
   trainingDiscoveryWorkspaceV3SchemaPath,
 );
@@ -9303,6 +9354,7 @@ for (const contractPath of [
   trainingSportIdentityV3Path,
   trainingSportsV4Path,
   trainingSessionSearchV4Path,
+  trainingSessionSearchV5Path,
   trainingDiscoveryWorkspaceV3Path,
   trainingSessionStructureV3Path,
   trainingSessionRangeSummaryV3Path,
@@ -9365,6 +9417,7 @@ process.stdout.write(
       trainingSessionCalendarQuerySchemaPath,
       trainingSessionCalendarQueryV2SchemaPath,
       trainingSessionCalendarSchemaPath,
+      trainingSessionCalendarV2SchemaPath,
       trainingSessionSelectionQuerySchemaPath,
       trainingSessionSelectionSchemaPath,
       trainingSessionSelectionV2SchemaPath,

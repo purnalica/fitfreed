@@ -107,7 +107,8 @@ Directories are created with their first real contract; empty specifications are
 - [Training sports read model version 3](insights/training-sports-v3.md) — preceding contract
 - [Training sports read model version 2](insights/training-sports-v2.md) — preceding contract
 - [Training sports read model version 1](insights/training-sports-v1.md) — preceding contract
-- [Training-session search read model version 4](insights/training-session-search-v4.md)
+- [Training-session search read model version 5](insights/training-session-search-v5.md)
+- [Training-session search read model version 4](insights/training-session-search-v4.md) — preceding contract
 - [Training-session search read model version 3](insights/training-session-search-v3.md) — preceding contract
 - [Training-session search read model version 2](insights/training-session-search-v2.md) — preceding contract
 - [Training-session search read model version 1](insights/training-session-search-v1.md) — preceding contract

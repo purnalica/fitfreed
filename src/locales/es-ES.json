@@ -562,8 +562,12 @@
       "calendar": "Calendario",
       "previousMonth": "Mes anterior",
       "nextMonth": "Mes siguiente",
+      "calendarYear": "Año del calendario",
+      "calendarToday": "Hoy",
       "calendarEmpty": "No hay sesiones coincidentes en este mes.",
       "calendarDay": "{date}, {count} {unit}",
+      "calendarActivities": "Actividades del {date}",
+      "openCalendarActivity": "Abrir {sport} del {date} a las {time}, {duration}",
       "calendarHistories": {
         "one": "{count} historial independiente",
         "other": "{count} historiales independientes"

@@ -65,8 +65,9 @@ seconds, and milliseconds appear only when exact elapsed evidence makes them mat
 a count ratio use the locale's grouping consistently. Exact timestamps,
 unrounded quantities, source separation, and provenance remain available through the relevant exact-evidence or
 source disclosure. A calendar
-date contributed by more than one separated history says so directly instead of presenting an unexplained source
-number.
+date shows its activities in local-start order with sport icons, human-scale durations, and direct session opening.
+The year selector crosses long histories directly, **Today** returns to the current month, and a date contributed by
+more than one separated history says so directly instead of presenting an unexplained source number.
 When verifiable catalogue evidence is installed, Home, History, sessions, and reports use its localized sport
 name and provider-neutral icon. One matching candidate is recognized; multiple candidates remain visibly
 ambiguous; no candidate remains unknown; missing source sport evidence remains unavailable. FitFreed never

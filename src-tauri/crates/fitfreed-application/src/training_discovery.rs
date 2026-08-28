@@ -149,6 +149,14 @@ pub struct TrainingSessionSearchPage {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSessionCalendarActivity {
+    pub session_ref: String,
+    pub started_at_local: String,
+    pub duration_milliseconds: i64,
+    pub sport: TrainingSessionSport,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TrainingSessionCalendarDay {
     pub local_date: String,
     pub source_index: usize,
@@ -157,6 +165,7 @@ pub struct TrainingSessionCalendarDay {
     pub distance_session_count: usize,
     pub total_distance_meters: Option<f64>,
     pub heart_rate_session_count: usize,
+    pub activities: Vec<TrainingSessionCalendarActivity>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -553,8 +562,20 @@ fn validate_calendar(
         return query_failure("training calendar facts exist without bounds");
     }
     let mut previous: Option<(&str, usize)> = None;
+    let mut activity_refs = BTreeSet::new();
     for day in &calendar.days {
         let parsed = parse_page_date(&day.local_date)?;
+        let activity_duration = day
+            .activities
+            .iter()
+            .try_fold(0_i128, |total, activity| {
+                total.checked_add(i128::from(activity.duration_milliseconds))
+            })
+            .ok_or_else(|| {
+                ApplicationError::TrainingSessionSearch(
+                    "training calendar activity duration overflowed".to_owned(),
+                )
+            })?;
         if parsed.format("%Y-%m").to_string() != request.month
             || request
                 .from
@@ -566,7 +587,9 @@ fn validate_calendar(
                 .is_some_and(|through| day.local_date.as_str() > through)
             || day.source_index == 0
             || day.session_count == 0
+            || day.activities.len() != day.session_count
             || day.total_duration_milliseconds < 0
+            || activity_duration != day.total_duration_milliseconds
             || day.distance_session_count > day.session_count
             || day.heart_rate_session_count > day.session_count
             || day.total_distance_meters.is_some() != (day.distance_session_count > 0)
@@ -583,6 +606,24 @@ fn validate_calendar(
                 && day.heart_rate_session_count != day.session_count)
         {
             return query_failure("training calendar day is inconsistent");
+        }
+        let mut previous_activity: Option<(&str, &str)> = None;
+        for activity in &day.activities {
+            parse_datetime(&activity.started_at_local)?;
+            if activity.started_at_local.get(..10) != Some(day.local_date.as_str())
+                || activity.duration_milliseconds < 0
+                || !valid_opaque_ref(&activity.session_ref, SESSION_PREFIX)
+                || !activity_refs.insert(activity.session_ref.clone())
+                || previous_activity.is_some_and(|(started_at, session_ref)| {
+                    started_at > activity.started_at_local.as_str()
+                        || (started_at == activity.started_at_local.as_str()
+                            && session_ref >= activity.session_ref.as_str())
+                })
+            {
+                return query_failure("training calendar activities are inconsistent or unordered");
+            }
+            validate_sport(&activity.sport)?;
+            previous_activity = Some((&activity.started_at_local, &activity.session_ref));
         }
         if previous.is_some_and(|(date, source)| {
             date > day.local_date.as_str()
