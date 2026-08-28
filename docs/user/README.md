@@ -93,10 +93,15 @@ unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and
 session leads with the [interactive local route workbench](session-routes.md): primary and transition routes remain
 separate while pan, zoom, fit, focused view, recorded-position traversal, sport-aware measurement overlays, a
 structured value alternative, conditional elapsed measurement lanes, and direct exact-evidence paths remain local without an external location
-request. Overlays and attached lanes appear only when an importer supplies an exact recorded relationship. The current Polar Flow mapping supplies none, so its route and regular signals remain deliberately independent. A selected position opens and focuses its containing exact route row; independent signals retain their own exact-sample paths. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with labelled elapsed-time and measurement axes. Dense series offer local horizontal chart zoom while retaining paginated access to every original sample. When one role has enough recorded evidence, two through four
-signals can also be selected as independently scaled lanes over one stable elapsed-time axis. A linked cursor and
-horizontal zoom keep those lanes at the same recorded elapsed position without normalizing their values; every lane
-retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.
+request. Overlays and attached lanes appear only when an importer supplies an exact recorded relationship. The current Polar Flow mapping supplies none, so its route and regular signals remain deliberately independent. A selected position opens and focuses its containing exact route row; independent signals retain their own exact-sample paths. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with labelled elapsed-time and measurement axes. Dense series offer local horizontal chart zoom while retaining paginated access to every original sample. When one role has recorded evidence, one through four
+signals can also be selected as independently scaled lanes over one stable elapsed-time axis. Speed and heart rate
+open as the initial pair when both exist; otherwise the available choices follow sport-aware relevance, with cumulative
+distance last and never added to a multi-signal default. Horizontal lane keys, distinct line patterns, scales, units,
+coverage, and exact-sample actions remain readable without color. A source-series number appears only when repeated
+measurement kinds need disambiguation; the exact evidence retains it in every case. Dense views keep the recorded
+line but omit a marker at every bounded point so the shape remains readable; zoom, tooltips, and the complete exact
+table remain available. A linked cursor and horizontal zoom keep those lanes
+at the same recorded elapsed position without normalizing their values, and the view neither bridges gaps nor implies causation.
 When a session has useful recorded signals but no drawable route, FitFreed gives the application-ranked
 measurement the leading visual region instead of reserving an empty map. The displayed sport-aware metric,
 coverage, interval, source identity, and gaps remain connected to the exact source-series action. Its sample

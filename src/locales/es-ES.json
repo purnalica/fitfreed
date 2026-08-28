@@ -1092,6 +1092,8 @@
       "crossSignalTransitionIntro": "Las señales de transición comparten el tiempo transcurrido, pero siguen siendo series registradas independientes.",
       "crossSignalSelection": "Señales que alinear",
       "crossSignalSeries": "{kind} · serie {number}",
+      "crossSignalCumulativeDistance": "Distancia acumulada",
+      "crossSignalCumulativeMeaning": "Se ha seleccionado un total acumulado: su línea ascendente muestra la distancia registrada hasta cada instante, no un cambio de ritmo o esfuerzo.",
       "crossSignalRange": "{minimum}–{maximum} {unit}",
       "crossSignalCoverage": "{available} de {total} registrados",
       "crossSignalAxis": "Tiempo transcurrido 0–{through}",

@@ -1178,7 +1178,7 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-signal-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .training-signal-heading h6 { margin: 0; font-size: .95rem; }
 .training-signal-heading span { color: var(--muted); font-size: .78rem; font-weight: 700; }
-.training-cross-signal { margin: 14px 0 20px; padding: 18px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; }
+.training-cross-signal { margin: 14px 0 20px; padding: 18px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; scroll-margin-block-start: var(--shell-reveal-offset); }
 .training-cross-signal > header h6 { margin: 0 0 5px; font-size: 1rem; }
 .training-cross-signal > header p { margin: 0; color: var(--muted); }
 .training-cross-signal-selection { margin: 16px 0; padding: 0; border: 0; }
@@ -1187,15 +1187,28 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-cross-signal-selection label { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: .78rem; font-weight: 700; }
 .training-cross-signal-selection label:has(input:checked) { color: var(--accent-deep); border-color: var(--accent); }
 .training-cross-signal-selection input { margin: 0; }
+.training-cross-signal-selection input:focus-visible { outline: none; }
+.training-cross-signal-selection label:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 3px; }
+.training-cross-signal-cumulative { margin: -4px 0 14px; color: var(--muted); font-size: .78rem; }
 .training-cross-signal-chart { min-width: 0; }
+.training-cross-signal-chart[data-lane-count="1"] > .analytical-chart-canvas { height: clamp(240px, 32vh, 320px); }
 .training-cross-signal-chart[data-lane-count="2"] > .analytical-chart-canvas { height: clamp(300px, 42vh, 360px); }
 .training-cross-signal-chart[data-lane-count="3"] > .analytical-chart-canvas { height: clamp(360px, 50vh, 440px); }
 .training-cross-signal-chart[data-lane-count="4"] > .analytical-chart-canvas { height: clamp(420px, 56vh, 500px); }
-.training-cross-signal-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 10px; margin-top: 12px; }
+.training-cross-signal-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 10px; margin: 12px 0; }
+.training-cross-signal-lanes[data-lane-count="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .training-cross-signal-lanes article { display: flex; min-width: 0; padding: 12px; background: var(--surface); border-radius: 10px; flex-direction: column; align-items: flex-start; gap: 9px; }
-.training-cross-signal-lane-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 8px 16px; }
+.training-cross-signal-lane-heading { display: flex; width: 100%; min-width: 0; flex-wrap: wrap; align-items: start; gap: 8px 12px; }
+.training-cross-signal-lane-heading > div { min-width: 0; flex: 1 1 130px; }
 .training-cross-signal-lane-heading div strong, .training-cross-signal-lane-heading div span { display: block; }
 .training-cross-signal-lane-heading div span, .training-cross-signal-lane-heading > span { color: var(--muted); font-size: .74rem; }
+.training-cross-signal-line-key { width: 36px; height: 5px; margin-top: 8px; color: var(--accent-deep); flex: 0 0 36px; border-top: 3px solid currentcolor; }
+.training-cross-signal-lanes article:nth-child(2) .training-cross-signal-line-key { color: var(--danger); }
+.training-cross-signal-lanes article:nth-child(3) .training-cross-signal-line-key { color: var(--warning); }
+.training-cross-signal-lanes article:nth-child(4) .training-cross-signal-line-key { color: var(--ink-soft); }
+.training-cross-signal-line-key[data-pattern="dashed"] { border-top-style: dashed; }
+.training-cross-signal-line-key[data-pattern="dotted"] { border-top-style: dotted; }
+.training-cross-signal-line-key[data-pattern="dash-dot"] { height: 7px; border-top-style: dashed; border-bottom: 2px dotted currentcolor; }
 .training-cross-signal-lanes button { padding: 6px 9px; font-size: .75rem; }
 .training-cross-signal-axis { margin: 10px 0 0; color: var(--ink-soft); font-size: .76rem; font-weight: 750; text-align: right; }
 .training-cross-signal-meaning { margin: 8px 0 0; color: var(--muted); font-size: .76rem; }
@@ -1914,8 +1927,14 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 :root[data-content-zoom="200"] .training-signal-visual > .analytical-chart-canvas { height: clamp(320px, 38vh, 480px); }
 :root[data-content-zoom="175"] .training-signal-workbench-plot > .analytical-chart-canvas,
 :root[data-content-zoom="200"] .training-signal-workbench-plot > .analytical-chart-canvas { height: clamp(420px, 48vh, 620px); }
-:root[data-content-zoom="175"] .training-cross-signal-chart > .analytical-chart-canvas,
-:root[data-content-zoom="200"] .training-cross-signal-chart > .analytical-chart-canvas { height: clamp(480px, 58vh, 680px); }
+:root[data-content-zoom="175"] .training-cross-signal-chart[data-lane-count="1"] > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-cross-signal-chart[data-lane-count="1"] > .analytical-chart-canvas { height: clamp(360px, 46vh, 480px); }
+:root[data-content-zoom="175"] .training-cross-signal-chart[data-lane-count="2"] > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-cross-signal-chart[data-lane-count="2"] > .analytical-chart-canvas { height: clamp(480px, 58vh, 620px); }
+:root[data-content-zoom="175"] .training-cross-signal-chart[data-lane-count="3"] > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-cross-signal-chart[data-lane-count="3"] > .analytical-chart-canvas { height: clamp(650px, 76vh, 820px); }
+:root[data-content-zoom="175"] .training-cross-signal-chart[data-lane-count="4"] > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-cross-signal-chart[data-lane-count="4"] > .analytical-chart-canvas { height: clamp(900px, 100vh, 1100px); }
 :root[data-content-zoom="175"] .training-signal-workbench-heading,
 :root[data-content-zoom="200"] .training-signal-workbench-heading,
 :root[data-content-zoom="175"] .training-structure-workbench-heading,
@@ -2120,6 +2139,8 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .training-session-search-fields { grid-template-columns: 1fr; }
   .training-session-search-actions { justify-content: stretch; }
   .training-session-search-actions button { flex: 1 1 100%; }
+  .training-cross-signal-lanes,
+  .training-cross-signal-lanes[data-lane-count="4"] { grid-template-columns: 1fr; }
   .planned-training-heading, .planned-training-detail-heading, .planned-training-exercise > header, .session-planned-training > header { align-items: stretch; flex-direction: column; }
   .planned-training-heading > strong { align-self: flex-start; }
   .planned-training-collections { display: flex; }

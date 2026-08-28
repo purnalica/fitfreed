@@ -2086,6 +2086,7 @@ export function TrainingSessionLibraryPanel({
     unsupportedCount: number,
     exerciseRef: string,
     exerciseOrdinal: number,
+    family: SportFamily | null,
   ) {
     return (
       <section className="training-signal-collection">
@@ -2097,7 +2098,11 @@ export function TrainingSessionLibraryPanel({
               <>
                 <TrainingCrossSignalPanel
                   exerciseRef={exerciseRef}
+                  regionAccessibleName={`${interpolate(copy.exerciseHeading, {
+                    number: number.format(exerciseOrdinal + 1),
+                  })} · ${heading} · ${copy.crossSignalHeading}`}
                   series={series}
+                  sportFamily={family}
                   locale={locale}
                   messages={messages}
                   onOpenExact={openExactSignalSamples}
@@ -2119,6 +2124,10 @@ export function TrainingSessionLibraryPanel({
       (exercise) => exercise.exerciseRef === exerciseRef,
     );
     if (!assessed) return null;
+    const storyExercise = detailStory?.exercises.find(
+      (exercise) => exercise.exerciseRef === exerciseRef,
+    );
+    const family = storyExercise?.sport ? sportFamily(storyExercise.sport) : null;
     if (assessed.signals === null) {
       return (
         <section className="training-exercise-signals">
@@ -2137,6 +2146,7 @@ export function TrainingSessionLibraryPanel({
           assessed.signals.unsupportedPrimarySeriesCount,
           exerciseRef,
           exerciseOrdinal,
+          family,
         )}
         {signalCollection(
           copy.transitionSignals,
@@ -2144,6 +2154,7 @@ export function TrainingSessionLibraryPanel({
           assessed.signals.unsupportedTransitionSeriesCount,
           exerciseRef,
           exerciseOrdinal,
+          family,
         )}
       </section>
     );

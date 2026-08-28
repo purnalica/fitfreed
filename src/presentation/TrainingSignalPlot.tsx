@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import type { Locale } from "../locales/catalogs";
 import {
   analyticalCoordinateFromDecimal,
@@ -169,24 +171,37 @@ export function TrainingSignalPlot({
   rangeSelection = null,
   onSelectSampleOrdinal,
 }: TrainingSignalPlotProps) {
+  const model = useMemo(() => buildTrainingSignalChartModel({
+      samples,
+      summary,
+      accessibleDescription,
+      coordinateRef,
+      seriesId,
+      xAxisLabel,
+      yAxisLabel,
+      unit,
+      locale,
+      lowerValuesAtTop,
+      pointSelection: onSelectSampleOrdinal !== undefined,
+      selectedSampleOrdinal,
+      rangeSelection,
+    }), [
+      accessibleDescription,
+      coordinateRef,
+      locale,
+      lowerValuesAtTop,
+      onSelectSampleOrdinal,
+      rangeSelection,
+      samples,
+      selectedSampleOrdinal,
+      seriesId,
+      summary,
+      unit,
+      xAxisLabel,
+      yAxisLabel,
+    ]);
   if (samples.length === 0) return <p>{sampleCount === 0 ? emptyMessage : noRecordedValuesMessage}</p>;
   if (!samples.some((sample) => sample.value !== null)) return <p>{noRecordedValuesMessage}</p>;
-
-  const model = buildTrainingSignalChartModel({
-    samples,
-    summary,
-    accessibleDescription,
-    coordinateRef,
-    seriesId,
-    xAxisLabel,
-    yAxisLabel,
-    unit,
-    locale,
-    lowerValuesAtTop,
-    pointSelection: onSelectSampleOrdinal !== undefined,
-    selectedSampleOrdinal,
-    rangeSelection,
-  });
   if (!model) return <p role="status">{chartUnavailableMessage}</p>;
 
   return (

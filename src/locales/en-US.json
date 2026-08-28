@@ -1092,6 +1092,8 @@
       "crossSignalTransitionIntro": "Transition signals share elapsed time but remain independent recorded series.",
       "crossSignalSelection": "Signals to align",
       "crossSignalSeries": "{kind} · series {number}",
+      "crossSignalCumulativeDistance": "Cumulative distance",
+      "crossSignalCumulativeMeaning": "A running total is selected: its rising line shows accumulated recorded distance, not a change in pace or effort.",
       "crossSignalRange": "{minimum}–{maximum} {unit}",
       "crossSignalCoverage": "{available} of {total} recorded",
       "crossSignalAxis": "Elapsed time 0–{through}",

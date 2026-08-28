@@ -2727,7 +2727,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(heartRateChart).toBeDefined();
     expect(heartRateChart?.series[0].points.filter((point) => point.gapBefore)).toHaveLength(1);
     const crossSignal = within(signalExercise!).getByRole("region", {
-      name: "Explore signals together",
+      name: "Exercise 1 · Exercise signals · Explore signals together",
     });
     expect(within(crossSignal).getAllByRole("checkbox", { checked: true })).toHaveLength(2);
     expect(within(crossSignal).getAllByRole("img")).toHaveLength(1);
@@ -2737,12 +2737,12 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(crossSignalChart).toMatchObject({
       layout: { kind: "stacked-lanes" },
       axes: [
-        { label: "Heart rate · series 1", unit: "bpm" },
-        { label: "Speed · series 2", unit: "km/h" },
+        { label: "Speed", unit: "km/h" },
+        { label: "Heart rate", unit: "bpm" },
       ],
       series: [
-        { id: heartRateSignalRef },
         { id: speedSignalRef },
+        { id: heartRateSignalRef },
       ],
     });
     expect(crossSignal).toHaveTextContent("Elapsed time 0–10 min");
@@ -2768,7 +2768,7 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Hide exact Heart rate samples",
     }));
     await user.click(within(crossSignal).getByRole("button", {
-      name: "Open exact samples for Speed · series 2",
+      name: "Open exact samples for Speed",
     }));
     const exactSpeedRegion = await within(signalExercise!).findByRole("region", {
       name: "Exact Speed samples",

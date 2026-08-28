@@ -72,10 +72,15 @@ Each chart has an accessible exact table path and starts a new trace after every
 `gapBefore: true` marker. Local rendering makes no network request and provides no diagnosis, training
 advice, or claim that one signal caused another.
 
-When at least two series in the same role contain visible recorded values, presentation may offer a
-progressive cross-signal view from this existing bounded response. A person selects two through four series.
-The view uses separate labelled vertical scales and a shared elapsed-time axis fixed by all eligible series
-in that role. It never combines primary and transition evidence, joins values into synthetic rows,
+When at least one series in the same role contains visible recorded values, presentation may offer a
+progressive cross-signal view from this existing bounded response. A person selects one through four series.
+The view uses separate numeric scales with horizontal lane identities and a shared elapsed-time axis fixed by
+all eligible series in that role. Presentation may rank the existing series by canonical sport family and signal
+kind and may omit a source ordinal from an ordinary unique-kind label, but it does not change or discard source
+ordinals or make the presentation order canonical evidence. Repeated kinds remain qualified by source ordinal. It never combines
+primary and transition evidence, joins values into synthetic rows,
 interpolates missing timestamps, bridges gaps, or treats normalized chart height as a comparable unit. Every
-selected lane links to the existing exact paginated table for that source series. This view is visual
+selected lane links to the existing exact paginated table for that source series. Presentation may omit individual
+point markers from a dense bounded projection to prevent visual noise; it may not remove points from this response,
+change the line's source-gap boundaries, or weaken the exact path. This view is visual
 co-occurrence evidence only and does not assert correlation or causation.

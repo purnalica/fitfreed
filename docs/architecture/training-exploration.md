@@ -294,8 +294,10 @@ evidence. Every live chart retains its semantic heading, controls, explanation, 
 alternative outside the renderer, so canvas pixels never become the sole meaning or interaction path.
 
 The cross-signal view uses the same port with a `stacked-lanes` layout rather than owning another drawing system.
-Two through four independently scaled signal series each receive a labelled vertical axis and a separate grid,
-while linked horizontal axes preserve the one application-established elapsed coordinate. One cursor and one
+One through four independently scaled signal series each receive a horizontal lane identity, numeric scale, unit,
+non-color marker, exact-sample path, and separate grid. A source ordinal appears in the ordinary identity only when
+multiple series have the same signal kind; exact evidence always retains it. ECharts repeats horizontal names above
+the independent scales, while linked horizontal axes preserve the one application-established elapsed coordinate. One cursor and one
 horizontal zoom window therefore move across all visible lanes without normalizing values, joining gaps, aligning
 another evidence role, or claiming causation. The coordinate domain remains stable while the visible selection
 changes because it is derived from every eligible series in that one exercise role. Lane summaries and direct exact-
@@ -380,13 +382,22 @@ If no signal sample aligns at the selected route point, the action opens the exa
 claiming a corresponding row. Ordinary route and signal detail actions continue to open the first exact page.
 
 Cross-signal inspection is a presentation of that same validated overview, not a new calculated fact. It
-allows two through four series from one exercise and one role to be selected, then places them in separate
-vertically scaled lanes over one elapsed-time axis. Exercise and transition series never share a view. Each
-lane labels its own kind, source-series order, unit, range, and coverage; horizontal position uses the exact
+allows one through four series from one exercise and one role to be selected, then places them in separate
+vertically scaled lanes over one elapsed-time axis. Exercise and transition series never share a view. Available
+series are ordered by a provider-neutral relevance policy refined by canonical sport family; source order breaks
+ties only within the same kind. Speed and heart rate form the initial pair whenever both are recorded. Otherwise
+the first one or two non-cumulative series in that order are selected, while cumulative distance stays available
+at the end and explains its monotonic meaning when chosen. Each lane gives its kind, source-series order, unit,
+range, coverage, and exact-sample path a horizontal identity before the chart. The source ordinal qualifies that
+ordinary identity only when repeated signal kinds would otherwise be ambiguous; it remains available in exact evidence
+for every series. Matching line patterns and point symbols keep the lanes distinguishable without color, and ECharts
+repeats their horizontal names above their independent numeric scales instead of rotating them through adjacent lanes. Horizontal position uses the exact
 returned elapsed time. No value is interpolated, normalized into a hidden common unit, or connected across a
 source gap. The longest returned elapsed time across the eligible role fixes the shared axis so changing a
-selection does not move the remaining evidence. Each selected series retains a direct path to its exact
-paginated samples, and the interface describes co-occurrence without asserting causation.
+selection does not move the remaining evidence. Readable series retain point markers; dense bounded projections
+remove per-point markers while retaining line pattern, scale, tooltip, zoom, and the exact paginated path. Stable
+models are reused across unrelated detail state, and a changed selection replaces only ECharts' structural chart
+components instead of recreating the renderer. The interface describes co-occurrence without asserting causation.
 
 The independent [training-session zone read model](../data-formats/insights/training-session-zone-v1.md)
 preserves unevaluated, absent, present-empty, populated, unsupported-group, and unavailable-aggregate states.

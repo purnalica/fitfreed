@@ -3379,6 +3379,26 @@ self-review before packaged evidence.
 
 ### X7-R8.4 — Make signal charts answer a question
 
+**Machine-complete checkpoint — 2026-08-29:** the existing renderer-neutral analytical port and local ECharts
+adapter now compose one through four independently scaled recorded signals without inventing a comparison lower
+bound. Speed and heart rate form the initial pair whenever both exist; otherwise a provider-neutral relevance policy
+refined by canonical sport family selects up to two non-cumulative metrics. Cumulative distance remains available
+last, is never added to a multi-signal default, and explains its monotonic meaning only while selected. Unique signal
+kinds use concise ordinary labels, while repeated kinds retain source ordinals for disambiguation and every exact path
+continues to preserve the original series identity. Semantic lane cards precede the chart with scale, unit, coverage,
+non-color line key, and direct exact-sample action; the renderer repeats horizontal names above independent scales,
+preserves source gaps, links only the established elapsed coordinate, and hides its redundant legend. One-, two-,
+three-, and four-lane heights remain laptop-bounded and zoom-responsive; four summaries form a balanced two-by-two
+composition and narrow windows stack them. Keyboard focus belongs to the complete metric choice rather than a native
+checkbox fragment, and persistent navigation cannot cover a revealed comparison. Unit and integration coverage,
+contract checks, the complete packaged journey in both locales and at 200% zoom, and the four-series 20,001-sample
+performance scenario pass with synthetic evidence. Unchanged chart models survive unrelated exact-detail state,
+selection updates reuse the renderer, and dense series suppress per-point marker noise without losing their exact
+path. The maximum-selection p95 is 21 ms against the 250 ms budget, and the exact-page p95 is 43 ms against 500 ms. A
+fresh visual review covered the default pair at wide width, long Spanish copy in dark compact 200% presentation, the
+balanced four-summary state, and the complete dense four-lane chart without finding an axis, legend, control, or
+horizontal-overflow collision.
+
 1. Keep the evaluated ECharts dependency and repair the product composition around it. One through four recorded
    signals are valid; no lower bound exists merely because the surface was named a comparison.
 2. Select speed and heart rate initially when both are recorded. Otherwise use a documented provider-neutral,

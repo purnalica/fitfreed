@@ -156,6 +156,40 @@ describe("compileEChartsAnalyticalChart", () => {
     });
   });
 
+  it("keeps exact markers on readable series and removes marker noise from dense series", () => {
+    const readable = compileEChartsAnalyticalChart(model(), {
+      accent: "#336655",
+      accentSoft: "rgba(51, 102, 85, 0.18)",
+      ink: "#17211b",
+      muted: "#657068",
+      line: "#d1d8d2",
+      surface: "#ffffff",
+      baseFontSize: 16,
+      fontFamily: "Inter",
+    });
+    const dense = model();
+    dense.coordinate.domain.maximum = 80_000;
+    dense.series[0].points = Array.from({ length: 81 }, (_, index) => ({
+      id: `sample-${index}`,
+      coordinate: index * 1_000,
+      value: 4 + (index % 3),
+      gapBefore: false,
+    }));
+    const compiledDense = compileEChartsAnalyticalChart(dense, {
+      accent: "#336655",
+      accentSoft: "rgba(51, 102, 85, 0.18)",
+      ink: "#17211b",
+      muted: "#657068",
+      line: "#d1d8d2",
+      surface: "#ffffff",
+      baseFontSize: 16,
+      fontFamily: "Inter",
+    });
+
+    expect(readable.option.series[0].showSymbol).toBe(true);
+    expect(compiledDense.option.series[0].showSymbol).toBe(false);
+  });
+
   it("stacks independent lanes on linked elapsed axes without changing their values", () => {
     const stacked = Object.assign(model(), {
       layout: { kind: "stacked-lanes" as const },
@@ -205,13 +239,34 @@ describe("compileEChartsAnalyticalChart", () => {
       expect.objectContaining({ gridIndex: 1, min: 0, max: 3_000 }),
     ]);
     expect(compiled.option.yAxis).toEqual([
-      expect.objectContaining({ gridIndex: 0, name: "Pace (min/km)" }),
-      expect.objectContaining({ gridIndex: 1, name: "Temperature (°C)" }),
+      expect.objectContaining({
+        gridIndex: 0,
+        name: "Pace (min/km)",
+        nameLocation: "end",
+        nameRotate: 0,
+      }),
+      expect.objectContaining({
+        gridIndex: 1,
+        name: "Temperature (°C)",
+        nameLocation: "end",
+        nameRotate: 0,
+      }),
     ]);
     expect(compiled.option.series).toEqual([
-      expect.objectContaining({ xAxisIndex: 0, yAxisIndex: 0 }),
-      expect.objectContaining({ xAxisIndex: 1, yAxisIndex: 1 }),
+      expect.objectContaining({
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        symbol: "circle",
+        lineStyle: expect.objectContaining({ type: "solid" }),
+      }),
+      expect.objectContaining({
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        symbol: "rect",
+        lineStyle: expect.objectContaining({ type: "dashed" }),
+      }),
     ]);
+    expect(compiled.option.legend.show).toBe(false);
     expect(compiled.option.axisPointer).toEqual({
       link: [{ xAxisIndex: [0, 1] }],
     });
@@ -300,5 +355,62 @@ describe("compileEChartsAnalyticalChart", () => {
     });
 
     element.remove();
+  });
+
+  it("scales stacked lane and corner-label separation with application zoom", () => {
+    const stacked = Object.assign(model(), {
+      layout: { kind: "stacked-lanes" as const },
+    });
+    stacked.axes.push({
+      id: "heart-rate",
+      label: "Frecuencia cardíaca",
+      unit: "ppm",
+      domain: { minimum: 120, maximum: 180 },
+      direction: "higher-at-top",
+      format: { kind: "number", maximumFractionDigits: 0 },
+    });
+    stacked.series.push({
+      id: "signal-2",
+      label: "Frecuencia cardíaca",
+      coordinateRef: stacked.coordinate.ref,
+      axisId: "heart-rate",
+      points: [
+        { id: "heart-rate-1", coordinate: 0, value: 120, gapBefore: false },
+        { id: "heart-rate-2", coordinate: 3_000, value: 180, gapBefore: false },
+      ],
+    });
+
+    const compiled = compileEChartsAnalyticalChart(stacked, {
+      accent: "#336655",
+      accentSoft: "rgba(51, 102, 85, 0.18)",
+      ink: "#17211b",
+      muted: "#657068",
+      line: "#d1d8d2",
+      surface: "#ffffff",
+      baseFontSize: 32,
+      fontFamily: "Inter",
+    });
+    if (!Array.isArray(compiled.option.grid)) {
+      throw new Error("stacked charts must compile independent grids");
+    }
+    const firstTop = Number.parseFloat(String(compiled.option.grid[0].top));
+    const firstHeight = Number.parseFloat(String(compiled.option.grid[0].height));
+    const secondTop = Number.parseFloat(String(compiled.option.grid[1].top));
+    expect(secondTop - firstTop - firstHeight).toBe(9);
+    expect(compiled.option.yAxis.map((axis) => ({
+      splitNumber: axis.splitNumber,
+      interval: axis.interval,
+      margin: axis.axisLabel.margin,
+      hideOverlap: axis.axisLabel.hideOverlap,
+    }))).toEqual([
+      { splitNumber: 1, interval: 2, margin: 32, hideOverlap: true },
+      { splitNumber: 1, interval: 60, margin: 32, hideOverlap: true },
+    ]);
+    expect(Array.isArray(compiled.option.xAxis)).toBe(true);
+    if (!Array.isArray(compiled.option.xAxis)) {
+      throw new Error("stacked charts must compile independent coordinate axes");
+    }
+    expect(compiled.option.xAxis.every((axis) => axis.axisLabel.hideOverlap)).toBe(true);
+    expect(compiled.option.xAxis.every((axis) => axis.nameGap === 64)).toBe(true);
   });
 });

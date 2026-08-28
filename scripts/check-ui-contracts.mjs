@@ -701,6 +701,7 @@ requireRule(
   "a prominent but laptop-bounded four-domain history chart",
 );
 for (const [laneCount, expectedHeight] of [
+  ["1", /height:\s*clamp\(240px,\s*32vh,\s*320px\)/],
   ["2", /height:\s*clamp\(300px,\s*42vh,\s*360px\)/],
   ["3", /height:\s*clamp\(360px,\s*50vh,\s*440px\)/],
   ["4", /height:\s*clamp\(420px,\s*56vh,\s*500px\)/],
@@ -725,6 +726,30 @@ for (const [laneCount, expectedHeight] of [
     `a readable but laptop-bounded ${laneCount}-lane route-signal chart`,
   );
 }
+requireRule(
+  stylesheet,
+  ".training-cross-signal-selection input:focus-visible",
+  [/outline:\s*none/],
+  "a focus indicator owned by the complete signal choice",
+);
+requireRule(
+  stylesheet,
+  ".training-cross-signal-selection label:has(input:focus-visible)",
+  [/outline:\s*3px solid var\(--accent\)/, /outline-offset:\s*3px/],
+  "a visible keyboard boundary around the complete signal choice",
+);
+requireRule(
+  stylesheet,
+  ".training-cross-signal",
+  [/scroll-margin-block-start:\s*var\(--shell-reveal-offset\)/],
+  "a signal comparison reveal clear of persistent navigation",
+);
+requireRule(
+  stylesheet,
+  '.training-cross-signal-lanes[data-lane-count="4"]',
+  [/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/],
+  "a balanced two-by-two maximum signal summary",
+);
 for (const obsoleteRendererSelector of [
   ".training-signal-visual svg",
   ".training-signal-workbench-plot svg",
@@ -762,7 +787,13 @@ for (const zoom of ["175", "200"]) {
   ) || !stylesheet.includes(
     `:root[data-content-zoom="${zoom}"] .training-signal-workbench-plot > .analytical-chart-canvas`,
   ) || !stylesheet.includes(
-    `:root[data-content-zoom="${zoom}"] .training-cross-signal-chart > .analytical-chart-canvas`,
+    `:root[data-content-zoom="${zoom}"] .training-cross-signal-chart[data-lane-count="1"] > .analytical-chart-canvas`,
+  ) || !stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-cross-signal-chart[data-lane-count="2"] > .analytical-chart-canvas`,
+  ) || !stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-cross-signal-chart[data-lane-count="3"] > .analytical-chart-canvas`,
+  ) || !stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-cross-signal-chart[data-lane-count="4"] > .analytical-chart-canvas`,
   ) || !stylesheet.includes(
     `:root[data-content-zoom="${zoom}"] .training-route-signal-chart`,
   ) || !stylesheet.includes(

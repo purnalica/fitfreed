@@ -360,6 +360,135 @@ async function expectTrainingCalendarGeometry(expectedColumns) {
   });
 }
 
+async function expectCrossSignalGeometry(expectedLanes, expectedCoordinateLabel) {
+  const geometry = await browser.execute((coordinateLabel) => {
+    const root = document.documentElement;
+    const panel = document.querySelector(".training-cross-signal");
+    const controls = [...panel.querySelectorAll(
+      ".training-cross-signal-selection label",
+    )];
+    const lanes = [...panel.querySelectorAll(".training-cross-signal-lanes article")];
+    const chart = panel.querySelector(".training-cross-signal-chart");
+    const chartTexts = [...chart.querySelectorAll("svg text")].filter((element) => {
+      const bounds = element.getBoundingClientRect();
+      const styles = getComputedStyle(element);
+      return bounds.width > 0 && bounds.height > 0
+        && styles.visibility !== "hidden" && styles.display !== "none";
+    });
+    const coordinateTitle = chartTexts.find(
+      (element) => element.textContent === coordinateLabel,
+    );
+    const svgBounds = chart.querySelector("svg").getBoundingClientRect();
+    const renderer = chart.querySelector(".analytical-chart-renderer");
+    const fontSize = Number.parseFloat(getComputedStyle(renderer).fontSize);
+    const chartScale = Math.min(2, Math.max(0.75, fontSize / 16));
+    const zoomTop = svgBounds.bottom - Math.round(8 * chartScale)
+      - Math.round(22 * chartScale);
+    const panelBounds = panel.getBoundingClientRect();
+    const chartBounds = chart.getBoundingClientRect();
+    const elementsOverlap = (elements) => elements.some((element, index) => {
+      const bounds = element.getBoundingClientRect();
+      return elements.slice(index + 1).some((candidate) => {
+        const candidateBounds = candidate.getBoundingClientRect();
+        return bounds.left < candidateBounds.right
+          && bounds.right > candidateBounds.left
+          && bounds.top < candidateBounds.bottom
+          && bounds.bottom > candidateBounds.top;
+      });
+    });
+    const textOverlaps = chartTexts.flatMap((element, index) => {
+      const bounds = element.getBoundingClientRect();
+      return chartTexts.slice(index + 1).flatMap((candidate) => {
+        const candidateBounds = candidate.getBoundingClientRect();
+        const overlap = bounds.left < candidateBounds.right
+          && bounds.right > candidateBounds.left
+          && bounds.top < candidateBounds.bottom
+          && bounds.bottom > candidateBounds.top;
+        return overlap ? [{
+          first: {
+            text: element.textContent,
+            left: bounds.left,
+            top: bounds.top,
+            right: bounds.right,
+            bottom: bounds.bottom,
+          },
+          second: {
+            text: candidate.textContent,
+            left: candidateBounds.left,
+            top: candidateBounds.top,
+            right: candidateBounds.right,
+            bottom: candidateBounds.bottom,
+          },
+        }] : [];
+      });
+    });
+    return {
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+      laneCount: lanes.length,
+      panelInsideViewport: panelBounds.left >= 0 && panelBounds.right <= root.clientWidth + 1,
+      chartInsidePanel: chartBounds.left >= panelBounds.left - 1
+        && chartBounds.right <= panelBounds.right + 1,
+      cardsBeforeChart: lanes.every((lane) => lane.getBoundingClientRect().bottom <= chartBounds.top),
+      controlContentFits: controls.every((control) => control.scrollWidth <= control.clientWidth + 1),
+      laneContentFits: lanes.every((lane) => lane.scrollWidth <= lane.clientWidth + 1),
+      controlsOverlap: elementsOverlap(controls),
+      lanesOverlap: elementsOverlap(lanes),
+      chartTextOverlaps: textOverlaps,
+      chartTextLayout: chartTexts.map((element) => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          text: element.textContent,
+          top: bounds.top,
+          bottom: bounds.bottom,
+        };
+      }),
+      chartMetrics: {
+        chartHeight: chartBounds.height,
+        svgHeight: svgBounds.height,
+        rendererHeight: renderer.getBoundingClientRect().height,
+        fontSize,
+      },
+      coordinateTitleClearOfZoom: {
+        titleFound: coordinateTitle !== undefined,
+        titleBottom: coordinateTitle?.getBoundingClientRect().bottom ?? null,
+        zoomTop,
+        clear: coordinateTitle !== undefined
+          && coordinateTitle.getBoundingClientRect().bottom < zoomTop,
+      },
+    };
+  }, expectedCoordinateLabel);
+  const {
+    chartMetrics,
+    chartTextLayout,
+    chartTextOverlaps,
+    coordinateTitleClearOfZoom,
+    ...layoutGeometry
+  } = geometry;
+  expect(layoutGeometry).toEqual({
+    hasHorizontalOverflow: false,
+    laneCount: expectedLanes,
+    panelInsideViewport: true,
+    chartInsidePanel: true,
+    cardsBeforeChart: true,
+    controlContentFits: true,
+    laneContentFits: true,
+    controlsOverlap: false,
+    lanesOverlap: false,
+  });
+  if (chartTextOverlaps.length > 0) {
+    throw new Error(`chart text geometry: ${JSON.stringify({
+      chartMetrics,
+      chartTextLayout,
+      chartTextOverlaps,
+    })}`);
+  }
+  if (!coordinateTitleClearOfZoom.clear) {
+    throw new Error(`coordinate title and zoom geometry: ${JSON.stringify(
+      coordinateTitleClearOfZoom,
+    )}`);
+  }
+}
+
 async function expectSportClassificationComposition(expectedColumns) {
   const geometry = await browser.execute(() => {
     const root = document.documentElement;
@@ -2713,17 +2842,42 @@ describe("packaged FitFreed import journey", () => {
     );
     const crossSignalLanes = await crossSignal.$$(".training-cross-signal-lanes article");
     expect(crossSignalLanes).toHaveLength(2);
-    await expect(crossSignalLanes[0]).toHaveText(expect.stringContaining("100 of 101 recorded"));
+    await expect(crossSignalChoices[0]).toHaveAttribute(
+      "aria-label",
+      "Speed",
+    );
+    await expect(crossSignalChoices[1]).toHaveAttribute(
+      "aria-label",
+      "Heart rate",
+    );
+    await expect(crossSignalLanes[1]).toHaveText(expect.stringContaining("100 of 101 recorded"));
     await expect(crossSignal).toHaveText(expect.stringContaining("Elapsed time 0–1 h"));
     for (const choice of crossSignalChoices) {
       await expect(choice).toBeChecked();
-      await expect(choice).toBeDisabled();
+      await expect(choice).toBeEnabled();
     }
-    const speedSeries = english.training.sessionLibrary.crossSignalSeries
-      .replace("{kind}", english.training.sessionLibrary.signalKinds.speed)
-      .replace("{number}", "2");
+    await crossSignalChoices[1].click();
+    await browser.waitUntil(
+      async () => (await crossSignal.$$(".training-cross-signal-lanes article")).length === 1,
+      { timeout: 10_000, timeoutMsg: "a single cross-signal lane was not displayed" },
+    );
+    await expectCrossSignalGeometry(1, english.training.sessionLibrary.signalElapsed);
+    await expect(crossSignalChoices[0]).toBeDisabled();
+    await expect(crossSignalChoices[1]).not.toBeChecked();
+    await expect(crossSignalChoices[1]).toBeEnabled();
+    await crossSignalChoices[1].click();
+    await browser.waitUntil(
+      async () => (await crossSignal.$$(".training-cross-signal-lanes article")).length === 2,
+      { timeout: 10_000, timeoutMsg: "the default cross-signal pair was not restored" },
+    );
+    await expectRevealOutsideApplicationNavigation(".training-cross-signal");
+    await expectCrossSignalGeometry(2, english.training.sessionLibrary.signalElapsed);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x7-r8-4-cross-signals-en-wide.png",
+    ));
     const exactSpeed = english.training.sessionLibrary.crossSignalExact
-      .replace("{series}", speedSeries);
+      .replace("{series}", english.training.sessionLibrary.signalKinds.speed);
     await crossSignal.$(`aria/${exactSpeed}`).click();
     await browser.waitUntil(
       async () => (await recordedSignals[1].$$(".training-signal-exact tbody tr")).length === 5,
@@ -4912,6 +5066,18 @@ describe("packaged FitFreed import journey", () => {
     await expect(spanishCrossSignal).toHaveText(
       expect.stringContaining(spanish.training.sessionLibrary.crossSignalMeaning),
     );
+    await expectRevealOutsideApplicationNavigation(".training-cross-signal");
+    await expectCrossSignalGeometry(2, spanish.training.sessionLibrary.signalElapsed);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x7-r8-4-cross-signals-es-dark-compact-200.png",
+    ));
+    await browser.execute(() => document.querySelector(".training-cross-signal-chart")
+      .scrollIntoView({ block: "center", inline: "nearest" }));
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x7-r8-4-cross-signal-chart-es-dark-compact-200.png",
+    ));
     const spanishRangeCopy = spanish.training.sessionLibrary.ranges;
     await openTrainingDetailSection(spanish, "ranges");
     const localizedRanges = await $(".training-ranges");

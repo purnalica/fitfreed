@@ -65,10 +65,13 @@ interface CompiledDataItem {
 interface CompiledAxis {
   type: "value";
   name: string;
-  nameLocation: "middle";
+  nameLocation: "middle" | "end";
   nameGap: number;
+  nameRotate?: number;
   min: number;
   max: number;
+  splitNumber?: number;
+  interval?: number;
   gridIndex?: number;
   inverse?: boolean;
   position?: "left" | "right";
@@ -78,6 +81,8 @@ interface CompiledAxis {
     color: string;
     fontFamily: string;
     fontSize: number;
+    hideOverlap: true;
+    margin?: number;
     formatter: (value: number) => string;
   };
   axisLine: { show?: boolean; lineStyle: { color: string } };
@@ -87,6 +92,7 @@ interface CompiledAxis {
     fontFamily: string;
     fontSize: number;
     fontWeight: number;
+    align?: "left";
   };
 }
 
@@ -100,7 +106,12 @@ interface CompiledSeries {
   connectNulls: false;
   showSymbol: boolean;
   symbolSize: number;
-  lineStyle: { width: number; color: string };
+  symbol: "circle" | "rect" | "triangle" | "diamond";
+  lineStyle: {
+    width: number;
+    color: string;
+    type: "solid" | "dashed" | "dotted" | number[];
+  };
   itemStyle: { color: string };
   emphasis: { focus: "series" };
   markArea?: {
@@ -219,13 +230,24 @@ function compileAxis(
   stacked: boolean,
 ): CompiledAxis {
   const position = stacked || index % 2 === 0 ? "left" : "right";
+  const stackedIntervals = chartScale(palette) >= 1.5 ? 1 : 2;
+  const stackedInterval = (axis.domain.maximum - axis.domain.minimum) / stackedIntervals;
   return {
     type: "value",
     name: axisName(axis.label, axis.unit),
-    nameLocation: "middle",
-    nameGap: scaledPixels(48 + Math.floor(index / 2) * 44, palette),
+    nameLocation: stacked ? "end" : "middle",
+    nameGap: stacked
+      ? scaledPixels(8, palette)
+      : scaledPixels(48 + Math.floor(index / 2) * 44, palette),
+    ...(stacked ? { nameRotate: 0 } : {}),
     min: axis.domain.minimum,
     max: axis.domain.maximum,
+    ...(stacked ? {
+      splitNumber: stackedIntervals,
+      ...(Number.isFinite(stackedInterval) && stackedInterval > 0
+        ? { interval: stackedInterval }
+        : {}),
+    } : {}),
     ...(stacked ? { gridIndex: index } : {}),
     inverse: axis.direction === "lower-at-top",
     position,
@@ -234,6 +256,8 @@ function compileAxis(
       color: palette.muted,
       fontFamily: palette.fontFamily,
       fontSize: chartFontSize(palette),
+      hideOverlap: true,
+      ...(stacked ? { margin: scaledPixels(16, palette) } : {}),
       formatter: valueFormatter(axis.format, model.locale),
     },
     axisLine: { lineStyle: { color: palette.line } },
@@ -243,6 +267,7 @@ function compileAxis(
       fontFamily: palette.fontFamily,
       fontSize: chartFontSize(palette),
       fontWeight: 700,
+      ...(stacked ? { align: "left" as const } : {}),
     },
   };
 }
@@ -258,7 +283,7 @@ function compileCoordinateAxis(
     type: "value",
     name: showLabels ? axisName(model.coordinate.label, model.coordinate.unit) : "",
     nameLocation: "middle",
-    nameGap: scaledPixels(36, palette),
+    nameGap: scaledPixels(gridIndex === undefined ? 36 : 32, palette),
     min: model.coordinate.domain.minimum,
     max: model.coordinate.domain.maximum,
     ...(gridIndex === undefined ? {} : { gridIndex }),
@@ -267,6 +292,7 @@ function compileCoordinateAxis(
       color: palette.muted,
       fontFamily: palette.fontFamily,
       fontSize: chartFontSize(palette),
+      hideOverlap: true,
       formatter: coordinateFormatter,
     },
     axisLine: { show: showLabels, lineStyle: { color: palette.line } },
@@ -295,8 +321,8 @@ function stackedGrids(
   palette: AnalyticalChartPalette,
 ): CompiledGrid[] {
   const top = 10;
-  const bottom = 18;
-  const gap = 3;
+  const bottom = 30;
+  const gap = 5 + Math.max(0, chartScale(palette) - 1) * 4;
   const height = (100 - top - bottom - gap * Math.max(0, laneCount - 1)) / laneCount;
   return Array.from({ length: laneCount }, (_, index) => ({
     left: axisSideSpace(1, 0, palette),
@@ -317,6 +343,18 @@ export function compileEChartsAnalyticalChart(
     ? palette.seriesColors
     : [palette.accent, palette.ink, palette.muted];
   const stacked = model.layout.kind === "stacked-lanes";
+  const seriesLineTypes: CompiledSeries["lineStyle"]["type"][] = [
+    "solid",
+    "dashed",
+    "dotted",
+    [10, 4, 2, 4],
+  ];
+  const seriesSymbols: CompiledSeries["symbol"][] = [
+    "circle",
+    "rect",
+    "triangle",
+    "diamond",
+  ];
   const axisIndexes = new Map(model.axes.map((axis, index) => [axis.id, index]));
   const series: CompiledSeries[] = model.series.map((sourceSeries, seriesIndex) => {
     const data: CompiledDataItem[] = [];
@@ -344,9 +382,14 @@ export function compileEChartsAnalyticalChart(
       yAxisIndex: axisIndex,
       data,
       connectNulls: false,
-      showSymbol: sourceSeries.points.length <= 500,
+      showSymbol: sourceSeries.points.length <= 80,
+      symbol: seriesSymbols[seriesIndex % seriesSymbols.length],
       symbolSize: scaledPixels(7, palette),
-      lineStyle: { width: 3, color: colors[seriesIndex % colors.length] },
+      lineStyle: {
+        width: 3,
+        color: colors[seriesIndex % colors.length],
+        type: seriesLineTypes[seriesIndex % seriesLineTypes.length],
+      },
       itemStyle: { color: colors[seriesIndex % colors.length] },
       emphasis: { focus: "series" },
       ...(annotations?.range?.startCoordinate !== undefined
@@ -449,7 +492,7 @@ export function compileEChartsAnalyticalChart(
           outerBoundsContain: "axisLabel",
         },
       legend: {
-        show: model.series.length > 1,
+        show: !stacked && model.series.length > 1,
         textStyle: {
           color: palette.ink,
           fontFamily: palette.fontFamily,
@@ -546,7 +589,9 @@ export function mountEChartsAnalyticalChart(
       activeOnSelection = nextOnSelection;
       palette = analyticalChartPalette(element);
       compiled = compileEChartsAnalyticalChart(nextModel, palette);
-      chart.setOption(compiled.option as unknown as EChartsCoreOption, { notMerge: true });
+      chart.setOption(compiled.option as unknown as EChartsCoreOption, {
+        replaceMerge: ["grid", "xAxis", "yAxis", "dataZoom", "series"],
+      });
     },
     resize: () => chart.resize(),
     dispose: () => chart.dispose(),

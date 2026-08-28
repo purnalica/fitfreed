@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
+import path from "node:path";
 
 const applicationVersion = JSON.parse(
   fs.readFileSync(new URL("../../../package.json", import.meta.url), "utf8"),
@@ -11,6 +12,8 @@ const english = JSON.parse(
 const firstDate = Date.UTC(2024, 0, 1);
 const calendarDays = 731;
 const warmUpRuns = 4;
+const evidenceDirectory = path.resolve(".artifacts/e2e/evidence");
+fs.mkdirSync(evidenceDirectory, { recursive: true });
 
 function dateValue(value) {
   const [year, month, day] = value.split("-").map(Number);
@@ -398,7 +401,7 @@ async function measureTrainingSignalOverview() {
         && signalSection && !signalSection.hasAttribute("hidden")
         && charts.length === 4
         && choices.length === 4
-        && crossSignalLanes.length === 3
+        && crossSignalLanes.length === 2
         && rendererMounted(crossSignalChart)
         && charts.every(rendererMounted)
         && charts.every((chart) => chart.getAttribute("aria-label")?.includes("20,001 samples"))
@@ -442,6 +445,12 @@ async function measureTrainingSignalOverview() {
     ".training-cross-signal-selection input[type='checkbox']",
   );
   expect(choices).toHaveLength(4);
+  await expect(choices[2]).toBeEnabled();
+  await choices[2].click();
+  await browser.waitUntil(
+    async () => (await $$(".training-cross-signal-lanes article")).length === 3,
+    { timeout: 5_000, timeoutMsg: "third training signal was not rendered" },
+  );
   await expect(choices[3]).toBeEnabled();
   await browser.execute(() => {
     const target = document.querySelectorAll(
@@ -502,6 +511,67 @@ async function measureTrainingSignalOverview() {
     overviewDuration: result.duration,
     maximumSelectionDuration: maximumSelection.duration,
   };
+}
+
+async function verifyTrainingMaximumSignalComposition() {
+  await $('.training-session-results button[aria-label^="View session details"]').click();
+  await $(
+    ".training-detail-navigation button[aria-controls='training-detail-signals']",
+  ).click();
+  await $("#training-detail-signals").waitForDisplayed({ timeout: 5_000 });
+  const choices = await $$(
+    ".training-cross-signal-selection input[type='checkbox']",
+  );
+  expect(choices).toHaveLength(4);
+  await choices[2].click();
+  await browser.waitUntil(
+    async () => (await $$(".training-cross-signal-lanes article")).length === 3,
+    { timeout: 5_000, timeoutMsg: "third training signal was not rendered" },
+  );
+  await choices[3].click();
+  await browser.waitUntil(
+    async () => (await $$(".training-cross-signal-lanes article")).length === 4,
+    { timeout: 5_000, timeoutMsg: "fourth training signal was not rendered" },
+  );
+  const geometry = await browser.execute(() => {
+    const root = document.documentElement;
+    const panel = document.querySelector(".training-cross-signal");
+    panel.scrollIntoView({ block: "start", inline: "nearest" });
+    const panelBounds = panel.getBoundingClientRect();
+    const chart = panel.querySelector(".training-cross-signal-chart");
+    const chartBounds = chart.getBoundingClientRect();
+    const lanes = [...panel.querySelectorAll(".training-cross-signal-lanes article")];
+    return {
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+      laneCount: lanes.length,
+      chartInsidePanel: chartBounds.left >= panelBounds.left - 1
+        && chartBounds.right <= panelBounds.right + 1,
+      cardsBeforeChart: lanes.every((lane) => lane.getBoundingClientRect().bottom <= chartBounds.top),
+      laneContentFits: lanes.every((lane) => lane.scrollWidth <= lane.clientWidth + 1),
+    };
+  });
+  expect(geometry).toEqual({
+    hasHorizontalOverflow: false,
+    laneCount: 4,
+    chartInsidePanel: true,
+    cardsBeforeChart: true,
+    laneContentFits: true,
+  });
+  await browser.saveScreenshot(path.join(
+    evidenceDirectory,
+    "x7-r8-4-cross-signals-en-four-lanes.png",
+  ));
+  await browser.execute(() => document.querySelector(".training-cross-signal-chart")
+    .scrollIntoView({ block: "center", inline: "nearest" }));
+  await browser.saveScreenshot(path.join(
+    evidenceDirectory,
+    "x7-r8-4-cross-signal-chart-en-four-lanes.png",
+  ));
+  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
+  await browser.waitUntil(
+    async () => (await $$(".training-detail")).length === 0,
+    { timeout: 5_000, timeoutMsg: "training signal detail did not close" },
+  );
 }
 
 async function measureTrainingSignalExactPage() {
@@ -1474,6 +1544,7 @@ export async function runInsightsPerformanceJourney({
     [null],
     measureTrainingSignalExactPage,
   );
+  await verifyTrainingMaximumSignalComposition();
 
   reportPhase("sleep");
   await openHomeQuestion("review-sleep-patterns", ".sleep-insights");
