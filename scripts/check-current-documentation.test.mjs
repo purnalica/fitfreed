@@ -20,8 +20,8 @@ test("accepts current documentation derived from the release compatibility sourc
     validateCurrentDocumentation(loadCurrentDocumentation(repositoryRoot)),
     {
       releaseVersion: "0.1.0",
-      currentLibrarySchemaVersion: 36,
-      supportedLibrarySchemaVersions: Array.from({ length: 36 }, (_, index) => index + 1),
+      currentLibrarySchemaVersion: 37,
+      supportedLibrarySchemaVersions: Array.from({ length: 37 }, (_, index) => index + 1),
       checkedDocuments: 11,
     },
   );
@@ -31,7 +31,7 @@ test("rejects pre-migration status across current experience documents", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/design/experience-specification.md"] = replaceRequired(
     candidate.sources["docs/design/experience-specification.md"],
-    "The production application implements\nX5-R1 through X5-R10 and the earlier corrective X7-R1 through X7-R7 vertical slices",
+    "The production application implements X5-R1 through\nX5-R10 and the corrective X7-R1 through X7-R8 vertical slices",
     "It does not describe the current production presentation.",
   );
   candidate.sources["docs/plans/ui-redesign.md"] = replaceRequired(
@@ -46,7 +46,7 @@ test("rejects pre-migration status across current experience documents", () => {
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R10 and X7-R1 through X7-R7 retain their prior evidence",
+    "X7-R8.0 through X7-R8.9 retain complete machine evidence",
     "PX-01 and PX-02 still require correction",
   );
 
@@ -66,7 +66,7 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/architecture/storage.md"] = replaceRequired(
     candidate.sources["docs/architecture/storage.md"],
-    "SQLite version 36",
+    "SQLite version 37",
     "SQLite version 33",
   );
   candidate.sources["docs/user/public-macos-0.1.0.md"] = replaceRequired(
@@ -76,14 +76,14 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R10 and X7-R1 through X7-R7 retain their prior evidence",
+    "X7-R8.0 through X7-R8.9 retain complete machine evidence",
     "The accepted E1–E6 experience scope is not implemented",
   );
 
   assert.throws(
     () => validateCurrentDocumentation(candidate),
     (error) => {
-      assert.match(error.message, /storage architecture does not identify SQLite schema 36/);
+      assert.match(error.message, /storage architecture does not identify SQLite schema 37/);
       assert.match(error.message, /public guide does not describe every implemented report start/);
       assert.match(error.message, /release readiness still presents the implemented experience as absent/);
       return true;

@@ -93,7 +93,7 @@ describe("packaged FitFreed application-process restart", () => {
     );
     await expect(unifiedSport.$("h3")).toHaveText("Carrera de montaña");
     await expect(unifiedSport).toHaveText(expect.stringContaining(
-      spanish.training.sports.unification.label.replace("{count}", "3"),
+      spanish.training.sports.unification.label.replace("{count}", "5"),
     ));
     await unifiedSport.$(`aria/${spanish.training.sports.unification.edit}`).click();
     const unificationTask = await unifiedSport.$(".sport-unification-task");
@@ -101,7 +101,7 @@ describe("packaged FitFreed application-process restart", () => {
     const memberInputs = await unificationTask.$$(
       ".sport-unification-options input[type='checkbox']",
     );
-    expect(memberInputs).toHaveLength(3);
+    expect(memberInputs).toHaveLength(5);
     for (const input of memberInputs) await expect(input).toBeChecked();
     await unificationTask.$(`aria/${spanish.training.sports.unification.cancel}`).click();
     await openTrainingWorkspace("sessions");
@@ -173,7 +173,7 @@ describe("packaged FitFreed application-process restart", () => {
     await openTrainingWorkspace("plans");
     await expect($("#planned-training-heading")).toHaveText(spanish.training.planned.heading);
     const plannedTargets = await $$(".planned-training-list > li");
-    expect(plannedTargets).toHaveLength(2);
+    expect(plannedTargets).toHaveLength(4);
     const plannedTargetLabels = [];
     for (const target of plannedTargets) plannedTargetLabels.push(await target.getText());
     expect(plannedTargetLabels.filter((label) => label.includes("Progressive intervals")))
@@ -205,7 +205,7 @@ describe("packaged FitFreed application-process restart", () => {
       spanish.training.sports.unification.removed,
     );
     const separatedSports = await $$(".training-sport-list > li");
-    expect(separatedSports).toHaveLength(3);
+    expect(separatedSports).toHaveLength(4);
     await expect($(".training-sport-list > li[data-state='personally-overridden'] h3"))
       .toHaveText("Carrera de montaña");
     await expect($(".training-sport-list > li[data-state='unavailable'] h3"))

@@ -3365,6 +3365,39 @@ provider-neutral sport. Bundled rules require reproducible non-personal evidence
 preserved source detail, and user correction; private participant values do not become project defaults. The rejected
 candidate must be corrected against this contract before another human review.
 
+**Execution increment X7-R8.9 — reusable sport correlation:** supersede the fixed-member reconciliation rule with
+[ADR 0037](../architecture/decisions/0037-apply-reusable-local-sport-correlation-rules.md). Add schema-37 private
+source selectors derived atomically from reviewed members; dynamically resolve later compatible collections without
+changing user revision; migrate schema 36 without guessing; preserve exact base collections, precedence, backup, and
+removal; and add a versioned provider default that normalizes equal exact documented sport-code evidence across
+distinct opaque identifiers without extending the result to unresolved sessions. Integration and packaged tests must
+prove cumulative non-identical reimport, restart, incompatible evidence, source-origin separation, and no provider
+identifier leakage.
+
+**Machine-complete checkpoint — 2026-08-30:** SQLite schema 37 stores private source selectors independently from the
+reviewed relationship members and resolves them against the current library on every query. A non-identical cumulative
+reimport therefore expands a saved local correlation without changing its authored revision, and restart, removal,
+backup, schema-36 migration, incompatible evidence, origin separation, and bounded-cardinality behavior retain their
+contracts. Provider normalization version 1 groups only equal exact documented Polar sport codes from the same origin;
+personal relationships take precedence and unresolved or ambiguous evidence remains separate. Application,
+persistence, transport, JSON Schema, migration, documentation, localization, repository-safety, and full packaged
+macOS journeys pass with synthetic evidence. X7-R8.10, X7-R8.11, and the repeated X7-R8.12 candidate gate remain open.
+
+**Execution increment X7-R8.10 — responsive changed-package reconciliation:** extend the dense-history benchmark with
+a non-identical equivalent reimport into an existing dense library and measure representative Home and History query
+latency while reconciliation is active. Move synchronous desktop database work away from the invoke thread, remove
+redundant reconstruction where unchanged artifact evidence proves equivalence under the active mapping version, and
+retain the full remapping path after mapping changes. The existing fresh-import and exact-repeat budgets remain.
+
+**Execution increment X7-R8.11 — compact sport-card geometry:** add closed-card geometry assertions at every supported
+zoom and compact width before changing layout. At high content zoom the list becomes one column, identity and actions
+receive independent rows, labels wrap as words, and every action remains inside its card without horizontal overflow.
+
+**Execution increment X7-R8.12 — candidate gate:** run complete Rust, frontend, documentation, format-contract,
+performance, accessibility, localization, and packaged macOS journeys; then perform an independent experience audit
+against the rejected-review findings. No new human candidate is requested until every deterministic finding is closed
+and the exact release-shaped artifact passes the same journey.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,

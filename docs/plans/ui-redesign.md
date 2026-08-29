@@ -12,7 +12,9 @@ route-interaction, and report-run defects remained. The [production-native human
 evaluation](../research/x6-product-experience-human-evaluation.md) is the authoritative rejection record, and the
 [production migration plan](mvp-redesign-production-migration.md) owns the X7-R8 causal corrections, retained machine
 evidence, rejected review application, and reopened sport-identity, reconciliation-responsiveness, and compact-layout
-boundaries. Reports and personal range
+boundaries. X7-R8.9 now retains machine evidence for reusable local sport correlation and documented provider
+normalization; reconciliation responsiveness, compact sport-card geometry, and the repeated candidate gate remain
+open. Reports and personal range
 definition retain their explicit Alpha classification, and the compact-navigation amendment recorded by the pre-review
 audit remains mandatory. The original
 [independent product-experience audit](../research/mvp-product-experience-audit.md) remains the historical diagnosis

@@ -7792,6 +7792,7 @@ const trainingSportIdentityV3Path =
   "docs/data-formats/insights/training-sport-identity-v3.md";
 const trainingSportsV4Path = "docs/data-formats/insights/training-sports-v4.md";
 const trainingSportsV5Path = "docs/data-formats/insights/training-sports-v5.md";
+const trainingSportsV6Path = "docs/data-formats/insights/training-sports-v6.md";
 const trainingSessionSearchV4Path =
   "docs/data-formats/insights/training-session-search-v4.md";
 const trainingSessionSearchV5Path =
@@ -7807,6 +7808,7 @@ const trainingSessionRangeDraftSummaryV1Path =
 const sessionStoryV6Path = "docs/data-formats/insights/session-story-v6.md";
 const libraryHomeV7Path = "docs/data-formats/insights/library-home-v7.md";
 const libraryHomeV8Path = "docs/data-formats/insights/library-home-v8.md";
+const libraryHomeV9Path = "docs/data-formats/insights/library-home-v9.md";
 const sessionReportV6Path = "docs/data-formats/insights/session-report-v6.md";
 const reportV9Path = "docs/data-formats/insights/report-v9.md";
 const reportV10Path = "docs/data-formats/insights/report-v10.md";
@@ -7915,6 +7917,13 @@ for (const [documentPath, fields] of [
     "unified-sport-relationship-remove-v1.schema.json",
     "saved-unified-sport-relationship-v1.schema.json",
   ]],
+  [trainingSportsV6Path, [
+    "query_training_sports", "training-sports-v6.schema.json",
+    "saved-sport-classification-v6.schema.json",
+    "saved-unified-sport-relationship-v2.schema.json", "sportCollections",
+    "memberSessionFilterRefs", "sessionFilterRef", "unification", "sport-*",
+    "unified:sport-*",
+  ]],
   [trainingSessionSearchV4Path, [
     "query_training_sessions", "query_training_session_selection", "sportRefs",
     "sessionFilterRef", "training-session-search-v4.schema.json",
@@ -7949,6 +7958,10 @@ for (const [documentPath, fields] of [
   [libraryHomeV8Path, [
     "query_library_home", "version", "sessionFilterRefs", "sportCollectionCount",
     "representedCollectionCount",
+  ]],
+  [libraryHomeV9Path, [
+    "query_library_home", "version", "sessionFilterRefs", "sportCollectionCount",
+    "representedCollectionCount", "sessionCount",
   ]],
   [sessionReportV6Path, [
     "session-report-resolution-v6.schema.json", "scope = unresolved-source-profile",
@@ -8068,6 +8081,11 @@ const unifiedSportRelationshipRemoveSchemaPath =
   "schemas/unified-sport-relationship-remove-v1.schema.json";
 const savedUnifiedSportRelationshipSchemaPath =
   "schemas/saved-unified-sport-relationship-v1.schema.json";
+const trainingSportsV6SchemaPath = "schemas/training-sports-v6.schema.json";
+const savedSportClassificationV6SchemaPath =
+  "schemas/saved-sport-classification-v6.schema.json";
+const savedUnifiedSportRelationshipV2SchemaPath =
+  "schemas/saved-unified-sport-relationship-v2.schema.json";
 const trainingSessionSearchV4SchemaPath =
   "schemas/training-session-search-v4.schema.json";
 const reportExampleSessionSubjectQuerySchemaPath =
@@ -8095,6 +8113,7 @@ const trainingSessionRangeDraftSummaryV1SchemaPath =
 const sessionStoryV6SchemaPath = "schemas/session-story-v6.schema.json";
 const libraryHomeV7SchemaPath = "schemas/library-home-v7.schema.json";
 const libraryHomeV8SchemaPath = "schemas/library-home-v8.schema.json";
+const libraryHomeV9SchemaPath = "schemas/library-home-v9.schema.json";
 const reportLibraryV5SchemaPath = "schemas/report-library-v5.schema.json";
 const sessionReportResolutionV6SchemaPath =
   "schemas/session-report-resolution-v6.schema.json";
@@ -9269,6 +9288,84 @@ assertContract(
   { outcome: "removed", overview: syntheticTrainingSportsV5 },
 );
 
+addContractSchema(trainingSportsV6SchemaPath);
+const validateTrainingSportsV6 = compileContractSchema(trainingSportsV6SchemaPath);
+const normalizedSibling = {
+  ...structuredClone(syntheticSportCollectionsV5[0]),
+  sessionFilterRef: sessionFilterRef("d"),
+  memberSessionFilterRefs: [sessionFilterRef("d")],
+  sourceIndex: 1,
+  coverage: sportCoverage(2),
+};
+const providerNormalizedSport = {
+  ...structuredClone(syntheticSportCollectionsV5[0]),
+  sessionFilterRef: sessionFilterRef("e"),
+  memberSessionFilterRefs: [
+    syntheticSportCollectionsV5[0].sessionFilterRef,
+    normalizedSibling.sessionFilterRef,
+  ].sort(),
+  coverage: {
+    sessionCount: syntheticSportCollectionsV5[0].coverage.sessionCount
+      + normalizedSibling.coverage.sessionCount,
+    totalDurationMilliseconds: (
+      BigInt(syntheticSportCollectionsV5[0].coverage.totalDurationMilliseconds)
+      + BigInt(normalizedSibling.coverage.totalDurationMilliseconds)
+    ).toString(),
+    distanceSessionCount: syntheticSportCollectionsV5[0].coverage.distanceSessionCount
+      + normalizedSibling.coverage.distanceSessionCount,
+    heartRateSessionCount: syntheticSportCollectionsV5[0].coverage.heartRateSessionCount
+      + normalizedSibling.coverage.heartRateSessionCount,
+  },
+};
+const syntheticTrainingSportsV6 = {
+  snapshotRef: `training-snapshot-${"c".repeat(64)}`,
+  originCount: 1,
+  sessionCount: providerNormalizedSport.coverage.sessionCount,
+  sports: [providerNormalizedSport],
+  sportCollections: [
+    structuredClone(syntheticSportCollectionsV5[0]),
+    normalizedSibling,
+  ],
+  unificationReviews: [],
+};
+assertContract(validateTrainingSportsV6, trainingSportsV6SchemaPath, syntheticTrainingSportsV6);
+if (validateTrainingSportsV5(syntheticTrainingSportsV6)) {
+  throw new Error(`${trainingSportsV5SchemaPath} accepted provider-normalized membership`);
+}
+for (const invalidTrainingSportsV6 of [
+  (() => {
+    const value = structuredClone(syntheticTrainingSportsV6);
+    value.sports[0].unification = structuredClone(unifiedSportRelationship);
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSportsV6);
+    value.sports[0].providerNormalizationRef = "private";
+    return value;
+  })(),
+]) {
+  if (validateTrainingSportsV6(invalidTrainingSportsV6)) {
+    throw new Error(`${trainingSportsV6SchemaPath} accepted invalid normalized sport evidence`);
+  }
+}
+
+const validateSavedSportClassificationV6 = compileContractSchema(
+  savedSportClassificationV6SchemaPath,
+);
+assertContract(
+  validateSavedSportClassificationV6,
+  savedSportClassificationV6SchemaPath,
+  { outcome: "unchanged", overview: syntheticTrainingSportsV6 },
+);
+const validateSavedUnifiedSportV2 = compileContractSchema(
+  savedUnifiedSportRelationshipV2SchemaPath,
+);
+assertContract(
+  validateSavedUnifiedSportV2,
+  savedUnifiedSportRelationshipV2SchemaPath,
+  { outcome: "changed", overview: syntheticTrainingSportsV6 },
+);
+
 addContractSchema(trainingSessionSearchV4SchemaPath);
 const validateTrainingSessionSearchV4 = compileContractSchema(
   trainingSessionSearchV4SchemaPath,
@@ -9627,6 +9724,18 @@ for (const home of [
   assertContract(validateLibraryHomeV8, libraryHomeV8SchemaPath, home);
 }
 
+addContractSchema(libraryHomeV9SchemaPath);
+const validateLibraryHomeV9 = compileContractSchema(libraryHomeV9SchemaPath);
+for (const home of [
+  { ...structuredClone(emptyLibraryHomeV6), version: 9 },
+  { ...structuredClone(syntheticLibraryHomeV7), version: 9 },
+]) {
+  assertContract(validateLibraryHomeV9, libraryHomeV9SchemaPath, home);
+}
+if (validateLibraryHomeV9({ ...structuredClone(syntheticLibraryHomeV7), version: 8 })) {
+  throw new Error(`${libraryHomeV9SchemaPath} accepted the preceding response version`);
+}
+
 const validateSessionReportResolutionV6 = compileContractSchema(
   sessionReportResolutionV6SchemaPath,
 );
@@ -9939,6 +10048,7 @@ for (const contractPath of [
   sessionStoryV6Path,
   libraryHomeV7Path,
   libraryHomeV8Path,
+  libraryHomeV9Path,
   sessionReportV6Path,
   sessionReportV7Path,
   reportV9Path,
@@ -9995,6 +10105,9 @@ process.stdout.write(
       unifiedSportRelationshipSaveSchemaPath,
       unifiedSportRelationshipRemoveSchemaPath,
       savedUnifiedSportRelationshipSchemaPath,
+      trainingSportsV6SchemaPath,
+      savedSportClassificationV6SchemaPath,
+      savedUnifiedSportRelationshipV2SchemaPath,
     ],
     trainingSessionSearchSchemas: [
       trainingSessionSearchQuerySchemaPath,
@@ -10110,6 +10223,7 @@ process.stdout.write(
       libraryHomeV6SchemaPath,
       libraryHomeV7SchemaPath,
       libraryHomeV8SchemaPath,
+      libraryHomeV9SchemaPath,
       explorationWorkspaceSaveSchemaPath,
     ],
     updateChannelSchemas: [

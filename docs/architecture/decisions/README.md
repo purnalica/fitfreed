@@ -48,6 +48,7 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0033: Model planned training as versioned intent](0033-model-planned-training-as-versioned-intent.md) — Accepted on 2026-08-27.
 - [ADR 0034: Bind each report to one evidence library](0034-bind-each-report-to-one-evidence-library.md) — Accepted on 2026-08-27.
 - [ADR 0035: Separate fallback sport classification from exact recognition](0035-separate-fallback-sport-classification-from-exact-recognition.md) — Accepted on 2026-08-28.
-- [ADR 0036: Unify sport collections through explicit user authorship](0036-unify-sport-collections-through-explicit-user-authorship.md) — Accepted on 2026-08-29.
+- [ADR 0036: Unify sport collections through explicit user authorship](0036-unify-sport-collections-through-explicit-user-authorship.md) — Superseded by ADR 0037 on 2026-08-30.
+- [ADR 0037: Apply reusable local sport-correlation rules](0037-apply-reusable-local-sport-correlation-rules.md) — Accepted on 2026-08-30.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

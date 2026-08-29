@@ -12,13 +12,16 @@ that admitted a production-native candidate. The product-owner review rejected a
 material sport-identity, calendar-discovery, information-density, analytical-chart, route-interaction, and report-run
 defects that the prior machine audit did not detect. The active X7-R8 sequence traces and corrects those defects at
 their lowest contract, performs one bounded participant-assisted provider correlation, repeats the independent audit,
-and builds a new exact candidate only after the complete local and hosted campaign passes. X7-R8.0 through X7-R8.8
-reached machine completion. Corrected clean source `6a71002` passes the complete local campaign, exact repository
+and builds a new exact candidate only after the complete local and hosted campaign passes. X7-R8.0 through X7-R8.9
+reached machine completion. The reusable local sport-correlation rule, schema-37 migration, and documented
+provider-normalization boundary now pass their application, persistence, contract, and packaged regression evidence.
+The earlier corrected clean source `6a71002` passes the complete local campaign, exact repository
 safety, complete hosted verification, immutable executable-input evidence, and the final revision-isolated
 native-bundle scan. The bounded product-owner evaluation nevertheless rejected that unpublished application on
 2026-08-30: sport identity remains unusable and inconsistent between Home and History, late reconciliation loses
-fluidity, and sport cards fail compact geometry. X7-R8 is reopened at those causal boundaries before another candidate
-may exist.
+fluidity, and sport cards fail compact geometry. X7-R8.9 corrects the sport-identity causal boundary; changed-package
+reconciliation responsiveness, compact sport-card geometry, and the repeated candidate gate remain open before
+another candidate may exist.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

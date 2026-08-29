@@ -10,6 +10,7 @@ map a provider sport code to an opaque `sport.id`.
 - Source adapter version: `polar-flow-archive@14`
 - Operation mapping set: `polar-flow-mapping-set@9`
 - Sport mapping: `polar-training-target-sport@1`
+- Sport normalization: `polar-sport-normalization@1`
 - Vocabulary revision: `polar-accesslink-detailed-sport-info@2026-05-06`
 - Vocabulary source: [Polar AccessLink API](https://www.polar.com/accesslink-api/)
 - Source-format evidence: [Polar Flow personal data export](../providers/polar-flow.md)
@@ -76,6 +77,20 @@ takeout archive, that every published code is implemented, or that its FIT mappi
 `sport.id`. Extending this table changes `polar-training-target-sport` mapping version and requires synthetic
 contract evidence.
 
+## Provider-normalization rule version 1
+
+The adapter derives one opaque normalization capability for an exact represented sport from the resolved observation
+origin, source provider, mapping version, normalization version, and the canonical sorted set of exact sport codes.
+The private opaque `sport.id` is deliberately excluded. Consequently, distinct source profile identifiers inside one
+origin normalize only when their exact completed-target code sets are equal and resolve to the same provider-neutral
+recognition. Different codes, different origins, ambiguous code sets, unresolved sessions, and personal
+classifications do not enter this default.
+
+The capability changes visible grouping only. Every exact base collection and source identifier remains intact, and
+all navigation continues through the complete set of exact member filter capabilities. An explicit local
+user-authored correlation takes precedence. Changing any input or eligibility rule requires a new normalization
+version, synthetic positive and negative contract evidence, and documented reimport behavior.
+
 ## Persistence, projection, and reimport
 
 Each accepted relation persists one candidate containing private source code, mapping version, vocabulary revision,
@@ -96,7 +111,9 @@ Recognition does not require the matched session to contain `sport.id`. Exact ev
 exact candidate set its own opaque `sessionFilterRef`; the unresolved remainder of a recorded source profile has a
 different filter. The independent `sportRef` continues to identify only a real source profile that the user may
 classify. A personal override reunites exact and unresolved sessions for that profile without deleting exact
-evidence. This separation is defined by training sport identity version 2 and training sports version 3.
+evidence. This separation is defined by training sport identity version 3 and training sports version 6. Reusable
+personal correlation and the separate provider-normalization default are defined by
+[canonical unified sport relationship version 2](../canonical/unified-sport-relationship-v2.md).
 
 ## Explicit non-evidence
 

@@ -212,7 +212,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 36;
+const SCHEMA_VERSION: i64 = 37;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -250,6 +250,7 @@ const SCHEMA_V33: &str =
 const SCHEMA_V34: &str = include_str!("../migrations/0034_import_package_identity.sql");
 const SCHEMA_V35: &str = include_str!("../migrations/0035_training_discovery_workspace_v3.sql");
 const SCHEMA_V36: &str = include_str!("../migrations/0036_unified_sport_relationship.sql");
+const SCHEMA_V37: &str = include_str!("../migrations/0037_reusable_sport_correlation.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@14";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@9";
@@ -262,6 +263,7 @@ const POLAR_DETAILED_SPORT_CATALOGUE_REVISION: &str =
     "polar-accesslink-detailed-sport-info@2026-05-06";
 const POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC: &str = "2026-08-26T11:25:54Z";
 const POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION: &str = "polar-training-target-sport@1";
+const POLAR_SPORT_NORMALIZATION_VERSION: &str = "polar-sport-normalization@1";
 const POLAR_PLANNED_TRAINING_MAPPING_VERSION: &str = "polar-planned-training@2";
 const TRAINING_WORKSPACE_VERSION: u32 = 3;
 
@@ -2280,6 +2282,12 @@ struct TrainingSportGroupKey {
     origin_id: String,
     source_sport_ref: Option<String>,
     scope: TrainingSportFilterScope,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct TrainingSportSourceSelector {
+    origin_id: String,
+    source_sport_ref: String,
 }
 
 struct TrainingSportFilterEntry {
@@ -8446,11 +8454,9 @@ fn query_training_sports_state(database_path: &Path) -> Result<PersistedTraining
             "training discovery revision is invalid".to_owned(),
         ));
     }
-    let detected_sports = query_training_sport_groups(&transaction)?
-        .into_iter()
-        .map(|group| group.detected)
-        .collect();
-    let unified_relationships = query_unified_sport_relationships(&transaction)?;
+    let groups = query_training_sport_groups(&transaction)?;
+    let unified_relationships = query_unified_sport_relationships(&transaction, &groups)?;
+    let detected_sports = groups.into_iter().map(|group| group.detected).collect();
     transaction.commit()?;
     Ok(PersistedTrainingSportsState {
         snapshot_ref: training_snapshot_ref(revision),
@@ -8461,6 +8467,7 @@ fn query_training_sports_state(database_path: &Path) -> Result<PersistedTraining
 
 fn query_unified_sport_relationships(
     connection: &Connection,
+    groups: &[PersistedTrainingSportGroup],
 ) -> Result<Vec<UnifiedSportRelationship>> {
     let mut statement = connection.prepare(
         "SELECT relationship.relationship_ref,
@@ -8497,10 +8504,101 @@ fn query_unified_sport_relationships(
             entry.3.push(member);
         }
     }
+    let mut selectors = BTreeMap::<String, BTreeMap<TrainingSportSourceSelector, bool>>::new();
+    let mut selector_statement = connection.prepare(
+        "SELECT relationship_ref, origin_id, source_sport_ref, primary_identity
+         FROM unified_sport_relationship_source_selector
+         ORDER BY relationship_ref, origin_id, source_sport_ref",
+    )?;
+    let selector_rows = selector_statement.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            TrainingSportSourceSelector {
+                origin_id: row.get(1)?,
+                source_sport_ref: row.get(2)?,
+            },
+            row.get::<_, bool>(3)?,
+        ))
+    })?;
+    for row in selector_rows {
+        let (relationship_ref, selector, primary_identity) = row?;
+        if !persisted.contains_key(&relationship_ref) {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored sport-correlation selector has no relationship".to_owned(),
+            ));
+        }
+        let previous = selectors
+            .entry(relationship_ref)
+            .or_default()
+            .insert(selector, primary_identity);
+        if previous.is_some() {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored sport-correlation selector is duplicated".to_owned(),
+            ));
+        }
+    }
+
+    let mut member_selectors =
+        BTreeMap::<String, BTreeMap<String, TrainingSportSourceSelector>>::new();
+    let mut member_selector_statement = connection.prepare(
+        "SELECT relationship_ref, session_filter_ref, origin_id, source_sport_ref
+         FROM unified_sport_relationship_member_selector
+         ORDER BY relationship_ref, session_filter_ref",
+    )?;
+    let member_selector_rows = member_selector_statement.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            TrainingSportSourceSelector {
+                origin_id: row.get(2)?,
+                source_sport_ref: row.get(3)?,
+            },
+        ))
+    })?;
+    for row in member_selector_rows {
+        let (relationship_ref, member, selector) = row?;
+        let Some(stored) = persisted.get(&relationship_ref) else {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored sport-correlation member selector has no relationship".to_owned(),
+            ));
+        };
+        if !stored.3.contains(&member)
+            || selectors
+                .get(&relationship_ref)
+                .is_none_or(|current| !current.contains_key(&selector))
+        {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored sport-correlation member selector is inconsistent".to_owned(),
+            ));
+        }
+        if member_selectors
+            .entry(relationship_ref)
+            .or_default()
+            .insert(member, selector)
+            .is_some()
+        {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored sport-correlation member selector is duplicated".to_owned(),
+            ));
+        }
+    }
+
+    let groups_by_ref = groups
+        .iter()
+        .map(|group| (group.detected.session_filter_ref.as_str(), group))
+        .collect::<BTreeMap<_, _>>();
+    let mut groups_by_selector =
+        BTreeMap::<TrainingSportSourceSelector, Vec<&PersistedTrainingSportGroup>>::new();
+    for group in groups {
+        if let Some(selector) = training_sport_source_selector(&group.key) {
+            groups_by_selector.entry(selector).or_default().push(group);
+        }
+    }
+
     persisted
         .into_iter()
         .map(
-            |(relationship_ref, (primary, authorship, revision, members))| {
+            |(relationship_ref, (stored_primary, authorship, revision, stored_members))| {
                 if authorship != "user" {
                     return Err(ImportError::InvalidTrainingLibrary(
                         "stored unified sport relationship authorship is invalid".to_owned(),
@@ -8511,10 +8609,73 @@ fn query_unified_sport_relationships(
                         "stored unified sport relationship revision is invalid".to_owned(),
                     )
                 })?;
+                let relationship_selectors = selectors
+                    .get(&relationship_ref)
+                    .cloned()
+                    .unwrap_or_default();
+                let relationship_member_selectors = member_selectors
+                    .get(&relationship_ref)
+                    .cloned()
+                    .unwrap_or_default();
+                let mut effective_members = BTreeSet::new();
+                for member in &stored_members {
+                    if groups_by_ref.contains_key(member.as_str()) {
+                        effective_members.insert(member.clone());
+                        continue;
+                    }
+                    let replacement_exists = relationship_member_selectors
+                        .get(member)
+                        .and_then(|selector| groups_by_selector.get(selector))
+                        .is_some_and(|matches| !matches.is_empty());
+                    if !replacement_exists {
+                        effective_members.insert(member.clone());
+                    }
+                }
+                for selector in relationship_selectors.keys() {
+                    if let Some(current_groups) = groups_by_selector.get(selector) {
+                        effective_members.extend(
+                            current_groups
+                                .iter()
+                                .map(|group| group.detected.session_filter_ref.clone()),
+                        );
+                    }
+                }
+                let primary = if groups_by_ref.contains_key(stored_primary.as_str()) {
+                    stored_primary.clone()
+                } else {
+                    let replacement = relationship_member_selectors
+                        .get(&stored_primary)
+                        .filter(|selector| {
+                            relationship_selectors
+                                .get(*selector)
+                                .copied()
+                                .unwrap_or(false)
+                        })
+                        .and_then(|selector| groups_by_selector.get(selector))
+                        .map(|matches| {
+                            matches
+                                .iter()
+                                .filter_map(|group| {
+                                    detected_group_has_usable_identity(group)
+                                        .transpose()
+                                        .map(|result| result.map(|_| *group))
+                                })
+                                .collect::<Result<Vec<_>>>()
+                        })
+                        .transpose()?
+                        .and_then(|matches| {
+                            let [replacement] = matches.as_slice() else {
+                                return None;
+                            };
+                            Some(replacement.detected.session_filter_ref.clone())
+                        });
+                    replacement.unwrap_or_else(|| stored_primary.clone())
+                };
+                effective_members.insert(primary.clone());
                 UnifiedSportRelationship::restore(
                     relationship_ref,
                     primary,
-                    members,
+                    effective_members.into_iter().collect(),
                     UnifiedSportRelationshipAuthorship::User,
                     revision,
                 )
@@ -8522,6 +8683,31 @@ fn query_unified_sport_relationships(
             },
         )
         .collect()
+}
+
+fn training_sport_source_selector(
+    key: &TrainingSportGroupKey,
+) -> Option<TrainingSportSourceSelector> {
+    key.source_sport_ref
+        .as_ref()
+        .map(|source_sport_ref| TrainingSportSourceSelector {
+            origin_id: key.origin_id.clone(),
+            source_sport_ref: source_sport_ref.clone(),
+        })
+}
+
+fn detected_group_has_usable_identity(group: &PersistedTrainingSportGroup) -> Result<Option<()>> {
+    let sport = resolve_training_session_sport(
+        group.detected.sport_ref.clone(),
+        group.detected.classification.clone(),
+        group.detected.recognition_candidates.clone(),
+    )
+    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    Ok(matches!(
+        sport.state,
+        TrainingSportState::Recognized | TrainingSportState::PersonallyOverridden
+    )
+    .then_some(()))
 }
 
 struct ExactTrainingSportEvidence {
@@ -8659,6 +8845,7 @@ fn query_training_sport_groups(
         .map(|(key, group)| PersistedTrainingSportGroup {
             detected: DetectedTrainingSport {
                 session_filter_ref: training_sport_filter_ref(&key),
+                provider_normalization_ref: provider_sport_normalization_ref(&key),
                 sport_ref: group.sport_ref,
                 origin_id: group.origin_id,
                 classification: group.classification,
@@ -8721,6 +8908,27 @@ fn training_sport_filter_ref(key: &TrainingSportGroupKey) -> String {
         }
     }
     format!("sport-{:x}", digest.finalize())
+}
+
+fn provider_sport_normalization_ref(key: &TrainingSportGroupKey) -> Option<String> {
+    let TrainingSportFilterScope::ExactEvidence { source_sport_codes } = &key.scope else {
+        return None;
+    };
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:provider-sport-normalization:v1\0");
+    digest.update(key.origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(SOURCE_PROVIDER.as_bytes());
+    digest.update(b"\0");
+    digest.update(POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION.as_bytes());
+    digest.update(b"\0");
+    digest.update(POLAR_SPORT_NORMALIZATION_VERSION.as_bytes());
+    digest.update(b"\0");
+    for code in source_sport_codes {
+        digest.update(code.as_bytes());
+        digest.update(b"\0");
+    }
+    Some(format!("sport-{:x}", digest.finalize()))
 }
 
 fn merge_sport_suggestions(
@@ -9258,6 +9466,11 @@ fn compare_and_save_unified_sport_relationship(
         ));
     }
 
+    let current_groups = query_training_sport_groups(&transaction)?;
+    let current_group_by_ref = current_groups
+        .iter()
+        .map(|group| (group.detected.session_filter_ref.as_str(), group))
+        .collect::<BTreeMap<_, _>>();
     let overlapping_member = relationship
         .member_session_filter_refs()
         .iter()
@@ -9279,6 +9492,42 @@ fn compare_and_save_unified_sport_relationship(
     if overlapping_member {
         return Err(ImportError::InvalidTrainingLibrary(
             "unified sport member already belongs to another relationship".to_owned(),
+        ));
+    }
+    let selected_source_selectors = relationship
+        .member_session_filter_refs()
+        .iter()
+        .filter_map(|member| {
+            current_group_by_ref
+                .get(member.as_str())
+                .and_then(|group| training_sport_source_selector(&group.key))
+        })
+        .collect::<BTreeSet<_>>();
+    let overlapping_selector = selected_source_selectors
+        .iter()
+        .map(|selector| {
+            transaction.query_row(
+                "SELECT EXISTS (
+                     SELECT 1
+                     FROM unified_sport_relationship_source_selector
+                     WHERE origin_id = ?1
+                       AND source_sport_ref = ?2
+                       AND relationship_ref <> ?3
+                 )",
+                params![
+                    selector.origin_id,
+                    selector.source_sport_ref,
+                    relationship.relationship_ref(),
+                ],
+                |row| row.get::<_, bool>(0),
+            )
+        })
+        .collect::<std::result::Result<Vec<_>, _>>()?
+        .into_iter()
+        .any(|overlaps| overlaps);
+    if overlapping_selector {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "sport-correlation selector already belongs to another relationship".to_owned(),
         ));
     }
 
@@ -9317,6 +9566,11 @@ fn compare_and_save_unified_sport_relationship(
     }
     if expected_revision > 0 {
         transaction.execute(
+            "DELETE FROM unified_sport_relationship_source_selector
+             WHERE relationship_ref = ?1",
+            [relationship.relationship_ref()],
+        )?;
+        transaction.execute(
             "DELETE FROM unified_sport_relationship_member WHERE relationship_ref = ?1",
             [relationship.relationship_ref()],
         )?;
@@ -9329,8 +9583,59 @@ fn compare_and_save_unified_sport_relationship(
             params![relationship.relationship_ref(), member],
         )?;
     }
+    persist_unified_sport_source_selectors(&transaction, relationship, &current_group_by_ref)?;
     transaction.commit()?;
     Ok(true)
+}
+
+fn persist_unified_sport_source_selectors(
+    connection: &Connection,
+    relationship: &UnifiedSportRelationship,
+    group_by_ref: &BTreeMap<&str, &PersistedTrainingSportGroup>,
+) -> Result<()> {
+    let mut selector_members = BTreeMap::<TrainingSportSourceSelector, Vec<&str>>::new();
+    for member in relationship.member_session_filter_refs() {
+        let Some(group) = group_by_ref.get(member.as_str()) else {
+            continue;
+        };
+        let Some(selector) = training_sport_source_selector(&group.key) else {
+            continue;
+        };
+        selector_members
+            .entry(selector)
+            .or_default()
+            .push(member.as_str());
+    }
+    for (selector, members) in selector_members {
+        let primary_identity = members
+            .iter()
+            .any(|member| *member == relationship.primary_session_filter_ref());
+        connection.execute(
+            "INSERT INTO unified_sport_relationship_source_selector (
+                 relationship_ref, origin_id, source_sport_ref, primary_identity
+             ) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                relationship.relationship_ref(),
+                selector.origin_id,
+                selector.source_sport_ref,
+                primary_identity,
+            ],
+        )?;
+        for member in members {
+            connection.execute(
+                "INSERT INTO unified_sport_relationship_member_selector (
+                     relationship_ref, session_filter_ref, origin_id, source_sport_ref
+                 ) VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    relationship.relationship_ref(),
+                    member,
+                    selector.origin_id,
+                    selector.source_sport_ref,
+                ],
+            )?;
+        }
+    }
+    Ok(())
 }
 
 fn compare_and_remove_unified_sport_relationship(
@@ -10303,6 +10608,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 36 {
             connection.execute_batch(SCHEMA_V36)?;
         }
+        if version < 37 {
+            connection.execute_batch(SCHEMA_V37)?;
+            migrate_unified_sport_source_selectors(connection)?;
+        }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -10314,6 +10623,19 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         let _ = connection.execute_batch("ROLLBACK;");
     }
     migration
+}
+
+fn migrate_unified_sport_source_selectors(connection: &Connection) -> Result<()> {
+    let groups = query_training_sport_groups(connection)?;
+    let relationships = query_unified_sport_relationships(connection, &groups)?;
+    let group_by_ref = groups
+        .iter()
+        .map(|group| (group.detected.session_filter_ref.as_str(), group))
+        .collect::<BTreeMap<_, _>>();
+    for relationship in relationships {
+        persist_unified_sport_source_selectors(connection, &relationship, &group_by_ref)?;
+    }
+    Ok(())
 }
 
 fn complete_schema_maintenance(connection: &Connection) -> Result<()> {
@@ -17686,6 +18008,45 @@ mod tests {
 
     use super::*;
 
+    #[test]
+    fn scopes_provider_sport_normalization_to_equal_exact_codes_in_one_origin() {
+        let exact =
+            |origin_id: &str, source_sport_ref: &str, source_code: &str| TrainingSportGroupKey {
+                origin_id: origin_id.to_owned(),
+                source_sport_ref: Some(source_sport_ref.to_owned()),
+                scope: TrainingSportFilterScope::ExactEvidence {
+                    source_sport_codes: vec![source_code.to_owned()],
+                },
+            };
+        let first = exact("origin-a", "opaque-a", "RUNNING");
+        let same_evidence = exact("origin-a", "opaque-b", "RUNNING");
+        let different_code = exact("origin-a", "opaque-b", "ROAD_RUNNING");
+        let different_origin = exact("origin-b", "opaque-b", "RUNNING");
+        let unresolved = TrainingSportGroupKey {
+            origin_id: "origin-a".to_owned(),
+            source_sport_ref: Some("opaque-a".to_owned()),
+            scope: TrainingSportFilterScope::SourceProfile {
+                includes_exact_evidence: false,
+            },
+        };
+
+        let first_ref =
+            provider_sport_normalization_ref(&first).expect("exact sport normalization capability");
+        assert_eq!(
+            provider_sport_normalization_ref(&same_evidence).as_deref(),
+            Some(first_ref.as_str())
+        );
+        assert_ne!(
+            provider_sport_normalization_ref(&different_code).as_deref(),
+            Some(first_ref.as_str())
+        );
+        assert_ne!(
+            provider_sport_normalization_ref(&different_origin).as_deref(),
+            Some(first_ref.as_str())
+        );
+        assert_eq!(provider_sport_normalization_ref(&unresolved), None);
+    }
+
     struct Harness {
         directory: TempDir,
     }
@@ -19155,7 +19516,7 @@ mod tests {
                 LibraryDomain::Recovery,
             ]
         );
-        assert_eq!(home.version, 8);
+        assert_eq!(home.version, 9);
         assert!(home
             .library_revision_ref
             .starts_with("library-home-revision-"));
@@ -23239,6 +23600,281 @@ mod tests {
             .sports
             .iter()
             .all(|sport| sport.unification.is_none()));
+    }
+
+    #[test]
+    fn applies_saved_sport_correlation_to_compatible_groups_from_later_imports() {
+        let harness = Harness::new();
+        let initial_session = training_session_json(
+            "reusable-correlation-initial",
+            "2026-05-01T09:00:00",
+            "2026-05-01T10:00:00",
+            3_600_000,
+            "reusable-correlation-profile",
+        );
+        let unresolved_session = training_session_json(
+            "reusable-correlation-unresolved",
+            "2026-05-02T09:00:00",
+            "2026-05-02T09:45:00",
+            2_700_000,
+            "reusable-correlation-profile",
+        );
+        let initial = harness.archive(
+            "reusable-correlation-initial.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-reusable-correlation-claim"}"#,
+                ),
+                (
+                    "training-session_2026-05-01T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &initial_session,
+                ),
+                (
+                    "training-session_2026-05-02T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &unresolved_session,
+                ),
+                (
+                    "training-target-2026-05-01-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic steady session",
+                    "description":"",
+                    "startTime":"2026-05-01T09:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"RUNNING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &initial).expect("initial correlation import");
+        let library = SqliteTrainingSports::new(harness.database());
+        let before = query_training_sports(&library).expect("sports before reusable correlation");
+        let recognized = before
+            .sports
+            .iter()
+            .find(|sport| sport.state == TrainingSportState::Recognized)
+            .expect("recognized correlation member");
+        let unresolved = before
+            .sports
+            .iter()
+            .find(|sport| sport.state == TrainingSportState::Unknown)
+            .expect("unresolved correlation member");
+        let saved = save_unified_sport_relationship(
+            &library,
+            SaveUnifiedSportRelationshipRequest {
+                expected_snapshot_ref: before.snapshot_ref,
+                expected_revision: 0,
+                relationship_ref: None,
+                primary_session_filter_ref: recognized.session_filter_ref.clone(),
+                members: vec![
+                    TrainingSportCollectionExpectation {
+                        session_filter_ref: recognized.session_filter_ref.clone(),
+                        session_count: recognized.coverage.session_count,
+                    },
+                    TrainingSportCollectionExpectation {
+                        session_filter_ref: unresolved.session_filter_ref.clone(),
+                        session_count: unresolved.coverage.session_count,
+                    },
+                ],
+            },
+        )
+        .expect("saved reusable sport correlation");
+        let relationship_ref = saved.overview.sports[0]
+            .unification
+            .as_ref()
+            .expect("saved reusable relationship")
+            .relationship_ref
+            .clone();
+
+        let later_session = training_session_json(
+            "reusable-correlation-later",
+            "2026-05-03T09:00:00",
+            "2026-05-03T10:15:00",
+            4_500_000,
+            "reusable-correlation-profile",
+        );
+        let expanded = harness.archive(
+            "reusable-correlation-expanded.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-reusable-correlation-claim"}"#,
+                ),
+                (
+                    "training-session_2026-05-01T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &initial_session,
+                ),
+                (
+                    "training-session_2026-05-02T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &unresolved_session,
+                ),
+                (
+                    "training-session_2026-05-03T09-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &later_session,
+                ),
+                (
+                    "training-target-2026-05-01-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic steady session",
+                    "description":"",
+                    "startTime":"2026-05-01T09:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"RUNNING","phases":[]}]
+                    }"#,
+                ),
+                (
+                    "training-target-2026-05-03-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic later session",
+                    "description":"",
+                    "startTime":"2026-05-03T09:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"ROAD_RUNNING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+        let later_import =
+            import_polar_archive(&harness.database(), &expanded).expect("later cumulative import");
+        assert!(!later_import.exact_repeat);
+
+        let after = query_training_sports(&library).expect("reusable correlation after import");
+        assert_eq!(after.sports.len(), 1);
+        assert!(after.unification_reviews.is_empty());
+        let unified = &after.sports[0];
+        assert_eq!(unified.coverage.session_count, 3);
+        assert_eq!(unified.member_session_filter_refs.len(), 3);
+        let relationship = unified
+            .unification
+            .as_ref()
+            .expect("expanded reusable relationship");
+        assert_eq!(relationship.relationship_ref, relationship_ref);
+        assert_eq!(relationship.revision, 1);
+
+        let filtered = fitfreed_application::query_training_sessions(
+            &SqliteTrainingLibrary::new(harness.database()),
+            TrainingSessionSearchRequest {
+                from: None,
+                through: None,
+                sport_refs: unified.member_session_filter_refs.clone(),
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedAscending,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("sessions represented by reusable correlation");
+        assert_eq!(filtered.total_count, 3);
+
+        let backup = harness
+            .directory
+            .path()
+            .join("reusable-correlation-backup.sqlite");
+        std::fs::copy(harness.database(), &backup).expect("reusable correlation backup");
+        let backed_up = query_training_sports(&SqliteTrainingSports::new(backup))
+            .expect("reusable correlation after backup");
+        assert_eq!(backed_up.sports.len(), 1);
+        assert_eq!(backed_up.sports[0].coverage.session_count, 3);
+
+        let repeat = import_polar_archive(&harness.database(), &expanded)
+            .expect("exact repeat after reusable correlation");
+        assert!(repeat.exact_repeat);
+        let after_repeat =
+            query_training_sports(&library).expect("reusable correlation after exact repeat");
+        assert_eq!(after_repeat.sports.len(), 1);
+        assert_eq!(after_repeat.sports[0].coverage.session_count, 3);
+    }
+
+    #[test]
+    fn normalizes_equal_exact_sport_evidence_across_distinct_source_identifiers() {
+        let harness = Harness::new();
+        let first_session = training_session_json(
+            "provider-normalization-first",
+            "2026-07-01T08:00:00",
+            "2026-07-01T09:00:00",
+            3_600_000,
+            "provider-normalization-profile-a",
+        );
+        let second_session = training_session_json(
+            "provider-normalization-second",
+            "2026-07-02T08:00:00",
+            "2026-07-02T09:15:00",
+            4_500_000,
+            "provider-normalization-profile-b",
+        );
+        let archive = harness.archive(
+            "provider-normalization.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-provider-normalization-claim"}"#,
+                ),
+                (
+                    "training-session_2026-07-01T08-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &first_session,
+                ),
+                (
+                    "training-session_2026-07-02T08-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &second_session,
+                ),
+                (
+                    "training-target-2026-07-01-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic first normalized session",
+                    "description":"",
+                    "startTime":"2026-07-01T08:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"RUNNING","phases":[]}]
+                    }"#,
+                ),
+                (
+                    "training-target-2026-07-02-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic second normalized session",
+                    "description":"",
+                    "startTime":"2026-07-02T08:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"RUNNING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("provider-normalization import");
+
+        let overview = query_training_sports(&SqliteTrainingSports::new(harness.database()))
+            .expect("provider-normalized sports");
+
+        assert_eq!(overview.session_count, 2);
+        assert_eq!(overview.sport_collections.len(), 2);
+        assert_eq!(overview.sports.len(), 1);
+        let normalized = &overview.sports[0];
+        assert_eq!(normalized.state, TrainingSportState::Recognized);
+        assert_eq!(normalized.coverage.session_count, 2);
+        assert_eq!(normalized.member_session_filter_refs.len(), 2);
+        assert!(normalized.unification.is_none());
+        let sessions = fitfreed_application::query_training_sessions(
+            &SqliteTrainingLibrary::new(harness.database()),
+            TrainingSessionSearchRequest {
+                from: None,
+                through: None,
+                sport_refs: normalized.member_session_filter_refs.clone(),
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedAscending,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("provider-normalized sessions");
+        assert_eq!(sessions.total_count, 2);
     }
 
     #[test]
@@ -27431,6 +28067,7 @@ mod tests {
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
             SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29,
             SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36,
+            SCHEMA_V37,
         ];
         for migration in migrations
             .iter()
@@ -30288,5 +30925,161 @@ mod tests {
             )
             .expect("rollback overlap fixture");
         assert_integrity(&connection);
+    }
+
+    #[test]
+    fn upgrades_version_thirty_six_with_reusable_sport_selectors_atomically() {
+        let harness = Harness::new();
+        let recognized_session = training_session_json(
+            "migration-correlation-recognized",
+            "2026-06-01T08:00:00",
+            "2026-06-01T09:00:00",
+            3_600_000,
+            "migration-correlation-profile",
+        );
+        let unresolved_session = training_session_json(
+            "migration-correlation-unresolved",
+            "2026-06-02T08:00:00",
+            "2026-06-02T08:45:00",
+            2_700_000,
+            "migration-correlation-profile",
+        );
+        let archive = harness.archive(
+            "migration-correlation.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-migration-correlation-claim"}"#,
+                ),
+                (
+                    "training-session_2026-06-01T08-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &recognized_session,
+                ),
+                (
+                    "training-session_2026-06-02T08-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &unresolved_session,
+                ),
+                (
+                    "training-target-2026-06-01-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic migration session",
+                    "description":"",
+                    "startTime":"2026-06-01T08:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"RUNNING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("migration fixture import");
+        let library = SqliteTrainingSports::new(harness.database());
+        let before = query_training_sports(&library).expect("migration fixture sports");
+        let recognized = before
+            .sports
+            .iter()
+            .find(|sport| sport.state == TrainingSportState::Recognized)
+            .expect("migration recognized member");
+        let unresolved = before
+            .sports
+            .iter()
+            .find(|sport| sport.state == TrainingSportState::Unknown)
+            .expect("migration unresolved member");
+        let saved = save_unified_sport_relationship(
+            &library,
+            SaveUnifiedSportRelationshipRequest {
+                expected_snapshot_ref: before.snapshot_ref,
+                expected_revision: 0,
+                relationship_ref: None,
+                primary_session_filter_ref: recognized.session_filter_ref.clone(),
+                members: vec![
+                    TrainingSportCollectionExpectation {
+                        session_filter_ref: recognized.session_filter_ref.clone(),
+                        session_count: recognized.coverage.session_count,
+                    },
+                    TrainingSportCollectionExpectation {
+                        session_filter_ref: unresolved.session_filter_ref.clone(),
+                        session_count: unresolved.coverage.session_count,
+                    },
+                ],
+            },
+        )
+        .expect("migration fixture relationship");
+        let relationship_ref = saved.overview.sports[0]
+            .unification
+            .as_ref()
+            .expect("migration fixture unification")
+            .relationship_ref
+            .clone();
+
+        let connection = Connection::open(harness.database()).expect("migration database");
+        connection
+            .execute_batch(
+                "PRAGMA foreign_keys = ON;
+                 DROP TABLE unified_sport_relationship_member_selector;
+                 DROP TABLE unified_sport_relationship_source_selector;
+                 PRAGMA user_version = 36;",
+            )
+            .expect("schema-thirty-six fixture");
+
+        let error =
+            migrate_schema(&connection, true).expect_err("interrupted version thirty-seven");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            36
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master
+                     WHERE name IN (
+                         'unified_sport_relationship_source_selector',
+                         'unified_sport_relationship_member_selector'
+                     )",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back reusable selector objects"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version thirty-seven migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*)
+                     FROM unified_sport_relationship_source_selector
+                     WHERE relationship_ref = ?1",
+                    [&relationship_ref],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("migrated reusable selector"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*)
+                     FROM unified_sport_relationship_member_selector
+                     WHERE relationship_ref = ?1",
+                    [&relationship_ref],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("migrated member selectors"),
+            2
+        );
+        drop(connection);
+        let restored = query_training_sports(&library).expect("migrated reusable relationship");
+        assert_eq!(restored.sports.len(), 1);
+        assert_eq!(restored.sports[0].coverage.session_count, 2);
     }
 }

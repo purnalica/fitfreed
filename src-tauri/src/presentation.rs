@@ -11617,7 +11617,7 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
-            version: 8,
+            version: 9,
             library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             recorded_range: Some(LibraryHomeDateRange {
                 from: "2025-12-31".to_owned(),
@@ -11735,7 +11735,7 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "version": 8,
+                "version": 9,
                 "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "recordedRange": { "from": "2025-12-31", "through": "2026-01-06" },
                 "usableRange": { "from": "2025-12-31", "through": "2026-01-06" },

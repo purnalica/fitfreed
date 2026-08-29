@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-sports-v6.schema.json",
+  "title": "FitFreed training sports version 6",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotRef",
+    "originCount",
+    "sessionCount",
+    "sports",
+    "sportCollections",
+    "unificationReviews"
+  ],
+  "properties": {
+    "snapshotRef": {
+      "$ref": "training-sports-v5.schema.json#/properties/snapshotRef"
+    },
+    "originCount": {
+      "$ref": "training-sports-v5.schema.json#/properties/originCount"
+    },
+    "sessionCount": {
+      "$ref": "training-sports-v5.schema.json#/properties/sessionCount"
+    },
+    "sports": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "training-sports-v5.schema.json#/$defs/sport" },
+          { "$ref": "#/$defs/providerNormalizedSport" }
+        ]
+      }
+    },
+    "sportCollections": {
+      "type": "array",
+      "items": { "$ref": "training-sports-v5.schema.json#/$defs/baseSport" }
+    },
+    "unificationReviews": {
+      "type": "array",
+      "items": { "$ref": "training-sports-v5.schema.json#/$defs/unificationReview" }
+    }
+  },
+  "$defs": {
+    "providerNormalizedSport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionFilterRef",
+        "memberSessionFilterRefs",
+        "sportRef",
+        "sourceIndex",
+        "state",
+        "classification",
+        "recognition",
+        "recognitionCandidateCount",
+        "unification",
+        "firstLocalDate",
+        "lastLocalDate",
+        "coverage"
+      ],
+      "properties": {
+        "sessionFilterRef": {
+          "$ref": "training-sports-v5.schema.json#/$defs/sportFilterRef"
+        },
+        "memberSessionFilterRefs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "training-sports-v5.schema.json#/$defs/sportFilterRef" }
+        },
+        "sportRef": { "type": "null" },
+        "sourceIndex": {
+          "$ref": "training-sports-v5.schema.json#/$defs/sport/properties/sourceIndex"
+        },
+        "state": { "const": "recognized" },
+        "classification": { "type": "null" },
+        "recognition": {
+          "$ref": "training-sport-identity-v3.schema.json#/$defs/recognition"
+        },
+        "recognitionCandidateCount": { "const": 1 },
+        "unification": { "type": "null" },
+        "firstLocalDate": {
+          "$ref": "training-sports-v5.schema.json#/$defs/localDate"
+        },
+        "lastLocalDate": {
+          "$ref": "training-sports-v5.schema.json#/$defs/localDate"
+        },
+        "coverage": {
+          "$ref": "training-sports-v5.schema.json#/$defs/coverage"
+        }
+      }
+    }
+  }
+}

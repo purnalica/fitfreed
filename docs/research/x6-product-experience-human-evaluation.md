@@ -740,11 +740,24 @@ analysis may resume without requesting further participant reproduction on this 
 
 ### XH-27 — Late reconciliation degrades interactive responsiveness
 
-- **Status:** observed during the bounded corrected-candidate product-owner experience review; no concurrent analysis
-  or disposition.
+- **Status:** causal boundary traced; corrective regression and implementation pending.
 - **Observed behavior:** the application responds fluently during the early reconciliation phase of a large imported
   library. As reconciliation advances, navigation and other actions still respond, but interaction becomes
   progressively slow and no longer feels fluid.
+- **Causal trace:** the import itself runs on a blocking-worker task and progress delivery is already coalesced, so
+  neither the WebView thread nor an event flood explains the degradation. A non-identical reimport decodes every
+  training artifact again and, for every existing session, reconstructs its complete persisted structure, routes,
+  signals, and zones before deciding whether the observation is equivalent, enriched, amended, preserved, or in
+  conflict. The apparent artifact counter weights a small daily summary and a dense training session equally, so its
+  late phase conceals sharply increasing work per unit. Meanwhile the desktop History and Home query commands execute
+  synchronous SQLite work, open separate connections, and run schema maintenance checks while the long reconciliation
+  transaction is active. The resulting CPU, storage, and database contention reaches the interactive path even though
+  cancellation remains available.
+- **Automation gap:** the maintained scale gates exercise a fresh import followed by the exact-package shortcut and
+  measure queries only after import. They do not exercise a changed package that must reconcile an existing dense
+  library, nor representative navigation latency while that reconciliation is active. The corrective gate must cover
+  both boundaries and must retain the existing exact-repeat, cancellation, recovery, data-integrity, and full-scale
+  budgets.
 
 ### XH-28 — Sport cards become unreadable and overflow at compact geometry
 

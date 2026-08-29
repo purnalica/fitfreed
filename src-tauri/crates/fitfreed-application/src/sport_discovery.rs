@@ -12,9 +12,12 @@ use fitfreed_domain::{
 
 use crate::{ApplicationError, TrainingSessionSport};
 
+const MAXIMUM_VISIBLE_SPORT_MEMBER_COUNT: usize = 64;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DetectedTrainingSport {
     pub session_filter_ref: String,
+    pub provider_normalization_ref: Option<String>,
     pub sport_ref: Option<String>,
     pub origin_id: String,
     pub classification: Option<SportClassification>,
@@ -476,6 +479,20 @@ fn build_training_sports_overview(
         detected_sports: records,
         mut unified_relationships,
     } = state;
+    let provider_normalization_by_ref = records
+        .iter()
+        .filter_map(|record| {
+            record
+                .provider_normalization_ref
+                .as_ref()
+                .map(|normalization_ref| {
+                    (
+                        record.session_filter_ref.clone(),
+                        (record.origin_id.clone(), normalization_ref.clone()),
+                    )
+                })
+        })
+        .collect::<BTreeMap<_, _>>();
     let origins = records
         .iter()
         .map(|record| record.origin_id.clone())
@@ -518,6 +535,7 @@ fn build_training_sports_overview(
     unified_relationships
         .sort_by(|left, right| left.relationship_ref().cmp(right.relationship_ref()));
     let (sports, unification_reviews) = project_unified_sports(sports, unified_relationships)?;
+    let sports = project_provider_normalized_sports(sports, &provider_normalization_by_ref)?;
     let projected_session_count = sports.iter().try_fold(0_usize, |total, sport| {
         total
             .checked_add(sport.coverage.session_count)
@@ -543,6 +561,127 @@ fn build_training_sports_overview(
         sport_collections,
         unification_reviews,
     })
+}
+
+fn project_provider_normalized_sports(
+    sports: Vec<TrainingSport>,
+    normalization_by_ref: &BTreeMap<String, (String, String)>,
+) -> Result<Vec<TrainingSport>, ApplicationError> {
+    let mut grouped = BTreeMap::<(String, String), Vec<TrainingSport>>::new();
+    let mut projected = Vec::new();
+    for sport in sports {
+        let Some(normalization) = normalization_by_ref.get(&sport.session_filter_ref) else {
+            projected.push(sport);
+            continue;
+        };
+        grouped
+            .entry(normalization.clone())
+            .or_default()
+            .push(sport);
+    }
+    for ((_, normalization_ref), mut members) in grouped {
+        members.sort_by(|left, right| left.session_filter_ref.cmp(&right.session_filter_ref));
+        if members.len() < 2
+            || members
+                .iter()
+                .any(|member| member.state != TrainingSportState::Recognized)
+        {
+            projected.extend(members);
+            continue;
+        }
+        let primary_recognition = members[0].recognition.as_ref().ok_or_else(|| {
+            ApplicationError::SportClassificationQuery(
+                "provider-normalized sport has no recognition".to_owned(),
+            )
+        })?;
+        if members.iter().skip(1).any(|member| {
+            member.recognition.as_ref().is_none_or(|recognition| {
+                !same_training_sport_recognition(primary_recognition, recognition)
+            })
+        }) {
+            return Err(ApplicationError::SportClassificationQuery(
+                "provider-normalized sport meanings disagree".to_owned(),
+            ));
+        }
+        let member_session_filter_refs = members
+            .iter()
+            .flat_map(|member| member.member_session_filter_refs.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        if member_session_filter_refs.len() > MAXIMUM_VISIBLE_SPORT_MEMBER_COUNT {
+            return Err(ApplicationError::SportClassificationQuery(
+                "provider-normalized sport exceeds the supported member limit".to_owned(),
+            ));
+        }
+        let mut normalized = members[0].clone();
+        normalized.session_filter_ref = normalization_ref;
+        normalized.member_session_filter_refs = member_session_filter_refs;
+        normalized.first_local_date = members
+            .iter()
+            .map(|member| member.first_local_date.clone())
+            .min()
+            .ok_or_else(|| {
+                ApplicationError::SportClassificationQuery(
+                    "provider-normalized sport has no first date".to_owned(),
+                )
+            })?;
+        normalized.last_local_date = members
+            .iter()
+            .map(|member| member.last_local_date.clone())
+            .max()
+            .ok_or_else(|| {
+                ApplicationError::SportClassificationQuery(
+                    "provider-normalized sport has no last date".to_owned(),
+                )
+            })?;
+        normalized.coverage = merge_sport_coverages(members.iter().map(|member| &member.coverage))?;
+        projected.push(normalized);
+    }
+    Ok(projected)
+}
+
+fn same_training_sport_recognition(
+    left: &TrainingSportRecognition,
+    right: &TrainingSportRecognition,
+) -> bool {
+    left.canonical_family == right.canonical_family
+        && left.localized_names == right.localized_names
+        && left.catalogue_revision == right.catalogue_revision
+        && left.retrieved_at_utc == right.retrieved_at_utc
+        && left.mapping_version == right.mapping_version
+}
+
+fn merge_sport_coverages<'a>(
+    mut coverages: impl Iterator<Item = &'a TrainingSportCoverage>,
+) -> Result<TrainingSportCoverage, ApplicationError> {
+    coverages.try_fold(
+        TrainingSportCoverage {
+            session_count: 0,
+            total_duration_milliseconds: 0,
+            distance_session_count: 0,
+            heart_rate_session_count: 0,
+        },
+        |mut merged, current| {
+            merged.session_count = merged
+                .session_count
+                .checked_add(current.session_count)
+                .ok_or_else(|| unification_overflow("session"))?;
+            merged.total_duration_milliseconds = merged
+                .total_duration_milliseconds
+                .checked_add(current.total_duration_milliseconds)
+                .ok_or_else(|| unification_overflow("duration"))?;
+            merged.distance_session_count = merged
+                .distance_session_count
+                .checked_add(current.distance_session_count)
+                .ok_or_else(|| unification_overflow("distance"))?;
+            merged.heart_rate_session_count = merged
+                .heart_rate_session_count
+                .checked_add(current.heart_rate_session_count)
+                .ok_or_else(|| unification_overflow("heart-rate"))?;
+            Ok(merged)
+        },
+    )
 }
 
 fn validate_detected_sport(
@@ -571,6 +710,15 @@ fn validate_detected_sport(
     {
         return Err(ApplicationError::SportClassificationQuery(
             "detected sport session filter reference is empty or duplicated".to_owned(),
+        ));
+    }
+    if record
+        .provider_normalization_ref
+        .as_ref()
+        .is_some_and(String::is_empty)
+    {
+        return Err(ApplicationError::SportClassificationQuery(
+            "provider sport normalization reference is empty".to_owned(),
         ));
     }
     match (&record.sport_ref, &record.classification) {

@@ -544,6 +544,78 @@ await createArchive("sport-unification.zip", [
   ],
 ]);
 
+await createArchive("sport-provider-normalization.zip", [
+  [
+    `account-data-95-${uuidC}.json`,
+    JSON.stringify({ exportVersion: "synthetic-sport-normalization", username: syntheticUsername }),
+  ],
+  [
+    `training-session_2026-01-08T08-30-00_95-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-training-session-provider-normalization",
+      created: "2026-01-08T09:30:00.000",
+      modified: "2026-01-08T09:30:00.000",
+      startTime: "2026-01-08T08:30:00",
+      stopTime: "2026-01-08T09:05:00",
+      durationMillis: 2_100_000,
+      distanceMeters: 5_200,
+      calories: 310,
+      hrAvg: 132,
+      hrMax: 158,
+      sportId: "102",
+      exercises: [],
+    }),
+  ],
+  [
+    `training-target-2026-01-08-95-${uuidC}.json`,
+    JSON.stringify({
+      exportVersion: "1.0",
+      name: "Synthetic equivalent sport identifier",
+      description: "Independent equal exact sport evidence",
+      startTime: "2026-01-08T08:30:00.000",
+      done: true,
+      nonUserEditable: false,
+      exercises: [{ type: "FREE", sport: "RUNNING", phases: [] }],
+    }),
+  ],
+]);
+
+await createArchive("sport-correlation-expanded.zip", [
+  [
+    `account-data-96-${uuidC}.json`,
+    JSON.stringify({ exportVersion: "synthetic-sport-correlation", username: syntheticUsername }),
+  ],
+  [
+    `training-session_2026-01-09T08-30-00_96-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-training-session-correlation-expanded",
+      created: "2026-01-09T09:30:00.000",
+      modified: "2026-01-09T09:30:00.000",
+      startTime: "2026-01-09T08:30:00",
+      stopTime: "2026-01-09T09:15:00",
+      durationMillis: 2_700_000,
+      distanceMeters: 7_100,
+      calories: 390,
+      hrAvg: 136,
+      hrMax: 164,
+      sportId: "101",
+      exercises: [],
+    }),
+  ],
+  [
+    `training-target-2026-01-09-96-${uuidC}.json`,
+    JSON.stringify({
+      exportVersion: "1.0",
+      name: "Synthetic later correlated session",
+      description: "Independent compatible correlation evidence",
+      startTime: "2026-01-09T08:30:00.000",
+      done: true,
+      nonUserEditable: false,
+      exercises: [{ type: "FREE", sport: "ROAD_RUNNING", phases: [] }],
+    }),
+  ],
+]);
+
 await createArchive("planned-training.zip", [
   [
     `account-data-94-${uuidC}.json`,

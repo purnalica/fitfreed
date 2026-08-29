@@ -220,6 +220,7 @@ impl TrainingSportsPort for ControlledLibraryHomePort {
             .enumerate()
             .map(|(index, (origin_id, sessions))| DetectedTrainingSport {
                 session_filter_ref: format!("sport-{:064x}", index + 1),
+                provider_normalization_ref: None,
                 sport_ref: None,
                 origin_id,
                 classification: None,
@@ -625,6 +626,7 @@ fn classified_detected_sport_named(
     let source_sport_ref = format!("source-sport-{index}");
     DetectedTrainingSport {
         session_filter_ref: format!("sport-{index:064x}"),
+        provider_normalization_ref: None,
         sport_ref: Some(format!("sport-{index:064x}")),
         origin_id: origin_id.to_owned(),
         classification: Some(
@@ -654,6 +656,7 @@ fn unknown_detected_sport(index: usize, session_count: usize) -> DetectedTrainin
     let source_sport_ref = format!("source-sport-{index}");
     DetectedTrainingSport {
         session_filter_ref: format!("sport-{index:064x}"),
+        provider_normalization_ref: None,
         sport_ref: Some(format!("sport-{index:064x}")),
         origin_id: origin_id.to_owned(),
         classification: Some(
@@ -967,7 +970,7 @@ fn composes_recognizable_complete_training_identity_and_one_recent_comparison() 
     let home = query_library_home(&representative_port(), LibraryHomeRequest::default())
         .expect("recognizable library home");
 
-    assert_eq!(home.version, 8);
+    assert_eq!(home.version, 9);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     let training = home.training.expect("complete training identity");
     assert_eq!(training.training_snapshot_ref, TRAINING_SNAPSHOT);
@@ -1073,7 +1076,7 @@ fn preserves_each_unknown_profile_as_a_distinct_safe_home_identity() {
         .expect("distinct unresolved Home sports");
     let training = home.training.expect("training identity");
 
-    assert_eq!(home.version, 8);
+    assert_eq!(home.version, 9);
     assert_eq!(training.sport_collection_count, 4);
     assert_eq!(training.sports.len(), 4);
     assert_eq!(training.omitted_sport_collection_count, 0);
@@ -1572,7 +1575,7 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
     let home = query_library_home(&EmptyPort, LibraryHomeRequest::default()).expect("empty home");
 
-    assert_eq!(home.version, 8);
+    assert_eq!(home.version, 9);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     assert_eq!(home.recorded_range, None);
     assert_eq!(home.usable_range, None);

@@ -25,6 +25,7 @@ fn detected_sport(
 ) -> DetectedTrainingSport {
     DetectedTrainingSport {
         session_filter_ref: format!("filter-{sport_ref}"),
+        provider_normalization_ref: None,
         sport_ref: Some(sport_ref.to_owned()),
         origin_id: origin_id.to_owned(),
         classification: Some(SportClassification::unresolved(
@@ -43,6 +44,7 @@ fn detected_sport(
 fn unavailable_sport(origin_id: &str) -> DetectedTrainingSport {
     DetectedTrainingSport {
         session_filter_ref: format!("filter-unavailable-{origin_id}"),
+        provider_normalization_ref: None,
         sport_ref: None,
         origin_id: origin_id.to_owned(),
         classification: None,
@@ -562,6 +564,10 @@ fn rejects_inconsistent_detected_sport_sets_instead_of_returning_partial_discove
         sport_ref: Some("sport-unavailable".to_owned()),
         ..unavailable_sport("origin-a")
     };
+    let invalid_normalization = DetectedTrainingSport {
+        provider_normalization_ref: Some(String::new()),
+        ..detected_sport("sport-normalized", "origin-a", "opaque-4", 2)
+    };
 
     for detected in [
         duplicate_unavailable,
@@ -569,6 +575,7 @@ fn rejects_inconsistent_detected_sport_sets_instead_of_returning_partial_discove
         vec![reversed_dates],
         vec![mismatched_origin],
         vec![mismatched_availability],
+        vec![invalid_normalization],
     ] {
         assert!(matches!(
             query_training_sports(&ControlledTrainingSportsPort::with(detected)),
@@ -636,6 +643,80 @@ fn projects_an_explicit_relationship_as_one_sport_without_losing_member_coverage
         "filter-recognized"
     );
     assert!(overview.unification_reviews.is_empty());
+}
+
+#[test]
+fn normalizes_equal_documented_provider_identity_across_opaque_source_identifiers() {
+    let normalization_ref = format!("sport-{}", "9".repeat(64));
+    let mut first = detected_sport("normalized-first", "origin-a", "opaque-a", 4);
+    first.session_filter_ref = format!("sport-{}", "1".repeat(64));
+    first.provider_normalization_ref = Some(normalization_ref.clone());
+    first.sport_ref = None;
+    first.classification = None;
+    first.recognition_candidates = vec![recognized_suggestion(
+        "Kayaking",
+        Some(SportFamily::WaterSport),
+    )];
+    let mut second = detected_sport("normalized-second", "origin-a", "opaque-b", 3);
+    second.session_filter_ref = format!("sport-{}", "2".repeat(64));
+    second.provider_normalization_ref = Some(normalization_ref.clone());
+    second.sport_ref = None;
+    second.classification = None;
+    second.recognition_candidates = vec![recognized_suggestion(
+        "Kayaking",
+        Some(SportFamily::WaterSport),
+    )];
+    let port = ControlledTrainingSportsPort::with(vec![second, first]);
+
+    let overview = query_training_sports(&port).expect("provider-normalized sport overview");
+
+    assert_eq!(overview.session_count, 7);
+    assert_eq!(overview.sport_collections.len(), 2);
+    assert_eq!(overview.sports.len(), 1);
+    let normalized = &overview.sports[0];
+    assert_eq!(normalized.session_filter_ref, normalization_ref);
+    assert_eq!(
+        normalized.member_session_filter_refs,
+        [
+            format!("sport-{}", "1".repeat(64)),
+            format!("sport-{}", "2".repeat(64)),
+        ]
+    );
+    assert_eq!(normalized.coverage.session_count, 7);
+    assert_eq!(normalized.state, TrainingSportState::Recognized);
+    assert!(normalized.unification.is_none());
+    assert!(overview.unification_reviews.is_empty());
+}
+
+#[test]
+fn rejects_provider_normalization_that_exceeds_the_visible_member_limit() {
+    let normalization_ref = format!("sport-{}", "9".repeat(64));
+    let detected = (0..65)
+        .map(|index| {
+            let exact_ref = format!("sport-{index:064x}");
+            let mut sport = detected_sport(
+                &format!("normalized-{index}"),
+                "origin-a",
+                &format!("opaque-{index}"),
+                1,
+            );
+            sport.session_filter_ref = exact_ref;
+            sport.provider_normalization_ref = Some(normalization_ref.clone());
+            sport.sport_ref = None;
+            sport.classification = None;
+            sport.recognition_candidates = vec![recognized_suggestion(
+                "Kayaking",
+                Some(SportFamily::WaterSport),
+            )];
+            sport
+        })
+        .collect();
+
+    assert!(matches!(
+        query_training_sports(&ControlledTrainingSportsPort::with(detected)),
+        Err(ApplicationError::SportClassificationQuery(message))
+            if message == "provider-normalized sport exceeds the supported member limit"
+    ));
 }
 
 #[test]

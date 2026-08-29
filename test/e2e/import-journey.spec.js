@@ -1449,6 +1449,28 @@ async function resetSportClassification(catalog, currentTitle) {
   );
 }
 
+async function queryTrainingSportsOverview() {
+  const result = await browser.executeAsync((done) => {
+    window.__TAURI__.core.invoke("query_training_sports")
+      .then((overview) => done({ overview, error: null }))
+      .catch((error) => done({ overview: null, error: String(error) }));
+  });
+  if (result.error !== null) throw new Error(result.error);
+  return result.overview;
+}
+
+async function expectProviderNormalizedSport() {
+  const overview = await queryTrainingSportsOverview();
+  const normalized = overview.sports.filter((sport) =>
+    sport.state === "recognized"
+      && sport.unification === null
+      && sport.memberSessionFilterRefs.length === 2
+  );
+  expect(normalized).toHaveLength(1);
+  expect(normalized[0].coverage.sessionCount).toBe(2);
+  expect(overview.sportCollections).toHaveLength(4);
+}
+
 async function saveInitialUnifiedSport(catalog, primaryTitle) {
   const cards = await $$(".training-sport-list > li");
   expect(cards).toHaveLength(3);
@@ -1476,7 +1498,7 @@ async function saveInitialUnifiedSport(catalog, primaryTitle) {
   ));
 
   const memberLabels = await task.$$(".sport-unification-options label");
-  expect(memberLabels).toHaveLength(3);
+  expect(memberLabels).toHaveLength(4);
   let exportMissingMember;
   for (const label of memberLabels) {
     if ((await label.getText()).includes(catalog.training.sports.notRecorded)) {
@@ -1507,17 +1529,17 @@ async function extendUnifiedSport(catalog, primaryTitle) {
   const memberInputs = await task.$$(
     ".sport-unification-options input[type='checkbox']",
   );
-  expect(memberInputs).toHaveLength(3);
+  expect(memberInputs).toHaveLength(4);
   const unchecked = [];
   for (const input of memberInputs) {
     if (!(await input.isSelected())) unchecked.push(input);
   }
-  expect(unchecked).toHaveLength(1);
-  await unchecked[0].click();
+  expect(unchecked).toHaveLength(2);
+  for (const input of unchecked) await input.click();
   await expect(task.$(".sport-unification-preview")).toHaveText(
     expect.stringContaining(catalog.training.sports.unification.preview
-      .replace("{groups}", "3")
-      .replace("{sessions}", "4")),
+      .replace("{groups}", "4")
+      .replace("{sessions}", "5")),
   );
   await expect(task.$(".sport-unification-primary-options")).toHaveText(
     expect.stringContaining(primaryTitle),
@@ -1528,8 +1550,19 @@ async function extendUnifiedSport(catalog, primaryTitle) {
   expect(unifiedCards).toHaveLength(1);
   await expect(unifiedCards[0].$("h3")).toHaveText(primaryTitle);
   await expect(unifiedCards[0]).toHaveText(expect.stringContaining(
-    catalog.training.sports.unification.label.replace("{count}", "3"),
+    catalog.training.sports.unification.label.replace("{count}", "4"),
   ));
+}
+
+async function expectReusableSportCorrelation(previous) {
+  const overview = await queryTrainingSportsOverview();
+  expect(overview.sports).toHaveLength(1);
+  expect(overview.unificationReviews).toHaveLength(0);
+  const unified = overview.sports[0];
+  expect(unified.unification.relationshipRef).toBe(previous.relationshipRef);
+  expect(unified.unification.revision).toBe(previous.revision);
+  expect(unified.memberSessionFilterRefs).toHaveLength(previous.memberCount + 1);
+  expect(unified.coverage.sessionCount).toBe(previous.sessionCount + 1);
 }
 
 async function expectTrainingComparison(expectedRows) {
@@ -6222,21 +6255,57 @@ describe("packaged FitFreed import journey", () => {
     );
     await $(`aria/${spanish.import}`).click();
     await waitForNotice(spanish.home.postImportChanged);
+    await goToHome("sources");
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "sport-provider-normalization.zip"),
+      spanish.outcome.chooseAnother,
+    );
+    await $(`aria/${spanish.import}`).click();
+    await waitForNotice(spanish.home.postImportChanged);
     await openHomeQuestion(
       spanish,
       "explore-training-sessions",
       ".training-insights",
     );
     await openTrainingWorkspace(spanish, "sports");
+    await expectProviderNormalizedSport();
     await saveInitialUnifiedSport(spanish, "Carrera de montaña");
     await extendUnifiedSport(spanish, "Carrera de montaña");
+    const beforeCorrelationReimport = await queryTrainingSportsOverview();
+    const beforeUnifiedSport = beforeCorrelationReimport.sports[0];
+    const correlationExpectation = {
+      relationshipRef: beforeUnifiedSport.unification.relationshipRef,
+      revision: beforeUnifiedSport.unification.revision,
+      memberCount: beforeUnifiedSport.memberSessionFilterRefs.length,
+      sessionCount: beforeUnifiedSport.coverage.sessionCount,
+    };
+    await goToHome("sources");
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "sport-correlation-expanded.zip"),
+      spanish.outcome.chooseAnother,
+    );
+    await $(`aria/${spanish.import}`).click();
+    await waitForNotice(spanish.home.postImportChanged);
+    await openHomeQuestion(
+      spanish,
+      "explore-training-sessions",
+      ".training-insights",
+    );
+    await openTrainingWorkspace(spanish, "sports");
+    await expectReusableSportCorrelation(correlationExpectation);
+    const expandedUnifiedSport = await trainingSportCard("Carrera de montaña");
+    await expect(expandedUnifiedSport).toHaveText(expect.stringContaining(
+      spanish.training.sports.unification.label.replace("{count}", "5"),
+    ));
 
     recordJourneyPhase("prepare-application-process-restart");
     await openTrainingWorkspace(spanish, "sessions");
     const restartComparisonCheckboxes = await $$(
       ".training-session-result-actions input[type='checkbox']",
     );
-    expect(restartComparisonCheckboxes).toHaveLength(4);
+    expect(restartComparisonCheckboxes).toHaveLength(6);
     await restartComparisonCheckboxes[0].click();
     await restartComparisonCheckboxes[1].click();
     await $(`aria/${spanish.training.sessionLibrary.calendar}`).click();

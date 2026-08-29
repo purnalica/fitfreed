@@ -1,6 +1,6 @@
 # ADR 0036: Unify sport collections through explicit user authorship
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0037](0037-apply-reusable-local-sport-correlation-rules.md)
 - **Date:** 2026-08-29
 - **Decision owners:** FitFreed maintainers
 - **Related requirements:** [FR-018](../../requirements.md#fr-018--source-provenance),
@@ -109,4 +109,3 @@ effective revision, restoration, and revision-bound removal. Application and per
 coverage preview, overlap rejection, exact and export-missing members, concurrent evidence change, reimport, restart,
 migration, backup, restore, report resolution, export, and dissolution. Presentation and packaged end-to-end evidence
 must prove that the operation names affected sessions and precedence before save and exposes review-required state.
-

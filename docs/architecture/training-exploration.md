@@ -48,25 +48,30 @@ classification has the explicit `unresolved-source-profile` scope: it applies on
 that lacks stronger exact-session evidence. Exact recognized and ambiguous collections carry no fallback
 classification capability. Saving changes only the remainder to `personally-overridden`; it never absorbs an exact
 collection, changes that collection's filter identity, or deletes recognition. The separate
-[canonical unified-sport relationship](../data-formats/canonical/unified-sport-relationship.md) can combine two or
-more represented collections only through explicit user authorship and visible identity precedence. It retains the
-member capabilities and never changes their source evidence or fallback classification. Resetting a classification
+[canonical unified-sport relationship version 2](../data-formats/canonical/unified-sport-relationship-v2.md) can
+combine two or more represented collections only through explicit user authorship and visible identity precedence.
+It retains the reviewed member capabilities and private local source selectors, allowing later compatible imports to
+reuse the person's decision without changing its revision or source evidence. Resetting a classification
 writes a new user-authored unknown revision rather than deleting the history of user intent. Compare-and-save revision
 checks reject stale editors. Import and reimport can reveal a new source reference but cannot create or overwrite
 personal meaning or relationships.
 
 The unified-sport domain boundary is implemented independently of application projection and persistence. Training
-sports version 5 carries that aggregate through its preview, compare-and-save, review-required, exact filtering,
-whole-library recovery, migration, and presentation contracts. An active projection uses the chosen member's
+sports version 6 carries that aggregate through its preview, compare-and-save, reusable matching, review-required,
+provider-normalized defaults, exact filtering, whole-library recovery, migration, and presentation contracts. An
+active projection uses the chosen member's
 recognized or personally classified identity and sums exact member coverage. A missing member or unusable primary
-fails closed into explicit review; equal names, families, or one private observation never repair it silently.
+fails closed into explicit review; equal names, families, or one private observation never repair it silently. The
+Polar adapter may normalize distinct opaque source identifiers only when equal exact documented code evidence within
+one origin establishes the same provider-neutral recognition. This versioned default retains all exact members and
+remains subordinate to an explicit personal relationship.
 
 `SportClassificationTask` is the sole presentation mutation boundary for family, personal label, validation,
 save, reset, cancellation, operation progress, and optimistic-conflict recovery. The Sports workspace composes
 it as the complete management surface; the Sessions sport summary composes the same task only for an
 unresolved identity encountered in context. `SportUnificationTask` is the separate mutation boundary for selecting
 two through 64 exact collections, choosing visible identity precedence, reviewing complete session coverage, saving,
-revising, and removing the relationship. Library Home version 8 also preserves every unresolved profile as
+revising, and removing the relationship. Library Home version 9 also preserves every unresolved profile as
 a separate summary, associates recent sessions through the same opaque presentation capability, and routes its
 contextual naming action to that exact task in Sports. It never aggregates unresolved profiles, displays the
 capability, or owns another mutation path. A conflict reloads the authoritative overview and revision but retains
