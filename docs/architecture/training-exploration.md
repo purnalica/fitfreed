@@ -47,10 +47,19 @@ An absent authored value leaves recognition authoritative or retains revision-ze
 classification has the explicit `unresolved-source-profile` scope: it applies only to the source-profile remainder
 that lacks stronger exact-session evidence. Exact recognized and ambiguous collections carry no fallback
 classification capability. Saving changes only the remainder to `personally-overridden`; it never absorbs an exact
-collection, changes that collection's filter identity, or deletes recognition. A deliberate relationship that
-unifies identities is a separate future aggregate and operation. Resetting a value writes a new user-authored unknown
-revision rather than deleting the history of user intent. Compare-and-save revision checks reject stale
-editors. Import and reimport can reveal a new source reference but cannot create or overwrite its meaning.
+collection, changes that collection's filter identity, or deletes recognition. The separate
+[canonical unified-sport relationship](../data-formats/canonical/unified-sport-relationship.md) can combine two or
+more represented collections only through explicit user authorship and visible identity precedence. It retains the
+member capabilities and never changes their source evidence or fallback classification. Resetting a classification
+writes a new user-authored unknown revision rather than deleting the history of user intent. Compare-and-save revision
+checks reject stale editors. Import and reimport can reveal a new source reference but cannot create or overwrite
+personal meaning or relationships.
+
+The unified-sport domain boundary is implemented independently of application projection and persistence. R8.1 carries
+that aggregate through its preview, compare-and-save, review-required, filtering, reporting, backup, migration, and
+presentation contracts before the capability becomes available in the product. An active projection uses the chosen
+member's recognized or personally classified identity and sums exact member coverage. A missing member or unusable
+primary fails closed into explicit review; equal names, families, or one private observation never repair it silently.
 
 `SportClassificationTask` is the sole presentation mutation boundary for family, personal label, validation,
 save, reset, cancellation, operation progress, and optimistic-conflict recovery. The Sports workspace composes

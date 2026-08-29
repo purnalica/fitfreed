@@ -80,6 +80,7 @@ Directories are created with their first real contract; empty specifications are
 - [Canonical report definition version 5](canonical/report-definition-v5.md)
 - [Canonical report definition version 4](canonical/report-definition-v4.md) — preceding contract
 - [Canonical sport classification](canonical/sport-classification.md)
+- [Canonical unified sport relationship](canonical/unified-sport-relationship.md)
 - [Canonical sleep period](canonical/sleep-period.md)
 - [Canonical nightly recovery](canonical/nightly-recovery.md)
 - [Polar Flow daily activity mapping](mappings/polar-flow-daily-activity.md)

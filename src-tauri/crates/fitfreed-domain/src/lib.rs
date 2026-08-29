@@ -17,6 +17,16 @@ pub use sport_identity::{
 #[cfg(test)]
 mod sport_identity_tests;
 
+mod sport_unification;
+pub use sport_unification::{
+    author_unified_sport_relationship, authorize_unified_sport_relationship_removal,
+    revise_unified_sport_relationship, RemovedUnifiedSportRelationship, UnifiedSportRelationship,
+    UnifiedSportRelationshipAuthorship, UnifiedSportRelationshipError,
+};
+
+#[cfg(test)]
+mod sport_unification_tests;
+
 mod report_definition;
 pub use report_definition::{
     author_session_report, authorize_report_removal, duplicate_report_definition,
