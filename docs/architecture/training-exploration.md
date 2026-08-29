@@ -477,14 +477,23 @@ restarting the session always queries the durable range context and exact select
 saved range uses the shared result-focus boundary so the library inspector receives focus and scrolls into view
 in the stacked compact or high-zoom layout.
 
-`TrainingRouteWorkbench` can request a route-coordinate draft and project its exact boundaries onto the bounded
-returned route points. Two range controls provide pointer and explicit bounded keyboard traversal of timed
-points through the shared `steppedInputValueForKey` policy; a track
-click moves only the boundary explicitly selected in the inspector. The renderer port receives nullable exact
-point indexes for the start and end markers. A typed elapsed value without an exact point in the bounded
-projection remains unmarked rather than being snapped or inferred. The wide layout reserves approximately three
-quarters of the workspace for the map and one quarter for the shared inspector, then stacks the inspector below
-the map at compact width or high content zoom.
+`TrainingRouteWorkbench` exposes the selected point's recorded ordinal, route-native elapsed time, coordinates,
+altitude, and only application-authorized aligned values in a concise semantic strip. Exact coordinate precision
+and complete point evidence remain available through the paginated route path. A new route draft begins with an
+explicit two-boundary task: pointer selection on the recorded track or the native recorded-position control plus
+named commit actions supplies the first and second timed point. Presentation orders a reversed pair by exact
+`BigInt` elapsed evidence before opening the one shared editor. A missing or repeated elapsed value cannot complete
+the pair, and cancelling an incomplete selection writes nothing. Each boundary transition returns the bounded
+inspector to the current instruction, so a prior internal scroll cannot hide the next action.
+
+Once the draft exists, two range controls provide pointer and explicit bounded keyboard traversal of timed points
+through the shared `steppedInputValueForKey` policy; a track click moves only the boundary explicitly selected in
+the inspector. The renderer port receives nullable exact point indexes for both the transient selection and the
+editor's start and end markers. A typed elapsed value without an exact point in the bounded projection remains
+unmarked rather than being snapped or inferred. Route choice stays locked throughout boundary selection and editing,
+so the single draft cannot change coordinate context. The wide layout reserves approximately three quarters of the
+workspace for the map and one quarter for the shared inspector, then stacks the inspector below the map at compact
+width or high content zoom.
 
 `TrainingSignalWorkbench` composes the same controller and editor for one regular signal's own elapsed
 coordinate. Its selected-sample control and two boundary controls traverse exact bounded visual samples with

@@ -26,6 +26,7 @@ import { TrainingRangeEditor } from "./TrainingRangeEditor";
 import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteSignalLanes } from "./TrainingRouteSignalLanes";
 import {
+  coordinateDecimalFormatter,
   detailDecimalFormatter,
   formatDetailDuration,
   formatExactDuration,
@@ -58,6 +59,15 @@ interface RouteChoice {
   role: SessionStoryRole;
   model: RouteWorkbenchModel;
 }
+
+interface OrderedRouteBoundaryPair {
+  startedAtPointIndex: number;
+  endedAtPointIndex: number;
+  startedAtElapsedMilliseconds: string;
+  endedAtElapsedMilliseconds: string;
+}
+
+type RouteBoundarySelectionStep = "idle" | "first" | "second";
 
 function interpolate(template: string, values: Record<string, string>): string {
   return Object.entries(values).reduce(
@@ -103,29 +113,28 @@ function pointIndexAtExactElapsed(
   ) ?? null;
 }
 
-function routeDraftBounds(
+function orderedRouteBoundaryPair(
   model: RouteWorkbenchModel,
-  selectedPointIndex: number,
-): { startedAtElapsedMilliseconds: string; endedAtElapsedMilliseconds: string } | null {
-  const selected = model.points[selectedPointIndex]?.source.elapsedMilliseconds;
-  if (selected === null || selected === undefined) return null;
-  const indexes = distinctElapsedPointIndexes(model);
-  const selectedElapsed = BigInt(selected);
-  const following = indexes.find((pointIndex) => (
-    BigInt(model.points[pointIndex].source.elapsedMilliseconds!) > selectedElapsed
-  ));
-  if (following !== undefined) {
+  firstPointIndex: number,
+  secondPointIndex: number,
+): OrderedRouteBoundaryPair | null {
+  const first = model.points[firstPointIndex]?.source.elapsedMilliseconds;
+  const second = model.points[secondPointIndex]?.source.elapsedMilliseconds;
+  if (first === null || first === undefined || second === null || second === undefined
+    || first === second) return null;
+  if (BigInt(first) < BigInt(second)) {
     return {
-      startedAtElapsedMilliseconds: selected,
-      endedAtElapsedMilliseconds: model.points[following].source.elapsedMilliseconds!,
+      startedAtPointIndex: firstPointIndex,
+      endedAtPointIndex: secondPointIndex,
+      startedAtElapsedMilliseconds: first,
+      endedAtElapsedMilliseconds: second,
     };
   }
-  const preceding = [...indexes].reverse().find((pointIndex) => (
-    BigInt(model.points[pointIndex].source.elapsedMilliseconds!) < selectedElapsed
-  ));
-  return preceding === undefined ? null : {
-    startedAtElapsedMilliseconds: model.points[preceding].source.elapsedMilliseconds!,
-    endedAtElapsedMilliseconds: selected,
+  return {
+    startedAtPointIndex: secondPointIndex,
+    endedAtPointIndex: firstPointIndex,
+    startedAtElapsedMilliseconds: second,
+    endedAtElapsedMilliseconds: first,
   };
 }
 
@@ -178,6 +187,8 @@ export function TrainingRouteWorkbench({
   const choice = choices.find((candidate) => candidate.key === choiceKey) ?? choices[0];
   const [selectedPointIndex, setSelectedPointIndex] = useState(0);
   const [activeRangeBoundary, setActiveRangeBoundary] = useState<"start" | "end">("end");
+  const [rangeBoundaryStep, setRangeBoundaryStep] = useState<RouteBoundarySelectionStep>("idle");
+  const [rangeBoundaryAnchorIndex, setRangeBoundaryAnchorIndex] = useState<number | null>(null);
   const [selectedOverlayRef, setSelectedOverlayRef] = useState<string | null>(
     () => choice ? defaultOverlayRef(choice) : null,
   );
@@ -190,6 +201,7 @@ export function TrainingRouteWorkbench({
   const [focused, setFocused] = useState(false);
   const workbenchRef = useRef<HTMLElement>(null);
   const mapElementRef = useRef<HTMLDivElement>(null);
+  const rangeInspectorRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<LocalRouteViewport | null>(null);
   const focusButtonRef = useRef<HTMLButtonElement>(null);
   const returnButtonRef = useRef<HTMLButtonElement>(null);
@@ -198,6 +210,7 @@ export function TrainingRouteWorkbench({
   const copy = messages.training.sessionLibrary.routeWorkbench;
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const measurement = useMemo(() => detailDecimalFormatter(locale), [locale]);
+  const coordinate = useMemo(() => coordinateDecimalFormatter(locale), [locale]);
   const singleExercise = choices.every(
     (candidate) => candidate.exerciseOrdinal === choices[0]?.exerciseOrdinal,
   );
@@ -221,13 +234,25 @@ export function TrainingRouteWorkbench({
   const rangeEndedAt = routeEditor
     ? parseElapsedEditorValue(routeEditor.endedAt)
     : selectedRouteRange?.endedAtElapsedMilliseconds;
-  const rangeSelection: LocalRouteViewportRangeSelection | null = choice
+  const persistedRangeSelection: LocalRouteViewportRangeSelection | null = choice
     && (rangeStartedAt !== undefined || rangeEndedAt !== undefined)
     ? {
         startedAtPointIndex: pointIndexAtExactElapsed(choice.model, rangeStartedAt),
         endedAtPointIndex: pointIndexAtExactElapsed(choice.model, rangeEndedAt),
       }
     : null;
+  const pendingBoundaryPair = choice && rangeBoundaryAnchorIndex !== null
+    ? orderedRouteBoundaryPair(choice.model, rangeBoundaryAnchorIndex, selectedPointIndex)
+    : null;
+  const rangeSelection: LocalRouteViewportRangeSelection | null = rangeBoundaryStep === "second"
+    && rangeBoundaryAnchorIndex !== null
+    ? pendingBoundaryPair === null
+      ? { startedAtPointIndex: rangeBoundaryAnchorIndex, endedAtPointIndex: null }
+      : {
+          startedAtPointIndex: pendingBoundaryPair.startedAtPointIndex,
+          endedAtPointIndex: pendingBoundaryPair.endedAtPointIndex,
+        }
+    : persistedRangeSelection;
   const latestRangeSelection = useRef(rangeSelection);
   latestRangeSelection.current = rangeSelection;
 
@@ -236,6 +261,8 @@ export function TrainingRouteWorkbench({
     setChoiceKey(first?.key ?? "");
     setSelectedPointIndex(0);
     setActiveRangeBoundary("end");
+    setRangeBoundaryStep("idle");
+    setRangeBoundaryAnchorIndex(null);
     setSelectedOverlayRef(first ? defaultOverlayRef(first) : null);
   }, [choiceSignature]);
 
@@ -252,6 +279,17 @@ export function TrainingRouteWorkbench({
         : defaultOverlayRef(choice);
     });
   }, [choice?.key, story.snapshotRef]);
+
+  useEffect(() => {
+    if (rangeInteraction?.editor === undefined) return;
+    setRangeBoundaryStep("idle");
+    setRangeBoundaryAnchorIndex(null);
+  }, [rangeInteraction?.editor]);
+
+  useEffect(() => {
+    if (rangeBoundaryStep === "idle" || rangeInspectorRef.current === null) return;
+    rangeInspectorRef.current.scrollTop = 0;
+  }, [rangeBoundaryStep]);
 
   useEffect(() => {
     if (!choice || !mapElementRef.current) return;
@@ -383,7 +421,6 @@ export function TrainingRouteWorkbench({
     (overlay) => overlay.signalRef === selectedOverlayRef,
   );
   const elapsedPointIndexes = distinctElapsedPointIndexes(choice.model);
-  const draftBounds = routeDraftBounds(choice.model, selectedPointIndex);
   const routeCoordinateAvailable = rangeInteraction?.editableChoices.some((exercise) => (
     exercise.exerciseRef === choice.exerciseRef
     && exercise.coordinates.some((coordinate) => (
@@ -420,19 +457,48 @@ export function TrainingRouteWorkbench({
       : { endedAt: elapsedEditorValue(elapsed) });
   }
 
-  mapSelectionHandlerRef.current = (pointIndex) => {
-    setSelectedPointIndex(pointIndex);
-    updateRouteBoundary(activeRangeBoundary, pointIndex);
-  };
+  function cancelRouteBoundarySelection() {
+    setRangeBoundaryStep("idle");
+    setRangeBoundaryAnchorIndex(null);
+  }
 
-  function openRouteRange() {
-    if (!rangeInteraction || !draftBounds) return;
+  function useRouteBoundary(pointIndex: number) {
+    const elapsed = choice.model.points[pointIndex]?.source.elapsedMilliseconds;
+    if (!rangeInteraction || elapsed === null || elapsed === undefined) return;
+    if (rangeBoundaryStep === "first") {
+      setRangeBoundaryAnchorIndex(pointIndex);
+      setRangeBoundaryStep("second");
+      return;
+    }
+    if (rangeBoundaryStep !== "second" || rangeBoundaryAnchorIndex === null) return;
+    const boundaries = orderedRouteBoundaryPair(
+      choice.model,
+      rangeBoundaryAnchorIndex,
+      pointIndex,
+    );
+    if (boundaries === null) return;
     setActiveRangeBoundary("end");
+    cancelRouteBoundarySelection();
     rangeInteraction.openCreateEditor("route", {
       exerciseRef: choice.exerciseRef,
       coordinate: { scope: "route-elapsed", routeRef: choice.model.routeRef },
-      ...draftBounds,
+      startedAtElapsedMilliseconds: boundaries.startedAtElapsedMilliseconds,
+      endedAtElapsedMilliseconds: boundaries.endedAtElapsedMilliseconds,
     });
+  }
+
+  mapSelectionHandlerRef.current = (pointIndex) => {
+    setSelectedPointIndex(pointIndex);
+    if (routeEditor) {
+      updateRouteBoundary(activeRangeBoundary, pointIndex);
+    } else if (rangeBoundaryStep !== "idle") {
+      useRouteBoundary(pointIndex);
+    }
+  };
+
+  function startRouteBoundarySelection() {
+    setRangeBoundaryAnchorIndex(null);
+    setRangeBoundaryStep("first");
   }
 
   function routeRangeWorkspace() {
@@ -440,11 +506,15 @@ export function TrainingRouteWorkbench({
     const editorElsewhere = rangeInteraction.editor !== undefined && routeEditor === undefined;
     const currentElapsedMissing = selection.point.source.elapsedMilliseconds === null;
     return (
-      <aside className="training-route-range-inspector" aria-label={copy.rangeRegion}>
+      <aside
+        ref={rangeInspectorRef}
+        className="training-route-range-inspector"
+        aria-label={copy.rangeRegion}
+      >
         <header>
           <p className="eyebrow">{copy.rangeEyebrow}</p>
           <h4>{copy.rangeHeading}</h4>
-          <p>{copy.rangeIntroduction}</p>
+          {rangeBoundaryStep === "idle" && <p>{copy.rangeIntroduction}</p>}
         </header>
         {rangeInteraction.loading && <p role="status">{copy.rangeLoading}</p>}
         {rangeInteraction.failed && !rangeInteraction.loading && (
@@ -496,14 +566,15 @@ export function TrainingRouteWorkbench({
             )}
           </div>
         )}
-        {!routeEditor && !rangeInteraction.loading && !rangeInteraction.failed && (
+        {!routeEditor && !rangeInteraction.loading && !rangeInteraction.failed
+          && rangeBoundaryStep === "idle" && (
           <>
             <button
               type="button"
               disabled={rangeInteraction.busy || editorElsewhere || !routeCoordinateAvailable
-                || draftBounds === null}
-              onClick={openRouteRange}
-            >{copy.createRangeHere}</button>
+                || elapsedPointIndexes.length < 2}
+              onClick={startRouteBoundarySelection}
+            >{copy.chooseRangeBoundaries}</button>
             {currentElapsedMissing && <p className="training-route-range-note">
               {copy.pointWithoutElapsed}
             </p>}
@@ -512,6 +583,42 @@ export function TrainingRouteWorkbench({
               <p className="training-route-range-note">{copy.rangeUnavailable}</p>
             )}
           </>
+        )}
+        {!routeEditor && !rangeInteraction.loading && !rangeInteraction.failed
+          && rangeBoundaryStep !== "idle" && (
+          <div className="training-route-boundary-selection">
+            <p>{rangeBoundaryStep === "first"
+              ? copy.chooseFirstBoundary
+              : copy.chooseSecondBoundary}</p>
+            {rangeBoundaryStep === "second" && rangeBoundaryAnchorIndex !== null && (
+              <strong>{interpolate(copy.firstBoundary, {
+                position: routePointValue(rangeBoundaryAnchorIndex),
+              })}</strong>
+            )}
+            {rangeBoundaryStep === "second" && pendingBoundaryPair === null
+              && selectedPointIndex === rangeBoundaryAnchorIndex && (
+              <p className="training-route-range-note">{copy.differentBoundary}</p>
+            )}
+            {currentElapsedMissing && <p className="training-route-range-note">
+              {copy.pointWithoutElapsed}
+            </p>}
+            <div>
+              <button
+                type="button"
+                disabled={rangeInteraction.busy || currentElapsedMissing
+                  || (rangeBoundaryStep === "second" && pendingBoundaryPair === null)}
+                onClick={() => useRouteBoundary(selectedPointIndex)}
+              >{rangeBoundaryStep === "first"
+                  ? copy.useCurrentAsFirstBoundary
+                  : copy.useCurrentAsSecondBoundary}</button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={rangeInteraction.busy}
+                onClick={cancelRouteBoundarySelection}
+              >{copy.cancelBoundarySelection}</button>
+            </div>
+          </div>
         )}
         {routeEditor && (
           <>
@@ -605,6 +712,7 @@ export function TrainingRouteWorkbench({
     if (!next) return;
     setChoiceKey(next.key);
     setSelectedPointIndex(0);
+    cancelRouteBoundarySelection();
     setSelectedOverlayRef(defaultOverlayRef(next));
   }
 
@@ -639,7 +747,7 @@ export function TrainingRouteWorkbench({
             <span>{copy.visibleRoute}</span>
             <select
               value={choice.key}
-              disabled={rangeInteraction?.editor !== undefined}
+              disabled={rangeInteraction?.editor !== undefined || rangeBoundaryStep !== "idle"}
               onChange={(event) => selectChoice(event.target.value)}
             >
               {choices.map((candidate) => (
@@ -734,6 +842,12 @@ export function TrainingRouteWorkbench({
           <span>{selectedElapsed}</span>
         </div>
         <dl>
+          <div>
+            <dt>{copy.coordinates}</dt>
+            <dd>{coordinate.format(selection.point.source.latitudeDegrees)}°, {coordinate.format(
+              selection.point.source.longitudeDegrees,
+            )}°</dd>
+          </div>
           <div>
             <dt>{copy.altitude}</dt>
             <dd>{selection.point.source.altitudeMeters === null

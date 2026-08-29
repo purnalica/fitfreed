@@ -2485,7 +2485,36 @@ describe("packaged FitFreed import journey", () => {
     await expect(initialPersonalRanges).toHaveText(expect.stringContaining(rangeCopy.empty));
 
     const routeRangeCopy = english.training.sessionLibrary.routeWorkbench;
-    await routeWorkbench.$(`aria/${routeRangeCopy.createRangeHere}`).click();
+    const [routeChoiceDuringBoundarySelection] = await routeWorkbench.$$(
+      ".training-route-workbench-controls select",
+    );
+    await routeWorkbench.$(`aria/${routeRangeCopy.chooseRangeBoundaries}`).click();
+    await expect(routeChoiceDuringBoundarySelection).toBeDisabled();
+    await routeWorkbench.$(`aria/${routeRangeCopy.useCurrentAsFirstBoundary}`).click();
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("First boundary: Point 1 of 5"));
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-boundary-selection-en-wide.png",
+    ));
+    await routeWorkbench.$(`aria/${routeRangeCopy.cancelBoundarySelection}`).click();
+    await expect(routeChoiceDuringBoundarySelection).toBeEnabled();
+    expect(await routeWorkbench.$$(".training-range-editor")).toHaveLength(0);
+
+    await routeWorkbench.$(`aria/${routeRangeCopy.chooseRangeBoundaries}`).click();
+    await routeWorkbench.$(`aria/${routeRangeCopy.useCurrentAsFirstBoundary}`).click();
+    const boundaryPosition = await routeWorkbench.$(
+      ".training-route-position-control input[type='range']",
+    );
+    await browser.execute((position) => {
+      const setValue = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      ).set;
+      setValue.call(position, "4");
+      position.dispatchEvent(new Event("input", { bubbles: true }));
+      position.dispatchEvent(new Event("change", { bubbles: true }));
+    }, boundaryPosition);
+    await routeWorkbench.$(`aria/${routeRangeCopy.useCurrentAsSecondBoundary}`).click();
     const routeRangeEditor = await routeWorkbench.$(".training-range-editor");
     await routeRangeEditor.$(".training-range-editor-name input").setValue("Ridge middle");
     const routeRangeHandles = await routeWorkbench.$$(

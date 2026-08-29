@@ -3429,6 +3429,16 @@ horizontal-overflow collision.
    range reversal, exact boundaries, compact stacking, focused map, both locales, keyboard, reduced motion, local-only
    network assertions, export privacy review, and persisted range recovery.
 
+Implementation checkpoint — 2026-08-29: the first route-range slice is machine-complete. Pointer and keyboard flows
+now collect two exact recorded points, order reversed choices by their integer elapsed coordinate, reject equal or
+untimed boundaries, expose transient markers, preserve the single-draft context lock, and enter the existing precise
+editor without writing an incomplete range. The selected-point answer includes recorded geometry, and every boundary
+transition resets the inspector to its actionable instruction instead of inheriting stale internal scroll. Unit,
+contract, localization, documentation, Rust, packaged journey, adaptive, performance, update-recovery, and production
+package gates pass; visual review covers wide and compact Spanish dark 200% states. X7-R8.5 remains open: the next
+slice must calculate the temporary range through an application-owned exact summary query and present that concise
+answer in the route inspector before the remaining route matrix can close.
+
 ### X7-R8.6 — Give reports an explicit subject and transient run parameters
 
 1. Add an application-level report-subject eligibility query for each built-in example and contextual start. Preserve

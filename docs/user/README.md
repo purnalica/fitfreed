@@ -119,6 +119,9 @@ overlap, gaps, and limitations only on request. Established ownership never move
 clocks. Route-map and independent-signal handles are available; valid source laps and automatic laps can seed a
 separate personal draft, and timed exact route points or signal samples can supply deliberate boundaries without
 changing imported evidence.
+The route map starts a personal range by choosing two distinct timed points with the pointer or the native
+recorded-position control and explicit boundary actions. Reversed choices are ordered by their recorded elapsed
+values before the shared editor opens; an incomplete selection is cancellable and never becomes stored state.
 When a session has recorded exercise structure but neither a route nor a supported visual signal, recorded
 duration and source or automatic laps take that leading region. Pause counts are visible there, while their
 recorded local timestamps remain in structural detail because FitFreed does not infer an elapsed position that

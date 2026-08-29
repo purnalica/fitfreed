@@ -611,10 +611,10 @@ for (const [representation, source] of [
   ["signal", signalWorkbench],
 ]) {
   for (const contextLock of [
-    "disabled={rangeInteraction?.editor !== undefined}",
-    "disabled={rangeInteraction.busy || rangeInteraction.editor !== undefined}",
+    /disabled=\{rangeInteraction\?\.editor !== undefined(?: \|\| [^}]*)?\}/,
+    /disabled=\{rangeInteraction\.busy \|\| rangeInteraction\.editor !== undefined\}/,
   ]) {
-    if (!source.includes(contextLock)) {
+    if (!contextLock.test(source)) {
       throw new Error(`${representation} range editing must retain its single-draft context lock`);
     }
   }

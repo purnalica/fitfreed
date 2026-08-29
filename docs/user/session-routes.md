@@ -22,8 +22,9 @@ from equal offsets, similar sample counts, or visual proximity.
 
 - Click the recorded line to select its nearest returned evidence point.
 - Use **Recorded position** with a pointer or keyboard to traverse every returned route point. The map
-  marker, elapsed time, and altitude move together. A measurement value moves with them only when an importer
-  supplied an exact recorded relationship.
+  marker, elapsed time, coordinates, and altitude move together. A measurement value moves with them only when
+  an importer supplied an exact recorded relationship. The concise position strip is for exploration; use the
+  exact route action when you need the complete recorded precision and every source field.
 - Use **Zoom in**, **Zoom out**, and **Show the complete track** without changing the selected evidence. The
   displayed **Map zoom** level is relative to this route, not a technical map scale. Zoom out stops while the
   recorded shape still has useful context, and zoom in stops before the view implies unsupported GPS precision.
@@ -46,8 +47,11 @@ samples.
 ## Keep part of a route
 
 The map and **Your selection** inspector share the same personal-range state used by the **Personal ranges**
-destination. Choose a timed route point and use **Create a range from this point**. The map remains visible
-while the shared editor opens beside it on a wide window and below it at compact width or high content zoom.
+destination. Choose **Choose range boundaries**, then select two distinct timed points on the recorded line. You
+can instead traverse with **Recorded position** and use the named first- and second-boundary actions, which provide
+the complete keyboard path. If the second point occurs earlier, FitFreed orders the pair chronologically. Until
+both limits are valid, the selection is temporary: cancelling it writes nothing. The map remains visible while
+the shared editor opens beside it on a wide window and below it at compact width or high content zoom.
 
 Choose **Move range start** or **Move range end**, then click the recorded line to place that boundary on the
 selected recorded point when that point has an exact elapsed value. An untimed point moves the exploration

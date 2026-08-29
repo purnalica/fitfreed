@@ -928,6 +928,11 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-route-saved-range > strong { overflow-wrap: anywhere; }
 .training-route-saved-range > small { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .training-route-saved-range > button { margin-top: 8px; }
+.training-route-boundary-selection { display: grid; gap: 9px; margin-top: 14px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.training-route-boundary-selection > p, .training-route-boundary-selection > strong { margin: 0; font-size: .76rem; line-height: 1.45; }
+.training-route-boundary-selection > strong { overflow-wrap: anywhere; }
+.training-route-boundary-selection > div { display: grid; gap: 7px; }
+.training-route-boundary-selection > div button { min-height: 38px; padding: 7px 9px; font-size: .72rem; }
 .training-route-range-handles { display: grid; gap: 9px; margin-top: 14px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .training-route-range-handles > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .training-route-range-handles button { min-height: 38px; padding: 7px 8px; font-size: .72rem; }

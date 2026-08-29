@@ -329,7 +329,23 @@ describe("TrainingRouteWorkbench", () => {
     const visibleRoute = screen.getByRole("combobox", { name: "Visible route" });
     expect(visibleRoute).toBeEnabled();
     await user.click(await screen.findByRole("button", {
-      name: "Create a range from this point",
+      name: "Choose range boundaries",
+    }));
+    expect(screen.getByText(
+      "Choose the first boundary on the recorded track, or use the current point.",
+    )).toBeVisible();
+    const rangeInspector = screen.getByRole("complementary", { name: "Personal route range" });
+    rangeInspector.scrollTop = 120;
+    await user.click(screen.getByRole("button", {
+      name: "Use this point as start",
+    }));
+    expect(rangeInspector.scrollTop).toBe(0);
+    expect(screen.getByText("First boundary: Point 1 of 3 · 0 s")).toBeVisible();
+    fireEvent.change(screen.getByRole("slider", { name: "Recorded position" }), {
+      target: { value: "1" },
+    });
+    await user.click(screen.getByRole("button", {
+      name: "Use this point as end",
     }));
     expect(visibleRoute).toBeDisabled();
     expect(screen.queryByRole("combobox", { name: "Timeline" })).not.toBeInTheDocument();
@@ -375,6 +391,131 @@ describe("TrainingRouteWorkbench", () => {
     expect(await screen.findByText("Range saved.")).toBeVisible();
     expect(visibleRoute).toBeEnabled();
     expect(screen.getByText("Riverside effort")).toBeVisible();
+  });
+
+  it("creates a chronologically ordered draft from two map points selected in reverse", async () => {
+    const currentStory = story();
+    const exerciseRef = currentStory.exercises[0].exerciseRef;
+    const routeRef = currentStory.exercises[0].primary.route!.routeRef;
+    commands.invoke.mockImplementation((command) => {
+      if (command === "query_training_session_ranges") return Promise.resolve({
+        snapshotRef: currentStory.snapshotRef,
+        sessionRef: currentStory.session.sessionRef,
+        sessionDurationMilliseconds: currentStory.session.durationMilliseconds,
+        evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+        exercises: [{
+          exerciseRef,
+          ordinal: 0,
+          coordinates: [{
+            coordinate: { scope: "route-elapsed", routeRef },
+            maximumElapsedMilliseconds: "2000",
+          }],
+        }],
+        ranges: [],
+      } satisfies TrainingSessionRangesResult);
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    render(
+      <TrainingRangeInteractionProvider
+        sessionRef={currentStory.session.sessionRef}
+        snapshotRef={currentStory.snapshotRef}
+        story={currentStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      >
+        <TrainingRouteWorkbench
+          story={currentStory}
+          locale="en-US"
+          messages={catalogs["en-US"]}
+          onOpenExactRoute={vi.fn()}
+          onOpenExactSignal={vi.fn()}
+        />
+      </TrainingRangeInteractionProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", {
+      name: "Choose range boundaries",
+    }));
+    await act(async () => viewport.selectPoint?.(2));
+    expect(screen.getByText("First boundary: Point 3 of 3 · 2 s")).toBeVisible();
+    await act(async () => viewport.selectPoint?.(0));
+
+    expect(screen.getByLabelText("Start")).toHaveValue("0:00:00");
+    expect(screen.getByLabelText("End")).toHaveValue("0:00:02");
+    expect(viewport.controller.updateRangeSelection).toHaveBeenLastCalledWith({
+      startedAtPointIndex: 0,
+      endedAtPointIndex: 2,
+    });
+  });
+
+  it("keeps an incomplete two-point selection transient and cancellable", async () => {
+    const currentStory = story();
+    const exerciseRef = currentStory.exercises[0].exerciseRef;
+    const routeRef = currentStory.exercises[0].primary.route!.routeRef;
+    commands.invoke.mockImplementation((command) => {
+      if (command === "query_training_session_ranges") return Promise.resolve({
+        snapshotRef: currentStory.snapshotRef,
+        sessionRef: currentStory.session.sessionRef,
+        sessionDurationMilliseconds: currentStory.session.durationMilliseconds,
+        evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+        exercises: [{
+          exerciseRef,
+          ordinal: 0,
+          coordinates: [{
+            coordinate: { scope: "route-elapsed", routeRef },
+            maximumElapsedMilliseconds: "2000",
+          }],
+        }],
+        ranges: [],
+      } satisfies TrainingSessionRangesResult);
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    render(
+      <TrainingRangeInteractionProvider
+        sessionRef={currentStory.session.sessionRef}
+        snapshotRef={currentStory.snapshotRef}
+        story={currentStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      >
+        <TrainingRouteWorkbench
+          story={currentStory}
+          locale="en-US"
+          messages={catalogs["en-US"]}
+          onOpenExactRoute={vi.fn()}
+          onOpenExactSignal={vi.fn()}
+        />
+      </TrainingRangeInteractionProvider>,
+    );
+
+    const visibleRoute = screen.getByRole("combobox", { name: "Visible route" });
+    await user.click(await screen.findByRole("button", { name: "Choose range boundaries" }));
+    await user.click(screen.getByRole("button", { name: "Use this point as start" }));
+
+    expect(screen.getByText("Choose a different timed point for the second boundary.")).toBeVisible();
+    expect(screen.getByRole("button", {
+      name: "Use this point as end",
+    })).toBeDisabled();
+    expect(viewport.controller.updateRangeSelection).toHaveBeenLastCalledWith({
+      startedAtPointIndex: 0,
+      endedAtPointIndex: null,
+    });
+    expect(screen.queryByLabelText("Start")).not.toBeInTheDocument();
+    expect(commands.invoke).not.toHaveBeenCalledWith(
+      "create_training_session_range",
+      expect.anything(),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel boundary selection" }));
+    expect(visibleRoute).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Choose range boundaries" })).toBeEnabled();
+    expect(viewport.controller.updateRangeSelection).toHaveBeenLastCalledWith(null);
   });
 
   it("offers the only saved range for this route when another coordinate is selected", async () => {
@@ -519,6 +660,8 @@ describe("TrainingRouteWorkbench", () => {
     expect(viewport.create).toHaveBeenCalledTimes(1);
     expect(map).toHaveAttribute("tabindex", "0");
     expect(workbench).toHaveTextContent("0 s");
+    expect(workbench).toHaveTextContent("40°, -3.7°");
+    expect(within(workbench).getByText("Recorded coordinates")).toBeVisible();
     expect(workbench).toHaveTextContent("5:00 min/km");
     const signalLanes = within(workbench).getByRole("region", {
       name: "Recorded measurements along the route",
