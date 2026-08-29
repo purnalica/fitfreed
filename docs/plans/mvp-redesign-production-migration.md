@@ -44,9 +44,11 @@ not a candidate and must not be handed back for incremental spot checking.
 The first X7-R8.1 vertical increment now keeps exact recognized session collections separate from the unresolved
 source-profile remainder when a personal fallback classification is saved. The scoped classification, stable filter
 identity, workspace-v3 migration, downstream projections, report contracts, and SQLite-v35 transition are covered by
-synthetic regression evidence. The privacy-minimized X7-R8.0 selector is prepared and the participant correlation
-observations remain pending; neither X7-R8.0 nor X7-R8.1 is complete until that structural conclusion is recorded and
-the remaining identity cases in X7-R8.1 are closed.
+synthetic regression evidence. The privacy-minimized X7-R8.0 participant correlation is complete. It established
+stable local one-to-one meaning across exact and unresolved profile evidence, showed that multiple exact codes need
+not mean multiple provider-visible sports, and proved that missing export evidence does not prove a missing sport in
+the provider account. It authorizes no global mapping. X7-R8.1 remains open until explicit user-authored collection
+unification, export-missing language, and their complete downstream and recovery evidence are closed.
 
 X7-R8.2 through X7-R8.7 are machine-complete locally. They add ordered calendar activities and exact navigation,
 shared concise presentation and alignment rules, question-led analytical charts, and an exact local route workbench
@@ -309,7 +311,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | In progress — R8.2 through R8.7 are machine-complete; bounded Polar correlation, the resulting R8.1 conclusion, and the exact R8.8 candidate remain | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | In progress — R8.0 and R8.2 through R8.7 are machine-complete; explicit R8.1 sport unification and the exact R8.8 candidate remain | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3292,6 +3294,14 @@ no-invented-correlation rule until a source contract proves a stronger relations
 **Gate:** this is the next human intervention. It is bounded to reading a few locally selected session dates in the
 participant's own Polar Flow account. No code review, functional acceptance, archive inspection, credential transfer,
 or broad manual checklist is requested.
+
+**Completed result — 2026-08-29:** the privacy-minimized correlation found a mixture of stable local one-to-one
+meaning and export omission. One opaque profile retained the same provider-visible meaning across exact and unresolved
+sessions; multiple exact codes for one profile also retained one provider-visible meaning; and an unresolved-only
+profile had stable local meaning. A session without usable sport evidence in the imported export nevertheless had a
+sport in the provider account. No selected date, sport, identifier, count, device, target, archive locator, or account
+content is retained. The result supports explicit local user-authored unification and accurate export-missing language,
+but cannot authorize a bundled mapping or collapse exact candidates automatically.
 
 ### X7-R8.1 — Make sport identity stable, recognizable, and explicitly adaptable
 

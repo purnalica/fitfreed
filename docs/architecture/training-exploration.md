@@ -36,7 +36,8 @@ provider-neutral recognition, candidate count, and aggregate coverage. Source id
 keys, catalogue hierarchy, and origin identities never become labels.
 
 One active catalogue candidate produces `recognized`; multiple candidates produce `ambiguous`; no candidate
-produces `unknown`; absent source sport evidence produces `unavailable`. Candidate order is not authority.
+produces `unknown`; absent usable sport evidence in the imported export produces `unavailable`. The last state means
+export-missing and does not claim that the provider account failed to record a sport. Candidate order is not authority.
 Recognition carries localized provider names, an optional provider-neutral family suggestion, catalogue and
 mapping version, retrieval instant, and opaque evidence reference.
 [ADR 0027](decisions/0027-resolve-sport-identity-from-versioned-provider-evidence.md) owns the immutable

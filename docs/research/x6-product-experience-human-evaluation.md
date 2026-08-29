@@ -265,7 +265,8 @@ product owner.
 
 ### XH-08 — Imported sport types remain entirely unrecognized
 
-- **Status:** open; critical functional and product-experience defect now requires provider-catalogue authority.
+- **Status:** correction in progress; the bounded provider correlation is complete and the explicit local unification
+  boundary remains to be implemented and verified.
 - **Observed task:** reach Home after importing a long, multi-sport history.
 - **Observed behavior:** Home reports no recognized sports even though the same screen reports multiple recorded sport
   types and the imported history is known to contain several distinct activities.
@@ -331,11 +332,20 @@ product owner.
   explains the disappearing recognized group, the changed session total, and the disagreement between the Home card
   and classification task; it is a scope and precedence defect, not a stale React projection. The repository retains
   no predicate result, source reference, code, sport, date, count, or personal value.
-- **Remaining evidence gate:** the structural correction can preserve exact recognition independently of a fallback
-  classification, but trustworthy automatic naming still requires the bounded participant-assisted correlation. The
-  session must test whether the provider account presents stable sport meaning for carefully selected examples across
-  the ambiguous source-reference shapes. It cannot turn one observed personal association into a universal mapping;
-  any reusable correlation still requires explicit provenance, ambiguity, update, and correction rules.
+- **Bounded correlation conclusion:** the privacy-minimized participant session found a mixture of stable local
+  one-to-one meaning and export omission. Exact and unresolved sessions sharing one opaque profile had the same sport
+  meaning in the provider account. Distinct exact codes associated with one opaque profile also resolved to the same
+  provider-visible meaning, so code plurality alone did not establish semantic ambiguity. An unresolved-only profile
+  again had stable visible meaning in this library. Conversely, a completed session with no usable sport evidence in
+  the export still had a sport in the provider account. The repository retains no selected date, sport, source code,
+  source profile, session count, device, target, account value, or other personal evidence.
+- **Structural decision from the gate:** the observation supports a deliberate local relationship between represented
+  FitFreed sport collections, but it does not authorize an automatic global mapping or a bundled provider catalogue.
+  Exact recognition, unresolved fallback classification, and explicit user-authored unification remain separate
+  evidence and authorship scopes. Multiple exact codes are not collapsed merely because one private library displayed
+  the same meaning. Missing export evidence must be described as missing from the imported export, never as proof that
+  the provider failed to record a sport. Any reusable automatic mapping still requires provenance, confidence,
+  ambiguity, version, update, licence, and user-correction rules.
 
 ### XH-09 — Home aggregates look actionable but do not lead to exploration
 
