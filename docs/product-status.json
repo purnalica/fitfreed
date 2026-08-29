@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-08-27",
+  "updated": "2026-08-29",
   "statuses": [
     {
       "key": "available",
@@ -45,8 +45,8 @@
       "label": "Work in progress",
       "title": "MVP release preparation and human evaluation",
       "items": [
-        { "key": "wholeProductHardening", "text": "Whole-product presentation, documentation, installation, update, and recovery validation" },
-        { "key": "independentAudit", "text": "Final production-native usability and accessibility evaluation" },
+        { "key": "wholeProductHardening", "text": "Exact current-source package, installation, update, recovery, and performance validation completed" },
+        { "key": "independentAudit", "text": "Final bounded production-native product-owner experience evaluation" },
         { "key": "polarSportCatalogue", "text": "Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition" }
       ],
       "source": {

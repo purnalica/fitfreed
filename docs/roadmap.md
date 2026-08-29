@@ -12,9 +12,11 @@ that admitted a production-native candidate. The product-owner review rejected a
 material sport-identity, calendar-discovery, information-density, analytical-chart, route-interaction, and report-run
 defects that the prior machine audit did not detect. The active X7-R8 sequence traces and corrects those defects at
 their lowest contract, performs one bounded participant-assisted provider correlation, repeats the independent audit,
-and builds a new exact candidate only after the complete local and hosted campaign passes. X7-R8.0 through X7-R8.7
-are machine-complete locally; X7-R8.8 is the remaining candidate-construction and verification increment before the
-bounded product-owner experience gate.
+and builds a new exact candidate only after the complete local and hosted campaign passes. X7-R8.0 through X7-R8.8
+are machine-complete. Corrected clean source `6a71002` passes the complete local campaign, exact repository safety,
+complete hosted verification, immutable executable-input evidence, and the final revision-isolated native-bundle
+scan. The application remains unpublished and unopened; the bounded product-owner experience evaluation is the only
+remaining X7-R8 gate.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) remains the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

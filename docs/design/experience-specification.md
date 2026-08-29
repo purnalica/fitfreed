@@ -2,18 +2,18 @@
 
 ## Status and authority
 
-**Accepted X3 contract as of 2026-08-21; X7-R8 correction active.** This document is the single
-source of truth for the screen, interaction, navigation, state, responsive, localization, and
-accessibility contract of the systemic MVP experience redesign. The production application implements
-X5-R1 through X5-R10 and the earlier corrective X7-R1 through X7-R7 vertical slices, while X7-R8 owns
-the contract corrections established by the paused production-native review.
+**Accepted X3 contract as of 2026-08-21; X7-R8 machine correction complete and human acceptance pending.** This
+document is the single source of truth for the screen, interaction, navigation, state, responsive, localization, and
+accessibility contract of the systemic MVP experience redesign. The production application implements X5-R1 through
+X5-R10 and the corrective X7-R1 through X7-R8 vertical slices.
 The first human session was invalidated by an instrumented native boundary, and the restarted valid human gate later
 rejected its reviewed X6 sources. Corrective X7-R1 through X7-R7 in the [production migration
 plan](../plans/mvp-redesign-production-migration.md) passed their independent audit, exact local and hosted
 campaigns, immutable marker, and production-native bundle scan, but the resulting candidate was rejected after the
-product-owner review exposed material lower-layer and experience defects. X7-R8 must correct them, repeat the audit,
-and restore human acceptance before release preparation resumes. Implementation and machine evidence do not by
-themselves authorize a release claim.
+product-owner review exposed material lower-layer and experience defects. X7-R8 corrected those contracts, repeated
+the audit and exact automated campaign, and produced one scanned production-native review application. The bounded
+product-owner gate must still restore human acceptance before release preparation resumes. Implementation and machine
+evidence do not by themselves authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

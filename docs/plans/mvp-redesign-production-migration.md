@@ -15,8 +15,8 @@ redesign.
 Updated 2026-08-29. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
 machine-complete historical evidence. The production-native review of that result was paused and rejected after it
 found material defects in sport identity, calendar discovery, information density, analytical charts, route
-interaction, and report execution. X7-R8 is now the active corrective sequence; no prior green campaign or audit
-overrides the observed product failure.
+interaction, and report execution. X7-R8.0 through X7-R8.8 are now machine-complete; no prior green campaign or audit
+overrides the observed product failure, and only the bounded product-owner experience gate can accept the correction.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) closes its only material
 finding after an exact clean rebuild and accepts no additional critical or major finding. Exact [repository safety
@@ -65,8 +65,17 @@ The first exact R8.8 attempt passed the complete local and hosted campaigns for 
 candidate inspection rejected its revision-isolated native bundle: Rust compiler location metadata still contained
 machine-local build paths. The prior package scanner covered test routing but not that existing release-policy
 boundary. The candidate is ineligible, its executable-input evidence cannot be reused after the build correction, and
-R8.8 remains open until deterministic path remapping, complete-bundle regression scanning, and the exact local and
-hosted gates all pass again for one corrected clean source.
+its executable-input evidence was not reused after the build correction.
+
+Corrected exact source `6a71002` passes the complete clean local campaign, [repository safety
+`33269097825`](https://github.com/purnalica/fitfreed/actions/runs/33269097825), and the complete [hosted campaign
+`33269097826`](https://github.com/purnalica/fitfreed/actions/runs/33269097826). The hosted campaign records immutable
+executable-input fingerprint `2d4c7a95bf5d02608ddff7c7274472712998de2c90919acaae151fe4e1a91a9c` after portable quality,
+production-native package construction and scanning, cold launch, full-scale import, dense History, Insights,
+installation boundaries, every packaged journey, native replacement, deliberate rejection, and recovery all pass.
+The revision-isolated application built locally from that same clean source then passed complete-bundle inspection
+with production adapters and no test routing or build-host path. X7-R8.8 is machine-complete; the application remains
+unpublished and closed until the product owner chooses to begin the bounded experience review.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -318,7 +327,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | In progress — R8.0 through R8.7 are machine-complete locally; only the exact R8.8 candidate remains before the human gate | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Awaiting product-owner experience evaluation — R8.0 through R8.8 and the exact local and hosted machine gates pass; the scanned production-native review application is ready but unopened | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3554,14 +3563,20 @@ inspection reject local-home and temporary path classes without echoing matched 
 change executable inputs, all exact local, hosted, package, installation, update, recovery, and candidate gates below
 must repeat; the earlier green campaign is not acceptance evidence for the corrected bytes.
 
-The corrected shared build boundary and scanner now pass their focused regression tests, repository-content safety,
+The corrected shared build boundary and scanner pass their focused regression tests, repository-content safety,
 complete documentation checks, and a real changed-tree production-package inspection. The complete
-`verify:precommit` chain also passes: dependency audit, architecture and format contracts, 183 automation tests,
-473 presentation tests, two vendored-updater tests, 614 workspace Rust tests, strict lint and formatting, all three
-performance campaigns, the complete
-packaged functional, restart, adaptive, and dense-history journeys, both update outcomes, and application plus disk
-image packaging. R8.8 remains open until a focused commit exists and that exact clean source repeats the complete
-local and hosted gates plus the revision-isolated scan.
+`verify:precommit` chain for the final clean source also passes: dependency audit, architecture and format contracts,
+183 automation tests, 474 presentation tests, two vendored-updater tests, 614 workspace Rust tests, strict lint and
+formatting, all three performance campaigns, the complete packaged functional, restart, adaptive, and dense-history
+journeys, both update outcomes, and application plus disk image packaging.
+
+The first hosted build after the path correction exposed one Linux presentation-test timeout rather than a product
+failure. Repository history showed that one test had accumulated unrelated session-summary, route, signal, structure,
+range, provenance, and pagination contracts. The final source splits those contracts into two independent tests
+without removing an assertion or changing the five-second timeout. Both focused tests, the complete local chain, the
+portable hosted job, and the packaged macOS job then pass. Repository safety `33269097825`, continuous integration
+`33269097826`, its immutable marker, and the final revision-isolated scan close all four steps below for source
+`6a71002`. R8.8 is machine-complete.
 
 1. Run the complete clean local gate, strict formatting and linting, architecture and format contracts, localization,
    documentation, repository safety, all packaged journeys, restart, adaptive, performance, migration, install, update,
