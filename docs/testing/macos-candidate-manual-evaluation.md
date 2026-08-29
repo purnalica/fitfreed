@@ -27,9 +27,9 @@ npm run check:x6-review-bundle
 ```
 
 The resulting application must have its own revision-derived application-data location and must contain no E2E
-feature, frontend test routing, WebDriver capability, dialog mock, opener mock, or database-path override. Archive
-selection and external links therefore use the production native adapters. Never hand the product owner an E2E
-build.
+feature, frontend test routing, WebDriver capability, dialog mock, opener mock, database-path override, or build-host
+path. Archive selection and external links therefore use the production native adapters, while complete-bundle
+inspection also protects the local build boundary. Never hand the product owner an E2E or rejected bundle.
 
 The native application is launched only when the product owner chooses to begin the review. It may use independently
 generated synthetic packages or an explicitly authorized personal export. A personal export never changes the

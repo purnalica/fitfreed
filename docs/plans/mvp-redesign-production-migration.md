@@ -61,6 +61,13 @@ critical or major finding. Its method, question inventory, findings, and machine
 [X7-R8 product-experience audit](../research/x7-r8-product-experience-audit.md). X7-R8.8 is now the only remaining
 machine-delivery increment before the bounded product-owner experience gate.
 
+The first exact R8.8 attempt passed the complete local and hosted campaigns for source `006e7c7`, but the additional
+candidate inspection rejected its revision-isolated native bundle: Rust compiler location metadata still contained
+machine-local build paths. The prior package scanner covered test routing but not that existing release-policy
+boundary. The candidate is ineligible, its executable-input evidence cannot be reused after the build correction, and
+R8.8 remains open until deterministic path remapping, complete-bundle regression scanning, and the exact local and
+hosted gates all pass again for one corrected clean source.
+
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
 mechanics, and every other deterministic outcome belong to automated or separately assigned specialist evidence
@@ -3539,6 +3546,22 @@ complete locally.
    defect to the product owner for discovery.
 
 ### X7-R8.8 — Build one exact production-native candidate
+
+**Corrective checkpoint — 2026-08-29:** the first exact candidate was rejected before human handoff because its Rust
+binary embedded machine-local source paths. No private archive or personal history was involved. The correction must
+normalize build paths at the shared production-build boundary and make both production and revision-isolated bundle
+inspection reject local-home and temporary path classes without echoing matched values. Because compiler arguments
+change executable inputs, all exact local, hosted, package, installation, update, recovery, and candidate gates below
+must repeat; the earlier green campaign is not acceptance evidence for the corrected bytes.
+
+The corrected shared build boundary and scanner now pass their focused regression tests, repository-content safety,
+complete documentation checks, and a real changed-tree production-package inspection. The complete
+`verify:precommit` chain also passes: dependency audit, architecture and format contracts, 183 automation tests,
+473 presentation tests, two vendored-updater tests, 614 workspace Rust tests, strict lint and formatting, all three
+performance campaigns, the complete
+packaged functional, restart, adaptive, and dense-history journeys, both update outcomes, and application plus disk
+image packaging. R8.8 remains open until a focused commit exists and that exact clean source repeats the complete
+local and hosted gates plus the revision-isolated scan.
 
 1. Run the complete clean local gate, strict formatting and linting, architecture and format contracts, localization,
    documentation, repository safety, all packaged journeys, restart, adaptive, performance, migration, install, update,

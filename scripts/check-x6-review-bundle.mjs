@@ -1,11 +1,13 @@
 import { execFileSync } from "node:child_process";
 import {
   readFileSync,
-  readdirSync,
-  statSync,
 } from "node:fs";
 import path from "node:path";
 
+import {
+  bundleFiles,
+  inspectBundleFiles,
+} from "./bundle-content-policy.mjs";
 import {
   validateX6ReviewBundleFacts,
   x6ReviewApplicationBundle,
@@ -13,40 +15,12 @@ import {
 } from "./x6-human-review-profile.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
-const markers = [
-  "__wdio_mocks__",
-  "instrumented archive picker",
-  "instrumented official-link adapter",
-  "open-instrumented-archive-picker",
-  "open-instrumented-official-source-link",
-  "TAURI_WEBDRIVER_PORT",
-  "tauri-plugin-wdio",
-  "wdio-webdriver",
-];
-
 function command(program, arguments_) {
   return execFileSync(program, arguments_, {
     cwd: repositoryRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
-}
-
-function bundleFiles(root) {
-  return readdirSync(root, { recursive: true })
-    .map((relativePath) => path.join(root, relativePath))
-    .filter((candidate) => statSync(candidate).isFile());
-}
-
-function presentMarkers(files) {
-  const found = new Set();
-  for (const file of files) {
-    const content = readFileSync(file);
-    for (const marker of markers) {
-      if (content.includes(Buffer.from(marker))) found.add(marker);
-    }
-  }
-  return [...found].sort();
 }
 
 function minimumMacos(binary) {
@@ -76,13 +50,14 @@ const informationPlist = path.join(x6ReviewApplicationBundle, "Contents/Info.pli
 const binary = path.join(x6ReviewApplicationBundle, "Contents/MacOS/fitfreed");
 const files = bundleFiles(x6ReviewApplicationBundle);
 const binaryContent = readFileSync(binary);
+const contentFindings = inspectBundleFiles(files);
 const facts = {
   bundleIdentifier: command("plutil", ["-extract", "CFBundleIdentifier", "raw", "-o", "-", informationPlist]),
   bundleExecutable: command("plutil", ["-extract", "CFBundleExecutable", "raw", "-o", "-", informationPlist]),
   bundleMinimumMacos: command("plutil", ["-extract", "LSMinimumSystemVersion", "raw", "-o", "-", informationPlist]),
   binaryMinimumMacos: minimumMacos(binary),
   embeddedSourceRevision: binaryContent.includes(Buffer.from(revision)),
-  testRoutingMarkers: presentMarkers(files),
+  ...contentFindings,
 };
 
 validateX6ReviewBundleFacts(facts, revision);

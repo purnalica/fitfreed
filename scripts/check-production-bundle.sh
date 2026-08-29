@@ -44,10 +44,7 @@ if [[ "$binary_minimum_macos" != "15.0" ]]; then
   exit 1
 fi
 
-if strings "$application_binary" | grep -Eiq 'tauri-plugin-wdio|TAURI_WEBDRIVER_PORT|wdio-webdriver|__wdio_mocks__|instrumented archive picker'; then
-  printf 'Production bundle check failed: test-only WebDriver capability is present.\n' >&2
-  exit 1
-fi
+node "$repository_root/scripts/bundle-content-policy.mjs" "$application_bundle"
 
 printf 'Production bundle check passed for %s (%s) on macOS %s or later.\n' \
   "$bundle_executable" "$bundle_identifier" "$bundle_minimum_macos"

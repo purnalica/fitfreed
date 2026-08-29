@@ -75,6 +75,11 @@ export function validateX6ReviewBundleFacts(facts, revision) {
   if (!facts.embeddedSourceRevision) {
     throw new Error("X6 review bundle does not contain the exact source revision");
   }
+  if (facts.machineLocalPathMarkers.length !== 0) {
+    throw new Error(
+      `X6 review bundle contains machine-local paths: ${facts.machineLocalPathMarkers.join(", ")}`,
+    );
+  }
   if (facts.testRoutingMarkers.length !== 0) {
     throw new Error(
       `X6 review bundle contains test-only routing: ${facts.testRoutingMarkers.join(", ")}`,

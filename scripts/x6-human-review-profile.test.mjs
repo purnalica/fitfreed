@@ -108,6 +108,7 @@ test("accepts only a native production-adapter review bundle for the exact sourc
     bundleMinimumMacos: "15.0",
     binaryMinimumMacos: "15.0",
     embeddedSourceRevision: true,
+    machineLocalPathMarkers: [],
     testRoutingMarkers: [],
   };
 
@@ -123,6 +124,13 @@ test("accepts only a native production-adapter review bundle for the exact sourc
   assert.throws(
     () => validateX6ReviewBundleFacts({ ...facts, testRoutingMarkers: ["__wdio_mocks__"] }, revision),
     /test-only routing/,
+  );
+  assert.throws(
+    () => validateX6ReviewBundleFacts({
+      ...facts,
+      machineLocalPathMarkers: ["macOS user-home path"],
+    }, revision),
+    /machine-local paths/,
   );
 });
 

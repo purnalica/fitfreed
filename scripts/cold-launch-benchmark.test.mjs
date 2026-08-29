@@ -13,6 +13,7 @@ import {
 } from "./run-cold-launch-benchmark.mjs";
 
 const revision = "a".repeat(40);
+const syntheticBuildHome = `/${["Users", "synthetic-builder"].join("/")}`;
 
 test("binds a production build to its exact revision and clean-tree state", () => {
   assert.deepEqual(productionBuildIdentity(revision, ""), {
@@ -28,7 +29,9 @@ test("binds a production build to its exact revision and clean-tree state", () =
 
 test("keeps ordinary builds unconfigured and admits public inputs only explicitly", () => {
   const inherited = {
+    HOME: syntheticBuildHome,
     PATH: "/synthetic/bin",
+    RUSTFLAGS: "-C target-cpu=apple-m1",
     FITFREED_E2E_DATABASE_PATH: "/private/e2e.sqlite",
     FITFREED_PUBLIC_UPDATE_CONTRACT: "inherited-contract",
     FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://inherited.invalid/stable.json",
@@ -37,9 +40,20 @@ test("keeps ordinary builds unconfigured and admits public inputs only explicitl
     VITE_FITFREED_E2E: "true",
   };
   const identity = productionBuildIdentity(revision, "");
+  const buildPaths = {
+    sourceRoot: `${syntheticBuildHome}/workspace with spaces/fitfreed`,
+  };
+  const encodedRustFlags = [
+    "-C",
+    "target-cpu=apple-m1",
+    `--remap-path-prefix=${syntheticBuildHome}=/fitfreed/build-home`,
+    `--remap-path-prefix=${syntheticBuildHome}/workspace with spaces/fitfreed=/fitfreed/source`,
+  ].join("\u001f");
 
-  assert.deepEqual(productionBuildEnvironment(inherited, identity), {
+  assert.deepEqual(productionBuildEnvironment(inherited, identity, {}, buildPaths), {
+    HOME: syntheticBuildHome,
     PATH: "/synthetic/bin",
+    CARGO_ENCODED_RUSTFLAGS: encodedRustFlags,
     ...identity,
   });
   assert.deepEqual(
@@ -47,15 +61,42 @@ test("keeps ordinary builds unconfigured and admits public inputs only explicitl
       FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v2",
       FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://updates.invalid/stable.json",
       FITFREED_PUBLIC_UPDATE_TRUST: '{"stable.synthetic":"trust"}',
-    }),
+    }, buildPaths),
     {
+      HOME: syntheticBuildHome,
       PATH: "/synthetic/bin",
+      CARGO_ENCODED_RUSTFLAGS: encodedRustFlags,
       ...identity,
       FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v2",
       FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://updates.invalid/stable.json",
       FITFREED_PUBLIC_UPDATE_TRUST: '{"stable.synthetic":"trust"}',
     },
   );
+});
+
+test("preserves encoded compiler arguments while appending deterministic path remaps", () => {
+  const identity = productionBuildIdentity(revision, "");
+  const environment = productionBuildEnvironment({
+    HOME: syntheticBuildHome,
+    CARGO_HOME: "/opt/synthetic cargo",
+    RUSTUP_HOME: `${syntheticBuildHome}/.rustup`,
+    TMPDIR: "/private/var/folders/synthetic/T/",
+    CARGO_ENCODED_RUSTFLAGS: ["-C", "target-feature=+aes"].join("\u001f"),
+    RUSTFLAGS: "-D warnings",
+  }, identity, {}, {
+    sourceRoot: `${syntheticBuildHome}/project`,
+  });
+
+  assert.equal(environment.RUSTFLAGS, undefined);
+  assert.deepEqual(environment.CARGO_ENCODED_RUSTFLAGS.split("\u001f"), [
+    "-C",
+    "target-feature=+aes",
+    "--remap-path-prefix=/opt/synthetic cargo=/fitfreed/cargo",
+    `--remap-path-prefix=${syntheticBuildHome}=/fitfreed/build-home`,
+    `--remap-path-prefix=${syntheticBuildHome}/.rustup=/fitfreed/rustup`,
+    "--remap-path-prefix=/private/var/folders/synthetic/T=/fitfreed/build-temp",
+    `--remap-path-prefix=${syntheticBuildHome}/project=/fitfreed/source`,
+  ]);
 });
 
 test("accepts only the exact privacy-safe interactive-shell signal", () => {

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const revisionPattern = /^[0-9a-f]{40,64}$/;
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const encodedRustFlagSeparator = "\u001f";
 const publicUpdateBuildKeys = [
   "FITFREED_PUBLIC_UPDATE_CONTRACT",
   "FITFREED_PUBLIC_UPDATE_ENDPOINT",
@@ -23,10 +24,60 @@ export function productionBuildIdentity(revision, status) {
   };
 }
 
+function normalizedAbsolutePrefix(value) {
+  if (
+    typeof value !== "string"
+    || (!value.startsWith("/") && !/^[A-Za-z]:[\\/]/.test(value))
+  ) {
+    return null;
+  }
+  const normalized = value.replace(/[\\/]+$/, "");
+  if (normalized.length === 0 || /^[A-Za-z]:$/.test(normalized)) return null;
+  return normalized;
+}
+
+function productionPathRemapFlags(inheritedEnvironment, sourceRoot) {
+  const candidates = [
+    [inheritedEnvironment.HOME, "/fitfreed/build-home"],
+    [inheritedEnvironment.USERPROFILE, "/fitfreed/build-home"],
+    [inheritedEnvironment.CARGO_HOME, "/fitfreed/cargo"],
+    [inheritedEnvironment.RUSTUP_HOME, "/fitfreed/rustup"],
+    [inheritedEnvironment.TMPDIR, "/fitfreed/build-temp"],
+    [inheritedEnvironment.TEMP, "/fitfreed/build-temp"],
+    [inheritedEnvironment.TMP, "/fitfreed/build-temp"],
+    [sourceRoot, "/fitfreed/source"],
+  ];
+  const remaps = [];
+  const sources = new Set();
+  for (const [candidate, destination] of candidates) {
+    const source = normalizedAbsolutePrefix(candidate);
+    if (source === null || sources.has(source)) continue;
+    sources.add(source);
+    remaps.push({ destination, source });
+  }
+  remaps.sort((left, right) => left.source.length - right.source.length);
+  return remaps.map(
+    ({ destination, source }) => `--remap-path-prefix=${source}=${destination}`,
+  );
+}
+
+function inheritedRustFlags(environment) {
+  if (Object.hasOwn(environment, "CARGO_ENCODED_RUSTFLAGS")) {
+    return environment.CARGO_ENCODED_RUSTFLAGS.length === 0
+      ? []
+      : environment.CARGO_ENCODED_RUSTFLAGS.split(encodedRustFlagSeparator);
+  }
+  if (typeof environment.RUSTFLAGS !== "string" || environment.RUSTFLAGS.trim().length === 0) {
+    return [];
+  }
+  return environment.RUSTFLAGS.trim().split(/\s+/);
+}
+
 export function productionBuildEnvironment(
   inheritedEnvironment,
   identity,
   publicUpdateEnvironment = {},
+  { sourceRoot = repositoryRoot } = {},
 ) {
   const environment = { ...inheritedEnvironment };
   for (const key of publicUpdateBuildKeys) delete environment[key];
@@ -41,6 +92,12 @@ export function productionBuildEnvironment(
   ) {
     throw new Error("invalid explicit public update build environment");
   }
+  const rustFlags = [
+    ...inheritedRustFlags(environment),
+    ...productionPathRemapFlags(environment, sourceRoot),
+  ];
+  delete environment.RUSTFLAGS;
+  environment.CARGO_ENCODED_RUSTFLAGS = rustFlags.join(encodedRustFlagSeparator);
   return { ...environment, ...identity, ...publicUpdateEnvironment };
 }
 

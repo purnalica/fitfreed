@@ -8,7 +8,7 @@ Current private-development preparation under [ADR 0003](decisions/0003-stage-ve
 
 1. A clean source revision and explicit version enter the versioned preparation workflow.
 2. The normal Tauri production build creates the macOS application bundle and DMG.
-3. Production checks reject test instrumentation and inconsistent package identity.
+3. Production checks reject test instrumentation, build-host paths anywhere in the application bundle, and inconsistent package identity.
 4. Ecosystem-specific tools create production dependency and license inventories.
 5. FitFreed combines reviewed version-specific notes with generated release identity, then generates checksums and a release manifest into ignored local staging.
 6. Installation verification checks integrity before mounting and copies the application only to an isolated test destination.
@@ -26,6 +26,11 @@ The staged evidence set will contain:
 - release notes assembled from the reviewed `release/notes/<version>.md` body and generated identity evidence.
 
 Every generated file is reproducible from versioned commands and ignored by Git. No file may contain a personal export, application library, machine-local path, credential, signing material, or private email address.
+
+The shared production build boundary remaps Rust source locations from the checkout, build user home, explicit Cargo
+and Rustup homes, and temporary roots to stable virtual prefixes before compilation. The complete-bundle inspection is
+the independent fail-closed control: it recognizes macOS, Linux, and Windows local-home and temporary path classes as
+well as test-only routing, and reports only classification labels rather than the matching local bytes.
 
 `npm run check:release-contracts` is the current machine-readable identity gate. It requires one SemVer value across npm, Tauri, and all three Cargo packages; the approved product and bundle identifiers; `GPL-3.0-or-later` package declarations; the canonical repository; active production bundling; no E2E capability in the production Tauri configuration; and a complete reviewed release-note body at the exact version-derived path.
 
