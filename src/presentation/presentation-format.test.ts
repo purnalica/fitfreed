@@ -11,6 +11,7 @@ import {
   formatEnergy,
   formatExactDuration,
   formatFractionAsPercentage,
+  formatMediumDateRange,
   formatLocalDate,
   formatPace,
   formatPresentationDecimal,
@@ -155,5 +156,20 @@ describe("shared presentation formatting", () => {
     expect(longDateFormatter("en-US").format(instant)).toBe("August 26, 2026");
     expect(monthYearFormatter("en-US").format(instant)).toBe("August 2026");
     expect(weekdayFormatter("en-US").format(instant)).toBe("Wed");
+  });
+
+  it("shows a single calendar date once and preserves real date ranges", () => {
+    expect(formatMediumDateRange(
+      "2026-03-30",
+      "2026-03-30",
+      "en-US",
+      "to",
+    )).toBe("Mar 30, 2026");
+    expect(formatMediumDateRange(
+      "2026-03-28",
+      "2026-03-30",
+      "es-ES",
+      "a",
+    )).toBe("28 mar 2026 a 30 mar 2026");
   });
 });

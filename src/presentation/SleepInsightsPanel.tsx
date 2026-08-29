@@ -36,6 +36,7 @@ import type {
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 import {
+  formatMediumDateRange,
   integerCountFormatter,
   mediumDateFormatter,
   pluralRules,
@@ -238,7 +239,12 @@ export function SleepInsightsPanel({
   }, [selectedNight]);
 
   function rangeLabel(range: SleepDateRange): string {
-    return `${date.format(sleepLocalDate(range.from))} ${copy.rangeSeparator} ${date.format(sleepLocalDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      copy.rangeSeparator,
+    );
   }
 
   function coverage(available: number, total: number): string {

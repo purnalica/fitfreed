@@ -52,6 +52,10 @@ explicit review action. **Turn this comparison into a report** retains the exact
 answer; it never copies rounded presentation text as evidence. **Back to the comparison** restores the
 mounted answer and its focus.
 
+A report finding states whether the selected measurement increased, decreased, or remained unchanged. When one
+imported source is represented, the conclusion is not interrupted by a redundant source number. When several sources
+are represented, each conclusion retains a separate source heading so their evidence is never merged.
+
 Another contextual start is a specific training session:
 
 1. Open **Explore**, choose **Explore my training sessions**, and find a session through chronology, calendar, or the available filters.

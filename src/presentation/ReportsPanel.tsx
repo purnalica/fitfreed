@@ -17,8 +17,8 @@ import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { PlannedTrainingEvidence } from "./PlannedTrainingPanel";
 import {
   formatExactDuration,
+  formatMediumDateRange,
   formatSummaryDuration,
-  mediumDateFormatter,
   measurementDecimalFormatter,
 } from "./presentation-format";
 import { SportFamilyIcon } from "./SportFamilyIcon";
@@ -263,9 +263,7 @@ function hasSupportedEvidence(
 }
 
 function formatReportRange(range: TrainingDateRange, locale: Locale): string {
-  const formatter = mediumDateFormatter(locale);
-  const format = (value: string) => formatter.format(new Date(`${value}T00:00:00Z`));
-  return `${format(range.from)} – ${format(range.through)}`;
+  return formatMediumDateRange(range.from, range.through, locale, "–");
 }
 
 function validReportRange(range: TrainingDateRange): boolean {
@@ -1883,6 +1881,50 @@ export function ReportsPanel({
     }
   }
 
+  function decimalDirection(
+    value: string | null,
+  ): "increased" | "decreased" | "unchanged" | "unavailable" {
+    if (value === null || !/^[+-]?\d+(?:\.\d+)?$/.test(value)) return "unavailable";
+    const magnitude = value.replace(/^[+-]/, "").replace(/[0.]/g, "");
+    if (magnitude.length === 0) return "unchanged";
+    return value.startsWith("-") ? "decreased" : "increased";
+  }
+
+  function trainingMetricDirection(
+    series: TrainingSeriesComparison,
+    metric: ReportTrainingMetric,
+  ): "increased" | "decreased" | "unchanged" | "unavailable" {
+    if (metric === "distance") {
+      if (series.distanceMetersChange === null || !Number.isFinite(series.distanceMetersChange)) {
+        return "unavailable";
+      }
+      if (series.distanceMetersChange === 0) return "unchanged";
+      return series.distanceMetersChange < 0 ? "decreased" : "increased";
+    }
+    const change = metric === "session-count"
+      ? series.sessionCountChange
+      : metric === "training-days"
+        ? series.trainingDayChange
+        : metric === "duration"
+          ? series.durationMillisecondsChange
+          : series.energyKilocaloriesChange;
+    return decimalDirection(change);
+  }
+
+  function trainingFinding(
+    series: TrainingSeriesComparison,
+    metric: ReportTrainingMetric,
+  ): string {
+    const direction = trainingMetricDirection(series, metric);
+    if (direction === "unavailable") return copy.analysis.unavailable;
+    return interpolate(copy.analysis.findings[direction], {
+      metric: copy.analysis.metrics[metric],
+      baseline: trainingMetricValue(series.baseline, metric),
+      comparison: trainingMetricValue(series.comparison, metric),
+      change: trainingMetricChange(series, metric),
+    });
+  }
+
   function trainingMetricMagnitude(
     summary: TrainingSeriesSummary,
     metric: ReportTrainingMetric,
@@ -1983,22 +2025,23 @@ export function ReportsPanel({
       </p>
     );
     if (block.kind === "training-finding") {
+      const multipleSources = comparison.series.length > 1;
       return (
         <article key={block.blockRef}>
           <h3>{labels.heading}</h3>
           {ranges}
           {comparison.series.map((series, index) => (
-            <p className="report-analysis-finding" key={series.seriesRef}>
-              {interpolate(copy.analysis.finding, {
-                source: interpolate(copy.analysis.sourceLabel, {
+            <div
+              className={multipleSources ? "report-analysis-series" : undefined}
+              key={series.seriesRef}
+            >
+              {multipleSources && <h4>{interpolate(copy.analysis.sourceLabel, {
                   number: number.format(index + 1),
-                }),
-                metric: copy.analysis.metrics[block.metric],
-                baseline: trainingMetricValue(series.baseline, block.metric),
-                comparison: trainingMetricValue(series.comparison, block.metric),
-                change: trainingMetricChange(series, block.metric),
-              })}
-            </p>
+              })}</h4>}
+              <p className="report-analysis-finding">
+                {trainingFinding(series, block.metric)}
+              </p>
+            </div>
           ))}
           <p className="report-analysis-limitation">{copy.analysis.descriptiveOnly}</p>
         </article>

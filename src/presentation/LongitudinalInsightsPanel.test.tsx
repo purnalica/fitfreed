@@ -570,7 +570,7 @@ describe("LongitudinalInsightsPanel", () => {
     ));
     const selectedRange = await within(region).findByText(/Selected period:/);
     expect(selectedRange.closest("p")).toHaveTextContent(
-      "Mar 30, 2026 to Mar 30, 2026",
+      "Selected period: Mar 30, 2026",
     );
 
     await user.click(within(region).getByText("Change shared period"));

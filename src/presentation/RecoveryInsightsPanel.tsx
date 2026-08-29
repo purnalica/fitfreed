@@ -33,6 +33,7 @@ import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 import {
   detailDecimalFormatter,
+  formatMediumDateRange,
   integerCountFormatter,
   mediumDateFormatter,
   pluralRules,
@@ -242,7 +243,12 @@ export function RecoveryInsightsPanel({
   }, [selectedNight]);
 
   function rangeLabel(range: RecoveryDateRange): string {
-    return `${date.format(recoveryLocalDate(range.from))} ${copy.rangeSeparator} ${date.format(recoveryLocalDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      copy.rangeSeparator,
+    );
   }
 
   function coverage(available: number, total: number): string {

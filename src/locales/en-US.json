@@ -2236,7 +2236,11 @@
       "change": "Change",
       "sourceLabel": "Imported source {number}",
       "rangeAttribution": "Calculated by FitFreed from {baseline} and {comparison} in the current local library.",
-      "finding": "{source}: {metric} moved from {baseline} to {comparison} ({change}).",
+      "findings": {
+        "increased": "{metric} increased from {baseline} to {comparison} ({change}).",
+        "decreased": "{metric} decreased from {baseline} to {comparison} ({change}).",
+        "unchanged": "{metric} remained at {comparison} in both periods."
+      },
       "descriptiveOnly": "This is a descriptive comparison of recorded data. It does not establish a cause or provide health or training advice.",
       "unavailable": "The comparison evidence is not available from the current local library.",
       "chartSummary": "Baseline and comparison bars with exact values in the table below",
@@ -2250,7 +2254,7 @@
         "days": "days"
       },
       "metrics": {
-        "session-count": "Sessions",
+        "session-count": "Session count",
         "training-days": "Training days",
         "duration": "Recorded duration",
         "distance": "Recorded distance",

@@ -2903,7 +2903,12 @@ describe("ReportsPanel", () => {
         },
       },
     ));
-    expect(await screen.findByText(/Recorded energy moved from 2,500 kcal to 4,200 kcal/)).toBeVisible();
+    expect(await screen.findByText(
+      "Recorded energy increased from 2,500 kcal to 4,200 kcal (+1,700 kcal).",
+    )).toBeVisible();
+    const keyFinding = screen.getByRole("heading", { name: "Key finding" }).closest("article")!;
+    expect(within(keyFinding).queryByRole("heading", { name: "Imported source 1" }))
+      .not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Period comparison", level: 3 })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Comparison chart", level: 3 })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Exact values", level: 3 })).toBeVisible();
@@ -2947,6 +2952,64 @@ describe("ReportsPanel", () => {
     const reopenedMetrics = screen.getAllByLabelText("Measurement");
     expect(reopenedMetrics[0]).toHaveValue("energy");
     expect(reopenedMetrics[1]).toHaveValue("distance");
+  });
+
+  it("states increase, decrease, and no change as conclusions while disambiguating multiple sources", async () => {
+    const base = analyticalResolution();
+    const increasing = base.trainingComparison!.series[0];
+    const decreasing = {
+      ...increasing,
+      seriesRef: "second-opaque-source",
+      baseline: { ...increasing.baseline, totalEnergyKilocalories: "4200" },
+      comparison: { ...increasing.comparison, totalEnergyKilocalories: "2500" },
+      energyKilocaloriesChange: "-1700",
+    };
+    const unchanged = {
+      ...increasing,
+      seriesRef: "third-opaque-source",
+      baseline: { ...increasing.baseline, totalEnergyKilocalories: "4200" },
+      comparison: { ...increasing.comparison, totalEnergyKilocalories: "4200" },
+      energyKilocaloriesChange: "0",
+    };
+    const resolved = {
+      ...base,
+      trainingComparison: {
+        ...base.trainingComparison!,
+        series: [increasing, decreasing, unchanged],
+      },
+    };
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([
+          libraryItemFromDefinition(analyticalDefinition()),
+        ]));
+      }
+      if (command === "resolve_report") return Promise.resolve(resolved);
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", {
+      name: "Open Winter training comparison",
+    }));
+
+    const finding = screen.getByRole("heading", { name: "Key finding" }).closest("article")!;
+    expect(within(finding).getByRole("heading", { name: "Imported source 1" })).toBeVisible();
+    expect(within(finding).getByRole("heading", { name: "Imported source 2" })).toBeVisible();
+    expect(within(finding).getByRole("heading", { name: "Imported source 3" })).toBeVisible();
+    expect(within(finding).getByText(
+      "Recorded energy increased from 2,500 kcal to 4,200 kcal (+1,700 kcal).",
+    )).toBeVisible();
+    expect(within(finding).getByText(
+      "Recorded energy decreased from 4,200 kcal to 2,500 kcal (-1,700 kcal).",
+    )).toBeVisible();
+    expect(within(finding).getByText(
+      "Recorded energy remained at 4,200 kcal in both periods.",
+    )).toBeVisible();
   });
 
   it("lists multiple reports and cancels an active export without reporting success", async () => {

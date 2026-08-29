@@ -4750,6 +4750,13 @@ describe("packaged FitFreed import journey", () => {
     await $('.report-editor button[type="submit"]').click();
     await waitForNotice(english.reports.saved);
     await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
+    await expect($(".report-preview .report-analysis-finding")).toHaveText(
+      "Session count remained at 1 in both periods.",
+    );
+    expect(await browser.execute(() => (
+      document.querySelector(".report-preview .report-analysis-finding")
+        ?.parentElement?.querySelector(":scope > h4") === null
+    ))).toBe(true);
     expect(await $$(".report-preview .report-narrative")).toHaveLength(0);
     await expect($(".report-preview")).not.toHaveText(expect.stringContaining("Polar Flow"));
     expect(await $$(".report-list > li")).toHaveLength(3);

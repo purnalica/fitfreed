@@ -48,13 +48,16 @@ synthetic regression evidence. The privacy-minimized X7-R8.0 selector is prepare
 observations remain pending; neither X7-R8.0 nor X7-R8.1 is complete until that structural conclusion is recorded and
 the remaining identity cases in X7-R8.1 are closed.
 
-X7-R8.2 through X7-R8.6 are machine-complete locally. They add ordered calendar activities and exact navigation,
+X7-R8.2 through X7-R8.7 are machine-complete locally. They add ordered calendar activities and exact navigation,
 shared concise presentation and alignment rules, question-led analytical charts, and an exact local route workbench
 with pointer and keyboard range selection. Reports now own snapshot-coherent subject choice for every parameterized
 example and separate saved comparison defaults from transient runs. Adjacent quarter presets, exact effective export
 provenance, duplication semantics, and result-first compact controls passed the complete local functional,
-accessibility, visual, restart, export, and performance campaign. X7-R8.7 is active: it must independently falsify the
-whole ordinary product before another production-native handoff is prepared.
+accessibility, visual, restart, export, update-recovery, and performance campaign. The independent X7-R8.7 audit
+accepted and closed one major report-conclusion defect and one minor repeated-date defect, then accepted no other
+critical or major finding. Its method, question inventory, findings, and machine verdict are recorded in the
+[X7-R8 product-experience audit](../research/x7-r8-product-experience-audit.md). X7-R8.8 has not started: the bounded
+X7-R8.0 participant correlation and the resulting R8.1 source-evidence conclusion remain first.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -306,7 +309,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | In progress — the first R8.1 stable-identity slice is verified; bounded Polar correlation observations and the remaining corrective slices are pending | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | In progress — R8.2 through R8.7 are machine-complete; bounded Polar correlation, the resulting R8.1 conclusion, and the exact R8.8 candidate remain | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 

@@ -115,6 +115,20 @@ export function mediumDateFormatter(locale: Locale): Intl.DateTimeFormat {
   });
 }
 
+export function formatMediumDateRange(
+  from: string,
+  through: string,
+  locale: Locale,
+  separator: string,
+): string {
+  const formatter = mediumDateFormatter(locale);
+  const format = (value: string) => formatter.format(new Date(`${value}T00:00:00Z`));
+  const formattedFrom = format(from);
+  return from === through
+    ? formattedFrom
+    : `${formattedFrom} ${separator} ${format(through)}`;
+}
+
 export function longDateFormatter(locale: Locale): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "long",

@@ -41,6 +41,7 @@ import {
 } from "./recovery-format";
 import { formatSleepDuration } from "./sleep-format";
 import {
+  formatMediumDateRange,
   formatSummaryDuration,
   integerCountFormatter,
   mediumDateFormatter,
@@ -338,7 +339,12 @@ export function LongitudinalInsightsPanel({
   }
 
   function rangeLabel(range: LongitudinalDateRange): string {
-    return `${date.format(recoveryLocalDate(range.from))} ${copy.rangeSeparator} ${date.format(recoveryLocalDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      copy.rangeSeparator,
+    );
   }
 
   function coverage(observed: number, calendarDays: number): string {
