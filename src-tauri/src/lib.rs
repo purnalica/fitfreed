@@ -50,6 +50,7 @@ use fitfreed_application::{
     query_source_acquisition_guides as build_source_acquisition_guides,
     query_training_route_points as build_training_route_points,
     query_training_session_provenance as build_training_session_provenance,
+    query_training_session_range_draft_summary as build_training_session_range_draft_summary,
     query_training_session_range_summary as build_training_session_range_summary,
     query_training_session_ranges as build_training_session_ranges,
     query_training_session_routes as build_training_session_routes,
@@ -118,7 +119,8 @@ use presentation::{
     TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
     TrainingSegmentCriterionMutationRequestDto, TrainingSessionCalendarDto,
     TrainingSessionCalendarRequestDto, TrainingSessionProvenanceQueryDto,
-    TrainingSessionProvenanceResultDto, TrainingSessionRangeSummaryDto,
+    TrainingSessionProvenanceResultDto, TrainingSessionRangeDraftSummaryDto,
+    TrainingSessionRangeDraftSummaryQueryDto, TrainingSessionRangeSummaryDto,
     TrainingSessionRangeSummaryQueryDto, TrainingSessionRangesQueryDto,
     TrainingSessionRangesResultDto, TrainingSessionRouteQueryDto, TrainingSessionRoutesResultDto,
     TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
@@ -804,6 +806,17 @@ fn query_training_session_range_summary(
 ) -> Result<TrainingSessionRangeSummaryDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     build_training_session_range_summary(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_range_draft_summary(
+    app: AppHandle,
+    query: TrainingSessionRangeDraftSummaryQueryDto,
+) -> Result<TrainingSessionRangeDraftSummaryDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_session_range_draft_summary(&SqliteTrainingLibrary::new(path), query.try_into()?)
         .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
@@ -2198,6 +2211,7 @@ pub fn run() {
             remove_training_segment_criterion,
             move_training_segment_criterion,
             query_training_session_ranges,
+            query_training_session_range_draft_summary,
             query_training_session_range_summary,
             create_training_session_range,
             rename_training_session_range,

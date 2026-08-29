@@ -71,7 +71,8 @@ use fitfreed_application::{
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarActivity, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
     TrainingSessionProvenanceQuery, TrainingSessionProvenanceResult,
-    TrainingSessionRangeCoordinateContext, TrainingSessionRangeExerciseContext,
+    TrainingSessionRangeCoordinateContext, TrainingSessionRangeDraftSummary,
+    TrainingSessionRangeDraftSummaryQuery, TrainingSessionRangeExerciseContext,
     TrainingSessionRangeSummary, TrainingSessionRangeSummaryQuery, TrainingSessionRangesQuery,
     TrainingSessionRangesResult, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
     TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
@@ -5676,6 +5677,36 @@ impl From<TrainingSessionRangeSummaryQueryDto> for TrainingSessionRangeSummaryQu
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionRangeDraftSummaryQueryDto {
+    session_ref: String,
+    snapshot_ref: String,
+    exercise_ref: String,
+    coordinate: TrainingSessionRangeCoordinateInputDto,
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+}
+
+impl TryFrom<TrainingSessionRangeDraftSummaryQueryDto> for TrainingSessionRangeDraftSummaryQuery {
+    type Error = CommandErrorDto;
+
+    fn try_from(query: TrainingSessionRangeDraftSummaryQueryDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+            exercise_ref: query.exercise_ref,
+            coordinate: query.coordinate.try_into()?,
+            started_at_elapsed_milliseconds: parse_training_session_range_i64(
+                &query.started_at_elapsed_milliseconds,
+            )?,
+            ended_at_elapsed_milliseconds: parse_training_session_range_i64(
+                &query.ended_at_elapsed_milliseconds,
+            )?,
+        })
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrainingRangeSummaryExerciseDto {
@@ -6086,6 +6117,66 @@ impl From<TrainingSessionRangeSummary> for TrainingSessionRangeSummaryDto {
             source_provider: summary.source_provider.code().to_owned(),
             range: summary.range.into(),
             exercise: summary.exercise.map(Into::into),
+            coordinate_evidence: summary.coordinate_evidence.into(),
+            elapsed_duration_milliseconds: summary.elapsed_duration_milliseconds.to_string(),
+            moving_duration_milliseconds: summary
+                .moving_duration_milliseconds
+                .map(|value| value.to_string()),
+            paused_duration_milliseconds: summary
+                .paused_duration_milliseconds
+                .map(|value| value.to_string()),
+            distance: summary.distance.map(Into::into),
+            direction: summary.direction.map(Into::into),
+            measurements: summary.measurements.into_iter().map(Into::into).collect(),
+            boundaries: summary.boundaries.into(),
+            coverage: summary.coverage.into(),
+            source_ranges: summary.source_ranges.into_iter().map(Into::into).collect(),
+            independent_evidence: summary.independent_evidence.into(),
+            limitations: summary
+                .limitations
+                .into_iter()
+                .map(training_range_limitation)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRangeDraftSummaryDto {
+    snapshot_ref: String,
+    session_ref: String,
+    evidence_revision: String,
+    source_provider: String,
+    exercise: TrainingRangeSummaryExerciseDto,
+    coordinate: TrainingSessionRangeCoordinateDto,
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+    coordinate_evidence: TrainingRangeCoordinateEvidenceDto,
+    elapsed_duration_milliseconds: String,
+    moving_duration_milliseconds: Option<String>,
+    paused_duration_milliseconds: Option<String>,
+    distance: Option<TrainingRangeDistanceSummaryDto>,
+    direction: Option<TrainingRangeDirectionSummaryDto>,
+    measurements: Vec<TrainingRangeMeasurementSummaryDto>,
+    boundaries: TrainingRangeBoundaryPairDto,
+    coverage: TrainingRangeEvidenceCoverageDto,
+    source_ranges: Vec<TrainingRangeSourceOverlapDto>,
+    independent_evidence: TrainingRangeIndependentEvidenceDto,
+    limitations: Vec<&'static str>,
+}
+
+impl From<TrainingSessionRangeDraftSummary> for TrainingSessionRangeDraftSummaryDto {
+    fn from(summary: TrainingSessionRangeDraftSummary) -> Self {
+        Self {
+            snapshot_ref: summary.snapshot_ref,
+            session_ref: summary.session_ref,
+            evidence_revision: summary.evidence_revision,
+            source_provider: summary.source_provider.code().to_owned(),
+            exercise: summary.exercise.into(),
+            coordinate: (&summary.coordinate).into(),
+            started_at_elapsed_milliseconds: summary.started_at_elapsed_milliseconds.to_string(),
+            ended_at_elapsed_milliseconds: summary.ended_at_elapsed_milliseconds.to_string(),
             coordinate_evidence: summary.coordinate_evidence.into(),
             elapsed_duration_milliseconds: summary.elapsed_duration_milliseconds.to_string(),
             moving_duration_milliseconds: summary
@@ -10375,6 +10466,43 @@ mod tests {
         )
         .is_err());
 
+        let draft_query = TrainingSessionRangeDraftSummaryQuery::try_from(
+            serde_json::from_value::<TrainingSessionRangeDraftSummaryQueryDto>(serde_json::json!({
+                "sessionRef": query.session_ref,
+                "snapshotRef": query.snapshot_ref,
+                "exerciseRef":
+                    "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "coordinate": {
+                    "scope": "route-elapsed",
+                    "routeRef":
+                        "route-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                "startedAtElapsedMilliseconds": (i64::MAX - 2).to_string(),
+                "endedAtElapsedMilliseconds": i64::MAX.to_string()
+            }))
+            .expect("range draft summary query transport"),
+        )
+        .expect("valid range draft summary query");
+        assert_eq!(draft_query.started_at_elapsed_milliseconds, i64::MAX - 2);
+        assert_eq!(draft_query.ended_at_elapsed_milliseconds, i64::MAX);
+        assert!(
+            serde_json::from_value::<TrainingSessionRangeDraftSummaryQueryDto>(serde_json::json!({
+                "sessionRef": query.session_ref,
+                "snapshotRef": query.snapshot_ref,
+                "exerciseRef":
+                    "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "coordinate": {
+                    "scope": "route-elapsed",
+                    "routeRef":
+                        "route-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                "startedAtElapsedMilliseconds": "0",
+                "endedAtElapsedMilliseconds": "1",
+                "rangeRef": "must-not-be-required-for-a-draft"
+            }))
+            .is_err()
+        );
+
         let route_ref = "route-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
         let range = TrainingSessionRange::restore(
             &query.range_ref,
@@ -10493,6 +10621,43 @@ mod tests {
                 TrainingRangeSummaryLimitation::UnalignedSignalEvidence,
             ],
         };
+        let draft_summary = TrainingSessionRangeDraftSummary {
+            snapshot_ref: summary.snapshot_ref.clone(),
+            session_ref: summary.session_ref.clone(),
+            evidence_revision: summary.evidence_revision.clone(),
+            source_provider: summary.source_provider.clone(),
+            exercise: summary.exercise.clone().expect("draft exercise"),
+            coordinate: summary.range.coordinate().clone(),
+            started_at_elapsed_milliseconds: summary.range.started_at_elapsed_milliseconds(),
+            ended_at_elapsed_milliseconds: summary.range.ended_at_elapsed_milliseconds(),
+            coordinate_evidence: summary.coordinate_evidence.clone(),
+            elapsed_duration_milliseconds: summary.elapsed_duration_milliseconds,
+            moving_duration_milliseconds: summary.moving_duration_milliseconds,
+            paused_duration_milliseconds: summary.paused_duration_milliseconds,
+            distance: summary.distance.clone(),
+            direction: summary.direction.clone(),
+            measurements: summary.measurements.clone(),
+            boundaries: summary.boundaries.clone(),
+            coverage: summary.coverage.clone(),
+            source_ranges: summary.source_ranges.clone(),
+            independent_evidence: summary.independent_evidence.clone(),
+            limitations: summary.limitations.clone(),
+        };
+        let draft_json =
+            serde_json::to_value(TrainingSessionRangeDraftSummaryDto::from(draft_summary))
+                .expect("range draft summary JSON");
+        assert_eq!(
+            draft_json["startedAtElapsedMilliseconds"],
+            (i64::MAX - 2).to_string()
+        );
+        assert_eq!(
+            draft_json["endedAtElapsedMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(draft_json["coordinate"]["scope"], "route-elapsed");
+        assert_eq!(draft_json["distance"]["meters"], 123.5);
+        assert!(draft_json.get("range").is_none());
+        assert!(draft_json.get("rangeRef").is_none());
         let json = serde_json::to_value(TrainingSessionRangeSummaryDto::from(summary))
             .expect("range summary JSON");
 

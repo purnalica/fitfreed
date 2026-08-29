@@ -166,3 +166,13 @@ export interface TrainingSessionRangeSummary {
   };
   limitations: TrainingRangeSummaryLimitation[];
 }
+
+export interface TrainingSessionRangeDraftSummary extends Omit<
+  TrainingSessionRangeSummary,
+  "range" | "exercise"
+> {
+  exercise: TrainingSessionRangeSummaryExercise;
+  coordinate: TrainingSessionCurrentRangeCoordinate;
+  startedAtElapsedMilliseconds: string;
+  endedAtElapsedMilliseconds: string;
+}

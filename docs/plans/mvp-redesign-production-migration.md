@@ -3429,15 +3429,23 @@ horizontal-overflow collision.
    range reversal, exact boundaries, compact stacking, focused map, both locales, keyboard, reduced motion, local-only
    network assertions, export privacy review, and persisted range recovery.
 
-Implementation checkpoint — 2026-08-29: the first route-range slice is machine-complete. Pointer and keyboard flows
-now collect two exact recorded points, order reversed choices by their integer elapsed coordinate, reject equal or
-untimed boundaries, expose transient markers, preserve the single-draft context lock, and enter the existing precise
-editor without writing an incomplete range. The selected-point answer includes recorded geometry, and every boundary
-transition resets the inspector to its actionable instruction instead of inheriting stale internal scroll. Unit,
-contract, localization, documentation, Rust, packaged journey, adaptive, performance, update-recovery, and production
-package gates pass; visual review covers wide and compact Spanish dark 200% states. X7-R8.5 remains open: the next
-slice must calculate the temporary range through an application-owned exact summary query and present that concise
-answer in the route inspector before the remaining route matrix can close.
+**Machine-complete checkpoint — 2026-08-29:** pointer and keyboard flows collect two exact recorded points, order
+reversed choices by their integer elapsed coordinate, reject equal or untimed boundaries, expose transient markers,
+preserve the single-draft context lock, and enter the existing precise editor without writing an incomplete range.
+The application now calculates duration, route distance, altitude range, and coverage for those temporary boundaries
+through a versioned read-only draft-summary port. The same complete ordered route evidence and accumulation rules serve
+saved and unsaved summaries; the visual projection never becomes calculation input, and querying a draft creates no
+persisted range identity. The shared session controller owns the query, supersedes stale responses, preserves the draft
+after failure, and offers an explicit retry. Its concise local result remains beside the dominant route while precise
+adjustment, naming, cancellation, and saving continue through the one established editor and command path.
+
+Unit, integration, transport, contract, localization, documentation, Rust, packaged journey, adaptive, dense-history,
+insight-performance, update-recovery, and production-package gates pass with synthetic evidence. The packaged journey
+proves pointer and keyboard adjustment, recalculation, save, restart recovery, accessibility, and absence of horizontal
+overflow. Visual review covers English wide presentation and Spanish dark compact presentation at 200% zoom, including
+the initial summary and the final actions, without finding a hidden editor entry, value collision, or unreadable
+wrapping. X7-R8.5 is complete. External cartography and any unproven route-to-signal synchronization remain outside the
+MVP boundary rather than being approximated.
 
 ### X7-R8.6 — Give reports an explicit subject and transient run parameters
 

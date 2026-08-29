@@ -220,6 +220,14 @@ export function TrainingRouteWorkbench({
     && rangeInteraction.editor.coordinate.routeRef === choice.model.routeRef
     ? rangeInteraction.editor
     : undefined;
+  const routeCoordinateContext = choice
+    ? rangeInteraction?.editableChoices.find((exercise) => (
+      exercise.exerciseRef === choice.exerciseRef
+    ))?.coordinates.find((coordinate) => (
+      coordinate.coordinate.scope === "route-elapsed"
+      && coordinate.coordinate.routeRef === choice.model.routeRef
+    ))
+    : undefined;
   const routeRanges = choice ? rangeInteraction?.result?.ranges.filter((range) => (
     range.exerciseRef === choice.exerciseRef
     && range.coordinate.scope === "route-elapsed"
@@ -421,13 +429,7 @@ export function TrainingRouteWorkbench({
     (overlay) => overlay.signalRef === selectedOverlayRef,
   );
   const elapsedPointIndexes = distinctElapsedPointIndexes(choice.model);
-  const routeCoordinateAvailable = rangeInteraction?.editableChoices.some((exercise) => (
-    exercise.exerciseRef === choice.exerciseRef
-    && exercise.coordinates.some((coordinate) => (
-      coordinate.coordinate.scope === "route-elapsed"
-      && coordinate.coordinate.routeRef === choice.model.routeRef
-    ))
-  )) ?? false;
+  const routeCoordinateAvailable = routeCoordinateContext !== undefined;
   const startedAtHandle = rangeSelection?.startedAtPointIndex === null
     || rangeSelection?.startedAtPointIndex === undefined
     ? -1
@@ -505,6 +507,19 @@ export function TrainingRouteWorkbench({
     if (!rangeInteraction) return null;
     const editorElsewhere = rangeInteraction.editor !== undefined && routeEditor === undefined;
     const currentElapsedMissing = selection.point.source.elapsedMilliseconds === null;
+    const draftSummary = routeEditor ? rangeInteraction.draftSummary : undefined;
+    const draftAltitude = draftSummary?.measurements.find((value) => value.kind === "altitude");
+    const draftPartial = draftSummary !== undefined && (
+      draftSummary.coverage.state !== "complete"
+      || draftSummary.boundaries.start.state !== "exact"
+      || draftSummary.boundaries.end.state !== "exact"
+      || draftSummary.distance?.coverage === "partial"
+    );
+    const draftDistance = draftSummary?.distance === null || draftSummary === undefined
+      ? undefined
+      : Math.abs(draftSummary.distance.meters) >= 1_000
+        ? `${measurement.format(draftSummary.distance.meters / 1_000)} ${messages.training.units.kilometers}`
+        : `${measurement.format(draftSummary.distance.meters)} ${messages.training.units.meters}`;
     return (
       <aside
         ref={rangeInspectorRef}
@@ -514,7 +529,7 @@ export function TrainingRouteWorkbench({
         <header>
           <p className="eyebrow">{copy.rangeEyebrow}</p>
           <h4>{copy.rangeHeading}</h4>
-          {rangeBoundaryStep === "idle" && <p>{copy.rangeIntroduction}</p>}
+          {rangeBoundaryStep === "idle" && !routeEditor && <p>{copy.rangeIntroduction}</p>}
         </header>
         {rangeInteraction.loading && <p role="status">{copy.rangeLoading}</p>}
         {rangeInteraction.failed && !rangeInteraction.loading && (
@@ -622,6 +637,58 @@ export function TrainingRouteWorkbench({
         )}
         {routeEditor && (
           <>
+            {rangeInteraction.draftSummaryLoading && (
+              <p className="training-route-draft-status" role="status">
+                {copy.draftPreviewLoading}
+              </p>
+            )}
+            {rangeInteraction.draftSummaryFailed && (
+              <div className="training-route-draft-failed">
+                <p>{copy.draftPreviewFailed}</p>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={rangeInteraction.retryDraftSummary}
+                >{copy.draftPreviewRetry}</button>
+              </div>
+            )}
+            {draftSummary && (
+              <section
+                className="training-route-draft-summary"
+                role="region"
+                aria-label={copy.draftPreviewRegion}
+              >
+                <h5>{copy.draftPreviewHeading}</h5>
+                <dl>
+                  <div>
+                    <dt>{copy.draftDuration}</dt>
+                    <dd>{formatDetailDuration(
+                      draftSummary.elapsedDurationMilliseconds,
+                      locale,
+                      messages.training.durationUnits,
+                    )}</dd>
+                  </div>
+                  <div>
+                    <dt>{copy.draftDistance}</dt>
+                    <dd>{draftDistance ?? copy.draftDistanceUnavailable}</dd>
+                  </div>
+                  <div>
+                    <dt>{copy.draftAltitude}</dt>
+                    <dd>{draftAltitude === undefined
+                      ? copy.draftAltitudeUnavailable
+                      : interpolate(copy.draftAltitudeRange, {
+                        minimum: measurement.format(draftAltitude.minimum),
+                        maximum: measurement.format(draftAltitude.maximum),
+                        unit: messages.training.sessionLibrary.signalUnits[draftAltitude.unit],
+                      })}</dd>
+                  </div>
+                </dl>
+                {draftPartial && <p className="training-route-draft-partial">
+                  {copy.draftPartial}
+                </p>}
+                <p className="training-route-draft-meaning">{copy.draftExactMeaning}</p>
+              </section>
+            )}
             <div className="training-route-range-handles">
               <div role="group" aria-label={copy.movingBoundary}>
                 <button

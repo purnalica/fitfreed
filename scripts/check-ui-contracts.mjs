@@ -547,6 +547,7 @@ if (!trainingSessionLibrary.includes("<TrainingRangeInteractionProvider")
 for (const rangeCommand of [
   "query_training_session_ranges",
   "query_training_session_range_summary",
+  "query_training_session_range_draft_summary",
   "create_training_session_range",
   "rename_training_session_range",
   "adjust_training_session_range",

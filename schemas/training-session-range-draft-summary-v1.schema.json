@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-range-draft-summary-v1.schema.json",
+  "title": "FitFreed training-session range draft summary version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotRef",
+    "sessionRef",
+    "evidenceRevision",
+    "sourceProvider",
+    "exercise",
+    "coordinate",
+    "startedAtElapsedMilliseconds",
+    "endedAtElapsedMilliseconds",
+    "coordinateEvidence",
+    "elapsedDurationMilliseconds",
+    "movingDurationMilliseconds",
+    "pausedDurationMilliseconds",
+    "distance",
+    "direction",
+    "measurements",
+    "boundaries",
+    "coverage",
+    "sourceRanges",
+    "independentEvidence",
+    "limitations"
+  ],
+  "properties": {
+    "snapshotRef": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/sessionRef" },
+    "evidenceRevision": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/evidenceRevision"
+    },
+    "sourceProvider": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/provider" },
+    "exercise": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/exercise" },
+    "coordinate": { "$ref": "training-session-ranges-v3.schema.json#/$defs/currentCoordinate" },
+    "startedAtElapsedMilliseconds": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/elapsedMilliseconds"
+    },
+    "endedAtElapsedMilliseconds": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/positiveMilliseconds"
+    },
+    "coordinateEvidence": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/coordinateEvidence"
+    },
+    "elapsedDurationMilliseconds": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/elapsedMilliseconds"
+    },
+    "movingDurationMilliseconds": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/optionalElapsedMilliseconds"
+    },
+    "pausedDurationMilliseconds": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/optionalElapsedMilliseconds"
+    },
+    "distance": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/optionalDistance" },
+    "direction": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/optionalDirection"
+    },
+    "measurements": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/measurement" }
+    },
+    "boundaries": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/boundaryPair" },
+    "coverage": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/coverage" },
+    "sourceRanges": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/sourceRange" }
+    },
+    "independentEvidence": {
+      "$ref": "training-session-range-summary-v3.schema.json#/$defs/independentEvidence"
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": { "$ref": "training-session-range-summary-v3.schema.json#/$defs/limitation" }
+    }
+  }
+}

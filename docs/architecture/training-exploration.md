@@ -495,6 +495,17 @@ so the single draft cannot change coordinate context. The wide layout reserves a
 workspace for the map and one quarter for the shared inspector, then stacks the inspector below the map at compact
 width or high content zoom.
 
+The [draft range summary read model](../data-formats/insights/training-session-range-draft-summary-v1.md)
+calculates the current valid route boundaries before persistence. `TrainingRangeInteractionProvider` remains the
+only presentation command boundary: it submits the current snapshot, exercise, route coordinate, and exact elapsed
+pair, ignores superseded responses, and keeps a failed preview retry independent from the unsaved editor. The
+application reuses the saved-summary accumulators over the complete ordered route stream; SQLite streams evidence
+but does not calculate geometry, and the bounded `visualPoints` projection never becomes calculation input. The
+response deliberately has no personal-range identity. Presentation reduces it to duration, route distance, altitude
+extent, and an explicit partial-evidence note, while the documented exact model retains boundary, coverage,
+source-overlap, and limitation detail for later progressive disclosure. Naming or saving the range remains a
+separate mutation.
+
 `TrainingSignalWorkbench` composes the same controller and editor for one regular signal's own elapsed
 coordinate. Its selected-sample control and two boundary controls traverse exact bounded visual samples with
 pointer or the same explicit keyboard policy. `TrainingSignalPlot` creates a validated analytical model from that

@@ -2516,6 +2516,36 @@ describe("packaged FitFreed import journey", () => {
     }, boundaryPosition);
     await routeWorkbench.$(`aria/${routeRangeCopy.useCurrentAsSecondBoundary}`).click();
     const routeRangeEditor = await routeWorkbench.$(".training-range-editor");
+    const initialDraftPreview = await routeWorkbench.$(
+      `aria/${routeRangeCopy.draftPreviewRegion}`,
+    );
+    await initialDraftPreview.waitForDisplayed({ timeout: 10_000 });
+    await expect(initialDraftPreview).toHaveText(expect.stringContaining(
+      routeRangeCopy.draftDuration,
+    ));
+    await expect(initialDraftPreview).toHaveText(expect.stringContaining(
+      routeRangeCopy.draftDistance,
+    ));
+    await expect(initialDraftPreview).toHaveText(expect.stringContaining(
+      routeRangeCopy.draftAltitude,
+    ));
+    await expect(initialDraftPreview).toHaveText(expect.stringContaining(
+      routeRangeCopy.draftExactMeaning,
+    ));
+    const routeEditorEntryIsVisible = await browser.execute(() => {
+      const inspector = document.querySelector(
+        ".training-route-range-inspector",
+      ).getBoundingClientRect();
+      const preview = document.querySelector(
+        ".training-route-draft-summary",
+      ).getBoundingClientRect();
+      const handles = document.querySelector(
+        ".training-route-range-handles",
+      ).getBoundingClientRect();
+      return preview.bottom <= inspector.bottom && handles.top < inspector.bottom;
+    });
+    expect(routeEditorEntryIsVisible).toBe(true);
+    const initialDraftPreviewText = await initialDraftPreview.getText();
     await routeRangeEditor.$(".training-range-editor-name input").setValue("Ridge middle");
     const routeRangeHandles = await routeWorkbench.$$(
       ".training-route-range-handles input[type='range']",
@@ -2556,6 +2586,14 @@ describe("packaged FitFreed import journey", () => {
       "aria-valuetext",
       expect.stringContaining("Point 4 of 5"),
     );
+    await browser.waitUntil(async () => {
+      const previews = await routeWorkbench.$$(".training-route-draft-summary");
+      return previews.length === 1
+        && await previews[0].getText() !== initialDraftPreviewText;
+    }, {
+      timeout: 10_000,
+      timeoutMsg: "the exact route-selection preview did not follow its edited boundaries",
+    });
     const routeRangeEditorAccessibility = await new AxeBuilder({ client: browser })
       .setLegacyMode()
       .include(".training-route-workbench")

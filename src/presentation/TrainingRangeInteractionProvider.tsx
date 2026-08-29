@@ -16,6 +16,7 @@ import {
   elapsedEditorValue,
   findEstablishedCoordinate,
   MAX_RANGE_TITLE_CHARACTERS,
+  parseElapsedEditorValue,
   rangeEditorValidation,
   rangeMayBeAdjusted,
   selectableRangeCoordinates,
@@ -28,6 +29,7 @@ import type {
   TrainingSessionCurrentRangeCoordinate,
   TrainingSessionRange,
   TrainingSessionRangeCoordinateContext,
+  TrainingSessionRangeDraftSummary,
   TrainingSessionRangesResult,
   TrainingSessionRangeSummary,
 } from "./training-session-range";
@@ -69,6 +71,9 @@ interface TrainingRangeInteraction {
   summary: TrainingSessionRangeSummary | undefined;
   summaryLoading: boolean;
   summaryFailed: boolean;
+  draftSummary: TrainingSessionRangeDraftSummary | undefined;
+  draftSummaryLoading: boolean;
+  draftSummaryFailed: boolean;
   editor: TrainingRangeEditorState | undefined;
   editorRange: TrainingSessionRange | undefined;
   editorExercise: SelectableRangeExercise | undefined;
@@ -97,6 +102,7 @@ interface TrainingRangeInteraction {
   removeRange: (range: TrainingSessionRange) => Promise<TrainingRangeMutationOutcome>;
   reload: () => Promise<void>;
   retrySummary: () => void;
+  retryDraftSummary: () => void;
   rangeCoordinateLabel: (range: TrainingSessionRange) => string;
   mayAdjust: (range: TrainingSessionRange) => boolean;
 }
@@ -152,6 +158,10 @@ export function TrainingRangeInteractionProvider({
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryFailed, setSummaryFailed] = useState(false);
   const [summaryRetry, setSummaryRetry] = useState(0);
+  const [draftSummary, setDraftSummary] = useState<TrainingSessionRangeDraftSummary>();
+  const [draftSummaryLoading, setDraftSummaryLoading] = useState(false);
+  const [draftSummaryFailed, setDraftSummaryFailed] = useState(false);
+  const [draftSummaryRetry, setDraftSummaryRetry] = useState(0);
   const [editor, setEditor] = useState<TrainingRangeEditorState>();
   const [mutationCommand, setMutationCommand] = useState<RangeMutationCommand>();
   const [removeConfirmation, setRemoveConfirmation] = useState(false);
@@ -217,6 +227,23 @@ export function TrainingRangeInteractionProvider({
     maximumElapsedMilliseconds: editorMaximum,
     requireTitle: editor.mode !== "adjust" || editorRange === undefined,
   }) : undefined;
+  const draftStartedAtCandidate = editor?.mode === "rename"
+    ? undefined
+    : parseElapsedEditorValue(editor?.startedAt ?? "");
+  const draftEndedAtCandidate = editor?.mode === "rename"
+    ? undefined
+    : parseElapsedEditorValue(editor?.endedAt ?? "");
+  const draftBoundsValid = draftStartedAtCandidate !== undefined
+    && draftEndedAtCandidate !== undefined
+    && editorMaximum !== undefined
+    && BigInt(draftStartedAtCandidate) < BigInt(draftEndedAtCandidate)
+    && BigInt(draftEndedAtCandidate) <= BigInt(editorMaximum);
+  const draftStartedAt = draftBoundsValid ? draftStartedAtCandidate : undefined;
+  const draftEndedAt = draftBoundsValid ? draftEndedAtCandidate : undefined;
+  const draftCoordinate = editor?.surface === "route"
+    && editorCoordinate?.coordinate.scope === "route-elapsed"
+    ? editorCoordinate.coordinate
+    : undefined;
 
   async function queryContext(querySnapshotRef: string | null): Promise<TrainingSessionRangesResult> {
     return invoke<TrainingSessionRangesResult>("query_training_session_ranges", {
@@ -308,6 +335,46 @@ export function TrainingRangeInteractionProvider({
     });
     return () => { active = false; };
   }, [result?.snapshotRef, selectedRange?.rangeRef, selectedRange?.revision, sessionRef, summaryRetry]);
+
+  useEffect(() => {
+    if (draftStartedAt === undefined || draftEndedAt === undefined || draftCoordinate === undefined
+      || !result || !editorExercise) {
+      setDraftSummary(undefined);
+      setDraftSummaryLoading(false);
+      setDraftSummaryFailed(false);
+      return;
+    }
+
+    let active = true;
+    setDraftSummary(undefined);
+    setDraftSummaryLoading(true);
+    setDraftSummaryFailed(false);
+    void invoke<TrainingSessionRangeDraftSummary>("query_training_session_range_draft_summary", {
+      query: {
+        sessionRef,
+        snapshotRef: result.snapshotRef,
+        exerciseRef: editorExercise.exerciseRef,
+        coordinate: draftCoordinate,
+        startedAtElapsedMilliseconds: draftStartedAt,
+        endedAtElapsedMilliseconds: draftEndedAt,
+      },
+    }).then((value) => {
+      if (active) setDraftSummary(value);
+    }).catch(() => {
+      if (active) setDraftSummaryFailed(true);
+    }).finally(() => {
+      if (active) setDraftSummaryLoading(false);
+    });
+    return () => { active = false; };
+  }, [
+    draftSummaryRetry,
+    draftCoordinate?.routeRef,
+    draftEndedAt,
+    draftStartedAt,
+    editorExercise?.exerciseRef,
+    result?.snapshotRef,
+    sessionRef,
+  ]);
 
   function choiceForRange(range: TrainingSessionRange): {
     exercise?: SelectableRangeExercise;
@@ -508,6 +575,9 @@ export function TrainingRangeInteractionProvider({
     summary,
     summaryLoading,
     summaryFailed,
+    draftSummary,
+    draftSummaryLoading,
+    draftSummaryFailed,
     editor,
     editorRange,
     editorExercise,
@@ -554,6 +624,9 @@ export function TrainingRangeInteractionProvider({
     reload,
     retrySummary() {
       setSummaryRetry((current) => current + 1);
+    },
+    retryDraftSummary() {
+      setDraftSummaryRetry((current) => current + 1);
     },
     rangeCoordinateLabel,
     mayAdjust(range) {

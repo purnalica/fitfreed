@@ -3,7 +3,8 @@ use std::collections::BTreeSet;
 use std::f64::consts::PI;
 
 use fitfreed_domain::{
-    TrainingSessionRange, TrainingSessionRangeCoordinateScope, TrainingSessionRangeState,
+    TrainingSessionRange, TrainingSessionRangeCoordinate, TrainingSessionRangeCoordinateScope,
+    TrainingSessionRangeState,
 };
 
 use crate::{
@@ -33,6 +34,16 @@ pub struct TrainingSessionRangeSummaryQuery {
     pub snapshot_ref: String,
     pub range_ref: String,
     pub expected_range_revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrainingSessionRangeDraftSummaryQuery {
+    pub session_ref: String,
+    pub snapshot_ref: String,
+    pub exercise_ref: String,
+    pub coordinate: TrainingSessionRangeCoordinate,
+    pub started_at_elapsed_milliseconds: i64,
+    pub ended_at_elapsed_milliseconds: i64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -100,6 +111,16 @@ pub struct PersistedTrainingSessionRangeSummary {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct PersistedTrainingSessionRangeDraftSummary {
+    pub snapshot_ref: String,
+    pub session_ref: String,
+    pub evidence_revision: String,
+    pub source_provider: TrainingSourceProviderView,
+    pub exercise: PersistedTrainingRangeSummaryExercise,
+    pub coordinate_evidence: PersistedTrainingRangeCoordinateEvidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum TrainingRangeEvidenceStreamItem {
     RoutePoint {
         route_ref: String,
@@ -129,6 +150,17 @@ pub trait TrainingSessionRangeSummaryPort {
     fn visit_training_session_range_summary_evidence(
         &self,
         query: &TrainingSessionRangeSummaryQuery,
+        visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> Result<(), &'static str>,
+    ) -> Result<(), TrainingSessionRangeSummaryPortError>;
+
+    fn query_training_session_range_draft_summary_context(
+        &self,
+        query: &TrainingSessionRangeDraftSummaryQuery,
+    ) -> Result<PersistedTrainingSessionRangeDraftSummary, TrainingSessionRangeSummaryPortError>;
+
+    fn visit_training_session_range_draft_summary_evidence(
+        &self,
+        query: &TrainingSessionRangeDraftSummaryQuery,
         visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> Result<(), &'static str>,
     ) -> Result<(), TrainingSessionRangeSummaryPortError>;
 }
@@ -327,6 +359,30 @@ pub struct TrainingSessionRangeSummary {
     pub limitations: Vec<TrainingRangeSummaryLimitation>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSessionRangeDraftSummary {
+    pub snapshot_ref: String,
+    pub session_ref: String,
+    pub evidence_revision: String,
+    pub source_provider: TrainingSourceProviderView,
+    pub exercise: PersistedTrainingRangeSummaryExercise,
+    pub coordinate: TrainingSessionRangeCoordinate,
+    pub started_at_elapsed_milliseconds: i64,
+    pub ended_at_elapsed_milliseconds: i64,
+    pub coordinate_evidence: TrainingRangeCoordinateEvidence,
+    pub elapsed_duration_milliseconds: i64,
+    pub moving_duration_milliseconds: Option<i64>,
+    pub paused_duration_milliseconds: Option<i64>,
+    pub distance: Option<TrainingRangeDistanceSummary>,
+    pub direction: Option<TrainingRangeDirectionSummary>,
+    pub measurements: Vec<TrainingRangeMeasurementSummary>,
+    pub boundaries: TrainingRangeBoundaryPair,
+    pub coverage: TrainingRangeEvidenceCoverage,
+    pub source_ranges: Vec<TrainingRangeSourceOverlap>,
+    pub independent_evidence: TrainingRangeIndependentEvidence,
+    pub limitations: Vec<TrainingRangeSummaryLimitation>,
+}
+
 pub fn query_training_session_range_summary(
     port: &dyn TrainingSessionRangeSummaryPort,
     query: TrainingSessionRangeSummaryQuery,
@@ -353,8 +409,13 @@ pub fn query_training_session_range_summary(
     ];
     let evidence = summarize_coordinate(
         port,
-        &query,
-        &persisted,
+        TrainingRangeSummaryEvidenceQuery::Saved(&query),
+        TrainingRangeSummarySelection {
+            exercise: persisted.exercise.as_ref(),
+            coordinate_evidence: &persisted.coordinate_evidence,
+            started_at_elapsed_milliseconds: started,
+            ended_at_elapsed_milliseconds: ended,
+        },
         &independent_evidence,
         &mut limitations,
     )?;
@@ -380,6 +441,78 @@ pub fn query_training_session_range_summary(
     })
 }
 
+pub fn query_training_session_range_draft_summary(
+    port: &dyn TrainingSessionRangeSummaryPort,
+    query: TrainingSessionRangeDraftSummaryQuery,
+) -> Result<TrainingSessionRangeDraftSummary, ApplicationError> {
+    validate_draft_query(&query)?;
+    let persisted = port
+        .query_training_session_range_draft_summary_context(&query)
+        .map_err(map_port_error)?;
+    validate_draft_context(&query, &persisted)?;
+    let independent_evidence = TrainingRangeIndependentEvidence {
+        source_range_count: persisted.exercise.source_ranges.len(),
+        route_coordinate_count: persisted.exercise.route_coordinate_count,
+        signal_coordinate_count: persisted.exercise.signal_coordinate_count,
+    };
+    let elapsed_duration_milliseconds = query
+        .ended_at_elapsed_milliseconds
+        .checked_sub(query.started_at_elapsed_milliseconds)
+        .ok_or_else(|| invalid_error("training-session range summary duration overflows"))?;
+    let mut limitations = vec![
+        TrainingRangeSummaryLimitation::MovingTimeUnavailable,
+        TrainingRangeSummaryLimitation::PausedTimeUnavailable,
+    ];
+    let evidence = summarize_coordinate(
+        port,
+        TrainingRangeSummaryEvidenceQuery::Draft(&query),
+        TrainingRangeSummarySelection {
+            exercise: Some(&persisted.exercise),
+            coordinate_evidence: &persisted.coordinate_evidence,
+            started_at_elapsed_milliseconds: query.started_at_elapsed_milliseconds,
+            ended_at_elapsed_milliseconds: query.ended_at_elapsed_milliseconds,
+        },
+        &independent_evidence,
+        &mut limitations,
+    )?;
+    Ok(TrainingSessionRangeDraftSummary {
+        snapshot_ref: persisted.snapshot_ref,
+        session_ref: persisted.session_ref,
+        evidence_revision: persisted.evidence_revision,
+        source_provider: persisted.source_provider,
+        exercise: persisted.exercise,
+        coordinate: query.coordinate,
+        started_at_elapsed_milliseconds: query.started_at_elapsed_milliseconds,
+        ended_at_elapsed_milliseconds: query.ended_at_elapsed_milliseconds,
+        coordinate_evidence: evidence.coordinate,
+        elapsed_duration_milliseconds,
+        moving_duration_milliseconds: None,
+        paused_duration_milliseconds: None,
+        distance: evidence.distance,
+        direction: evidence.direction,
+        measurements: evidence.measurements,
+        boundaries: evidence.boundaries,
+        coverage: evidence.coverage,
+        source_ranges: evidence.source_ranges,
+        independent_evidence,
+        limitations,
+    })
+}
+
+#[derive(Clone, Copy)]
+enum TrainingRangeSummaryEvidenceQuery<'a> {
+    Saved(&'a TrainingSessionRangeSummaryQuery),
+    Draft(&'a TrainingSessionRangeDraftSummaryQuery),
+}
+
+#[derive(Clone, Copy)]
+struct TrainingRangeSummarySelection<'a> {
+    exercise: Option<&'a PersistedTrainingRangeSummaryExercise>,
+    coordinate_evidence: &'a PersistedTrainingRangeCoordinateEvidence,
+    started_at_elapsed_milliseconds: i64,
+    ended_at_elapsed_milliseconds: i64,
+}
+
 struct CoordinateSummary {
     coordinate: TrainingRangeCoordinateEvidence,
     distance: Option<TrainingRangeDistanceSummary>,
@@ -390,18 +523,34 @@ struct CoordinateSummary {
     source_ranges: Vec<TrainingRangeSourceOverlap>,
 }
 
+fn visit_training_range_summary_evidence(
+    port: &dyn TrainingSessionRangeSummaryPort,
+    query: TrainingRangeSummaryEvidenceQuery<'_>,
+    visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> Result<(), &'static str>,
+) -> Result<(), ApplicationError> {
+    match query {
+        TrainingRangeSummaryEvidenceQuery::Saved(query) => {
+            port.visit_training_session_range_summary_evidence(query, visitor)
+        }
+        TrainingRangeSummaryEvidenceQuery::Draft(query) => {
+            port.visit_training_session_range_draft_summary_evidence(query, visitor)
+        }
+    }
+    .map_err(map_port_error)
+}
+
 fn summarize_coordinate(
     port: &dyn TrainingSessionRangeSummaryPort,
-    query: &TrainingSessionRangeSummaryQuery,
-    persisted: &PersistedTrainingSessionRangeSummary,
+    query: TrainingRangeSummaryEvidenceQuery<'_>,
+    selection: TrainingRangeSummarySelection<'_>,
     independent: &TrainingRangeIndependentEvidence,
     limitations: &mut Vec<TrainingRangeSummaryLimitation>,
 ) -> Result<CoordinateSummary, ApplicationError> {
-    match &persisted.coordinate_evidence {
+    match selection.coordinate_evidence {
         PersistedTrainingRangeCoordinateEvidence::Exercise {
             maximum_elapsed_milliseconds,
         } => summarize_exercise(
-            persisted,
+            selection,
             *maximum_elapsed_milliseconds,
             independent,
             limitations,
@@ -415,7 +564,7 @@ fn summarize_coordinate(
         } => summarize_route(
             port,
             query,
-            persisted,
+            selection,
             RouteMetadata {
                 route_ref,
                 kind: *kind,
@@ -438,7 +587,7 @@ fn summarize_coordinate(
         } => summarize_signal(
             port,
             query,
-            persisted,
+            selection,
             SignalMetadata {
                 signal_ref,
                 ordinal: *ordinal,
@@ -463,8 +612,8 @@ fn summarize_coordinate(
                 direction: None,
                 measurements: Vec::new(),
                 boundaries: TrainingRangeBoundaryPair {
-                    start: empty_boundary(persisted.range.started_at_elapsed_milliseconds()),
-                    end: empty_boundary(persisted.range.ended_at_elapsed_milliseconds()),
+                    start: empty_boundary(selection.started_at_elapsed_milliseconds),
+                    end: empty_boundary(selection.ended_at_elapsed_milliseconds),
                 },
                 coverage: unavailable_coverage(),
                 source_ranges: Vec::new(),
@@ -474,17 +623,16 @@ fn summarize_coordinate(
 }
 
 fn summarize_exercise(
-    persisted: &PersistedTrainingSessionRangeSummary,
+    selection: TrainingRangeSummarySelection<'_>,
     maximum_elapsed_milliseconds: i64,
     independent: &TrainingRangeIndependentEvidence,
     limitations: &mut Vec<TrainingRangeSummaryLimitation>,
 ) -> Result<CoordinateSummary, ApplicationError> {
-    let exercise = persisted
+    let exercise = selection
         .exercise
-        .as_ref()
         .ok_or_else(|| invalid_error("exercise range summary has no exercise"))?;
-    let started = persisted.range.started_at_elapsed_milliseconds();
-    let ended = persisted.range.ended_at_elapsed_milliseconds();
+    let started = selection.started_at_elapsed_milliseconds;
+    let ended = selection.ended_at_elapsed_milliseconds;
     let mut start_boundary = BoundaryAccumulator::new(started);
     let mut end_boundary = BoundaryAccumulator::new(ended);
     let mut selected_boundary_evidence_count = 0_usize;
@@ -693,8 +841,8 @@ struct RouteMetadata<'a> {
 
 fn summarize_route(
     port: &dyn TrainingSessionRangeSummaryPort,
-    query: &TrainingSessionRangeSummaryQuery,
-    persisted: &PersistedTrainingSessionRangeSummary,
+    query: TrainingRangeSummaryEvidenceQuery<'_>,
+    selection: TrainingRangeSummarySelection<'_>,
     metadata: RouteMetadata<'_>,
     independent: &TrainingRangeIndependentEvidence,
     limitations: &mut Vec<TrainingRangeSummaryLimitation>,
@@ -704,13 +852,10 @@ fn summarize_route(
         metadata.point_count,
         metadata.elapsed_point_count,
         metadata.maximum_elapsed_milliseconds,
-        persisted.range.started_at_elapsed_milliseconds(),
-        persisted.range.ended_at_elapsed_milliseconds(),
+        selection.started_at_elapsed_milliseconds,
+        selection.ended_at_elapsed_milliseconds,
     );
-    port.visit_training_session_range_summary_evidence(query, &mut |item| {
-        accumulator.observe(item)
-    })
-    .map_err(map_port_error)?;
+    visit_training_range_summary_evidence(port, query, &mut |item| accumulator.observe(item))?;
     let route = accumulator.finish()?;
     if route.coverage.missing_elapsed_evidence_count > 0 {
         push_limitation(
@@ -993,21 +1138,18 @@ struct SignalMetadata<'a> {
 
 fn summarize_signal(
     port: &dyn TrainingSessionRangeSummaryPort,
-    query: &TrainingSessionRangeSummaryQuery,
-    persisted: &PersistedTrainingSessionRangeSummary,
+    query: TrainingRangeSummaryEvidenceQuery<'_>,
+    selection: TrainingRangeSummarySelection<'_>,
     metadata: SignalMetadata<'_>,
     independent: &TrainingRangeIndependentEvidence,
     limitations: &mut Vec<TrainingRangeSummaryLimitation>,
 ) -> Result<CoordinateSummary, ApplicationError> {
     let mut accumulator = SignalAccumulator::new(
         &metadata,
-        persisted.range.started_at_elapsed_milliseconds(),
-        persisted.range.ended_at_elapsed_milliseconds(),
+        selection.started_at_elapsed_milliseconds,
+        selection.ended_at_elapsed_milliseconds,
     );
-    port.visit_training_session_range_summary_evidence(query, &mut |item| {
-        accumulator.observe(item)
-    })
-    .map_err(map_port_error)?;
+    visit_training_range_summary_evidence(port, query, &mut |item| accumulator.observe(item))?;
     let signal = accumulator.finish()?;
     if signal.coverage.missing_evidence_count > 0 {
         push_limitation(
@@ -1418,6 +1560,21 @@ fn validate_query(query: &TrainingSessionRangeSummaryQuery) -> Result<(), Applic
     Ok(())
 }
 
+fn validate_draft_query(
+    query: &TrainingSessionRangeDraftSummaryQuery,
+) -> Result<(), ApplicationError> {
+    if !valid_ref(&query.session_ref, SESSION_PREFIX)
+        || !valid_ref(&query.snapshot_ref, SNAPSHOT_PREFIX)
+        || !valid_ref(&query.exercise_ref, EXERCISE_PREFIX)
+        || query.coordinate.scope() == TrainingSessionRangeCoordinateScope::LegacySessionElapsed
+        || query.started_at_elapsed_milliseconds < 0
+        || query.ended_at_elapsed_milliseconds <= query.started_at_elapsed_milliseconds
+    {
+        return invalid("training-session range draft summary query is invalid");
+    }
+    Ok(())
+}
+
 fn validate_context(
     query: &TrainingSessionRangeSummaryQuery,
     persisted: &PersistedTrainingSessionRangeSummary,
@@ -1442,6 +1599,29 @@ fn validate_context(
     validate_coordinate_evidence(persisted)
 }
 
+fn validate_draft_context(
+    query: &TrainingSessionRangeDraftSummaryQuery,
+    persisted: &PersistedTrainingSessionRangeDraftSummary,
+) -> Result<(), ApplicationError> {
+    if persisted.snapshot_ref != query.snapshot_ref || persisted.session_ref != query.session_ref {
+        return Err(ApplicationError::TrainingSessionRangeSummaryChanged);
+    }
+    if !valid_ref(&persisted.evidence_revision, EVIDENCE_REVISION_PREFIX) {
+        return invalid("training-session range draft summary evidence revision is invalid");
+    }
+    if persisted.exercise.exercise_ref != query.exercise_ref {
+        return Err(ApplicationError::TrainingSessionRangeSummaryChanged);
+    }
+    validate_exercise_record(&persisted.exercise)?;
+    validate_coordinate_evidence_value(
+        &query.coordinate,
+        query.ended_at_elapsed_milliseconds,
+        TrainingSessionRangeState::Current,
+        Some(&persisted.exercise),
+        &persisted.coordinate_evidence,
+    )
+}
+
 fn validate_exercise(
     persisted: &PersistedTrainingSessionRangeSummary,
 ) -> Result<(), ApplicationError> {
@@ -1460,8 +1640,16 @@ fn validate_exercise(
         }
         return invalid("range summary exercise is missing");
     };
-    if exercise.exercise_ref != exercise_ref
-        || !valid_ref(&exercise.exercise_ref, EXERCISE_PREFIX)
+    if exercise.exercise_ref != exercise_ref {
+        return invalid("range summary exercise is invalid");
+    }
+    validate_exercise_record(exercise)
+}
+
+fn validate_exercise_record(
+    exercise: &PersistedTrainingRangeSummaryExercise,
+) -> Result<(), ApplicationError> {
+    if !valid_ref(&exercise.exercise_ref, EXERCISE_PREFIX)
         || exercise.duration_milliseconds < 0
         || exercise
             .distance_meters
@@ -1494,18 +1682,32 @@ fn validate_exercise(
 fn validate_coordinate_evidence(
     persisted: &PersistedTrainingSessionRangeSummary,
 ) -> Result<(), ApplicationError> {
-    let coordinate = persisted.range.coordinate();
-    let ended = persisted.range.ended_at_elapsed_milliseconds();
-    let matches = match &persisted.coordinate_evidence {
+    validate_coordinate_evidence_value(
+        persisted.range.coordinate(),
+        persisted.range.ended_at_elapsed_milliseconds(),
+        persisted.range.state(),
+        persisted.exercise.as_ref(),
+        &persisted.coordinate_evidence,
+    )
+}
+
+fn validate_coordinate_evidence_value(
+    coordinate: &TrainingSessionRangeCoordinate,
+    ended: i64,
+    state: TrainingSessionRangeState,
+    exercise: Option<&PersistedTrainingRangeSummaryExercise>,
+    coordinate_evidence: &PersistedTrainingRangeCoordinateEvidence,
+) -> Result<(), ApplicationError> {
+    let matches = match coordinate_evidence {
         PersistedTrainingRangeCoordinateEvidence::Exercise {
             maximum_elapsed_milliseconds,
         } => {
             coordinate.scope() == TrainingSessionRangeCoordinateScope::ExerciseElapsed
                 && *maximum_elapsed_milliseconds >= 0
-                && persisted.exercise.as_ref().is_some_and(|exercise| {
+                && exercise.is_some_and(|exercise| {
                     exercise.duration_milliseconds == *maximum_elapsed_milliseconds
                 })
-                && (persisted.range.state() == TrainingSessionRangeState::ReviewRequired
+                && (state == TrainingSessionRangeState::ReviewRequired
                     || ended <= *maximum_elapsed_milliseconds)
         }
         PersistedTrainingRangeCoordinateEvidence::Route {
@@ -1521,7 +1723,7 @@ fn validate_coordinate_evidence(
                 && *elapsed_point_count <= *point_count
                 && *elapsed_point_count > 0
                 && *maximum_elapsed_milliseconds >= 0
-                && (persisted.range.state() == TrainingSessionRangeState::ReviewRequired
+                && (state == TrainingSessionRangeState::ReviewRequired
                     || ended <= *maximum_elapsed_milliseconds)
         }
         PersistedTrainingRangeCoordinateEvidence::Signal {
@@ -1543,12 +1745,11 @@ fn validate_coordinate_evidence(
                 && *available_sample_count <= *sample_count
                 && valid_kind_unit(*kind, *unit)
                 && maximum_elapsed_milliseconds.is_some_and(|maximum| {
-                    persisted.range.state() == TrainingSessionRangeState::ReviewRequired
-                        || ended <= maximum
+                    state == TrainingSessionRangeState::ReviewRequired || ended <= maximum
                 })
         }
         PersistedTrainingRangeCoordinateEvidence::Unavailable => {
-            persisted.range.state() == TrainingSessionRangeState::ReviewRequired
+            state == TrainingSessionRangeState::ReviewRequired
         }
     };
     if !matches {

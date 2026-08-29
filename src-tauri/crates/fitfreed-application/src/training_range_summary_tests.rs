@@ -4,18 +4,19 @@ use fitfreed_domain::{
 };
 
 use super::{
-    query_training_session_range_summary, ApplicationError,
-    PersistedTrainingRangeCoordinateEvidence, PersistedTrainingRangeSummaryExercise,
-    PersistedTrainingRangeSummarySourceRange, PersistedTrainingSessionRangeSummary,
+    query_training_session_range_draft_summary, query_training_session_range_summary,
+    ApplicationError, PersistedTrainingRangeCoordinateEvidence,
+    PersistedTrainingRangeSummaryExercise, PersistedTrainingRangeSummarySourceRange,
+    PersistedTrainingSessionRangeDraftSummary, PersistedTrainingSessionRangeSummary,
     TrainingRangeBoundaryEvidenceState, TrainingRangeCardinalDirection,
     TrainingRangeCoordinateEvidence, TrainingRangeEvidenceStreamItem,
     TrainingRangeExactEvidenceKind, TrainingRangeMetricCoverage,
     TrainingRangeSourceOverlapRelation, TrainingRangeSourceRangeKind,
     TrainingRangeSummaryCoverageState, TrainingRangeSummaryLimitation, TrainingRouteKindView,
-    TrainingRoutePointView, TrainingSessionRangeSummaryPort, TrainingSessionRangeSummaryPortError,
-    TrainingSessionRangeSummaryQuery, TrainingSessionSport, TrainingSignalKindView,
-    TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalUnitView,
-    TrainingSourceProviderView, TrainingSportState,
+    TrainingRoutePointView, TrainingSessionRangeDraftSummaryQuery, TrainingSessionRangeSummaryPort,
+    TrainingSessionRangeSummaryPortError, TrainingSessionRangeSummaryQuery, TrainingSessionSport,
+    TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
+    TrainingSignalUnitView, TrainingSourceProviderView, TrainingSportState,
 };
 
 const SNAPSHOT_REF: &str = concat!(
@@ -63,6 +64,26 @@ impl TrainingSessionRangeSummaryPort for ControlledSummaryPort {
         }
         Ok(())
     }
+
+    fn query_training_session_range_draft_summary_context(
+        &self,
+        _query: &TrainingSessionRangeDraftSummaryQuery,
+    ) -> Result<PersistedTrainingSessionRangeDraftSummary, TrainingSessionRangeSummaryPortError>
+    {
+        Err(TrainingSessionRangeSummaryPortError::Failure(
+            "unexpected draft summary query".to_owned(),
+        ))
+    }
+
+    fn visit_training_session_range_draft_summary_evidence(
+        &self,
+        _query: &TrainingSessionRangeDraftSummaryQuery,
+        _visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> Result<(), &'static str>,
+    ) -> Result<(), TrainingSessionRangeSummaryPortError> {
+        Err(TrainingSessionRangeSummaryPortError::Failure(
+            "unexpected draft summary evidence query".to_owned(),
+        ))
+    }
 }
 
 struct DenseSignalSummaryPort {
@@ -92,6 +113,73 @@ impl TrainingSessionRangeSummaryPort for DenseSignalSummaryPort {
         }
         Ok(())
     }
+
+    fn query_training_session_range_draft_summary_context(
+        &self,
+        _query: &TrainingSessionRangeDraftSummaryQuery,
+    ) -> Result<PersistedTrainingSessionRangeDraftSummary, TrainingSessionRangeSummaryPortError>
+    {
+        Err(TrainingSessionRangeSummaryPortError::Failure(
+            "unexpected draft summary query".to_owned(),
+        ))
+    }
+
+    fn visit_training_session_range_draft_summary_evidence(
+        &self,
+        _query: &TrainingSessionRangeDraftSummaryQuery,
+        _visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> Result<(), &'static str>,
+    ) -> Result<(), TrainingSessionRangeSummaryPortError> {
+        Err(TrainingSessionRangeSummaryPortError::Failure(
+            "unexpected draft summary evidence query".to_owned(),
+        ))
+    }
+}
+
+#[derive(Clone)]
+struct ControlledDraftSummaryPort {
+    persisted:
+        Result<PersistedTrainingSessionRangeDraftSummary, TrainingSessionRangeSummaryPortError>,
+    evidence: Vec<TrainingRangeEvidenceStreamItem>,
+}
+
+impl TrainingSessionRangeSummaryPort for ControlledDraftSummaryPort {
+    fn query_training_session_range_summary_context(
+        &self,
+        _query: &TrainingSessionRangeSummaryQuery,
+    ) -> Result<PersistedTrainingSessionRangeSummary, TrainingSessionRangeSummaryPortError> {
+        Err(TrainingSessionRangeSummaryPortError::Failure(
+            "unexpected saved summary query".to_owned(),
+        ))
+    }
+
+    fn visit_training_session_range_summary_evidence(
+        &self,
+        _query: &TrainingSessionRangeSummaryQuery,
+        _visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> Result<(), &'static str>,
+    ) -> Result<(), TrainingSessionRangeSummaryPortError> {
+        Err(TrainingSessionRangeSummaryPortError::Failure(
+            "unexpected saved summary evidence query".to_owned(),
+        ))
+    }
+
+    fn query_training_session_range_draft_summary_context(
+        &self,
+        _query: &TrainingSessionRangeDraftSummaryQuery,
+    ) -> Result<PersistedTrainingSessionRangeDraftSummary, TrainingSessionRangeSummaryPortError>
+    {
+        self.persisted.clone()
+    }
+
+    fn visit_training_session_range_draft_summary_evidence(
+        &self,
+        _query: &TrainingSessionRangeDraftSummaryQuery,
+        visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> Result<(), &'static str>,
+    ) -> Result<(), TrainingSessionRangeSummaryPortError> {
+        for item in self.evidence.iter().cloned() {
+            visitor(item).map_err(TrainingSessionRangeSummaryPortError::InvalidEvidence)?;
+        }
+        Ok(())
+    }
 }
 
 fn query() -> TrainingSessionRangeSummaryQuery {
@@ -100,6 +188,18 @@ fn query() -> TrainingSessionRangeSummaryQuery {
         snapshot_ref: SNAPSHOT_REF.to_owned(),
         range_ref: RANGE_REF.to_owned(),
         expected_range_revision: 3,
+    }
+}
+
+fn draft_query() -> TrainingSessionRangeDraftSummaryQuery {
+    TrainingSessionRangeDraftSummaryQuery {
+        session_ref: SESSION_REF.to_owned(),
+        snapshot_ref: SNAPSHOT_REF.to_owned(),
+        exercise_ref: EXERCISE_REF.to_owned(),
+        coordinate: TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF)
+            .expect("route coordinate"),
+        started_at_elapsed_milliseconds: 60_000,
+        ended_at_elapsed_milliseconds: 120_000,
     }
 }
 
@@ -198,6 +298,20 @@ fn persisted(
     }
 }
 
+fn persisted_draft(
+    coordinate_evidence: PersistedTrainingRangeCoordinateEvidence,
+) -> PersistedTrainingSessionRangeDraftSummary {
+    PersistedTrainingSessionRangeDraftSummary {
+        snapshot_ref: SNAPSHOT_REF.to_owned(),
+        session_ref: SESSION_REF.to_owned(),
+        evidence_revision: EVIDENCE_REVISION.to_owned(),
+        source_provider: TrainingSourceProviderView::restore("synthetic-provider".to_owned())
+            .expect("provider"),
+        exercise: exercise(),
+        coordinate_evidence,
+    }
+}
+
 fn route_point(
     ordinal: usize,
     longitude_degrees: f64,
@@ -239,6 +353,72 @@ fn signal_sample(ordinal: usize, value: Option<f64>) -> TrainingRangeEvidenceStr
             value,
         },
     }
+}
+
+#[test]
+fn summarizes_an_exact_route_draft_without_persisting_a_range_identity() {
+    let port = ControlledDraftSummaryPort {
+        persisted: Ok(persisted_draft(
+            PersistedTrainingRangeCoordinateEvidence::Route {
+                route_ref: ROUTE_REF.to_owned(),
+                kind: TrainingRouteKindView::Primary,
+                point_count: 3,
+                elapsed_point_count: 3,
+                maximum_elapsed_milliseconds: 120_000,
+            },
+        )),
+        evidence: vec![
+            route_point(0, 0.0, 10.0, Some(0)),
+            route_point(1, 0.001, 12.0, Some(60_000)),
+            route_point(2, 0.002, 15.0, Some(120_000)),
+        ],
+    };
+
+    let summary = query_training_session_range_draft_summary(&port, draft_query())
+        .expect("route draft summary");
+
+    assert_eq!(summary.started_at_elapsed_milliseconds, 60_000);
+    assert_eq!(summary.ended_at_elapsed_milliseconds, 120_000);
+    assert_eq!(summary.elapsed_duration_milliseconds, 60_000);
+    assert_eq!(summary.exercise.exercise_ref, EXERCISE_REF);
+    assert_eq!(
+        summary.coordinate,
+        TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF).expect("route coordinate")
+    );
+    assert!((summary.distance.expect("recorded route distance").meters - 111.2).abs() < 0.5);
+    assert_eq!(
+        summary.boundaries.start.state,
+        TrainingRangeBoundaryEvidenceState::Exact
+    );
+    assert_eq!(
+        summary.boundaries.end.state,
+        TrainingRangeBoundaryEvidenceState::Exact
+    );
+    assert_eq!(
+        summary.coverage.state,
+        TrainingRangeSummaryCoverageState::Complete
+    );
+    assert!(summary
+        .limitations
+        .contains(&TrainingRangeSummaryLimitation::UnalignedSignalEvidence));
+}
+
+#[test]
+fn rejects_a_reversed_route_draft_before_reading_persistence() {
+    let port = ControlledDraftSummaryPort {
+        persisted: Err(TrainingSessionRangeSummaryPortError::Failure(
+            "persistence must not be read".to_owned(),
+        )),
+        evidence: Vec::new(),
+    };
+    let mut invalid = draft_query();
+    invalid.started_at_elapsed_milliseconds = 120_000;
+    invalid.ended_at_elapsed_milliseconds = 60_000;
+
+    assert!(matches!(
+        query_training_session_range_draft_summary(&port, invalid),
+        Err(ApplicationError::InvalidTrainingSessionRangeSummary(_))
+    ));
 }
 
 #[test]

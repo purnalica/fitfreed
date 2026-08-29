@@ -7800,6 +7800,8 @@ const trainingSessionStructureV3Path =
   "docs/data-formats/insights/training-session-structure-v3.md";
 const trainingSessionRangeSummaryV3Path =
   "docs/data-formats/insights/training-session-range-summary-v3.md";
+const trainingSessionRangeDraftSummaryV1Path =
+  "docs/data-formats/insights/training-session-range-draft-summary-v1.md";
 const sessionStoryV6Path = "docs/data-formats/insights/session-story-v6.md";
 const libraryHomeV7Path = "docs/data-formats/insights/library-home-v7.md";
 const sessionReportV6Path = "docs/data-formats/insights/session-report-v6.md";
@@ -7917,6 +7919,11 @@ for (const [documentPath, fields] of [
   [trainingSessionRangeSummaryV3Path, [
     "query_training_session_range_summary", "training-session-range-summary-v3.schema.json",
   ]],
+  [trainingSessionRangeDraftSummaryV1Path, [
+    "query_training_session_range_draft_summary",
+    "training-session-range-draft-summary-query-v1.schema.json",
+    "training-session-range-draft-summary-v1.schema.json", "rangeRef", "visualPoints",
+  ]],
   [sessionStoryV6Path, [
     "query_session_story", "schemaVersion", "session-story-v6.schema.json",
   ]],
@@ -8018,6 +8025,10 @@ const trainingSessionStructureV3SchemaPath =
   "schemas/training-session-structure-v3.schema.json";
 const trainingSessionRangeSummaryV3SchemaPath =
   "schemas/training-session-range-summary-v3.schema.json";
+const trainingSessionRangeDraftSummaryQueryV1SchemaPath =
+  "schemas/training-session-range-draft-summary-query-v1.schema.json";
+const trainingSessionRangeDraftSummaryV1SchemaPath =
+  "schemas/training-session-range-draft-summary-v1.schema.json";
 const sessionStoryV6SchemaPath = "schemas/session-story-v6.schema.json";
 const libraryHomeV7SchemaPath = "schemas/library-home-v7.schema.json";
 const reportLibraryV5SchemaPath = "schemas/report-library-v5.schema.json";
@@ -9180,6 +9191,61 @@ assertContract(
   syntheticTrainingSessionRangeSummaryV3,
 );
 
+addContractSchema(trainingSessionRangeDraftSummaryQueryV1SchemaPath);
+const validateTrainingSessionRangeDraftSummaryQueryV1 = compileContractSchema(
+  trainingSessionRangeDraftSummaryQueryV1SchemaPath,
+);
+const syntheticTrainingSessionRangeDraftSummaryQueryV1 = {
+  sessionRef: syntheticTrainingSessionRangeSummaryV3.sessionRef,
+  snapshotRef: syntheticTrainingSessionRangeSummaryV3.snapshotRef,
+  exerciseRef: syntheticTrainingSessionRangeSummaryV3.exercise.exerciseRef,
+  coordinate: structuredClone(syntheticTrainingSessionRangeSummaryV3.range.coordinate),
+  startedAtElapsedMilliseconds:
+    syntheticTrainingSessionRangeSummaryV3.range.startedAtElapsedMilliseconds,
+  endedAtElapsedMilliseconds:
+    syntheticTrainingSessionRangeSummaryV3.range.endedAtElapsedMilliseconds,
+};
+assertContract(
+  validateTrainingSessionRangeDraftSummaryQueryV1,
+  trainingSessionRangeDraftSummaryQueryV1SchemaPath,
+  syntheticTrainingSessionRangeDraftSummaryQueryV1,
+);
+if (validateTrainingSessionRangeDraftSummaryQueryV1({
+  ...syntheticTrainingSessionRangeDraftSummaryQueryV1,
+  rangeRef: syntheticTrainingSessionRangeSummaryV3.range.rangeRef,
+})) {
+  throw new Error(
+    `${trainingSessionRangeDraftSummaryQueryV1SchemaPath} accepted a stored range identity`,
+  );
+}
+
+addContractSchema(trainingSessionRangeDraftSummaryV1SchemaPath);
+const validateTrainingSessionRangeDraftSummaryV1 = compileContractSchema(
+  trainingSessionRangeDraftSummaryV1SchemaPath,
+);
+const {
+  range: syntheticDraftSourceRange,
+  ...syntheticTrainingSessionRangeDraftSummaryV1
+} = structuredClone(syntheticTrainingSessionRangeSummaryV3);
+syntheticTrainingSessionRangeDraftSummaryV1.coordinate = syntheticDraftSourceRange.coordinate;
+syntheticTrainingSessionRangeDraftSummaryV1.startedAtElapsedMilliseconds =
+  syntheticDraftSourceRange.startedAtElapsedMilliseconds;
+syntheticTrainingSessionRangeDraftSummaryV1.endedAtElapsedMilliseconds =
+  syntheticDraftSourceRange.endedAtElapsedMilliseconds;
+assertContract(
+  validateTrainingSessionRangeDraftSummaryV1,
+  trainingSessionRangeDraftSummaryV1SchemaPath,
+  syntheticTrainingSessionRangeDraftSummaryV1,
+);
+if (validateTrainingSessionRangeDraftSummaryV1({
+  ...syntheticTrainingSessionRangeDraftSummaryV1,
+  range: syntheticDraftSourceRange,
+})) {
+  throw new Error(
+    `${trainingSessionRangeDraftSummaryV1SchemaPath} accepted a stored range aggregate`,
+  );
+}
+
 addContractSchema(sessionStoryV6SchemaPath);
 const validateSessionStoryV6 = compileContractSchema(sessionStoryV6SchemaPath);
 const syntheticSessionStoryV6 = structuredClone(syntheticSessionStoryV5);
@@ -9480,6 +9546,8 @@ process.stdout.write(
       trainingSessionRangeSummarySchemaPath,
       trainingSessionRangeSummaryV2SchemaPath,
       trainingSessionRangeSummaryV3SchemaPath,
+      trainingSessionRangeDraftSummaryQueryV1SchemaPath,
+      trainingSessionRangeDraftSummaryV1SchemaPath,
     ],
     sleepOverviewSchemas: [
       sleepOverviewQuerySchemaPath,

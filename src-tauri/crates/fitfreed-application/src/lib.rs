@@ -190,8 +190,9 @@ pub use training_range::{
 
 mod training_range_summary;
 pub use training_range_summary::{
-    query_training_session_range_summary, PersistedTrainingRangeCoordinateEvidence,
-    PersistedTrainingRangeSummaryExercise, PersistedTrainingRangeSummarySourceRange,
+    query_training_session_range_draft_summary, query_training_session_range_summary,
+    PersistedTrainingRangeCoordinateEvidence, PersistedTrainingRangeSummaryExercise,
+    PersistedTrainingRangeSummarySourceRange, PersistedTrainingSessionRangeDraftSummary,
     PersistedTrainingSessionRangeSummary, TrainingRangeBoundaryEvidence,
     TrainingRangeBoundaryEvidenceState, TrainingRangeBoundaryPair, TrainingRangeCardinalDirection,
     TrainingRangeCoordinateEvidence, TrainingRangeDirectionSummary, TrainingRangeDistanceSummary,
@@ -199,9 +200,10 @@ pub use training_range_summary::{
     TrainingRangeExactEvidenceKind, TrainingRangeIndependentEvidence,
     TrainingRangeMeasurementSummary, TrainingRangeMetricCoverage, TrainingRangeMissingInterval,
     TrainingRangeSourceOverlap, TrainingRangeSourceOverlapRelation, TrainingRangeSourceRangeKind,
-    TrainingRangeSummaryCoverageState, TrainingRangeSummaryLimitation, TrainingSessionRangeSummary,
-    TrainingSessionRangeSummaryPort, TrainingSessionRangeSummaryPortError,
-    TrainingSessionRangeSummaryQuery,
+    TrainingRangeSummaryCoverageState, TrainingRangeSummaryLimitation,
+    TrainingSessionRangeDraftSummary, TrainingSessionRangeDraftSummaryQuery,
+    TrainingSessionRangeSummary, TrainingSessionRangeSummaryPort,
+    TrainingSessionRangeSummaryPortError, TrainingSessionRangeSummaryQuery,
 };
 
 #[cfg(test)]

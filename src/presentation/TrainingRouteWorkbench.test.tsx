@@ -1,11 +1,15 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
 import type { AnalyticalChartModel, AnalyticalChartSelection } from "./analytical-chart";
 import type { SessionStory } from "./session-story";
-import type { TrainingSessionRange, TrainingSessionRangesResult } from "./training-session-range";
+import type {
+  TrainingSessionRange,
+  TrainingSessionRangeDraftSummary,
+  TrainingSessionRangesResult,
+} from "./training-session-range";
 import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
 
@@ -263,6 +267,89 @@ function latestRouteSignalChart() {
   };
 }
 
+function draftSummary(
+  currentStory: SessionStory,
+  startedAtElapsedMilliseconds = "0",
+  endedAtElapsedMilliseconds = "1000",
+): TrainingSessionRangeDraftSummary {
+  const exercise = currentStory.exercises[0];
+  const routeRef = exercise.primary.route!.routeRef;
+  return {
+    snapshotRef: currentStory.snapshotRef,
+    sessionRef: currentStory.session.sessionRef,
+    evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+    sourceProvider: "synthetic-provider",
+    exercise: {
+      exerciseRef: exercise.exerciseRef,
+      ordinal: exercise.ordinal,
+      durationMilliseconds: currentStory.session.durationMilliseconds,
+      distanceMeters: currentStory.session.distanceMeters,
+      sport: currentStory.session.sport,
+    },
+    coordinate: { scope: "route-elapsed", routeRef },
+    startedAtElapsedMilliseconds,
+    endedAtElapsedMilliseconds,
+    coordinateEvidence: { scope: "route-elapsed", routeRef, kind: "primary" },
+    elapsedDurationMilliseconds: (
+      BigInt(endedAtElapsedMilliseconds) - BigInt(startedAtElapsedMilliseconds)
+    ).toString(),
+    movingDurationMilliseconds: null,
+    pausedDurationMilliseconds: null,
+    distance: { meters: 140.5, coverage: "complete" },
+    direction: { initialBearingDegrees: 90, cardinal: "east" },
+    measurements: [{
+      kind: "altitude",
+      unit: "meters",
+      minimum: 100,
+      maximum: 102,
+      average: 101,
+      availableEvidenceCount: 2,
+      missingEvidenceCount: 0,
+      startBoundaryValue: 100,
+      endBoundaryValue: 102,
+    }],
+    boundaries: {
+      start: {
+        elapsedMilliseconds: startedAtElapsedMilliseconds,
+        state: "exact",
+        exactMatchCount: 1,
+        exactMatches: [],
+        preceding: null,
+        following: null,
+      },
+      end: {
+        elapsedMilliseconds: endedAtElapsedMilliseconds,
+        state: "exact",
+        exactMatchCount: 1,
+        exactMatches: [],
+        preceding: null,
+        following: null,
+      },
+    },
+    coverage: {
+      state: "complete",
+      recordedEvidenceCount: 3,
+      selectedEvidenceCount: 2,
+      availableEvidenceCount: 2,
+      missingEvidenceCount: 0,
+      missingElapsedEvidenceCount: 0,
+      missingIntervals: [],
+      omittedMissingIntervalCount: 0,
+    },
+    sourceRanges: [],
+    independentEvidence: {
+      sourceRangeCount: 0,
+      routeCoordinateCount: 1,
+      signalCoordinateCount: 1,
+    },
+    limitations: [
+      "moving-time-unavailable",
+      "paused-time-unavailable",
+      "unaligned-signal-evidence",
+    ],
+  };
+}
+
 afterEach(cleanup);
 
 describe("TrainingRouteWorkbench", () => {
@@ -299,9 +386,22 @@ describe("TrainingRouteWorkbench", () => {
       }],
       ranges,
     });
-    commands.invoke.mockImplementation((command) => {
+    commands.invoke.mockImplementation((command, payload) => {
       if (command === "query_training_session_ranges") return Promise.resolve(context([]));
       if (command === "create_training_session_range") return Promise.resolve(context([savedRange]));
+      if (command === "query_training_session_range_draft_summary") {
+        const query = (payload as {
+          query: {
+            startedAtElapsedMilliseconds: string;
+            endedAtElapsedMilliseconds: string;
+          };
+        }).query;
+        return Promise.resolve(draftSummary(
+          currentStory,
+          query.startedAtElapsedMilliseconds,
+          query.endedAtElapsedMilliseconds,
+        ));
+      }
       if (command === "query_training_session_range_summary") return new Promise(() => undefined);
       return Promise.reject(new Error(`Unexpected command: ${command}`));
     });
@@ -355,6 +455,25 @@ describe("TrainingRouteWorkbench", () => {
       startedAtPointIndex: 0,
       endedAtPointIndex: 1,
     });
+    expect(await screen.findByRole("region", { name: "Exact selection preview" })).toHaveTextContent(
+      "140.5 m",
+    );
+    expect(screen.getByRole("region", { name: "Exact selection preview" })).toHaveTextContent(
+      "100–102 m",
+    );
+    expect(commands.invoke).toHaveBeenCalledWith(
+      "query_training_session_range_draft_summary",
+      {
+        query: {
+          sessionRef,
+          snapshotRef,
+          exerciseRef,
+          coordinate: { scope: "route-elapsed", routeRef },
+          startedAtElapsedMilliseconds: "0",
+          endedAtElapsedMilliseconds: "1000",
+        },
+      },
+    );
 
     const startHandle = screen.getByRole("slider", { name: "Range start on route" });
     const endHandle = screen.getByRole("slider", { name: "Range end on route" });
@@ -366,6 +485,9 @@ describe("TrainingRouteWorkbench", () => {
       startedAtPointIndex: 0,
       endedAtPointIndex: 2,
     });
+    await waitFor(() => expect(
+      screen.getByRole("region", { name: "Exact selection preview" }),
+    ).toHaveTextContent("2 s"));
 
     await user.click(screen.getByRole("button", { name: "Move range start" }));
     await act(async () => viewport.selectPoint?.(1));
@@ -391,6 +513,76 @@ describe("TrainingRouteWorkbench", () => {
     expect(await screen.findByText("Range saved.")).toBeVisible();
     expect(visibleRoute).toBeEnabled();
     expect(screen.getByText("Riverside effort")).toBeVisible();
+  });
+
+  it("keeps an unsaved route selection editable when its exact preview fails and retries it", async () => {
+    const currentStory = story();
+    const exerciseRef = currentStory.exercises[0].exerciseRef;
+    const routeRef = currentStory.exercises[0].primary.route!.routeRef;
+    const context: TrainingSessionRangesResult = {
+      snapshotRef: currentStory.snapshotRef,
+      sessionRef: currentStory.session.sessionRef,
+      sessionDurationMilliseconds: currentStory.session.durationMilliseconds,
+      evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+      exercises: [{
+        exerciseRef,
+        ordinal: 0,
+        coordinates: [{
+          coordinate: { scope: "route-elapsed", routeRef },
+          maximumElapsedMilliseconds: "2000",
+        }],
+      }],
+      ranges: [],
+    };
+    let draftAttempts = 0;
+    commands.invoke.mockImplementation((command) => {
+      if (command === "query_training_session_ranges") return Promise.resolve(context);
+      if (command === "query_training_session_range_draft_summary") {
+        draftAttempts += 1;
+        return draftAttempts === 1
+          ? Promise.reject(new Error("Synthetic draft failure"))
+          : Promise.resolve(draftSummary(currentStory));
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    render(
+      <TrainingRangeInteractionProvider
+        sessionRef={currentStory.session.sessionRef}
+        snapshotRef={currentStory.snapshotRef}
+        story={currentStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      >
+        <TrainingRouteWorkbench
+          story={currentStory}
+          locale="en-US"
+          messages={catalogs["en-US"]}
+          onOpenExactRoute={vi.fn()}
+          onOpenExactSignal={vi.fn()}
+        />
+      </TrainingRangeInteractionProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Choose range boundaries" }));
+    await user.click(screen.getByRole("button", { name: "Use this point as start" }));
+    fireEvent.change(screen.getByRole("slider", { name: "Recorded position" }), {
+      target: { value: "1" },
+    });
+    await user.click(screen.getByRole("button", { name: "Use this point as end" }));
+
+    expect(await screen.findByText(
+      "The exact preview could not be calculated. The boundaries remain editable and nothing has been saved.",
+    )).toBeVisible();
+    expect(screen.getByLabelText("Start")).toHaveValue("0:00:00");
+    expect(screen.getByLabelText("End")).toHaveValue("0:00:01");
+    await user.click(screen.getByRole("button", { name: "Try the exact preview again" }));
+    expect(await screen.findByRole("region", { name: "Exact selection preview" })).toHaveTextContent(
+      "140.5 m",
+    );
+    expect(draftAttempts).toBe(2);
   });
 
   it("creates a chronologically ordered draft from two map points selected in reverse", async () => {

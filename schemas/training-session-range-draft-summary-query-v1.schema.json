@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-range-draft-summary-query-v1.schema.json",
+  "title": "FitFreed training-session range draft summary query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sessionRef",
+    "snapshotRef",
+    "exerciseRef",
+    "coordinate",
+    "startedAtElapsedMilliseconds",
+    "endedAtElapsedMilliseconds"
+  ],
+  "properties": {
+    "sessionRef": { "$ref": "training-session-ranges-v3.schema.json#/$defs/sessionRef" },
+    "snapshotRef": { "$ref": "training-session-ranges-v3.schema.json#/$defs/snapshotRef" },
+    "exerciseRef": { "$ref": "training-session-ranges-v3.schema.json#/$defs/exerciseRef" },
+    "coordinate": { "$ref": "training-session-ranges-v3.schema.json#/$defs/currentCoordinate" },
+    "startedAtElapsedMilliseconds": {
+      "$ref": "training-session-ranges-v3.schema.json#/$defs/elapsedMilliseconds"
+    },
+    "endedAtElapsedMilliseconds": {
+      "$ref": "training-session-ranges-v3.schema.json#/$defs/positiveMilliseconds"
+    }
+  }
+}

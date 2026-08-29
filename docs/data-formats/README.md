@@ -132,6 +132,7 @@ Directories are created with their first real contract; empty specifications are
 - [Training-session range summary read model version 3](insights/training-session-range-summary-v3.md)
 - [Training-session range summary read model version 2](insights/training-session-range-summary-v2.md) — preceding contract
 - [Training-session range summary read model version 1](insights/training-session-range-summary-v1.md) — preceding contract
+- [Training-session range draft summary read model version 1](insights/training-session-range-draft-summary-v1.md)
 - [Session report read models version 6](insights/session-report-v6.md)
 - [Session report read models version 5](insights/session-report-v5.md) — preceding contract
 - [Session report read models version 4](insights/session-report-v4.md) — preceding contract

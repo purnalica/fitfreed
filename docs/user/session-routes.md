@@ -61,6 +61,12 @@ are projections of the shared draft; editing the elapsed fields directly never c
 nearest point. If an exact boundary is outside the bounded map projection, the saved value remains intact and
 the inspector says why no marker is shown.
 
+Once both boundaries are valid, **This part of the route** shows its duration, distance along the complete
+recorded route, and recorded altitude extent. This compact preview is recalculated whenever either boundary moves;
+it does not depend on the reduced set of points used to draw a dense track. A partial-evidence note appears when
+some route evidence inside the boundaries is unavailable. If calculation fails, the boundaries and name remain
+editable, nothing is saved, and **Try the exact preview again** retries only the preview.
+
 Saving creates the same session-owned object visible under **Personal ranges**. A saved range on the visible
 route can be reopened with **Adjust on the map**. If a range on another coordinate is currently selected,
 **Saved range** offers the ranges belonging to this visible route rather than hiding the only match. Route
