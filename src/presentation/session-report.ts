@@ -313,6 +313,22 @@ export interface ReportExampleCatalog {
   examples: ReportExampleDescriptor[];
 }
 
+export interface ReportExampleTrainingSessionSubject {
+  session: TrainingSessionSearchItem;
+  hasRouteEvidence: boolean;
+}
+
+export interface ReportExampleTrainingSessionSubjectPage {
+  exampleId: Extract<ReportExampleId, "session-visual-story" | "outdoor-route">;
+  exampleVersion: 1;
+  snapshotRef: string;
+  totalCount: number;
+  offset: number;
+  limit: number;
+  nextOffset: number | null;
+  subjects: ReportExampleTrainingSessionSubject[];
+}
+
 export type ReportLimitation =
   | "distance-unavailable"
   | "energy-unavailable"

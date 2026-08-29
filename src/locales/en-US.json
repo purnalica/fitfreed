@@ -2044,6 +2044,21 @@
       "retry": "Check examples again",
       "selectionRequired": "Choose the exact evidence before FitFreed opens a draft.",
       "unavailable": "Needs: {capabilities}.",
+      "subjects": {
+        "heading": "Choose the session for this report",
+        "intro": "Only sessions that can answer the selected question appear here. Choosing one opens the matching draft; it does not save a report.",
+        "loading": "Loading eligible sessions…",
+        "failed": "FitFreed could not load the eligible sessions.",
+        "sourceChanged": "The training library changed while these sessions were being reviewed. Reload the eligible sessions.",
+        "retry": "Try again",
+        "empty": "No eligible sessions are available in this library.",
+        "count": "Showing {shown} of {total} eligible sessions",
+        "routeEvidence": "Recorded route available",
+        "use": "Use this session",
+        "using": "Opening draft…",
+        "loadMore": "Show more sessions",
+        "cancel": "Back to report examples"
+      },
       "capabilities": {
         "training-history": "training history",
         "training-session": "a training session",

@@ -677,6 +677,42 @@ function reportExampleCatalog(): ReportExampleCatalog {
   };
 }
 
+function reportSubjectPage(hasRouteEvidence = false) {
+  return {
+    exampleId: hasRouteEvidence ? "outdoor-route" : "session-visual-story",
+    exampleVersion: 1,
+    snapshotRef,
+    totalCount: 1,
+    offset: 0,
+    limit: 12,
+    nextOffset: null,
+    subjects: [{ session: origin.session, hasRouteEvidence }],
+  };
+}
+
+function secondReportSubject() {
+  return {
+    session: {
+      ...origin.session,
+      sessionRef: `session-${digest("f")}`,
+      sourceIndex: 2,
+      startedAtLocal: "2026-08-15T17:15:00.000",
+      stoppedAtLocal: "2026-08-15T18:00:00.000",
+      durationMilliseconds: "2700000",
+      sport: {
+        ...origin.session.sport,
+        sportRef: `sport-${digest("e")}`,
+        classification: {
+          ...origin.session.sport.classification!,
+          canonicalFamily: "cycling" as const,
+          displayLabel: "Road cycling",
+        },
+      },
+    },
+    hasRouteEvidence: false,
+  };
+}
+
 function renderPanel(properties: Partial<ComponentProps<typeof ReportsPanel>> = {}) {
   const onReturnToOrigin = vi.fn();
   const onOpenExampleDestination = properties.onOpenExampleDestination ?? vi.fn();
@@ -719,6 +755,9 @@ describe("ReportsPanel", () => {
   it("presents reusable structures honestly and routes parameterized examples to exact evidence", async () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") {
+        return Promise.resolve(reportSubjectPage());
+      }
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -741,12 +780,168 @@ describe("ReportsPanel", () => {
       .toBeVisible();
     expect(screen.queryByText("Polar Flow")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Choose a session" }));
-    expect(callbacks.onOpenExampleDestination).toHaveBeenLastCalledWith("training-sessions");
+    const chooseSession = screen.getByRole("button", { name: "Choose a session" });
+    await user.click(chooseSession);
+    expect(await screen.findByRole("heading", { name: "Choose the session for this report" }))
+      .toBeVisible();
+    expect(screen.getByRole("heading", { name: "Trail running" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Use this session" })).toBeVisible();
+    expect(callbacks.onOpenExampleDestination).not.toHaveBeenCalledWith("training-sessions");
+    expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_report_example_training_session_subjects",
+      {
+        query: {
+          exampleId: "session-visual-story",
+          exampleVersion: 1,
+          offset: 0,
+          limit: 12,
+          snapshotRef: null,
+        },
+      },
+    );
+    await user.click(screen.getByRole("button", { name: "Back to report examples" }));
+    await waitFor(() => expect(chooseSession).toHaveFocus());
     await user.click(screen.getByRole("button", { name: "Choose a training plan" }));
     expect(callbacks.onOpenExampleDestination).toHaveBeenLastCalledWith("planned-training");
     expect(mocks.invoke).not.toHaveBeenCalledWith("prepare_report_start", expect.anything());
     expect(mocks.invoke).not.toHaveBeenCalledWith("create_report", expect.anything());
+  });
+
+  it("pages eligible sessions against one coherent report-subject snapshot", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") {
+        const query = arguments_.query;
+        if (query.offset === 0) {
+          return Promise.resolve({
+            ...reportSubjectPage(),
+            totalCount: 2,
+            nextOffset: 1,
+          });
+        }
+        return Promise.resolve({
+          ...reportSubjectPage(),
+          totalCount: 2,
+          offset: 1,
+          nextOffset: null,
+          subjects: [secondReportSubject()],
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    await user.click(await screen.findByRole("button", { name: "Choose a session" }));
+    expect(await screen.findByRole("heading", { name: "Trail running" })).toBeVisible();
+    expect(screen.getByText("Showing 1 of 2 eligible sessions")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Show more sessions" }));
+
+    expect(await screen.findByRole("heading", { name: "Road cycling" })).toBeVisible();
+    expect(screen.getByText("Showing 2 of 2 eligible sessions")).toBeVisible();
+    expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_report_example_training_session_subjects",
+      {
+        query: {
+          exampleId: "session-visual-story",
+          exampleVersion: 1,
+          offset: 1,
+          limit: 12,
+          snapshotRef,
+        },
+      },
+    );
+  });
+
+  it("recovers a failed report-subject query without leaving Reports", async () => {
+    let subjectAttempt = 0;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") {
+        subjectAttempt += 1;
+        return subjectAttempt === 1
+          ? Promise.reject({ code: "report-definition-query-failed" })
+          : Promise.resolve(reportSubjectPage());
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    await user.click(await screen.findByRole("button", { name: "Choose a session" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "FitFreed could not load the eligible sessions.",
+    );
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByRole("heading", { name: "Trail running" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Use this session" })).toBeVisible();
+    expect(subjectAttempt).toBe(2);
+  });
+
+  it("does not restore a cancelled subject picker when its request completes later", async () => {
+    let resolveSubjects!: (page: ReturnType<typeof reportSubjectPage>) => void;
+    const pendingSubjects = new Promise<ReturnType<typeof reportSubjectPage>>((resolve) => {
+      resolveSubjects = resolve;
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") return pendingSubjects;
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    const chooseSession = await screen.findByRole("button", { name: "Choose a session" });
+    await user.click(chooseSession);
+    expect(await screen.findByText("Loading eligible sessions…")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Back to report examples" }));
+    resolveSubjects(reportSubjectPage());
+
+    await waitFor(() => expect(chooseSession).toHaveFocus());
+    expect(screen.queryByRole("heading", { name: "Choose the session for this report" }))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Start from a useful question" })).toBeVisible();
+  });
+
+  it("explains a stale subject page and restarts from a fresh snapshot", async () => {
+    let subjectAttempt = 0;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") {
+        subjectAttempt += 1;
+        if (subjectAttempt === 1) {
+          return Promise.resolve({
+            ...reportSubjectPage(),
+            totalCount: 2,
+            nextOffset: 1,
+          });
+        }
+        if (subjectAttempt === 2) return Promise.reject({ code: "report-source-changed" });
+        return Promise.resolve(reportSubjectPage());
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    await user.click(await screen.findByRole("button", { name: "Choose a session" }));
+    await user.click(await screen.findByRole("button", { name: "Show more sessions" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The training library changed while these sessions were being reviewed.",
+    );
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByRole("heading", { name: "Trail running" })).toBeVisible();
+    expect(subjectAttempt).toBe(3);
+    expect(mocks.invoke).toHaveBeenLastCalledWith(
+      "query_report_example_training_session_subjects",
+      expect.objectContaining({ query: expect.objectContaining({ snapshotRef: null }) }),
+    );
   });
 
   it("recovers a failed example-catalog check without losing the saved-report library", async () => {
@@ -771,6 +966,117 @@ describe("ReportsPanel", () => {
     expect(await screen.findByRole("heading", { name: "Recent training, side by side" }))
       .toBeVisible();
     expect(mocks.reportExamples).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the initiating route recipe when the user explicitly chooses a session", async () => {
+    const catalog = reportExampleCatalog();
+    catalog.examples[2].availability = {
+      kind: "selection-required",
+      destination: "training-sessions",
+    };
+    mocks.reportExamples.mockResolvedValue(catalog);
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") {
+        return Promise.resolve(reportSubjectPage(true));
+      }
+      if (command === "query_training_session_routes") return Promise.resolve(routeQueryResult());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const callbacks = renderPanel({ origin: undefined, originRequestId: 0 });
+
+    await user.click(await screen.findByRole("button", {
+      name: "Choose a session with a route",
+    }));
+    expect(await screen.findByText("Recorded route available")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Use this session" }));
+
+    expect(await screen.findByRole("heading", { name: "Compose report" })).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Report title" }))
+      .toHaveValue("Outdoor route investigation");
+    expect(screen.getByText("Session summary")).toBeVisible();
+    expect(screen.getByText(/Primary route/)).toBeVisible();
+    expect(callbacks.onOpenExampleDestination).not.toHaveBeenCalledWith("training-sessions");
+  });
+
+  it("returns a library example to Reports instead of reusing an older contextual origin", async () => {
+    const olderOrigin: SessionReportOrigin = {
+      ...origin,
+      session: {
+        ...origin.session,
+        averageHeartRateBpm: null,
+        maximumHeartRateBpm: null,
+      },
+    };
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") {
+        return Promise.resolve(reportSubjectPage());
+      }
+      if (command === "query_training_session_routes") return Promise.resolve(routeQueryResult());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const callbacks = renderPanel({ origin: olderOrigin, originRequestId: 7 });
+
+    expect(await screen.findByLabelText("Report title")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Library" }));
+    await user.click(await screen.findByRole("button", { name: "Choose a session" }));
+    expect(screen.queryByRole("button", { name: "Back to the session" }))
+      .not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Use this session" }));
+
+    const physiology = await screen.findByRole("checkbox", {
+      name: /Include recorded heart-rate summary/,
+    });
+    expect(physiology).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Back to the session" }))
+      .not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel composition" }));
+
+    const libraryHeading = screen.getByRole("heading", { name: "Saved reports" });
+    await waitFor(() => expect(libraryHeading).toHaveFocus());
+    expect(callbacks.onReturnToOrigin).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Start from a useful question" })).toBeVisible();
+  });
+
+  it("keeps a route report unsaved when route evidence disappears after selection", async () => {
+    const catalog = reportExampleCatalog();
+    catalog.examples[2].availability = {
+      kind: "selection-required",
+      destination: "training-sessions",
+    };
+    mocks.reportExamples.mockResolvedValue(catalog);
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_report_example_training_session_subjects") {
+        return Promise.resolve(reportSubjectPage(true));
+      }
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({
+          snapshotRef,
+          sessionRef,
+          routes: { exercises: [] },
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    await user.click(await screen.findByRole("button", {
+      name: "Choose a session with a route",
+    }));
+    await user.click(await screen.findByRole("button", { name: "Use this session" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The evidence needed by this report is not available in the local library.",
+    );
+    expect(screen.getByRole("heading", { name: "Choose the session for this report" }))
+      .toBeVisible();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("create_report", expect.anything());
   });
 
   it("localizes report examples independently from their provider-neutral descriptors", async () => {
@@ -2016,8 +2322,14 @@ describe("ReportsPanel", () => {
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "resolve_report",
     ).at(-1)).toEqual(["resolve_report", { reportRef }]);
-    await user.click(screen.getByRole("button", { name: "Back to the session" }));
+    await user.click(screen.getByRole("button", { name: "View source session" }));
     expect(callbacks.onReturnToOrigin).toHaveBeenCalledOnce();
+    expect(callbacks.onReturnToOrigin).toHaveBeenCalledWith({
+      kind: "session",
+      reportRef,
+      sessionRef,
+      localDate: "2026-08-16",
+    });
   });
 
   it("reviews the complete privacy boundary and exports a reduced self-contained report", async () => {

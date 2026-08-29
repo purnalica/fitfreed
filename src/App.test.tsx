@@ -2453,7 +2453,7 @@ describe("FitFreed import interface", () => {
     ).toHaveLength(2));
   });
 
-  it("routes parameterized report examples to the required evidence workspace", async () => {
+  it("keeps session evidence selection in Reports and routes plan selection to Plans", async () => {
     emptyLibrary();
     mocks.reportExamplesInvoke.mockResolvedValue(reportExampleCatalog(true));
     mocks.homeInvoke.mockImplementation((command, arguments_) => {
@@ -2468,6 +2468,18 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+      if (command === "query_report_example_training_session_subjects") {
+        return Promise.resolve({
+          exampleId: "session-visual-story",
+          exampleVersion: 1,
+          snapshotRef: `training-snapshot-${"9".repeat(64)}`,
+          totalCount: 0,
+          offset: 0,
+          limit: 12,
+          nextOffset: null,
+          subjects: [],
+        });
+      }
       if (command === "query_training_sessions") {
         return Promise.resolve(emptyTrainingSessionSearchPage());
       }
@@ -2488,22 +2500,26 @@ describe("FitFreed import interface", () => {
 
     await user.click(await screen.findByRole("button", { name: "Reports" }));
     await user.click(await screen.findByRole("button", { name: "Choose a session" }));
-    const training = await screen.findByRole("region", { name: "Training history" });
-    expect(within(training).getByRole("button", { name: "Sessions" }))
-      .toHaveAttribute("aria-current", "page");
-    expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_training_discovery_workspace", undefined);
-    expect(mocks.homeInvoke).toHaveBeenCalledWith("save_exploration_workspace", {
-      destination: "training",
-    });
+    expect(await screen.findByRole("heading", { name: "Choose the session for this report" }))
+      .toBeVisible();
+    expect(screen.getByText("No eligible sessions are available in this library."))
+      .toBeVisible();
+    expect(mocks.homeInvoke).not.toHaveBeenCalledWith(
+      "clear_training_discovery_workspace",
+      undefined,
+    );
 
-    await user.click(screen.getByRole("button", { name: "Reports" }));
+    await user.click(screen.getByRole("button", { name: "Back to report examples" }));
     await user.click(await screen.findByRole("button", { name: "Choose a training plan" }));
     const plannedTraining = await screen.findByRole("region", { name: "Training history" });
     expect(within(plannedTraining).getByRole("button", { name: "Plans" }))
       .toHaveAttribute("aria-current", "page");
     expect(mocks.homeInvoke.mock.calls.filter(
       ([command]) => command === "clear_training_discovery_workspace",
-    )).toHaveLength(1);
+    )).toHaveLength(0);
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("save_exploration_workspace", {
+      destination: "training",
+    });
   });
 
   it("announces a contextual report failure exactly once", async () => {

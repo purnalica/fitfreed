@@ -260,11 +260,19 @@ pub fn query_training_sessions(
     port: &dyn TrainingSessionDiscoveryPort,
     request: TrainingSessionSearchRequest,
 ) -> Result<TrainingSessionSearchPage, ApplicationError> {
-    validate_request(&request)?;
+    validate_training_session_search_request(&request)?;
     let persisted = port
         .query_training_sessions(&request)
         .map_err(map_port_error)?;
-    validate_page(&request, &persisted)?;
+    build_training_session_search_page(request, persisted)
+}
+
+pub(crate) fn build_training_session_search_page(
+    request: TrainingSessionSearchRequest,
+    persisted: PersistedTrainingSessionSearchPage,
+) -> Result<TrainingSessionSearchPage, ApplicationError> {
+    validate_training_session_search_request(&request)?;
+    validate_training_session_search_page(&request, &persisted)?;
     let consumed = request.offset.checked_add(persisted.sessions.len()).ok_or(
         ApplicationError::TrainingSessionSearch(
             "training-session page offset overflowed".to_owned(),
@@ -381,7 +389,9 @@ pub fn query_training_session_selection(
     })
 }
 
-fn validate_request(request: &TrainingSessionSearchRequest) -> Result<(), ApplicationError> {
+pub(crate) fn validate_training_session_search_request(
+    request: &TrainingSessionSearchRequest,
+) -> Result<(), ApplicationError> {
     if request.limit == 0 || request.limit > MAX_PAGE_SIZE {
         return invalid("page size must be between 1 and 100");
     }
@@ -650,7 +660,7 @@ fn map_port_error(error: TrainingSessionDiscoveryPortError) -> ApplicationError 
     }
 }
 
-fn validate_page(
+fn validate_training_session_search_page(
     request: &TrainingSessionSearchRequest,
     page: &PersistedTrainingSessionSearchPage,
 ) -> Result<(), ApplicationError> {

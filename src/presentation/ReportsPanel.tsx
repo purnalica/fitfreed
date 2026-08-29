@@ -31,6 +31,8 @@ import type {
   ReportExampleCatalog,
   ReportExampleDescriptor,
   ReportExampleDestination,
+  ReportExampleTrainingSessionSubject,
+  ReportExampleTrainingSessionSubjectPage,
   ReportExportReceipt,
   ReportLibraryItem,
   ReportLibraryMetricValue,
@@ -72,6 +74,7 @@ import { resolvedSportName, sportCanonicalFamily } from "./training-sports";
 
 const REPORT_ROUTE_VISUAL_POINT_LIMIT = 400;
 const REPORT_LIBRARY_PAGE_SIZE = 12;
+const REPORT_SUBJECT_PAGE_SIZE = 12;
 const DEFAULT_ROUTE_REDACTION_METERS = 200;
 const MAX_ROUTE_REDACTION_METERS = 5000;
 
@@ -82,7 +85,20 @@ type AnalyticalBlockKind =
   | "training-exact-table"
   | "training-coverage";
 
-type ReportWorkspace = "library" | "compose" | "preview";
+type ReportWorkspace = "library" | "subject" | "compose" | "preview";
+type NewReportReturn = "library" | "contextual-origin";
+
+type TrainingSessionReportExample = ReportExampleDescriptor & {
+  id: "session-visual-story" | "outdoor-route";
+};
+
+interface ReportSubjectPicker {
+  example: TrainingSessionReportExample;
+  snapshotRef: string | null;
+  totalCount: number;
+  nextOffset: number | null;
+  subjects: ReportExampleTrainingSessionSubject[];
+}
 
 const ANALYTICAL_BLOCK_KINDS: AnalyticalBlockKind[] = [
   "training-finding",
@@ -120,6 +136,7 @@ interface EditorState {
   sessionRef?: string;
   suggestedQuery?: ReportTrainingComparisonQuery;
   plannedTarget?: PlannedTrainingTargetDetail;
+  physiologyAvailable?: boolean;
   title: string;
   blocks: SessionReportBlockDraft[];
 }
@@ -335,6 +352,12 @@ export function ReportsPanel({
   const [examplesLoading, setExamplesLoading] = useState(true);
   const [examplesFailed, setExamplesFailed] = useState(false);
   const [workspace, setWorkspace] = useState<ReportWorkspace>("library");
+  const [contextualOrigin, setContextualOrigin] = useState<ReportStartOrigin>();
+  const [subjectPicker, setSubjectPicker] = useState<ReportSubjectPicker>();
+  const [subjectsLoading, setSubjectsLoading] = useState(false);
+  const [subjectsLoadingMore, setSubjectsLoadingMore] = useState(false);
+  const [subjectsFailure, setSubjectsFailure] = useState<string>();
+  const [selectingSubjectRef, setSelectingSubjectRef] = useState<string>();
   const [listLoading, setListLoading] = useState(true);
   const [listLoadingMore, setListLoadingMore] = useState(false);
   const [listFailed, setListFailed] = useState(false);
@@ -358,6 +381,10 @@ export function ReportsPanel({
   const [duplicating, setDuplicating] = useState(false);
   const [duplicatedNotice, setDuplicatedNotice] = useState<string>();
   const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
+  const subjectHeadingRef = useRef<HTMLHeadingElement>(null);
+  const subjectPickerOriginRef = useRef<HTMLElement>(null);
+  const subjectPickerReturnPendingRef = useRef(false);
+  const subjectRequestRef = useRef(0);
   const deleteReviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const deleteReviewOriginRef = useRef<HTMLElement>(null);
   const duplicateHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -403,6 +430,20 @@ export function ReportsPanel({
     );
   }, [commentaryPresent]);
 
+  useEffect(() => {
+    if (workspace !== "subject") return;
+    return restoreFocusAfterReveal(subjectHeadingRef.current, subjectPickerOriginRef.current, {
+      align: "start",
+      forceInitialFocus: true,
+    });
+  }, [workspace]);
+
+  useEffect(() => {
+    if (workspace !== "library" || !subjectPickerReturnPendingRef.current) return;
+    subjectPickerReturnPendingRef.current = false;
+    return restoreFocusAfterReveal(subjectPickerOriginRef.current, null, { align: "start" });
+  }, [workspace]);
+
   async function loadReportPage(offset: number, append: boolean) {
     if (append) setListLoadingMore(true);
     else setListLoading(true);
@@ -440,6 +481,96 @@ export function ReportsPanel({
     }
   }
 
+  function isTrainingSessionExample(
+    example: ReportExampleDescriptor,
+  ): example is TrainingSessionReportExample {
+    return example.id === "session-visual-story" || example.id === "outdoor-route";
+  }
+
+  async function loadReportSubjects(
+    example: TrainingSessionReportExample,
+    offset: number,
+    append: boolean,
+    snapshotRef: string | null,
+  ) {
+    const requestId = subjectRequestRef.current + 1;
+    subjectRequestRef.current = requestId;
+    if (append) setSubjectsLoadingMore(true);
+    else setSubjectsLoading(true);
+    setSubjectsFailure(undefined);
+    try {
+      const page = await invoke<ReportExampleTrainingSessionSubjectPage>(
+        "query_report_example_training_session_subjects",
+        {
+          query: {
+            exampleId: example.id,
+            exampleVersion: example.version,
+            offset,
+            limit: REPORT_SUBJECT_PAGE_SIZE,
+            snapshotRef,
+          },
+        },
+      );
+      if (page.exampleId !== example.id || page.exampleVersion !== example.version) {
+        throw new Error("invalid-report-definition");
+      }
+      if (requestId !== subjectRequestRef.current) return;
+      setSubjectPicker((current) => ({
+        example,
+        snapshotRef: page.snapshotRef,
+        totalCount: page.totalCount,
+        nextOffset: page.nextOffset,
+        subjects: append && current?.example.id === example.id
+          ? [...current.subjects, ...page.subjects]
+          : page.subjects,
+      }));
+    } catch (reason) {
+      if (requestId !== subjectRequestRef.current) return;
+      setSubjectsFailure(commandErrorCode(reason));
+    } finally {
+      if (requestId === subjectRequestRef.current) {
+        if (append) setSubjectsLoadingMore(false);
+        else setSubjectsLoading(false);
+      }
+    }
+  }
+
+  function openReportSubjectPicker(
+    example: TrainingSessionReportExample,
+    initiatingElement: HTMLElement,
+  ) {
+    subjectPickerOriginRef.current = initiatingElement;
+    setSubjectPicker({
+      example,
+      snapshotRef: null,
+      totalCount: 0,
+      nextOffset: null,
+      subjects: [],
+    });
+    setWorkspace("subject");
+    void loadReportSubjects(example, 0, false, null);
+  }
+
+  function closeReportSubjectPicker() {
+    subjectRequestRef.current += 1;
+    subjectPickerReturnPendingRef.current = true;
+    setSubjectPicker(undefined);
+    setSubjectsFailure(undefined);
+    setSubjectsLoading(false);
+    setSubjectsLoadingMore(false);
+    setWorkspace("library");
+  }
+
+  async function loadMoreReportSubjects() {
+    if (!subjectPicker || subjectPicker.nextOffset === null || subjectsLoadingMore) return;
+    await loadReportSubjects(
+      subjectPicker.example,
+      subjectPicker.nextOffset,
+      true,
+      subjectPicker.snapshotRef,
+    );
+  }
+
   async function refreshLibrary() {
     await Promise.all([refreshList(), refreshExamples()]);
   }
@@ -470,7 +601,8 @@ export function ReportsPanel({
   async function beginPreparedReport(
     start: ReportStart,
     title: string,
-    recipe?: ReportExampleBlockRecipe[],
+    recipe: ReportExampleBlockRecipe[] | undefined,
+    returnDestination: NewReportReturn,
   ) {
     setWorkspace("compose");
     setResolving(true);
@@ -494,6 +626,7 @@ export function ReportsPanel({
         title,
         blocks,
       });
+      if (returnDestination === "library") setContextualOrigin(undefined);
       resetTransientReportState();
     } catch (reason) {
       const code = commandErrorCode(reason);
@@ -504,7 +637,7 @@ export function ReportsPanel({
     }
   }
 
-  function beginReportExample(example: ReportExampleDescriptor) {
+  function beginReportExample(example: ReportExampleDescriptor, initiatingElement: HTMLElement) {
     if (example.availability.kind === "ready") {
       const itemCopy = copy.examples.items[example.id];
       void beginPreparedReport(
@@ -515,16 +648,91 @@ export function ReportsPanel({
         },
         itemCopy.defaultTitle,
         example.blockRecipe,
+        "library",
       );
       return;
     }
     if (example.availability.kind === "selection-required") {
+      if (isTrainingSessionExample(example)) {
+        openReportSubjectPicker(example, initiatingElement);
+        return;
+      }
       onOpenExampleDestination(example.availability.destination);
+    }
+  }
+
+  async function useReportSubject(subject: ReportExampleTrainingSessionSubject) {
+    if (!subjectPicker) return;
+    setSelectingSubjectRef(subject.session.sessionRef);
+    setLocalError(undefined);
+    try {
+      if (!subjectPicker.snapshotRef) {
+        setLocalError("report-source-changed");
+        return;
+      }
+      const sourceSnapshotRef = subjectPicker.snapshotRef;
+      const itemCopy = copy.examples.items[subjectPicker.example.id];
+      let routes: TrainingRouteOverview[] = [];
+      if (subjectPicker.example.id === "outdoor-route") {
+        const result = await invoke<TrainingSessionRoutesResult>("query_training_session_routes", {
+          query: {
+            sessionRef: subject.session.sessionRef,
+            snapshotRef: sourceSnapshotRef,
+            maxVisualPoints: REPORT_ROUTE_VISUAL_POINT_LIMIT,
+          },
+        });
+        routes = flattenRoutes(result);
+        if (routes.length === 0) {
+          setLocalError("report-evidence-unavailable");
+          return;
+        }
+      }
+      const blocks = subjectPicker.example.blockRecipe.flatMap(
+        (recipe): SessionReportBlockDraft[] => {
+          if (recipe === "session-evidence") {
+            return [{
+              kind: "session-evidence",
+              includePhysiologicalContext:
+                subject.session.averageHeartRateBpm !== null
+                || subject.session.maximumHeartRateBpm !== null,
+            }];
+          }
+          if (recipe === "route" && routes[0]) {
+            return [{
+              kind: "route",
+              routeRef: routes[0].routeRef,
+              endpointRedactionMeters: DEFAULT_ROUTE_REDACTION_METERS,
+            }];
+          }
+          return [];
+        },
+      );
+      setAvailableRoutes(routes);
+      setEditor({
+        sourceSnapshotRef,
+        origin: { kind: "session", sessionRef: subject.session.sessionRef },
+        sessionRef: subject.session.sessionRef,
+        suggestedQuery: defaultComparisonQuery(subject.session.startedAtLocal),
+        physiologyAvailable:
+          subject.session.averageHeartRateBpm !== null
+          || subject.session.maximumHeartRateBpm !== null,
+        title: itemCopy.defaultTitle,
+        blocks,
+      });
+      setContextualOrigin(undefined);
+      setSubjectPicker(undefined);
+      resetTransientReportState();
+      setWorkspace("compose");
+    } catch (reason) {
+      setLocalError(commandErrorCode(reason));
+    } finally {
+      setSelectingSubjectRef(undefined);
     }
   }
 
   useEffect(() => {
     if (!origin || originRequestId === 0) return;
+    setContextualOrigin(origin);
     if (origin.kind === "session") {
       setWorkspace("compose");
       setEditor({
@@ -532,6 +740,9 @@ export function ReportsPanel({
         origin: { kind: "session", sessionRef: origin.session.sessionRef },
         sessionRef: origin.session.sessionRef,
         suggestedQuery: defaultComparisonQuery(origin.session.startedAtLocal),
+        physiologyAvailable:
+          origin.session.averageHeartRateBpm !== null
+          || origin.session.maximumHeartRateBpm !== null,
         title: interpolate(copy.defaultTitle, {
           date: formatTrainingDateTime(origin.session.startedAtLocal, locale),
         }),
@@ -570,12 +781,16 @@ export function ReportsPanel({
           questionVersion: 1,
         },
         copy.questionDefaultTitle,
+        undefined,
+        "contextual-origin",
       );
       return;
     }
     void beginPreparedReport(
       { kind: "exploration", query: origin.query },
       copy.explorationDefaultTitle,
+      undefined,
+      "contextual-origin",
     );
   }, [originRequestId]);
 
@@ -756,6 +971,7 @@ export function ReportsPanel({
   }
 
   async function openReport(reportRef: string) {
+    setContextualOrigin(undefined);
     setWorkspace("preview");
     setRemovedNotice(undefined);
     setSavedNotice(false);
@@ -783,7 +999,8 @@ export function ReportsPanel({
       return;
     }
     setEditor(undefined);
-    if (origin) {
+    if (contextualOrigin) {
+      setContextualOrigin(undefined);
       onReturnToOrigin(null);
       return;
     }
@@ -1835,10 +2052,7 @@ export function ReportsPanel({
 
   const physiologyAvailable = resolved
     ? resolved.sensitiveContents.some((content) => content.kind === "heart-rate")
-    : origin?.kind === "session" && (
-      origin.session.averageHeartRateBpm !== null
-      || origin.session.maximumHeartRateBpm !== null
-    );
+    : editor?.physiologyAvailable ?? false;
   const savedPhysiologyAllowed = resolved
     ? resolved.definition.blocks.some(
       (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
@@ -1866,10 +2080,12 @@ export function ReportsPanel({
     || (saveOperation === undefined && !editor?.reportRef);
   const saveActionLabel = creating ? copy.create : copy.save;
   const canonicalSourceTarget = resolved ? reportSourceTarget(resolved) : null;
-  const returnLabel = origin
-    ? origin.kind === "session"
+  const returnLabel = contextualOrigin
+    ? contextualOrigin.kind === "session"
       ? copy.backToSession
-      : origin.kind === "planned-training" ? copy.backToPlannedTraining : copy.backToComparison
+      : contextualOrigin.kind === "planned-training"
+        ? copy.backToPlannedTraining
+        : copy.backToComparison
     : canonicalSourceTarget?.kind === "session"
       ? copy.viewSourceSession
       : canonicalSourceTarget?.kind === "comparison"
@@ -1886,40 +2102,42 @@ export function ReportsPanel({
         <p>{copy.intro}</p>
       </header>
 
-      {returnLabel && (
+      {returnLabel && workspace !== "subject" && (
         <button
           type="button"
           className="secondary"
           disabled={duplicateDraft !== undefined}
-          onClick={() => onReturnToOrigin(origin ? null : canonicalSourceTarget)}
+          onClick={() => onReturnToOrigin(contextualOrigin ? null : canonicalSourceTarget)}
         >
           <span aria-hidden="true">← </span>
           {returnLabel}
         </button>
       )}
 
-      <WorkspaceNavigation
-        label={copy.workspaceNavigation}
-        current={workspace}
-        options={[
-          {
-            workspace: "library",
-            label: copy.workspaces.library,
-            disabled: duplicateDraft !== undefined,
-          },
-          {
-            workspace: "compose",
-            label: copy.workspaces.compose,
-            disabled: duplicateDraft !== undefined || !editor || resolved?.status === "stale",
-          },
-          {
-            workspace: "preview",
-            label: copy.workspaces.preview,
-            disabled: duplicateDraft !== undefined || !resolved,
-          },
-        ]}
-        onSelect={setWorkspace}
-      />
+      {workspace !== "subject" && (
+        <WorkspaceNavigation
+          label={copy.workspaceNavigation}
+          current={workspace}
+          options={[
+            {
+              workspace: "library",
+              label: copy.workspaces.library,
+              disabled: duplicateDraft !== undefined,
+            },
+            {
+              workspace: "compose",
+              label: copy.workspaces.compose,
+              disabled: duplicateDraft !== undefined || !editor || resolved?.status === "stale",
+            },
+            {
+              workspace: "preview",
+              label: copy.workspaces.preview,
+              disabled: duplicateDraft !== undefined || !resolved,
+            },
+          ]}
+          onSelect={setWorkspace}
+        />
+      )}
 
       {duplicateDraft && (
         <form
@@ -2035,7 +2253,7 @@ export function ReportsPanel({
                               type="button"
                               className="secondary"
                               disabled={disabled || resolving}
-                              onClick={() => beginReportExample(example)}
+                              onClick={(event) => beginReportExample(example, event.currentTarget)}
                             >
                               {itemCopy.action}
                             </button>
@@ -2167,6 +2385,141 @@ export function ReportsPanel({
             </button>
           )}
         </section>
+
+        {subjectPicker && (
+          <section
+            className="report-subject-picker"
+            aria-labelledby="report-subject-heading"
+            hidden={workspace !== "subject"}
+          >
+            <div className="report-section-heading">
+              <div>
+                <p className="eyebrow">
+                  {copy.examples.items[subjectPicker.example.id].question}
+                </p>
+                <h2 id="report-subject-heading" ref={subjectHeadingRef} tabIndex={-1}>
+                  {copy.examples.subjects.heading}
+                </h2>
+                <p>{copy.examples.subjects.intro}</p>
+              </div>
+              <button
+                type="button"
+                className="secondary"
+                disabled={selectingSubjectRef !== undefined}
+                onClick={closeReportSubjectPicker}
+              >
+                <span aria-hidden="true">← </span>
+                {copy.examples.subjects.cancel}
+              </button>
+            </div>
+            {subjectsLoading && <p role="status">{copy.examples.subjects.loading}</p>}
+            {subjectsFailure && (
+              <div className="report-subject-failure">
+                <p className="error" role="alert">
+                  {subjectsFailure === "report-source-changed"
+                    ? copy.examples.subjects.sourceChanged
+                    : copy.examples.subjects.failed}
+                </p>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => void loadReportSubjects(subjectPicker.example, 0, false, null)}
+                >
+                  {copy.examples.subjects.retry}
+                </button>
+              </div>
+            )}
+            {!subjectsLoading && !subjectsFailure && subjectPicker.subjects.length === 0 && (
+              <p>{copy.examples.subjects.empty}</p>
+            )}
+            {!subjectsLoading && !subjectsFailure && subjectPicker.subjects.length > 0 && (
+              <>
+                <p className="report-subject-count" aria-live="polite">
+                  {interpolate(copy.examples.subjects.count, {
+                    shown: number.format(subjectPicker.subjects.length),
+                    total: number.format(subjectPicker.totalCount),
+                  })}
+                </p>
+                <ul className="report-subject-list">
+                  {subjectPicker.subjects.map((subject) => {
+                    const session = subject.session;
+                    return (
+                      <li key={session.sessionRef}>
+                        <article className="report-subject-card">
+                          <div className="report-subject-identity">
+                            <SportFamilyIcon
+                              family={sportCanonicalFamily(session.sport)}
+                              state={session.sport.state}
+                            />
+                            <div>
+                              <h3>{sportLabel(session.sport)}</h3>
+                              <time dateTime={session.startedAtLocal}>
+                                {formatTrainingDateTime(session.startedAtLocal, locale)}
+                              </time>
+                            </div>
+                          </div>
+                          <dl className="report-subject-facts">
+                            <div>
+                              <dt>{messages.training.duration}</dt>
+                              <dd>{formatSessionCardDuration(
+                                session.durationMilliseconds,
+                                locale,
+                                messages.training.durationUnits,
+                              )}</dd>
+                            </div>
+                            {session.distanceMeters !== null && (
+                              <div>
+                                <dt>{messages.training.distance}</dt>
+                                <dd>{formatSessionCardDistance(
+                                  session.distanceMeters,
+                                  locale,
+                                  messages.training.units,
+                                )}</dd>
+                              </div>
+                            )}
+                          </dl>
+                          {subject.hasRouteEvidence && (
+                            <p className="report-subject-route">
+                              {copy.examples.subjects.routeEvidence}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            disabled={selectingSubjectRef !== undefined || disabled}
+                            onClick={() => void useReportSubject(subject)}
+                          >
+                            {selectingSubjectRef === session.sessionRef
+                              ? copy.examples.subjects.using
+                              : copy.examples.subjects.use}
+                          </button>
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {subjectPicker.nextOffset !== null && (
+                  <button
+                    type="button"
+                    className="secondary report-subject-more"
+                    disabled={subjectsLoadingMore || selectingSubjectRef !== undefined}
+                    onClick={() => void loadMoreReportSubjects()}
+                  >
+                    {subjectsLoadingMore
+                      ? copy.examples.subjects.loading
+                      : copy.examples.subjects.loadMore}
+                  </button>
+                )}
+              </>
+            )}
+            {localError && selectingSubjectRef === undefined && (
+              <p className="error" role="alert">
+                {localError === "report-source-changed"
+                  ? copy.examples.subjects.sourceChanged
+                  : copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
+              </p>
+            )}
+          </section>
+        )}
 
         <div className="report-workspace">
           {resolving && !saving && <p role="status">{copy.resolving}</p>}
@@ -2581,7 +2934,7 @@ export function ReportsPanel({
               {copy.refresh.completed}
             </p>
           )}
-          {localError && (
+          {localError && workspace !== "subject" && (
             <p id="report-editor-error" className="error" role="alert">
               {copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
             </p>

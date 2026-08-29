@@ -45,6 +45,7 @@ use fitfreed_application::{
     query_longitudinal_overview as build_longitudinal_overview,
     query_planned_training_chronology as build_planned_training_chronology,
     query_planned_training_target as build_planned_training_target,
+    query_report_example_training_session_subjects as query_report_example_training_session_subjects_through_port,
     query_session_planned_training_relation as build_session_planned_training_relation,
     query_session_story as build_session_story,
     query_source_acquisition_guides as build_source_acquisition_guides,
@@ -110,6 +111,7 @@ use presentation::{
     RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, RefreshReportRequestDto,
     RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto, RemovedReportDto,
     RenameTrainingSessionRangeRequestDto, ReportDefinitionDto, ReportExampleCatalogDto,
+    ReportExampleTrainingSessionSubjectPageDto, ReportExampleTrainingSessionSubjectQueryDto,
     ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto, ReportLibraryRequestDto,
     ReportListDto, ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto,
     SaveSportClassificationRequestDto, SavedTrainingSportClassificationDto,
@@ -971,6 +973,21 @@ fn list_report_examples(app: AppHandle) -> Result<ReportExampleCatalogDto, Comma
     list_report_examples_through_port(&SqliteTrainingLibrary::new(path))
         .map(Into::into)
         .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_report_example_training_session_subjects(
+    app: AppHandle,
+    query: ReportExampleTrainingSessionSubjectQueryDto,
+) -> Result<ReportExampleTrainingSessionSubjectPageDto, CommandErrorDto> {
+    let query = query.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    query_report_example_training_session_subjects_through_port(
+        &SqliteTrainingLibrary::new(path),
+        query,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -2224,6 +2241,7 @@ pub fn run() {
             save_training_sport_classification,
             prepare_report_start,
             list_report_examples,
+            query_report_example_training_session_subjects,
             create_report,
             duplicate_report,
             update_report,

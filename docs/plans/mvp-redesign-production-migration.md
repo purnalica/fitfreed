@@ -12,7 +12,7 @@ redesign.
 
 ### Current execution snapshot
 
-Updated 2026-08-28. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
+Updated 2026-08-29. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
 machine-complete historical evidence. The production-native review of that result was paused and rejected after it
 found material defects in sport identity, calendar discovery, information density, analytical charts, route
 interaction, and report execution. X7-R8 is now the active corrective sequence; no prior green campaign or audit
@@ -48,12 +48,14 @@ synthetic regression evidence. The privacy-minimized X7-R8.0 selector is prepare
 observations remain pending; neither X7-R8.0 nor X7-R8.1 is complete until that structural conclusion is recorded and
 the remaining identity cases in X7-R8.1 are closed.
 
-X7-R8.2 is machine-complete locally. The month-bounded calendar now carries ordered individual activities through a
-versioned read contract, opens an exact session, restores its calendar origin and focus, and supports direct year and
-current-month navigation. Wide and compact 200% layouts, both locales, source-separated days, long sport names,
-accessibility, restart, and dense-history performance have executable evidence. The Home and History interaction audit
-also confirms that prominent session, sport, recent-session, and omitted-collection summaries either open the records
-they represent or are styled as status rather than as an inert action. X7-R8.3 is the next implementation increment.
+X7-R8.2 through X7-R8.5 are machine-complete locally. They add ordered calendar activities and exact navigation,
+shared concise presentation and alignment rules, question-led analytical charts, and an exact local route workbench
+with pointer and keyboard range selection. X7-R8.6 is active. Its first vertical slice replaces the generic History
+detour for session and route report examples with a Reports-owned, snapshot-coherent subject chooser. The initiating
+recipe, explicit selection, cancellation destination, exact route eligibility, selected-session capabilities, and
+late-response invalidation now have unit, integration, transport, contract, localization, and packaged evidence. The
+planned-training subject selector and transient run-parameter contract remain open; this slice does not close
+X7-R8.6.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -3448,6 +3450,14 @@ wrapping. X7-R8.5 is complete. External cartography and any unproven route-to-si
 MVP boundary rather than being approximated.
 
 ### X7-R8.6 — Give reports an explicit subject and transient run parameters
+
+**First vertical checkpoint — 2026-08-29:** the two session-backed examples now retain their exact descriptor inside
+Reports, query only eligible canonical sessions against one snapshot, and require **Use this session** before creating
+an unsaved draft. The route example excludes route-less sessions at the persistence boundary and resolves the first
+stable authoritative route only after selection. Cancellation restores the initiating example, stale or late queries
+cannot revive an obsolete task, and a new library composition cannot inherit the return destination or physiology
+capabilities of an earlier contextual report. No report is written before the ordinary save command. Planned-training
+subject selection and steps 2 through 6 remain open, so X7-R8.6 is not complete.
 
 1. Add an application-level report-subject eligibility query for each built-in example and contextual start. Preserve
    the initiating task, filter candidates by required evidence, and make **Use this session** or its equivalent the

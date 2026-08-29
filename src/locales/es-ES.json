@@ -2044,6 +2044,21 @@
       "retry": "Volver a comprobar los ejemplos",
       "selectionRequired": "Elige las evidencias exactas antes de que FitFreed abra un borrador.",
       "unavailable": "Necesita: {capabilities}.",
+      "subjects": {
+        "heading": "Elige la sesión para este informe",
+        "intro": "Aquí solo aparecen las sesiones que pueden responder a la pregunta seleccionada. Al elegir una se abre el borrador correspondiente; no se guarda ningún informe.",
+        "loading": "Cargando las sesiones válidas…",
+        "failed": "FitFreed no ha podido cargar las sesiones válidas.",
+        "sourceChanged": "La biblioteca de entrenamientos ha cambiado mientras revisabas estas sesiones. Vuelve a cargar las sesiones válidas.",
+        "retry": "Volver a intentarlo",
+        "empty": "No hay sesiones válidas disponibles en esta biblioteca.",
+        "count": "Se muestran {shown} de {total} sesiones válidas",
+        "routeEvidence": "Ruta registrada disponible",
+        "use": "Usar esta sesión",
+        "using": "Abriendo el borrador…",
+        "loadMore": "Mostrar más sesiones",
+        "cancel": "Volver a los ejemplos de informes"
+      },
       "capabilities": {
         "training-history": "un historial de entrenamientos",
         "training-session": "una sesión de entrenamiento",

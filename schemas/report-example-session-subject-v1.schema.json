@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-example-session-subject-v1.schema.json",
+  "title": "FitFreed report-example training-session subjects version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "exampleId",
+    "exampleVersion",
+    "snapshotRef",
+    "totalCount",
+    "offset",
+    "limit",
+    "nextOffset",
+    "subjects"
+  ],
+  "properties": {
+    "exampleId": { "$ref": "report-example-session-subject-query-v1.schema.json#/properties/exampleId" },
+    "exampleVersion": { "const": 1 },
+    "snapshotRef": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/snapshotRef" },
+    "totalCount": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "nextOffset": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1 }
+      ]
+    },
+    "subjects": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/subject" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "exampleId": { "const": "outdoor-route" } } },
+      "then": {
+        "properties": {
+          "subjects": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                { "$ref": "#/$defs/subject" },
+                {
+                  "type": "object",
+                  "properties": { "hasRouteEvidence": { "const": true } }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session", "hasRouteEvidence"],
+      "properties": {
+        "session": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v4.schema.json#/$defs/session" },
+        "hasRouteEvidence": { "type": "boolean" }
+      }
+    }
+  }
+}

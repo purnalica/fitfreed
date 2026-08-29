@@ -3363,11 +3363,51 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".report-examples")).not.toHaveText(expect.stringContaining("Polar Flow"));
 
     await $(`aria/${english.reports.examples.items["session-visual-story"].action}`).click();
-    await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
-    await expect($(`aria/${english.training.workspaces.sessions}`))
-      .toHaveAttribute("aria-current", "page");
-    expect(await $$("#training-session-detail-heading")).toHaveLength(0);
-    await goToHome("reports");
+    await $(".report-subject-picker").waitForDisplayed({ timeout: 10_000 });
+    await expect($("#report-subject-heading")).toHaveText(
+      english.reports.examples.subjects.heading,
+    );
+    await expect($(".training-insights")).not.toBeDisplayed();
+    const sessionSubjects = await $$(".report-subject-list > li");
+    expect(sessionSubjects.length).toBeGreaterThan(0);
+    await captureR10WorkspaceEvidence(
+      "r10-report-session-subject-en-wide.png",
+      ".report-subject-picker",
+    );
+    await sessionSubjects[0].$(`aria/${english.reports.examples.subjects.use}`).click();
+    await expect($('.report-editor input[maxlength="120"]')).toHaveValue(
+      english.reports.examples.items["session-visual-story"].defaultTitle,
+    );
+    expect(await $$(".report-block-editor")).toHaveLength(1);
+    await $(`aria/${english.reports.cancelComposition}`).click();
+    await expectDocumentFocus(
+      "#saved-reports-heading",
+      "cancelling a session-example draft did not restore the report library",
+    );
+
+    await $(`aria/${english.reports.examples.items["outdoor-route"].action}`).click();
+    await $(".report-subject-picker").waitForDisplayed({ timeout: 10_000 });
+    const routeSubjects = await $$(".report-subject-list > li");
+    expect(routeSubjects.length).toBeGreaterThan(0);
+    for (const subject of routeSubjects) {
+      await expect(subject).toHaveText(
+        expect.stringContaining(english.reports.examples.subjects.routeEvidence),
+      );
+    }
+    await captureR10WorkspaceEvidence(
+      "r10-report-route-subject-en-wide.png",
+      ".report-subject-picker",
+    );
+    await routeSubjects[0].$(`aria/${english.reports.examples.subjects.use}`).click();
+    await expect($('.report-editor input[maxlength="120"]')).toHaveValue(
+      english.reports.examples.items["outdoor-route"].defaultTitle,
+    );
+    expect(await $$(".report-block-editor")).toHaveLength(2);
+    await $(`aria/${english.reports.cancelComposition}`).click();
+    await expectDocumentFocus(
+      "#saved-reports-heading",
+      "cancelling a route-example draft did not restore the report library",
+    );
     await $(".report-example-list").waitForDisplayed({ timeout: 10_000 });
 
     const useExample = await $(`aria/${

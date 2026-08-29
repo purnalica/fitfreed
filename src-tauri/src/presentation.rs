@@ -37,7 +37,9 @@ use fitfreed_application::{
     ReportEvidenceProvenance, ReportExampleAvailability, ReportExampleBlockRecipe,
     ReportExampleCapability, ReportExampleCatalog, ReportExampleDescriptor,
     ReportExampleDestination, ReportExampleId, ReportExampleParameter, ReportExamplePurpose,
-    ReportExampleQuestion, ReportExportReceipt, ReportExportRequest, ReportLibraryComparisonSeries,
+    ReportExampleQuestion, ReportExampleTrainingSessionSubject,
+    ReportExampleTrainingSessionSubjectPage, ReportExampleTrainingSessionSubjectQuery,
+    ReportExportReceipt, ReportExportRequest, ReportLibraryComparisonSeries,
     ReportLibraryEvidenceState, ReportLibraryItem, ReportLibraryMetricValue, ReportLibraryPage,
     ReportLibraryPeriod, ReportLibraryRequest, ReportLibraryResult, ReportLibrarySensitivity,
     ReportLibrarySubject, ReportLimitation, ReportPlannedTrainingEvidence, ReportResolutionStatus,
@@ -4139,6 +4141,77 @@ impl From<ReportExampleCatalog> for ReportExampleCatalogDto {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportExampleTrainingSessionSubjectQueryDto {
+    example_id: String,
+    example_version: u32,
+    offset: usize,
+    limit: usize,
+    snapshot_ref: Option<String>,
+}
+
+impl TryFrom<ReportExampleTrainingSessionSubjectQueryDto>
+    for ReportExampleTrainingSessionSubjectQuery
+{
+    type Error = CommandErrorDto;
+
+    fn try_from(query: ReportExampleTrainingSessionSubjectQueryDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            example_id: report_example_id_from_code(&query.example_id)
+                .ok_or_else(|| CommandErrorDto::new("invalid-report-definition"))?,
+            example_version: query.example_version,
+            offset: query.offset,
+            limit: query.limit,
+            snapshot_ref: query.snapshot_ref,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReportExampleTrainingSessionSubjectDto {
+    session: TrainingSessionSearchItemDto,
+    has_route_evidence: bool,
+}
+
+impl From<ReportExampleTrainingSessionSubject> for ReportExampleTrainingSessionSubjectDto {
+    fn from(subject: ReportExampleTrainingSessionSubject) -> Self {
+        Self {
+            session: subject.session.into(),
+            has_route_evidence: subject.has_route_evidence,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportExampleTrainingSessionSubjectPageDto {
+    example_id: &'static str,
+    example_version: u32,
+    snapshot_ref: String,
+    total_count: usize,
+    offset: usize,
+    limit: usize,
+    next_offset: Option<usize>,
+    subjects: Vec<ReportExampleTrainingSessionSubjectDto>,
+}
+
+impl From<ReportExampleTrainingSessionSubjectPage> for ReportExampleTrainingSessionSubjectPageDto {
+    fn from(page: ReportExampleTrainingSessionSubjectPage) -> Self {
+        Self {
+            example_id: report_example_id(page.example_id),
+            example_version: page.example_version,
+            snapshot_ref: page.snapshot_ref,
+            total_count: page.total_count,
+            offset: page.offset,
+            limit: page.limit,
+            next_offset: page.next_offset,
+            subjects: page.subjects.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ReportExampleDescriptorDto {
@@ -4218,6 +4291,16 @@ fn report_example_id(value: ReportExampleId) -> &'static str {
         ReportExampleId::SessionVisualStory => "session-visual-story",
         ReportExampleId::OutdoorRoute => "outdoor-route",
         ReportExampleId::StructuredTrainingPlan => "structured-training-plan",
+    }
+}
+
+fn report_example_id_from_code(value: &str) -> Option<ReportExampleId> {
+    match value {
+        "adjacent-period-volume" => Some(ReportExampleId::AdjacentPeriodVolume),
+        "session-visual-story" => Some(ReportExampleId::SessionVisualStory),
+        "outdoor-route" => Some(ReportExampleId::OutdoorRoute),
+        "structured-training-plan" => Some(ReportExampleId::StructuredTrainingPlan),
+        _ => None,
     }
 }
 
@@ -11563,6 +11646,103 @@ mod tests {
         assert!(!serialized.contains("provider"));
         assert!(!serialized.contains("result"));
         assert!(!serialized.contains("reportRef"));
+    }
+
+    #[test]
+    fn validates_and_serializes_report_example_session_subjects_without_source_identity() {
+        let input: ReportExampleTrainingSessionSubjectQueryDto = from_value(json!({
+            "exampleId": "outdoor-route",
+            "exampleVersion": 1,
+            "offset": 12,
+            "limit": 12,
+            "snapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }))
+        .expect("report example subject query");
+        let query = ReportExampleTrainingSessionSubjectQuery::try_from(input)
+            .expect("valid report example subject query");
+        assert_eq!(query.example_id, ReportExampleId::OutdoorRoute);
+        assert_eq!(query.offset, 12);
+        assert!(
+            from_value::<ReportExampleTrainingSessionSubjectQueryDto>(json!({
+                "exampleId": "outdoor-route",
+                "exampleVersion": 1,
+                "offset": 0,
+                "limit": 12,
+                "snapshotRef": null,
+                "providerSessionId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+        let unknown: ReportExampleTrainingSessionSubjectQueryDto = from_value(json!({
+            "exampleId": "unknown-example",
+            "exampleVersion": 1,
+            "offset": 0,
+            "limit": 12,
+            "snapshotRef": null
+        }))
+        .expect("structurally valid unknown example");
+        assert!(ReportExampleTrainingSessionSubjectQuery::try_from(unknown).is_err());
+
+        let page = ReportExampleTrainingSessionSubjectPage {
+            example_id: ReportExampleId::OutdoorRoute,
+            example_version: 1,
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            total_count: 1,
+            offset: 0,
+            limit: 12,
+            next_offset: None,
+            subjects: vec![ReportExampleTrainingSessionSubject {
+                session: TrainingSessionSearchItem {
+                    session_ref:
+                        "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                            .to_owned(),
+                    sport_filter_ref:
+                        "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                            .to_owned(),
+                    source_index: 1,
+                    started_at_local: "2026-08-18T07:30:00".to_owned(),
+                    stopped_at_local: "2026-08-18T08:30:00".to_owned(),
+                    utc_offset_minutes: Some(120),
+                    duration_milliseconds: 3_600_000,
+                    distance_meters: Some(10_000.5),
+                    energy_kilocalories: Some(650),
+                    average_heart_rate_bpm: Some(145),
+                    maximum_heart_rate_bpm: Some(175),
+                    exercise_count: Some(1),
+                    sport: TrainingSessionSport {
+                        sport_ref: Some(
+                            "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                                .to_owned(),
+                        ),
+                        state: TrainingSportState::PersonallyOverridden,
+                        classification: Some(TrainingSportClassification {
+                            scope: TrainingSportClassificationScope::UnresolvedSourceProfile,
+                            canonical_family: Some("running".to_owned()),
+                            display_label: Some("Trail running".to_owned()),
+                            authorship: Some("user".to_owned()),
+                            revision: 1,
+                        }),
+                        recognition: None,
+                        recognition_candidate_count: 0,
+                    },
+                },
+                has_route_evidence: true,
+            }],
+        };
+        let value = to_value(ReportExampleTrainingSessionSubjectPageDto::from(page))
+            .expect("report example subject page JSON");
+        assert_eq!(value["exampleId"], "outdoor-route");
+        assert_eq!(value["subjects"][0]["hasRouteEvidence"], true);
+        assert_eq!(
+            value["subjects"][0]["session"]["durationMilliseconds"],
+            "3600000"
+        );
+        let serialized = value.to_string();
+        assert!(!serialized.contains("providerSessionId"));
+        assert!(!serialized.contains("sportFilterRef"));
     }
 
     #[test]

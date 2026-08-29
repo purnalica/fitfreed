@@ -1607,8 +1607,8 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .reports-panel > button.secondary { justify-self: start; }
 .reports-layout { display: grid; grid-template-columns: minmax(230px, .7fr) minmax(0, 1.8fr); gap: 22px; align-items: start; }
 .reports-layout-library { grid-template-columns: minmax(0, 1fr); }
-.reports-layout-compose, .reports-layout-preview { grid-template-columns: minmax(0, 1fr); }
-.report-library, .report-editor, .report-preview, .report-refresh-review, .report-privacy-review, .report-delete-review, .report-duplicate-task { min-width: 0; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; scroll-margin-block-start: var(--shell-reveal-offset); }
+.reports-layout-subject, .reports-layout-compose, .reports-layout-preview { grid-template-columns: minmax(0, 1fr); }
+.report-library, .report-subject-picker, .report-editor, .report-preview, .report-refresh-review, .report-privacy-review, .report-delete-review, .report-duplicate-task { min-width: 0; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; scroll-margin-block-start: var(--shell-reveal-offset); }
 #report-library-heading, #report-preview-heading, #report-refresh-heading, #report-privacy-heading, #report-delete-heading, #report-duplicate-heading { scroll-margin-block-start: var(--shell-reveal-offset); }
 .report-library { position: sticky; top: 86px; }
 .reports-layout-library .report-library { position: static; }
@@ -1628,6 +1628,26 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .report-example-unavailable { align-self: end; padding: 10px 12px; background: var(--surface-soft); border-radius: 9px; }
 .report-examples-failure { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
 .report-examples-failure p { margin: 0; }
+.report-subject-picker { display: grid; gap: 18px; }
+.report-subject-picker .report-section-heading > div { max-width: var(--measure-reading); }
+.report-subject-picker .report-section-heading p:last-child { margin: 6px 0 0; color: var(--ink-soft); line-height: 1.55; }
+.report-subject-failure { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.report-subject-failure p, .report-subject-count { margin: 0; }
+.report-subject-count { color: var(--muted); font-size: .78rem; }
+.report-subject-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.report-subject-list > li { min-width: 0; }
+.report-subject-card { display: grid; grid-template-rows: auto auto 1fr auto; gap: 14px; height: 100%; min-width: 0; padding: 17px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
+.report-subject-identity { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.report-subject-identity .sport-family-icon { flex: 0 0 42px; width: 42px; height: 42px; padding: 9px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.report-subject-identity h3 { margin: 0 0 3px; font-size: 1rem; line-height: 1.25; }
+.report-subject-identity time { color: var(--muted); font-size: .75rem; }
+.report-subject-facts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.report-subject-facts > div { display: grid; gap: 2px; }
+.report-subject-facts dt { color: var(--muted); font-size: .68rem; font-weight: 700; }
+.report-subject-facts dd { margin: 0; font-size: .84rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.report-subject-route { align-self: end; margin: 0; color: var(--accent-deep); font-size: .74rem; font-weight: 750; }
+.report-subject-card > button { width: 100%; min-height: 42px; }
+.report-subject-more { justify-self: start; }
 .report-section-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
 .report-section-heading h2 { margin-bottom: 4px; }
 .report-section-heading button { flex: 0 0 auto; min-height: 38px; padding: 7px 10px; font-size: .76rem; }

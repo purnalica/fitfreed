@@ -13,14 +13,17 @@ evidence each structure needs:
 - **Recent training, side by side** is available when the library contains training sessions. **Use as basis**
   prepares bounded adjacent periods and opens an unsaved draft with session count, a duration chart, and
   evidence coverage. Nothing is written until you select **Save report**.
-- **One session, clearly explained** and **Investigate an outdoor route** first open the training-session
-  explorer. Choose the exact session that should provide the report evidence; FitFreed never chooses one on
-  your behalf.
+- **One session, clearly explained** and **Investigate an outdoor route** open a bounded session chooser inside
+  Reports. It shows only sessions eligible for that structure; the route structure excludes sessions without
+  usable route evidence. Choose **Use this session** to open the matching unsaved draft. Large libraries remain
+  coherently paged against the same snapshot, and FitFreed never chooses a session on your behalf.
 - **Understand a training plan** first opens Training plans. Choose the exact imported structured target that
   should provide the report evidence.
 
 When required evidence is unavailable, the structure remains visible and names what is missing rather than
-opening a draft that cannot be supported. Cancelling any unsaved example-based composition creates no report.
+opening a draft that cannot be supported. The chooser presents one clear return action. Returning from it restores
+the exact report structure that opened it; an unrelated session or report visited earlier cannot replace that
+destination. Cancelling any unsaved example-based composition creates no report.
 All saved definitions remain under **Saved reports** and open on their result rather than their editor.
 
 Reports can also begin from a completed training-period comparison, a specific training session, or an imported

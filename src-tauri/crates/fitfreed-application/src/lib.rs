@@ -42,10 +42,14 @@ pub use reporting::{
 
 mod report_examples;
 pub use report_examples::{
-    list_report_examples, ReportExampleAvailability, ReportExampleBlockRecipe,
-    ReportExampleCapability, ReportExampleCatalog, ReportExampleDescriptor,
-    ReportExampleDestination, ReportExampleEvidence, ReportExampleEvidencePort, ReportExampleId,
-    ReportExampleParameter, ReportExamplePurpose, ReportExampleQuestion,
+    list_report_examples, query_report_example_training_session_subjects,
+    PersistedReportExampleTrainingSessionSubjectPage, ReportExampleAvailability,
+    ReportExampleBlockRecipe, ReportExampleCapability, ReportExampleCatalog,
+    ReportExampleDescriptor, ReportExampleDestination, ReportExampleEvidence,
+    ReportExampleEvidencePort, ReportExampleId, ReportExampleParameter, ReportExamplePurpose,
+    ReportExampleQuestion, ReportExampleSubjectPort, ReportExampleTrainingSessionEligibility,
+    ReportExampleTrainingSessionSubject, ReportExampleTrainingSessionSubjectPage,
+    ReportExampleTrainingSessionSubjectPersistenceQuery, ReportExampleTrainingSessionSubjectQuery,
     REPORT_EXAMPLE_DESCRIPTOR_VERSION,
 };
 

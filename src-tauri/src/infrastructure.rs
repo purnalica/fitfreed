@@ -32,7 +32,8 @@ use fitfreed_application::{
     list_report_examples, list_report_library, move_training_segment_criterion,
     query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
     query_library_home, query_longitudinal_overview, query_planned_training_chronology,
-    query_planned_training_target, query_recovery_detail, query_session_planned_training_relation,
+    query_planned_training_target, query_recovery_detail,
+    query_report_example_training_session_subjects, query_session_planned_training_relation,
     query_training_route_points, query_training_session_provenance,
     query_training_session_range_draft_summary, query_training_session_range_summary,
     query_training_session_ranges, query_training_session_routes,
@@ -47,9 +48,10 @@ use fitfreed_application::{
     LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind, LocalePreference,
     MoveTrainingSegmentCriterionRequest, NormalizedDataExportCancellation,
     NormalizedDataExportPort, RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
-    ReportExampleAvailability, ReportExampleDestination, ReportExampleId, ReportLibraryMetricValue,
-    ReportLibraryRequest, ReportLibraryResult, SaveSportClassificationRequest,
-    SegmentApplicabilityView, SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
+    ReportExampleAvailability, ReportExampleDestination, ReportExampleId,
+    ReportExampleTrainingSessionSubjectQuery, ReportLibraryMetricValue, ReportLibraryRequest,
+    ReportLibraryResult, SaveSportClassificationRequest, SegmentApplicabilityView,
+    SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
     TrainingRangeSummaryCoverageState, TrainingSegmentCriterionMutationRequest, TrainingSportState,
     UpdateTrainingSegmentCriterionRequest,
 };
@@ -60,29 +62,32 @@ use fitfreed_application::{
     ImportPhaseTimings, ImportProgress, LibraryHomeClockPort, LibraryHomeMeasurementRangePort,
     LibraryHomeRevisionPort, PersistedPlannedTrainingChronologyPage,
     PersistedPlannedTrainingTarget, PersistedPlannedTrainingTargetDetail,
-    PersistedSessionPlannedTrainingCandidates, PersistedTrainingExerciseSegmentation,
-    PersistedTrainingRangeCoordinateEvidence, PersistedTrainingRangeSummaryExercise,
-    PersistedTrainingRangeSummarySourceRange, PersistedTrainingRoutePoints,
-    PersistedTrainingSessionCalendar, PersistedTrainingSessionProvenance,
-    PersistedTrainingSessionRangeDraftSummary, PersistedTrainingSessionRangeSummary,
-    PersistedTrainingSessionRanges, PersistedTrainingSessionRoutes,
-    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
-    PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
-    PersistedTrainingSessionStructure, PersistedTrainingSessionZones,
-    PersistedTrainingSignalSamples, PlannedTrainingChronologyQuery, PlannedTrainingCollection,
-    PlannedTrainingCompletionFilter, PlannedTrainingQueryPort, PlannedTrainingQueryPortError,
-    PlannedTrainingReconciliationState, PlannedTrainingSessionRelationQuery,
-    PlannedTrainingTargetQuery, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
-    RecoveryLibraryPort, ReportDefinitionPort, ReportDefinitionPortError, ReportExampleEvidence,
-    ReportExampleEvidencePort, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
-    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
-    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
-    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
-    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
-    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
-    TrainingRangeEvidenceStreamItem, TrainingRangeSourceRangeKind, TrainingRouteCollectionView,
-    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    PersistedReportExampleTrainingSessionSubjectPage, PersistedSessionPlannedTrainingCandidates,
+    PersistedTrainingExerciseSegmentation, PersistedTrainingRangeCoordinateEvidence,
+    PersistedTrainingRangeSummaryExercise, PersistedTrainingRangeSummarySourceRange,
+    PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar,
+    PersistedTrainingSessionProvenance, PersistedTrainingSessionRangeDraftSummary,
+    PersistedTrainingSessionRangeSummary, PersistedTrainingSessionRanges,
+    PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
+    PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
+    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
+    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, PlannedTrainingChronologyQuery,
+    PlannedTrainingCollection, PlannedTrainingCompletionFilter, PlannedTrainingQueryPort,
+    PlannedTrainingQueryPortError, PlannedTrainingReconciliationState,
+    PlannedTrainingSessionRelationQuery, PlannedTrainingTargetQuery, ProfiledImport,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
+    ReportDefinitionPortError, ReportExampleEvidence, ReportExampleEvidencePort,
+    ReportExampleSubjectPort, ReportExampleTrainingSessionEligibility,
+    ReportExampleTrainingSessionSubjectPersistenceQuery, SegmentSignalEvidence, SegmentSignalKind,
+    SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
+    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
+    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingLibraryPort,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRangeEvidenceStreamItem,
+    TrainingRangeSourceRangeKind, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
     TrainingSessionCalendarActivity, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
     TrainingSessionDiscoveryPort, TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
@@ -2298,6 +2303,7 @@ fn training_sport_group_key(
 fn training_discovery_filter(
     sport_entries: &[TrainingSportFilterEntry],
     request: &TrainingSessionSearchRequest,
+    requires_route_evidence: bool,
 ) -> std::result::Result<(String, Vec<Value>), TrainingSessionDiscoveryPortError> {
     validate_training_discovery_sport_refs(sport_entries, request)?;
     let mut values = vec![
@@ -2308,6 +2314,18 @@ fn training_discovery_filter(
         "(?1 IS NULL OR session.started_at_local >= ?1 || 'T')".to_owned(),
         "(?2 IS NULL OR session.started_at_local <= ?2 || 'T23:59:59.999999999')".to_owned(),
     ];
+    if requires_route_evidence {
+        predicates.push(
+            "EXISTS (
+                SELECT 1
+                FROM training_route AS eligible_route
+                WHERE eligible_route.origin_id = session.origin_id
+                  AND eligible_route.session_id = session.session_id
+                  AND eligible_route.point_count >= 2
+            )"
+            .to_owned(),
+        );
+    }
     for measurement in &request.required_measurements {
         predicates.push(match measurement {
             TrainingMeasurementFilter::Distance => "session.distance_meters IS NOT NULL",
@@ -2424,10 +2442,16 @@ fn training_sport_filter_predicate(
     }
 }
 
-fn query_training_session_discovery(
+struct TrainingSessionDiscoveryEvidencePage {
+    page: PersistedTrainingSessionSearchPage,
+    route_evidence_session_refs: Vec<String>,
+}
+
+fn query_training_session_discovery_with_evidence(
     database_path: &Path,
     request: &TrainingSessionSearchRequest,
-) -> std::result::Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+    requires_route_evidence: bool,
+) -> std::result::Result<TrainingSessionDiscoveryEvidencePage, TrainingSessionDiscoveryPortError> {
     let mut connection = Connection::open(database_path).map_err(discovery_failure)?;
     ensure_schema(&connection).map_err(discovery_failure)?;
     let transaction = connection.transaction().map_err(discovery_failure)?;
@@ -2475,7 +2499,8 @@ fn query_training_session_discovery(
         })
         .collect::<HashMap<_, _>>();
 
-    let (where_clause, mut values) = training_discovery_filter(&sport_filter_entries, request)?;
+    let (where_clause, mut values) =
+        training_discovery_filter(&sport_filter_entries, request, requires_route_evidence)?;
     let total_count = transaction
         .query_row(
             &format!("SELECT COUNT(*) FROM training_session AS session WHERE {where_clause}"),
@@ -2601,7 +2626,14 @@ fn query_training_session_discovery(
                 session.stopped_at_local, session.utc_offset_minutes,
                 session.duration_milliseconds, session.distance_meters,
                 session.energy_kilocalories, session.average_heart_rate_bpm,
-                session.maximum_heart_rate_bpm, session.sport_ref, session.exercise_count
+                session.maximum_heart_rate_bpm, session.sport_ref, session.exercise_count,
+                EXISTS (
+                    SELECT 1
+                    FROM training_route AS candidate_route
+                    WHERE candidate_route.origin_id = session.origin_id
+                      AND candidate_route.session_id = session.session_id
+                      AND candidate_route.point_count >= 2
+                )
          FROM training_session AS session
          WHERE {where_clause}
          ORDER BY {order_clause}
@@ -2623,10 +2655,12 @@ fn query_training_session_discovery(
                 row.get::<_, Option<i64>>(9)?,
                 row.get::<_, Option<String>>(10)?,
                 row.get::<_, Option<i64>>(11)?,
+                row.get::<_, i64>(12)?,
             ))
         })
         .map_err(discovery_failure)?;
     let mut sessions = Vec::new();
+    let mut route_evidence_session_refs = Vec::new();
     for row in rows {
         let (
             origin_id,
@@ -2641,7 +2675,13 @@ fn query_training_session_discovery(
             maximum_heart_rate_bpm,
             source_sport_ref,
             exercise_count,
+            has_route_evidence,
         ) = row.map_err(discovery_failure)?;
+        if !matches!(has_route_evidence, 0 | 1) {
+            return Err(TrainingSessionDiscoveryPortError::Failure(
+                "training-session route evidence is invalid".to_owned(),
+            ));
+        }
         let source_index = source_indices.get(&origin_id).copied().ok_or_else(|| {
             TrainingSessionDiscoveryPortError::Failure(
                 "training-session origin has no source index".to_owned(),
@@ -2660,8 +2700,12 @@ fn query_training_session_discovery(
             &session_id,
         )
         .map_err(discovery_failure)?;
+        let session_ref = training_session_ref(&origin_id, &session_id);
+        if has_route_evidence == 1 {
+            route_evidence_session_refs.push(session_ref.clone());
+        }
         sessions.push(TrainingSessionSearchItem {
-            session_ref: training_session_ref(&origin_id, &session_id),
+            session_ref,
             sport_filter_ref,
             source_index,
             started_at_local,
@@ -2681,13 +2725,24 @@ fn query_training_session_discovery(
     }
     drop(statement);
     transaction.commit().map_err(discovery_failure)?;
-    Ok(PersistedTrainingSessionSearchPage {
-        available_range,
-        snapshot_ref,
-        total_count,
-        summaries,
-        sessions,
+    Ok(TrainingSessionDiscoveryEvidencePage {
+        page: PersistedTrainingSessionSearchPage {
+            available_range,
+            snapshot_ref,
+            total_count,
+            summaries,
+            sessions,
+        },
+        route_evidence_session_refs,
     })
+}
+
+fn query_training_session_discovery(
+    database_path: &Path,
+    request: &TrainingSessionSearchRequest,
+) -> std::result::Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+    query_training_session_discovery_with_evidence(database_path, request, false)
+        .map(|result| result.page)
 }
 
 fn query_training_calendar_discovery(
@@ -2771,7 +2826,8 @@ fn query_training_calendar_discovery(
             )
         })
         .collect::<HashMap<_, _>>();
-    let (where_clause, values) = training_discovery_filter(&sport_filter_entries, &search_request)?;
+    let (where_clause, values) =
+        training_discovery_filter(&sport_filter_entries, &search_request, false)?;
     let query = format!(
         "SELECT substr(session.started_at_local, 1, 10), session.origin_id,
                 COUNT(*), SUM(session.duration_milliseconds),
@@ -16256,6 +16312,30 @@ impl ReportExampleEvidencePort for SqliteTrainingLibrary {
     }
 }
 
+impl ReportExampleSubjectPort for SqliteTrainingLibrary {
+    fn query_training_session_subjects(
+        &self,
+        request: &ReportExampleTrainingSessionSubjectPersistenceQuery,
+    ) -> std::result::Result<
+        PersistedReportExampleTrainingSessionSubjectPage,
+        TrainingSessionDiscoveryPortError,
+    > {
+        let requires_route_evidence = matches!(
+            request.eligibility,
+            ReportExampleTrainingSessionEligibility::RouteEvidence
+        );
+        query_training_session_discovery_with_evidence(
+            &self.database_path,
+            &request.search,
+            requires_route_evidence,
+        )
+        .map(|result| PersistedReportExampleTrainingSessionSubjectPage {
+            page: result.page,
+            route_evidence_session_refs: result.route_evidence_session_refs,
+        })
+    }
+}
+
 impl TrainingSessionDiscoveryPort for SqliteTrainingLibrary {
     fn query_training_sessions(
         &self,
@@ -19361,6 +19441,102 @@ mod tests {
             ),
             Err(ImportError::InvalidTrainingLibrary(_))
         ));
+    }
+
+    #[test]
+    fn filters_report_example_subjects_by_exact_route_eligibility() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "report-example-subjects.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-report-example-subjects"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"routed-report-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:05:00.000",
+                        "startTime":"2026-01-02T10:00:00",
+                        "stopTime":"2026-01-02T11:00:00",
+                        "durationMillis":3600000,
+                        "sport":{"id":"running"},
+                        "exercises":[{
+                            "identifier":{"id":"routed-exercise"},
+                            "created":"2026-01-02T12:00:00.000",
+                            "modified":"2026-01-02T12:05:00.000",
+                            "startTime":"2026-01-02T10:00:00",
+                            "stopTime":"2026-01-02T11:00:00",
+                            "durationMillis":3600000,
+                            "sport":{"id":"running"},
+                            "routes":{"route":{
+                                "startTime":"2026-01-02T10:00:00",
+                                "wayPoints":[
+                                {"latitude":40.0,"longitude":-3.0,"elapsedMillis":0},
+                                {"latitude":40.1,"longitude":-3.1,"elapsedMillis":1000}
+                            ]}}
+                        }]
+                    }"#,
+                ),
+                (
+                    "training-session_2026-01-03T10-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"indoor-report-session"},
+                        "created":"2026-01-03T12:00:00.000",
+                        "modified":"2026-01-03T12:05:00.000",
+                        "startTime":"2026-01-03T10:00:00",
+                        "stopTime":"2026-01-03T10:45:00",
+                        "durationMillis":2700000,
+                        "sport":{"id":"strength-training"}
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("report example import");
+        let library = SqliteTrainingLibrary::new(harness.database());
+
+        let sessions = query_report_example_training_session_subjects(
+            &library,
+            ReportExampleTrainingSessionSubjectQuery {
+                example_id: ReportExampleId::SessionVisualStory,
+                example_version: 1,
+                offset: 0,
+                limit: 12,
+                snapshot_ref: None,
+            },
+        )
+        .expect("all session subjects");
+        assert_eq!(sessions.total_count, 2);
+        assert_eq!(sessions.subjects.len(), 2);
+        assert_eq!(
+            sessions
+                .subjects
+                .iter()
+                .filter(|subject| subject.has_route_evidence)
+                .count(),
+            1
+        );
+
+        let routes = query_report_example_training_session_subjects(
+            &library,
+            ReportExampleTrainingSessionSubjectQuery {
+                example_id: ReportExampleId::OutdoorRoute,
+                example_version: 1,
+                offset: 0,
+                limit: 12,
+                snapshot_ref: None,
+            },
+        )
+        .expect("route session subjects");
+        assert_eq!(routes.total_count, 1);
+        assert_eq!(routes.subjects.len(), 1);
+        assert!(routes.subjects[0].has_route_evidence);
+        assert_eq!(
+            routes.subjects[0].session.started_at_local,
+            "2026-01-02T10:00:00"
+        );
     }
 
     #[test]
