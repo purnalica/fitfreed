@@ -66,7 +66,7 @@ use fitfreed_application::{
     remove_training_segment_criterion as remove_segment_criterion_through_port,
     remove_training_session_range as remove_training_session_range_through_port,
     rename_training_session_range as rename_training_session_range_through_port,
-    resolve_report as resolve_report_through_port,
+    resolve_report_with_parameters as resolve_report_through_port,
     resolve_session_report as resolve_session_report_through_port,
     save_application_preferences as save_preferences_through_port,
     save_exploration_workspace as save_workspace,
@@ -115,12 +115,12 @@ use presentation::{
     ReportExamplePlannedTrainingSubjectPageDto, ReportExamplePlannedTrainingSubjectQueryDto,
     ReportExampleTrainingSessionSubjectPageDto, ReportExampleTrainingSessionSubjectQueryDto,
     ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto, ReportLibraryRequestDto,
-    ReportListDto, ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto,
-    SaveSportClassificationRequestDto, SavedTrainingSportClassificationDto,
-    SessionReportExportRequestDto, SessionStoryDto, SessionStoryQueryDto, SleepComparisonDto,
-    SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto,
-    TrainingComparisonDto, TrainingDateRangeDto, TrainingDiscoveryWorkspaceDto,
-    TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
+    ReportListDto, ReportStartDto, ResolveReportRequestDto, ResolvedReportDto,
+    ResolvedSessionReportDto, SaveSportClassificationRequestDto,
+    SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SessionStoryDto,
+    SessionStoryQueryDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
+    SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
+    TrainingDiscoveryWorkspaceDto, TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
     TrainingSegmentCriterionMutationRequestDto, TrainingSessionCalendarDto,
     TrainingSessionCalendarRequestDto, TrainingSessionProvenanceQueryDto,
     TrainingSessionProvenanceResultDto, TrainingSessionRangeDraftSummaryDto,
@@ -1179,8 +1179,9 @@ fn resolve_session_report(
 #[tauri::command]
 fn resolve_report(
     app: AppHandle,
-    report_ref: String,
+    request: ResolveReportRequestDto,
 ) -> Result<ResolvedReportDto, CommandErrorDto> {
+    let request = request.try_into()?;
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     resolve_report_through_port(
         &SqliteReportLibrary::new(path.clone()),
@@ -1189,7 +1190,7 @@ fn resolve_report(
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
-        &report_ref,
+        request,
     )
     .map(Into::into)
     .map_err(CommandErrorDto::from)

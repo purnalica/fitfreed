@@ -45,27 +45,28 @@ use fitfreed_application::{
     ReportLibraryEvidenceState, ReportLibraryItem, ReportLibraryMetricValue, ReportLibraryPage,
     ReportLibraryPeriod, ReportLibraryRequest, ReportLibraryResult, ReportLibrarySensitivity,
     ReportLibrarySubject, ReportLimitation, ReportPlannedTrainingEvidence, ReportResolutionStatus,
-    ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
-    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
-    ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
-    SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
-    SessionReportBlockDraftContent, SessionStory, SessionStoryAlignedSampleView,
-    SessionStoryAlignmentStateView, SessionStoryAssessmentStateView, SessionStoryCompositionView,
-    SessionStoryExactRoute, SessionStoryExactSignal, SessionStoryExercise,
-    SessionStoryExerciseEvidenceView, SessionStoryMetricView, SessionStoryOverlayView,
-    SessionStoryProvenance, SessionStoryQuery, SessionStoryRole, SessionStoryRoleEvidenceView,
-    SessionStoryValueTransform, SleepComparison, SleepDateRange, SleepDayAvailability,
-    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
-    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
-    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter,
-    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
-    TrainingProvenanceEventView, TrainingRangeBoundaryEvidence, TrainingRangeBoundaryEvidenceState,
-    TrainingRangeBoundaryPair, TrainingRangeCardinalDirection, TrainingRangeCoordinateEvidence,
-    TrainingRangeDirectionSummary, TrainingRangeDistanceSummary, TrainingRangeEvidenceCoverage,
-    TrainingRangeEvidenceLocation, TrainingRangeExactEvidenceKind,
+    ReportRouteEvidence, ReportRouteExportChoice, ReportRunParameterOrigin, ReportRunParameters,
+    ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportStart,
+    ReportSummary, ResolveReportRequest, ResolvedReport, ResolvedReportRunParameters,
+    ResolvedSessionReport, ResolvedTrainingComparisonRunParameters, SaveSportClassificationRequest,
+    SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
+    SessionReportBlockDraft, SessionReportBlockDraftContent, SessionStory,
+    SessionStoryAlignedSampleView, SessionStoryAlignmentStateView, SessionStoryAssessmentStateView,
+    SessionStoryCompositionView, SessionStoryExactRoute, SessionStoryExactSignal,
+    SessionStoryExercise, SessionStoryExerciseEvidenceView, SessionStoryMetricView,
+    SessionStoryOverlayView, SessionStoryProvenance, SessionStoryQuery, SessionStoryRole,
+    SessionStoryRoleEvidenceView, SessionStoryValueTransform, SleepComparison, SleepDateRange,
+    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
+    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
+    SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
+    TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
+    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRangeBoundaryEvidence,
+    TrainingRangeBoundaryEvidenceState, TrainingRangeBoundaryPair, TrainingRangeCardinalDirection,
+    TrainingRangeCoordinateEvidence, TrainingRangeDirectionSummary, TrainingRangeDistanceSummary,
+    TrainingRangeEvidenceCoverage, TrainingRangeEvidenceLocation, TrainingRangeExactEvidenceKind,
     TrainingRangeIndependentEvidence, TrainingRangeMeasurementSummary, TrainingRangeMetricCoverage,
     TrainingRangeMissingInterval, TrainingRangeSourceOverlap, TrainingRangeSourceOverlapRelation,
     TrainingRangeSourceRangeKind, TrainingRangeSummaryCoverageState,
@@ -809,6 +810,7 @@ impl From<ApplicationError> for CommandErrorDto {
                 "training-session-range-summary-failed"
             }
             ApplicationError::InvalidReportDefinition(_) => "invalid-report-definition",
+            ApplicationError::InvalidReportRunParameters(_) => "invalid-report-run-parameters",
             ApplicationError::ReportNotFound => "report-not-found",
             ApplicationError::ReportDefinitionConflict => "report-definition-conflict",
             ApplicationError::ReportSourceChanged => "report-source-changed",
@@ -3901,6 +3903,45 @@ impl From<&ReportTrainingComparisonQuery> for ReportTrainingComparisonQueryDto {
     }
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportRunParametersDto {
+    training_comparison: Option<ReportTrainingComparisonQueryDto>,
+}
+
+impl TryFrom<ReportRunParametersDto> for ReportRunParameters {
+    type Error = CommandErrorDto;
+
+    fn try_from(parameters: ReportRunParametersDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            training_comparison: parameters
+                .training_comparison
+                .map(TryInto::try_into)
+                .transpose()
+                .map_err(|_| CommandErrorDto::new("invalid-report-run-parameters"))?,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ResolveReportRequestDto {
+    report_ref: String,
+    #[serde(default)]
+    run_parameters: ReportRunParametersDto,
+}
+
+impl TryFrom<ResolveReportRequestDto> for ResolveReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: ResolveReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            report_ref: request.report_ref,
+            run_parameters: request.run_parameters.try_into()?,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(
     tag = "kind",
@@ -5253,6 +5294,7 @@ pub struct ResolvedSessionReportDto {
     provenance: TrainingProvenanceCurrentDto,
     sensitive_contents: Vec<ReportSensitiveContentDto>,
     limitations: Vec<&'static str>,
+    run_parameters: ResolvedReportRunParametersDto,
 }
 
 impl From<ResolvedSessionReport> for ResolvedSessionReportDto {
@@ -5278,6 +5320,42 @@ impl From<ResolvedSessionReport> for ResolvedSessionReportDto {
                 .into_iter()
                 .map(report_limitation)
                 .collect(),
+            run_parameters: report.run_parameters.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedTrainingComparisonRunParametersDto {
+    saved_default: ReportTrainingComparisonQueryDto,
+    effective_value: ReportTrainingComparisonQueryDto,
+    origin: &'static str,
+}
+
+impl From<ResolvedTrainingComparisonRunParameters> for ResolvedTrainingComparisonRunParametersDto {
+    fn from(parameters: ResolvedTrainingComparisonRunParameters) -> Self {
+        Self {
+            saved_default: (&parameters.saved_default).into(),
+            effective_value: (&parameters.effective_value).into(),
+            origin: match parameters.origin {
+                ReportRunParameterOrigin::SavedDefault => "saved-default",
+                ReportRunParameterOrigin::TransientOverride => "transient-override",
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedReportRunParametersDto {
+    training_comparison: Option<ResolvedTrainingComparisonRunParametersDto>,
+}
+
+impl From<ResolvedReportRunParameters> for ResolvedReportRunParametersDto {
+    fn from(parameters: ResolvedReportRunParameters) -> Self {
+        Self {
+            training_comparison: parameters.training_comparison.map(Into::into),
         }
     }
 }
@@ -5339,6 +5417,7 @@ pub struct ResolvedReportDto {
     provenance: ReportEvidenceProvenanceDto,
     sensitive_contents: Vec<ReportSensitiveContentDto>,
     limitations: Vec<&'static str>,
+    run_parameters: ResolvedReportRunParametersDto,
 }
 
 impl From<ResolvedReport> for ResolvedReportDto {
@@ -5365,6 +5444,7 @@ impl From<ResolvedReport> for ResolvedReportDto {
                 .into_iter()
                 .map(report_limitation)
                 .collect(),
+            run_parameters: report.run_parameters.into(),
         }
     }
 }
@@ -5375,6 +5455,8 @@ pub struct SessionReportExportRequestDto {
     report_ref: String,
     expected_revision: String,
     expected_source_snapshot_ref: String,
+    #[serde(default)]
+    run_parameters: ReportRunParametersDto,
     include_physiological_context: bool,
     #[serde(default)]
     route_choices: Vec<ReportRouteExportChoiceDto>,
@@ -5419,6 +5501,7 @@ impl TryFrom<SessionReportExportRequestDto> for ReportExportRequest {
                 "invalid-report-definition",
             )?,
             expected_source_snapshot_ref: request.expected_source_snapshot_ref,
+            run_parameters: request.run_parameters.try_into()?,
             include_physiological_context: request.include_physiological_context,
             route_choices: request.route_choices.into_iter().map(Into::into).collect(),
             destination,
@@ -7718,6 +7801,86 @@ mod tests {
     use super::*;
 
     #[test]
+    fn validates_and_serializes_transient_report_run_parameters() {
+        let request: ResolveReportRequestDto = from_value(json!({
+            "reportRef": format!("report-{}", "a".repeat(64)),
+            "runParameters": {
+                "trainingComparison": {
+                    "question": "training-period-comparison",
+                    "questionVersion": 1,
+                    "baselineRange": { "from": "2026-01-01", "through": "2026-01-31" },
+                    "comparisonRange": { "from": "2026-02-01", "through": "2026-02-28" }
+                }
+            }
+        }))
+        .expect("report resolution request");
+        let request = ResolveReportRequest::try_from(request).expect("valid run parameters");
+        let comparison = request
+            .run_parameters
+            .training_comparison
+            .expect("comparison parameters");
+        assert_eq!(comparison.baseline_range().from(), "2026-01-01");
+
+        let saved_default = ReportTrainingComparisonQuery::new(
+            ReportDateRange::new("2026-01-01", "2026-01-31").expect("saved baseline"),
+            ReportDateRange::new("2026-02-01", "2026-02-28").expect("saved comparison"),
+        );
+        let effective_value = ReportTrainingComparisonQuery::new(
+            ReportDateRange::new("2026-03-01", "2026-03-31").expect("effective baseline"),
+            ReportDateRange::new("2026-04-01", "2026-04-30").expect("effective comparison"),
+        );
+        let output = to_value(ResolvedReportRunParametersDto::from(
+            ResolvedReportRunParameters {
+                training_comparison: Some(ResolvedTrainingComparisonRunParameters {
+                    saved_default,
+                    effective_value,
+                    origin: ReportRunParameterOrigin::TransientOverride,
+                }),
+            },
+        ))
+        .expect("resolved run parameters");
+        assert_eq!(
+            output,
+            json!({
+                "trainingComparison": {
+                    "savedDefault": {
+                        "question": "training-period-comparison",
+                        "questionVersion": 1,
+                        "baselineRange": { "from": "2026-01-01", "through": "2026-01-31" },
+                        "comparisonRange": { "from": "2026-02-01", "through": "2026-02-28" }
+                    },
+                    "effectiveValue": {
+                        "question": "training-period-comparison",
+                        "questionVersion": 1,
+                        "baselineRange": { "from": "2026-03-01", "through": "2026-03-31" },
+                        "comparisonRange": { "from": "2026-04-01", "through": "2026-04-30" }
+                    },
+                    "origin": "transient-override"
+                }
+            })
+        );
+
+        let invalid: ResolveReportRequestDto = from_value(json!({
+            "reportRef": format!("report-{}", "a".repeat(64)),
+            "runParameters": {
+                "trainingComparison": {
+                    "question": "training-period-comparison",
+                    "questionVersion": 1,
+                    "baselineRange": { "from": "2026-02-01", "through": "2026-01-01" },
+                    "comparisonRange": { "from": "2026-02-01", "through": "2026-02-28" }
+                }
+            }
+        }))
+        .expect("structurally valid invalid request");
+        assert_eq!(
+            ResolveReportRequest::try_from(invalid)
+                .expect_err("invalid range")
+                .code,
+            "invalid-report-run-parameters"
+        );
+    }
+
+    #[test]
     fn validates_and_serializes_the_application_preferences_transport_contract() {
         let input: ApplicationPreferencesInputDto = serde_json::from_value(serde_json::json!({
             "locale": "es-ES",
@@ -9527,6 +9690,7 @@ mod tests {
             provenance: ReportEvidenceProvenance::PlannedTrainingSnapshot,
             sensitive_contents: Vec::new(),
             limitations: Vec::new(),
+            run_parameters: ResolvedReportRunParameters::default(),
         };
         let resolved_json =
             to_value(ResolvedReportDto::from(resolved)).expect("planned report resolution JSON");

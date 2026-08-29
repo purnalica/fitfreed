@@ -6884,6 +6884,7 @@ const reportLibrarySchemaPath = "schemas/report-library-v1.schema.json";
 const reportResolutionV4SchemaPath = "schemas/report-resolution-v4.schema.json";
 const reportExportV4SchemaPath = "schemas/report-export-v4.schema.json";
 const reportExportV5SchemaPath = "schemas/report-export-v5.schema.json";
+const reportExportV6SchemaPath = "schemas/report-export-v6.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
 const sessionReportCreateV2SchemaPath = "schemas/session-report-create-v2.schema.json";
 const sessionReportCreateV3SchemaPath = "schemas/session-report-create-v3.schema.json";
@@ -7808,7 +7809,10 @@ const sessionReportV6Path = "docs/data-formats/insights/session-report-v6.md";
 const reportV9Path = "docs/data-formats/insights/report-v9.md";
 const reportV10Path = "docs/data-formats/insights/report-v10.md";
 const reportV11Path = "docs/data-formats/insights/report-v11.md";
+const reportV12Path = "docs/data-formats/insights/report-v12.md";
 const reportHtmlV8Path = "docs/data-formats/portable/report-html-v8.md";
+const reportHtmlV9Path = "docs/data-formats/portable/report-html-v9.md";
+const sessionReportV7Path = "docs/data-formats/insights/session-report-v7.md";
 
 for (const [documentPath, fields] of [
   [providerSportCataloguePath, [
@@ -7955,6 +7959,19 @@ for (const [documentPath, fields] of [
   [reportHtmlV8Path, [
     "text/html", "data-fitfreed-output-version=\"8\"", "data-fitfreed-report-version",
   ]],
+  [sessionReportV7Path, [
+    "session-report-resolution-v7.schema.json", "runParameters", "savedDefault",
+    "effectiveValue", "transient-override",
+  ]],
+  [reportV12Path, [
+    "report-resolve-v1.schema.json", "report-run-parameters-v1.schema.json",
+    "report-resolution-v9.schema.json", "session-report-resolution-v7.schema.json",
+    "report-export-v6.schema.json", "savedDefault", "effectiveValue", "transient-override",
+  ]],
+  [reportHtmlV9Path, [
+    "text/html", "data-fitfreed-output-version=\"9\"", "data-fitfreed-report-version",
+    "data-fitfreed-run-parameter-origin", "saved-default", "transient-override",
+  ]],
 ]) {
   const document = read(documentPath);
   for (const field of fields) requireMention(document, field, documentPath);
@@ -8058,6 +8075,11 @@ const reportLibraryV5SchemaPath = "schemas/report-library-v5.schema.json";
 const sessionReportResolutionV6SchemaPath =
   "schemas/session-report-resolution-v6.schema.json";
 const reportResolutionV8SchemaPath = "schemas/report-resolution-v8.schema.json";
+const reportRunParametersV1SchemaPath = "schemas/report-run-parameters-v1.schema.json";
+const reportResolveV1SchemaPath = "schemas/report-resolve-v1.schema.json";
+const sessionReportResolutionV7SchemaPath =
+  "schemas/session-report-resolution-v7.schema.json";
+const reportResolutionV9SchemaPath = "schemas/report-resolution-v9.schema.json";
 
 const validateProviderSportCatalogue = compileContractSchema(
   providerSportCatalogueSchemaPath,
@@ -9486,6 +9508,131 @@ for (const resolution of [
   assertContract(validateReportResolutionV8, reportResolutionV8SchemaPath, resolution);
 }
 
+addContractSchema(reportRunParametersV1SchemaPath);
+const validateReportRunParametersV1 = compileContractSchema(reportRunParametersV1SchemaPath);
+const syntheticSavedComparisonRunParameters = {
+  trainingComparison: {
+    savedDefault: structuredClone(analyticalQuestion),
+    effectiveValue: structuredClone(analyticalQuestion),
+    origin: "saved-default",
+  },
+};
+const syntheticTransientQuestion = {
+  ...structuredClone(analyticalQuestion),
+  baselineRange: { from: "2026-01-02", through: "2026-01-02" },
+  comparisonRange: { from: "2026-01-05", through: "2026-01-05" },
+};
+for (const parameters of [
+  {},
+  { trainingComparison: structuredClone(analyticalQuestion) },
+]) {
+  assertContract(validateReportRunParametersV1, reportRunParametersV1SchemaPath, parameters);
+}
+for (const invalidParameters of [
+  { provider: "must-not-cross-the-boundary" },
+  {
+    trainingComparison: {
+      ...structuredClone(analyticalQuestion),
+      comparisonRange: { from: "2026-02-30", through: "2026-03-01" },
+    },
+  },
+]) {
+  if (validateReportRunParametersV1(invalidParameters)) {
+    throw new Error(`${reportRunParametersV1SchemaPath} accepted invalid run parameters`);
+  }
+}
+
+addContractSchema(reportResolveV1SchemaPath);
+const validateReportResolveV1 = compileContractSchema(reportResolveV1SchemaPath);
+for (const request of [
+  { reportRef: reportRefDigest },
+  {
+    reportRef: reportRefDigest,
+    runParameters: { trainingComparison: structuredClone(syntheticTransientQuestion) },
+  },
+]) {
+  assertContract(validateReportResolveV1, reportResolveV1SchemaPath, request);
+}
+if (validateReportResolveV1({ reportRef: reportRefDigest, provider: "private" })) {
+  throw new Error(`${reportResolveV1SchemaPath} accepted provider identity`);
+}
+
+addContractSchema(sessionReportResolutionV7SchemaPath);
+const validateSessionReportResolutionV7 = compileContractSchema(
+  sessionReportResolutionV7SchemaPath,
+);
+const syntheticSessionReportResolutionV7 = {
+  ...structuredClone(syntheticSessionReportResolutionV6),
+  runParameters: structuredClone(syntheticSavedComparisonRunParameters),
+};
+assertContract(
+  validateSessionReportResolutionV7,
+  sessionReportResolutionV7SchemaPath,
+  syntheticSessionReportResolutionV7,
+);
+for (const invalidResolution of [
+  (() => {
+    const value = structuredClone(syntheticSessionReportResolutionV7);
+    delete value.runParameters;
+    return value;
+  })(),
+  {
+    ...structuredClone(syntheticSessionReportResolutionV7),
+    runParameters: { trainingComparison: null },
+  },
+]) {
+  if (validateSessionReportResolutionV7(invalidResolution)) {
+    throw new Error(`${sessionReportResolutionV7SchemaPath} accepted inconsistent run evidence`);
+  }
+}
+
+addContractSchema(reportResolutionV9SchemaPath);
+const validateReportResolutionV9 = compileContractSchema(reportResolutionV9SchemaPath);
+const syntheticRecordedReportResolutionV9 = {
+  ...structuredClone(syntheticRecordedReportResolutionV8),
+  runParameters: { trainingComparison: null },
+};
+const syntheticPlannedReportResolutionV9 = {
+  ...structuredClone(syntheticPlannedReportResolutionV7),
+  runParameters: { trainingComparison: null },
+};
+const syntheticAnalyticalReportResolutionV9 = {
+  ...structuredClone(syntheticRecordedReportResolutionV8),
+  definition: structuredClone(syntheticQuestionDefinitionV4),
+  session: null,
+  routes: [],
+  trainingComparison: structuredClone(syntheticTrainingComparison),
+  provenance: { kind: "library-snapshot" },
+  sensitiveContents: [],
+  runParameters: structuredClone(syntheticSavedComparisonRunParameters),
+};
+for (const resolution of [
+  syntheticRecordedReportResolutionV9,
+  syntheticPlannedReportResolutionV9,
+  syntheticAnalyticalReportResolutionV9,
+]) {
+  assertContract(validateReportResolutionV9, reportResolutionV9SchemaPath, resolution);
+}
+for (const invalidResolution of [
+  (() => {
+    const value = structuredClone(syntheticAnalyticalReportResolutionV9);
+    delete value.runParameters;
+    return value;
+  })(),
+  {
+    ...structuredClone(syntheticAnalyticalReportResolutionV9),
+    runParameters: { trainingComparison: null },
+  },
+  {
+    ...structuredClone(syntheticRecordedReportResolutionV9),
+    runParameters: structuredClone(syntheticSavedComparisonRunParameters),
+  },
+]) {
+  if (validateReportResolutionV9(invalidResolution)) {
+    throw new Error(`${reportResolutionV9SchemaPath} accepted inconsistent run evidence`);
+  }
+}
+
 const syntheticPlannedReportExportV5 = {
   reportRef: plannedReportRef,
   expectedRevision: "1",
@@ -9516,6 +9663,37 @@ for (const invalidExport of [
 ]) {
   if (validateReportExportV5(invalidExport)) {
     throw new Error(`${reportExportV5SchemaPath} accepted mixed planned-report sensitivity`);
+  }
+}
+
+addContractSchema(reportExportV6SchemaPath);
+const validateReportExportV6 = compileContractSchema(reportExportV6SchemaPath);
+const syntheticPlannedReportExportV6 = {
+  ...structuredClone(syntheticPlannedReportExportV5),
+  runParameters: {},
+};
+const syntheticTransientReportExportV6 = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+  expectedSourceSnapshotRef: snapshotRefDigest,
+  runParameters: { trainingComparison: structuredClone(syntheticTransientQuestion) },
+  includePhysiologicalContext: false,
+  routeChoices: [],
+  destinationPath: "/private/synthetic/transient-report.html",
+};
+for (const request of [syntheticPlannedReportExportV6, syntheticTransientReportExportV6]) {
+  assertContract(validateReportExportV6, reportExportV6SchemaPath, request);
+}
+for (const invalidExport of [
+  (() => {
+    const value = structuredClone(syntheticPlannedReportExportV6);
+    delete value.runParameters;
+    return value;
+  })(),
+  { ...structuredClone(syntheticPlannedReportExportV6), provider: "private" },
+]) {
+  if (validateReportExportV6(invalidExport)) {
+    throw new Error(`${reportExportV6SchemaPath} accepted invalid run parameters`);
   }
 }
 
@@ -9606,9 +9784,13 @@ for (const contractPath of [
   sessionStoryV6Path,
   libraryHomeV7Path,
   sessionReportV6Path,
+  sessionReportV7Path,
   reportV9Path,
   reportV10Path,
+  reportV11Path,
+  reportV12Path,
   reportHtmlV8Path,
+  reportHtmlV9Path,
   plannedTrainingReadModelDocumentPath,
   plannedTrainingExportDocumentPath,
   ...persistencePaths,
@@ -9818,15 +10000,20 @@ process.stdout.write(
       sessionReportResolutionV4SchemaPath,
       sessionReportResolutionV5SchemaPath,
       sessionReportResolutionV6SchemaPath,
+      sessionReportResolutionV7SchemaPath,
       reportResolutionV4SchemaPath,
       reportResolutionV5SchemaPath,
       reportResolutionV6SchemaPath,
       reportResolutionV7SchemaPath,
       reportResolutionV8SchemaPath,
+      reportResolutionV9SchemaPath,
+      reportRunParametersV1SchemaPath,
+      reportResolveV1SchemaPath,
       sessionReportExportSchemaPath,
       sessionReportExportV2SchemaPath,
       reportExportV4SchemaPath,
       reportExportV5SchemaPath,
+      reportExportV6SchemaPath,
       reportExportReceiptSchemaPath,
     ],
     importControlSchemas: [importProgressSchemaPath, importOutcomeSchemaPath],

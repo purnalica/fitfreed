@@ -187,6 +187,35 @@ pub struct RemoveReportRequest {
     pub expected_revision: u64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ReportRunParameters {
+    pub training_comparison: Option<ReportTrainingComparisonQuery>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolveReportRequest {
+    pub report_ref: String,
+    pub run_parameters: ReportRunParameters,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReportRunParameterOrigin {
+    SavedDefault,
+    TransientOverride,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedTrainingComparisonRunParameters {
+    pub saved_default: ReportTrainingComparisonQuery,
+    pub effective_value: ReportTrainingComparisonQuery,
+    pub origin: ReportRunParameterOrigin,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ResolvedReportRunParameters {
+    pub training_comparison: Option<ResolvedTrainingComparisonRunParameters>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemovedReport {
     pub report_ref: String,
@@ -388,6 +417,7 @@ pub struct ResolvedSessionReport {
     pub provenance: TrainingProvenanceCurrentView,
     pub sensitive_contents: Vec<ReportSensitiveContent>,
     pub limitations: Vec<ReportLimitation>,
+    pub run_parameters: ResolvedReportRunParameters,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -416,6 +446,7 @@ pub struct ResolvedReport {
     pub provenance: ReportEvidenceProvenance,
     pub sensitive_contents: Vec<ReportSensitiveContent>,
     pub limitations: Vec<ReportLimitation>,
+    pub run_parameters: ResolvedReportRunParameters,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -428,6 +459,7 @@ pub struct AuthorizedReportExport {
     pub planned_training: Option<ReportPlannedTrainingEvidence>,
     pub provenance: ReportEvidenceProvenance,
     pub limitations: Vec<ReportLimitation>,
+    pub run_parameters: ResolvedReportRunParameters,
     pub include_physiological_context: bool,
 }
 
@@ -436,6 +468,7 @@ pub struct ReportExportRequest {
     pub report_ref: String,
     pub expected_revision: u64,
     pub expected_source_snapshot_ref: String,
+    pub run_parameters: ReportRunParameters,
     pub include_physiological_context: bool,
     pub route_choices: Vec<ReportRouteExportChoice>,
     pub destination: PathBuf,
@@ -846,15 +879,14 @@ pub fn refresh_report(
     if existing.source_snapshot_ref() != request.expected_source_snapshot_ref {
         return Err(ApplicationError::ReportSourceChanged);
     }
-    let candidate = resolve_report_definition(
-        training_port,
-        route_port,
-        provenance_port,
-        comparison_port,
-        Some(planned_training_port),
-        existing.clone(),
-        None,
-    )?;
+    let resolution_ports = ReportResolutionPorts {
+        training: training_port,
+        route: route_port,
+        provenance: provenance_port,
+        comparison: comparison_port,
+        planned_training: Some(planned_training_port),
+    };
+    let candidate = resolve_report_definition(&resolution_ports, existing.clone(), None, None)?;
     if candidate.status != ReportResolutionStatus::Stale
         || candidate.resolved_snapshot_ref != request.expected_resolved_snapshot_ref
     {
@@ -862,15 +894,7 @@ pub fn refresh_report(
     }
     let refreshed = refresh_report_definition(&existing, &candidate.resolved_snapshot_ref)
         .map_err(invalid_definition)?;
-    let verified = resolve_report_definition(
-        training_port,
-        route_port,
-        provenance_port,
-        comparison_port,
-        Some(planned_training_port),
-        refreshed.clone(),
-        None,
-    )?;
+    let verified = resolve_report_definition(&resolution_ports, refreshed.clone(), None, None)?;
     if verified.status != ReportResolutionStatus::Current
         || verified.resolved_snapshot_ref != request.expected_resolved_snapshot_ref
     {
@@ -1249,12 +1273,13 @@ fn report_library_item(
             definition,
             current_snapshot_ref,
             None,
+            None,
         ) {
-            Ok(Some(comparison)) => {
+            Ok((Some(comparison), _)) => {
                 comparison_cache.insert(cache_key, comparison.clone());
                 comparison
             }
-            Ok(None) | Err(ApplicationError::ReportEvidenceUnavailable) => {
+            Ok((None, _)) | Err(ApplicationError::ReportEvidenceUnavailable) => {
                 return Ok(base(
                     ReportLibraryEvidenceState::Unavailable,
                     ReportLibrarySubject::TrainingComparison,
@@ -1329,6 +1354,7 @@ pub fn resolve_session_report(
         comparison_port,
         definition,
         None,
+        None,
     )
 }
 
@@ -1341,35 +1367,68 @@ pub fn resolve_report(
     planned_training_port: &dyn PlannedTrainingQueryPort,
     report_ref: &str,
 ) -> Result<ResolvedReport, ApplicationError> {
-    let definition = load_report_definition(report_port, report_ref)?;
-    resolve_report_definition(
+    resolve_report_with_parameters(
+        report_port,
         training_port,
         route_port,
         provenance_port,
         comparison_port,
-        Some(planned_training_port),
-        definition,
-        None,
+        planned_training_port,
+        ResolveReportRequest {
+            report_ref: report_ref.to_owned(),
+            run_parameters: ReportRunParameters::default(),
+        },
     )
 }
 
-fn resolve_report_definition(
+pub fn resolve_report_with_parameters(
+    report_port: &dyn ReportDefinitionPort,
     training_port: &dyn TrainingSessionDiscoveryPort,
     route_port: &dyn TrainingSessionRoutePort,
     provenance_port: &dyn TrainingSessionProvenancePort,
     comparison_port: &dyn TrainingLibraryPort,
-    planned_training_port: Option<&dyn PlannedTrainingQueryPort>,
+    planned_training_port: &dyn PlannedTrainingQueryPort,
+    request: ResolveReportRequest,
+) -> Result<ResolvedReport, ApplicationError> {
+    let definition = load_report_definition(report_port, &request.report_ref)?;
+    let resolution_ports = ReportResolutionPorts {
+        training: training_port,
+        route: route_port,
+        provenance: provenance_port,
+        comparison: comparison_port,
+        planned_training: Some(planned_training_port),
+    };
+    resolve_report_definition(
+        &resolution_ports,
+        definition,
+        Some(&request.run_parameters),
+        None,
+    )
+}
+
+struct ReportResolutionPorts<'a> {
+    training: &'a dyn TrainingSessionDiscoveryPort,
+    route: &'a dyn TrainingSessionRoutePort,
+    provenance: &'a dyn TrainingSessionProvenancePort,
+    comparison: &'a dyn TrainingLibraryPort,
+    planned_training: Option<&'a dyn PlannedTrainingQueryPort>,
+}
+
+fn resolve_report_definition(
+    ports: &ReportResolutionPorts<'_>,
     definition: ReportDefinition,
+    run_parameters: Option<&ReportRunParameters>,
     cancellation: Option<&ReportExportCancellation>,
 ) -> Result<ResolvedReport, ApplicationError> {
     ensure_resolution_active(cancellation)?;
     if matches!(definition.origin(), ReportOrigin::Session { .. }) {
         let resolved = resolve_definition(
-            training_port,
-            route_port,
-            provenance_port,
-            comparison_port,
+            ports.training,
+            ports.route,
+            ports.provenance,
+            ports.comparison,
             definition,
+            run_parameters,
             cancellation,
         )?;
         return Ok(ResolvedReport {
@@ -1383,10 +1442,12 @@ fn resolve_report_definition(
             provenance: ReportEvidenceProvenance::Session(resolved.provenance),
             sensitive_contents: resolved.sensitive_contents,
             limitations: resolved.limitations,
+            run_parameters: resolved.run_parameters,
         });
     }
     if let ReportOrigin::PlannedTraining { target_ref } = definition.origin() {
-        let planned_training_port = planned_training_port.ok_or_else(|| {
+        reject_unsupported_run_parameters(run_parameters)?;
+        let planned_training_port = ports.planned_training.ok_or_else(|| {
             ApplicationError::InvalidReportDefinition(
                 "planned-training report requires its evidence port".to_owned(),
             )
@@ -1417,18 +1478,20 @@ fn resolve_report_definition(
             provenance: ReportEvidenceProvenance::PlannedTrainingSnapshot,
             sensitive_contents: Vec::new(),
             limitations: Vec::new(),
+            run_parameters: ResolvedReportRunParameters::default(),
         });
     }
-    let resolved_snapshot_ref = current_training_snapshot(comparison_port)?;
+    let resolved_snapshot_ref = current_training_snapshot(ports.comparison)?;
     let status = if resolved_snapshot_ref == definition.source_snapshot_ref() {
         ReportResolutionStatus::Current
     } else {
         ReportResolutionStatus::Stale
     };
-    let training_comparison = resolve_report_training_comparison(
-        comparison_port,
+    let (training_comparison, run_parameters) = resolve_report_training_comparison(
+        ports.comparison,
         &definition,
         &resolved_snapshot_ref,
+        run_parameters,
         cancellation,
     )?;
     let provenance = if training_comparison.is_some() {
@@ -1447,6 +1510,7 @@ fn resolve_report_definition(
         provenance,
         sensitive_contents: Vec::new(),
         limitations: Vec::new(),
+        run_parameters,
     })
 }
 
@@ -1515,13 +1579,17 @@ fn export_report_resolved(
         return Err(ApplicationError::ReportExportCancelled);
     }
     let definition = load_report_definition(report_port, &request.report_ref)?;
+    let resolution_ports = ReportResolutionPorts {
+        training: training_port,
+        route: route_port,
+        provenance: provenance_port,
+        comparison: comparison_port,
+        planned_training: planned_training_port,
+    };
     let mut resolved = resolve_report_definition(
-        training_port,
-        route_port,
-        provenance_port,
-        comparison_port,
-        planned_training_port,
+        &resolution_ports,
         definition,
+        Some(&request.run_parameters),
         Some(cancellation),
     )?;
     if resolved.definition.revision() != request.expected_revision {
@@ -1573,6 +1641,7 @@ fn export_report_resolved(
         planned_training: resolved.planned_training,
         provenance: resolved.provenance,
         limitations: resolved.limitations,
+        run_parameters: resolved.run_parameters,
         include_physiological_context,
     };
     export_port
@@ -1589,6 +1658,7 @@ fn resolve_definition(
     provenance_port: &dyn TrainingSessionProvenancePort,
     comparison_port: &dyn TrainingLibraryPort,
     definition: ReportDefinition,
+    run_parameters: Option<&ReportRunParameters>,
     cancellation: Option<&ReportExportCancellation>,
 ) -> Result<ResolvedSessionReport, ApplicationError> {
     ensure_resolution_active(cancellation)?;
@@ -1629,10 +1699,11 @@ fn resolve_definition(
         &selection.snapshot_ref,
         cancellation,
     )?;
-    let training_comparison = resolve_report_training_comparison(
+    let (training_comparison, run_parameters) = resolve_report_training_comparison(
         comparison_port,
         &definition,
         &selection.snapshot_ref,
+        run_parameters,
         cancellation,
     )?;
     let physiological_context_available =
@@ -1668,6 +1739,7 @@ fn resolve_definition(
         provenance,
         sensitive_contents,
         limitations,
+        run_parameters,
     })
 }
 
@@ -2210,42 +2282,103 @@ fn validate_report_training_comparison(
     port: &dyn TrainingLibraryPort,
     definition: &ReportDefinition,
 ) -> Result<(), ApplicationError> {
-    resolve_report_training_comparison(port, definition, definition.source_snapshot_ref(), None)
-        .map(|_| ())
-        .map_err(|error| match error {
-            ApplicationError::ReportEvidenceUnavailable => {
-                ApplicationError::InvalidReportDefinition(
-                    "training comparison ranges are outside the available library".to_owned(),
-                )
-            }
-            other => other,
-        })
+    resolve_report_training_comparison(
+        port,
+        definition,
+        definition.source_snapshot_ref(),
+        None,
+        None,
+    )
+    .map(|_| ())
+    .map_err(|error| match error {
+        ApplicationError::ReportEvidenceUnavailable => ApplicationError::InvalidReportDefinition(
+            "training comparison ranges are outside the available library".to_owned(),
+        ),
+        other => other,
+    })
 }
 
 fn resolve_report_training_comparison(
     port: &dyn TrainingLibraryPort,
     definition: &ReportDefinition,
     snapshot_ref: &str,
+    run_parameters: Option<&ReportRunParameters>,
     cancellation: Option<&ReportExportCancellation>,
-) -> Result<Option<TrainingComparison>, ApplicationError> {
-    let Some(query) = report_training_comparison_query(definition) else {
-        return Ok(None);
+) -> Result<(Option<TrainingComparison>, ResolvedReportRunParameters), ApplicationError> {
+    let saved_default = report_training_comparison_query(definition).cloned();
+    let transient_override =
+        run_parameters.and_then(|parameters| parameters.training_comparison.clone());
+    let Some(saved_default) = saved_default else {
+        if transient_override.is_some() {
+            return Err(ApplicationError::InvalidReportRunParameters(
+                "this report has no comparison-period parameter",
+            ));
+        }
+        return Ok((None, ResolvedReportRunParameters::default()));
     };
+    let (effective_value, origin) = transient_override.map_or_else(
+        || {
+            (
+                saved_default.clone(),
+                ReportRunParameterOrigin::SavedDefault,
+            )
+        },
+        |value| (value, ReportRunParameterOrigin::TransientOverride),
+    );
     ensure_resolution_active(cancellation)?;
     ensure_training_snapshot(port, snapshot_ref)?;
+    if origin == ReportRunParameterOrigin::TransientOverride {
+        let available = port
+            .training_bounds()
+            .map_err(ApplicationError::ReportDefinitionQuery)?
+            .ok_or(ApplicationError::InvalidReportRunParameters(
+                "the current library has no training dates",
+            ))?;
+        validate_query_within_available_range(&effective_value, &available).map_err(|_| {
+            ApplicationError::InvalidReportRunParameters(
+                "comparison periods are outside the current training history",
+            )
+        })?;
+    }
     let comparison = query_training_comparison(
         port,
-        training_range(query.baseline_range()),
-        training_range(query.comparison_range()),
+        training_range(effective_value.baseline_range()),
+        training_range(effective_value.comparison_range()),
     )
     .map_err(|error| match error {
+        ApplicationError::InvalidTrainingRange(_)
+            if origin == ReportRunParameterOrigin::TransientOverride =>
+        {
+            ApplicationError::InvalidReportRunParameters("comparison periods are invalid")
+        }
         ApplicationError::InvalidTrainingRange(_) => ApplicationError::ReportEvidenceUnavailable,
         ApplicationError::Query(message) => ApplicationError::ReportDefinitionQuery(message),
         other => ApplicationError::ReportDefinitionQuery(other.to_string()),
     })?;
     ensure_resolution_active(cancellation)?;
     ensure_training_snapshot(port, snapshot_ref)?;
-    Ok(Some(comparison))
+    Ok((
+        Some(comparison),
+        ResolvedReportRunParameters {
+            training_comparison: Some(ResolvedTrainingComparisonRunParameters {
+                saved_default,
+                effective_value,
+                origin,
+            }),
+        },
+    ))
+}
+
+fn reject_unsupported_run_parameters(
+    run_parameters: Option<&ReportRunParameters>,
+) -> Result<(), ApplicationError> {
+    if run_parameters.is_some_and(|parameters| parameters.training_comparison.is_some()) {
+        Err(ApplicationError::InvalidReportRunParameters(
+            "this report has no comparison-period parameter",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 fn ensure_training_snapshot(

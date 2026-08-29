@@ -23,21 +23,23 @@ pub use reporting::{
     create_composed_session_report, create_report, create_session_report, duplicate_report,
     export_report, export_session_report, list_report_library, list_reports,
     load_report_definition, prepare_report_start, refresh_report, remove_report, resolve_report,
-    resolve_session_report, update_composed_session_report, update_report, update_session_report,
-    AuthorizedReportExport, AuthorizedSessionReportExport, CreateComposedSessionReportRequest,
-    CreateReportRequest, CreateSessionReportRequest, DuplicateReportRequest, PreparedReportStart,
-    RefreshReportRequest, RemoveReportRequest, RemovedReport, ReportBlockDraft,
-    ReportBlockDraftContent, ReportDefinitionPort, ReportDefinitionPortError,
-    ReportEvidenceProvenance, ReportExportCancellation, ReportExportPort, ReportExportPortError,
-    ReportExportReceipt, ReportExportRequest, ReportLibraryComparisonSeries,
-    ReportLibraryEvidenceState, ReportLibraryItem, ReportLibraryMetricValue, ReportLibraryPage,
-    ReportLibraryPeriod, ReportLibraryRequest, ReportLibraryResult, ReportLibrarySensitivity,
-    ReportLibrarySubject, ReportLimitation, ReportPlannedTrainingEvidence, ReportResolutionStatus,
-    ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
-    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
-    ResolvedSessionReport, SessionReportBlockDraft, SessionReportBlockDraftContent,
-    SessionReportExportRequest, UpdateComposedSessionReportRequest, UpdateReportRequest,
-    UpdateSessionReportRequest,
+    resolve_report_with_parameters, resolve_session_report, update_composed_session_report,
+    update_report, update_session_report, AuthorizedReportExport, AuthorizedSessionReportExport,
+    CreateComposedSessionReportRequest, CreateReportRequest, CreateSessionReportRequest,
+    DuplicateReportRequest, PreparedReportStart, RefreshReportRequest, RemoveReportRequest,
+    RemovedReport, ReportBlockDraft, ReportBlockDraftContent, ReportDefinitionPort,
+    ReportDefinitionPortError, ReportEvidenceProvenance, ReportExportCancellation,
+    ReportExportPort, ReportExportPortError, ReportExportReceipt, ReportExportRequest,
+    ReportLibraryComparisonSeries, ReportLibraryEvidenceState, ReportLibraryItem,
+    ReportLibraryMetricValue, ReportLibraryPage, ReportLibraryPeriod, ReportLibraryRequest,
+    ReportLibraryResult, ReportLibrarySensitivity, ReportLibrarySubject, ReportLimitation,
+    ReportPlannedTrainingEvidence, ReportResolutionStatus, ReportRouteEvidence,
+    ReportRouteExportChoice, ReportRunParameterOrigin, ReportRunParameters, ReportSensitiveContent,
+    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary,
+    ResolveReportRequest, ResolvedReport, ResolvedReportRunParameters, ResolvedSessionReport,
+    ResolvedTrainingComparisonRunParameters, SessionReportBlockDraft,
+    SessionReportBlockDraftContent, SessionReportExportRequest, UpdateComposedSessionReportRequest,
+    UpdateReportRequest, UpdateSessionReportRequest,
 };
 
 mod report_examples;
@@ -1581,6 +1583,8 @@ pub enum ApplicationError {
     TrainingSessionRangeSummaryQuery(String),
     #[error("invalid report definition: {0}")]
     InvalidReportDefinition(String),
+    #[error("invalid report run parameters: {0}")]
+    InvalidReportRunParameters(&'static str),
     #[error("report definition was not found")]
     ReportNotFound,
     #[error("report definition changed while it was being edited")]

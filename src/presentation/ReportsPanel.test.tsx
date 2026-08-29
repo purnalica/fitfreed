@@ -137,6 +137,7 @@ function resolution(value = definition()): ResolvedSessionReport {
       endpointRedactionMeters: null,
     }],
     limitations: [],
+    runParameters: { trainingComparison: null },
   };
 }
 
@@ -314,6 +315,13 @@ function analyticalResolution(): ResolvedSessionReport {
         energyKilocaloriesChange: "1700",
       }],
     },
+    runParameters: {
+      trainingComparison: {
+        savedDefault: comparisonQuery,
+        effectiveValue: comparisonQuery,
+        origin: "saved-default",
+      },
+    },
   };
 }
 
@@ -418,6 +426,15 @@ function blankResolution(revision = "1", analytical = false): ResolvedReport {
     provenance: analytical ? { kind: "library-snapshot" } : { kind: "authored-only" },
     sensitiveContents: [],
     limitations: [],
+    runParameters: {
+      trainingComparison: analytical
+        ? {
+            savedDefault: comparisonQuery,
+            effectiveValue: comparisonQuery,
+            origin: "saved-default",
+          }
+        : null,
+    },
   };
 }
 
@@ -508,6 +525,7 @@ function plannedResolution(value = plannedDefinition()): ResolvedReport {
     provenance: { kind: "planned-training-snapshot" },
     sensitiveContents: [],
     limitations: [],
+    runParameters: { trainingComparison: null },
   };
 }
 
@@ -1289,6 +1307,7 @@ describe("ReportsPanel", () => {
         reportRef,
         expectedRevision: "1",
         expectedSourceSnapshotRef: plannedSnapshotRef,
+        runParameters: {},
         includePhysiologicalContext: false,
         routeChoices: [],
         destinationPath: "/tmp/river-intervals.html",
@@ -1421,6 +1440,122 @@ describe("ReportsPanel", () => {
     expect(primaryEvidence.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING)
       .toBeTruthy();
     expect(document.querySelector("form.report-editor")).not.toBeVisible();
+  });
+
+  it("reruns a saved comparison with visible temporary periods without editing its defaults", async () => {
+    const saved = questionResolution();
+    saved.trainingComparison = {
+      ...saved.trainingComparison!,
+      availableRange: { from: "2024-01-01", through: "2026-08-20" },
+    };
+    const transientQuery = {
+      ...comparisonQuery,
+      baselineRange: { from: "2026-04-01", through: "2026-05-21" },
+      comparisonRange: { from: "2026-07-01", through: "2026-08-20" },
+    };
+    const transient: ResolvedReport = {
+      ...saved,
+      trainingComparison: {
+        ...saved.trainingComparison!,
+        baselineRange: transientQuery.baselineRange,
+        comparisonRange: transientQuery.comparisonRange,
+      },
+      runParameters: {
+        trainingComparison: {
+          savedDefault: comparisonQuery,
+          effectiveValue: transientQuery,
+          origin: "transient-override",
+        },
+      },
+    };
+    let resolutionCount = 0;
+    mocks.save.mockResolvedValue("/private/output/transient-comparison.html");
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([
+          libraryItemFromDefinition(questionDefinition()),
+        ]));
+      }
+      if (command === "resolve_report") {
+        resolutionCount += 1;
+        if (resolutionCount === 1) {
+          expect(arguments_).toEqual({
+            request: { reportRef, runParameters: {} },
+          });
+          return Promise.resolve(saved);
+        }
+        if (resolutionCount === 2) {
+          expect(arguments_).toEqual({
+            request: {
+              reportRef,
+              runParameters: { trainingComparison: transientQuery },
+            },
+          });
+          return Promise.resolve(transient);
+        }
+        expect(arguments_).toEqual({
+          request: { reportRef, runParameters: {} },
+        });
+        return Promise.resolve(saved);
+      }
+      if (command === "export_report") return Promise.resolve({ byteCount: "2048" });
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", {
+      name: /Open How has my recent training changed\?/,
+    }));
+
+    const runParameters = screen.getByText("View another period").closest("details");
+    expect(runParameters).not.toBeNull();
+    expect(runParameters).not.toHaveAttribute("open");
+    await user.click(within(runParameters!).getByText("View another period"));
+    expect(runParameters).toHaveAttribute("open");
+    expect(within(runParameters!).getByRole("group", { name: "Suggested periods" }))
+      .toBeVisible();
+    expect(within(runParameters!).getByText("Saved dates are in use.")).toBeVisible();
+    await user.click(within(runParameters!).getByRole("button", { name: "Quarter to date" }));
+    expect(within(runParameters!).getByLabelText("Baseline starts"))
+      .toHaveValue("2026-04-01");
+    expect(within(runParameters!).getByLabelText("Baseline ends"))
+      .toHaveValue("2026-05-21");
+    expect(within(runParameters!).getByLabelText("Comparison starts"))
+      .toHaveValue("2026-07-01");
+    expect(within(runParameters!).getByLabelText("Comparison ends"))
+      .toHaveValue("2026-08-20");
+
+    await user.click(screen.getByRole("button", { name: "Update this view" }));
+    expect(await screen.findByText(
+      "Temporary dates are in use. The saved report is unchanged.",
+    )).toBeVisible();
+    expect(transient.definition.blocks.find(isAnalyticalTestBlock)?.query)
+      .toEqual(comparisonQuery);
+
+    await user.click(screen.getByRole("button", { name: "Review and export" }));
+    const review = screen.getByRole("region", { name: "Review the export" });
+    expect(within(review).getByText(
+      /Effective report dates: Apr 1, 2026 – May 21, 2026 compared with Jul 1, 2026 – Aug 20, 2026\. These are temporary values/,
+    )).toBeVisible();
+    await user.click(within(review).getByRole("button", {
+      name: "Choose destination and export",
+    }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("export_report", {
+      request: {
+        reportRef,
+        expectedRevision: "1",
+        expectedSourceSnapshotRef: snapshotRef,
+        runParameters: { trainingComparison: transientQuery },
+        includePhysiologicalContext: false,
+        routeChoices: [],
+        destinationPath: "/private/output/transient-comparison.html",
+      },
+    }));
+
+    await user.click(screen.getByRole("button", { name: "Use saved dates" }));
+    await waitFor(() => expect(resolutionCount).toBe(3));
+    expect(screen.getByText("Saved dates are in use.")).toBeVisible();
   });
 
   it("keeps comparison sources separate and pages every evidence state", async () => {
@@ -1595,7 +1730,9 @@ describe("ReportsPanel", () => {
         return Promise.resolve(duplicateDefinition);
       }
       if (command === "resolve_report") {
-        expect(arguments_).toEqual({ reportRef: duplicateReportRef });
+        expect(arguments_).toEqual({
+          request: { reportRef: duplicateReportRef, runParameters: {} },
+        });
         return Promise.resolve(resolution(duplicateDefinition));
       }
       if (command === "query_training_session_routes") {
@@ -1879,7 +2016,7 @@ describe("ReportsPanel", () => {
 
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
       "resolve_report",
-      { reportRef },
+      { request: { reportRef, runParameters: {} } },
     ));
     const editor = screen.getByRole("form", { name: "Edit report" });
     expect(editor).toHaveAttribute("aria-busy", "true");
@@ -1987,6 +2124,7 @@ describe("ReportsPanel", () => {
         reportRef,
         expectedRevision: "1",
         expectedSourceSnapshotRef: snapshotRef,
+        runParameters: {},
         includePhysiologicalContext: false,
         routeChoices: [],
         destinationPath: "/private/output/question-report.html",
@@ -2269,7 +2407,7 @@ describe("ReportsPanel", () => {
         }),
       ]));
       if (command === "resolve_report") {
-        const selected = arguments_.reportRef;
+        const selected = arguments_.request.reportRef;
         if (selected === sessionReportRef) return Promise.resolve(sessionResolution);
         if (selected === explorationReportRef) return Promise.resolve(explorationResolution);
         if (selected === blankReportRef) return Promise.resolve(authoredResolution);
@@ -2457,7 +2595,10 @@ describe("ReportsPanel", () => {
     )).toHaveLength(priorResolutions + 1));
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "resolve_report",
-    ).at(-1)).toEqual(["resolve_report", { reportRef }]);
+    ).at(-1)).toEqual([
+      "resolve_report",
+      { request: { reportRef, runParameters: {} } },
+    ]);
     await user.click(screen.getByRole("button", { name: "View source session" }));
     expect(callbacks.onReturnToOrigin).toHaveBeenCalledOnce();
     expect(callbacks.onReturnToOrigin).toHaveBeenCalledWith({
@@ -2519,6 +2660,7 @@ describe("ReportsPanel", () => {
           reportRef,
           expectedRevision: "1",
           expectedSourceSnapshotRef: snapshotRef,
+          runParameters: {},
           includePhysiologicalContext: false,
           routeChoices: [],
           destinationPath: "/private/output/ridge-progression.html",
@@ -2632,6 +2774,7 @@ describe("ReportsPanel", () => {
           reportRef,
           expectedRevision: "1",
           expectedSourceSnapshotRef: snapshotRef,
+          runParameters: {},
           includePhysiologicalContext: true,
           routeChoices: [{
             blockRef: routeBlockRef,
@@ -2795,7 +2938,12 @@ describe("ReportsPanel", () => {
     await user.click(within(savedReports!).getByRole("button", {
       name: "Open Winter training comparison",
     }));
-    expect(await screen.findByLabelText("Baseline starts")).toHaveValue("2026-01-01");
+    const runParameters = (await screen.findByText("View another period")).closest("details");
+    expect(runParameters).not.toBeNull();
+    expect(runParameters).not.toHaveAttribute("open");
+    await user.click(within(runParameters!).getByText("View another period"));
+    expect(within(runParameters!).getByLabelText("Baseline starts"))
+      .toHaveValue("2026-01-01");
     const reopenedMetrics = screen.getAllByLabelText("Measurement");
     expect(reopenedMetrics[0]).toHaveValue("energy");
     expect(reopenedMetrics[1]).toHaveValue("distance");

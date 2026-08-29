@@ -781,6 +781,32 @@ fn analytical_drafts(query: &ReportTrainingComparisonQuery) -> Vec<ReportBlockDr
     ]
 }
 
+fn comparison_training_range(range: &ReportDateRange) -> TrainingDateRange {
+    TrainingDateRange {
+        from: range.from().to_owned(),
+        through: range.through().to_owned(),
+    }
+}
+
+fn definition_comparison_query(
+    definition: &ReportDefinition,
+) -> Option<&ReportTrainingComparisonQuery> {
+    definition
+        .blocks()
+        .iter()
+        .find_map(|block| match block.content() {
+            ReportBlockContent::TrainingFinding { query, .. }
+            | ReportBlockContent::TrainingComparison { query }
+            | ReportBlockContent::TrainingChart { query, .. }
+            | ReportBlockContent::TrainingExactTable { query }
+            | ReportBlockContent::TrainingCoverage { query } => Some(query),
+            ReportBlockContent::SessionEvidence { .. }
+            | ReportBlockContent::Route { .. }
+            | ReportBlockContent::Narrative { .. }
+            | ReportBlockContent::PlannedTraining { .. } => None,
+        })
+}
+
 #[test]
 fn prepares_question_exploration_and_blank_starts_from_one_current_snapshot() {
     let training = AnalyticalTrainingPort::current();
@@ -923,6 +949,278 @@ fn creates_and_resolves_question_and_blank_reports_without_session_evidence() {
         ReportEvidenceProvenance::AuthoredOnly
     ));
     assert!(resolved_blank.training_comparison.is_none());
+}
+
+#[test]
+fn resolves_transient_comparison_periods_without_reauthoring_saved_defaults() {
+    let reports = MemoryReportPort::default();
+    let training = AnalyticalTrainingPort::current();
+    let saved_query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-31").expect("saved baseline"),
+        ReportDateRange::new("2026-02-01", "2026-02-28").expect("saved comparison"),
+    );
+    create_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        &NoPlannedTrainingPort,
+        CreateReportRequest {
+            title: "Reusable comparison".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            origin: ReportOrigin::Question {
+                question: ReportQuestion::TrainingPeriodComparisonV1,
+            },
+            blocks: analytical_drafts(&saved_query),
+        },
+    )
+    .expect("saved report");
+    training.queries.lock().expect("creation queries").clear();
+    let effective_query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-15").expect("effective baseline"),
+        ReportDateRange::new("2026-02-01", "2026-03-01").expect("effective comparison"),
+    );
+
+    let resolved = resolve_report_with_parameters(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        &NoPlannedTrainingPort,
+        ResolveReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            run_parameters: ReportRunParameters {
+                training_comparison: Some(effective_query.clone()),
+            },
+        },
+    )
+    .expect("transient report run");
+
+    assert_eq!(
+        resolved.run_parameters.training_comparison,
+        Some(ResolvedTrainingComparisonRunParameters {
+            saved_default: saved_query.clone(),
+            effective_value: effective_query.clone(),
+            origin: ReportRunParameterOrigin::TransientOverride,
+        })
+    );
+    assert_eq!(
+        resolved
+            .training_comparison
+            .as_ref()
+            .and_then(|comparison| comparison.baseline_range.as_ref()),
+        Some(&comparison_training_range(effective_query.baseline_range()))
+    );
+    assert_eq!(
+        training
+            .queries
+            .lock()
+            .expect("effective queries")
+            .as_slice(),
+        &[
+            comparison_training_range(effective_query.baseline_range()),
+            comparison_training_range(effective_query.comparison_range()),
+        ]
+    );
+    let persisted = load_report_definition(&reports, REPORT_REF).expect("persisted report");
+    assert_eq!(definition_comparison_query(&persisted), Some(&saved_query));
+
+    training.queries.lock().expect("saved run queries").clear();
+    let saved_run = resolve_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        &NoPlannedTrainingPort,
+        REPORT_REF,
+    )
+    .expect("saved-default report run");
+    assert_eq!(
+        saved_run.run_parameters.training_comparison,
+        Some(ResolvedTrainingComparisonRunParameters {
+            saved_default: saved_query.clone(),
+            effective_value: saved_query,
+            origin: ReportRunParameterOrigin::SavedDefault,
+        })
+    );
+}
+
+#[test]
+fn exports_effective_transient_periods_without_reauthoring_saved_defaults() {
+    let reports = MemoryReportPort::default();
+    let training = AnalyticalTrainingPort::current();
+    let saved_query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-31").expect("saved baseline"),
+        ReportDateRange::new("2026-02-01", "2026-02-28").expect("saved comparison"),
+    );
+    create_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        &NoPlannedTrainingPort,
+        CreateReportRequest {
+            title: "Reusable comparison".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            origin: ReportOrigin::Question {
+                question: ReportQuestion::TrainingPeriodComparisonV1,
+            },
+            blocks: analytical_drafts(&saved_query),
+        },
+    )
+    .expect("saved report");
+    let effective_query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-15").expect("effective baseline"),
+        ReportDateRange::new("2026-02-01", "2026-03-01").expect("effective comparison"),
+    );
+    let output = RecordingExportPort::default();
+
+    export_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        &NoPlannedTrainingPort,
+        &output,
+        ReportExportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: 1,
+            expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            run_parameters: ReportRunParameters {
+                training_comparison: Some(effective_query.clone()),
+            },
+            include_physiological_context: false,
+            route_choices: Vec::new(),
+            destination: "/tmp/transient-comparison-report.html".into(),
+        },
+        &ReportExportCancellation::new(),
+    )
+    .expect("transient report export");
+
+    let exports = output.exports.lock().expect("exports");
+    let exported = exports.first().expect("authorized report export");
+    assert_eq!(
+        exported.run_parameters.training_comparison,
+        Some(ResolvedTrainingComparisonRunParameters {
+            saved_default: saved_query.clone(),
+            effective_value: effective_query.clone(),
+            origin: ReportRunParameterOrigin::TransientOverride,
+        })
+    );
+    assert_eq!(
+        exported
+            .training_comparison
+            .as_ref()
+            .and_then(|comparison| comparison.comparison_range.as_ref()),
+        Some(&comparison_training_range(
+            effective_query.comparison_range()
+        ))
+    );
+    drop(exports);
+    let persisted = load_report_definition(&reports, REPORT_REF).expect("persisted report");
+    assert_eq!(definition_comparison_query(&persisted), Some(&saved_query));
+}
+
+#[test]
+fn rejects_unsupported_or_out_of_bounds_transient_report_parameters_before_querying() {
+    let reports = MemoryReportPort::default();
+    let training = AnalyticalTrainingPort::current();
+    let blank = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Authored note",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Blank,
+        vec![ReportBlock::narrative(NARRATIVE_BLOCK_REF, "Keep this note.").expect("narrative")],
+    )
+    .expect("blank report");
+    reports
+        .create_report_definition(&blank)
+        .expect("persist blank report");
+    let parameters = ReportRunParameters {
+        training_comparison: Some(ReportTrainingComparisonQuery::new(
+            ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline"),
+            ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison"),
+        )),
+    };
+
+    let unsupported = resolve_report_with_parameters(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        &NoPlannedTrainingPort,
+        ResolveReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            run_parameters: parameters,
+        },
+    )
+    .expect_err("blank report rejects comparison parameters");
+    assert!(matches!(
+        unsupported,
+        ApplicationError::InvalidReportRunParameters(_)
+    ));
+    assert!(training
+        .queries
+        .lock()
+        .expect("unsupported queries")
+        .is_empty());
+
+    let analytical_reports = MemoryReportPort::default();
+    create_composed_session_report(
+        &analytical_reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        analytical_composition(),
+    )
+    .expect("analytical report");
+    training.queries.lock().expect("creation queries").clear();
+    let outside = resolve_report_with_parameters(
+        &analytical_reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        &NoPlannedTrainingPort,
+        ResolveReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            run_parameters: ReportRunParameters {
+                training_comparison: Some(ReportTrainingComparisonQuery::new(
+                    ReportDateRange::new("2025-12-01", "2025-12-31").expect("outside baseline"),
+                    ReportDateRange::new("2026-01-01", "2026-01-31").expect("inside comparison"),
+                )),
+            },
+        },
+    )
+    .expect_err("out-of-bounds run rejects before querying");
+    assert!(matches!(
+        outside,
+        ApplicationError::InvalidReportRunParameters(_)
+    ));
+    assert!(training.queries.lock().expect("outside queries").is_empty());
 }
 
 #[test]
@@ -1100,6 +1398,7 @@ fn creates_resolves_refreshes_lists_and_exports_one_exact_planned_target() {
             report_ref: REPORT_REF.to_owned(),
             expected_revision: 3,
             expected_source_snapshot_ref: CHANGED_PLANNED_SNAPSHOT_REF.to_owned(),
+            run_parameters: ReportRunParameters::default(),
             include_physiological_context: false,
             route_choices: Vec::new(),
             destination: "/tmp/planned-training-report.html".into(),
@@ -1244,6 +1543,7 @@ fn exports_a_blank_report_without_inventing_session_or_provider_evidence() {
             report_ref: REPORT_REF.to_owned(),
             expected_revision: 1,
             expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            run_parameters: ReportRunParameters::default(),
             include_physiological_context: false,
             route_choices: vec![],
             destination: "/tmp/fitfreed-blank-report.html".into(),
@@ -1456,6 +1756,7 @@ fn export_review_can_omit_or_increase_route_redaction_but_never_expose_more() {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: 1,
                 expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+                run_parameters: ReportRunParameters::default(),
                 include_physiological_context: false,
                 route_choices: vec![ReportRouteExportChoice {
                     block_ref: ROUTE_BLOCK_REF.to_owned(),
@@ -1489,6 +1790,7 @@ fn export_review_can_omit_or_increase_route_redaction_but_never_expose_more() {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: 1,
                 expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+                run_parameters: ReportRunParameters::default(),
                 include_physiological_context: false,
                 route_choices: vec![ReportRouteExportChoice {
                     block_ref: ROUTE_BLOCK_REF.to_owned(),
@@ -1633,6 +1935,7 @@ fn refreshes_and_exports_a_duplicate_without_mutating_its_source() {
             report_ref: refreshed.report_ref().to_owned(),
             expected_revision: refreshed.revision(),
             expected_source_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            run_parameters: ReportRunParameters::default(),
             include_physiological_context: false,
             route_choices: vec![],
             destination: "/tmp/fitfreed-duplicate-report.html".into(),
@@ -2461,6 +2764,7 @@ fn exports_only_current_explicitly_reviewed_content() {
             report_ref: REPORT_REF.to_owned(),
             expected_revision: 1,
             expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            run_parameters: ReportRunParameters::default(),
             include_physiological_context: false,
             route_choices: vec![],
             destination: "/tmp/fitfreed-report.html".into(),
@@ -2511,6 +2815,7 @@ fn refuses_stale_revision_snapshot_and_sensitivity_escalation_before_writing() {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: revision,
                 expected_source_snapshot_ref: snapshot.to_owned(),
+                run_parameters: ReportRunParameters::default(),
                 include_physiological_context: include,
                 route_choices: vec![],
                 destination: "/tmp/fitfreed-report.html".into(),
@@ -2552,6 +2857,7 @@ fn cancellation_prevents_output_creation() {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: 1,
                 expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+                run_parameters: ReportRunParameters::default(),
                 include_physiological_context: true,
                 route_choices: vec![],
                 destination: "/tmp/fitfreed-report.html".into(),
@@ -2595,6 +2901,7 @@ fn cancellation_stops_paginated_route_resolution_before_output_creation() {
                 report_ref: REPORT_REF.to_owned(),
                 expected_revision: 1,
                 expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+                run_parameters: ReportRunParameters::default(),
                 include_physiological_context: false,
                 route_choices: vec![ReportRouteExportChoice {
                     block_ref: ROUTE_BLOCK_REF.to_owned(),

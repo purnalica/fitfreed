@@ -1739,6 +1739,20 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .report-duplicate-task > p:not(.eyebrow, .error) { color: var(--ink-soft); }
 .report-preview { display: grid; gap: 18px; }
 .report-preview-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+.report-run-parameters { padding: 0 16px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; }
+.report-run-parameters summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 10px; padding: 14px 0; color: var(--accent-deep); cursor: pointer; list-style: none; }
+.report-run-parameters summary::-webkit-details-marker { display: none; }
+.report-run-parameters summary::before { content: "›"; color: var(--accent); font-size: 1.2rem; font-weight: 850; line-height: 1; transform: rotate(0deg); }
+.report-run-parameters[open] summary::before { transform: rotate(90deg); }
+.report-run-parameter-heading { font-size: 1rem; font-weight: 800; }
+.report-run-parameters .report-run-parameter-status { margin-left: auto; color: var(--ink-soft); font-size: .82rem; font-weight: 750; text-align: end; }
+.report-run-parameter-body { display: grid; gap: 14px; padding: 0 0 16px; }
+.report-run-parameter-body > p { max-width: var(--measure-reading); margin: 0; color: var(--ink-soft); font-size: .82rem; line-height: 1.5; }
+.report-run-parameters form { display: grid; gap: 14px; }
+.report-run-parameter-dates { display: grid; grid-template-columns: repeat(4, minmax(135px, 1fr)); gap: 10px; }
+.report-run-parameter-dates label { display: grid; min-width: 0; gap: 5px; }
+.report-run-parameter-dates label span { color: var(--muted); font-size: .74rem; font-weight: 700; }
+.report-run-parameter-dates input { width: 100%; min-width: 0; color: var(--ink); background: var(--paper); font-variant-numeric: tabular-nums; }
 .report-status-current { color: var(--success); background: var(--success-soft); }
 .report-status-stale { color: var(--danger-ink); background: var(--danger-soft); }
 .report-status-unavailable { color: var(--danger-ink); background: var(--danger-soft); }
@@ -1824,6 +1838,7 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .training-sport-list { grid-template-columns: 1fr; }
   .training-session-search-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-analysis-picker > ul, .report-analysis-ranges > div { grid-template-columns: 1fr; }
+  .report-run-parameter-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sleep-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recovery-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .longitudinal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2164,6 +2179,9 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .outcome-change-summary { grid-template-columns: 1fr; }
   .outcome-actions { align-items: stretch; flex-direction: column; }
   .outcome-actions button { width: 100%; }
+  .report-run-parameter-dates { grid-template-columns: 1fr; }
+  .report-run-parameters .report-actions { align-items: stretch; flex-direction: column; }
+  .report-run-parameters .report-actions button { width: 100%; }
   .update-panel-heading { align-items: stretch; flex-direction: column; }
   .update-actions { justify-content: stretch; }
   .update-actions button { flex: 1 1 100%; }

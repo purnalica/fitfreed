@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-export-v6.schema.json",
+  "title": "FitFreed report export request version 6",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportRef", "expectedRevision", "expectedSourceSnapshotRef", "runParameters",
+    "includePhysiologicalContext", "routeChoices", "destinationPath"
+  ],
+  "properties": {
+    "reportRef": { "$ref": "report-export-v5.schema.json#/properties/reportRef" },
+    "expectedRevision": {
+      "$ref": "report-export-v5.schema.json#/properties/expectedRevision"
+    },
+    "expectedSourceSnapshotRef": {
+      "$ref": "report-export-v5.schema.json#/properties/expectedSourceSnapshotRef"
+    },
+    "runParameters": { "$ref": "report-run-parameters-v1.schema.json" },
+    "includePhysiologicalContext": {
+      "$ref": "report-export-v5.schema.json#/properties/includePhysiologicalContext"
+    },
+    "routeChoices": { "$ref": "report-export-v5.schema.json#/properties/routeChoices" },
+    "destinationPath": {
+      "$ref": "report-export-v5.schema.json#/properties/destinationPath"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "expectedSourceSnapshotRef": {
+            "$ref": "report-definition-v5.schema.json#/$defs/plannedSnapshotRef"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "includePhysiologicalContext": { "const": false },
+          "routeChoices": { "type": "array", "maxItems": 0 }
+        }
+      }
+    }
+  ]
+}

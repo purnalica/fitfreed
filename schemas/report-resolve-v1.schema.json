@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-resolve-v1.schema.json",
+  "title": "FitFreed report resolution request version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reportRef"],
+  "properties": {
+    "reportRef": { "$ref": "report-definition-v5.schema.json#/$defs/reportRef" },
+    "runParameters": { "$ref": "report-run-parameters-v1.schema.json" }
+  }
+}

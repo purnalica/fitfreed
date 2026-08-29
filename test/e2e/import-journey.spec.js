@@ -29,6 +29,7 @@ const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
 const restartIdentityPath = process.env.FITFREED_E2E_RESTART_IDENTITY_PATH;
 const evidenceDirectory = path.resolve(".artifacts/e2e/evidence");
 const reportOutput = path.join(evidenceDirectory, "session-report.html");
+const transientReportOutput = path.join(evidenceDirectory, "transient-comparison-report.html");
 const refreshedReportOutput = path.join(evidenceDirectory, "refreshed-comparison-report.html");
 const plannedReportOutput = path.join(evidenceDirectory, "planned-training-report.html");
 
@@ -1801,6 +1802,7 @@ describe("packaged FitFreed import journey", () => {
     })}\n`);
     recordJourneyPhase("shell-and-first-run");
     fs.rmSync(reportOutput, { force: true });
+    fs.rmSync(transientReportOutput, { force: true });
     fs.rmSync(refreshedReportOutput, { force: true });
     fs.rmSync(plannedReportOutput, { force: true });
     await resizeApplication(1440, 900);
@@ -3461,6 +3463,81 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".report-preview h3")).toHaveText("Synthetic reusable comparison copy");
 
+    const transientRunParameters = await $(".report-run-parameters");
+    await expect(transientRunParameters).toHaveText(
+      expect.stringContaining(english.reports.runParameters.savedDefault),
+    );
+    await expect(transientRunParameters).not.toHaveAttribute("open");
+    await transientRunParameters.$("summary").click();
+    await expect(transientRunParameters).toHaveAttribute("open");
+    const transientDates = await transientRunParameters.$$('input[type="date"]');
+    expect(transientDates).toHaveLength(4);
+    for (const [input, value] of [
+      [transientDates[0], "2026-01-05"],
+      [transientDates[1], "2026-01-05"],
+      [transientDates[2], "2026-01-04"],
+      [transientDates[3], "2026-01-04"],
+    ]) {
+      await input.clearValue();
+      await input.setValue(value);
+    }
+    await transientRunParameters.$(`aria/${english.reports.runParameters.apply}`).click();
+    await expect($(".report-run-parameters")).toHaveText(
+      expect.stringContaining(english.reports.runParameters.transient),
+    );
+    await browser.execute(() => {
+      document.querySelector(".report-run-parameters").scrollIntoView({
+        block: "center",
+        inline: "nearest",
+      });
+    });
+    const transientRunGeometry = await browser.execute(() => {
+      const root = document.documentElement;
+      const controls = document.querySelector(".report-run-parameters").getBoundingClientRect();
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        controlsInsideViewport: controls.left >= 0 && controls.right <= root.clientWidth,
+      };
+    });
+    expect(transientRunGeometry).toEqual({
+      hasHorizontalOverflow: false,
+      controlsInsideViewport: true,
+    });
+    const transientRunAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".report-run-parameters")
+      .analyze();
+    expect(transientRunAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r12-report-transient-run-en-wide.png",
+    ));
+    await $(`aria/${english.reports.reviewExport}`).click();
+    const transientPrivacyReview = await $(".report-privacy-review");
+    await expect(transientPrivacyReview).toHaveText(
+      expect.stringContaining(english.reports.runParameters.exportTransient),
+    );
+    const saveDialogMock = await browser.tauri.mock("plugin:dialog|save");
+    await saveDialogMock.mockReturnValue(transientReportOutput);
+    await saveDialogMock.update();
+    await transientPrivacyReview.$(`aria/${english.reports.chooseDestination}`).click();
+    await browser.waitUntil(() => fs.existsSync(transientReportOutput), {
+      timeout: 10_000,
+      timeoutMsg: "the transient comparison report was not written",
+    });
+    await waitForNotice("Self-contained HTML exported");
+    const transientExport = fs.readFileSync(transientReportOutput, "utf8");
+    expect(transientExport).toContain('data-fitfreed-output-version="9"');
+    expect(transientExport).toContain(
+      'data-fitfreed-run-parameter-origin="transient-override"',
+    );
+    expect(transientExport).toContain("2026-01-05–2026-01-05");
+    expect(transientExport).toContain("2026-01-04–2026-01-04");
+    await $(`aria/${english.reports.runParameters.restore}`).click();
+    await expect($(".report-run-parameters")).toHaveText(
+      expect.stringContaining(english.reports.runParameters.savedDefault),
+    );
+
     await openReportWorkspace(english, "library");
     expect(await $$(".report-list > li")).toHaveLength(3);
     await $(`aria/${english.reports.library.open.replace(
@@ -3609,7 +3686,6 @@ describe("packaged FitFreed import journey", () => {
     await exportEndpointRedaction.clearValue();
     await exportEndpointRedaction.setValue("500");
     await expect(exportEndpointRedaction).toHaveValue("500");
-    const saveDialogMock = await browser.tauri.mock("plugin:dialog|save");
     await saveDialogMock.mockReturnValue(reportOutput);
     await saveDialogMock.update();
     const saveCallCount = saveDialogMock.mock.calls.length;
@@ -3635,7 +3711,7 @@ describe("packaged FitFreed import journey", () => {
     );
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
     expect(exportedReport).toContain('data-fitfreed-report-version="5"');
-    expect(exportedReport).toContain('data-fitfreed-output-version="8"');
+    expect(exportedReport).toContain('data-fitfreed-output-version="9"');
     expect(exportedReport).toContain('id="sport-icon-running"');
     expect(exportedReport).toContain('href="#sport-icon-running"');
     expect(exportedReport).toContain(">Trail running<");
@@ -5700,7 +5776,7 @@ describe("packaged FitFreed import journey", () => {
     );
     const refreshedExport = fs.readFileSync(refreshedReportOutput, "utf8");
     expect(refreshedExport).toContain('data-fitfreed-report-version="5"');
-    expect(refreshedExport).toContain('data-fitfreed-output-version="8"');
+    expect(refreshedExport).toContain('data-fitfreed-output-version="9"');
     expect(refreshedExport).toContain("Synthetic comparison answer");
     expect(refreshedExport).not.toContain(
       "The recorded duration decreased; the reason remains my interpretation.",
@@ -5987,7 +6063,7 @@ describe("packaged FitFreed import journey", () => {
     });
     const plannedExport = fs.readFileSync(plannedReportOutput, "utf8");
     expect(plannedExport).toContain('data-fitfreed-report-version="5"');
-    expect(plannedExport).toContain('data-fitfreed-output-version="8"');
+    expect(plannedExport).toContain('data-fitfreed-output-version="9"');
     expect(plannedExport).toContain("Training plan · Progressive intervals");
     expect(plannedExport).toContain("Planned training evidence");
     expect(plannedExport).toContain('<th scope="row">1. Phase</th>');

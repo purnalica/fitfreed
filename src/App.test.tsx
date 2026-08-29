@@ -2589,9 +2589,17 @@ describe("FitFreed import interface", () => {
         session: null,
         routes: [],
         trainingComparison: comparison,
+        plannedTraining: null,
         provenance: { kind: "library-snapshot" },
         sensitiveContents: [],
         limitations: [],
+        runParameters: {
+          trainingComparison: {
+            savedDefault: query,
+            effectiveValue: query,
+            origin: "saved-default",
+          },
+        },
       });
       if (command === "query_training_sessions") {
         return Promise.resolve(trainingSessionSearchPage(

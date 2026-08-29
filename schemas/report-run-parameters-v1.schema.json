@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-run-parameters-v1.schema.json",
+  "title": "FitFreed report run parameters version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "trainingComparison": {
+      "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery"
+    }
+  },
+  "$defs": {
+    "resolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trainingComparison"],
+      "properties": {
+        "trainingComparison": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/resolvedTrainingComparison" }
+          ]
+        }
+      }
+    },
+    "resolvedTrainingComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["savedDefault", "effectiveValue", "origin"],
+      "properties": {
+        "savedDefault": {
+          "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery"
+        },
+        "effectiveValue": {
+          "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery"
+        },
+        "origin": { "enum": ["saved-default", "transient-override"] }
+      }
+    }
+  }
+}

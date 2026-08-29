@@ -3,8 +3,8 @@ use std::{collections::BTreeMap, fs, io::Write, path::Path};
 use fitfreed_application::{
     AuthorizedReportExport, ReportEvidenceProvenance, ReportExportCancellation, ReportExportPort,
     ReportExportPortError, ReportExportReceipt, ReportLimitation, ReportRouteEvidence,
-    TrainingComparison, TrainingRouteKindView, TrainingSeriesComparison, TrainingSeriesSummary,
-    TrainingSessionSport, TrainingSportState,
+    ReportRunParameterOrigin, TrainingComparison, TrainingRouteKindView, TrainingSeriesComparison,
+    TrainingSeriesSummary, TrainingSessionSport, TrainingSportState,
 };
 use fitfreed_domain::{
     PlannedTrainingCompletion, PlannedTrainingExerciseKind, PlannedTrainingIntensity,
@@ -20,7 +20,7 @@ use super::{
 };
 
 const SPORT_ICON_SPRITE: &str = include_str!("../../../assets/sport/sport-icons.svg");
-const REPORT_HTML_OUTPUT_VERSION: u32 = 8;
+const REPORT_HTML_OUTPUT_VERSION: u32 = 9;
 const SVG_NAMESPACE_DECLARATION: &str = " xmlns=\"http://www.w3.org/2000/svg\"";
 const EMBEDDED_STYLE: &str = "\
 :root{color-scheme:light dark;font-family:system-ui,-apple-system,sans-serif;line-height:1.5}\
@@ -147,7 +147,47 @@ fn render_report(
     html.push_str(report.definition.locale().code());
     html.push_str("</code></dd><dt>");
     html.push_str(labels.units);
-    html.push_str("</dt><dd><code>metric-v1</code></dd></dl></header>");
+    html.push_str("</dt><dd><code>metric-v1</code></dd>");
+    if let Some(parameters) = report.run_parameters.training_comparison.as_ref() {
+        html.push_str("<dt>");
+        html.push_str(labels.report_run_parameters);
+        html.push_str("</dt><dd data-fitfreed-run-parameter-origin=\"");
+        html.push_str(match parameters.origin {
+            ReportRunParameterOrigin::SavedDefault => "saved-default",
+            ReportRunParameterOrigin::TransientOverride => "transient-override",
+        });
+        html.push_str("\">");
+        html.push_str(match parameters.origin {
+            ReportRunParameterOrigin::SavedDefault => labels.saved_run_parameters,
+            ReportRunParameterOrigin::TransientOverride => labels.transient_run_parameters,
+        });
+        html.push(' ');
+        html.push_str(labels.baseline);
+        html.push_str(": ");
+        push_escaped(
+            &mut html,
+            parameters.effective_value.baseline_range().from(),
+        );
+        html.push('–');
+        push_escaped(
+            &mut html,
+            parameters.effective_value.baseline_range().through(),
+        );
+        html.push_str("; ");
+        html.push_str(labels.comparison);
+        html.push_str(": ");
+        push_escaped(
+            &mut html,
+            parameters.effective_value.comparison_range().from(),
+        );
+        html.push('–');
+        push_escaped(
+            &mut html,
+            parameters.effective_value.comparison_range().through(),
+        );
+        html.push_str("</dd>");
+    }
+    html.push_str("</dl></header>");
 
     let routes = report
         .routes
@@ -1485,21 +1525,35 @@ fn validate_training_comparison_evidence(
                 | ReportBlockContent::PlannedTraining { .. } => None,
             });
     let Some(expected_query) = expected_query else {
-        return if report.training_comparison.is_none() {
+        return if report.training_comparison.is_none()
+            && report.run_parameters.training_comparison.is_none()
+        {
             Ok(())
         } else {
             Err(invalid_comparison_evidence())
         };
     };
+    let Some(run_parameters) = report.run_parameters.training_comparison.as_ref() else {
+        return Err(invalid_comparison_evidence());
+    };
+    if &run_parameters.saved_default != expected_query
+        || matches!(
+            run_parameters.origin,
+            ReportRunParameterOrigin::SavedDefault
+        ) && run_parameters.effective_value != run_parameters.saved_default
+    {
+        return Err(invalid_comparison_evidence());
+    }
+    let effective_query = &run_parameters.effective_value;
     let Some(comparison) = report.training_comparison.as_ref() else {
         return Err(invalid_comparison_evidence());
     };
     if comparison.baseline_range.as_ref().is_none_or(|range| {
-        range.from != expected_query.baseline_range().from()
-            || range.through != expected_query.baseline_range().through()
+        range.from != effective_query.baseline_range().from()
+            || range.through != effective_query.baseline_range().through()
     }) || comparison.comparison_range.as_ref().is_none_or(|range| {
-        range.from != expected_query.comparison_range().from()
-            || range.through != expected_query.comparison_range().through()
+        range.from != effective_query.comparison_range().from()
+            || range.through != effective_query.comparison_range().through()
     }) || comparison.series.is_empty()
     {
         return Err(invalid_comparison_evidence());
@@ -1839,6 +1893,9 @@ struct Labels {
     source_revision: &'static str,
     locale: &'static str,
     units: &'static str,
+    report_run_parameters: &'static str,
+    saved_run_parameters: &'static str,
+    transient_run_parameters: &'static str,
     session_evidence: &'static str,
     recorded_evidence: &'static str,
     started: &'static str,
@@ -1990,6 +2047,9 @@ static EN_US: Labels = Labels {
     source_revision: "Source revision",
     locale: "Language",
     units: "Units policy",
+    report_run_parameters: "Effective report dates",
+    saved_run_parameters: "Saved defaults.",
+    transient_run_parameters: "Temporary values; the saved report is unchanged.",
     session_evidence: "Session evidence",
     recorded_evidence: "Recorded source evidence resolved by FitFreed",
     started: "Started",
@@ -2138,6 +2198,9 @@ static ES_ES: Labels = Labels {
     source_revision: "Revisión de los datos",
     locale: "Idioma",
     units: "Política de unidades",
+    report_run_parameters: "Fechas efectivas del informe",
+    saved_run_parameters: "Valores predeterminados guardados.",
+    transient_run_parameters: "Valores temporales; el informe guardado no ha cambiado.",
     session_evidence: "Evidencias de la sesión",
     recorded_evidence: "Evidencias registradas en el origen y resueltas por FitFreed",
     started: "Inicio",
@@ -2275,10 +2338,11 @@ mod tests {
     use fitfreed_application::{
         PlannedTrainingPlanShape, PlannedTrainingReconciliationState, PlannedTrainingTargetDetail,
         PlannedTrainingTargetSummary, ReportPlannedTrainingEvidence, ReportSessionEvidence,
-        TrainingComparison, TrainingDateRange, TrainingProvenanceCurrentView,
-        TrainingRoutePointView, TrainingSeriesComparison, TrainingSeriesSummary,
-        TrainingSessionSport, TrainingSourceProviderView, TrainingSportClassification,
-        TrainingSportClassificationScope, TrainingSportRecognition,
+        ResolvedReportRunParameters, ResolvedTrainingComparisonRunParameters, TrainingComparison,
+        TrainingDateRange, TrainingProvenanceCurrentView, TrainingRoutePointView,
+        TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionSport,
+        TrainingSourceProviderView, TrainingSportClassification, TrainingSportClassificationScope,
+        TrainingSportRecognition,
     };
     use fitfreed_domain::{
         PlannedTrainingCompletion, PlannedTrainingEditability, PlannedTrainingExercise,
@@ -2353,6 +2417,7 @@ mod tests {
                 non_contributing_event_count: 1,
             }),
             limitations: vec![ReportLimitation::SportUnavailable],
+            run_parameters: ResolvedReportRunParameters::default(),
             include_physiological_context,
         }
     }
@@ -2456,12 +2521,22 @@ mod tests {
                     query.clone(),
                 )
                 .expect("table"),
-                ReportBlock::training_coverage(format!("report-block-{}", "6".repeat(64)), query)
-                    .expect("coverage"),
+                ReportBlock::training_coverage(
+                    format!("report-block-{}", "6".repeat(64)),
+                    query.clone(),
+                )
+                .expect("coverage"),
                 resolved.definition.blocks()[1].clone(),
             ],
         )
         .expect("analytical definition");
+        resolved.run_parameters = ResolvedReportRunParameters {
+            training_comparison: Some(ResolvedTrainingComparisonRunParameters {
+                saved_default: query.clone(),
+                effective_value: query.clone(),
+                origin: ReportRunParameterOrigin::SavedDefault,
+            }),
+        };
         let summary =
             |session_count: usize, training_days: usize, duration: i128| TrainingSeriesSummary {
                 calendar_days: 31,
@@ -2526,6 +2601,7 @@ mod tests {
             planned_training: None,
             provenance: ReportEvidenceProvenance::AuthoredOnly,
             limitations: Vec::new(),
+            run_parameters: ResolvedReportRunParameters::default(),
             include_physiological_context: false,
         }
     }
@@ -2667,6 +2743,7 @@ mod tests {
             }),
             provenance: ReportEvidenceProvenance::PlannedTrainingSnapshot,
             limitations: Vec::new(),
+            run_parameters: ResolvedReportRunParameters::default(),
             include_physiological_context: false,
         }
     }
@@ -2680,7 +2757,7 @@ mod tests {
             )
             .expect("planned report HTML");
 
-            assert!(html.contains("data-fitfreed-output-version=\"8\""));
+            assert!(html.contains("data-fitfreed-output-version=\"9\""));
             assert!(html.contains("Progressive &lt;intervals&gt;"));
             assert!(html.contains("Four controlled efforts &amp; recovery."));
             assert!(html.contains("Warm-up"));
@@ -2845,7 +2922,7 @@ mod tests {
         assert!(html.contains(&format!(
             "data-fitfreed-report-version=\"{REPORT_DEFINITION_VERSION}\""
         )));
-        assert!(html.contains("data-fitfreed-output-version=\"8\""));
+        assert!(html.contains("data-fitfreed-output-version=\"9\""));
         assert!(html.contains("<svg class=\"route-visual\""));
         assert!(
             html.find(">Route</h2>").expect("route section")
@@ -2908,6 +2985,56 @@ mod tests {
                 .expect("comparison order");
             assert!(finding < comparison);
         }
+    }
+
+    #[test]
+    fn exports_transient_training_periods_with_explicit_provenance() {
+        let mut report = analytical_report(ReportLocale::EnUs);
+        let effective_query = ReportTrainingComparisonQuery::new(
+            ReportDateRange::new("2026-01-02", "2026-01-15").expect("baseline range"),
+            ReportDateRange::new("2026-02-02", "2026-02-15").expect("comparison range"),
+        );
+        let parameters = report
+            .run_parameters
+            .training_comparison
+            .as_mut()
+            .expect("training comparison run parameters");
+        parameters.effective_value = effective_query;
+        parameters.origin = ReportRunParameterOrigin::TransientOverride;
+        let comparison = report
+            .training_comparison
+            .as_mut()
+            .expect("training comparison evidence");
+        comparison.baseline_range = Some(TrainingDateRange {
+            from: "2026-01-02".to_owned(),
+            through: "2026-01-15".to_owned(),
+        });
+        comparison.comparison_range = Some(TrainingDateRange {
+            from: "2026-02-02".to_owned(),
+            through: "2026-02-15".to_owned(),
+        });
+
+        let html = render_report(&report, &ReportExportCancellation::new())
+            .expect("transient report export");
+
+        assert!(html.contains("data-fitfreed-output-version=\"9\""));
+        assert!(html.contains("data-fitfreed-run-parameter-origin=\"transient-override\""));
+        assert!(html.contains("Temporary values; the saved report is unchanged."));
+        assert!(html.contains("2026-01-02–2026-01-15"));
+        assert!(html.contains("2026-02-02–2026-02-15"));
+
+        report
+            .training_comparison
+            .as_mut()
+            .expect("training comparison evidence")
+            .baseline_range = Some(TrainingDateRange {
+            from: "2026-01-03".to_owned(),
+            through: "2026-01-15".to_owned(),
+        });
+        assert!(matches!(
+            render_report(&report, &ReportExportCancellation::new()),
+            Err(ReportExportPortError::Failure(_))
+        ));
     }
 
     #[test]

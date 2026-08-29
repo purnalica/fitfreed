@@ -1,4 +1,4 @@
-export type ComparisonPeriodPresetKind = "week" | "month" | "year";
+export type ComparisonPeriodPresetKind = "week" | "month" | "quarter" | "year";
 
 export interface ComparisonDateRange {
   from: string;
@@ -71,6 +71,24 @@ function periodBounds(
       )),
     };
   }
+  if (kind === "quarter") {
+    const currentQuarterMonth = Math.floor(month / 3) * 3;
+    const currentFrom = new Date(Date.UTC(year, currentQuarterMonth, 1));
+    const previousFrom = new Date(Date.UTC(year, currentQuarterMonth - 3, 1));
+    const previousQuarterEnd = new Date(Date.UTC(
+      previousFrom.getUTCFullYear(),
+      previousFrom.getUTCMonth() + 3,
+      0,
+    ));
+    const matchingThrough = addDays(previousFrom, daysBetween(currentFrom, anchor));
+    return {
+      currentFrom,
+      previousFrom,
+      previousThrough: matchingThrough < previousQuarterEnd
+        ? matchingThrough
+        : previousQuarterEnd,
+    };
+  }
   const currentFrom = new Date(Date.UTC(year, 0, 1));
   const previousYear = year - 1;
   const previousMonth = anchor.getUTCMonth();
@@ -127,7 +145,7 @@ export function defaultComparisonPeriods(
   available: ComparisonDateRange,
   today: string,
 ): ComparisonPeriodSelection | null {
-  for (const kind of ["week", "month", "year"] as const) {
+  for (const kind of ["week", "month", "quarter", "year"] as const) {
     const preset = comparisonPeriodPreset(kind, available, today);
     if (preset) return preset;
   }

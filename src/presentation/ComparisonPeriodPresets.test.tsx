@@ -8,6 +8,7 @@ const messages = {
   heading: "Quick comparisons",
   week: "Week to date",
   month: "Month to date",
+  quarter: "Quarter to date",
   year: "Year to date",
   currentHint: "Uses recorded dates through today and the matching part of the previous calendar period.",
   recordedHint: "Uses the latest recorded date, {date}, and the matching part of the preceding calendar period.",
@@ -63,7 +64,7 @@ describe("ComparisonPeriodPresets", () => {
       />,
     );
 
-    for (const label of ["Week to date", "Month to date", "Year to date"]) {
+    for (const label of ["Week to date", "Month to date", "Quarter to date", "Year to date"]) {
       expect(screen.getByRole("button", { name: label })).toBeDisabled();
     }
     expect(screen.getByText("You can always edit the four dates below.")).toBeVisible();

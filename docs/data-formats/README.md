@@ -133,13 +133,15 @@ Directories are created with their first real contract; empty specifications are
 - [Training-session range summary read model version 2](insights/training-session-range-summary-v2.md) — preceding contract
 - [Training-session range summary read model version 1](insights/training-session-range-summary-v1.md) — preceding contract
 - [Training-session range draft summary read model version 1](insights/training-session-range-draft-summary-v1.md)
-- [Session report read models version 6](insights/session-report-v6.md)
+- [Session report read models version 7](insights/session-report-v7.md)
+- [Session report read models version 6](insights/session-report-v6.md) — preceding contract
 - [Session report read models version 5](insights/session-report-v5.md) — preceding contract
 - [Session report read models version 4](insights/session-report-v4.md) — preceding contract
 - [Session report read models version 3](insights/session-report-v3.md) — preceding contract
 - [Session report read models version 2](insights/session-report-v2.md) — preceding contract
 - [Session report read models version 1](insights/session-report-v1.md) — initial contract
-- [Report workflow version 11](insights/report-v11.md)
+- [Report workflow version 12](insights/report-v12.md)
+- [Report workflow version 11](insights/report-v11.md) — preceding contract
 - [Report workflow version 10](insights/report-v10.md) — preceding contract
 - [Report workflow version 9](insights/report-v9.md) — preceding contract
 - [Report workflow version 8](insights/report-v8.md) — preceding contract
@@ -167,7 +169,8 @@ Directories are created with their first real contract; empty specifications are
 - [Portable report definition version 3](portable/report-definition-v3.md) — preceding contract
 - [Portable report definition version 2](portable/report-definition-v2.md) — preceding contract
 - [Portable report definition version 1](portable/report-definition-v1.md) — initial contract
-- [Self-contained report HTML version 8](portable/report-html-v8.md)
+- [Self-contained report HTML version 9](portable/report-html-v9.md)
+- [Self-contained report HTML version 8](portable/report-html-v8.md) — preceding contract
 - [Self-contained report HTML version 7](portable/report-html-v7.md) — preceding contract
 - [Self-contained report HTML version 6](portable/report-html-v6.md) — preceding contract
 - [Self-contained report HTML version 5](portable/report-html-v5.md) — preceding contract

@@ -23,6 +23,7 @@
     "heading": "Períodos sugeridos",
     "week": "Semana hasta la fecha",
     "month": "Mes hasta la fecha",
+    "quarter": "Trimestre hasta la fecha",
     "year": "Año hasta la fecha",
     "currentHint": "Usa los datos registrados hasta hoy y la misma parte del período natural anterior.",
     "recordedHint": "Usa la última fecha registrada, {date}, y la misma parte del período natural anterior.",
@@ -2118,6 +2119,19 @@
           "action": "Elegir un plan de entrenamiento"
         }
       }
+    },
+    "runParameters": {
+      "heading": "Ver otro periodo",
+      "intro": "Cambia estas fechas solo para esta vista. El informe guardado y sus fechas predeterminadas no cambian salvo que edites y guardes la composición expresamente.",
+      "savedDefault": "Se están usando las fechas guardadas.",
+      "transient": "Se están usando fechas temporales. El informe guardado no ha cambiado.",
+      "apply": "Actualizar esta vista",
+      "applying": "Actualizando esta vista…",
+      "restore": "Usar las fechas guardadas",
+      "invalid": "Elige dos rangos de fechas válidos de hasta 366 días dentro del historial de entrenamientos disponible.",
+      "exportIncluded": "Fechas efectivas del informe: {baseline} comparado con {comparison}. {origin}",
+      "exportSaved": "Son los valores predeterminados guardados.",
+      "exportTransient": "Son valores temporales; el informe guardado no ha cambiado."
     },
     "library": {
       "count": "Se muestran {shown} de {total}",

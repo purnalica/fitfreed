@@ -49,6 +49,34 @@ describe("comparison period presets", () => {
     });
   });
 
+  it("compares the elapsed part of a quarter with the preceding calendar quarter", () => {
+    expect(comparisonPeriodPreset(
+      "quarter",
+      { from: "2024-01-01", through: "2026-08-20" },
+      "2026-08-20",
+    )).toEqual({
+      kind: "quarter",
+      baseline: { from: "2026-04-01", through: "2026-05-21" },
+      comparison: { from: "2026-07-01", through: "2026-08-20" },
+      anchorDate: "2026-08-20",
+      anchor: "today",
+    });
+  });
+
+  it("clamps a longer completed quarter to the preceding quarter boundary", () => {
+    expect(comparisonPeriodPreset(
+      "quarter",
+      { from: "2024-01-01", through: "2025-06-30" },
+      "2025-06-30",
+    )).toEqual({
+      kind: "quarter",
+      baseline: { from: "2025-01-01", through: "2025-03-31" },
+      comparison: { from: "2025-04-01", through: "2025-06-30" },
+      anchorDate: "2025-06-30",
+      anchor: "today",
+    });
+  });
+
   it("clamps a leap-day year-to-date baseline to the prior calendar year", () => {
     expect(comparisonPeriodPreset(
       "year",

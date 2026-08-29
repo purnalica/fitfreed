@@ -37,11 +37,11 @@ when that source is still available.
 The pre-X7-R5 disposable results follow [report workflow version 5](../data-formats/insights/report-v5.md): report
 definitions use version 4, while the result-first library and resolved report embed training sport identity version 1.
 Catalogue activation makes prior resolved evidence stale and still requires the existing deliberate refresh review.
-Self-contained HTML uses [output version 6](../data-formats/portable/report-html-v6.md) and records its output version
+Self-contained HTML uses [output version 9](../data-formats/portable/report-html-v9.md) and records its output version
 independently from the definition version.
 
-The current [report workflow version 11](../data-formats/insights/report-v11.md) retains the version-10 session-subject
-selection, version-9 sport identity, version-8 examples and
+The current [report workflow version 12](../data-formats/insights/report-v12.md) adds transient run parameters to the
+version-11 planned-subject selection, version-10 session-subject selection, version-9 sport identity, version-8 examples and
 duplication behavior plus the version-7 planned-training extension. Definition version 5 remains the durable contract under
 [ADR 0034](decisions/0034-bind-each-report-to-one-evidence-library.md). A planned-training origin binds one exact
 provider-neutral target and one matching evidence block to a `planned-snapshot-` source revision. Session, question,
@@ -71,9 +71,10 @@ report uses its canonical resolved source. Selected-subject capabilities, rather
 draft. The application never guesses a candidate. Saving a resolved draft returns to the ordinary
 version-5 creation path. The structured example stays within the planned library required by ADR 0034.
 
-Current self-contained HTML uses [output version 8](../data-formats/portable/report-html-v8.md). It renders the exact
+Current self-contained HTML uses [output version 9](../data-formats/portable/report-html-v9.md). It renders the exact
 authorized objective, exercise, phase, goal, intensity, transition, and repeat meaning semantically while keeping
-planned intent distinct from recorded completion. Output version and definition version remain independent contracts.
+planned intent distinct from recorded completion. A comparison export also records its exact effective dates and
+whether they came from saved defaults or a transient run. Output version and definition version remain independent contracts.
 
 `ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session
 block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session
@@ -204,18 +205,34 @@ intent, React receives the resolved provider-neutral projection, and version-3 o
 reading SQLite. Snapshot checks surround the single comparison query so a concurrent import cannot combine
 revisions.
 
+### Durable defaults and transient runs
+
+The comparison query inside `ReportDefinition` remains the durable default and the only value copied by duplication.
+`ReportRunParameters` is a separate application request for one resolution. Its first supported member is one complete
+training-period comparison query; an omitted member means use the saved default. The application rejects unsupported,
+invalid, overlong, or out-of-library ranges before it invokes the authoritative comparison query and never writes the
+definition or workspace while resolving an override.
+
+Every resolved comparison exposes the saved default, effective query, and `saved-default` or `transient-override`
+origin. React uses that projection for the visible result, restoration control, privacy review, and export request.
+Preview keeps the parameter form in an explicit collapsed disclosure so the primary answer remains visible at compact
+width and 200% zoom; opening it reveals presets and exact manual ranges without entering definition composition.
+Stale evidence still follows the deliberate refresh boundary; changing the evidence revision cannot silently turn a
+temporary viewing choice into a saved default. The HTML adapter validates that durable definition, resolved evidence,
+effective run, and origin agree before producing bytes.
+
 ## Export boundary
 
 The first normative output is a self-contained semantic HTML document with embedded styles and graphics, no script, and no external request. Export is local, cancellable across paginated resolution and staged output, deterministic for the same resolved input, and atomic. Failure or cancellation leaves no file that can be mistaken for a completed report. Under [ADR 0032](decisions/0032-use-specialized-analytical-visualization-engines.md), the infrastructure adapter renders feature-limited Plotters SVG from the already authorized projection; React supplies neither markup nor renderer state.
 
-Sensitive-content review is an application decision before rendering. Review can remove physiological context allowed by the saved definition, omit each route, or increase its endpoint redaction. It cannot add excluded physiology, introduce another route, or reduce the saved location protection. Exact choices are bound to block identities before the adapter runs.
+Sensitive-content review is an application decision before rendering. Review can remove physiological context allowed by the saved definition, omit each route, or increase its endpoint redaction. It cannot add excluded physiology, introduce another route, or reduce the saved location protection. Exact choices are bound to block identities before the adapter runs. For a comparison, the review also names the effective dates and whether they are saved or temporary; export reruns those exact parameters against the expected report and source revisions.
 
 The review always lists the report title and lists authored commentary only when the resolved definition has
 that block. This disclosure mirrors the generated content; a factual report cannot claim an interpretation
 that the user never supplied.
 
-Version-2 through version-6 HTML render selected route blocks as normalized local SVG shapes in definition
-order. Version-6 analytical blocks use deterministic static SVG plots and exact visible tables from one
+Version-2 through version-9 HTML render selected route blocks as normalized local SVG shapes in definition
+order. Version-6 and later analytical blocks use deterministic static SVG plots and exact visible tables from one
 authorized comparison. Version-4 provenance is discriminated: session attribution includes the current
 source, analytical non-session output names the local-library revision, and narrative-only output explicitly
 states that it contains no imported evidence. Recorded latitude, longitude, altitude, elapsed point values,

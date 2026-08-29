@@ -10,6 +10,8 @@ import {
   NumericTableHeader,
 } from "./DataTable";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
+import { ComparisonPeriodPresets } from "./ComparisonPeriodPresets";
+import type { ComparisonPeriodSelection } from "./comparison-period-preset";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { PlannedTrainingEvidence } from "./PlannedTrainingPanel";
@@ -281,6 +283,18 @@ function validReportRange(range: TrainingDateRange): boolean {
   return (through - from) / 86_400_000 < 366;
 }
 
+function comparisonQueriesMatch(
+  left: ReportTrainingComparisonQuery,
+  right: ReportTrainingComparisonQuery,
+): boolean {
+  return left.question === right.question
+    && left.questionVersion === right.questionVersion
+    && left.baselineRange.from === right.baselineRange.from
+    && left.baselineRange.through === right.baselineRange.through
+    && left.comparisonRange.from === right.comparisonRange.from
+    && left.comparisonRange.through === right.comparisonRange.through;
+}
+
 function editorFromDefinition(
   definition: ReportDefinition,
   plannedTarget?: PlannedTrainingTargetDetail,
@@ -398,6 +412,7 @@ export function ReportsPanel({
   const [saveOperation, setSaveOperation] = useState<"create" | "update">();
   const saving = saveOperation !== undefined;
   const [resolving, setResolving] = useState(false);
+  const [runParameterDraft, setRunParameterDraft] = useState<ReportTrainingComparisonQuery>();
   const [localError, setLocalError] = useState<string>();
   const [savedNotice, setSavedNotice] = useState(false);
   const [refreshedNotice, setRefreshedNotice] = useState(false);
@@ -451,6 +466,10 @@ export function ReportsPanel({
   const subjectCopy = subjectPicker?.kind === "planned-training"
     ? copy.examples.plannedSubjects
     : copy.examples.subjects;
+
+  useEffect(() => {
+    if (!resolved) setRunParameterDraft(undefined);
+  }, [resolved]);
 
   useEffect(() => {
     const target = commentaryFocusRequestRef.current;
@@ -1054,12 +1073,18 @@ export function ReportsPanel({
     return () => { active = false; };
   }, [editor?.sessionRef, editor?.sourceSnapshotRef]);
 
-  async function resolveReport(reportRef: string) {
+  async function resolveReport(
+    reportRef: string,
+    trainingComparison?: ReportTrainingComparisonQuery,
+  ) {
     setResolving(true);
     setLocalError(undefined);
     try {
       const result = await invoke<ResolvedReport>("resolve_report", {
-        reportRef,
+        request: {
+          reportRef,
+          runParameters: trainingComparison ? { trainingComparison } : {},
+        },
       });
       const nextEditor = editorFromDefinition(
         result.definition,
@@ -1078,6 +1103,9 @@ export function ReportsPanel({
         }
       }
       setResolved(result);
+      setRunParameterDraft(
+        result.runParameters.trainingComparison?.effectiveValue,
+      );
       setEditor(nextEditor);
       setExportPhysiology(result.definition.blocks.some(
         (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
@@ -1253,13 +1281,16 @@ export function ReportsPanel({
     setRefreshing(true);
     setLocalError(undefined);
     setRefreshedNotice(false);
+    const transientRun = resolved.runParameters.trainingComparison?.origin === "transient-override"
+      ? resolved.runParameters.trainingComparison.effectiveValue
+      : undefined;
     try {
       const definition = await invoke<ReportDefinition>("refresh_report", { request });
       setEditor(editorFromDefinition(definition));
       setResolved(undefined);
       setRefreshReviewOpen(false);
       await refreshList();
-      const current = await resolveReport(definition.reportRef);
+      const current = await resolveReport(definition.reportRef, transientRun);
       if (current) setRefreshedNotice(true);
     } catch (reason) {
       const code = commandErrorCode(reason);
@@ -1276,6 +1307,51 @@ export function ReportsPanel({
       blocks[index] = block;
       return { ...current, blocks };
     });
+  }
+
+  function updateRunParameterRange(
+    range: "baselineRange" | "comparisonRange",
+    boundary: "from" | "through",
+    value: string,
+  ) {
+    setRunParameterDraft((current) => current ? {
+      ...current,
+      [range]: { ...current[range], [boundary]: value },
+    } : current);
+    if (localError === "invalid-report-run-parameters") setLocalError(undefined);
+  }
+
+  function applyRunParameterPreset(selection: ComparisonPeriodSelection) {
+    setRunParameterDraft((current) => current ? {
+      ...current,
+      baselineRange: selection.baseline,
+      comparisonRange: selection.comparison,
+    } : current);
+    if (localError === "invalid-report-run-parameters") setLocalError(undefined);
+  }
+
+  async function rerunReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const parameters = resolved?.runParameters.trainingComparison;
+    if (!resolved || !parameters || !runParameterDraft) return;
+    if (
+      !validReportRange(runParameterDraft.baselineRange)
+      || !validReportRange(runParameterDraft.comparisonRange)
+    ) {
+      setLocalError("invalid-report-run-parameters");
+      return;
+    }
+    const override = comparisonQueriesMatch(runParameterDraft, parameters.savedDefault)
+      ? undefined
+      : runParameterDraft;
+    await resolveReport(resolved.definition.reportRef, override);
+  }
+
+  async function restoreSavedRunParameters() {
+    const parameters = resolved?.runParameters.trainingComparison;
+    if (!resolved || !parameters) return;
+    setRunParameterDraft(parameters.savedDefault);
+    await resolveReport(resolved.definition.reportRef);
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
@@ -1499,6 +1575,13 @@ export function ReportsPanel({
           reportRef: resolved.definition.reportRef,
           expectedRevision: resolved.definition.revision,
           expectedSourceSnapshotRef: resolved.definition.sourceSnapshotRef,
+          runParameters:
+            resolved.runParameters.trainingComparison?.origin === "transient-override"
+              ? {
+                  trainingComparison:
+                    resolved.runParameters.trainingComparison.effectiveValue,
+                }
+              : {},
           includePhysiologicalContext: exportPhysiology,
           routeChoices,
           destinationPath: destination,
@@ -3117,7 +3200,9 @@ export function ReportsPanel({
               {copy.refresh.completed}
             </p>
           )}
-          {localError && workspace !== "subject" && (
+          {localError
+            && localError !== "invalid-report-run-parameters"
+            && workspace !== "subject" && (
             <p id="report-editor-error" className="error" role="alert">
               {copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
             </p>
@@ -3165,6 +3250,128 @@ export function ReportsPanel({
                 </div>
               )}
               <h3 className="report-preview-title">{resolved.definition.title}</h3>
+              {resolved.runParameters.trainingComparison
+                && runParameterDraft
+                && resolved.trainingComparison?.availableRange && (
+                <details
+                  className="report-run-parameters"
+                >
+                  <summary>
+                    <span
+                      id="report-run-parameters-heading"
+                      className="report-run-parameter-heading"
+                    >
+                      {copy.runParameters.heading}
+                    </span>
+                    <span className="report-run-parameter-status" aria-live="polite">
+                      {resolved.runParameters.trainingComparison.origin === "transient-override"
+                        ? copy.runParameters.transient
+                        : copy.runParameters.savedDefault}
+                    </span>
+                  </summary>
+                  <div className="report-run-parameter-body">
+                    <p>{copy.runParameters.intro}</p>
+                    <form onSubmit={(event) => void rerunReport(event)}>
+                      <ComparisonPeriodPresets
+                        availableRange={resolved.trainingComparison.availableRange}
+                        baselineRange={runParameterDraft.baselineRange}
+                        comparisonRange={runParameterDraft.comparisonRange}
+                        locale={locale}
+                        messages={messages.comparisonPeriods}
+                        disabled={disabled || resolving}
+                        onSelect={applyRunParameterPreset}
+                      />
+                      <div className="report-run-parameter-dates">
+                        <label>
+                          <span>{copy.analysis.baselineFrom}</span>
+                          <input
+                            type="date"
+                            value={runParameterDraft.baselineRange.from}
+                            disabled={disabled || resolving}
+                            required
+                            aria-invalid={localError === "invalid-report-run-parameters" || undefined}
+                            onChange={(event) => updateRunParameterRange(
+                              "baselineRange",
+                              "from",
+                              event.target.value,
+                            )}
+                          />
+                        </label>
+                        <label>
+                          <span>{copy.analysis.baselineThrough}</span>
+                          <input
+                            type="date"
+                            value={runParameterDraft.baselineRange.through}
+                            disabled={disabled || resolving}
+                            required
+                            aria-invalid={localError === "invalid-report-run-parameters" || undefined}
+                            onChange={(event) => updateRunParameterRange(
+                              "baselineRange",
+                              "through",
+                              event.target.value,
+                            )}
+                          />
+                        </label>
+                        <label>
+                          <span>{copy.analysis.comparisonFrom}</span>
+                          <input
+                            type="date"
+                            value={runParameterDraft.comparisonRange.from}
+                            disabled={disabled || resolving}
+                            required
+                            aria-invalid={localError === "invalid-report-run-parameters" || undefined}
+                            onChange={(event) => updateRunParameterRange(
+                              "comparisonRange",
+                              "from",
+                              event.target.value,
+                            )}
+                          />
+                        </label>
+                        <label>
+                          <span>{copy.analysis.comparisonThrough}</span>
+                          <input
+                            type="date"
+                            value={runParameterDraft.comparisonRange.through}
+                            disabled={disabled || resolving}
+                            required
+                            aria-invalid={localError === "invalid-report-run-parameters" || undefined}
+                            onChange={(event) => updateRunParameterRange(
+                              "comparisonRange",
+                              "through",
+                              event.target.value,
+                            )}
+                          />
+                        </label>
+                      </div>
+                      {localError === "invalid-report-run-parameters" && (
+                        <p className="error" role="alert">{copy.runParameters.invalid}</p>
+                      )}
+                      <div className="report-actions">
+                        <ProgressSubmitButton
+                          loading={resolving}
+                          disabled={disabled}
+                          actionLabel={copy.runParameters.apply}
+                          progressLabel={copy.runParameters.applying}
+                        />
+                        {(resolved.runParameters.trainingComparison.origin === "transient-override"
+                          || !comparisonQueriesMatch(
+                            runParameterDraft,
+                            resolved.runParameters.trainingComparison.savedDefault,
+                          )) && (
+                          <button
+                            type="button"
+                            className="secondary"
+                            disabled={disabled || resolving}
+                            onClick={() => void restoreSavedRunParameters()}
+                          >
+                            {copy.runParameters.restore}
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                  </div>
+                </details>
+              )}
               {resolved.definition.blocks.slice(0, 1).map(renderPreviewBlock)}
               <div className="report-preview-actions">
                 <button
@@ -3359,6 +3566,24 @@ export function ReportsPanel({
               <ul>
                 {resolved.session && <li>{copy.sessionSummaryIncluded}</li>}
                 {resolved.trainingComparison && <li>{copy.analysisExportIncluded}</li>}
+                {resolved.runParameters.trainingComparison && (
+                  <li>
+                    {interpolate(copy.runParameters.exportIncluded, {
+                      baseline: formatReportRange(
+                        resolved.runParameters.trainingComparison.effectiveValue.baselineRange,
+                        locale,
+                      ),
+                      comparison: formatReportRange(
+                        resolved.runParameters.trainingComparison.effectiveValue.comparisonRange,
+                        locale,
+                      ),
+                      origin:
+                        resolved.runParameters.trainingComparison.origin === "transient-override"
+                          ? copy.runParameters.exportTransient
+                          : copy.runParameters.exportSaved,
+                    })}
+                  </li>
+                )}
                 {resolved.plannedTraining && <li>{copy.plannedTrainingIncluded}</li>}
                 <li>{copy.titleIncluded}</li>
                 {resolved.definition.blocks.some((block) => block.kind === "narrative")

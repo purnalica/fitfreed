@@ -48,14 +48,13 @@ synthetic regression evidence. The privacy-minimized X7-R8.0 selector is prepare
 observations remain pending; neither X7-R8.0 nor X7-R8.1 is complete until that structural conclusion is recorded and
 the remaining identity cases in X7-R8.1 are closed.
 
-X7-R8.2 through X7-R8.5 are machine-complete locally. They add ordered calendar activities and exact navigation,
+X7-R8.2 through X7-R8.6 are machine-complete locally. They add ordered calendar activities and exact navigation,
 shared concise presentation and alignment rules, question-led analytical charts, and an exact local route workbench
-with pointer and keyboard range selection. X7-R8.6 is active. Its first two vertical slices replace the generic History
-and Training plans detours for every parameterized report example with Reports-owned, snapshot-coherent subject
-choosers. The initiating recipes, explicit selection, cancellation destination, exact route and structured-target
-eligibility, selected-subject capabilities, and late-response invalidation have unit, integration, transport,
-contract, localization, and packaged evidence. The transient run-parameter contract remains open; these slices do not
-close X7-R8.6.
+with pointer and keyboard range selection. Reports now own snapshot-coherent subject choice for every parameterized
+example and separate saved comparison defaults from transient runs. Adjacent quarter presets, exact effective export
+provenance, duplication semantics, and result-first compact controls passed the complete local functional,
+accessibility, visual, restart, export, and performance campaign. X7-R8.7 is active: it must independently falsify the
+whole ordinary product before another production-native handoff is prepared.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -3465,6 +3464,18 @@ structure against one planned snapshot. Scheduled targets precede templates, exp
 authoritative target before opening the exact unsaved recipe, and cancellation or stale evidence writes nothing.
 Every parameterized built-in example now has an explicit subject. Steps 2 through 6 remain open, so X7-R8.6 is not
 complete.
+
+**Third vertical checkpoint — 2026-08-29:** report resolution now accepts a provider-neutral one-run comparison query
+without updating the saved definition. Results distinguish saved defaults, effective values, and origin; Preview adds
+week, month, quarter, year, and manual choices plus explicit restoration. Privacy review and HTML version 9 repeat the
+effective dates and origin, and export recalculates the exact reviewed parameters while duplication retains only saved
+defaults. The parameter controls remain collapsed until requested so the primary answer stays visible at wide and
+compact 200% geometry. The complete fast, strict Rust, contract, localization, documentation, deterministic export,
+packaged functional, real-process restart, accessibility, adaptive visual, and dense-library performance campaigns
+pass with synthetic evidence. Visual review covers the open English wide task and the closed Spanish dark 200% result.
+Invalid bounds, temporary restoration, exact export provenance, duplication of saved defaults, stale refresh, restart,
+every parameterized example, explicit selection, and cancellation remain verified. Steps 2 through 6 and X7-R8.6 are
+complete locally.
 
 1. Add an application-level report-subject eligibility query for each built-in example and contextual start. Preserve
    the initiating task, filter candidates by required evidence, and make **Use this session** or its equivalent the

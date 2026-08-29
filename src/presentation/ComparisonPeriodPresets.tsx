@@ -14,6 +14,7 @@ export interface ComparisonPeriodPresetMessages {
   heading: string;
   week: string;
   month: string;
+  quarter: string;
   year: string;
   currentHint: string;
   recordedHint: string;
@@ -56,7 +57,7 @@ export function ComparisonPeriodPresets({
     [locale],
   );
   const options = useMemo(() => (
-    (["week", "month", "year"] as const).map((kind) => ({
+    (["week", "month", "quarter", "year"] as const).map((kind) => ({
       kind,
       selection: comparisonPeriodPreset(kind, availableRange, today),
     }))

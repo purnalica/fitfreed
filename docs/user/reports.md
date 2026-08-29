@@ -106,6 +106,22 @@ comparison before saving. Concurrent edits are rejected instead of overwriting a
 reimport never rewrite authored report rows. Select **Cancel composition** to discard every unsaved edit,
 restore the exact reviewed definition, and return to its result without writing a new revision.
 
+## View another period without editing
+
+A current saved report with a training-period comparison shows a compact **View another period** disclosure in
+Preview, leaving the report's answer visible first. Open it to choose current versus preceding week, month, quarter,
+or year, or enter two inclusive date ranges manually. Each range can contain at most 366 days and must stay inside the
+available training history. Select **Update this view** to recalculate the visible result.
+
+Preview states whether it is using saved or temporary dates. Temporary dates do not edit the report, create a new
+revision, or survive as new defaults. Select **Use saved dates** to restore the definition's periods. To make a period
+the new default, use **Edit composition**, change its dates deliberately, and save the report. Duplicating a report
+copies only its saved definition, never a temporary view.
+
+**Review and export** names the exact dates that will be written and whether they are saved or temporary. Export uses
+the currently displayed effective dates and leaves the saved report unchanged. If the library changed or the dates
+are no longer valid, FitFreed stops before writing a file instead of silently exporting different evidence.
+
 To remove a saved report, open it in Preview and select **Delete report**. The confirmation replaces Preview,
 names the exact report, and offers an explicit cancel action. Confirming removes only the reviewed report
 revision and its owned composition; imported fitness history and every other report remain unchanged. If the
@@ -175,6 +191,7 @@ path is not persisted in the report.
 comparison totals, findings, chart shapes, exact tables, coverage notices, your title, any optional commentary,
 source attribution, definition metadata, reviewed route shapes, and the complete structured plan for a planned report.
 Exact training samples remain excluded.
+   For a comparison, verify the displayed effective dates and whether they are saved defaults or temporary values.
 3. For a session report whose definition permits heart-rate context, decide whether this individual export
 should retain it. Review may remove sensitive content but cannot add content excluded by the definition.
 4. Review every available route independently. You may omit its geometry or increase endpoint protection for

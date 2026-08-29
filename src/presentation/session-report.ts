@@ -370,6 +370,17 @@ export interface ResolvedReport {
   provenance: ReportEvidenceProvenance;
   sensitiveContents: ReportSensitiveContent[];
   limitations: ReportLimitation[];
+  runParameters: ResolvedReportRunParameters;
+}
+
+export interface ResolvedReportRunParameters {
+  trainingComparison: ResolvedTrainingComparisonRunParameters | null;
+}
+
+export interface ResolvedTrainingComparisonRunParameters {
+  savedDefault: ReportTrainingComparisonQuery;
+  effectiveValue: ReportTrainingComparisonQuery;
+  origin: "saved-default" | "transient-override";
 }
 
 export type ReportEvidenceProvenance =

@@ -23,6 +23,7 @@
     "heading": "Suggested periods",
     "week": "Week to date",
     "month": "Month to date",
+    "quarter": "Quarter to date",
     "year": "Year to date",
     "currentHint": "Uses recorded dates through today and the matching part of the previous calendar period.",
     "recordedHint": "Uses the latest recorded date, {date}, and the matching part of the preceding calendar period.",
@@ -2118,6 +2119,19 @@
           "action": "Choose a training plan"
         }
       }
+    },
+    "runParameters": {
+      "heading": "View another period",
+      "intro": "Change these dates for this view. The saved report and its default dates stay unchanged unless you deliberately edit and save the composition.",
+      "savedDefault": "Saved dates are in use.",
+      "transient": "Temporary dates are in use. The saved report is unchanged.",
+      "apply": "Update this view",
+      "applying": "Updating this view…",
+      "restore": "Use saved dates",
+      "invalid": "Choose two valid date ranges of no more than 366 days within the available training history.",
+      "exportIncluded": "Effective report dates: {baseline} compared with {comparison}. {origin}",
+      "exportSaved": "These are the saved defaults.",
+      "exportTransient": "These are temporary values; the saved report is unchanged."
     },
     "library": {
       "count": "Showing {shown} of {total}",

@@ -146,6 +146,7 @@ function resolution(origin: ReportDefinition["origin"]): ResolvedReport {
         : { kind: "library-snapshot" },
     sensitiveContents: [],
     limitations: [],
+    runParameters: { trainingComparison: null },
   };
 }
 

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/session-report-resolution-v7.schema.json",
+  "title": "FitFreed resolved analytical session report version 7",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "definition", "resolvedSnapshotRef", "status", "session", "routes",
+    "trainingComparison", "provenance", "sensitiveContents", "limitations",
+    "runParameters"
+  ],
+  "properties": {
+    "definition": {
+      "$ref": "session-report-resolution-v6.schema.json#/properties/definition"
+    },
+    "resolvedSnapshotRef": {
+      "$ref": "session-report-resolution-v6.schema.json#/properties/resolvedSnapshotRef"
+    },
+    "status": { "$ref": "session-report-resolution-v6.schema.json#/properties/status" },
+    "session": { "$ref": "session-report-resolution-v6.schema.json#/properties/session" },
+    "routes": { "$ref": "session-report-resolution-v6.schema.json#/properties/routes" },
+    "trainingComparison": {
+      "$ref": "session-report-resolution-v6.schema.json#/properties/trainingComparison"
+    },
+    "provenance": {
+      "$ref": "session-report-resolution-v6.schema.json#/properties/provenance"
+    },
+    "sensitiveContents": {
+      "$ref": "session-report-resolution-v6.schema.json#/properties/sensitiveContents"
+    },
+    "limitations": {
+      "$ref": "session-report-resolution-v6.schema.json#/properties/limitations"
+    },
+    "runParameters": {
+      "$ref": "report-run-parameters-v1.schema.json#/$defs/resolved"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": { "trainingComparison": { "type": "null" } }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "runParameters": {
+            "type": "object",
+            "properties": { "trainingComparison": { "type": "null" } }
+          }
+        }
+      },
+      "else": {
+        "type": "object",
+        "properties": {
+          "runParameters": {
+            "type": "object",
+            "properties": {
+              "trainingComparison": {
+                "$ref": "report-run-parameters-v1.schema.json#/$defs/resolvedTrainingComparison"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
