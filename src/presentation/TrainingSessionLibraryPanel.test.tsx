@@ -2603,7 +2603,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(onError).toHaveBeenCalledWith(undefined);
   });
 
-  it("paginates a stable snapshot and opens and closes exact summary detail", async () => {
+  it("opens concise summary detail and reveals ranges and recorded structure", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
       if (workspaceResult) return workspaceResult;
@@ -2616,7 +2616,7 @@ describe("TrainingSessionLibraryPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
-    const { onError } = renderPanel();
+    renderPanel();
     const region = await screen.findByRole("region", { name: "Find a training session" });
 
     const detailOrigin = within(region).getByRole("button", {
@@ -2725,6 +2725,36 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).getByRole("heading", { name: "Source laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Automatic laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Pauses" })).toBeVisible();
+  });
+
+  it("explores exact route and signal evidence before returning to stable pagination", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        if (request.offset === 25) return Promise.resolve(page([oldest], 25, 26, null));
+        return Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const { onError } = renderPanel();
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const detailOrigin = within(region).getByRole("button", {
+      name: "View session details for Aug 18, 2026, 7:30 AM",
+    });
+    await user.click(detailOrigin);
+    const detail = within(region).getByRole("heading", { name: "Session summary" })
+      .closest("section");
+    expect(detail).not.toBeNull();
+    const detailNavigation = within(detail!).getByRole("navigation", {
+      name: "Session detail",
+    });
+    const workbench = await within(detail!).findByRole("region", {
+      name: "Recorded route workbench",
+    });
 
     fireEvent.change(within(workbench).getByRole("slider", {
       name: "Recorded position",
