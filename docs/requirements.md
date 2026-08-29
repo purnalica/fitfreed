@@ -495,8 +495,14 @@ All user-facing features included in the first release will be available in Engl
 - A deliberate user-authored unified-sport relationship will combine two or more represented collection identities
   only after the person reviews their complete affected-session coverage and the identity that will take precedence.
   The relationship retains each member's source evidence, survives restart, reimport, migration, backup, report
-  resolution, and export, and can be revised or dissolved without deleting imported evidence. Equal visible names,
-  equal broad families, candidate order, or one private correlation never creates this relationship implicitly.
+  resolution, and export, and can be revised or dissolved without deleting imported evidence. Its reusable local
+  correlation rule will also be applied to compatible identities discovered by later imports, with conflicts returned
+  for review instead of silently changing the chosen meaning.
+- FitFreed will ship versioned provider-normalization rules for documented cases where one provider uses distinct
+  identifiers for the same provider-neutral sport. A rule requires reproducible non-personal evidence, explicit
+  provenance, an update policy, preserved source distinctions, and a user-visible correction path. Official taxonomy
+  and independently reproducible source-format evidence may authorize a bundled rule; one private correlation, equal
+  visible names, equal broad families, or candidate order may not.
 - Activating another catalogue or mapping revision invalidates earlier training-discovery snapshots before any new identity is projected.
 - Training history will use a recognizable provider-neutral sport label and visual identifier wherever trustworthy identity evidence exists. Unresolved references remain honest but are classifiable from the affected history itself; assigning or revising a display label and sport family updates every relevant view without requiring reimport.
 - Every sport identity available to the current history will be visibly discoverable at supported widths and zoom levels. Discovery will wrap complete labels and actions instead of relying on unannounced horizontal scrolling, truncation, or hidden continuation.

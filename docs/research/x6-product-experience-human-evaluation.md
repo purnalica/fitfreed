@@ -18,6 +18,12 @@ prioritization, implementation, or verification.**
 product-owner time is spent. The handoff source is not accepted. Observation collection is closed until a new exact
 candidate passes the corrective automated and independent UX gates.**
 
+**The corrected-candidate review started and ended on 2026-08-30 for exact source
+`6a71002da2c8a63401f3291cff70ad898868ebeb`. The application became progressively less fluid during late
+reconciliation. Home presented only unknown sport groups, while History exposed a small recognized subset beside
+dominant unknown groups. Because unusable sport identity is an acceptance-blocking failure reported in four
+product-owner reviews, the product owner ended the review rather than spend more time on the rejected candidate.**
+
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
 the [X6 profile](../testing/macos-candidate-manual-evaluation.md#x6-product-experience-profile). It records
 observable behavior and bounded participant impact without retaining personal fitness data, source paths,
@@ -74,6 +80,10 @@ The participant paused the incomplete collection on 2026-08-28 and requested cor
 planning, implementation, and automated verification may now proceed. The required participant-assisted Polar
 web/takeout correlation session is a separate bounded evidence gate; no other functional QA is reassigned to the
 product owner.
+
+The corrected-candidate collection started and ended on 2026-08-30. The product owner explicitly closed the session
+after XH-08 recurred for the fourth time. Observation collection is complete; consolidation and autonomous causal
+analysis may resume without requesting further participant reproduction on this candidate.
 
 ## Findings
 
@@ -265,8 +275,8 @@ product owner.
 
 ### XH-08 — Imported sport types remain entirely unrecognized
 
-- **Status:** correction in progress; the bounded provider correlation is complete and the explicit local unification
-  boundary remains to be implemented and verified.
+- **Status:** reopened by the corrected-candidate review on 2026-08-30. This acceptance-blocking failure has now been
+  reported in four product-owner reviews, and the latest candidate is rejected.
 - **Observed task:** reach Home after importing a long, multi-sport history.
 - **Observed behavior:** Home reports no recognized sports even though the same screen reports multiple recorded sport
   types and the imported history is known to contain several distinct activities.
@@ -349,6 +359,30 @@ product owner.
   the same meaning. Missing export evidence must be described as missing from the imported export, never as proof that
   the provider failed to record a sport. Any reusable automatic mapping still requires provenance, confidence,
   ambiguity, version, update, licence, and user-correction rules.
+- **Corrected-candidate observation:** after the accepted structural correction, complete automated campaign, and
+  exact native handoff, Home still exposes only unknown sport groups. A deeper History view contains a small recognized
+  subset, but dominant collections remain unknown. The product owner ended the review immediately because the same
+  fundamental failure had already consumed three earlier review sessions. No sport, count, provider value, archive
+  detail, or personal history enters this record.
+- **Closing visual evidence:** participant-provided Home and History screenshots confirm the inconsistent projection,
+  the predominance of unknown groups, and manual naming as the primary recovery. The screenshots and their personal
+  library values are not retained.
+- **Closing product direction:** user-authored sport combinations must persist as reusable local correlation rules for
+  compatible identities discovered by later imports. FitFreed must also ship versioned defaults for independently
+  documented provider identifiers that mean the same provider-neutral sport. Bundled defaults require reproducible
+  non-personal evidence and must preserve provenance, ambiguity, source detail, update semantics, and user correction;
+  no participant value becomes a project default.
+- **Corrected-candidate causal trace:** the importer preserves the takeout's opaque session sport reference, while the
+  separate sport-profile artifact contains a detailed code but no join key. The only bundled recognition path relates
+  a completed target to one session by a unique same-origin local start; it therefore names only a small subset. The
+  persistence adapter intentionally separates those exact candidates from the unresolved remainder, the application
+  projects that separation unchanged, and Home ranks collections by represented-session volume. Dominant unresolved
+  collections consequently occupy every visible Home card while a small exact subset remains discoverable only in
+  deeper History. This is the specified behavior of the current evidence contract, not stale presentation state.
+  The current stored relationship retains fixed deterministic collection identities and grows when later imports add
+  sessions to those same identities, but it does not own a semantic correlation rule for a newly encountered compatible
+  provider identity and no distributable opaque-identifier catalogue is installed. The correction must therefore
+  revise the correlation contract rather than relabel or reorder cards.
 
 ### XH-09 — Home aggregates look actionable but do not lead to exploration
 
@@ -704,6 +738,24 @@ product owner.
   values, and the current viewing run before presentation controls are changed. Exported results must identify the
   effective parameters used for that run.
 
+### XH-27 — Late reconciliation degrades interactive responsiveness
+
+- **Status:** observed during the bounded corrected-candidate product-owner experience review; no concurrent analysis
+  or disposition.
+- **Observed behavior:** the application responds fluently during the early reconciliation phase of a large imported
+  library. As reconciliation advances, navigation and other actions still respond, but interaction becomes
+  progressively slow and no longer feels fluid.
+
+### XH-28 — Sport cards become unreadable and overflow at compact geometry
+
+- **Status:** observed in closing visual evidence from the rejected corrected-candidate review; no concurrent causal
+  analysis or disposition.
+- **Observed behavior:** at compact application geometry, sport-card identity and date text collapse into
+  single-character columns, cards become excessively tall, and the action row extends beyond its card and viewport.
+  The collection is no longer legible or reliably operable.
+- **Evidence boundary:** the participant-provided screenshot and all personal labels, dates, counts, and library values
+  are not retained.
+
 ## Passing observations
 
 ### XH-P01 — Import cancellation permits an immediate retry
@@ -731,6 +783,13 @@ product owner.
   accept the complete acquisition or import journey.
 
 ## Interim human disposition
+
+The corrected candidate from exact source `6a71002da2c8a63401f3291cff70ad898868ebeb` is rejected. Late
+reconciliation loses perceptible fluidity, XH-08 still prevents a person from recognizing the primary organizing
+vocabulary consistently across Home and History, and compact sport cards become unreadable and overflow their
+viewport. The product owner ended the review before broader exploration because a fourth reproduction of the
+fundamental identity failure makes further evaluation an unreasonable use of participant time. Neither the prior
+independent audit nor complete local and hosted automation overrides this observed product result.
 
 The current build is rejected for X6 before completing the broader History, session, report, settings, keyboard,
 VoiceOver, scaling, appearance, and reduced-motion coverage. The valid first-use journey repeatedly fails to make
@@ -771,3 +830,11 @@ production-native full-bundle scan pass for that exact source. Human evidence pa
 official browser experience, retains a minor Settings-action concern, and blocks at XH-24 before populated-library
 review. Functional diagnosis and regression now return to automation. This record remains rejected until a later
 bounded product-owner experience result explicitly replaces that disposition.
+
+The later corrected-candidate profile ran on 2026-08-30 from exact source
+`6a71002da2c8a63401f3291cff70ad898868ebeb`. Exact local verification, [repository safety
+`33269097825`](https://github.com/purnalica/fitfreed/actions/runs/33269097825), the complete [hosted campaign
+`33269097826`](https://github.com/purnalica/fitfreed/actions/runs/33269097826), its immutable marker, and the
+revision-isolated native full-bundle scan all pass. Human evidence nevertheless reopens XH-08 for the fourth time and
+adds XH-27 and XH-28. The source and its review application are rejected; causal diagnosis and regression return to
+autonomous engineering without further product-owner reproduction on this candidate.

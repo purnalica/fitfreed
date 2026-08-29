@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-**Accepted X3 contract as of 2026-08-21; X7-R8 machine correction complete and human acceptance pending.** This
+**Accepted X3 contract as of 2026-08-21; X7-R8 reopened after human rejection.** This
 document is the single source of truth for the screen, interaction, navigation, state, responsive, localization, and
 accessibility contract of the systemic MVP experience redesign. The production application implements X5-R1 through
 X5-R10 and the corrective X7-R1 through X7-R8 vertical slices.
@@ -12,8 +12,10 @@ plan](../plans/mvp-redesign-production-migration.md) passed their independent au
 campaigns, immutable marker, and production-native bundle scan, but the resulting candidate was rejected after the
 product-owner review exposed material lower-layer and experience defects. X7-R8 corrected those contracts, repeated
 the audit and exact automated campaign, and produced one scanned production-native review application. The bounded
-product-owner gate must still restore human acceptance before release preparation resumes. Implementation and machine
-evidence do not by themselves authorize a release claim.
+product-owner gate rejected that correction on 2026-08-30 after sport identity remained unusable, late reconciliation
+lost fluidity, and compact sport cards became unreadable. Those causal boundaries must be corrected and independently
+verified before another human gate or release preparation resumes. Implementation and machine evidence do not by
+themselves authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

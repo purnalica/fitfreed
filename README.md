@@ -100,7 +100,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <summary><strong>Work in progress — MVP release preparation and human evaluation</strong></summary>
 <ul>
 <li>Exact current-source package, installation, update, recovery, and performance validation completed</li>
-<li>Final bounded production-native product-owner experience evaluation</li>
+<li>Correcting the rejected sport identity, compact card layout, and late-reconciliation responsiveness</li>
 <li>Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition</li>
 </ul>
 <p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>

@@ -13,12 +13,14 @@ material sport-identity, calendar-discovery, information-density, analytical-cha
 defects that the prior machine audit did not detect. The active X7-R8 sequence traces and corrects those defects at
 their lowest contract, performs one bounded participant-assisted provider correlation, repeats the independent audit,
 and builds a new exact candidate only after the complete local and hosted campaign passes. X7-R8.0 through X7-R8.8
-are machine-complete. Corrected clean source `6a71002` passes the complete local campaign, exact repository safety,
-complete hosted verification, immutable executable-input evidence, and the final revision-isolated native-bundle
-scan. The application remains unpublished and unopened; the bounded product-owner experience evaluation is the only
-remaining X7-R8 gate.
+reached machine completion. Corrected clean source `6a71002` passes the complete local campaign, exact repository
+safety, complete hosted verification, immutable executable-input evidence, and the final revision-isolated
+native-bundle scan. The bounded product-owner evaluation nevertheless rejected that unpublished application on
+2026-08-30: sport identity remains unusable and inconsistent between Home and History, late reconciliation loses
+fluidity, and sport cards fail compact geometry. X7-R8 is reopened at those causal boundaries before another candidate
+may exist.
 
-The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) remains the authoritative
+The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate
 preparation, and advanced personalization remain outside this loop. The production application remains the only
 implementation and the [MVP experience delivery plan](plans/mvp-experience-delivery.md) remains its engineering

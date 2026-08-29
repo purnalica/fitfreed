@@ -15,8 +15,9 @@ redesign.
 Updated 2026-08-29. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
 machine-complete historical evidence. The production-native review of that result was paused and rejected after it
 found material defects in sport identity, calendar discovery, information density, analytical charts, route
-interaction, and report execution. X7-R8.0 through X7-R8.8 are now machine-complete; no prior green campaign or audit
-overrides the observed product failure, and only the bounded product-owner experience gate can accept the correction.
+interaction, and report execution. X7-R8.0 through X7-R8.8 reached machine completion, but the bounded product-owner
+experience gate rejected their candidate on 2026-08-30. No prior green campaign or audit overrides that observed
+product failure, and X7-R8 is reopened.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) closes its only material
 finding after an exact clean rebuild and accepts no additional critical or major finding. Exact [repository safety
@@ -74,11 +75,14 @@ executable-input fingerprint `2d4c7a95bf5d02608ddff7c7274472712998de2c90919acaae
 production-native package construction and scanning, cold launch, full-scale import, dense History, Insights,
 installation boundaries, every packaged journey, native replacement, deliberate rejection, and recovery all pass.
 The revision-isolated application built locally from that same clean source then passed complete-bundle inspection
-with production adapters and no test routing or build-host path. X7-R8.8 is machine-complete; the application remains
-unpublished and closed until the product owner chooses to begin the bounded experience review.
+with production adapters and no test routing or build-host path. X7-R8.8 remains machine-complete evidence, but its
+unpublished application was rejected by the bounded product-owner experience review. Home still presents only unknown
+sport groups while History exposes a small recognized subset beside dominant unknown groups; late reconciliation loses
+fluidity; and compact sport cards become unreadable and overflow. These are XH-08, XH-27, and XH-28 in the canonical
+[human evaluation](../research/x6-product-experience-human-evaluation.md).
 
-Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
-for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
+Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust failed that
+human gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
 mechanics, and every other deterministic outcome belong to automated or separately assigned specialist evidence
 rather than a product-owner checklist. External-tile cartography, additional providers, advanced personalization, and
 public-candidate work remain outside X7.
@@ -327,7 +331,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | Awaiting product-owner experience evaluation — R8.0 through R8.8 and the exact local and hosted machine gates pass; the scanned production-native review application is ready but unopened | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Reopened — R8.0 through R8.8 and their exact machine gates remain evidence, but the 2026-08-30 product-owner review rejected the candidate through XH-08, XH-27, and XH-28 | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3353,6 +3357,13 @@ identity invariant are not retained.
 **Rejection conditions:** treating one observed personal mapping as universal; deriving sport from GPS or measurements;
 allowing a fallback to absorb exact recognition silently; exposing provider identifiers; or hiding ambiguity behind a
 generic unknown label.
+
+**Reopened product decision — 2026-08-30:** a saved user unification is a reusable local correlation rule, not a
+one-snapshot arrangement, and must apply to compatible identities introduced by later imports. FitFreed must also
+include versioned provider-normalization rules for documented provider identifiers that represent the same
+provider-neutral sport. Bundled rules require reproducible non-personal evidence, provenance, update semantics,
+preserved source detail, and user correction; private participant values do not become project defaults. The rejected
+candidate must be corrected against this contract before another human review.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
 

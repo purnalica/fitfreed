@@ -54,6 +54,11 @@ The review is one short, uncoached exploration rather than an exhaustive script.
 journeys that best expose value and may stop as soon as a material problem invalidates the experience. The useful
 questions are what the person understood, expected, trusted, found valuable, found confusing, or wanted to do next.
 
+During an active review, capture observations in the order provided without concurrent diagnosis, disposition,
+implementation, or requests to interrupt the person's exploration. The observation window closes only when the
+product owner explicitly says the review is finished. Consolidation, causal analysis, test-gap assessment, and
+corrective planning begin after that boundary.
+
 ## Experience tasks
 
 1. Start without coaching. Judge whether the first screen explains what FitFreed is, why it is useful, what remains

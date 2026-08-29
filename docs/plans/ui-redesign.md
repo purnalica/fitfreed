@@ -2,7 +2,7 @@
 
 ## Status
 
-X7-R8 machine delivery complete; bounded product-owner experience evaluation pending. X2 selected History Desk with a
+X7-R8 corrective work reopened after the 2026-08-30 product-owner rejection. X2 selected History Desk with a
 bounded Answer Canvas pattern, and the product owner accepted the [X3 MVP experience
 specification](../design/experience-specification.md) on 2026-08-21 as the production redesign contract. X4 derived the
 delivery increments; X5-R1 through X5-R10 and X7-R1 through X7-R7 retain
@@ -10,8 +10,9 @@ their engineering evidence. The product-owner review rejected and paused the pro
 that evidence after material sport-identity, calendar-discovery, information-density, analytical-chart,
 route-interaction, and report-run defects remained. The [production-native human
 evaluation](../research/x6-product-experience-human-evaluation.md) is the authoritative rejection record, and the
-[production migration plan](mvp-redesign-production-migration.md) owns the completed X7-R8 causal corrections,
-independent audit, exact campaign, replacement review application, and pending human gate. Reports and personal range
+[production migration plan](mvp-redesign-production-migration.md) owns the X7-R8 causal corrections, retained machine
+evidence, rejected review application, and reopened sport-identity, reconciliation-responsiveness, and compact-layout
+boundaries. Reports and personal range
 definition retain their explicit Alpha classification, and the compact-navigation amendment recorded by the pre-review
 audit remains mandatory. The original
 [independent product-experience audit](../research/mvp-product-experience-audit.md) remains the historical diagnosis
