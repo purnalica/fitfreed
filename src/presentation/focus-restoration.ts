@@ -1,9 +1,26 @@
 const MAXIMUM_FOCUS_ATTEMPTS = 10;
 const FOCUS_SETTLING_MILLISECONDS = 50;
+const REVEAL_GAP_PIXELS = 16;
 
 interface RevealFocusOptions {
   align?: "nearest" | "start";
   forceInitialFocus?: boolean;
+  revealElement?: HTMLElement | null;
+}
+
+function measuredCompactTopRevealMargin(): string | undefined {
+  const obstruction = document.querySelector<HTMLElement>(
+    '[data-reveal-obstruction="compact-top"]',
+  );
+  if (!obstruction) return undefined;
+  const rootWidth = document.documentElement.clientWidth;
+  const obstructionBox = obstruction.getBoundingClientRect();
+  if (
+    rootWidth <= 0
+    || obstructionBox.width < rootWidth - 1
+    || !["fixed", "sticky"].includes(window.getComputedStyle(obstruction).position)
+  ) return undefined;
+  return `${Math.ceil(obstructionBox.height) + REVEAL_GAP_PIXELS}px`;
 }
 
 export function restoreFocusAfterReveal(
@@ -57,8 +74,16 @@ export function restoreFocusAfterReveal(
     if (activeElement !== element) {
       if (options.align === "start") {
         element.focus({ preventScroll: true });
-        if (typeof element.scrollIntoView === "function") {
-          element.scrollIntoView({ block: "start", inline: "nearest" });
+        const revealElement = options.revealElement ?? element;
+        if (typeof revealElement.scrollIntoView === "function") {
+          const previousMargin = revealElement.style.scrollMarginBlockStart;
+          const measuredMargin = measuredCompactTopRevealMargin();
+          if (measuredMargin) revealElement.style.scrollMarginBlockStart = measuredMargin;
+          try {
+            revealElement.scrollIntoView({ block: "start", inline: "nearest" });
+          } finally {
+            revealElement.style.scrollMarginBlockStart = previousMargin;
+          }
         }
       } else {
         element.focus();

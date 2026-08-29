@@ -50,12 +50,12 @@ the remaining identity cases in X7-R8.1 are closed.
 
 X7-R8.2 through X7-R8.5 are machine-complete locally. They add ordered calendar activities and exact navigation,
 shared concise presentation and alignment rules, question-led analytical charts, and an exact local route workbench
-with pointer and keyboard range selection. X7-R8.6 is active. Its first vertical slice replaces the generic History
-detour for session and route report examples with a Reports-owned, snapshot-coherent subject chooser. The initiating
-recipe, explicit selection, cancellation destination, exact route eligibility, selected-session capabilities, and
-late-response invalidation now have unit, integration, transport, contract, localization, and packaged evidence. The
-planned-training subject selector and transient run-parameter contract remain open; this slice does not close
-X7-R8.6.
+with pointer and keyboard range selection. X7-R8.6 is active. Its first two vertical slices replace the generic History
+and Training plans detours for every parameterized report example with Reports-owned, snapshot-coherent subject
+choosers. The initiating recipes, explicit selection, cancellation destination, exact route and structured-target
+eligibility, selected-subject capabilities, and late-response invalidation have unit, integration, transport,
+contract, localization, and packaged evidence. The transient run-parameter contract remains open; these slices do not
+close X7-R8.6.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -3458,6 +3458,13 @@ stable authoritative route only after selection. Cancellation restores the initi
 cannot revive an obsolete task, and a new library composition cannot inherit the return destination or physiology
 capabilities of an earlier contextual report. No report is written before the ordinary save command. Planned-training
 subject selection and steps 2 through 6 remain open, so X7-R8.6 is not complete.
+
+**Second vertical checkpoint — 2026-08-29:** the structured-training example now follows the same Reports-owned task.
+Its bounded query counts and pages only current scheduled targets and favorite templates with imported exercise
+structure against one planned snapshot. Scheduled targets precede templates, explicit selection resolves the complete
+authoritative target before opening the exact unsaved recipe, and cancellation or stale evidence writes nothing.
+Every parameterized built-in example now has an explicit subject. Steps 2 through 6 remain open, so X7-R8.6 is not
+complete.
 
 1. Add an application-level report-subject eligibility query for each built-in example and contextual start. Preserve
    the initiating task, filter candidates by required evidence, and make **Use this session** or its equivalent the

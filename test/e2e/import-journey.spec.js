@@ -5812,7 +5812,69 @@ describe("packaged FitFreed import journey", () => {
     await $(`aria/${
       spanish.reports.examples.items["structured-training-plan"].action
     }`).click();
-    await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
+    await $(".report-subject-picker").waitForDisplayed({ timeout: 10_000 });
+    await expect($("#report-subject-heading")).toHaveText(
+      spanish.reports.examples.plannedSubjects.heading,
+    );
+    await expect($(".training-insights")).not.toBeDisplayed();
+    const plannedSubjectReveal = await browser.execute(() => {
+      const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+      const surface = document.querySelector(".report-subject-picker").getBoundingClientRect();
+      const heading = document.querySelector("#report-subject-heading").getBoundingClientRect();
+      const returnAction = document.querySelector(
+        ".report-subject-picker .report-section-heading > button",
+      ).getBoundingClientRect();
+      return {
+        compact: navigation.width >= document.documentElement.clientWidth - 1,
+        navigationTop: navigation.top,
+        navigationBottom: navigation.bottom,
+        surfaceTop: surface.top,
+        headingTop: heading.top,
+        returnActionTop: returnAction.top,
+        returnActionBottom: returnAction.bottom,
+        viewportHeight: document.documentElement.clientHeight,
+      };
+    });
+    expect(plannedSubjectReveal.compact).toBe(true);
+    expect(plannedSubjectReveal.navigationTop).toBeGreaterThanOrEqual(-1);
+    expect(plannedSubjectReveal.navigationBottom).toBeGreaterThan(0);
+    expect(plannedSubjectReveal.surfaceTop)
+      .toBeGreaterThanOrEqual(plannedSubjectReveal.navigationBottom - 1);
+    expect(plannedSubjectReveal.headingTop)
+      .toBeGreaterThanOrEqual(plannedSubjectReveal.navigationBottom - 1);
+    expect(plannedSubjectReveal.returnActionTop)
+      .toBeGreaterThanOrEqual(plannedSubjectReveal.navigationBottom - 1);
+    expect(plannedSubjectReveal.returnActionBottom)
+      .toBeLessThanOrEqual(plannedSubjectReveal.viewportHeight);
+    const reportPlanSubjects = await $$(".report-subject-list > li");
+    expect(reportPlanSubjects).toHaveLength(2);
+    let progressivePlanSubject;
+    for (const subject of reportPlanSubjects) {
+      if ((await subject.getText()).includes("Progressive intervals")) {
+        progressivePlanSubject = subject;
+        break;
+      }
+    }
+    expect(progressivePlanSubject).toBeDefined();
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r11-report-planned-subject-es-dark-200.png",
+    ));
+    await progressivePlanSubject
+      .$(`aria/${spanish.reports.examples.plannedSubjects.use}`)
+      .click();
+    await expect($('.report-editor input[maxlength="120"]')).toHaveValue(
+      spanish.reports.examples.items["structured-training-plan"].defaultTitle,
+    );
+    expect(await $$(".report-block-editor")).toHaveLength(1);
+    await $(`aria/${spanish.reports.cancelComposition}`).click();
+    await expectDocumentFocus(
+      "#saved-reports-heading",
+      "cancelling a planned-example draft did not restore the report library",
+    );
+
+    await goToHome("explore");
+    await openTrainingWorkspace(spanish, "plans");
     await expect($(`aria/${spanish.training.workspaces.plans}`))
       .toHaveAttribute("aria-current", "page");
     const plannedCards = await $$(".planned-training-list > li");

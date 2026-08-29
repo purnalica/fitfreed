@@ -82,7 +82,11 @@ export function ApplicationShell({
 
   return (
     <div className="app-shell">
-      <aside className="app-sidebar" aria-label={messages.sidebar}>
+      <aside
+        className="app-sidebar"
+        aria-label={messages.sidebar}
+        data-reveal-obstruction="compact-top"
+      >
         <div className="shell-brand">
           <img src={fitfreedIcon} alt="" aria-hidden="true" />
           <span className="shell-brand-name">FitFreed</span>

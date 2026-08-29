@@ -40,8 +40,8 @@ Catalogue activation makes prior resolved evidence stale and still requires the 
 Self-contained HTML uses [output version 6](../data-formats/portable/report-html-v6.md) and records its output version
 independently from the definition version.
 
-The current [report workflow version 10](../data-formats/insights/report-v10.md) retains the version-9 sport identity,
-version-8 examples and
+The current [report workflow version 11](../data-formats/insights/report-v11.md) retains the version-10 session-subject
+selection, version-9 sport identity, version-8 examples and
 duplication behavior plus the version-7 planned-training extension. Definition version 5 remains the durable contract under
 [ADR 0034](decisions/0034-bind-each-report-to-one-evidence-library.md). A planned-training origin binds one exact
 provider-neutral target and one matching evidence block to a `planned-snapshot-` source revision. Session, question,
@@ -61,14 +61,14 @@ Built-in examples are immutable application descriptors projected against a boun
 They are neither domain report aggregates nor seeded persistence rows. The catalog exposes stable semantic codes for
 localized presentation, required evidence, explicit parameter selection, and ordered block recipes without carrying
 provider identity, personal results, or preallocated report identities. Only the adjacent-period example is
-parameter-free. Session and routed-session examples use a Reports-owned, snapshot-coherent subject query that
-preserves the initiating descriptor and makes **Use this session** explicit; route candidates are filtered by exact
-canonical route evidence. The subject workspace invalidates late queries after cancellation or replacement and owns
-its single return action. Evidence origin and transient composition return destination remain separate: a library
-example returns to its descriptor, a contextual composition returns to its exact origin, and a reopened saved report
-uses its canonical resolved source. Selected-subject capabilities, rather than stale origin state, govern the draft.
-Planned-target examples navigate to their authoritative explorer for explicit selection.
-The application never guesses a candidate. Saving a resolved draft returns to the ordinary
+parameter-free. Session, routed-session, and planned-target examples use Reports-owned, snapshot-coherent subject
+queries that preserve the initiating descriptor and require **Use this session** or **Use this training plan**
+explicitly. Route candidates are filtered by exact canonical route evidence; planned candidates require current
+imported exercise structure. The subject workspace invalidates late queries after cancellation or replacement and
+owns its single return action. Evidence origin and transient composition return destination remain separate: a
+library example returns to its descriptor, a contextual composition returns to its exact origin, and a reopened saved
+report uses its canonical resolved source. Selected-subject capabilities, rather than stale origin state, govern the
+draft. The application never guesses a candidate. Saving a resolved draft returns to the ordinary
 version-5 creation path. The structured example stays within the planned library required by ADR 0034.
 
 Current self-contained HTML uses [output version 8](../data-formats/portable/report-html-v8.md). It renders the exact

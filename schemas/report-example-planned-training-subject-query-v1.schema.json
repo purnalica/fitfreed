@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-example-planned-training-subject-query-v1.schema.json",
+  "title": "FitFreed report-example planned-training subject query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["exampleId", "exampleVersion", "offset", "limit", "snapshotRef"],
+  "properties": {
+    "exampleId": { "const": "structured-training-plan" },
+    "exampleVersion": { "const": 1 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "snapshotRef": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "planned-training-chronology-v1.schema.json#/$defs/snapshotRef" }
+      ]
+    }
+  }
+}

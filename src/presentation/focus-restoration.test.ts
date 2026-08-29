@@ -4,6 +4,7 @@ import { restoreFocusAfterReveal } from "./focus-restoration";
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
   document.body.replaceChildren();
 });
 
@@ -105,6 +106,77 @@ describe("restoreFocusAfterReveal", () => {
       block: "start",
       inline: "nearest",
     });
+  });
+
+  it("keeps start-aligned focus below the measured compact application navigation", () => {
+    vi.useFakeTimers();
+    const navigation = document.createElement("aside");
+    navigation.dataset.revealObstruction = "compact-top";
+    navigation.style.position = "sticky";
+    const target = document.createElement("h2");
+    target.tabIndex = -1;
+    let marginDuringReveal = "";
+    target.scrollIntoView = vi.fn(() => {
+      marginDuringReveal = target.style.scrollMarginBlockStart;
+    });
+    document.body.append(navigation, target);
+    vi.spyOn(document.documentElement, "clientWidth", "get").mockReturnValue(1280);
+    vi.spyOn(navigation, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      right: 1280,
+      top: 0,
+      bottom: 300,
+      width: 1280,
+      height: 300,
+      toJSON: () => ({}),
+    });
+    vi.spyOn(target, "getBoundingClientRect").mockReturnValue({
+      x: 40,
+      y: 210,
+      left: 40,
+      right: 500,
+      top: 210,
+      bottom: 250,
+      width: 460,
+      height: 40,
+      toJSON: () => ({}),
+    });
+    const scrollBy = vi.spyOn(window, "scrollBy").mockImplementation(() => undefined);
+
+    restoreFocusAfterReveal(target, null, { align: "start", forceInitialFocus: true });
+    vi.advanceTimersByTime(0);
+
+    expect(target).toHaveFocus();
+    expect(marginDuringReveal).toBe("316px");
+    expect(target.style.scrollMarginBlockStart).toBe("");
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  it("focuses a heading while revealing its complete task surface", () => {
+    vi.useFakeTimers();
+    const surface = document.createElement("section");
+    const heading = document.createElement("h2");
+    heading.tabIndex = -1;
+    surface.append(heading);
+    document.body.append(surface);
+    surface.scrollIntoView = vi.fn();
+    heading.scrollIntoView = vi.fn();
+
+    restoreFocusAfterReveal(heading, null, {
+      align: "start",
+      forceInitialFocus: true,
+      revealElement: surface,
+    });
+    vi.advanceTimersByTime(0);
+
+    expect(heading).toHaveFocus();
+    expect(surface.scrollIntoView).toHaveBeenCalledWith({
+      block: "start",
+      inline: "nearest",
+    });
+    expect(heading.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it("cancels pending restoration when its owner is removed", () => {

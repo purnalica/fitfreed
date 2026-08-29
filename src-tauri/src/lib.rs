@@ -45,6 +45,7 @@ use fitfreed_application::{
     query_longitudinal_overview as build_longitudinal_overview,
     query_planned_training_chronology as build_planned_training_chronology,
     query_planned_training_target as build_planned_training_target,
+    query_report_example_planned_training_subjects as query_report_example_planned_training_subjects_through_port,
     query_report_example_training_session_subjects as query_report_example_training_session_subjects_through_port,
     query_session_planned_training_relation as build_session_planned_training_relation,
     query_session_story as build_session_story,
@@ -111,6 +112,7 @@ use presentation::{
     RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, RefreshReportRequestDto,
     RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto, RemovedReportDto,
     RenameTrainingSessionRangeRequestDto, ReportDefinitionDto, ReportExampleCatalogDto,
+    ReportExamplePlannedTrainingSubjectPageDto, ReportExamplePlannedTrainingSubjectQueryDto,
     ReportExampleTrainingSessionSubjectPageDto, ReportExampleTrainingSessionSubjectQueryDto,
     ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto, ReportLibraryRequestDto,
     ReportListDto, ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto,
@@ -983,6 +985,21 @@ fn query_report_example_training_session_subjects(
     let query = query.try_into()?;
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     query_report_example_training_session_subjects_through_port(
+        &SqliteTrainingLibrary::new(path),
+        query,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_report_example_planned_training_subjects(
+    app: AppHandle,
+    query: ReportExamplePlannedTrainingSubjectQueryDto,
+) -> Result<ReportExamplePlannedTrainingSubjectPageDto, CommandErrorDto> {
+    let query = query.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    query_report_example_planned_training_subjects_through_port(
         &SqliteTrainingLibrary::new(path),
         query,
     )
@@ -2210,6 +2227,7 @@ pub fn run() {
             query_training_sessions,
             query_training_session_calendar,
             query_training_session_selection,
+            query_report_example_planned_training_subjects,
             query_planned_training_chronology,
             query_planned_training_target,
             query_session_planned_training_relation,

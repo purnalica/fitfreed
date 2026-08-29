@@ -17,8 +17,9 @@ evidence each structure needs:
   Reports. It shows only sessions eligible for that structure; the route structure excludes sessions without
   usable route evidence. Choose **Use this session** to open the matching unsaved draft. Large libraries remain
   coherently paged against the same snapshot, and FitFreed never chooses a session on your behalf.
-- **Understand a training plan** first opens Training plans. Choose the exact imported structured target that
-  should provide the report evidence.
+- **Understand a training plan** opens a bounded training-plan chooser inside Reports. It includes only current
+  scheduled targets and favorite templates with imported exercise structure. Choose **Use this training plan** to
+  open the matching unsaved draft; complete objectives and phases are resolved only after that explicit choice.
 
 When required evidence is unavailable, the structure remains visible and names what is missing rather than
 opening a draft that cannot be supported. The chooser presents one clear return action. Returning from it restores

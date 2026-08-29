@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-example-planned-training-subject-v1.schema.json",
+  "title": "FitFreed report-example planned-training subjects version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "exampleId",
+    "exampleVersion",
+    "snapshotRef",
+    "totalCount",
+    "offset",
+    "limit",
+    "nextOffset",
+    "subjects"
+  ],
+  "properties": {
+    "exampleId": { "const": "structured-training-plan" },
+    "exampleVersion": { "const": 1 },
+    "snapshotRef": {
+      "$ref": "planned-training-chronology-v1.schema.json#/$defs/snapshotRef"
+    },
+    "totalCount": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "nextOffset": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1 }
+      ]
+    },
+    "subjects": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/subject" }
+    }
+  },
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "targetRef",
+        "kind",
+        "scheduledAtLocal",
+        "completion",
+        "name",
+        "exerciseCount",
+        "phaseCount",
+        "repeatBlockCount",
+        "containsIntensityEvidence"
+      ],
+      "properties": {
+        "targetRef": {
+          "$ref": "planned-training-chronology-v1.schema.json#/$defs/targetRef"
+        },
+        "kind": { "enum": ["scheduled", "favorite-template"] },
+        "scheduledAtLocal": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "planned-training-chronology-v1.schema.json#/$defs/localDateTime" }
+          ]
+        },
+        "completion": {
+          "oneOf": [
+            { "type": "null" },
+            { "enum": ["pending", "completed"] }
+          ]
+        },
+        "name": { "type": "string", "minLength": 1 },
+        "exerciseCount": { "type": "integer", "minimum": 1 },
+        "phaseCount": { "type": "integer", "minimum": 0 },
+        "repeatBlockCount": { "type": "integer", "minimum": 0 },
+        "containsIntensityEvidence": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "scheduled" } } },
+          "then": {
+            "properties": {
+              "scheduledAtLocal": {
+                "$ref": "planned-training-chronology-v1.schema.json#/$defs/localDateTime"
+              },
+              "completion": { "enum": ["pending", "completed"] }
+            }
+          },
+          "else": {
+            "properties": {
+              "scheduledAtLocal": { "type": "null" },
+              "completion": { "type": "null" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -42,15 +42,20 @@ pub use reporting::{
 
 mod report_examples;
 pub use report_examples::{
-    list_report_examples, query_report_example_training_session_subjects,
+    list_report_examples, query_report_example_planned_training_subjects,
+    query_report_example_training_session_subjects,
+    PersistedReportExamplePlannedTrainingSubjectPage,
     PersistedReportExampleTrainingSessionSubjectPage, ReportExampleAvailability,
     ReportExampleBlockRecipe, ReportExampleCapability, ReportExampleCatalog,
     ReportExampleDescriptor, ReportExampleDestination, ReportExampleEvidence,
-    ReportExampleEvidencePort, ReportExampleId, ReportExampleParameter, ReportExamplePurpose,
-    ReportExampleQuestion, ReportExampleSubjectPort, ReportExampleTrainingSessionEligibility,
-    ReportExampleTrainingSessionSubject, ReportExampleTrainingSessionSubjectPage,
-    ReportExampleTrainingSessionSubjectPersistenceQuery, ReportExampleTrainingSessionSubjectQuery,
-    REPORT_EXAMPLE_DESCRIPTOR_VERSION,
+    ReportExampleEvidencePort, ReportExampleId, ReportExampleParameter,
+    ReportExamplePlannedTrainingSubject, ReportExamplePlannedTrainingSubjectKind,
+    ReportExamplePlannedTrainingSubjectPage, ReportExamplePlannedTrainingSubjectPersistenceQuery,
+    ReportExamplePlannedTrainingSubjectPort, ReportExamplePlannedTrainingSubjectQuery,
+    ReportExamplePurpose, ReportExampleQuestion, ReportExampleSubjectPort,
+    ReportExampleTrainingSessionEligibility, ReportExampleTrainingSessionSubject,
+    ReportExampleTrainingSessionSubjectPage, ReportExampleTrainingSessionSubjectPersistenceQuery,
+    ReportExampleTrainingSessionSubjectQuery, REPORT_EXAMPLE_DESCRIPTOR_VERSION,
 };
 
 #[cfg(test)]

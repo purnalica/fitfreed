@@ -33,12 +33,12 @@ use fitfreed_application::{
     query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
     query_library_home, query_longitudinal_overview, query_planned_training_chronology,
     query_planned_training_target, query_recovery_detail,
-    query_report_example_training_session_subjects, query_session_planned_training_relation,
-    query_training_route_points, query_training_session_provenance,
-    query_training_session_range_draft_summary, query_training_session_range_summary,
-    query_training_session_ranges, query_training_session_routes,
-    query_training_session_segmentation, query_training_session_signals,
-    query_training_session_structure, query_training_session_zones,
+    query_report_example_planned_training_subjects, query_report_example_training_session_subjects,
+    query_session_planned_training_relation, query_training_route_points,
+    query_training_session_provenance, query_training_session_range_draft_summary,
+    query_training_session_range_summary, query_training_session_ranges,
+    query_training_session_routes, query_training_session_segmentation,
+    query_training_session_signals, query_training_session_structure, query_training_session_zones,
     query_training_sessions as build_training_session_search, query_training_signal_samples,
     query_training_sports, remove_training_segment_criterion, remove_training_session_range,
     rename_training_session_range, save_exploration_workspace, save_training_sport_classification,
@@ -49,11 +49,12 @@ use fitfreed_application::{
     MoveTrainingSegmentCriterionRequest, NormalizedDataExportCancellation,
     NormalizedDataExportPort, RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
     ReportExampleAvailability, ReportExampleDestination, ReportExampleId,
-    ReportExampleTrainingSessionSubjectQuery, ReportLibraryMetricValue, ReportLibraryRequest,
-    ReportLibraryResult, SaveSportClassificationRequest, SegmentApplicabilityView,
-    SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
-    TrainingRangeSummaryCoverageState, TrainingSegmentCriterionMutationRequest, TrainingSportState,
-    UpdateTrainingSegmentCriterionRequest,
+    ReportExamplePlannedTrainingSubjectQuery, ReportExampleTrainingSessionSubjectQuery,
+    ReportLibraryMetricValue, ReportLibraryRequest, ReportLibraryResult,
+    SaveSportClassificationRequest, SegmentApplicabilityView, SportClassificationSaveOutcome,
+    TrainingRangeBoundaryEvidenceState, TrainingRangeSummaryCoverageState,
+    TrainingSegmentCriterionMutationRequest, TrainingSportState,
+    UpdateTrainingSegmentCriterionRequest, REPORT_EXAMPLE_DESCRIPTOR_VERSION,
 };
 use fitfreed_application::{
     resolve_training_session_sport, ActivityDateRange, ActivityLibraryPort, ApplicationPreferences,
@@ -62,6 +63,7 @@ use fitfreed_application::{
     ImportPhaseTimings, ImportProgress, LibraryHomeClockPort, LibraryHomeMeasurementRangePort,
     LibraryHomeRevisionPort, PersistedPlannedTrainingChronologyPage,
     PersistedPlannedTrainingTarget, PersistedPlannedTrainingTargetDetail,
+    PersistedReportExamplePlannedTrainingSubjectPage,
     PersistedReportExampleTrainingSessionSubjectPage, PersistedSessionPlannedTrainingCandidates,
     PersistedTrainingExerciseSegmentation, PersistedTrainingRangeCoordinateEvidence,
     PersistedTrainingRangeSummaryExercise, PersistedTrainingRangeSummarySourceRange,
@@ -77,6 +79,8 @@ use fitfreed_application::{
     PlannedTrainingSessionRelationQuery, PlannedTrainingTargetQuery, ProfiledImport,
     RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
     ReportDefinitionPortError, ReportExampleEvidence, ReportExampleEvidencePort,
+    ReportExamplePlannedTrainingSubject, ReportExamplePlannedTrainingSubjectKind,
+    ReportExamplePlannedTrainingSubjectPersistenceQuery, ReportExamplePlannedTrainingSubjectPort,
     ReportExampleSubjectPort, ReportExampleTrainingSessionEligibility,
     ReportExampleTrainingSessionSubjectPersistenceQuery, SegmentSignalEvidence, SegmentSignalKind,
     SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
@@ -3389,6 +3393,182 @@ fn query_planned_training_chronology_discovery(
         snapshot_ref,
         total_count,
         targets,
+    })
+}
+
+fn query_report_example_planned_training_subjects_discovery(
+    database_path: &Path,
+    query: &ReportExamplePlannedTrainingSubjectPersistenceQuery,
+) -> std::result::Result<
+    PersistedReportExamplePlannedTrainingSubjectPage,
+    PlannedTrainingQueryPortError,
+> {
+    let mut connection = Connection::open(database_path).map_err(planned_training_query_failure)?;
+    ensure_schema(&connection).map_err(planned_training_query_failure)?;
+    let transaction = connection
+        .transaction()
+        .map_err(planned_training_query_failure)?;
+    let (snapshot_ref, _) = planned_training_snapshots_on(&transaction)?;
+    if query
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(PlannedTrainingQueryPortError::SnapshotChanged);
+    }
+    let eligible = "FROM planned_training_target target
+        JOIN planned_training_target_revision revision
+          ON revision.origin_id = target.origin_id
+         AND revision.target_id = target.target_id
+         AND revision.evidence_revision = target.current_evidence_revision
+         AND revision.mapping_version = target.current_mapping_version
+        WHERE target.reconciliation_state = 'current'
+          AND EXISTS (
+              SELECT 1
+              FROM planned_training_exercise exercise
+              WHERE exercise.origin_id = target.origin_id
+                AND exercise.target_id = target.target_id
+                AND exercise.evidence_revision = target.current_evidence_revision
+                AND exercise.mapping_version = target.current_mapping_version
+          )";
+    let total_count = transaction
+        .query_row(&format!("SELECT COUNT(*) {eligible}"), [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map_err(planned_training_query_failure)
+        .and_then(|count| {
+            usize::try_from(count).map_err(|_| {
+                PlannedTrainingQueryPortError::Failure(
+                    "planned report subject count is invalid".to_owned(),
+                )
+            })
+        })?;
+    let limit = i64::try_from(query.limit).map_err(|_| {
+        PlannedTrainingQueryPortError::Failure(
+            "planned report subject limit exceeds SQLite".to_owned(),
+        )
+    })?;
+    let offset = i64::try_from(query.offset).map_err(|_| {
+        PlannedTrainingQueryPortError::Failure(
+            "planned report subject offset exceeds SQLite".to_owned(),
+        )
+    })?;
+    let sql = format!(
+        "SELECT target.target_id, revision.target_kind, revision.scheduled_at_local,
+                revision.completion_state, revision.name,
+                (
+                    SELECT COUNT(*)
+                    FROM planned_training_exercise exercise
+                    WHERE exercise.origin_id = target.origin_id
+                      AND exercise.target_id = target.target_id
+                      AND exercise.evidence_revision = target.current_evidence_revision
+                      AND exercise.mapping_version = target.current_mapping_version
+                ) exercise_count,
+                (
+                    SELECT COUNT(*)
+                    FROM planned_training_phase phase
+                    WHERE phase.origin_id = target.origin_id
+                      AND phase.target_id = target.target_id
+                      AND phase.evidence_revision = target.current_evidence_revision
+                      AND phase.mapping_version = target.current_mapping_version
+                ) phase_count,
+                (
+                    SELECT COUNT(DISTINCT phase.repeat_id)
+                    FROM planned_training_phase phase
+                    WHERE phase.origin_id = target.origin_id
+                      AND phase.target_id = target.target_id
+                      AND phase.evidence_revision = target.current_evidence_revision
+                      AND phase.mapping_version = target.current_mapping_version
+                      AND phase.repeat_id IS NOT NULL
+                ) repeat_block_count,
+                EXISTS (
+                    SELECT 1
+                    FROM planned_training_phase phase
+                    WHERE phase.origin_id = target.origin_id
+                      AND phase.target_id = target.target_id
+                      AND phase.evidence_revision = target.current_evidence_revision
+                      AND phase.mapping_version = target.current_mapping_version
+                      AND phase.intensity_kind = 'zone-range'
+                ) contains_intensity_evidence
+         {eligible}
+         ORDER BY CASE revision.target_kind WHEN 'scheduled' THEN 0 ELSE 1 END,
+                  revision.scheduled_at_local DESC,
+                  revision.name COLLATE NOCASE ASC,
+                  target.target_id ASC
+         LIMIT ?1 OFFSET ?2"
+    );
+    let mut statement = transaction
+        .prepare(&sql)
+        .map_err(planned_training_query_failure)?;
+    let subjects = statement
+        .query_map(params![limit, offset], |row| {
+            let target_kind = row.get::<_, String>(1)?;
+            let scheduled_at_local = row.get::<_, Option<String>>(2)?;
+            let completion = row.get::<_, Option<String>>(3)?;
+            let kind = match (
+                target_kind.as_str(),
+                scheduled_at_local,
+                completion.as_deref(),
+            ) {
+                ("scheduled", Some(scheduled_at_local), Some(completion)) => {
+                    let completion = match completion {
+                        "pending" => PlannedTrainingCompletionFilter::Pending,
+                        "completed" => PlannedTrainingCompletionFilter::Completed,
+                        value => {
+                            return Err(SqliteError::FromSqlConversionFailure(
+                                3,
+                                Type::Text,
+                                format!("invalid planned-training completion: {value}").into(),
+                            ));
+                        }
+                    };
+                    ReportExamplePlannedTrainingSubjectKind::Scheduled {
+                        scheduled_at_local,
+                        completion,
+                    }
+                }
+                ("favorite-template", None, None) => {
+                    ReportExamplePlannedTrainingSubjectKind::FavoriteTemplate
+                }
+                _ => {
+                    return Err(SqliteError::FromSqlConversionFailure(
+                        1,
+                        Type::Text,
+                        "inconsistent planned-training subject kind".into(),
+                    ));
+                }
+            };
+            let count = |index| {
+                let value = row.get::<_, i64>(index)?;
+                usize::try_from(value).map_err(|_| {
+                    SqliteError::FromSqlConversionFailure(
+                        index,
+                        Type::Integer,
+                        "invalid planned-training subject shape count".into(),
+                    )
+                })
+            };
+            Ok(ReportExamplePlannedTrainingSubject {
+                target_ref: row.get(0)?,
+                kind,
+                name: row.get(4)?,
+                exercise_count: count(5)?,
+                phase_count: count(6)?,
+                repeat_block_count: count(7)?,
+                contains_intensity_evidence: row.get::<_, i64>(8)? != 0,
+            })
+        })
+        .map_err(planned_training_query_failure)?
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(planned_training_query_failure)?;
+    drop(statement);
+    transaction
+        .commit()
+        .map_err(planned_training_query_failure)?;
+    Ok(PersistedReportExamplePlannedTrainingSubjectPage {
+        snapshot_ref,
+        total_count,
+        subjects,
     })
 }
 
@@ -16336,6 +16516,18 @@ impl ReportExampleSubjectPort for SqliteTrainingLibrary {
     }
 }
 
+impl ReportExamplePlannedTrainingSubjectPort for SqliteTrainingLibrary {
+    fn query_planned_training_subjects(
+        &self,
+        request: &ReportExamplePlannedTrainingSubjectPersistenceQuery,
+    ) -> std::result::Result<
+        PersistedReportExamplePlannedTrainingSubjectPage,
+        PlannedTrainingQueryPortError,
+    > {
+        query_report_example_planned_training_subjects_discovery(&self.database_path, request)
+    }
+}
+
 impl TrainingSessionDiscoveryPort for SqliteTrainingLibrary {
     fn query_training_sessions(
         &self,
@@ -21115,6 +21307,40 @@ mod tests {
                         destination: ReportExampleDestination::PlannedTraining,
                     }
         }));
+        let subjects = query_report_example_planned_training_subjects(
+            &example_library,
+            ReportExamplePlannedTrainingSubjectQuery {
+                example_id: ReportExampleId::StructuredTrainingPlan,
+                example_version: REPORT_EXAMPLE_DESCRIPTOR_VERSION,
+                offset: 0,
+                limit: 2,
+                snapshot_ref: None,
+            },
+        )
+        .expect("planned report subjects");
+        assert_eq!(subjects.total_count, 3);
+        assert_eq!(subjects.subjects.len(), 2);
+        assert_eq!(subjects.subjects[0].name, "Progressive intervals");
+        assert_eq!(subjects.subjects[0].exercise_count, 1);
+        assert_eq!(subjects.subjects[0].phase_count, 3);
+        assert_eq!(subjects.subjects[0].repeat_block_count, 1);
+        assert!(subjects.subjects[0].contains_intensity_evidence);
+        assert_eq!(subjects.next_offset, Some(2));
+
+        let remaining_subjects = query_report_example_planned_training_subjects(
+            &example_library,
+            ReportExamplePlannedTrainingSubjectQuery {
+                example_id: ReportExampleId::StructuredTrainingPlan,
+                example_version: REPORT_EXAMPLE_DESCRIPTOR_VERSION,
+                offset: 2,
+                limit: 2,
+                snapshot_ref: Some(subjects.snapshot_ref.clone()),
+            },
+        )
+        .expect("remaining planned report subjects");
+        assert_eq!(remaining_subjects.subjects.len(), 1);
+        assert_eq!(remaining_subjects.subjects[0].name, "Short run");
+        assert_eq!(remaining_subjects.next_offset, None);
 
         let connection = Connection::open(harness.database()).expect("planned-training database");
         assert_eq!(

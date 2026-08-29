@@ -575,7 +575,7 @@ fn query_failure<T>(message: impl Into<String>) -> Result<T, ApplicationError> {
     Err(ApplicationError::PlannedTrainingQuery(message.into()))
 }
 
-fn valid_opaque_ref(value: &str, prefix: &str) -> bool {
+pub(crate) fn valid_opaque_ref(value: &str, prefix: &str) -> bool {
     let Some(suffix) = value.strip_prefix(prefix) else {
         return false;
     };

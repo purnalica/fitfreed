@@ -10,5 +10,5 @@ The retained resolver returns
 recognition remains independent of a fallback classification, and a non-null classification declares
 `scope = unresolved-source-profile`. Provider identifiers do not cross the boundary.
 
-Current result-first reports use [report workflow version 10](report-v10.md). Changing retained behavior or identity
+Current result-first reports use [report workflow version 11](report-v11.md). Changing retained behavior or identity
 embedding requires a new session-report response version.

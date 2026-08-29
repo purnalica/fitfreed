@@ -329,6 +329,29 @@ export interface ReportExampleTrainingSessionSubjectPage {
   subjects: ReportExampleTrainingSessionSubject[];
 }
 
+export interface ReportExamplePlannedTrainingSubject {
+  targetRef: string;
+  kind: "scheduled" | "favorite-template";
+  scheduledAtLocal: string | null;
+  completion: "pending" | "completed" | null;
+  name: string;
+  exerciseCount: number;
+  phaseCount: number;
+  repeatBlockCount: number;
+  containsIntensityEvidence: boolean;
+}
+
+export interface ReportExamplePlannedTrainingSubjectPage {
+  exampleId: Extract<ReportExampleId, "structured-training-plan">;
+  exampleVersion: 1;
+  snapshotRef: string;
+  totalCount: number;
+  offset: number;
+  limit: number;
+  nextOffset: number | null;
+  subjects: ReportExamplePlannedTrainingSubject[];
+}
+
 export type ReportLimitation =
   | "distance-unavailable"
   | "energy-unavailable"

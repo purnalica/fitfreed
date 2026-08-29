@@ -7807,6 +7807,7 @@ const libraryHomeV7Path = "docs/data-formats/insights/library-home-v7.md";
 const sessionReportV6Path = "docs/data-formats/insights/session-report-v6.md";
 const reportV9Path = "docs/data-formats/insights/report-v9.md";
 const reportV10Path = "docs/data-formats/insights/report-v10.md";
+const reportV11Path = "docs/data-formats/insights/report-v11.md";
 const reportHtmlV8Path = "docs/data-formats/portable/report-html-v8.md";
 
 for (const [documentPath, fields] of [
@@ -7944,6 +7945,13 @@ for (const [documentPath, fields] of [
     "report-example-session-subject-v1.schema.json", "exampleId", "exampleVersion",
     "snapshotRef", "hasRouteEvidence", "outdoor-route", "report-source-changed",
   ]],
+  [reportV11Path, [
+    "query_report_example_planned_training_subjects",
+    "report-example-planned-training-subject-query-v1.schema.json",
+    "report-example-planned-training-subject-v1.schema.json", "structured-training-plan",
+    "planned-snapshot-", "exerciseCount", "containsIntensityEvidence",
+    "report-source-changed",
+  ]],
   [reportHtmlV8Path, [
     "text/html", "data-fitfreed-output-version=\"8\"", "data-fitfreed-report-version",
   ]],
@@ -8026,6 +8034,10 @@ const reportExampleSessionSubjectQuerySchemaPath =
   "schemas/report-example-session-subject-query-v1.schema.json";
 const reportExampleSessionSubjectSchemaPath =
   "schemas/report-example-session-subject-v1.schema.json";
+const reportExamplePlannedTrainingSubjectQuerySchemaPath =
+  "schemas/report-example-planned-training-subject-query-v1.schema.json";
+const reportExamplePlannedTrainingSubjectSchemaPath =
+  "schemas/report-example-planned-training-subject-v1.schema.json";
 const trainingSessionSelectionV4SchemaPath =
   "schemas/training-session-selection-v4.schema.json";
 const trainingSessionCalendarV2SchemaPath =
@@ -9166,6 +9178,98 @@ for (const invalidPage of [
     throw new Error(`${reportExampleSessionSubjectSchemaPath} accepted an invalid page`);
   }
 }
+addContractSchema(reportExamplePlannedTrainingSubjectQuerySchemaPath);
+const validateReportExamplePlannedTrainingSubjectQuery = compileContractSchema(
+  reportExamplePlannedTrainingSubjectQuerySchemaPath,
+);
+const syntheticReportExamplePlannedTrainingSubjectQuery = {
+  exampleId: "structured-training-plan",
+  exampleVersion: 1,
+  offset: 0,
+  limit: 12,
+  snapshotRef: plannedSnapshotRef,
+};
+assertContract(
+  validateReportExamplePlannedTrainingSubjectQuery,
+  reportExamplePlannedTrainingSubjectQuerySchemaPath,
+  syntheticReportExamplePlannedTrainingSubjectQuery,
+);
+for (const invalidQuery of [
+  { ...syntheticReportExamplePlannedTrainingSubjectQuery, exampleId: "outdoor-route" },
+  { ...syntheticReportExamplePlannedTrainingSubjectQuery, exampleVersion: 2 },
+  { ...syntheticReportExamplePlannedTrainingSubjectQuery, limit: 0 },
+  { ...syntheticReportExamplePlannedTrainingSubjectQuery, providerAccount: "must-not-cross" },
+]) {
+  if (validateReportExamplePlannedTrainingSubjectQuery(invalidQuery)) {
+    throw new Error(
+      `${reportExamplePlannedTrainingSubjectQuerySchemaPath} accepted an invalid query`,
+    );
+  }
+}
+const validateReportExamplePlannedTrainingSubject = compileContractSchema(
+  reportExamplePlannedTrainingSubjectSchemaPath,
+);
+const syntheticReportExamplePlannedTrainingSubject = {
+  exampleId: "structured-training-plan",
+  exampleVersion: 1,
+  snapshotRef: plannedSnapshotRef,
+  totalCount: 2,
+  offset: 0,
+  limit: 12,
+  nextOffset: null,
+  subjects: [
+    {
+      targetRef: plannedTargetRef,
+      kind: "scheduled",
+      scheduledAtLocal: "2026-08-30T07:00:00",
+      completion: "pending",
+      name: "Synthetic interval session",
+      exerciseCount: 1,
+      phaseCount: 3,
+      repeatBlockCount: 1,
+      containsIntensityEvidence: true,
+    },
+    {
+      targetRef: `planned-target-${"c".repeat(64)}`,
+      kind: "favorite-template",
+      scheduledAtLocal: null,
+      completion: null,
+      name: "Synthetic recovery template",
+      exerciseCount: 1,
+      phaseCount: 1,
+      repeatBlockCount: 0,
+      containsIntensityEvidence: false,
+    },
+  ],
+};
+assertContract(
+  validateReportExamplePlannedTrainingSubject,
+  reportExamplePlannedTrainingSubjectSchemaPath,
+  syntheticReportExamplePlannedTrainingSubject,
+);
+for (const invalidPage of [
+  (() => {
+    const value = structuredClone(syntheticReportExamplePlannedTrainingSubject);
+    value.subjects[0].exerciseCount = 0;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportExamplePlannedTrainingSubject);
+    value.subjects[1].scheduledAtLocal = "2026-08-30T07:00:00";
+    return value;
+  })(),
+  { ...structuredClone(syntheticReportExamplePlannedTrainingSubject), exampleVersion: 2 },
+  {
+    ...structuredClone(syntheticReportExamplePlannedTrainingSubject),
+    providerAccount: "must-not-cross",
+  },
+]) {
+  if (validateReportExamplePlannedTrainingSubject(invalidPage)) {
+    throw new Error(
+      `${reportExamplePlannedTrainingSubjectSchemaPath} accepted an invalid page`,
+    );
+  }
+}
 const validateTrainingSessionSelectionV4 = compileContractSchema(
   trainingSessionSelectionV4SchemaPath,
 );
@@ -9690,6 +9794,8 @@ process.stdout.write(
       reportExampleCatalogSchemaPath,
       reportExampleSessionSubjectQuerySchemaPath,
       reportExampleSessionSubjectSchemaPath,
+      reportExamplePlannedTrainingSubjectQuerySchemaPath,
+      reportExamplePlannedTrainingSubjectSchemaPath,
       reportDuplicateSchemaPath,
       reportRemoveSchemaPath,
       removedReportSchemaPath,

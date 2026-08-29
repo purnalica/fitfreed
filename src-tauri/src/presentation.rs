@@ -36,8 +36,10 @@ use fitfreed_application::{
     RemoveTrainingSessionRangeRequest, RemovedReport, RenameTrainingSessionRangeRequest,
     ReportEvidenceProvenance, ReportExampleAvailability, ReportExampleBlockRecipe,
     ReportExampleCapability, ReportExampleCatalog, ReportExampleDescriptor,
-    ReportExampleDestination, ReportExampleId, ReportExampleParameter, ReportExamplePurpose,
-    ReportExampleQuestion, ReportExampleTrainingSessionSubject,
+    ReportExampleDestination, ReportExampleId, ReportExampleParameter,
+    ReportExamplePlannedTrainingSubject, ReportExamplePlannedTrainingSubjectKind,
+    ReportExamplePlannedTrainingSubjectPage, ReportExamplePlannedTrainingSubjectQuery,
+    ReportExamplePurpose, ReportExampleQuestion, ReportExampleTrainingSessionSubject,
     ReportExampleTrainingSessionSubjectPage, ReportExampleTrainingSessionSubjectQuery,
     ReportExportReceipt, ReportExportRequest, ReportLibraryComparisonSeries,
     ReportLibraryEvidenceState, ReportLibraryItem, ReportLibraryMetricValue, ReportLibraryPage,
@@ -4199,6 +4201,107 @@ pub struct ReportExampleTrainingSessionSubjectPageDto {
 
 impl From<ReportExampleTrainingSessionSubjectPage> for ReportExampleTrainingSessionSubjectPageDto {
     fn from(page: ReportExampleTrainingSessionSubjectPage) -> Self {
+        Self {
+            example_id: report_example_id(page.example_id),
+            example_version: page.example_version,
+            snapshot_ref: page.snapshot_ref,
+            total_count: page.total_count,
+            offset: page.offset,
+            limit: page.limit,
+            next_offset: page.next_offset,
+            subjects: page.subjects.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportExamplePlannedTrainingSubjectQueryDto {
+    example_id: String,
+    example_version: u32,
+    offset: usize,
+    limit: usize,
+    snapshot_ref: Option<String>,
+}
+
+impl TryFrom<ReportExamplePlannedTrainingSubjectQueryDto>
+    for ReportExamplePlannedTrainingSubjectQuery
+{
+    type Error = CommandErrorDto;
+
+    fn try_from(query: ReportExamplePlannedTrainingSubjectQueryDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            example_id: report_example_id_from_code(&query.example_id)
+                .ok_or_else(|| CommandErrorDto::new("invalid-report-definition"))?,
+            example_version: query.example_version,
+            offset: query.offset,
+            limit: query.limit,
+            snapshot_ref: query.snapshot_ref,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReportExamplePlannedTrainingSubjectDto {
+    target_ref: String,
+    kind: &'static str,
+    scheduled_at_local: Option<String>,
+    completion: Option<&'static str>,
+    name: String,
+    exercise_count: usize,
+    phase_count: usize,
+    repeat_block_count: usize,
+    contains_intensity_evidence: bool,
+}
+
+impl From<ReportExamplePlannedTrainingSubject> for ReportExamplePlannedTrainingSubjectDto {
+    fn from(subject: ReportExamplePlannedTrainingSubject) -> Self {
+        let (kind, scheduled_at_local, completion) = match subject.kind {
+            ReportExamplePlannedTrainingSubjectKind::Scheduled {
+                scheduled_at_local,
+                completion,
+            } => (
+                "scheduled",
+                Some(scheduled_at_local),
+                Some(match completion {
+                    PlannedTrainingCompletionFilter::Pending => "pending",
+                    PlannedTrainingCompletionFilter::Completed => "completed",
+                }),
+            ),
+            ReportExamplePlannedTrainingSubjectKind::FavoriteTemplate => {
+                ("favorite-template", None, None)
+            }
+        };
+        Self {
+            target_ref: subject.target_ref,
+            kind,
+            scheduled_at_local,
+            completion,
+            name: subject.name,
+            exercise_count: subject.exercise_count,
+            phase_count: subject.phase_count,
+            repeat_block_count: subject.repeat_block_count,
+            contains_intensity_evidence: subject.contains_intensity_evidence,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportExamplePlannedTrainingSubjectPageDto {
+    example_id: &'static str,
+    example_version: u32,
+    snapshot_ref: String,
+    total_count: usize,
+    offset: usize,
+    limit: usize,
+    next_offset: Option<usize>,
+    subjects: Vec<ReportExamplePlannedTrainingSubjectDto>,
+}
+
+impl From<ReportExamplePlannedTrainingSubjectPage> for ReportExamplePlannedTrainingSubjectPageDto {
+    fn from(page: ReportExamplePlannedTrainingSubjectPage) -> Self {
         Self {
             example_id: report_example_id(page.example_id),
             example_version: page.example_version,
@@ -11743,6 +11846,68 @@ mod tests {
         let serialized = value.to_string();
         assert!(!serialized.contains("providerSessionId"));
         assert!(!serialized.contains("sportFilterRef"));
+    }
+
+    #[test]
+    fn validates_and_serializes_report_example_planned_subjects_without_provider_identity() {
+        let input: ReportExamplePlannedTrainingSubjectQueryDto = from_value(json!({
+            "exampleId": "structured-training-plan",
+            "exampleVersion": 1,
+            "offset": 0,
+            "limit": 12,
+            "snapshotRef": null
+        }))
+        .expect("planned report example subject query");
+        let query = ReportExamplePlannedTrainingSubjectQuery::try_from(input)
+            .expect("valid planned report example subject query");
+        assert_eq!(query.example_id, ReportExampleId::StructuredTrainingPlan);
+        assert!(
+            from_value::<ReportExamplePlannedTrainingSubjectQueryDto>(json!({
+                "exampleId": "structured-training-plan",
+                "exampleVersion": 1,
+                "offset": 0,
+                "limit": 12,
+                "snapshotRef": null,
+                "providerTargetId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let page = ReportExamplePlannedTrainingSubjectPage {
+            example_id: ReportExampleId::StructuredTrainingPlan,
+            example_version: 1,
+            snapshot_ref:
+                "planned-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            total_count: 1,
+            offset: 0,
+            limit: 12,
+            next_offset: None,
+            subjects: vec![ReportExamplePlannedTrainingSubject {
+                target_ref:
+                    "planned-target-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                        .to_owned(),
+                kind: ReportExamplePlannedTrainingSubjectKind::Scheduled {
+                    scheduled_at_local: "2026-08-20T07:30:00.000".to_owned(),
+                    completion: PlannedTrainingCompletionFilter::Completed,
+                },
+                name: "Progressive run".to_owned(),
+                exercise_count: 1,
+                phase_count: 4,
+                repeat_block_count: 1,
+                contains_intensity_evidence: true,
+            }],
+        };
+        let value = to_value(ReportExamplePlannedTrainingSubjectPageDto::from(page))
+            .expect("planned report example subject page JSON");
+        assert_eq!(value["exampleId"], "structured-training-plan");
+        assert_eq!(value["subjects"][0]["kind"], "scheduled");
+        assert_eq!(value["subjects"][0]["completion"], "completed");
+        assert_eq!(value["subjects"][0]["exerciseCount"], 1);
+        assert_eq!(value["subjects"][0]["containsIntensityEvidence"], true);
+        let serialized = value.to_string();
+        assert!(!serialized.contains("provider"));
+        assert!(!serialized.contains("sourceIndex"));
     }
 
     #[test]

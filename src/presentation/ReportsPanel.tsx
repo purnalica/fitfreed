@@ -30,7 +30,8 @@ import type {
   ReportExampleBlockRecipe,
   ReportExampleCatalog,
   ReportExampleDescriptor,
-  ReportExampleDestination,
+  ReportExamplePlannedTrainingSubject,
+  ReportExamplePlannedTrainingSubjectPage,
   ReportExampleTrainingSessionSubject,
   ReportExampleTrainingSessionSubjectPage,
   ReportExportReceipt,
@@ -92,12 +93,42 @@ type TrainingSessionReportExample = ReportExampleDescriptor & {
   id: "session-visual-story" | "outdoor-route";
 };
 
-interface ReportSubjectPicker {
+type PlannedTrainingReportExample = ReportExampleDescriptor & {
+  id: "structured-training-plan";
+};
+
+interface TrainingSessionSubjectPicker {
+  kind: "training-session";
   example: TrainingSessionReportExample;
   snapshotRef: string | null;
   totalCount: number;
   nextOffset: number | null;
   subjects: ReportExampleTrainingSessionSubject[];
+}
+
+interface PlannedTrainingSubjectPicker {
+  kind: "planned-training";
+  example: PlannedTrainingReportExample;
+  snapshotRef: string | null;
+  totalCount: number;
+  nextOffset: number | null;
+  subjects: ReportExamplePlannedTrainingSubject[];
+}
+
+type ReportSubjectPicker = TrainingSessionSubjectPicker | PlannedTrainingSubjectPicker;
+
+function PlannedTrainingSubjectIcon() {
+  return (
+    <svg
+      className="report-plan-icon"
+      viewBox="0 0 32 32"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="6" y="7" width="20" height="19" rx="3" />
+      <path d="M11 4v6M21 4v6M6 13h20M11 18h3M18 18h3M11 22h3M18 22h3" />
+    </svg>
+  );
 }
 
 const ANALYTICAL_BLOCK_KINDS: AnalyticalBlockKind[] = [
@@ -125,7 +156,6 @@ interface ReportsPanelProps {
   openReportRequestId?: number;
   disabled: boolean;
   onReturnToOrigin: (target: ReportSourceTarget | null) => void;
-  onOpenExampleDestination: (destination: ReportExampleDestination) => void;
 }
 
 interface EditorState {
@@ -342,7 +372,6 @@ export function ReportsPanel({
   openReportRequestId,
   disabled,
   onReturnToOrigin,
-  onOpenExampleDestination,
 }: ReportsPanelProps) {
   const copy = messages.reports;
   const [reports, setReports] = useState<ReportLibraryItem[]>([]);
@@ -382,6 +411,7 @@ export function ReportsPanel({
   const [duplicatedNotice, setDuplicatedNotice] = useState<string>();
   const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
   const subjectHeadingRef = useRef<HTMLHeadingElement>(null);
+  const subjectPickerRef = useRef<HTMLElement>(null);
   const subjectPickerOriginRef = useRef<HTMLElement>(null);
   const subjectPickerReturnPendingRef = useRef(false);
   const subjectRequestRef = useRef(0);
@@ -418,6 +448,9 @@ export function ReportsPanel({
     [locale],
   );
   const commentaryPresent = editor?.blocks.some((block) => block.kind === "narrative") ?? false;
+  const subjectCopy = subjectPicker?.kind === "planned-training"
+    ? copy.examples.plannedSubjects
+    : copy.examples.subjects;
 
   useEffect(() => {
     const target = commentaryFocusRequestRef.current;
@@ -435,6 +468,7 @@ export function ReportsPanel({
     return restoreFocusAfterReveal(subjectHeadingRef.current, subjectPickerOriginRef.current, {
       align: "start",
       forceInitialFocus: true,
+      revealElement: subjectPickerRef.current,
     });
   }, [workspace]);
 
@@ -487,8 +521,14 @@ export function ReportsPanel({
     return example.id === "session-visual-story" || example.id === "outdoor-route";
   }
 
+  function isPlannedTrainingExample(
+    example: ReportExampleDescriptor,
+  ): example is PlannedTrainingReportExample {
+    return example.id === "structured-training-plan";
+  }
+
   async function loadReportSubjects(
-    example: TrainingSessionReportExample,
+    example: TrainingSessionReportExample | PlannedTrainingReportExample,
     offset: number,
     append: boolean,
     snapshotRef: string | null,
@@ -499,31 +539,63 @@ export function ReportsPanel({
     else setSubjectsLoading(true);
     setSubjectsFailure(undefined);
     try {
-      const page = await invoke<ReportExampleTrainingSessionSubjectPage>(
-        "query_report_example_training_session_subjects",
-        {
-          query: {
-            exampleId: example.id,
-            exampleVersion: example.version,
-            offset,
-            limit: REPORT_SUBJECT_PAGE_SIZE,
-            snapshotRef,
-          },
-        },
-      );
-      if (page.exampleId !== example.id || page.exampleVersion !== example.version) {
-        throw new Error("invalid-report-definition");
-      }
       if (requestId !== subjectRequestRef.current) return;
-      setSubjectPicker((current) => ({
-        example,
-        snapshotRef: page.snapshotRef,
-        totalCount: page.totalCount,
-        nextOffset: page.nextOffset,
-        subjects: append && current?.example.id === example.id
-          ? [...current.subjects, ...page.subjects]
-          : page.subjects,
-      }));
+      if (isTrainingSessionExample(example)) {
+        const page = await invoke<ReportExampleTrainingSessionSubjectPage>(
+          "query_report_example_training_session_subjects",
+          {
+            query: {
+              exampleId: example.id,
+              exampleVersion: example.version,
+              offset,
+              limit: REPORT_SUBJECT_PAGE_SIZE,
+              snapshotRef,
+            },
+          },
+        );
+        if (page.exampleId !== example.id || page.exampleVersion !== example.version) {
+          throw new Error("invalid-report-definition");
+        }
+        if (requestId !== subjectRequestRef.current) return;
+        setSubjectPicker((current) => ({
+          kind: "training-session",
+          example,
+          snapshotRef: page.snapshotRef,
+          totalCount: page.totalCount,
+          nextOffset: page.nextOffset,
+          subjects: append && current?.kind === "training-session"
+            && current.example.id === example.id
+            ? [...current.subjects, ...page.subjects]
+            : page.subjects,
+        }));
+      } else {
+        const page = await invoke<ReportExamplePlannedTrainingSubjectPage>(
+          "query_report_example_planned_training_subjects",
+          {
+            query: {
+              exampleId: example.id,
+              exampleVersion: example.version,
+              offset,
+              limit: REPORT_SUBJECT_PAGE_SIZE,
+              snapshotRef,
+            },
+          },
+        );
+        if (page.exampleId !== example.id || page.exampleVersion !== example.version) {
+          throw new Error("invalid-report-definition");
+        }
+        if (requestId !== subjectRequestRef.current) return;
+        setSubjectPicker((current) => ({
+          kind: "planned-training",
+          example,
+          snapshotRef: page.snapshotRef,
+          totalCount: page.totalCount,
+          nextOffset: page.nextOffset,
+          subjects: append && current?.kind === "planned-training"
+            ? [...current.subjects, ...page.subjects]
+            : page.subjects,
+        }));
+      }
     } catch (reason) {
       if (requestId !== subjectRequestRef.current) return;
       setSubjectsFailure(commandErrorCode(reason));
@@ -536,17 +608,27 @@ export function ReportsPanel({
   }
 
   function openReportSubjectPicker(
-    example: TrainingSessionReportExample,
+    example: TrainingSessionReportExample | PlannedTrainingReportExample,
     initiatingElement: HTMLElement,
   ) {
     subjectPickerOriginRef.current = initiatingElement;
-    setSubjectPicker({
-      example,
-      snapshotRef: null,
-      totalCount: 0,
-      nextOffset: null,
-      subjects: [],
-    });
+    setSubjectPicker(isTrainingSessionExample(example)
+      ? {
+          kind: "training-session",
+          example,
+          snapshotRef: null,
+          totalCount: 0,
+          nextOffset: null,
+          subjects: [],
+        }
+      : {
+          kind: "planned-training",
+          example,
+          snapshotRef: null,
+          totalCount: 0,
+          nextOffset: null,
+          subjects: [],
+        });
     setWorkspace("subject");
     void loadReportSubjects(example, 0, false, null);
   }
@@ -653,16 +735,16 @@ export function ReportsPanel({
       return;
     }
     if (example.availability.kind === "selection-required") {
-      if (isTrainingSessionExample(example)) {
+      if (isTrainingSessionExample(example) || isPlannedTrainingExample(example)) {
         openReportSubjectPicker(example, initiatingElement);
         return;
       }
-      onOpenExampleDestination(example.availability.destination);
+      setLocalError("invalid-report-definition");
     }
   }
 
   async function useReportSubject(subject: ReportExampleTrainingSessionSubject) {
-    if (!subjectPicker) return;
+    if (!subjectPicker || subjectPicker.kind !== "training-session") return;
     setSelectingSubjectRef(subject.session.sessionRef);
     setLocalError(undefined);
     try {
@@ -725,6 +807,49 @@ export function ReportsPanel({
       setWorkspace("compose");
     } catch (reason) {
       setLocalError(commandErrorCode(reason));
+    } finally {
+      setSelectingSubjectRef(undefined);
+    }
+  }
+
+  async function usePlannedReportSubject(subject: ReportExamplePlannedTrainingSubject) {
+    if (!subjectPicker || subjectPicker.kind !== "planned-training") return;
+    setSelectingSubjectRef(subject.targetRef);
+    setLocalError(undefined);
+    try {
+      if (!subjectPicker.snapshotRef) {
+        setLocalError("report-source-changed");
+        return;
+      }
+      const target = await invoke<PlannedTrainingTargetDetail>("query_planned_training_target", {
+        query: {
+          targetRef: subject.targetRef,
+          snapshotRef: subjectPicker.snapshotRef,
+        },
+      });
+      if (
+        target.snapshotRef !== subjectPicker.snapshotRef
+        || target.target.summary.targetRef !== subject.targetRef
+      ) {
+        setLocalError("report-source-changed");
+        return;
+      }
+      const itemCopy = copy.examples.items[subjectPicker.example.id];
+      setAvailableRoutes([]);
+      setEditor({
+        sourceSnapshotRef: target.snapshotRef,
+        origin: { kind: "planned-training", targetRef: subject.targetRef },
+        plannedTarget: target,
+        title: itemCopy.defaultTitle,
+        blocks: [{ kind: "planned-training", targetRef: subject.targetRef }],
+      });
+      setContextualOrigin(undefined);
+      setSubjectPicker(undefined);
+      resetTransientReportState();
+      setWorkspace("compose");
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      setLocalError(code === "planned-training-changed" ? "report-source-changed" : code);
     } finally {
       setSelectingSubjectRef(undefined);
     }
@@ -2388,6 +2513,7 @@ export function ReportsPanel({
 
         {subjectPicker && (
           <section
+            ref={subjectPickerRef}
             className="report-subject-picker"
             aria-labelledby="report-subject-heading"
             hidden={workspace !== "subject"}
@@ -2398,9 +2524,9 @@ export function ReportsPanel({
                   {copy.examples.items[subjectPicker.example.id].question}
                 </p>
                 <h2 id="report-subject-heading" ref={subjectHeadingRef} tabIndex={-1}>
-                  {copy.examples.subjects.heading}
+                  {subjectCopy.heading}
                 </h2>
-                <p>{copy.examples.subjects.intro}</p>
+                <p>{subjectCopy.intro}</p>
               </div>
               <button
                 type="button"
@@ -2409,93 +2535,150 @@ export function ReportsPanel({
                 onClick={closeReportSubjectPicker}
               >
                 <span aria-hidden="true">← </span>
-                {copy.examples.subjects.cancel}
+                {subjectCopy.cancel}
               </button>
             </div>
-            {subjectsLoading && <p role="status">{copy.examples.subjects.loading}</p>}
+            {subjectsLoading && <p role="status">{subjectCopy.loading}</p>}
             {subjectsFailure && (
               <div className="report-subject-failure">
                 <p className="error" role="alert">
                   {subjectsFailure === "report-source-changed"
-                    ? copy.examples.subjects.sourceChanged
-                    : copy.examples.subjects.failed}
+                    ? subjectCopy.sourceChanged
+                    : subjectCopy.failed}
                 </p>
                 <button
                   type="button"
                   className="secondary"
                   onClick={() => void loadReportSubjects(subjectPicker.example, 0, false, null)}
                 >
-                  {copy.examples.subjects.retry}
+                  {subjectCopy.retry}
                 </button>
               </div>
             )}
             {!subjectsLoading && !subjectsFailure && subjectPicker.subjects.length === 0 && (
-              <p>{copy.examples.subjects.empty}</p>
+              <p>{subjectCopy.empty}</p>
             )}
             {!subjectsLoading && !subjectsFailure && subjectPicker.subjects.length > 0 && (
               <>
                 <p className="report-subject-count" aria-live="polite">
-                  {interpolate(copy.examples.subjects.count, {
+                  {interpolate(subjectCopy.count, {
                     shown: number.format(subjectPicker.subjects.length),
                     total: number.format(subjectPicker.totalCount),
                   })}
                 </p>
                 <ul className="report-subject-list">
-                  {subjectPicker.subjects.map((subject) => {
-                    const session = subject.session;
-                    return (
-                      <li key={session.sessionRef}>
-                        <article className="report-subject-card">
-                          <div className="report-subject-identity">
-                            <SportFamilyIcon
-                              family={sportCanonicalFamily(session.sport)}
-                              state={session.sport.state}
-                            />
-                            <div>
-                              <h3>{sportLabel(session.sport)}</h3>
-                              <time dateTime={session.startedAtLocal}>
-                                {formatTrainingDateTime(session.startedAtLocal, locale)}
-                              </time>
-                            </div>
-                          </div>
-                          <dl className="report-subject-facts">
-                            <div>
-                              <dt>{messages.training.duration}</dt>
-                              <dd>{formatSessionCardDuration(
-                                session.durationMilliseconds,
-                                locale,
-                                messages.training.durationUnits,
-                              )}</dd>
-                            </div>
-                            {session.distanceMeters !== null && (
-                              <div>
-                                <dt>{messages.training.distance}</dt>
-                                <dd>{formatSessionCardDistance(
-                                  session.distanceMeters,
-                                  locale,
-                                  messages.training.units,
-                                )}</dd>
+                  {subjectPicker.kind === "training-session"
+                    ? subjectPicker.subjects.map((subject) => {
+                        const session = subject.session;
+                        return (
+                          <li key={session.sessionRef}>
+                            <article className="report-subject-card">
+                              <div className="report-subject-identity">
+                                <SportFamilyIcon
+                                  family={sportCanonicalFamily(session.sport)}
+                                  state={session.sport.state}
+                                />
+                                <div>
+                                  <h3>{sportLabel(session.sport)}</h3>
+                                  <time dateTime={session.startedAtLocal}>
+                                    {formatTrainingDateTime(session.startedAtLocal, locale)}
+                                  </time>
+                                </div>
                               </div>
-                            )}
-                          </dl>
-                          {subject.hasRouteEvidence && (
-                            <p className="report-subject-route">
-                              {copy.examples.subjects.routeEvidence}
+                              <dl className="report-subject-facts">
+                                <div>
+                                  <dt>{messages.training.duration}</dt>
+                                  <dd>{formatSessionCardDuration(
+                                    session.durationMilliseconds,
+                                    locale,
+                                    messages.training.durationUnits,
+                                  )}</dd>
+                                </div>
+                                {session.distanceMeters !== null && (
+                                  <div>
+                                    <dt>{messages.training.distance}</dt>
+                                    <dd>{formatSessionCardDistance(
+                                      session.distanceMeters,
+                                      locale,
+                                      messages.training.units,
+                                    )}</dd>
+                                  </div>
+                                )}
+                              </dl>
+                              {subject.hasRouteEvidence && (
+                                <p className="report-subject-route">
+                                  {copy.examples.subjects.routeEvidence}
+                                </p>
+                              )}
+                              <button
+                                type="button"
+                                disabled={selectingSubjectRef !== undefined || disabled}
+                                onClick={() => void useReportSubject(subject)}
+                              >
+                                {selectingSubjectRef === session.sessionRef
+                                  ? copy.examples.subjects.using
+                                  : copy.examples.subjects.use}
+                              </button>
+                            </article>
+                          </li>
+                        );
+                      })
+                    : subjectPicker.subjects.map((subject) => (
+                        <li key={subject.targetRef}>
+                          <article className="report-subject-card report-planned-subject-card">
+                            <div className="report-subject-identity">
+                              <PlannedTrainingSubjectIcon />
+                              <div>
+                                <h3>{subject.name}</h3>
+                                {subject.kind === "scheduled" && subject.scheduledAtLocal ? (
+                                  <p>
+                                    {copy.examples.plannedSubjects.scheduled}
+                                    {" · "}
+                                    <time dateTime={subject.scheduledAtLocal}>
+                                      {formatTrainingDateTime(subject.scheduledAtLocal, locale)}
+                                    </time>
+                                    {subject.completion && (
+                                      <>{" · "}{copy.examples.plannedSubjects[subject.completion]}</>
+                                    )}
+                                  </p>
+                                ) : (
+                                  <p>{copy.examples.plannedSubjects.favorite}</p>
+                                )}
+                              </div>
+                            </div>
+                            <p className="report-planned-subject-shape">
+                              {[
+                                countWithUnit(
+                                  subject.exerciseCount.toString(),
+                                  copy.library.plannedUnits.exercises,
+                                ),
+                                countWithUnit(
+                                  subject.phaseCount.toString(),
+                                  copy.library.plannedUnits.phases,
+                                ),
+                                countWithUnit(
+                                  subject.repeatBlockCount.toString(),
+                                  copy.library.plannedUnits.repeats,
+                                ),
+                              ].join(" · ")}
                             </p>
-                          )}
-                          <button
-                            type="button"
-                            disabled={selectingSubjectRef !== undefined || disabled}
-                            onClick={() => void useReportSubject(subject)}
-                          >
-                            {selectingSubjectRef === session.sessionRef
-                              ? copy.examples.subjects.using
-                              : copy.examples.subjects.use}
-                          </button>
-                        </article>
-                      </li>
-                    );
-                  })}
+                            {subject.containsIntensityEvidence && (
+                              <p className="report-subject-route">
+                                {copy.examples.plannedSubjects.intensityEvidence}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              disabled={selectingSubjectRef !== undefined || disabled}
+                              onClick={() => void usePlannedReportSubject(subject)}
+                            >
+                              {selectingSubjectRef === subject.targetRef
+                                ? copy.examples.plannedSubjects.using
+                                : copy.examples.plannedSubjects.use}
+                            </button>
+                          </article>
+                        </li>
+                      ))}
                 </ul>
                 {subjectPicker.nextOffset !== null && (
                   <button
@@ -2505,8 +2688,8 @@ export function ReportsPanel({
                     onClick={() => void loadMoreReportSubjects()}
                   >
                     {subjectsLoadingMore
-                      ? copy.examples.subjects.loading
-                      : copy.examples.subjects.loadMore}
+                      ? subjectCopy.loading
+                      : subjectCopy.loadMore}
                   </button>
                 )}
               </>
@@ -2514,7 +2697,7 @@ export function ReportsPanel({
             {localError && selectingSubjectRef === undefined && (
               <p className="error" role="alert">
                 {localError === "report-source-changed"
-                  ? copy.examples.subjects.sourceChanged
+                  ? subjectCopy.sourceChanged
                   : copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
               </p>
             )}

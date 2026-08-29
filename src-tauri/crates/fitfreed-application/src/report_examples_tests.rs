@@ -6,6 +6,10 @@ const SNAPSHOT: &str =
     "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const SESSION: &str = "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const SPORT: &str = "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+const PLANNED_SNAPSHOT: &str =
+    "planned-snapshot-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+const PLANNED_TARGET: &str =
+    "planned-target-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 struct EvidencePort(Result<ReportExampleEvidence, String>);
 
@@ -121,6 +125,137 @@ fn subject_page(has_route_evidence: bool) -> PersistedReportExampleTrainingSessi
             .into_iter()
             .collect(),
     }
+}
+
+struct PlannedSubjectPort {
+    result: Result<PersistedReportExamplePlannedTrainingSubjectPage, PlannedTrainingQueryPortError>,
+}
+
+impl ReportExamplePlannedTrainingSubjectPort for PlannedSubjectPort {
+    fn query_planned_training_subjects(
+        &self,
+        _request: &ReportExamplePlannedTrainingSubjectPersistenceQuery,
+    ) -> Result<PersistedReportExamplePlannedTrainingSubjectPage, PlannedTrainingQueryPortError>
+    {
+        self.result.clone()
+    }
+}
+
+fn planned_subject_query() -> ReportExamplePlannedTrainingSubjectQuery {
+    ReportExamplePlannedTrainingSubjectQuery {
+        example_id: ReportExampleId::StructuredTrainingPlan,
+        example_version: REPORT_EXAMPLE_DESCRIPTOR_VERSION,
+        offset: 0,
+        limit: 12,
+        snapshot_ref: None,
+    }
+}
+
+fn planned_subject_page() -> PersistedReportExamplePlannedTrainingSubjectPage {
+    PersistedReportExamplePlannedTrainingSubjectPage {
+        snapshot_ref: PLANNED_SNAPSHOT.to_owned(),
+        total_count: 1,
+        subjects: vec![ReportExamplePlannedTrainingSubject {
+            target_ref: PLANNED_TARGET.to_owned(),
+            kind: ReportExamplePlannedTrainingSubjectKind::Scheduled {
+                scheduled_at_local: "2026-08-20T07:30:00.000".to_owned(),
+                completion: PlannedTrainingCompletionFilter::Completed,
+            },
+            name: "Progressive run".to_owned(),
+            exercise_count: 1,
+            phase_count: 4,
+            repeat_block_count: 1,
+            contains_intensity_evidence: true,
+        }],
+    }
+}
+
+#[test]
+fn returns_only_structured_planned_subjects_with_the_initiating_example() {
+    let result = query_report_example_planned_training_subjects(
+        &PlannedSubjectPort {
+            result: Ok(planned_subject_page()),
+        },
+        planned_subject_query(),
+    )
+    .expect("planned report subjects");
+
+    assert_eq!(result.example_id, ReportExampleId::StructuredTrainingPlan);
+    assert_eq!(result.example_version, REPORT_EXAMPLE_DESCRIPTOR_VERSION);
+    assert_eq!(result.snapshot_ref, PLANNED_SNAPSHOT);
+    assert_eq!(result.total_count, 1);
+    assert_eq!(result.next_offset, None);
+    assert_eq!(result.subjects[0].target_ref, PLANNED_TARGET);
+    assert_eq!(result.subjects[0].phase_count, 4);
+}
+
+#[test]
+fn rejects_ineligible_planned_subjects_wrong_examples_and_invalid_pages() {
+    let mut ineligible = planned_subject_page();
+    ineligible.subjects[0].exercise_count = 0;
+    assert!(matches!(
+        query_report_example_planned_training_subjects(
+            &PlannedSubjectPort {
+                result: Ok(ineligible),
+            },
+            planned_subject_query(),
+        ),
+        Err(ApplicationError::ReportDefinitionQuery(message))
+            if message.contains("structured exercise")
+    ));
+
+    for invalid in [
+        ReportExamplePlannedTrainingSubjectQuery {
+            example_id: ReportExampleId::OutdoorRoute,
+            ..planned_subject_query()
+        },
+        ReportExamplePlannedTrainingSubjectQuery {
+            example_version: REPORT_EXAMPLE_DESCRIPTOR_VERSION + 1,
+            ..planned_subject_query()
+        },
+        ReportExamplePlannedTrainingSubjectQuery {
+            limit: 0,
+            ..planned_subject_query()
+        },
+    ] {
+        assert!(matches!(
+            query_report_example_planned_training_subjects(
+                &PlannedSubjectPort {
+                    result: Ok(planned_subject_page()),
+                },
+                invalid,
+            ),
+            Err(ApplicationError::InvalidReportDefinition(_))
+        ));
+    }
+}
+
+#[test]
+fn maps_planned_subject_snapshot_changes_and_failures_to_report_semantics() {
+    let changed = query_report_example_planned_training_subjects(
+        &PlannedSubjectPort {
+            result: Err(PlannedTrainingQueryPortError::SnapshotChanged),
+        },
+        planned_subject_query(),
+    );
+    assert!(matches!(
+        changed,
+        Err(ApplicationError::ReportSourceChanged)
+    ));
+
+    let failed = query_report_example_planned_training_subjects(
+        &PlannedSubjectPort {
+            result: Err(PlannedTrainingQueryPortError::Failure(
+                "library unavailable".to_owned(),
+            )),
+        },
+        planned_subject_query(),
+    );
+    assert!(matches!(
+        failed,
+        Err(ApplicationError::ReportDefinitionQuery(message))
+            if message == "library unavailable"
+    ));
 }
 
 #[test]

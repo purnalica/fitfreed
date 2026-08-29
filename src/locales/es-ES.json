@@ -2059,6 +2059,25 @@
         "loadMore": "Mostrar más sesiones",
         "cancel": "Volver a los ejemplos de informes"
       },
+      "plannedSubjects": {
+        "heading": "Elige el plan de entrenamiento para este informe",
+        "intro": "Aquí solo aparecen los planes importados que contienen evidencias de ejercicios estructurados. Al elegir uno se abre el borrador correspondiente; no se guarda ningún informe.",
+        "loading": "Cargando los planes de entrenamiento válidos…",
+        "failed": "FitFreed no ha podido cargar los planes de entrenamiento válidos.",
+        "sourceChanged": "La biblioteca de entrenamientos planificados ha cambiado mientras revisabas estos planes. Vuelve a cargar los planes válidos.",
+        "retry": "Volver a intentarlo",
+        "empty": "No hay planes de entrenamiento válidos disponibles en esta biblioteca.",
+        "count": "Se muestran {shown} de {total} planes de entrenamiento válidos",
+        "scheduled": "Plan programado",
+        "favorite": "Plantilla reutilizable",
+        "pending": "Pendiente",
+        "completed": "Completado",
+        "intensityEvidence": "Objetivos de intensidad disponibles",
+        "use": "Usar este plan de entrenamiento",
+        "using": "Abriendo el borrador…",
+        "loadMore": "Mostrar más planes de entrenamiento",
+        "cancel": "Volver a los ejemplos de informes"
+      },
       "capabilities": {
         "training-history": "un historial de entrenamientos",
         "training-session": "una sesión de entrenamiento",

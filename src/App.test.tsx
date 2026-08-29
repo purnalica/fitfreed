@@ -2453,15 +2453,11 @@ describe("FitFreed import interface", () => {
     ).toHaveLength(2));
   });
 
-  it("keeps session evidence selection in Reports and routes plan selection to Plans", async () => {
+  it("keeps parameterized report evidence selection inside Reports", async () => {
     emptyLibrary();
     mocks.reportExamplesInvoke.mockResolvedValue(reportExampleCatalog(true));
-    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+    mocks.homeInvoke.mockImplementation((command) => {
       if (command === "query_library_home") return Promise.resolve(emptyLibraryHome());
-      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
-      if (command === "save_exploration_workspace") {
-        return Promise.resolve({ version: 1, destination: arguments_.destination });
-      }
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.invoke.mockImplementation((command) => {
@@ -2480,17 +2476,16 @@ describe("FitFreed import interface", () => {
           subjects: [],
         });
       }
-      if (command === "query_training_sessions") {
-        return Promise.resolve(emptyTrainingSessionSearchPage());
-      }
-      if (command === "query_planned_training_chronology") {
+      if (command === "query_report_example_planned_training_subjects") {
         return Promise.resolve({
+          exampleId: "structured-training-plan",
+          exampleVersion: 1,
           snapshotRef: `planned-snapshot-${"a".repeat(64)}`,
           totalCount: 0,
           offset: 0,
-          limit: 25,
+          limit: 12,
           nextOffset: null,
-          targets: [],
+          subjects: [],
         });
       }
       throw new Error(`Unexpected command: ${command}`);
@@ -2511,13 +2506,16 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Back to report examples" }));
     await user.click(await screen.findByRole("button", { name: "Choose a training plan" }));
-    const plannedTraining = await screen.findByRole("region", { name: "Training history" });
-    expect(within(plannedTraining).getByRole("button", { name: "Plans" }))
-      .toHaveAttribute("aria-current", "page");
-    expect(mocks.homeInvoke.mock.calls.filter(
-      ([command]) => command === "clear_training_discovery_workspace",
-    )).toHaveLength(0);
-    expect(mocks.homeInvoke).toHaveBeenCalledWith("save_exploration_workspace", {
+    expect(await screen.findByRole("heading", {
+      name: "Choose the training plan for this report",
+    })).toBeVisible();
+    expect(screen.getByText("No eligible training plans are available in this library."))
+      .toBeVisible();
+    expect(mocks.homeInvoke).not.toHaveBeenCalledWith(
+      "clear_training_discovery_workspace",
+      undefined,
+    );
+    expect(mocks.homeInvoke).not.toHaveBeenCalledWith("save_exploration_workspace", {
       destination: "training",
     });
   });

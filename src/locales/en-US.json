@@ -2059,6 +2059,25 @@
         "loadMore": "Show more sessions",
         "cancel": "Back to report examples"
       },
+      "plannedSubjects": {
+        "heading": "Choose the training plan for this report",
+        "intro": "Only imported plans with structured exercise evidence appear here. Choosing one opens the matching draft; it does not save a report.",
+        "loading": "Loading eligible training plans…",
+        "failed": "FitFreed could not load the eligible training plans.",
+        "sourceChanged": "The planned-training library changed while these plans were being reviewed. Reload the eligible plans.",
+        "retry": "Try again",
+        "empty": "No eligible training plans are available in this library.",
+        "count": "Showing {shown} of {total} eligible training plans",
+        "scheduled": "Scheduled plan",
+        "favorite": "Reusable template",
+        "pending": "Pending",
+        "completed": "Completed",
+        "intensityEvidence": "Intensity targets available",
+        "use": "Use this training plan",
+        "using": "Opening draft…",
+        "loadMore": "Show more training plans",
+        "cancel": "Back to report examples"
+      },
       "capabilities": {
         "training-history": "training history",
         "training-session": "a training session",
