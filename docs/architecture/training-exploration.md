@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle, summary, cross-representation interaction, source-structure and exact-evidence range entry, user-authored segmentation, and on-demand session provenance are implemented. The personal-range Alpha acceptance matrix is complete locally. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications and explicit collection relationships, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle, summary, cross-representation interaction, source-structure and exact-evidence range entry, user-authored segmentation, and on-demand session provenance are implemented. The personal-range Alpha acceptance matrix is complete locally. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
 
 ## Ownership
 
@@ -21,7 +21,7 @@ One canonical session can expose three non-interchangeable layers:
 1. Source evidence: exercises, source laps, automatic laps, pauses, zones, routes, supported series, and
    separately acquired provider catalogue candidates with exact provenance.
 2. FitFreed-derived evidence: downsampled visual projections and deterministic segments produced by a versioned calculation.
-3. User-authored evidence: sport classification, session-owned personal ranges, and reusable segment criteria with explicit authorship and revision.
+3. User-authored evidence: sport classification, explicit sport-collection relationships, session-owned personal ranges, and reusable segment criteria with explicit authorship and revision.
 
 Every read model retains layer attribution and provenance. Reimport or recalculation may enrich or regenerate the applicable layer but cannot rewrite another layer silently.
 
@@ -55,16 +55,18 @@ writes a new user-authored unknown revision rather than deleting the history of 
 checks reject stale editors. Import and reimport can reveal a new source reference but cannot create or overwrite
 personal meaning or relationships.
 
-The unified-sport domain boundary is implemented independently of application projection and persistence. R8.1 carries
-that aggregate through its preview, compare-and-save, review-required, filtering, reporting, backup, migration, and
-presentation contracts before the capability becomes available in the product. An active projection uses the chosen
-member's recognized or personally classified identity and sums exact member coverage. A missing member or unusable
-primary fails closed into explicit review; equal names, families, or one private observation never repair it silently.
+The unified-sport domain boundary is implemented independently of application projection and persistence. Training
+sports version 5 carries that aggregate through its preview, compare-and-save, review-required, exact filtering,
+whole-library recovery, migration, and presentation contracts. An active projection uses the chosen member's
+recognized or personally classified identity and sums exact member coverage. A missing member or unusable primary
+fails closed into explicit review; equal names, families, or one private observation never repair it silently.
 
 `SportClassificationTask` is the sole presentation mutation boundary for family, personal label, validation,
 save, reset, cancellation, operation progress, and optimistic-conflict recovery. The Sports workspace composes
 it as the complete management surface; the Sessions sport summary composes the same task only for an
-unresolved identity encountered in context. Library Home version 5 also preserves every unresolved profile as
+unresolved identity encountered in context. `SportUnificationTask` is the separate mutation boundary for selecting
+two through 64 exact collections, choosing visible identity precedence, reviewing complete session coverage, saving,
+revising, and removing the relationship. Library Home version 8 also preserves every unresolved profile as
 a separate summary, associates recent sessions through the same opaque presentation capability, and routes its
 contextual naming action to that exact task in Sports. It never aggregates unresolved profiles, displays the
 capability, or owns another mutation path. A conflict reloads the authoritative overview and revision but retains

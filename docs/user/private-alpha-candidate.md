@@ -57,7 +57,8 @@ An exact reimport does not duplicate canonical history. Fast reuse is allowed on
 Version 0.1.0 provides:
 
 - daily-activity overview, range, exact day detail, and period comparison;
-- complete-history training-session search with date, sport, authored-label, and measurement filters, stable
+- complete-history training-session search with date, sport, authored-label, and measurement filters, explicit
+  reversible user-authored relationships between represented sport collections, stable
   pagination and sorting, exact session summary, exercise/lap/pause structure, an
   [interactive local primary/transition route workbench](session-routes.md) with map navigation,
   recorded-position traversal, personal ranges, and selected-row exact route evidence, paginated exact route

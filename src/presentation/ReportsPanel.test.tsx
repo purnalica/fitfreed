@@ -1764,6 +1764,62 @@ describe("ReportsPanel", () => {
     expect(screen.getByRole("button", { name: "Open My independent copy" })).toBeVisible();
   });
 
+  it("keeps comparison run parameters when an immediately resolved duplicate opens", async () => {
+    const source = questionDefinition();
+    const duplicatedDefinition: ReportDefinition = {
+      ...source,
+      reportRef: duplicateReportRef,
+      title: "Reusable comparison copy",
+      blocks: source.blocks.map((block, index) => ({
+        ...block,
+        blockRef: `report-block-${digest(String(index + 5))}`,
+      })),
+    };
+    const duplicatedResolution: ResolvedReport = {
+      ...questionResolution(),
+      definition: duplicatedDefinition,
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([libraryItemFromDefinition(source)]));
+      }
+      if (command === "duplicate_report") {
+        expect(arguments_).toEqual({
+          request: {
+            sourceReportRef: source.reportRef,
+            expectedSourceRevision: source.revision,
+            title: "Reusable comparison copy",
+          },
+        });
+        return Promise.resolve(duplicatedDefinition);
+      }
+      if (command === "resolve_report") {
+        expect(arguments_).toEqual({
+          request: { reportRef: duplicateReportRef, runParameters: {} },
+        });
+        return Promise.resolve(duplicatedResolution);
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", {
+      name: `Duplicate ${source.title}`,
+    }));
+    const duplicateTitle = screen.getByLabelText("Duplicate title");
+    await user.clear(duplicateTitle);
+    await user.type(duplicateTitle, "Reusable comparison copy");
+    await user.click(screen.getByRole("button", { name: "Create duplicate" }));
+
+    expect(await screen.findByRole("heading", {
+      name: "Reusable comparison copy",
+      level: 3,
+    })).toBeVisible();
+    expect(screen.getByText("View another period")).toBeVisible();
+    expect(screen.getByText("Saved dates are in use.")).toBeVisible();
+  });
+
   it("offers duplication from a saved result and restores focus when the title task is cancelled", async () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "list_report_library") {

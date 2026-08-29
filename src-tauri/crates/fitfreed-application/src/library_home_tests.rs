@@ -1,9 +1,10 @@
 use fitfreed_domain::{
-    ArtifactCoverageSummary, DailyActivity, ImportOperationState, ImportOutcome, ImportReport,
-    NightlyRecovery, ProviderNeutralSportSuggestion, SleepPeriod, SleepPhaseSummary, SleepScore,
+    author_unified_sport_relationship, ArtifactCoverageSummary, DailyActivity,
+    ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
+    ProviderNeutralSportSuggestion, SleepPeriod, SleepPhaseSummary, SleepScore,
     SportClassification, SportClassificationAuthorship, SportClassificationKey,
     SportClassificationState, SportFamily, SportLocalizedName, SportRecognitionProvenance,
-    TrainingSession,
+    TrainingSession, UnifiedSportRelationship,
 };
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
@@ -29,6 +30,7 @@ struct ControlledLibraryHomePort {
     recovery_origins: Vec<String>,
     recoveries: Vec<RecoveryLibraryNight>,
     detected_sports: Vec<DetectedTrainingSport>,
+    unified_relationships: Vec<UnifiedSportRelationship>,
     outcome: Option<ImportOutcome>,
     workspace: Mutex<Option<StoredExplorationWorkspace>>,
     revision_reads: Mutex<VecDeque<String>>,
@@ -198,9 +200,13 @@ impl TrainingSessionDiscoveryPort for ControlledLibraryHomePort {
 }
 
 impl TrainingSportsPort for ControlledLibraryHomePort {
-    fn query_detected_training_sports(&self) -> Result<Vec<DetectedTrainingSport>, String> {
+    fn query_training_sports_state(&self) -> Result<PersistedTrainingSportsState, String> {
         if !self.detected_sports.is_empty() {
-            return Ok(self.detected_sports.clone());
+            return Ok(PersistedTrainingSportsState {
+                snapshot_ref: TRAINING_SNAPSHOT.to_owned(),
+                detected_sports: self.detected_sports.clone(),
+                unified_relationships: self.unified_relationships.clone(),
+            });
         }
         let mut by_origin = BTreeMap::<String, Vec<&TrainingSession>>::new();
         for session in &self.sessions {
@@ -209,7 +215,7 @@ impl TrainingSportsPort for ControlledLibraryHomePort {
                 .or_default()
                 .push(session);
         }
-        Ok(by_origin
+        let detected_sports = by_origin
             .into_iter()
             .enumerate()
             .map(|(index, (origin_id, sessions))| DetectedTrainingSport {
@@ -245,14 +251,12 @@ impl TrainingSportsPort for ControlledLibraryHomePort {
                     })
                     .count(),
             })
-            .collect())
-    }
-
-    fn find_detected_training_sport(
-        &self,
-        _sport_ref: &str,
-    ) -> Result<Option<DetectedTrainingSport>, String> {
-        panic!("the library home never resolves an editable sport")
+            .collect();
+        Ok(PersistedTrainingSportsState {
+            snapshot_ref: TRAINING_SNAPSHOT.to_owned(),
+            detected_sports,
+            unified_relationships: self.unified_relationships.clone(),
+        })
     }
 
     fn compare_and_save_sport_classification(
@@ -261,6 +265,25 @@ impl TrainingSportsPort for ControlledLibraryHomePort {
         _classification: &SportClassification,
     ) -> Result<bool, String> {
         panic!("the library home never saves sport meaning")
+    }
+
+    fn compare_and_save_unified_sport_relationship(
+        &self,
+        _expected_snapshot_ref: &str,
+        _expected_revision: u64,
+        _relationship: &UnifiedSportRelationship,
+        _members: &[TrainingSportCollectionExpectation],
+    ) -> Result<bool, String> {
+        panic!("the library home never saves sport unification")
+    }
+
+    fn compare_and_remove_unified_sport_relationship(
+        &self,
+        _expected_snapshot_ref: &str,
+        _relationship_ref: &str,
+        _expected_revision: u64,
+    ) -> Result<bool, String> {
+        panic!("the library home never removes sport unification")
     }
 }
 
@@ -720,6 +743,7 @@ fn representative_port() -> ControlledLibraryHomePort {
         recovery_origins: vec!["origin-b".to_owned()],
         recoveries: vec![recovery("2026-01-06")],
         detected_sports: Vec::new(),
+        unified_relationships: Vec::new(),
         outcome: Some(completed_outcome("operation-accepted")),
         workspace: Mutex::new(Some(StoredExplorationWorkspace {
             version: 1,
@@ -943,7 +967,7 @@ fn composes_recognizable_complete_training_identity_and_one_recent_comparison() 
     let home = query_library_home(&representative_port(), LibraryHomeRequest::default())
         .expect("recognizable library home");
 
-    assert_eq!(home.version, 7);
+    assert_eq!(home.version, 8);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     let training = home.training.expect("complete training identity");
     assert_eq!(training.training_snapshot_ref, TRAINING_SNAPSHOT);
@@ -1049,7 +1073,7 @@ fn preserves_each_unknown_profile_as_a_distinct_safe_home_identity() {
         .expect("distinct unresolved Home sports");
     let training = home.training.expect("training identity");
 
-    assert_eq!(home.version, 7);
+    assert_eq!(home.version, 8);
     assert_eq!(training.sport_collection_count, 4);
     assert_eq!(training.sports.len(), 4);
     assert_eq!(training.omitted_sport_collection_count, 0);
@@ -1143,6 +1167,37 @@ fn combines_personally_identical_profiles_without_using_hidden_recognition_as_id
             .collect::<BTreeSet<_>>(),
         BTreeSet::from(["Road running", "Trail running"])
     );
+}
+
+#[test]
+fn routes_a_unified_home_sport_through_every_underlying_session_collection() {
+    let mut port = representative_port();
+    let recognized = recognized_detected_sport(0, 1);
+    let unresolved = unknown_detected_sport(1, 1);
+    let relationship = author_unified_sport_relationship(
+        &recognized.session_filter_ref,
+        vec![
+            recognized.session_filter_ref.clone(),
+            unresolved.session_filter_ref.clone(),
+        ],
+    )
+    .expect("controlled unified sport relationship");
+    port.detected_sports = vec![recognized.clone(), unresolved.clone()];
+    port.unified_relationships = vec![relationship];
+
+    let training = query_library_home(&port, LibraryHomeRequest::default())
+        .expect("unified Home sport")
+        .training
+        .expect("training identity");
+
+    assert_eq!(training.sports.len(), 1);
+    assert_eq!(training.sports[0].represented_collection_count, 2);
+    assert_eq!(training.sports[0].session_count, 2);
+    assert_eq!(
+        training.sports[0].session_filter_refs,
+        [recognized.session_filter_ref, unresolved.session_filter_ref,]
+    );
+    assert_eq!(training.sports[0].state, TrainingSportState::Recognized);
 }
 
 #[test]
@@ -1397,15 +1452,12 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
     }
 
     impl TrainingSportsPort for EmptyPort {
-        fn query_detected_training_sports(&self) -> Result<Vec<DetectedTrainingSport>, String> {
-            Ok(Vec::new())
-        }
-
-        fn find_detected_training_sport(
-            &self,
-            _sport_ref: &str,
-        ) -> Result<Option<DetectedTrainingSport>, String> {
-            panic!("the library home never resolves an editable sport")
+        fn query_training_sports_state(&self) -> Result<PersistedTrainingSportsState, String> {
+            Ok(PersistedTrainingSportsState {
+                snapshot_ref: TRAINING_SNAPSHOT.to_owned(),
+                detected_sports: Vec::new(),
+                unified_relationships: Vec::new(),
+            })
         }
 
         fn compare_and_save_sport_classification(
@@ -1414,6 +1466,25 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
             _classification: &SportClassification,
         ) -> Result<bool, String> {
             panic!("the library home never saves sport meaning")
+        }
+
+        fn compare_and_save_unified_sport_relationship(
+            &self,
+            _expected_snapshot_ref: &str,
+            _expected_revision: u64,
+            _relationship: &UnifiedSportRelationship,
+            _members: &[TrainingSportCollectionExpectation],
+        ) -> Result<bool, String> {
+            panic!("the library home never saves sport unification")
+        }
+
+        fn compare_and_remove_unified_sport_relationship(
+            &self,
+            _expected_snapshot_ref: &str,
+            _relationship_ref: &str,
+            _expected_revision: u64,
+        ) -> Result<bool, String> {
+            panic!("the library home never removes sport unification")
         }
     }
 
@@ -1501,7 +1572,7 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
     let home = query_library_home(&EmptyPort, LibraryHomeRequest::default()).expect("empty home");
 
-    assert_eq!(home.version, 7);
+    assert_eq!(home.version, 8);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     assert_eq!(home.recorded_range, None);
     assert_eq!(home.usable_range, None);

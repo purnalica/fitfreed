@@ -6,6 +6,7 @@ import { commandErrorCode } from "./command-error";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { SportClassificationTask } from "./SportClassificationTask";
 import { SportFamilyIcon } from "./SportFamilyIcon";
+import { SportUnificationTask } from "./SportUnificationTask";
 import {
   formatSummaryDuration,
   integerCountFormatter,
@@ -14,6 +15,7 @@ import {
 } from "./presentation-format";
 import {
   type SavedTrainingSportClassification,
+  type SavedUnifiedSportRelationship,
   resolvedSportName,
   sportCanonicalFamily,
   type TrainingSportClassificationChange,
@@ -33,6 +35,7 @@ interface TrainingSportsPanelProps {
   classificationChange?: TrainingSportClassificationChange;
   onError: (code: string | undefined) => void;
   onChange?: (result: SavedTrainingSportClassification) => void;
+  onUnificationChange?: (result: SavedUnifiedSportRelationship) => void;
   onOpenSessions?: (sport: TrainingSport) => void;
 }
 
@@ -73,16 +76,20 @@ export function TrainingSportsPanel({
   classificationChange,
   onError,
   onChange,
+  onUnificationChange,
   onOpenSessions = () => undefined,
 }: TrainingSportsPanelProps) {
   const [overview, setOverview] = useState<TrainingSportsOverview>();
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [editingSessionFilterRef, setEditingSessionFilterRef] = useState<string>();
+  const [unifyingSessionFilterRef, setUnifyingSessionFilterRef] = useState<string>();
   const [taskBusy, setTaskBusy] = useState(false);
   const [status, setStatus] = useState<string>();
   const actionRefs = useRef(new Map<string, HTMLButtonElement>());
   const sessionActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const unificationActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const unificationReturnRef = useRef<string | undefined>(undefined);
   const returnFocusIdentity = useRef<{
     sessionFilterRef: string;
     sportRef?: string;
@@ -102,6 +109,7 @@ export function TrainingSportsPanel({
     setLoading(true);
     setFailed(false);
     setEditingSessionFilterRef(undefined);
+    setUnifyingSessionFilterRef(undefined);
     setStatus(undefined);
     invoke<TrainingSportsOverview>("query_training_sports")
       .then((result) => {
@@ -156,17 +164,46 @@ export function TrainingSportsPanel({
   }, [sessionReturnFocus]);
 
   function titleFor(sport: TrainingSport): string {
-    const unknownSports = overview?.sports.filter((candidate) =>
+    const unknownSports = overview?.sportCollections.filter((candidate) =>
       candidate.state === sport.state
     ) ?? [];
-    const unknownIndex = Math.max(unknownSports.indexOf(sport) + 1, 1);
+    const unknownIndex = Math.max(unknownSports.findIndex(
+      (candidate) => candidate.sessionFilterRef === sport.sessionFilterRef,
+    ) + 1, 1);
     return sportTitle(sport, unknownIndex, copy, locale);
   }
 
   function beginEditing(sport: TrainingSport) {
     if (!sport.sportRef) return;
+    setUnifyingSessionFilterRef(undefined);
     setEditingSessionFilterRef(sport.sessionFilterRef);
     setStatus(undefined);
+  }
+
+  function beginUnification(sport: TrainingSport) {
+    setEditingSessionFilterRef(undefined);
+    setUnifyingSessionFilterRef(sport.sessionFilterRef);
+    setStatus(undefined);
+  }
+
+  function finishUnification(sessionFilterRef: string) {
+    unificationReturnRef.current = sessionFilterRef;
+    setUnifyingSessionFilterRef(undefined);
+  }
+
+  function unificationSaved(
+    sessionFilterRef: string,
+    result: SavedUnifiedSportRelationship,
+  ) {
+    setOverview(result.overview);
+    setFailed(false);
+    setStatus(result.outcome === "removed"
+      ? copy.unification.removed
+      : result.outcome === "changed"
+      ? copy.unification.saved
+      : copy.unification.unchanged);
+    finishUnification(sessionFilterRef);
+    onUnificationChange?.(result);
   }
 
   function finishEditing(sessionFilterRef: string, sportRef?: string) {
@@ -201,6 +238,21 @@ export function TrainingSportsPanel({
     );
   }, [editingSessionFilterRef, overview]);
 
+  useEffect(() => {
+    if (unifyingSessionFilterRef !== undefined || unificationReturnRef.current === undefined) {
+      return;
+    }
+    const previousRef = unificationReturnRef.current;
+    unificationReturnRef.current = undefined;
+    const current = overview?.sports.find((candidate) =>
+      candidate.sessionFilterRef === previousRef
+      || candidate.memberSessionFilterRefs.includes(previousRef)
+    );
+    return restoreFocusAfterReveal(
+      current ? unificationActionRefs.current.get(current.sessionFilterRef) ?? null : null,
+    );
+  }, [overview, unifyingSessionFilterRef]);
+
   const summary = overview && interpolate(
     copy.summary[plural.select(overview.sports.length) === "one" ? "one" : "other"],
     {
@@ -231,10 +283,23 @@ export function TrainingSportsPanel({
       ) : overview.sports.length === 0 ? (
         <p>{copy.empty}</p>
       ) : (
+        <>
+        {overview.unificationReviews.map((review) => (
+          <p
+            className="notice training-sport-unification-review"
+            role="alert"
+            key={review.relationship.relationshipRef}
+          >
+            {review.reason === "missing-member"
+              ? copy.unification.reviewMissing
+              : copy.unification.reviewPrimary}
+          </p>
+        ))}
         <ul className="training-sport-list">
           {overview.sports.map((sport, index) => {
             const title = titleFor(sport);
             const editing = editingSessionFilterRef === sport.sessionFilterRef;
+            const unifying = unifyingSessionFilterRef === sport.sessionFilterRef;
             const sessionTemplate = copy.sessions[
               plural.select(sport.coverage.sessionCount) === "one" ? "one" : "other"
             ];
@@ -243,6 +308,7 @@ export function TrainingSportsPanel({
                 key={sport.sessionFilterRef}
                 data-state={sport.state}
                 data-sport-family={sportCanonicalFamily(sport) ?? sport.state}
+                data-editor-open={editing || unifying ? "true" : undefined}
               >
                 <div className="training-sport-card-heading">
                   <div className="training-sport-identity">
@@ -280,7 +346,7 @@ export function TrainingSportsPanel({
                     >
                       {copy.viewSessions}
                     </button>
-                    {sport.state !== "unavailable" && sport.sportRef && !editing && (
+                    {sport.state !== "unavailable" && sport.sportRef && !editing && !unifying && (
                       <button
                         type="button"
                         className="secondary training-sport-classify"
@@ -297,6 +363,23 @@ export function TrainingSportsPanel({
                         {sport.state === "personally-overridden" ? copy.editNamed : copy.edit}
                       </button>
                     )}
+                    {overview.sportCollections.length > 1 && !editing && !unifying && (
+                      <button
+                        type="button"
+                        className="secondary training-sport-unify"
+                        ref={(element) => {
+                          if (element) {
+                            unificationActionRefs.current.set(sport.sessionFilterRef, element);
+                          } else {
+                            unificationActionRefs.current.delete(sport.sessionFilterRef);
+                          }
+                        }}
+                        disabled={taskBusy}
+                        onClick={() => beginUnification(sport)}
+                      >
+                        {sport.unification ? copy.unification.edit : copy.unification.combine}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -307,6 +390,13 @@ export function TrainingSportsPanel({
                 {sport.state === "ambiguous" && <p>{copy.ambiguousExplanation}</p>}
                 {sport.state === "unknown" && <p>{copy.unknownExplanation}</p>}
                 {sport.state === "unavailable" && <p>{copy.notRecordedExplanation}</p>}
+                {sport.unification && (
+                  <p className="training-sport-authorship">
+                    {interpolate(copy.unification.label, {
+                      count: number.format(sport.memberSessionFilterRefs.length),
+                    })}
+                  </p>
+                )}
 
                 <dl className="training-sport-coverage">
                   <div>
@@ -358,10 +448,28 @@ export function TrainingSportsPanel({
                     )}
                   />
                 )}
+                {unifying && (
+                  <SportUnificationTask
+                    overview={overview}
+                    sport={sport}
+                    messages={copy.unification}
+                    locale={locale}
+                    titleFor={titleFor}
+                    onCancel={() => finishUnification(sport.sessionFilterRef)}
+                    onBusyChange={setTaskBusy}
+                    onError={onError}
+                    onOverviewChange={(nextOverview) => {
+                      setOverview(nextOverview);
+                      setFailed(false);
+                    }}
+                    onSaved={(result) => unificationSaved(sport.sessionFilterRef, result)}
+                  />
+                )}
               </li>
             );
           })}
         </ul>
+        </>
       )}
       {status && <p className="training-sports-status" role="status">{status}</p>}
     </section>

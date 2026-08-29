@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-sports-v5.schema.json",
+  "title": "FitFreed training sports version 5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotRef",
+    "originCount",
+    "sessionCount",
+    "sports",
+    "sportCollections",
+    "unificationReviews"
+  ],
+  "properties": {
+    "snapshotRef": {
+      "type": "string",
+      "pattern": "^training-snapshot-[0-9a-f]{64}$"
+    },
+    "originCount": { "type": "integer", "minimum": 0 },
+    "sessionCount": { "type": "integer", "minimum": 0 },
+    "sports": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sport" }
+    },
+    "sportCollections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/baseSport" }
+    },
+    "unificationReviews": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unificationReview" }
+    }
+  },
+  "$defs": {
+    "sportFilterRef": {
+      "type": "string",
+      "pattern": "^sport-[0-9a-f]{64}$"
+    },
+    "relationshipRef": {
+      "type": "string",
+      "pattern": "^unified:sport-[0-9a-f]{64}$"
+    },
+    "unification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationshipRef",
+        "primarySessionFilterRef",
+        "memberSessionFilterRefs",
+        "authorship",
+        "revision"
+      ],
+      "properties": {
+        "relationshipRef": { "$ref": "#/$defs/relationshipRef" },
+        "primarySessionFilterRef": { "$ref": "#/$defs/sportFilterRef" },
+        "memberSessionFilterRefs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sportFilterRef" }
+        },
+        "authorship": { "const": "user" },
+        "revision": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "unificationReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationship",
+        "reason",
+        "missingMemberSessionFilterRefs"
+      ],
+      "properties": {
+        "relationship": { "$ref": "#/$defs/unification" },
+        "reason": { "enum": ["missing-member", "unusable-primary"] },
+        "missingMemberSessionFilterRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sportFilterRef" }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "reason": { "const": "missing-member" },
+            "missingMemberSessionFilterRefs": { "type": "array", "minItems": 1 }
+          }
+        },
+        {
+          "properties": {
+            "reason": { "const": "unusable-primary" },
+            "missingMemberSessionFilterRefs": { "type": "array", "maxItems": 0 }
+          }
+        }
+      ]
+    },
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "unsignedDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionCount",
+        "totalDurationMilliseconds",
+        "distanceSessionCount",
+        "heartRateSessionCount"
+      ],
+      "properties": {
+        "sessionCount": { "type": "integer", "minimum": 1 },
+        "totalDurationMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "distanceSessionCount": { "type": "integer", "minimum": 0 },
+        "heartRateSessionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionFilterRef",
+        "memberSessionFilterRefs",
+        "sportRef",
+        "sourceIndex",
+        "state",
+        "classification",
+        "recognition",
+        "recognitionCandidateCount",
+        "unification",
+        "firstLocalDate",
+        "lastLocalDate",
+        "coverage"
+      ],
+      "properties": {
+        "sessionFilterRef": {
+          "oneOf": [
+            { "$ref": "#/$defs/sportFilterRef" },
+            { "$ref": "#/$defs/relationshipRef" }
+          ]
+        },
+        "memberSessionFilterRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sportFilterRef" }
+        },
+        "sportRef": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "training-sport-identity-v3.schema.json#/$defs/sportRef" }
+          ]
+        },
+        "sourceIndex": { "type": "integer", "minimum": 1 },
+        "state": {
+          "enum": [
+            "recognized",
+            "ambiguous",
+            "unknown",
+            "personally-overridden",
+            "unavailable"
+          ]
+        },
+        "classification": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "training-sport-identity-v3.schema.json#/$defs/unresolvedClassification" },
+            { "$ref": "training-sport-identity-v3.schema.json#/$defs/personalClassification" }
+          ]
+        },
+        "recognition": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "training-sport-identity-v3.schema.json#/$defs/recognition" }
+          ]
+        },
+        "recognitionCandidateCount": { "type": "integer", "minimum": 0 },
+        "unification": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/unification" }
+          ]
+        },
+        "firstLocalDate": { "$ref": "#/$defs/localDate" },
+        "lastLocalDate": { "$ref": "#/$defs/localDate" },
+        "coverage": { "$ref": "#/$defs/coverage" }
+      },
+      "allOf": [{
+        "oneOf": [
+          {
+            "properties": {
+              "sessionFilterRef": { "$ref": "#/$defs/sportFilterRef" },
+              "memberSessionFilterRefs": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "unification": { "type": "null" }
+            }
+          },
+          {
+            "properties": {
+              "sessionFilterRef": { "$ref": "#/$defs/relationshipRef" },
+              "memberSessionFilterRefs": { "type": "array", "minItems": 2 },
+              "unification": { "$ref": "#/$defs/unification" }
+            }
+          }
+        ]
+      }],
+      "oneOf": [
+        {
+          "properties": {
+            "sportRef": { "$ref": "training-sport-identity-v3.schema.json#/$defs/optionalSportRef" },
+            "state": { "const": "recognized" },
+            "classification": {
+              "oneOf": [
+                { "type": "null" },
+                { "$ref": "training-sport-identity-v3.schema.json#/$defs/unresolvedClassification" }
+              ]
+            },
+            "recognition": { "$ref": "training-sport-identity-v3.schema.json#/$defs/recognition" },
+            "recognitionCandidateCount": { "const": 1 }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "sportRef": { "$ref": "training-sport-identity-v3.schema.json#/$defs/sportRef" },
+                "classification": { "$ref": "training-sport-identity-v3.schema.json#/$defs/unresolvedClassification" }
+              }
+            },
+            {
+              "properties": {
+                "sportRef": { "type": "null" },
+                "classification": { "type": "null" }
+              }
+            }
+          ]
+        },
+        {
+          "properties": {
+            "sportRef": { "$ref": "training-sport-identity-v3.schema.json#/$defs/optionalSportRef" },
+            "state": { "const": "ambiguous" },
+            "classification": {
+              "oneOf": [
+                { "type": "null" },
+                { "$ref": "training-sport-identity-v3.schema.json#/$defs/unresolvedClassification" }
+              ]
+            },
+            "recognition": { "type": "null" },
+            "recognitionCandidateCount": { "type": "integer", "minimum": 2 }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "sportRef": { "$ref": "training-sport-identity-v3.schema.json#/$defs/sportRef" },
+                "classification": { "$ref": "training-sport-identity-v3.schema.json#/$defs/unresolvedClassification" }
+              }
+            },
+            {
+              "properties": {
+                "sportRef": { "type": "null" },
+                "classification": { "type": "null" }
+              }
+            }
+          ]
+        },
+        {
+          "properties": {
+            "sportRef": { "$ref": "training-sport-identity-v3.schema.json#/$defs/sportRef" },
+            "state": { "const": "unknown" },
+            "classification": { "$ref": "training-sport-identity-v3.schema.json#/$defs/unresolvedClassification" },
+            "recognition": { "type": "null" },
+            "recognitionCandidateCount": { "const": 0 }
+          }
+        },
+        {
+          "properties": {
+            "sportRef": { "$ref": "training-sport-identity-v3.schema.json#/$defs/sportRef" },
+            "state": { "const": "personally-overridden" },
+            "classification": { "$ref": "training-sport-identity-v3.schema.json#/$defs/personalClassification" }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "recognition": { "type": "null" },
+                "recognitionCandidateCount": { "const": 0 }
+              }
+            },
+            {
+              "properties": {
+                "recognition": { "$ref": "training-sport-identity-v3.schema.json#/$defs/recognition" },
+                "recognitionCandidateCount": { "const": 1 }
+              }
+            },
+            {
+              "properties": {
+                "recognition": { "type": "null" },
+                "recognitionCandidateCount": { "type": "integer", "minimum": 2 }
+              }
+            }
+          ]
+        },
+        {
+          "properties": {
+            "sportRef": { "type": "null" },
+            "state": { "const": "unavailable" },
+            "classification": { "type": "null" },
+            "recognition": { "type": "null" },
+            "recognitionCandidateCount": { "const": 0 }
+          }
+        }
+      ]
+    },
+    "baseSport": {
+      "allOf": [
+        { "$ref": "#/$defs/sport" },
+        {
+          "type": "object",
+          "properties": {
+            "sessionFilterRef": { "$ref": "#/$defs/sportFilterRef" },
+            "memberSessionFilterRefs": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "unification": { "type": "null" }
+          }
+        }
+      ]
+    }
+  }
+}

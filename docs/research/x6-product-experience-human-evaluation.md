@@ -337,8 +337,11 @@ product owner.
   meaning in the provider account. Distinct exact codes associated with one opaque profile also resolved to the same
   provider-visible meaning, so code plurality alone did not establish semantic ambiguity. An unresolved-only profile
   again had stable visible meaning in this library. Conversely, a completed session with no usable sport evidence in
-  the export still had a sport in the provider account. The repository retains no selected date, sport, source code,
-  source profile, session count, device, target, account value, or other personal evidence.
+  the export still had a sport in the provider account. The participant evidence also confirmed that one local start
+  can identify several distinct sessions. Local start is therefore only a candidate relationship key after uniqueness
+  has been established inside the same origin; sport, target, and device details cannot be used as tie-breakers. The
+  repository retains no selected date, sport, source code, source profile, session count, device, target, account
+  value, or other personal evidence.
 - **Structural decision from the gate:** the observation supports a deliberate local relationship between represented
   FitFreed sport collections, but it does not authorize an automatic global mapping or a bundled provider catalogue.
   Exact recognition, unresolved fallback classification, and explicit user-authored unification remain separate

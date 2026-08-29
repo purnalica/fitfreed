@@ -93,6 +93,7 @@ export default function EChartsAnalyticalChart({
       aria-label={model.accessibleName}
       aria-describedby={descriptionId}
       data-chart-renderer={model.renderer}
+      data-chart-zoom={String(model.interaction.zoom)}
     >
       <span id={descriptionId} className="sr-only">{model.accessibleDescription}</span>
       <div

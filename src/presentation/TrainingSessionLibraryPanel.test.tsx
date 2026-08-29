@@ -182,11 +182,13 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
 }
 
 const sports: TrainingSportsOverview = {
+  snapshotRef: `training-snapshot-${"0".repeat(64)}`,
   originCount: 2,
   sessionCount: 26,
   sports: [
     {
       sessionFilterRef: `sport-${"1".repeat(64)}`,
+      memberSessionFilterRefs: [`sport-${"1".repeat(64)}`],
       sportRef: `sport-${"c".repeat(64)}`,
       sourceIndex: 1,
       state: "personally-overridden",
@@ -199,6 +201,7 @@ const sports: TrainingSportsOverview = {
       },
       recognition: null,
       recognitionCandidateCount: 0,
+      unification: null,
       firstLocalDate: "2024-01-01",
       lastLocalDate: "2026-08-18",
       coverage: {
@@ -210,6 +213,7 @@ const sports: TrainingSportsOverview = {
     },
     {
       sessionFilterRef: `sport-${"2".repeat(64)}`,
+      memberSessionFilterRefs: [`sport-${"2".repeat(64)}`],
       sportRef: `sport-${"d".repeat(64)}`,
       sourceIndex: 2,
       state: "unknown",
@@ -222,6 +226,7 @@ const sports: TrainingSportsOverview = {
       },
       recognition: null,
       recognitionCandidateCount: 0,
+      unification: null,
       firstLocalDate: "2025-01-01",
       lastLocalDate: "2026-01-01",
       coverage: {
@@ -232,6 +237,37 @@ const sports: TrainingSportsOverview = {
       },
     },
   ],
+  sportCollections: [],
+  unificationReviews: [],
+};
+
+sports.sportCollections = [...sports.sports];
+
+const unifiedRelationshipRef = `unified-sport-${"7".repeat(64)}`;
+const unifiedSports: TrainingSportsOverview = {
+  ...sports,
+  sports: [{
+    ...sports.sports[0],
+    sessionFilterRef: unifiedRelationshipRef,
+    memberSessionFilterRefs: sports.sportCollections.map(
+      (sport) => sport.sessionFilterRef,
+    ),
+    unification: {
+      relationshipRef: unifiedRelationshipRef,
+      primarySessionFilterRef: sports.sports[0].sessionFilterRef,
+      memberSessionFilterRefs: sports.sportCollections.map(
+        (sport) => sport.sessionFilterRef,
+      ),
+      authorship: "user",
+      revision: 1,
+    },
+    coverage: {
+      sessionCount: 26,
+      totalDurationMilliseconds: "91800000",
+      distanceSessionCount: 24,
+      heartRateSessionCount: 23,
+    },
+  }],
 };
 
 function session(
@@ -1157,6 +1193,51 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(screen.getByRole("button", { name: "Back to sports" }));
     expect(onReturnToSports).toHaveBeenCalledWith(sports.sports[0].sessionFilterRef);
     expect(screen.getByText("26 matching sessions")).toBeVisible();
+  });
+
+  it("filters and clears a unified sport through every underlying collection", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(unifiedSports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    await user.click(within(refinements).getByText("Refine sessions"));
+    const form = within(refinements).getByRole("form", { name: "Filter sessions" });
+    const sport = within(form).getByRole("checkbox", { name: "Trail running" });
+
+    await user.click(sport);
+    expect(sport).toBeChecked();
+    await user.click(within(form).getByRole("button", { name: "Apply filters" }));
+
+    const applied = within(region).getByRole("region", { name: "Applied refinements" });
+    const remove = await within(applied).findByRole("button", {
+      name: "Remove Sport: Trail running",
+    });
+    expect(mocks.invoke).toHaveBeenLastCalledWith("query_training_sessions", {
+      request: expect.objectContaining({
+        sportRefs: unifiedSports.sports[0].memberSessionFilterRefs,
+        snapshotRef: null,
+      }),
+    });
+
+    await user.click(remove);
+    expect(sport).not.toBeChecked();
+    expect(within(applied).queryByText("Sport: Trail running")).not.toBeInTheDocument();
+    expect(mocks.invoke).toHaveBeenLastCalledWith("query_training_sessions", {
+      request: expect.objectContaining({
+        sportRefs: [],
+        snapshotRef: null,
+      }),
+    });
   });
 
   it("names one unresolved sport in context through the shared classification task", async () => {

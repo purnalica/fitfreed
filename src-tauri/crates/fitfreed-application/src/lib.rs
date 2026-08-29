@@ -94,11 +94,16 @@ mod reporting_tests;
 
 mod sport_discovery;
 pub use sport_discovery::{
-    query_training_sports, resolve_training_session_sport, save_training_sport_classification,
-    DetectedTrainingSport, SaveSportClassificationRequest, SavedTrainingSportClassification,
+    query_training_sports, remove_unified_sport_relationship, resolve_training_session_sport,
+    save_training_sport_classification, save_unified_sport_relationship, DetectedTrainingSport,
+    PersistedTrainingSportsState, RemoveUnifiedSportRelationshipRequest,
+    SaveSportClassificationRequest, SaveUnifiedSportRelationshipRequest,
+    SavedTrainingSportClassification, SavedUnifiedSportRelationship,
     SportClassificationSaveOutcome, TrainingSport, TrainingSportClassification,
-    TrainingSportClassificationScope, TrainingSportCoverage, TrainingSportRecognition,
-    TrainingSportState, TrainingSportsOverview, TrainingSportsPort,
+    TrainingSportClassificationScope, TrainingSportCollectionExpectation, TrainingSportCoverage,
+    TrainingSportRecognition, TrainingSportState, TrainingSportUnification,
+    TrainingSportUnificationReview, TrainingSportUnificationReviewReason, TrainingSportsOverview,
+    TrainingSportsPort, UnifiedSportRelationshipSaveOutcome,
 };
 
 mod training_discovery;
@@ -1615,6 +1620,12 @@ pub enum ApplicationError {
     SportClassificationQuery(String),
     #[error("sport classification update failed: {0}")]
     SportClassificationUpdate(String),
+    #[error("invalid sport unification: {0}")]
+    InvalidSportUnification(&'static str),
+    #[error("sport unification changed while it was being edited")]
+    SportUnificationConflict,
+    #[error("sport unification update failed: {0}")]
+    SportUnificationUpdate(String),
     #[error("invalid sleep range: {0}")]
     InvalidSleepRange(&'static str),
     #[error("invalid sleep reference: {0}")]

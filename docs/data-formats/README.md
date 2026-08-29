@@ -104,7 +104,8 @@ Directories are created with their first real contract; empty specifications are
 - [Training sport identity version 3](insights/training-sport-identity-v3.md)
 - [Training sport identity version 2](insights/training-sport-identity-v2.md) — preceding contract
 - [Training sport identity version 1](insights/training-sport-identity-v1.md) — preceding contract
-- [Training sports read model version 4](insights/training-sports-v4.md)
+- [Training sports read model version 5](insights/training-sports-v5.md)
+- [Training sports read model version 4](insights/training-sports-v4.md) — preceding contract
 - [Training sports read model version 3](insights/training-sports-v3.md) — preceding contract
 - [Training sports read model version 2](insights/training-sports-v2.md) — preceding contract
 - [Training sports read model version 1](insights/training-sports-v1.md) — preceding contract
@@ -158,7 +159,8 @@ Directories are created with their first real contract; empty specifications are
 - [Nightly recovery overview and detail read model version 1](insights/nightly-recovery-overview-v1.md)
 - [Nightly recovery comparison read model version 1](insights/nightly-recovery-comparison-v1.md)
 - [Longitudinal overview and comparison read model version 1](insights/longitudinal-overview-v1.md)
-- [Library Home read model version 7](insights/library-home-v7.md)
+- [Library Home read model version 8](insights/library-home-v8.md)
+- [Library Home read model version 7](insights/library-home-v7.md) — preceding contract
 - [Library Home read model version 6](insights/library-home-v6.md) — preceding contract
 - [Library Home read model version 5](insights/library-home-v5.md) — preceding contract
 - [Library Home read model version 4](insights/library-home-v4.md) — preceding contract
@@ -206,7 +208,8 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 25](persistence/sqlite-v25.md)
 - [SQLite schema version 26](persistence/sqlite-v26.md)
 - [SQLite schema version 27](persistence/sqlite-v27.md)
-- [SQLite schema version 35](persistence/sqlite-v35.md)
+- [SQLite schema version 36](persistence/sqlite-v36.md)
+- [SQLite schema version 35](persistence/sqlite-v35.md) — preceding schema
 - [SQLite schema version 34](persistence/sqlite-v34.md) — preceding schema
 - [SQLite schema version 33](persistence/sqlite-v33.md) — preceding schema
 - [SQLite schema version 32](persistence/sqlite-v32.md) — preceding schema

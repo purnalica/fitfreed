@@ -297,7 +297,8 @@ being guessed or rounded.
 
 A completed target can have a narrower relationship: its normalized local `startTime` may equal one current
 session's `startTime` in the same resolved source subject. FitFreed accepts that relationship only when exactly one
-session matches. An incomplete target, no match, or multiple session matches contributes no sport candidate.
+session matches. Evaluated exports can contain several distinct sessions with the same local `startTime`, so the value
+is not a unique session identifier. An incomplete target, no match, or multiple session matches contributes no sport candidate.
 Distinct codes on one exact target remain ambiguous. This does not establish a global code-to-`sport.id` mapping,
 and it never labels other sessions that share the same opaque value.
 

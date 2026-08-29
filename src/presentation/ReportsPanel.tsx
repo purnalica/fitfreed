@@ -466,10 +466,6 @@ export function ReportsPanel({
     : copy.examples.subjects;
 
   useEffect(() => {
-    if (!resolved) setRunParameterDraft(undefined);
-  }, [resolved]);
-
-  useEffect(() => {
     const target = commentaryFocusRequestRef.current;
     if (!target) return;
     commentaryFocusRequestRef.current = undefined;
@@ -685,6 +681,7 @@ export function ReportsPanel({
 
   function resetTransientReportState() {
     setResolved(undefined);
+    setRunParameterDraft(undefined);
     setLocalError(undefined);
     setSavedNotice(false);
     setRefreshedNotice(false);
@@ -1130,6 +1127,7 @@ export function ReportsPanel({
     setDuplicatedNotice(undefined);
     setEditor(undefined);
     setResolved(undefined);
+    setRunParameterDraft(undefined);
     const report = await resolveReport(reportRef);
     if (!report) setWorkspace("library");
     return report;
@@ -1236,6 +1234,7 @@ export function ReportsPanel({
       });
       setDeleteReviewOpen(false);
       setResolved(undefined);
+      setRunParameterDraft(undefined);
       setEditor(undefined);
       setWorkspace("library");
       await refreshList();
@@ -1286,6 +1285,7 @@ export function ReportsPanel({
       const definition = await invoke<ReportDefinition>("refresh_report", { request });
       setEditor(editorFromDefinition(definition));
       setResolved(undefined);
+      setRunParameterDraft(undefined);
       setRefreshReviewOpen(false);
       await refreshList();
       const current = await resolveReport(definition.reportRef, transientRun);

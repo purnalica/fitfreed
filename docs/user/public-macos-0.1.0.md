@@ -89,7 +89,8 @@ The [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md
 Version 0.1.0 provides provider-neutral views for:
 
 - daily activity overview, range, exact day detail, and period comparison;
-- complete-history training sport discovery and user classification, combined filters, chronology,
+- complete-history training sport discovery, user classification, explicit reversible relationships between
+  represented sport collections, combined filters, chronology,
   source-separated calendar activity cards with direct year and exact-session navigation, multi-session comparison,
   exact session summary, exercise/lap/pause
   structure, an [interactive local primary/transition route workbench](session-routes.md) with map navigation,

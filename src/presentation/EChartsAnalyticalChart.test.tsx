@@ -104,6 +104,7 @@ describe("EChartsAnalyticalChart", () => {
 
     const host = screen.getByRole("img", { name: "Recorded heart rate" });
     expect(host).toHaveAttribute("data-chart-renderer", "svg");
+    expect(host).toHaveAttribute("data-chart-zoom", "false");
     expect(host).toHaveAccessibleDescription("Recorded heart rate with source gaps preserved.");
     const renderer = host.querySelector(".analytical-chart-renderer");
     expect(renderer).toHaveAttribute("aria-hidden", "true");
@@ -143,6 +144,7 @@ describe("EChartsAnalyticalChart", () => {
     const updated = {
       ...initial,
       annotations: { selectedCoordinate: 1_000 },
+      interaction: { ...initial.interaction, zoom: true },
     };
 
     rendered.rerender(
@@ -153,6 +155,8 @@ describe("EChartsAnalyticalChart", () => {
     expect(adapter.dispose).not.toHaveBeenCalled();
     expect(adapter.update).toHaveBeenCalledOnce();
     expect(adapter.update).toHaveBeenCalledWith(updated, onSelection);
+    expect(screen.getByRole("img", { name: "Recorded heart rate" }))
+      .toHaveAttribute("data-chart-zoom", "true");
   });
 
   it("waits for visible geometry before mounting the renderer", () => {

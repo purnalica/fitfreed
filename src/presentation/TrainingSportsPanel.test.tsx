@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { catalogs } from "../locales/catalogs";
 import type {
   SavedTrainingSportClassification,
+  SavedUnifiedSportRelationship,
   TrainingSport,
   TrainingSportsOverview,
 } from "./training-sports";
@@ -16,6 +17,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
 
 const unknownSport: TrainingSport = {
   sessionFilterRef: `sport-${"1".repeat(64)}`,
+  memberSessionFilterRefs: [`sport-${"1".repeat(64)}`],
   sportRef: "sport-local-unknown",
   sourceIndex: 2,
   state: "unknown",
@@ -28,6 +30,7 @@ const unknownSport: TrainingSport = {
   },
   recognition: null,
   recognitionCandidateCount: 0,
+  unification: null,
   firstLocalDate: "2024-01-02",
   lastLocalDate: "2026-08-17",
   coverage: {
@@ -40,6 +43,7 @@ const unknownSport: TrainingSport = {
 
 const classifiedSport: TrainingSport = {
   sessionFilterRef: `sport-${"2".repeat(64)}`,
+  memberSessionFilterRefs: [`sport-${"2".repeat(64)}`],
   sportRef: "sport-local-running",
   sourceIndex: 1,
   state: "personally-overridden",
@@ -52,6 +56,7 @@ const classifiedSport: TrainingSport = {
   },
   recognition: null,
   recognitionCandidateCount: 0,
+  unification: null,
   firstLocalDate: "2025-02-03",
   lastLocalDate: "2026-08-12",
   coverage: {
@@ -64,12 +69,14 @@ const classifiedSport: TrainingSport = {
 
 const unavailableSport: TrainingSport = {
   sessionFilterRef: `sport-${"3".repeat(64)}`,
+  memberSessionFilterRefs: [`sport-${"3".repeat(64)}`],
   sportRef: null,
   sourceIndex: 1,
   state: "unavailable",
   classification: null,
   recognition: null,
   recognitionCandidateCount: 0,
+  unification: null,
   firstLocalDate: "2026-03-04",
   lastLocalDate: "2026-03-04",
   coverage: {
@@ -83,6 +90,7 @@ const unavailableSport: TrainingSport = {
 const recognizedSport: TrainingSport = {
   ...unknownSport,
   sessionFilterRef: `sport-${"4".repeat(64)}`,
+  memberSessionFilterRefs: [`sport-${"4".repeat(64)}`],
   sportRef: "sport-local-kayaking",
   sourceIndex: 1,
   state: "recognized",
@@ -100,6 +108,7 @@ const recognizedSport: TrainingSport = {
 const ambiguousSport: TrainingSport = {
   ...unknownSport,
   sessionFilterRef: `sport-${"5".repeat(64)}`,
+  memberSessionFilterRefs: [`sport-${"5".repeat(64)}`],
   sportRef: "sport-local-ambiguous",
   sourceIndex: 1,
   state: "ambiguous",
@@ -108,9 +117,12 @@ const ambiguousSport: TrainingSport = {
 
 function overview(sports: TrainingSport[] = [classifiedSport, unknownSport, unavailableSport]): TrainingSportsOverview {
   return {
+    snapshotRef: `training-snapshot-${"a".repeat(64)}`,
     originCount: 2,
     sessionCount: sports.reduce((total, sport) => total + sport.coverage.sessionCount, 0),
     sports,
+    sportCollections: sports,
+    unificationReviews: [],
   };
 }
 
@@ -291,11 +303,13 @@ describe("TrainingSportsPanel", () => {
       name: "Name this sport",
     });
     await user.click(classifyAction);
+    expect(unknownCard).toHaveAttribute("data-editor-open", "true");
     let editor = within(unknownCard!).getByRole("form", { name: "Classify Unknown sport 1" });
     expect(within(editor).getByRole("button", { name: "Save sport classification" }))
       .toBeDisabled();
     await user.type(within(editor).getByLabelText("Your sport name"), "Discarded draft");
     await user.click(within(editor).getByRole("button", { name: "Cancel editing" }));
+    expect(unknownCard).not.toHaveAttribute("data-editor-open");
     expect(within(unknownCard!).queryByRole("form")).not.toBeInTheDocument();
     await waitFor(() => expect(within(unknownCard!).getByRole("button", {
       name: "Name this sport",
@@ -490,6 +504,7 @@ describe("TrainingSportsPanel", () => {
     const classified = {
       ...unknownSport,
       sessionFilterRef: `sport-${"9".repeat(64)}`,
+      memberSessionFilterRefs: [`sport-${"9".repeat(64)}`],
       state: "personally-overridden" as const,
       classification: {
         scope: "unresolved-source-profile" as const,
@@ -560,6 +575,73 @@ describe("TrainingSportsPanel", () => {
     act(() => completeReset({ outcome: "changed", overview: overview([resetSport]) }));
 
     expect(await screen.findByRole("heading", { name: "Unknown sport 1" })).toBeVisible();
+  });
+
+  it("combines represented groups only after an affected-session preview and keeps navigation actionable", async () => {
+    const initial = overview([recognizedSport, unknownSport]);
+    const relationshipRef = `unified:${recognizedSport.sessionFilterRef}`;
+    const combinedSport: TrainingSport = {
+      ...recognizedSport,
+      sessionFilterRef: relationshipRef,
+      memberSessionFilterRefs: [recognizedSport.sessionFilterRef, unknownSport.sessionFilterRef],
+      unification: {
+        relationshipRef,
+        primarySessionFilterRef: recognizedSport.sessionFilterRef,
+        memberSessionFilterRefs: [recognizedSport.sessionFilterRef, unknownSport.sessionFilterRef],
+        authorship: "user",
+        revision: 1,
+      },
+      coverage: {
+        sessionCount: 36,
+        totalDurationMilliseconds: "129600000",
+        distanceSessionCount: 24,
+        heartRateSessionCount: 32,
+      },
+    };
+    const savedOverview = {
+      ...overview([combinedSport]),
+      sportCollections: [recognizedSport, unknownSport],
+    };
+    const saved: SavedUnifiedSportRelationship = {
+      outcome: "changed",
+      overview: savedOverview,
+    };
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_sports") return Promise.resolve(initial);
+      if (command === "save_unified_sport_relationship") return Promise.resolve(saved);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onUnificationChange = vi.fn();
+    const onOpenSessions = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onError={vi.fn()}
+        onUnificationChange={onUnificationChange}
+        onOpenSessions={onOpenSessions}
+      />,
+    );
+
+    const recognizedCard = (await screen.findByRole("heading", { name: "Kayaking" }))
+      .closest("li")!;
+    await user.click(within(recognizedCard).getByRole("button", {
+      name: "Combine sport groups",
+    }));
+    expect(recognizedCard).toHaveAttribute("data-editor-open", "true");
+    await user.click(screen.getByRole("checkbox", { name: "Unknown sport 1 · 18 sessions" }));
+    expect(screen.getByText("2 groups will appear as one sport across 36 sessions.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Save combined sport" }));
+
+    expect(await screen.findByText("Combined by you from 2 groups")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Kayaking" }).closest("li"))
+      .not.toHaveAttribute("data-editor-open");
+    expect(screen.getByRole("status")).toHaveTextContent("Combined sport saved.");
+    expect(onUnificationChange).toHaveBeenCalledWith(saved);
+    await user.click(screen.getByRole("button", { name: "View sessions" }));
+    expect(onOpenSessions).toHaveBeenCalledWith(combinedSport);
   });
 
   it("distinguishes loading, empty, and failed discovery without inventing sports", async () => {

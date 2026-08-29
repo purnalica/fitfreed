@@ -41,6 +41,8 @@ All fields are explicit. A missing optional measurement maps to null; it never m
 - `durationMilliseconds`, distance, energy, heart-rate values, and `exerciseCount` cannot be negative.
 - When both heart-rate fields are present, `averageHeartRateBpm <= maximumHeartRateBpm`.
 - Calendar grouping uses the date component of `startedAtLocal` and never the current computer time zone.
+- Local start and stop values are temporal evidence, not session identity or an identity tie-breaker. Distinct
+  source sessions may legitimately share either value.
 - An absolute start instant exists only when `utcOffsetMinutes` is present. It is `startedAtLocal - utcOffsetMinutes`.
 - The declared duration is authoritative. It is never recalculated from the local timestamps.
 - `sportRef` may support exact same-source grouping but cannot be shown as a human sport name or equated with another provider's classification without a documented catalogue mapping.

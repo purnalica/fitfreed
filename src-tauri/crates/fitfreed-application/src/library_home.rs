@@ -13,7 +13,7 @@ use super::{
     TrainingSportsPort,
 };
 
-const LIBRARY_HOME_VERSION: u32 = 7;
+const LIBRARY_HOME_VERSION: u32 = 8;
 const RECENT_SESSION_LIMIT: usize = 4;
 const SPORT_SUMMARY_LIMIT: usize = 6;
 const COMPARISON_PERIOD_DAYS: u64 = 7;
@@ -479,7 +479,7 @@ where
     let training = LibraryHomeTraining {
         training_snapshot_ref: snapshot_ref.clone(),
         session_count: recent.total_count,
-        sport_collection_count: sports.sports.len(),
+        sport_collection_count: sports.sport_collections.len(),
         omitted_sport_collection_count: 0,
         sports: summarized_sports(&sports)?,
         recent_sessions: recent.sessions.into_iter().map(recent_session).collect(),
@@ -611,10 +611,10 @@ fn summarized_sports(
         }
         summary
             .session_filter_refs
-            .push(sport.session_filter_ref.clone());
+            .extend(sport.member_session_filter_refs.iter().cloned());
         summary.represented_collection_count = summary
             .represented_collection_count
-            .checked_add(1)
+            .checked_add(sport.member_session_filter_refs.len())
             .ok_or_else(|| {
                 ApplicationError::Query("Home sport collection count overflowed".to_owned())
             })?;

@@ -14,6 +14,7 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
     onSportClassificationChange: (result: unknown) => void;
     sportSessionsNavigation?: {
       sessionFilterRefs: string[];
+      returnSessionFilterRef?: string;
       returnWorkspace: "home" | "sports";
     };
     resetWorkspaceRequestId?: number;
@@ -48,7 +49,7 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
       <button
         type="button"
         onClick={() => properties.onReturnToSports(
-          properties.sportSessionsNavigation?.sessionFilterRefs[0] ?? "missing",
+          properties.sportSessionsNavigation?.returnSessionFilterRef ?? "missing",
         )}
       >
         Return to sports child
@@ -104,7 +105,10 @@ vi.mock("./TrainingSportsPanel", () => ({
       result: { overview: { sports: Array<{ classification: { displayLabel: string } }> } };
     };
     onChange: (result: unknown) => void;
-    onOpenSessions: (sport: { sessionFilterRef: string }) => void;
+    onOpenSessions: (sport: {
+      sessionFilterRef: string;
+      memberSessionFilterRefs: string[];
+    }) => void;
     sessionReturnFocus?: { sessionFilterRef: string; requestId: number };
   }) => (
     <section aria-label="Sports child">
@@ -134,6 +138,10 @@ vi.mock("./TrainingSportsPanel", () => ({
         type="button"
         onClick={() => properties.onOpenSessions({
           sessionFilterRef: `sport-${"a".repeat(64)}`,
+          memberSessionFilterRefs: [
+            `sport-${"b".repeat(64)}`,
+            `sport-${"c".repeat(64)}`,
+          ],
         })}
       >
         Open sport sessions
@@ -149,7 +157,7 @@ vi.mock("./TrainingComparisonPanel", () => ({
 afterEach(cleanup);
 
 describe("TrainingInsightsPanel", () => {
-  it("opens one sport collection and returns to the exact Sports origin", async () => {
+  it("opens every collection in a unified sport and returns to its projected Sports origin", async () => {
     const user = userEvent.setup();
     render(
       <TrainingInsightsPanel
@@ -167,7 +175,10 @@ describe("TrainingInsightsPanel", () => {
     expect(screen.getByRole("button", { name: "Sessions" }))
       .toHaveAttribute("aria-current", "page");
     expect(screen.getByTestId("session-filter"))
-      .toHaveTextContent(`sport-${"a".repeat(64)}`);
+      .toHaveTextContent([
+        `sport-${"b".repeat(64)}`,
+        `sport-${"c".repeat(64)}`,
+      ].join(","));
 
     await user.click(screen.getByRole("button", { name: "Return to sports child" }));
     expect(screen.getByRole("button", { name: "Sports" }))

@@ -495,6 +495,55 @@ await createArchive("report-refresh.zip", [
   ],
 ]);
 
+await createArchive("sport-unification.zip", [
+  [
+    `account-data-93-${uuidC}.json`,
+    JSON.stringify({ exportVersion: "synthetic-sport-unification", username: syntheticUsername }),
+  ],
+  [
+    `training-session_2026-01-07T08-30-00_93-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-training-session-unification",
+      created: "2026-01-07T09:30:00.000",
+      modified: "2026-01-07T09:30:00.000",
+      startTime: "2026-01-07T08:30:00",
+      stopTime: "2026-01-07T09:10:00",
+      durationMillis: 2_400_000,
+      distanceMeters: 6_000,
+      calories: 360,
+      hrAvg: 134,
+      hrMax: 162,
+      sportId: "101",
+      exercises: [{
+        identifier: { id: "fixture-training-exercise-unification" },
+        created: "2026-01-07T09:30:00.000",
+        modified: "2026-01-07T09:30:00.000",
+        startTime: "2026-01-07T08:30:00",
+        stopTime: "2026-01-07T09:10:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 2_400_000,
+        distanceMeters: 6_000,
+        calories: 360,
+        sport: { id: "101" },
+        laps: { laps: [], autoLaps: [] },
+        pauseTimes: [],
+      }],
+    }),
+  ],
+  [
+    `training-target-2026-01-07-93-${uuidC}.json`,
+    JSON.stringify({
+      exportVersion: "1.0",
+      name: "Synthetic steady session",
+      description: "Independent exact sport evidence",
+      startTime: "2026-01-07T08:30:00.000",
+      done: true,
+      nonUserEditable: false,
+      exercises: [{ type: "FREE", sport: "RUNNING", phases: [] }],
+    }),
+  ],
+]);
+
 await createArchive("planned-training.zip", [
   [
     `account-data-94-${uuidC}.json`,
@@ -653,4 +702,4 @@ await createArchive("adaptive-sessions.zip", [
   ],
 ]);
 
-process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 8 })}\n`);
+process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 9 })}\n`);

@@ -797,6 +797,7 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-sports-unavailable { color: var(--danger-ink); }
 .training-sport-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 22px 0 0; padding: 0; list-style: none; }
 .training-sport-list > li { min-width: 0; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-top: 5px solid #397994; border-radius: 14px; }
+.training-sport-list > li[data-editor-open="true"] { grid-column: 1 / -1; }
 .training-sport-list > li[data-state="unknown"] { border-top-color: var(--warning); }
 .training-sport-list > li[data-state="unavailable"] { border-top-color: var(--muted); }
 .training-sport-card-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
@@ -828,6 +829,24 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-sport-editor-actions button { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .training-sport-editor-actions .progress-submit-status,
 .settings-actions .progress-submit-status { order: 1; flex-basis: 100%; text-align: right; }
+.sport-unification-task { display: grid; gap: 16px; min-width: 0; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); scroll-margin-block-start: var(--shell-reveal-offset); }
+.sport-unification-task > header h4 { margin: 0 0 5px; }
+.sport-unification-task > header p { max-width: var(--measure-reading); margin: 0; color: var(--muted); font-size: .82rem; }
+.sport-unification-task fieldset { min-width: 0; margin: 0; padding: 14px; background: color-mix(in srgb, var(--surface) 65%, transparent); border: 1px solid var(--line); border-radius: var(--radius-small); }
+.sport-unification-task legend { padding: 0 6px; color: var(--ink-soft); font-size: .8rem; font-weight: 800; }
+.sport-unification-task fieldset > p { margin: 0 0 10px; color: var(--muted); font-size: .78rem; }
+.sport-unification-options, .sport-unification-primary-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sport-unification-options label, .sport-unification-primary-options label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px; align-items: start; min-width: 0; padding: 10px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; color: var(--ink-soft); font-size: .78rem; line-height: 1.35; }
+.sport-unification-options label:has(input:checked), .sport-unification-primary-options label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
+.sport-unification-options input, .sport-unification-primary-options input { margin-top: 2px; }
+.sport-unification-options span, .sport-unification-primary-options span { min-width: 0; overflow-wrap: anywhere; }
+.sport-unification-preview { padding: 12px 14px; color: var(--ink-soft); background: var(--surface-soft); border-radius: var(--radius-small); }
+.sport-unification-preview p { margin: 0; }
+.sport-unification-preview p + p { margin-top: 4px; color: var(--muted); font-size: .78rem; }
+.sport-unification-removal { padding: 13px 14px; color: var(--danger-ink); background: var(--danger-soft); border-left: 4px solid var(--danger); border-radius: var(--radius-small); }
+.sport-unification-removal > p { margin: 0 0 11px; }
+.sport-unification-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.sport-unification-actions button { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .training-sports-status { margin: 16px 0 0; padding: 10px 12px; color: var(--success); background: var(--success-soft); border-radius: 9px; font-weight: 700; }
 .training-table-scroll { min-width: 0; max-width: 100%; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .training-table-scroll:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
@@ -1836,6 +1855,7 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .activity-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-sport-list { grid-template-columns: 1fr; }
+  .sport-unification-options, .sport-unification-primary-options { grid-template-columns: 1fr; }
   .training-session-search-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-analysis-picker > ul, .report-analysis-ranges > div { grid-template-columns: 1fr; }
   .report-run-parameter-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2047,6 +2067,12 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 :root[data-content-zoom="150"] .training-sport-editor,
 :root[data-content-zoom="175"] .training-sport-editor,
 :root[data-content-zoom="200"] .training-sport-editor { grid-template-columns: 1fr; }
+:root[data-content-zoom="150"] .sport-unification-options,
+:root[data-content-zoom="150"] .sport-unification-primary-options,
+:root[data-content-zoom="175"] .sport-unification-options,
+:root[data-content-zoom="175"] .sport-unification-primary-options,
+:root[data-content-zoom="200"] .sport-unification-options,
+:root[data-content-zoom="200"] .sport-unification-primary-options { grid-template-columns: 1fr; }
 :root[data-content-zoom="175"] .training-comparison-result-heading,
 :root[data-content-zoom="200"] .training-comparison-result-heading { align-items: stretch; flex-direction: column; }
 :root[data-content-zoom="175"] :is(.sleep-comparison-result-heading, .recovery-comparison-result-heading),

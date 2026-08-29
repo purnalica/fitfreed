@@ -88,8 +88,22 @@ describe("packaged FitFreed application-process restart", () => {
     );
 
     await openTrainingWorkspace("sports");
-    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3"))
-      .toHaveText("Carrera de montaña");
+    const unifiedSport = await $(
+      ".training-sport-list > li[data-state='personally-overridden']",
+    );
+    await expect(unifiedSport.$("h3")).toHaveText("Carrera de montaña");
+    await expect(unifiedSport).toHaveText(expect.stringContaining(
+      spanish.training.sports.unification.label.replace("{count}", "3"),
+    ));
+    await unifiedSport.$(`aria/${spanish.training.sports.unification.edit}`).click();
+    const unificationTask = await unifiedSport.$(".sport-unification-task");
+    await unificationTask.waitForDisplayed({ timeout: 10_000 });
+    const memberInputs = await unificationTask.$$(
+      ".sport-unification-options input[type='checkbox']",
+    );
+    expect(memberInputs).toHaveLength(3);
+    for (const input of memberInputs) await expect(input).toBeChecked();
+    await unificationTask.$(`aria/${spanish.training.sports.unification.cancel}`).click();
     await openTrainingWorkspace("sessions");
     await openTrainingDetailSection("structure");
     const criteria = await $$(".training-segmentation .training-segment-criterion");
@@ -159,10 +173,47 @@ describe("packaged FitFreed application-process restart", () => {
     await openTrainingWorkspace("plans");
     await expect($("#planned-training-heading")).toHaveText(spanish.training.planned.heading);
     const plannedTargets = await $$(".planned-training-list > li");
-    expect(plannedTargets).toHaveLength(1);
-    await expect(plannedTargets[0]).toHaveText(expect.stringContaining("Progressive intervals"));
+    expect(plannedTargets).toHaveLength(2);
+    const plannedTargetLabels = [];
+    for (const target of plannedTargets) plannedTargetLabels.push(await target.getText());
+    expect(plannedTargetLabels.filter((label) => label.includes("Progressive intervals")))
+      .toHaveLength(1);
+    expect(plannedTargetLabels.filter((label) => label.includes("Synthetic steady session")))
+      .toHaveLength(1);
+
+    await openTrainingWorkspace("sports");
+    const persistedUnifiedSport = await $(
+      ".training-sport-list > li[data-state='personally-overridden']",
+    );
+    await persistedUnifiedSport.$(
+      `aria/${spanish.training.sports.unification.edit}`,
+    ).click();
+    const persistedUnificationTask = await persistedUnifiedSport.$(".sport-unification-task");
+    await persistedUnificationTask.$(
+      `aria/${spanish.training.sports.unification.remove}`,
+    ).click();
+    const sportRemovalReview = await persistedUnificationTask.$(
+      ".sport-unification-removal",
+    );
+    await expect(sportRemovalReview.$("p")).toHaveText(
+      spanish.training.sports.unification.removeConfirm,
+    );
+    await sportRemovalReview.$(
+      `aria/${spanish.training.sports.unification.removeAction}`,
+    ).click();
+    await expect($(".training-sports-status")).toHaveText(
+      spanish.training.sports.unification.removed,
+    );
+    const separatedSports = await $$(".training-sport-list > li");
+    expect(separatedSports).toHaveLength(3);
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3"))
+      .toHaveText("Carrera de montaña");
+    await expect($(".training-sport-list > li[data-state='unavailable'] h3"))
+      .toHaveText(spanish.training.sports.notRecorded);
+    await expect($(".training-sport-list > li[data-state='recognized']"))
+      .toBeDisplayed();
 
     await goToHome("sources");
-    await expect($("#outcome-heading")).toHaveText(spanish.outcome.repeatHeading);
+    await expect($("#outcome-heading")).toHaveText(spanish.outcome.changedHeading);
   });
 });

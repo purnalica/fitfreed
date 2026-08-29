@@ -65,12 +65,14 @@ use fitfreed_application::{
     remove_report as remove_report_through_port,
     remove_training_segment_criterion as remove_segment_criterion_through_port,
     remove_training_session_range as remove_training_session_range_through_port,
+    remove_unified_sport_relationship as remove_unified_sport_relationship_through_port,
     rename_training_session_range as rename_training_session_range_through_port,
     resolve_report_with_parameters as resolve_report_through_port,
     resolve_session_report as resolve_session_report_through_port,
     save_application_preferences as save_preferences_through_port,
     save_exploration_workspace as save_workspace,
     save_training_sport_classification as persist_training_sport_classification,
+    save_unified_sport_relationship as save_unified_sport_relationship_through_port,
     update_composed_session_report as update_composed_session_report_through_port,
     update_report as update_report_through_port,
     update_session_report as update_session_report_through_port,
@@ -110,14 +112,16 @@ use presentation::{
     PlannedTrainingSessionRelationResultDto, PlannedTrainingTargetDetailDto,
     PlannedTrainingTargetQueryDto, PreparedReportStartDto, RecoveryComparisonDto,
     RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, RefreshReportRequestDto,
-    RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto, RemovedReportDto,
+    RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto,
+    RemoveUnifiedSportRelationshipRequestDto, RemovedReportDto,
     RenameTrainingSessionRangeRequestDto, ReportDefinitionDto, ReportExampleCatalogDto,
     ReportExamplePlannedTrainingSubjectPageDto, ReportExamplePlannedTrainingSubjectQueryDto,
     ReportExampleTrainingSessionSubjectPageDto, ReportExampleTrainingSessionSubjectQueryDto,
     ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto, ReportLibraryRequestDto,
     ReportListDto, ReportStartDto, ResolveReportRequestDto, ResolvedReportDto,
     ResolvedSessionReportDto, SaveSportClassificationRequestDto,
-    SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SessionStoryDto,
+    SaveUnifiedSportRelationshipRequestDto, SavedTrainingSportClassificationDto,
+    SavedUnifiedSportRelationshipDto, SessionReportExportRequestDto, SessionStoryDto,
     SessionStoryQueryDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
     TrainingDiscoveryWorkspaceDto, TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
@@ -923,6 +927,28 @@ fn save_training_sport_classification(
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     persist_training_sport_classification(&SqliteTrainingSports::new(path), request.into())
         .map(SavedTrainingSportClassificationDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn save_unified_sport_relationship(
+    app: AppHandle,
+    request: SaveUnifiedSportRelationshipRequestDto,
+) -> Result<SavedUnifiedSportRelationshipDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    save_unified_sport_relationship_through_port(&SqliteTrainingSports::new(path), request.into())
+        .map(SavedUnifiedSportRelationshipDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn remove_unified_sport_relationship(
+    app: AppHandle,
+    request: RemoveUnifiedSportRelationshipRequestDto,
+) -> Result<SavedUnifiedSportRelationshipDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    remove_unified_sport_relationship_through_port(&SqliteTrainingSports::new(path), request.into())
+        .map(SavedUnifiedSportRelationshipDto::from)
         .map_err(CommandErrorDto::from)
 }
 
@@ -2258,6 +2284,8 @@ pub fn run() {
             clear_training_discovery_workspace,
             query_training_sports,
             save_training_sport_classification,
+            save_unified_sport_relationship,
+            remove_unified_sport_relationship,
             prepare_report_start,
             list_report_examples,
             query_report_example_training_session_subjects,

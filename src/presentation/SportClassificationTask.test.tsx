@@ -17,6 +17,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
 
 const unknownSport: TrainingSport = {
   sessionFilterRef: `sport-${"b".repeat(64)}`,
+  memberSessionFilterRefs: [`sport-${"b".repeat(64)}`],
   sportRef: `sport-${"a".repeat(64)}`,
   sourceIndex: 1,
   state: "unknown",
@@ -29,6 +30,7 @@ const unknownSport: TrainingSport = {
   },
   recognition: null,
   recognitionCandidateCount: 0,
+  unification: null,
   firstLocalDate: "2025-01-01",
   lastLocalDate: "2026-08-18",
   coverage: {
@@ -40,7 +42,14 @@ const unknownSport: TrainingSport = {
 };
 
 function overview(sport: TrainingSport): TrainingSportsOverview {
-  return { originCount: 1, sessionCount: 4, sports: [sport] };
+  return {
+    snapshotRef: `training-snapshot-${"c".repeat(64)}`,
+    originCount: 1,
+    sessionCount: 4,
+    sports: [sport],
+    sportCollections: [sport],
+    unificationReviews: [],
+  };
 }
 
 afterEach(cleanup);

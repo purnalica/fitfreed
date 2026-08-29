@@ -966,7 +966,14 @@ beforeEach(() => {
   });
   mocks.sportsInvoke.mockImplementation((command) => {
     if (command === "query_training_sports") {
-      return Promise.resolve({ originCount: 0, sessionCount: 0, sports: [] });
+      return Promise.resolve({
+        snapshotRef: `training-snapshot-${"0".repeat(64)}`,
+        originCount: 0,
+        sessionCount: 0,
+        sports: [],
+        sportCollections: [],
+        unificationReviews: [],
+      });
     }
     throw new Error(`Unexpected sports command: ${command}`);
   });
@@ -4321,6 +4328,7 @@ describe("FitFreed import interface", () => {
     };
     const unknownSport = {
       sessionFilterRef: `sport-${"e".repeat(64)}`,
+      memberSessionFilterRefs: [`sport-${"e".repeat(64)}`],
       sportRef,
       sourceIndex: 1,
       state: "unknown" as const,
@@ -4333,6 +4341,7 @@ describe("FitFreed import interface", () => {
       },
       recognition: null,
       recognitionCandidateCount: 0,
+      unification: null,
       firstLocalDate: "2026-01-20",
       lastLocalDate: "2026-01-20",
       coverage: {
@@ -4354,9 +4363,12 @@ describe("FitFreed import interface", () => {
       },
     };
     let currentSports: TrainingSportsOverview = {
+      snapshotRef: "training-snapshot-old",
       originCount: 1,
       sessionCount: 1,
       sports: [unknownSport],
+      sportCollections: [unknownSport],
+      unificationReviews: [],
     };
     let savedDestination: "training" | null = null;
     let homeNamed = false;
@@ -4412,7 +4424,12 @@ describe("FitFreed import interface", () => {
     mocks.sportsInvoke.mockImplementation((command) => {
       if (command === "query_training_sports") return Promise.resolve(currentSports);
       if (command === "save_training_sport_classification") {
-        currentSports = { ...currentSports, sports: [namedSport] };
+        currentSports = {
+          ...currentSports,
+          snapshotRef: "training-snapshot-named",
+          sports: [namedSport],
+          sportCollections: [namedSport],
+        };
         homeNamed = true;
         return Promise.resolve({ outcome: "changed", overview: currentSports });
       }

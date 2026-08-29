@@ -41,14 +41,14 @@ delivers small end-to-end corrections in dependency order, repeats an independen
 one new production-native candidate only after the complete exact campaign passes. The previous review application is
 not a candidate and must not be handed back for incremental spot checking.
 
-The first X7-R8.1 vertical increment now keeps exact recognized session collections separate from the unresolved
-source-profile remainder when a personal fallback classification is saved. The scoped classification, stable filter
-identity, workspace-v3 migration, downstream projections, report contracts, and SQLite-v35 transition are covered by
-synthetic regression evidence. The privacy-minimized X7-R8.0 participant correlation is complete. It established
+X7-R8.1 is machine-complete locally. It keeps exact recognized session collections separate from the unresolved
+source-profile remainder when a personal fallback classification is saved, and it adds explicit user-authored
+unification without deleting or rewriting provider evidence. The scoped classification, stable filter identity,
+workspace-v3 migration, downstream projections, report contracts, and SQLite-v36 transition are covered by synthetic
+regression evidence. The privacy-minimized X7-R8.0 participant correlation is complete. It established
 stable local one-to-one meaning across exact and unresolved profile evidence, showed that multiple exact codes need
 not mean multiple provider-visible sports, and proved that missing export evidence does not prove a missing sport in
-the provider account. It authorizes no global mapping. X7-R8.1 remains open until explicit user-authored collection
-unification, export-missing language, and their complete downstream and recovery evidence are closed.
+the provider account. It authorizes no global mapping.
 
 X7-R8.2 through X7-R8.7 are machine-complete locally. They add ordered calendar activities and exact navigation,
 shared concise presentation and alignment rules, question-led analytical charts, and an exact local route workbench
@@ -58,8 +58,8 @@ provenance, duplication semantics, and result-first compact controls passed the 
 accessibility, visual, restart, export, update-recovery, and performance campaign. The independent X7-R8.7 audit
 accepted and closed one major report-conclusion defect and one minor repeated-date defect, then accepted no other
 critical or major finding. Its method, question inventory, findings, and machine verdict are recorded in the
-[X7-R8 product-experience audit](../research/x7-r8-product-experience-audit.md). X7-R8.8 has not started: the bounded
-X7-R8.0 participant correlation and the resulting R8.1 source-evidence conclusion remain first.
+[X7-R8 product-experience audit](../research/x7-r8-product-experience-audit.md). X7-R8.8 is now the only remaining
+machine-delivery increment before the bounded product-owner experience gate.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust remain reserved
 for that later gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -311,7 +311,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | In progress — R8.0 and R8.2 through R8.7 are machine-complete; explicit R8.1 sport unification and the exact R8.8 candidate remain | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | In progress — R8.0 through R8.7 are machine-complete locally; only the exact R8.8 candidate remains before the human gate | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3286,9 +3286,9 @@ no-invented-correlation rule until a source contract proves a stronger relations
    Record in canonical documentation only the non-identifying structural conclusion: stable one-to-one evidence,
    one-to-many ambiguity, missing evidence, or a mixture. A personal association is evidence for the local library,
    not authority for a bundled global catalogue.
-4. Use that conclusion to finish the source-evidence decision before changing sport grouping. Any reusable automatic
-   mapping requires provenance, confidence, ambiguity, version, update, licence, and user-correction rules. An
-   authenticated provider catalogue remains local-only and opt-in unless a separate connected-provider increment is
+4. Use that conclusion to finish the source-evidence decision before changing sport grouping. A reusable mapping
+   requires provenance, confidence, ambiguity, version, update, licence, and user-correction rules.
+   An authenticated provider catalogue remains local-only and opt-in unless a separate connected-provider increment is
    explicitly admitted later.
 
 **Gate:** this is the next human intervention. It is bounded to reading a few locally selected session dates in the
@@ -3299,11 +3299,25 @@ or broad manual checklist is requested.
 meaning and export omission. One opaque profile retained the same provider-visible meaning across exact and unresolved
 sessions; multiple exact codes for one profile also retained one provider-visible meaning; and an unresolved-only
 profile had stable local meaning. A session without usable sport evidence in the imported export nevertheless had a
-sport in the provider account. No selected date, sport, identifier, count, device, target, archive locator, or account
-content is retained. The result supports explicit local user-authored unification and accurate export-missing language,
-but cannot authorize a bundled mapping or collapse exact candidates automatically.
+sport in the provider account. Several distinct sessions could also share one local start, confirming that timestamp
+matching remains valid only after same-origin uniqueness is established and that sport, target, or device details are
+not tie-breakers. No selected date, sport, identifier, count, device, target, archive locator, or account content is
+retained. The result supports explicit local user-authored unification and accurate export-missing language, but cannot
+authorize a bundled mapping or collapse exact candidates automatically.
 
 ### X7-R8.1 — Make sport identity stable, recognizable, and explicitly adaptable
+
+**Machine-complete checkpoint — 2026-08-29:** exact recognized collections remain distinct from unresolved source
+profiles, while an explicit user-authored relationship can present selected collections as one sport without
+discarding their provider evidence. The relationship owns stable member filter references, one selected primary
+identity, authorship, revision, migration, optimistic concurrency, removal, and source-evidence review. Home, History,
+session filters, reports, reimport, process restart, and closed-library SQLite backup resolve the exact current
+relationship; removal restores the underlying collections. Export-missing evidence is described as absent from the
+selected package rather than as a missing sport, and no participant correlation becomes a global mapping. Canonical
+and persistence contracts, application and adapter tests, both locales, keyboard and accessibility behavior, compact
+dark presentation at 200% zoom, full-width editing geometry, restart, deterministic export, large-library performance,
+and the complete packaged journey pass with synthetic evidence. The participant examples used to establish the
+identity invariant are not retained.
 
 1. Introduce failing domain tests for the observed mixed-evidence shape. Exact session recognition must remain stable
    when a fallback classification is saved for the unresolved remainder; candidate order and projection refresh must

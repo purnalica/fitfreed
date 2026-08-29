@@ -8,7 +8,8 @@ import { TrainingComparisonPanel } from "./TrainingComparisonPanel";
 import type { TrainingDateRange } from "./training-insights";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type {
-  SavedTrainingSportClassification,
+  SavedTrainingSportIdentity,
+  TrainingSport,
   TrainingSportClassificationChange,
 } from "./training-sports";
 import { TrainingSportsPanel } from "./TrainingSportsPanel";
@@ -24,7 +25,7 @@ interface TrainingInsightsPanelProps {
   };
   onCreateReport: (origin: ReportStartOrigin) => void;
   onError: (code: string | undefined) => void;
-  onSportClassificationChange: (result: SavedTrainingSportClassification) => void;
+  onSportClassificationChange: (result: SavedTrainingSportIdentity) => void;
 }
 
 type TrainingWorkspace = "sessions" | "plans" | "sports" | "comparison";
@@ -58,6 +59,7 @@ export function TrainingInsightsPanel({
   const plannedSessionRequestId = useRef(0);
   const [localSportSessionsNavigation, setLocalSportSessionsNavigation] = useState<{
     sessionFilterRefs: string[];
+    returnSessionFilterRef: string;
     returnWorkspace: "sports";
     requestId: number;
   }>();
@@ -162,7 +164,7 @@ export function TrainingInsightsPanel({
 
   function publishClassification(
     source: TrainingSportClassificationChange["source"],
-    result: SavedTrainingSportClassification,
+    result: SavedTrainingSportIdentity,
   ) {
     classificationRequestId.current += 1;
     setClassificationChange({
@@ -173,10 +175,11 @@ export function TrainingInsightsPanel({
     onSportClassificationChange(result);
   }
 
-  function openSportSessions(sessionFilterRef: string) {
+  function openSportSessions(sport: TrainingSport) {
     sportSessionsRequestId.current += 1;
     setLocalSportSessionsNavigation({
-      sessionFilterRefs: [sessionFilterRef],
+      sessionFilterRefs: [...sport.memberSessionFilterRefs],
+      returnSessionFilterRef: sport.sessionFilterRef,
       returnWorkspace: "sports",
       requestId: sportSessionsRequestId.current,
     });
@@ -293,7 +296,8 @@ export function TrainingInsightsPanel({
           classificationChange={classificationChange}
           onError={onError}
           onChange={(result) => publishClassification("sports", result)}
-          onOpenSessions={(sport) => openSportSessions(sport.sessionFilterRef)}
+          onUnificationChange={(result) => publishClassification("sports", result)}
+          onOpenSessions={openSportSessions}
         />
       </div>
       <div className="training-workspace-panel" hidden={workspace !== "comparison"}>

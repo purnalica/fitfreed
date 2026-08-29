@@ -117,23 +117,42 @@ export interface TrainingSportCoverage {
   heartRateSessionCount: number;
 }
 
+export interface TrainingSportUnification {
+  relationshipRef: string;
+  primarySessionFilterRef: string;
+  memberSessionFilterRefs: string[];
+  authorship: "user";
+  revision: number;
+}
+
+export interface TrainingSportUnificationReview {
+  relationship: TrainingSportUnification;
+  reason: "missing-member" | "unusable-primary";
+  missingMemberSessionFilterRefs: string[];
+}
+
 export interface TrainingSport {
   sessionFilterRef: string;
+  memberSessionFilterRefs: string[];
   sportRef: string | null;
   sourceIndex: number;
   state: TrainingSportState;
   classification: TrainingSportClassification | null;
   recognition: TrainingSportRecognition | null;
   recognitionCandidateCount: number;
+  unification: TrainingSportUnification | null;
   firstLocalDate: string;
   lastLocalDate: string;
   coverage: TrainingSportCoverage;
 }
 
 export interface TrainingSportsOverview {
+  snapshotRef: string;
   originCount: number;
   sessionCount: number;
   sports: TrainingSport[];
+  sportCollections: TrainingSport[];
+  unificationReviews: TrainingSportUnificationReview[];
 }
 
 export interface SavedTrainingSportClassification {
@@ -141,8 +160,17 @@ export interface SavedTrainingSportClassification {
   overview: TrainingSportsOverview;
 }
 
+export interface SavedUnifiedSportRelationship {
+  outcome: "changed" | "unchanged" | "removed";
+  overview: TrainingSportsOverview;
+}
+
+export type SavedTrainingSportIdentity =
+  | SavedTrainingSportClassification
+  | SavedUnifiedSportRelationship;
+
 export interface TrainingSportClassificationChange {
   requestId: number;
   source: "sessions" | "sports";
-  result: SavedTrainingSportClassification;
+  result: SavedTrainingSportIdentity;
 }

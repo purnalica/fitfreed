@@ -381,6 +381,7 @@ async function expectCrossSignalGeometry(expectedLanes, expectedCoordinateLabel)
     );
     const svgBounds = chart.querySelector("svg").getBoundingClientRect();
     const renderer = chart.querySelector(".analytical-chart-renderer");
+    const hasZoom = chart.querySelector(".analytical-chart-canvas").dataset.chartZoom === "true";
     const fontSize = Number.parseFloat(getComputedStyle(renderer).fontSize);
     const chartScale = Math.min(2, Math.max(0.75, fontSize / 16));
     const zoomTop = svgBounds.bottom - Math.round(8 * chartScale)
@@ -451,10 +452,11 @@ async function expectCrossSignalGeometry(expectedLanes, expectedCoordinateLabel)
       },
       coordinateTitleClearOfZoom: {
         titleFound: coordinateTitle !== undefined,
+        hasZoom,
         titleBottom: coordinateTitle?.getBoundingClientRect().bottom ?? null,
-        zoomTop,
-        clear: coordinateTitle !== undefined
-          && coordinateTitle.getBoundingClientRect().bottom < zoomTop,
+        zoomTop: hasZoom ? zoomTop : null,
+        clear: coordinateTitle !== undefined && (!hasZoom
+          || coordinateTitle.getBoundingClientRect().bottom < zoomTop),
       },
     };
   }, expectedCoordinateLabel);
@@ -1445,6 +1447,89 @@ async function resetSportClassification(catalog, currentTitle) {
     async () => (await card.getAttribute("data-state")) === "personally-overridden",
     { timeout: 10_000, timeoutMsg: "sport classification did not preserve explicit personal unknown" },
   );
+}
+
+async function saveInitialUnifiedSport(catalog, primaryTitle) {
+  const cards = await $$(".training-sport-list > li");
+  expect(cards).toHaveLength(3);
+  const primaryCard = await trainingSportCard(primaryTitle);
+  await primaryCard.$(`aria/${catalog.training.sports.unification.combine}`).click();
+  const task = await primaryCard.$(".sport-unification-task");
+  await task.waitForDisplayed({ timeout: 10_000 });
+  const editorGeometry = await browser.execute(() => {
+    const list = document.querySelector(".training-sport-list").getBoundingClientRect();
+    const card = document.querySelector(
+      '.training-sport-list > li[data-editor-open="true"]',
+    ).getBoundingClientRect();
+    return {
+      cardWidth: card.width,
+      listWidth: list.width,
+      horizontalOverflow: document.documentElement.scrollWidth
+        > document.documentElement.clientWidth,
+    };
+  });
+  expect(editorGeometry.horizontalOverflow).toBe(false);
+  expect(editorGeometry.cardWidth / editorGeometry.listWidth).toBeGreaterThan(0.95);
+  await browser.saveScreenshot(path.join(
+    evidenceDirectory,
+    "x7-r8-1-sport-unification-es-dark-compact-200.png",
+  ));
+
+  const memberLabels = await task.$$(".sport-unification-options label");
+  expect(memberLabels).toHaveLength(3);
+  let exportMissingMember;
+  for (const label of memberLabels) {
+    if ((await label.getText()).includes(catalog.training.sports.notRecorded)) {
+      exportMissingMember = label;
+      break;
+    }
+  }
+  expect(exportMissingMember).toBeDefined();
+  await exportMissingMember.$("input[type='checkbox']").click();
+  const primaryOptions = await task.$$(".sport-unification-primary-options label");
+  expect(primaryOptions).toHaveLength(1);
+  await expect(primaryOptions[0]).toHaveText(primaryTitle);
+  await expect(task.$(".sport-unification-preview")).toHaveText(
+    expect.stringContaining(catalog.training.sports.unification.preview
+      .replace("{groups}", "2")
+      .replace("{sessions}", "3")),
+  );
+  await task.$(`aria/${catalog.training.sports.unification.save}`).click();
+  await waitForNotice(catalog.training.sports.unification.saved);
+  expect(await $$(".training-sport-list > li")).toHaveLength(2);
+}
+
+async function extendUnifiedSport(catalog, primaryTitle) {
+  const primaryCard = await trainingSportCard(primaryTitle);
+  await primaryCard.$(`aria/${catalog.training.sports.unification.edit}`).click();
+  const task = await primaryCard.$(".sport-unification-task");
+  await task.waitForDisplayed({ timeout: 10_000 });
+  const memberInputs = await task.$$(
+    ".sport-unification-options input[type='checkbox']",
+  );
+  expect(memberInputs).toHaveLength(3);
+  const unchecked = [];
+  for (const input of memberInputs) {
+    if (!(await input.isSelected())) unchecked.push(input);
+  }
+  expect(unchecked).toHaveLength(1);
+  await unchecked[0].click();
+  await expect(task.$(".sport-unification-preview")).toHaveText(
+    expect.stringContaining(catalog.training.sports.unification.preview
+      .replace("{groups}", "3")
+      .replace("{sessions}", "4")),
+  );
+  await expect(task.$(".sport-unification-primary-options")).toHaveText(
+    expect.stringContaining(primaryTitle),
+  );
+  await task.$(`aria/${catalog.training.sports.unification.save}`).click();
+  await waitForNotice(catalog.training.sports.unification.saved);
+  const unifiedCards = await $$(".training-sport-list > li");
+  expect(unifiedCards).toHaveLength(1);
+  await expect(unifiedCards[0].$("h3")).toHaveText(primaryTitle);
+  await expect(unifiedCards[0]).toHaveText(expect.stringContaining(
+    catalog.training.sports.unification.label.replace("{count}", "3"),
+  ));
 }
 
 async function expectTrainingComparison(expectedRows) {
@@ -3520,7 +3605,12 @@ describe("packaged FitFreed import journey", () => {
     const saveDialogMock = await browser.tauri.mock("plugin:dialog|save");
     await saveDialogMock.mockReturnValue(transientReportOutput);
     await saveDialogMock.update();
+    const transientSaveCallCount = saveDialogMock.mock.calls.length;
     await transientPrivacyReview.$(`aria/${english.reports.chooseDestination}`).click();
+    await browser.waitUntil(async () => {
+      await saveDialogMock.update();
+      return saveDialogMock.mock.calls.length === transientSaveCallCount + 1;
+    }, { timeout: 10_000, timeoutMsg: "transient report destination was not requested" });
     await browser.waitUntil(() => fs.existsSync(transientReportOutput), {
       timeout: 10_000,
       timeoutMsg: "the transient comparison report was not written",
@@ -6123,17 +6213,30 @@ describe("packaged FitFreed import journey", () => {
     await browser.reloadSession();
     await expectLibraryHome(spanish, { coverageExpanded: true });
     expect(await $$(".library-home-resume")).toHaveLength(0);
-    recordJourneyPhase("prepare-application-process-restart");
+
+    await goToHome("sources");
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "sport-unification.zip"),
+      spanish.outcome.chooseAnother,
+    );
+    await $(`aria/${spanish.import}`).click();
+    await waitForNotice(spanish.home.postImportChanged);
     await openHomeQuestion(
       spanish,
       "explore-training-sessions",
       ".training-insights",
     );
+    await openTrainingWorkspace(spanish, "sports");
+    await saveInitialUnifiedSport(spanish, "Carrera de montaña");
+    await extendUnifiedSport(spanish, "Carrera de montaña");
+
+    recordJourneyPhase("prepare-application-process-restart");
     await openTrainingWorkspace(spanish, "sessions");
     const restartComparisonCheckboxes = await $$(
       ".training-session-result-actions input[type='checkbox']",
     );
-    expect(restartComparisonCheckboxes).toHaveLength(3);
+    expect(restartComparisonCheckboxes).toHaveLength(4);
     await restartComparisonCheckboxes[0].click();
     await restartComparisonCheckboxes[1].click();
     await $(`aria/${spanish.training.sessionLibrary.calendar}`).click();

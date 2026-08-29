@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/saved-unified-sport-relationship-v1.schema.json",
+  "title": "FitFreed saved unified sport relationship version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["outcome", "overview"],
+  "properties": {
+    "outcome": { "enum": ["changed", "unchanged", "removed"] },
+    "overview": { "$ref": "training-sports-v5.schema.json" }
+  }
+}

@@ -33,10 +33,10 @@ use fitfreed_application::{
     RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
     RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
     RecoverySeriesOverview, RecoverySeriesSummary, RefreshReportRequest, RemoveReportRequest,
-    RemoveTrainingSessionRangeRequest, RemovedReport, RenameTrainingSessionRangeRequest,
-    ReportEvidenceProvenance, ReportExampleAvailability, ReportExampleBlockRecipe,
-    ReportExampleCapability, ReportExampleCatalog, ReportExampleDescriptor,
-    ReportExampleDestination, ReportExampleId, ReportExampleParameter,
+    RemoveTrainingSessionRangeRequest, RemoveUnifiedSportRelationshipRequest, RemovedReport,
+    RenameTrainingSessionRangeRequest, ReportEvidenceProvenance, ReportExampleAvailability,
+    ReportExampleBlockRecipe, ReportExampleCapability, ReportExampleCatalog,
+    ReportExampleDescriptor, ReportExampleDestination, ReportExampleId, ReportExampleParameter,
     ReportExamplePlannedTrainingSubject, ReportExamplePlannedTrainingSubjectKind,
     ReportExamplePlannedTrainingSubjectPage, ReportExamplePlannedTrainingSubjectQuery,
     ReportExamplePurpose, ReportExampleQuestion, ReportExampleTrainingSessionSubject,
@@ -49,7 +49,8 @@ use fitfreed_application::{
     ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportStart,
     ReportSummary, ResolveReportRequest, ResolvedReport, ResolvedReportRunParameters,
     ResolvedSessionReport, ResolvedTrainingComparisonRunParameters, SaveSportClassificationRequest,
-    SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
+    SaveUnifiedSportRelationshipRequest, SavedTrainingSportClassification,
+    SavedUnifiedSportRelationship, SegmentApplicabilityView, SegmentMeasurementView,
     SessionReportBlockDraft, SessionReportBlockDraftContent, SessionStory,
     SessionStoryAlignedSampleView, SessionStoryAlignmentStateView, SessionStoryAssessmentStateView,
     SessionStoryCompositionView, SessionStoryExactRoute, SessionStoryExactSignal,
@@ -90,9 +91,11 @@ use fitfreed_application::{
     TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
     TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
     TrainingSourceProviderView, TrainingSport, TrainingSportClassification,
-    TrainingSportClassificationScope, TrainingSportCoverage, TrainingSportRecognition,
-    TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
-    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
+    TrainingSportClassificationScope, TrainingSportCollectionExpectation, TrainingSportCoverage,
+    TrainingSportRecognition, TrainingSportState, TrainingSportUnification,
+    TrainingSportUnificationReview, TrainingSportUnificationReviewReason, TrainingSportsOverview,
+    TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView, TrainingZoneKindView,
+    TrainingZoneUnitView, TrainingZoneView, UnifiedSportRelationshipSaveOutcome,
     UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest, UpdateError,
     UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
     UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
@@ -832,6 +835,9 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::SportClassificationConflict => "sport-classification-conflict",
             ApplicationError::SportClassificationQuery(_)
             | ApplicationError::SportClassificationUpdate(_) => "sport-classification-failed",
+            ApplicationError::InvalidSportUnification(_) => "invalid-sport-unification",
+            ApplicationError::SportUnificationConflict => "sport-unification-conflict",
+            ApplicationError::SportUnificationUpdate(_) => "sport-unification-failed",
             ApplicationError::InvalidSleepRange(_) => "invalid-sleep-range",
             ApplicationError::InvalidSleepReference(_) => "invalid-sleep-reference",
             ApplicationError::InvalidRecoveryRange(_) => "invalid-recovery-range",
@@ -1994,6 +2000,62 @@ impl From<SaveSportClassificationRequestDto> for SaveSportClassificationRequest 
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSportCollectionExpectationDto {
+    session_filter_ref: String,
+    session_count: usize,
+}
+
+impl From<TrainingSportCollectionExpectationDto> for TrainingSportCollectionExpectation {
+    fn from(expectation: TrainingSportCollectionExpectationDto) -> Self {
+        Self {
+            session_filter_ref: expectation.session_filter_ref,
+            session_count: expectation.session_count,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SaveUnifiedSportRelationshipRequestDto {
+    expected_snapshot_ref: String,
+    expected_revision: u64,
+    relationship_ref: Option<String>,
+    primary_session_filter_ref: String,
+    members: Vec<TrainingSportCollectionExpectationDto>,
+}
+
+impl From<SaveUnifiedSportRelationshipRequestDto> for SaveUnifiedSportRelationshipRequest {
+    fn from(request: SaveUnifiedSportRelationshipRequestDto) -> Self {
+        Self {
+            expected_snapshot_ref: request.expected_snapshot_ref,
+            expected_revision: request.expected_revision,
+            relationship_ref: request.relationship_ref,
+            primary_session_filter_ref: request.primary_session_filter_ref,
+            members: request.members.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RemoveUnifiedSportRelationshipRequestDto {
+    expected_snapshot_ref: String,
+    relationship_ref: String,
+    expected_revision: u64,
+}
+
+impl From<RemoveUnifiedSportRelationshipRequestDto> for RemoveUnifiedSportRelationshipRequest {
+    fn from(request: RemoveUnifiedSportRelationshipRequestDto) -> Self {
+        Self {
+            expected_snapshot_ref: request.expected_snapshot_ref,
+            relationship_ref: request.relationship_ref,
+            expected_revision: request.expected_revision,
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrainingSportClassificationDto {
@@ -2100,12 +2162,14 @@ impl From<TrainingSportCoverage> for TrainingSportCoverageDto {
 #[serde(rename_all = "camelCase")]
 pub struct TrainingSportDto {
     session_filter_ref: String,
+    member_session_filter_refs: Vec<String>,
     sport_ref: Option<String>,
     source_index: usize,
     state: &'static str,
     classification: Option<TrainingSportClassificationDto>,
     recognition: Option<TrainingSportRecognitionDto>,
     recognition_candidate_count: usize,
+    unification: Option<TrainingSportUnificationDto>,
     first_local_date: String,
     last_local_date: String,
     coverage: TrainingSportCoverageDto,
@@ -2115,12 +2179,14 @@ impl From<TrainingSport> for TrainingSportDto {
     fn from(sport: TrainingSport) -> Self {
         Self {
             session_filter_ref: sport.session_filter_ref,
+            member_session_filter_refs: sport.member_session_filter_refs,
             sport_ref: sport.sport_ref,
             source_index: sport.source_index,
             state: training_sport_state_code(sport.state),
             classification: sport.classification.map(Into::into),
             recognition: sport.recognition.map(Into::into),
             recognition_candidate_count: sport.recognition_candidate_count,
+            unification: sport.unification.map(Into::into),
             first_local_date: sport.first_local_date,
             last_local_date: sport.last_local_date,
             coverage: sport.coverage.into(),
@@ -2130,18 +2196,75 @@ impl From<TrainingSport> for TrainingSportDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrainingSportUnificationDto {
+    relationship_ref: String,
+    primary_session_filter_ref: String,
+    member_session_filter_refs: Vec<String>,
+    authorship: String,
+    revision: u64,
+}
+
+impl From<TrainingSportUnification> for TrainingSportUnificationDto {
+    fn from(unification: TrainingSportUnification) -> Self {
+        Self {
+            relationship_ref: unification.relationship_ref,
+            primary_session_filter_ref: unification.primary_session_filter_ref,
+            member_session_filter_refs: unification.member_session_filter_refs,
+            authorship: unification.authorship,
+            revision: unification.revision,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSportUnificationReviewDto {
+    relationship: TrainingSportUnificationDto,
+    reason: &'static str,
+    missing_member_session_filter_refs: Vec<String>,
+}
+
+impl From<TrainingSportUnificationReview> for TrainingSportUnificationReviewDto {
+    fn from(review: TrainingSportUnificationReview) -> Self {
+        Self {
+            relationship: review.relationship.into(),
+            reason: match review.reason {
+                TrainingSportUnificationReviewReason::MissingMember => "missing-member",
+                TrainingSportUnificationReviewReason::UnusablePrimary => "unusable-primary",
+            },
+            missing_member_session_filter_refs: review.missing_member_session_filter_refs,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingSportsOverviewDto {
+    snapshot_ref: String,
     origin_count: usize,
     session_count: usize,
     sports: Vec<TrainingSportDto>,
+    sport_collections: Vec<TrainingSportDto>,
+    unification_reviews: Vec<TrainingSportUnificationReviewDto>,
 }
 
 impl From<TrainingSportsOverview> for TrainingSportsOverviewDto {
     fn from(overview: TrainingSportsOverview) -> Self {
         Self {
+            snapshot_ref: overview.snapshot_ref,
             origin_count: overview.origin_count,
             session_count: overview.session_count,
             sports: overview.sports.into_iter().map(Into::into).collect(),
+            sport_collections: overview
+                .sport_collections
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            unification_reviews: overview
+                .unification_reviews
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -2159,6 +2282,26 @@ impl From<SavedTrainingSportClassification> for SavedTrainingSportClassification
             outcome: match saved.outcome {
                 SportClassificationSaveOutcome::Changed => "changed",
                 SportClassificationSaveOutcome::Unchanged => "unchanged",
+            },
+            overview: saved.overview.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedUnifiedSportRelationshipDto {
+    outcome: &'static str,
+    overview: TrainingSportsOverviewDto,
+}
+
+impl From<SavedUnifiedSportRelationship> for SavedUnifiedSportRelationshipDto {
+    fn from(saved: SavedUnifiedSportRelationship) -> Self {
+        Self {
+            outcome: match saved.outcome {
+                UnifiedSportRelationshipSaveOutcome::Changed => "changed",
+                UnifiedSportRelationshipSaveOutcome::Unchanged => "unchanged",
+                UnifiedSportRelationshipSaveOutcome::Removed => "removed",
             },
             overview: saved.overview.into(),
         }
@@ -8667,8 +8810,70 @@ mod tests {
             .is_err()
         );
 
+        let unification_request: SaveUnifiedSportRelationshipRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "expectedSnapshotRef": format!("training-snapshot-{}", "a".repeat(64)),
+                "expectedRevision": 2,
+                "relationshipRef": format!("unified:sport-{}", "b".repeat(64)),
+                "primarySessionFilterRef": format!("sport-{}", "c".repeat(64)),
+                "members": [{
+                    "sessionFilterRef": format!("sport-{}", "c".repeat(64)),
+                    "sessionCount": 5
+                }, {
+                    "sessionFilterRef": format!("sport-{}", "d".repeat(64)),
+                    "sessionCount": 3
+                }]
+            }))
+            .expect("unified sport request");
+        assert_eq!(
+            SaveUnifiedSportRelationshipRequest::from(unification_request),
+            SaveUnifiedSportRelationshipRequest {
+                expected_snapshot_ref: format!("training-snapshot-{}", "a".repeat(64)),
+                expected_revision: 2,
+                relationship_ref: Some(format!("unified:sport-{}", "b".repeat(64))),
+                primary_session_filter_ref: format!("sport-{}", "c".repeat(64)),
+                members: vec![
+                    TrainingSportCollectionExpectation {
+                        session_filter_ref: format!("sport-{}", "c".repeat(64)),
+                        session_count: 5,
+                    },
+                    TrainingSportCollectionExpectation {
+                        session_filter_ref: format!("sport-{}", "d".repeat(64)),
+                        session_count: 3,
+                    },
+                ],
+            }
+        );
+        assert!(
+            serde_json::from_value::<SaveUnifiedSportRelationshipRequestDto>(serde_json::json!({
+                "expectedSnapshotRef": format!("training-snapshot-{}", "a".repeat(64)),
+                "expectedRevision": 0,
+                "relationshipRef": null,
+                "primarySessionFilterRef": format!("sport-{}", "c".repeat(64)),
+                "members": [],
+                "sourceSportRef": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+        let remove_request: RemoveUnifiedSportRelationshipRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "expectedSnapshotRef": format!("training-snapshot-{}", "e".repeat(64)),
+                "relationshipRef": format!("unified:sport-{}", "f".repeat(64)),
+                "expectedRevision": 3
+            }))
+            .expect("remove unified sport request");
+        assert_eq!(
+            RemoveUnifiedSportRelationshipRequest::from(remove_request),
+            RemoveUnifiedSportRelationshipRequest {
+                expected_snapshot_ref: format!("training-snapshot-{}", "e".repeat(64)),
+                relationship_ref: format!("unified:sport-{}", "f".repeat(64)),
+                expected_revision: 3,
+            }
+        );
+
         let recognized_json = serde_json::to_value(TrainingSportDto::from(TrainingSport {
             session_filter_ref: format!("sport-{}", "d".repeat(64)),
+            member_session_filter_refs: vec![format!("sport-{}", "d".repeat(64))],
             sport_ref: Some(format!("sport-{}", "c".repeat(64))),
             source_index: 1,
             state: TrainingSportState::Recognized,
@@ -8691,6 +8896,7 @@ mod tests {
                 evidence_ref: format!("sport-evidence-{}", "a".repeat(64)),
             }),
             recognition_candidate_count: 1,
+            unification: None,
             first_local_date: "2025-01-02".to_owned(),
             last_local_date: "2026-08-17".to_owned(),
             coverage: TrainingSportCoverage {
@@ -8718,6 +8924,7 @@ mod tests {
 
         let classified = TrainingSport {
             session_filter_ref: format!("sport-{}", "e".repeat(64)),
+            member_session_filter_refs: vec![format!("sport-{}", "e".repeat(64))],
             sport_ref: Some("sport-synthetic".to_owned()),
             source_index: 2,
             state: TrainingSportState::PersonallyOverridden,
@@ -8730,6 +8937,7 @@ mod tests {
             }),
             recognition: None,
             recognition_candidate_count: 0,
+            unification: None,
             first_local_date: "2025-01-02".to_owned(),
             last_local_date: "2026-08-17".to_owned(),
             coverage: TrainingSportCoverage {
@@ -8739,38 +8947,43 @@ mod tests {
                 heart_rate_session_count: 5,
             },
         };
+        let unavailable = TrainingSport {
+            session_filter_ref: format!("sport-{}", "f".repeat(64)),
+            member_session_filter_refs: vec![format!("sport-{}", "f".repeat(64))],
+            sport_ref: None,
+            source_index: 1,
+            state: TrainingSportState::Unavailable,
+            classification: None,
+            recognition: None,
+            recognition_candidate_count: 0,
+            unification: None,
+            first_local_date: "2026-03-04".to_owned(),
+            last_local_date: "2026-03-04".to_owned(),
+            coverage: TrainingSportCoverage {
+                session_count: 1,
+                total_duration_milliseconds: 1_800_000,
+                distance_session_count: 0,
+                heart_rate_session_count: 0,
+            },
+        };
         let overview = TrainingSportsOverview {
+            snapshot_ref: format!("training-snapshot-{}", "a".repeat(64)),
             origin_count: 2,
             session_count: 8,
-            sports: vec![
-                classified.clone(),
-                TrainingSport {
-                    session_filter_ref: format!("sport-{}", "f".repeat(64)),
-                    sport_ref: None,
-                    source_index: 1,
-                    state: TrainingSportState::Unavailable,
-                    classification: None,
-                    recognition: None,
-                    recognition_candidate_count: 0,
-                    first_local_date: "2026-03-04".to_owned(),
-                    last_local_date: "2026-03-04".to_owned(),
-                    coverage: TrainingSportCoverage {
-                        session_count: 1,
-                        total_duration_milliseconds: 1_800_000,
-                        distance_session_count: 0,
-                        heart_rate_session_count: 0,
-                    },
-                },
-            ],
+            sports: vec![classified.clone(), unavailable.clone()],
+            sport_collections: vec![classified.clone(), unavailable],
+            unification_reviews: Vec::new(),
         };
         assert_eq!(
             serde_json::to_value(TrainingSportsOverviewDto::from(overview.clone()))
                 .expect("training sports overview JSON"),
             serde_json::json!({
+                "snapshotRef": format!("training-snapshot-{}", "a".repeat(64)),
                 "originCount": 2,
                 "sessionCount": 8,
                 "sports": [{
                     "sessionFilterRef": format!("sport-{}", "e".repeat(64)),
+                    "memberSessionFilterRefs": [format!("sport-{}", "e".repeat(64))],
                     "sportRef": "sport-synthetic",
                     "sourceIndex": 2,
                     "state": "personally-overridden",
@@ -8783,6 +8996,7 @@ mod tests {
                     },
                     "recognition": null,
                     "recognitionCandidateCount": 0,
+                    "unification": null,
                     "firstLocalDate": "2025-01-02",
                     "lastLocalDate": "2026-08-17",
                     "coverage": {
@@ -8793,12 +9007,14 @@ mod tests {
                     }
                 }, {
                     "sessionFilterRef": format!("sport-{}", "f".repeat(64)),
+                    "memberSessionFilterRefs": [format!("sport-{}", "f".repeat(64))],
                     "sportRef": null,
                     "sourceIndex": 1,
                     "state": "unavailable",
                     "classification": null,
                     "recognition": null,
                     "recognitionCandidateCount": 0,
+                    "unification": null,
                     "firstLocalDate": "2026-03-04",
                     "lastLocalDate": "2026-03-04",
                     "coverage": {
@@ -8807,18 +9023,72 @@ mod tests {
                         "distanceSessionCount": 0,
                         "heartRateSessionCount": 0
                     }
-                }]
+                }],
+                "sportCollections": [{
+                    "sessionFilterRef": format!("sport-{}", "e".repeat(64)),
+                    "memberSessionFilterRefs": [format!("sport-{}", "e".repeat(64))],
+                    "sportRef": "sport-synthetic",
+                    "sourceIndex": 2,
+                    "state": "personally-overridden",
+                    "classification": {
+                        "scope": "unresolved-source-profile",
+                        "canonicalFamily": "cycling",
+                        "displayLabel": "Gravel cycling",
+                        "authorship": "user",
+                        "revision": 5
+                    },
+                    "recognition": null,
+                    "recognitionCandidateCount": 0,
+                    "unification": null,
+                    "firstLocalDate": "2025-01-02",
+                    "lastLocalDate": "2026-08-17",
+                    "coverage": {
+                        "sessionCount": 7,
+                        "totalDurationMilliseconds": "25200000",
+                        "distanceSessionCount": 6,
+                        "heartRateSessionCount": 5
+                    }
+                }, {
+                    "sessionFilterRef": format!("sport-{}", "f".repeat(64)),
+                    "memberSessionFilterRefs": [format!("sport-{}", "f".repeat(64))],
+                    "sportRef": null,
+                    "sourceIndex": 1,
+                    "state": "unavailable",
+                    "classification": null,
+                    "recognition": null,
+                    "recognitionCandidateCount": 0,
+                    "unification": null,
+                    "firstLocalDate": "2026-03-04",
+                    "lastLocalDate": "2026-03-04",
+                    "coverage": {
+                        "sessionCount": 1,
+                        "totalDurationMilliseconds": "1800000",
+                        "distanceSessionCount": 0,
+                        "heartRateSessionCount": 0
+                    }
+                }],
+                "unificationReviews": []
             })
         );
         assert_eq!(
             serde_json::to_value(SavedTrainingSportClassificationDto::from(
                 SavedTrainingSportClassification {
                     outcome: SportClassificationSaveOutcome::Changed,
-                    overview,
+                    overview: overview.clone(),
                 },
             ))
             .expect("saved sport classification JSON")["outcome"],
             "changed"
+        );
+        assert_eq!(
+            serde_json::to_value(SavedUnifiedSportRelationshipDto::from(
+                SavedUnifiedSportRelationship {
+                    outcome: UnifiedSportRelationshipSaveOutcome::Removed,
+                    overview,
+                },
+            ))
+            .expect("saved unified sport JSON")["outcome"],
+            "removed"
         );
         for (error, code) in [
             (
@@ -8832,6 +9102,18 @@ mod tests {
             (
                 ApplicationError::SportClassificationQuery("failed".to_owned()),
                 "sport-classification-failed",
+            ),
+            (
+                ApplicationError::InvalidSportUnification("invalid"),
+                "invalid-sport-unification",
+            ),
+            (
+                ApplicationError::SportUnificationConflict,
+                "sport-unification-conflict",
+            ),
+            (
+                ApplicationError::SportUnificationUpdate("failed".to_owned()),
+                "sport-unification-failed",
             ),
         ] {
             assert_eq!(
@@ -11335,7 +11617,7 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
-            version: 7,
+            version: 8,
             library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             recorded_range: Some(LibraryHomeDateRange {
                 from: "2025-12-31".to_owned(),
@@ -11453,7 +11735,7 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "version": 7,
+                "version": 8,
                 "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "recordedRange": { "from": "2025-12-31", "through": "2026-01-06" },
                 "usableRange": { "from": "2025-12-31", "through": "2026-01-06" },

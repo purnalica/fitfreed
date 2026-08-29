@@ -118,6 +118,7 @@ interface TrainingSessionLibraryPanelProps {
   initialSessionRef?: string;
   sportSessionsNavigation?: {
     sessionFilterRefs: string[];
+    returnSessionFilterRef?: string;
     returnWorkspace: "home" | "sports";
     requestId: number;
   };
@@ -156,7 +157,7 @@ interface SessionWorkspaceReturnState {
 
 type AppliedRefinement =
   | { key: string; kind: "from" | "through" | "text" | "sort"; label: string }
-  | { key: string; kind: "sport"; value: string; label: string }
+  | { key: string; kind: "sport"; value: string[]; label: string }
   | {
     key: string;
     kind: "measurement";
@@ -211,7 +212,9 @@ function withoutRefinement(
     case "sport":
       return {
         ...criteria,
-        sportRefs: criteria.sportRefs.filter((candidate) => candidate !== refinement.value),
+        sportRefs: criteria.sportRefs.filter(
+          (candidate) => !refinement.value.includes(candidate),
+        ),
       };
     case "measurement":
       return {
@@ -457,22 +460,32 @@ export function TrainingSessionLibraryPanel({
         label: label(copy.through, calendarDate.format(localDate(applied.through))),
       });
     }
-    applied.sportRefs.forEach((sportRef, index) => {
-      const sport = sports?.sports.find(
+    const remainingSportRefs = new Set(applied.sportRefs);
+    sports?.sports.forEach((sport) => {
+      if (!sport.memberSessionFilterRefs.every((sportRef) => remainingSportRefs.has(sportRef))) {
+        return;
+      }
+      refinements.push({
+        key: `sport-${sport.memberSessionFilterRefs.join(":")}`,
+        kind: "sport",
+        value: sport.memberSessionFilterRefs,
+        label: label(copy.sportRefinement, sportTitle(sport)),
+      });
+      sport.memberSessionFilterRefs.forEach((sportRef) => remainingSportRefs.delete(sportRef));
+    });
+    [...remainingSportRefs].forEach((sportRef, index) => {
+      const sport = sports?.sportCollections.find(
         (candidate) => candidate.sessionFilterRef === sportRef,
       );
       refinements.push({
         key: `sport-${sportRef}`,
         kind: "sport",
-        value: sportRef,
-        label: label(
-          copy.sportRefinement,
-          sport
-            ? sportTitle(sport)
-            : interpolate(copy.unavailableSportRefinement, {
-              index: number.format(index + 1),
-            }),
-        ),
+        value: [sportRef],
+        label: label(copy.sportRefinement, sport
+          ? sportTitle(sport)
+          : interpolate(copy.unavailableSportRefinement, {
+            index: number.format(index + 1),
+          })),
       });
     });
     const measurementLabels: Record<TrainingMeasurementFilter, string> = {
@@ -1008,7 +1021,8 @@ export function TrainingSessionLibraryPanel({
 
   function returnToSportsWorkspace() {
     const previous = sportWorkspaceReturnRef.current;
-    const sessionFilterRef = sportSessionsNavigation?.sessionFilterRefs[0];
+    const sessionFilterRef = sportSessionsNavigation?.returnSessionFilterRef
+      ?? sportSessionsNavigation?.sessionFilterRefs[0];
     if (!previous || !sessionFilterRef) return;
     setDraft(previous.draft);
     setApplied(previous.applied);
@@ -1056,20 +1070,20 @@ export function TrainingSessionLibraryPanel({
     }));
   }
 
-  function toggleSport(sportRef: string) {
+  function toggleSport(sportRefs: string[]) {
     setDraft((current) => ({
       ...current,
-      sportRefs: current.sportRefs.includes(sportRef)
-        ? current.sportRefs.filter((candidate) => candidate !== sportRef)
-        : [...current.sportRefs, sportRef],
+      sportRefs: sportRefs.every((sportRef) => current.sportRefs.includes(sportRef))
+        ? current.sportRefs.filter((candidate) => !sportRefs.includes(candidate))
+        : [...new Set([...current.sportRefs, ...sportRefs])],
     }));
   }
 
   function openSportSessionsFilter(
-    sessionFilterRef: string,
+    sessionFilterRefs: string[],
     initiatingElement: HTMLButtonElement,
   ) {
-    const criteria = { ...emptyDraft(), sportRefs: [sessionFilterRef] };
+    const criteria = { ...emptyDraft(), sportRefs: [...sessionFilterRefs] };
     setDraft(criteria);
     void loadAppliedCriteria(criteria).then((result) => {
       if (!result) return;
@@ -2374,7 +2388,7 @@ export function TrainingSessionLibraryPanel({
                         className="training-history-sport-open"
                         disabled={loading}
                         onClick={(event) => openSportSessionsFilter(
-                          sport.sessionFilterRef,
+                          sport.memberSessionFilterRefs,
                           event.currentTarget,
                         )}
                       >
@@ -2560,9 +2574,19 @@ export function TrainingSessionLibraryPanel({
               >
                 <input
                   type="checkbox"
-                  checked={draft.sportRefs.includes(sport.sessionFilterRef)}
+                  checked={sport.memberSessionFilterRefs.every(
+                    (sportRef) => draft.sportRefs.includes(sportRef),
+                  )}
+                  ref={(element) => {
+                    if (!element) return;
+                    const selectedCount = sport.memberSessionFilterRefs.filter(
+                      (sportRef) => draft.sportRefs.includes(sportRef),
+                    ).length;
+                    element.indeterminate = selectedCount > 0
+                      && selectedCount < sport.memberSessionFilterRefs.length;
+                  }}
                   disabled={loading}
-                  onChange={() => toggleSport(sport.sessionFilterRef)}
+                  onChange={() => toggleSport(sport.memberSessionFilterRefs)}
                 />
                 <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
                 <span>{sportTitle(sport)}</span>

@@ -81,6 +81,15 @@ creates a second editor. Saving a broad family, a personal name, or both creates
 refreshes every affected visible identity without deleting recognition evidence, while returning restores the
 originating Home control when it still exists.
 
+When several represented collections describe one sport in a person's library, **Combine sport collections** in
+Sports provides a separate deliberate relationship task. It lists every affected collection with its session count,
+requires at least two selections, and asks which recognized or personally named member supplies the visible identity.
+The preview states the complete number of collections and sessions before save. The combined card and every Home or
+Sessions entry then open and filter all member sessions. **Edit combination** can revise the members or precedence;
+**Separate collections** removes only that relationship and restores the individual cards. FitFreed never creates a
+combination from equal names, one provider observation, import, or reimport. Changed evidence that invalidates a saved
+relationship leaves the collections separate and asks for explicit review.
+
 The current development preview does not bundle a real Polar sport catalogue. The official complete catalogue
 requires authenticated access, and no redistribution basis has yet been established. Consequently real Polar
 source identifiers remain honestly unknown until the person names them or the documented catalogue gate closes;
