@@ -67,7 +67,8 @@ seconds, and milliseconds appear only when exact elapsed evidence makes them mat
 a count ratio use the locale's grouping consistently. Exact timestamps,
 unrounded quantities, source separation, and provenance remain available through the relevant exact-evidence or
 source disclosure. A same-day session uses one date, its start-to-end time, and its duration; UTC offset and
-complete timestamps stay in the exact timing disclosure. A calendar
+complete timestamps stay in the exact timing disclosure. Any ordinary one-day period also shows one date rather
+than repeating it as both ends of a range. A calendar
 date shows its activities in local-start order with sport icons, human-scale durations, and direct session opening.
 The year selector crosses long histories directly, **Today** returns to the current month, and a date contributed by
 more than one separated history says so directly instead of presenting an unexplained source number.

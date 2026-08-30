@@ -101,6 +101,9 @@ detail rounds to seconds, and aggregate summaries use magnitude-aware precision.
 tooltips enter the same named boundary; a renderer adapter does not construct its own locale or duration
 policy. An ordinary same-day session composes one localized date, one start-to-end time range, and one
 human-scale duration. Full timestamps, offsets, and source precision remain in deliberate exact evidence.
+The same presentation boundary formats every ordinary calendar period: equal boundaries produce one localized
+date, while distinct boundaries produce a true range. Home, sport collections, comparison panels, and reports do
+not compose independent date-range strings.
 
 The host writes only a closed JSON object containing its fixed event contract, application version, source revision, clean-tree state, and bounded monotonic startup durations. The durations cover host setup completion and host receipt of the signal plus renderer locale readiness and signal invocation. They contain no wall-clock timestamps, paths, host identity, application data, or operation values. The benchmark combines them with its outer process timer to report aggregate phase distributions while retaining the application-owned process-to-painted-shell boundary without WebDriver, WebView reloads, personal data, filesystem paths, or test-only package capabilities. Failure to write or validate the diagnostic signal never blocks ordinary deferred startup; a benchmark that cannot observe it fails closed.
 

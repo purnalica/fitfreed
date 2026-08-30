@@ -20,7 +20,6 @@ import { useResultFocus } from "./useResultFocus";
 import {
   formatRecoveryMilliseconds,
   recoveryBarWidth,
-  recoveryLocalDate,
   recoveryRangeIsValid,
 } from "./recovery-format";
 import type {
@@ -29,8 +28,8 @@ import type {
   RecoverySeriesSummary,
 } from "./recovery-insights";
 import {
+  formatMediumDateRange,
   integerCountFormatter,
-  mediumDateFormatter,
   signedIntegerCountFormatter,
 } from "./presentation-format";
 
@@ -63,10 +62,6 @@ export function RecoveryComparisonPanel({
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
     () => signedIntegerCountFormatter(locale),
-    [locale],
-  );
-  const date = useMemo(
-    () => mediumDateFormatter(locale),
     [locale],
   );
   const copy = messages.recovery.comparison;
@@ -164,7 +159,12 @@ export function RecoveryComparisonPanel({
 
   function rangeLabel(range: RecoveryDateRange | null): string {
     if (!range) return messages.unavailable;
-    return `${date.format(recoveryLocalDate(range.from))} ${messages.recovery.rangeSeparator} ${date.format(recoveryLocalDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      messages.recovery.rangeSeparator,
+    );
   }
 
   function rows(

@@ -18,6 +18,7 @@ import { localizedName } from "./training-sports";
 import {
   type DistanceUnitLabels,
   type DurationUnitLabels,
+  formatMediumDateRange,
   formatSummaryDistance,
   formatSummaryDuration,
   integerCountFormatter,
@@ -104,6 +105,12 @@ export function LibraryHomePanel({
   ) => templates[plural.select(value) === "one" ? "one" : "other"]
     .replace("{count}", number.format(value));
   const formatDate = (value: string) => date.format(localDate(value.slice(0, 10)));
+  const formatDateRange = (from: string, through: string) => formatMediumDateRange(
+    from,
+    through,
+    locale,
+    messages.rangeSeparator,
+  );
   const formatDuration = (value: string) => formatSummaryDuration(
     value,
     locale,
@@ -246,7 +253,10 @@ export function LibraryHomePanel({
     );
   }
 
-  const range = `${formatDate(home.primaryRange.range.from)} ${messages.rangeSeparator} ${formatDate(home.primaryRange.range.through)}`;
+  const range = formatDateRange(
+    home.primaryRange.range.from,
+    home.primaryRange.range.through,
+  );
   const rangeLabel = messages.primaryRanges[home.primaryRange.scope];
   const training = home.training;
   const highlight = home.highlight;
@@ -388,9 +398,8 @@ export function LibraryHomePanel({
                 1,
               )}
               formatCount={(value) => formatCount(value, messages.comparisonSessions)}
-              formatDate={formatDate}
+              formatDateRange={formatDateRange}
               formatDuration={formatDuration}
-              rangeSeparator={messages.rangeSeparator}
             />
             <TrainingPeriod
               label={messages.comparisonPrevious}
@@ -401,9 +410,8 @@ export function LibraryHomePanel({
                 1,
               )}
               formatCount={(value) => formatCount(value, messages.comparisonSessions)}
-              formatDate={formatDate}
+              formatDateRange={formatDateRange}
               formatDuration={formatDuration}
-              rangeSeparator={messages.rangeSeparator}
             />
           </div>
           <button
@@ -599,9 +607,8 @@ interface TrainingPeriodProps {
   period: RecentTrainingComparisonHighlight["comparison"];
   comparisonMaximum: number;
   formatCount: (value: number) => string;
-  formatDate: (value: string) => string;
+  formatDateRange: (from: string, through: string) => string;
   formatDuration: (value: string) => string;
-  rangeSeparator: string;
 }
 
 function TrainingPeriod({
@@ -609,15 +616,14 @@ function TrainingPeriod({
   period,
   comparisonMaximum,
   formatCount,
-  formatDate,
+  formatDateRange,
   formatDuration,
-  rangeSeparator,
 }: TrainingPeriodProps) {
   return (
     <section aria-label={label}>
       <div>
         <strong>{label}</strong>
-        <span>{formatDate(period.range.from)} {rangeSeparator} {formatDate(period.range.through)}</span>
+        <span>{formatDateRange(period.range.from, period.range.through)}</span>
       </div>
       <progress max={comparisonMaximum} value={period.sessionCount} aria-label={formatCount(period.sessionCount)} />
       <p>

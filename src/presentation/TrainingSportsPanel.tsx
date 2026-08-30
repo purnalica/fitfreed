@@ -8,9 +8,9 @@ import { SportClassificationTask } from "./SportClassificationTask";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { SportUnificationTask } from "./SportUnificationTask";
 import {
+  formatMediumDateRange,
   formatSummaryDuration,
   integerCountFormatter,
-  mediumDateFormatter,
   pluralRules,
 } from "./presentation-format";
 import {
@@ -37,11 +37,6 @@ interface TrainingSportsPanelProps {
   onChange?: (result: SavedTrainingSportClassification) => void;
   onUnificationChange?: (result: SavedUnifiedSportRelationship) => void;
   onOpenSessions?: (sport: TrainingSport) => void;
-}
-
-function localDate(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
 }
 
 function interpolate(template: string, values: Record<string, string>): string {
@@ -98,11 +93,16 @@ export function TrainingSportsPanel({
   const handledSessionReturnRequest = useRef<number | undefined>(undefined);
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const plural = useMemo(() => pluralRules(locale), [locale]);
-  const date = useMemo(
-    () => mediumDateFormatter(locale),
-    [locale],
-  );
   const copy = messages.training.sports;
+
+  function formatSportPeriod(sport: TrainingSport): string {
+    return formatMediumDateRange(
+      sport.firstLocalDate,
+      sport.lastLocalDate,
+      locale,
+      messages.training.rangeSeparator,
+    );
+  }
 
   useEffect(() => {
     let active = true;
@@ -300,9 +300,6 @@ export function TrainingSportsPanel({
             const title = titleFor(sport);
             const editing = editingSessionFilterRef === sport.sessionFilterRef;
             const unifying = unifyingSessionFilterRef === sport.sessionFilterRef;
-            const sessionTemplate = copy.sessions[
-              plural.select(sport.coverage.sessionCount) === "one" ? "one" : "other"
-            ];
             return (
               <li
                 key={sport.sessionFilterRef}
@@ -324,10 +321,7 @@ export function TrainingSportsPanel({
                             index: number.format(sport.sourceIndex),
                           })} · </span>
                         )}
-                        {interpolate(copy.period, {
-                          from: date.format(localDate(sport.firstLocalDate)),
-                          through: date.format(localDate(sport.lastLocalDate)),
-                        })}
+                        {formatSportPeriod(sport)}
                       </p>
                     </div>
                   </div>
@@ -400,13 +394,8 @@ export function TrainingSportsPanel({
 
                 <dl className="training-sport-coverage">
                   <div>
-                    <dt>{interpolate(sessionTemplate, {
-                      count: number.format(sport.coverage.sessionCount),
-                    })}</dt>
-                    <dd>{interpolate(copy.period, {
-                      from: date.format(localDate(sport.firstLocalDate)),
-                      through: date.format(localDate(sport.lastLocalDate)),
-                    })}</dd>
+                    <dt>{messages.training.sessionCount}</dt>
+                    <dd>{number.format(sport.coverage.sessionCount)}</dd>
                   </div>
                   <div>
                     <dt>{copy.duration}</dt>

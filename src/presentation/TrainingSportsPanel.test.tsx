@@ -133,6 +133,30 @@ beforeEach(() => {
 });
 
 describe("TrainingSportsPanel", () => {
+  it.each([
+    { locale: "en-US" as const, date: "Mar 4, 2026", sessions: "Sessions" },
+    { locale: "es-ES" as const, date: "4 mar 2026", sessions: "Sesiones" },
+  ])("shows a one-day sport period once in $locale", async ({ locale, date, sessions }) => {
+    mocks.invoke.mockResolvedValueOnce(overview([unavailableSport]));
+
+    render(
+      <TrainingSportsPanel
+        locale={locale}
+        messages={catalogs[locale]}
+        refreshToken={0}
+        onError={vi.fn()}
+      />,
+    );
+
+    const card = (await screen.findByRole("heading", {
+      name: catalogs[locale].training.sports.notRecorded,
+    })).closest("li");
+    expect(card).not.toBeNull();
+    expect(card!.textContent?.match(new RegExp(date, "g"))).toHaveLength(1);
+    expect(within(card!).getByText(sessions)).toBeVisible();
+    expect(within(card!).getByText("1", { selector: "dd" })).toBeVisible();
+  });
+
   it("opens the exact represented session collection independently from classification", async () => {
     mocks.invoke.mockResolvedValueOnce(overview([recognizedSport, unavailableSport]));
     const onOpenSessions = vi.fn();

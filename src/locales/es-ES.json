@@ -1318,11 +1318,6 @@
       "ambiguousExplanation": "Las evidencias disponibles del proveedor coinciden con más de un deporte. Elige la identidad que reconozcas.",
       "unknownExplanation": "El origen indica que estas sesiones pertenecen a un deporte, pero no proporciona un nombre fiable.",
       "notRecordedExplanation": "Estas sesiones no nombran ningún deporte en el origen, por lo que FitFreed no puede clasificarlas.",
-      "sessions": {
-        "one": "{count} sesión",
-        "other": "{count} sesiones"
-      },
-      "period": "{from} a {through}",
       "duration": "Duración total",
       "distanceCoverage": "Distancia en {available} de {total} sesiones",
       "heartRateCoverage": "Frecuencia cardíaca en {available} de {total} sesiones",

@@ -3431,6 +3431,22 @@ performance, accessibility, localization, and packaged macOS journeys; then perf
 against the rejected-review findings. No new human candidate is requested until every deterministic finding is closed
 and the exact release-shaped artifact passes the same journey.
 
+**Audit checkpoint — 2026-08-30:** exact local verification passed from clean source `8ffeb7f` before the independent
+visual and contract review began. That review accepted R8A-03: sport cards repeated their period inside one card and
+rendered a one-day collection as the same date on both sides of a separator. A complete consumer audit found the same
+manual range composition in Home and the activity, training, sleep, recovery, and aligned-history comparison panels.
+The shared semantic date-range boundary now owns all those ordinary surfaces, and a sport card presents its period
+once while retaining its session count as a separate labelled value. Both locales and affected component gates pass.
+Because the correction changes executable inputs, the complete exact gate and corrected packaged visual evidence must
+repeat before R8.12 or the independent audit can close.
+
+The repeated precommit campaign then exposed two pre-existing E2E synchronization races rather than product-output
+failures. Report composition waited only for the Reports heading before manipulating its asynchronously created four
+date controls, while the performance campaign treated a visible domain workspace as proof that each measured filter
+or comparison was ready. Repository history confirms that the protected contracts require the complete control sets.
+The journeys now wait for those exact sets without removing assertions or including readiness time in application
+response measurements; repeated packaged behavior and every measured domain pass after the correction.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,

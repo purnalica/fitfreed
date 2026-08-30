@@ -1318,11 +1318,6 @@
       "ambiguousExplanation": "The available provider evidence matches more than one sport. Choose the identity you recognize.",
       "unknownExplanation": "The source says these sessions belong to a sport, but does not provide a trustworthy name.",
       "notRecordedExplanation": "These sessions do not name a sport in the source, so FitFreed cannot classify them.",
-      "sessions": {
-        "one": "{count} session",
-        "other": "{count} sessions"
-      },
-      "period": "{from} to {through}",
       "duration": "Total duration",
       "distanceCoverage": "Distance in {available} of {total} sessions",
       "heartRateCoverage": "Heart rate in {available} of {total} sessions",

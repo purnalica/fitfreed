@@ -20,7 +20,6 @@ import { useResultFocus } from "./useResultFocus";
 import {
   formatDecimal,
   formatSleepDuration,
-  sleepLocalDate,
   sleepRangeIsValid,
 } from "./sleep-format";
 import type {
@@ -29,8 +28,8 @@ import type {
   SleepSeriesSummary,
 } from "./sleep-insights";
 import {
+  formatMediumDateRange,
   integerCountFormatter,
-  mediumDateFormatter,
   signedSummaryDecimalFormatter,
 } from "./presentation-format";
 
@@ -69,10 +68,6 @@ export function SleepComparisonPanel({
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
     () => signedSummaryDecimalFormatter(locale),
-    [locale],
-  );
-  const date = useMemo(
-    () => mediumDateFormatter(locale),
     [locale],
   );
   const copy = messages.sleep.comparison;
@@ -178,7 +173,12 @@ export function SleepComparisonPanel({
 
   function rangeLabel(range: SleepDateRange | null): string {
     if (!range) return messages.unavailable;
-    return `${date.format(sleepLocalDate(range.from))} ${messages.sleep.rangeSeparator} ${date.format(sleepLocalDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      messages.sleep.rangeSeparator,
+    );
   }
 
   function rows(

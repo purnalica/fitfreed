@@ -16,9 +16,9 @@ import {
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import {
+  formatMediumDateRange,
   formatSummaryDuration,
   integerCountFormatter,
-  mediumDateFormatter,
   signedIntegerCountFormatter,
 } from "./presentation-format";
 import { formatDistance, formatExactMetric } from "./training-format";
@@ -95,10 +95,6 @@ export function TrainingComparisonPanel({
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
     () => signedIntegerCountFormatter(locale),
-    [locale],
-  );
-  const date = useMemo(
-    () => mediumDateFormatter(locale),
     [locale],
   );
   const selectableRange = useMemo(() => ({
@@ -255,7 +251,12 @@ export function TrainingComparisonPanel({
 
   function rangeLabel(range: TrainingDateRange | null): string {
     if (!range) return messages.unavailable;
-    return `${date.format(localDate(range.from))} ${messages.training.rangeSeparator} ${date.format(localDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      messages.training.rangeSeparator,
+    );
   }
 
   function durationBarWidth(value: string, maximum: bigint): string {

@@ -183,6 +183,54 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
 afterEach(cleanup);
 
 describe("LibraryHomePanel", () => {
+  it("shows one-day Home and comparison periods as single calendar dates", () => {
+    const home = populatedHome({
+      primaryRange: {
+        scope: "training",
+        range: { from: "2026-08-17", through: "2026-08-17" },
+      },
+      highlight: {
+        kind: "recent-training-comparison",
+        referenceDate: "2026-08-17",
+        baseline: {
+          range: { from: "2026-08-16", through: "2026-08-16" },
+          sessionCount: 1,
+          totalDurationMilliseconds: "3600000",
+        },
+        comparison: {
+          range: { from: "2026-08-17", through: "2026-08-17" },
+          sessionCount: 1,
+          totalDurationMilliseconds: "3600000",
+        },
+        sessionCountChange: "0",
+        durationChangeMilliseconds: "0",
+      },
+    });
+
+    render(
+      <LibraryHomePanel
+        {...presentationUnits}
+        home={home}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Training history: Aug 17, 2026")).toBeVisible();
+    const comparison = screen.getByRole("heading", {
+      name: "Last 7 days",
+    }).closest("section");
+    expect(comparison).not.toBeNull();
+    expect(within(comparison!).getByText("Aug 16, 2026")).toBeVisible();
+    expect(within(comparison!).getByText("Aug 17, 2026")).toBeVisible();
+    expect(comparison).not.toHaveTextContent("Aug 16, 2026 – Aug 16, 2026");
+    expect(comparison).not.toHaveTextContent("Aug 17, 2026 – Aug 17, 2026");
+  });
+
   it("uses localized provider recognition on Home and recent sessions", () => {
     const home = populatedHome();
     home.training = {

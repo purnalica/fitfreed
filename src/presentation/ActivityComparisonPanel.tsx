@@ -22,8 +22,8 @@ import {
 } from "./comparison-period-preset";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import {
+  formatMediumDateRange,
   integerCountFormatter,
-  mediumDateFormatter,
   pluralRules,
   signedIntegerCountFormatter,
 } from "./presentation-format";
@@ -81,10 +81,6 @@ export function ActivityComparisonPanel({
     [locale],
   );
   const plural = useMemo(() => pluralRules(locale), [locale]);
-  const date = useMemo(
-    () => mediumDateFormatter(locale),
-    [locale],
-  );
 
   async function loadComparison(
     baseline: ActivityDateRange,
@@ -184,7 +180,12 @@ export function ActivityComparisonPanel({
 
   function rangeLabel(range: ActivityDateRange | null): string {
     if (!range) return messages.unavailable;
-    return `${date.format(localDate(range.from))} ${messages.activity.rangeSeparator} ${date.format(localDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      messages.activity.rangeSeparator,
+    );
   }
 
   function comparisonBarWidth(value: string | null, maximum: bigint): string {

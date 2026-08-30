@@ -25,14 +25,13 @@ import type {
 import {
   formatRecoveryMilliseconds,
   recoveryBarWidth,
-  recoveryLocalDate,
   recoveryRangeIsValid,
 } from "./recovery-format";
 import { formatSleepDuration } from "./sleep-format";
 import {
+  formatMediumDateRange,
   formatSummaryDuration,
   integerCountFormatter,
-  mediumDateFormatter,
   signedIntegerCountFormatter,
 } from "./presentation-format";
 
@@ -65,10 +64,6 @@ export function LongitudinalComparisonPanel({
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const signedNumber = useMemo(
     () => signedIntegerCountFormatter(locale),
-    [locale],
-  );
-  const date = useMemo(
-    () => mediumDateFormatter(locale),
     [locale],
   );
   const copy = messages.longitudinal.comparison;
@@ -133,7 +128,12 @@ export function LongitudinalComparisonPanel({
 
   function rangeLabel(range: LongitudinalDateRange | null): string {
     if (!range) return messages.unavailable;
-    return `${date.format(recoveryLocalDate(range.from))} ${messages.longitudinal.rangeSeparator} ${date.format(recoveryLocalDate(range.through))}`;
+    return formatMediumDateRange(
+      range.from,
+      range.through,
+      locale,
+      messages.longitudinal.rangeSeparator,
+    );
   }
 
   function exact(value: string | null, signed = false): string {

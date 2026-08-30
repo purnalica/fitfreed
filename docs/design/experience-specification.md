@@ -75,6 +75,8 @@ value or the exact export. Counts always use locale grouping, including both sid
 plus units remain one reading unit. A screen chooses a named shared policy rather than constructing an
 independent number or date formatter. An ordinary same-day session appears as one localized date, one
 start-to-end time range, and one duration; complete timestamps and UTC offset remain deliberate evidence.
+Every ordinary period whose two boundaries are the same calendar date likewise shows that date once across
+Home, sport collections, comparisons, and reports. A real multi-day period keeps both boundaries.
 
 Severity follows consequence. A failed or rejected operation first states what happened to the
 existing library or saved document, then offers one safe next action. Technical detail is optional,
