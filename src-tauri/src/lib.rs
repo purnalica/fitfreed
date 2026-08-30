@@ -513,7 +513,7 @@ fn cancel_import(coordinator: State<'_, ImportCoordinator>) -> Result<bool, Comm
     coordinator.cancel().map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_activity_overview(
     app: AppHandle,
     requested_range: Option<ActivityDateRangeDto>,
@@ -525,7 +525,7 @@ fn query_activity_overview(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_activity_comparison(
     app: AppHandle,
     baseline_range: ActivityDateRangeDto,
@@ -542,7 +542,7 @@ fn query_activity_comparison(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_comparison(
     app: AppHandle,
     baseline_range: TrainingDateRangeDto,
@@ -559,7 +559,7 @@ fn query_training_comparison(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_sessions(
     app: AppHandle,
     request: TrainingSessionSearchRequestDto,
@@ -572,7 +572,7 @@ fn query_training_sessions(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_calendar(
     app: AppHandle,
     request: TrainingSessionCalendarRequestDto,
@@ -585,7 +585,7 @@ fn query_training_session_calendar(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_selection(
     app: AppHandle,
     request: TrainingSessionSelectionRequestDto,
@@ -597,7 +597,7 @@ fn query_training_session_selection(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_planned_training_chronology(
     app: AppHandle,
     query: PlannedTrainingChronologyQueryDto,
@@ -609,7 +609,7 @@ fn query_planned_training_chronology(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_planned_training_target(
     app: AppHandle,
     query: PlannedTrainingTargetQueryDto,
@@ -620,7 +620,7 @@ fn query_planned_training_target(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_session_planned_training_relation(
     app: AppHandle,
     query: PlannedTrainingSessionRelationQueryDto,
@@ -631,7 +631,7 @@ fn query_session_planned_training_relation(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_structure(
     app: AppHandle,
     query: TrainingSessionStructureQueryDto,
@@ -642,7 +642,7 @@ fn query_training_session_structure(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_session_story(
     app: AppHandle,
     query: SessionStoryQueryDto,
@@ -664,7 +664,7 @@ fn query_session_story(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_routes(
     app: AppHandle,
     query: TrainingSessionRouteQueryDto,
@@ -675,7 +675,7 @@ fn query_training_session_routes(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_route_points(
     app: AppHandle,
     query: TrainingRoutePointsQueryDto,
@@ -686,7 +686,7 @@ fn query_training_route_points(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_signals(
     app: AppHandle,
     query: TrainingSessionSignalsQueryDto,
@@ -697,7 +697,7 @@ fn query_training_session_signals(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_zones(
     app: AppHandle,
     query: TrainingSessionZonesQueryDto,
@@ -708,7 +708,7 @@ fn query_training_session_zones(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_provenance(
     app: AppHandle,
     query: TrainingSessionProvenanceQueryDto,
@@ -719,7 +719,7 @@ fn query_training_session_provenance(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_signal_samples(
     app: AppHandle,
     query: TrainingSignalSamplesQueryDto,
@@ -730,7 +730,7 @@ fn query_training_signal_samples(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_segmentation(
     app: AppHandle,
     query: TrainingSessionSegmentationQueryDto,
@@ -741,7 +741,7 @@ fn query_training_session_segmentation(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn create_training_segment_criterion(
     app: AppHandle,
     request: CreateTrainingSegmentCriterionRequestDto,
@@ -752,7 +752,7 @@ fn create_training_segment_criterion(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn update_training_segment_criterion(
     app: AppHandle,
     request: UpdateTrainingSegmentCriterionRequestDto,
@@ -763,7 +763,7 @@ fn update_training_segment_criterion(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn apply_training_segment_criterion(
     app: AppHandle,
     request: TrainingSegmentCriterionMutationRequestDto,
@@ -774,7 +774,7 @@ fn apply_training_segment_criterion(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn remove_training_segment_criterion(
     app: AppHandle,
     request: TrainingSegmentCriterionMutationRequestDto,
@@ -785,7 +785,7 @@ fn remove_training_segment_criterion(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn move_training_segment_criterion(
     app: AppHandle,
     request: MoveTrainingSegmentCriterionRequestDto,
@@ -796,7 +796,7 @@ fn move_training_segment_criterion(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_ranges(
     app: AppHandle,
     query: TrainingSessionRangesQueryDto,
@@ -807,7 +807,7 @@ fn query_training_session_ranges(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_range_summary(
     app: AppHandle,
     query: TrainingSessionRangeSummaryQueryDto,
@@ -818,7 +818,7 @@ fn query_training_session_range_summary(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_session_range_draft_summary(
     app: AppHandle,
     query: TrainingSessionRangeDraftSummaryQueryDto,
@@ -829,7 +829,7 @@ fn query_training_session_range_draft_summary(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn create_training_session_range(
     app: AppHandle,
     request: CreateTrainingSessionRangeRequestDto,
@@ -843,7 +843,7 @@ fn create_training_session_range(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn rename_training_session_range(
     app: AppHandle,
     request: RenameTrainingSessionRangeRequestDto,
@@ -854,7 +854,7 @@ fn rename_training_session_range(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn adjust_training_session_range(
     app: AppHandle,
     request: AdjustTrainingSessionRangeRequestDto,
@@ -868,7 +868,7 @@ fn adjust_training_session_range(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn remove_training_session_range(
     app: AppHandle,
     request: RemoveTrainingSessionRangeRequestDto,
@@ -879,7 +879,7 @@ fn remove_training_session_range(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn load_training_discovery_workspace(
     app: AppHandle,
 ) -> Result<Option<TrainingDiscoveryWorkspaceDto>, CommandErrorDto> {
@@ -889,7 +889,7 @@ fn load_training_discovery_workspace(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn save_training_discovery_workspace(
     app: AppHandle,
     workspace: TrainingDiscoveryWorkspaceDto,
@@ -904,14 +904,14 @@ fn save_training_discovery_workspace(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn clear_training_discovery_workspace(app: AppHandle) -> Result<(), CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     fitfreed_application::clear_training_discovery_workspace(&SqliteTrainingLibrary::new(path))
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_training_sports(app: AppHandle) -> Result<TrainingSportsOverviewDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     build_training_sports(&SqliteTrainingSports::new(path))
@@ -919,7 +919,7 @@ fn query_training_sports(app: AppHandle) -> Result<TrainingSportsOverviewDto, Co
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn save_training_sport_classification(
     app: AppHandle,
     request: SaveSportClassificationRequestDto,
@@ -930,7 +930,7 @@ fn save_training_sport_classification(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn save_unified_sport_relationship(
     app: AppHandle,
     request: SaveUnifiedSportRelationshipRequestDto,
@@ -941,7 +941,7 @@ fn save_unified_sport_relationship(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn remove_unified_sport_relationship(
     app: AppHandle,
     request: RemoveUnifiedSportRelationshipRequestDto,
@@ -952,7 +952,7 @@ fn remove_unified_sport_relationship(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn prepare_report_start(
     app: AppHandle,
     start: ReportStartDto,
@@ -964,7 +964,7 @@ fn prepare_report_start(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn create_report(
     app: AppHandle,
     request: CreateReportRequestDto,
@@ -983,7 +983,7 @@ fn create_report(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn duplicate_report(
     app: AppHandle,
     request: DuplicateReportRequestDto,
@@ -995,7 +995,7 @@ fn duplicate_report(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn list_report_examples(app: AppHandle) -> Result<ReportExampleCatalogDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     list_report_examples_through_port(&SqliteTrainingLibrary::new(path))
@@ -1003,7 +1003,7 @@ fn list_report_examples(app: AppHandle) -> Result<ReportExampleCatalogDto, Comma
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_report_example_training_session_subjects(
     app: AppHandle,
     query: ReportExampleTrainingSessionSubjectQueryDto,
@@ -1018,7 +1018,7 @@ fn query_report_example_training_session_subjects(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_report_example_planned_training_subjects(
     app: AppHandle,
     query: ReportExamplePlannedTrainingSubjectQueryDto,
@@ -1033,7 +1033,7 @@ fn query_report_example_planned_training_subjects(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn update_report(
     app: AppHandle,
     request: UpdateReportRequestDto,
@@ -1052,7 +1052,7 @@ fn update_report(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn refresh_report(
     app: AppHandle,
     request: RefreshReportRequestDto,
@@ -1072,7 +1072,7 @@ fn refresh_report(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn remove_report(
     app: AppHandle,
     request: RemoveReportRequestDto,
@@ -1084,7 +1084,7 @@ fn remove_report(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn create_session_report(
     app: AppHandle,
     request: CreateSessionReportRequestDto,
@@ -1100,7 +1100,7 @@ fn create_session_report(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn create_composed_session_report(
     app: AppHandle,
     request: CreateComposedSessionReportRequestDto,
@@ -1118,7 +1118,7 @@ fn create_composed_session_report(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn update_session_report(
     app: AppHandle,
     request: UpdateSessionReportRequestDto,
@@ -1130,7 +1130,7 @@ fn update_session_report(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn update_composed_session_report(
     app: AppHandle,
     request: UpdateComposedSessionReportRequestDto,
@@ -1148,7 +1148,7 @@ fn update_composed_session_report(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn list_reports(app: AppHandle) -> Result<ReportListDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     list_reports_through_port(&SqliteReportLibrary::new(path))
@@ -1156,7 +1156,7 @@ fn list_reports(app: AppHandle) -> Result<ReportListDto, CommandErrorDto> {
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn list_report_library(
     app: AppHandle,
     request: ReportLibraryRequestDto,
@@ -1173,7 +1173,7 @@ fn list_report_library(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn load_report_definition(
     app: AppHandle,
     report_ref: String,
@@ -1184,7 +1184,7 @@ fn load_report_definition(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn resolve_session_report(
     app: AppHandle,
     report_ref: String,
@@ -1202,7 +1202,7 @@ fn resolve_session_report(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn resolve_report(
     app: AppHandle,
     request: ResolveReportRequestDto,
@@ -1300,7 +1300,7 @@ fn cancel_report_export(
         .map_err(|_| CommandErrorDto::new("report-export-state-unavailable"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_sleep_overview(
     app: AppHandle,
     requested_range: Option<SleepDateRangeDto>,
@@ -1312,7 +1312,7 @@ fn query_sleep_overview(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_sleep_comparison(
     app: AppHandle,
     baseline_range: SleepDateRangeDto,
@@ -1329,7 +1329,7 @@ fn query_sleep_comparison(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_sleep_detail(
     app: AppHandle,
     series_ref: String,
@@ -1342,7 +1342,7 @@ fn query_sleep_detail(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_recovery_overview(
     app: AppHandle,
     requested_range: Option<RecoveryDateRangeDto>,
@@ -1354,7 +1354,7 @@ fn query_recovery_overview(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_recovery_comparison(
     app: AppHandle,
     baseline_range: RecoveryDateRangeDto,
@@ -1371,7 +1371,7 @@ fn query_recovery_comparison(
     .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_recovery_detail(
     app: AppHandle,
     series_ref: String,
@@ -1384,7 +1384,7 @@ fn query_recovery_detail(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_longitudinal_overview(
     app: AppHandle,
     requested_range: Option<LongitudinalDateRangeDto>,
@@ -1396,7 +1396,7 @@ fn query_longitudinal_overview(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_longitudinal_comparison(
     app: AppHandle,
     baseline_range: LongitudinalDateRangeDto,
@@ -1409,7 +1409,7 @@ fn query_longitudinal_comparison(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_library_home(
     app: AppHandle,
     request: LibraryHomeRequestDto,
@@ -1421,7 +1421,7 @@ fn query_library_home(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn save_exploration_workspace(
     app: AppHandle,
     destination: ExploreDestinationInputDto,
@@ -1433,13 +1433,13 @@ fn save_exploration_workspace(
         .map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn clear_exploration_workspace(app: AppHandle) -> Result<(), CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     clear_workspace(&SqliteLibraryHome::new(path)).map_err(CommandErrorDto::from)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn query_latest_import_outcome(
     app: AppHandle,
 ) -> Result<Option<ImportOutcomeDto>, CommandErrorDto> {

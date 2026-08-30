@@ -740,7 +740,8 @@ analysis may resume without requesting further participant reproduction on this 
 
 ### XH-27 — Late reconciliation degrades interactive responsiveness
 
-- **Status:** causal boundary traced; corrective regression and implementation pending.
+- **Status:** machine-corrected on 2026-08-30; the reviewed candidate remains rejected and requires a later bounded
+  product-owner review after every reopened deterministic finding closes.
 - **Observed behavior:** the application responds fluently during the early reconciliation phase of a large imported
   library. As reconciliation advances, navigation and other actions still respond, but interaction becomes
   progressively slow and no longer feels fluid.
@@ -753,11 +754,15 @@ analysis may resume without requesting further participant reproduction on this 
   synchronous SQLite work, open separate connections, and run schema maintenance checks while the long reconciliation
   transaction is active. The resulting CPU, storage, and database contention reaches the interactive path even though
   cancellation remains available.
-- **Automation gap:** the maintained scale gates exercise a fresh import followed by the exact-package shortcut and
-  measure queries only after import. They do not exercise a changed package that must reconcile an existing dense
-  library, nor representative navigation latency while that reconciliation is active. The corrective gate must cover
-  both boundaries and must retain the existing exact-repeat, cancellation, recovery, data-integrity, and full-scale
-  budgets.
+- **Corrective evidence boundary:** the dense-history gate now exercises a byte-distinct equivalent package against
+  an existing 7,490,080-sample library, proves that exact-package reuse was not selected, and measures representative
+  Home and History reads while late reconciliation remains active. Training reconciliation bypasses a second decode
+  and stored-evidence reconstruction only when the latest state-changing provenance has the same artifact digest,
+  provider, adapter, and mapping versions; every mismatch retains full remapping. All synchronous desktop commands
+  that open SQLite are dispatched away from Tauri's main invoke path. Complete increment verification and the later
+  human candidate remain separate gates. The dense benchmark, complete Rust and frontend suites, documentation and
+  contract checks, repository-safety checks, packaged macOS journeys, real-process restarts, accessibility checks, and
+  packaged performance campaign pass after the correction.
 
 ### XH-28 — Sport cards become unreadable and overflow at compact geometry
 

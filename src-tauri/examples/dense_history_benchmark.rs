@@ -1,17 +1,20 @@
 use std::{
     env, fs,
     path::Path,
+    sync::{atomic::AtomicBool, mpsc},
+    thread,
     time::{Duration, Instant},
 };
 
 use fitfreed_application::{
     query_library_home, query_training_session_signals, query_training_sessions,
-    query_training_signal_samples, ImportPhaseTimings, LibraryHomeRequest,
+    query_training_signal_samples, ImportPhase, ImportPhaseTimings, LibraryHomeRequest,
     TrainingSessionSearchRequest, TrainingSessionSignalsQuery, TrainingSessionSort,
     TrainingSignalSamplesQuery,
 };
 use fitfreed_lib::infrastructure::{
-    profile_polar_import_archive, SqliteLibraryHome, SqliteTrainingLibrary,
+    import_polar_archive_with_progress, profile_polar_import_archive, SqliteLibraryHome,
+    SqliteTrainingLibrary,
 };
 use rusqlite::Connection;
 use serde_json::{json, Value};
@@ -21,11 +24,13 @@ const EXPECTED_SERIES: usize = 2_080;
 const EXPECTED_SAMPLES: usize = 7_490_080;
 const WARM_UP_RUNS: usize = 5;
 const MEASURED_RUNS: usize = 20;
+const CONCURRENT_QUERY_RUNS: usize = 20;
 
 fn main() {
     let arguments = env::args().collect::<Vec<_>>();
     let archive = Path::new(arguments.get(1).expect("archive path argument"));
-    let database = Path::new(arguments.get(2).expect("database path argument"));
+    let equivalent_archive = Path::new(arguments.get(2).expect("equivalent archive path argument"));
+    let database = Path::new(arguments.get(3).expect("database path argument"));
     if database.exists() {
         fs::remove_file(database).expect("remove previous benchmark database");
     }
@@ -38,6 +43,87 @@ fn main() {
     let repeat =
         profile_polar_import_archive(database, archive).expect("dense-history exact repeat");
     let exact_repeat = repeat_started.elapsed();
+
+    let changed_database = database.to_path_buf();
+    let changed_archive = equivalent_archive.to_path_buf();
+    let (late_reconciliation_ready_tx, late_reconciliation_ready_rx) = mpsc::sync_channel(0);
+    let (navigation_measured_tx, navigation_measured_rx) = mpsc::sync_channel(0);
+    let equivalent_reimport_started = Instant::now();
+    let equivalent_reimport = thread::spawn(move || {
+        let cancellation = AtomicBool::new(false);
+        let mut late_probe_emitted = false;
+        let report = import_polar_archive_with_progress(
+            &changed_database,
+            &changed_archive,
+            &cancellation,
+            |progress| {
+                let late_boundary = progress
+                    .total_artifacts
+                    .is_some_and(|total| progress.completed_artifacts >= total * 4 / 5);
+                if progress.phase == ImportPhase::Reconciling
+                    && late_boundary
+                    && !late_probe_emitted
+                {
+                    late_probe_emitted = true;
+                    late_reconciliation_ready_tx
+                        .send(())
+                        .expect("announce late reconciliation");
+                    navigation_measured_rx
+                        .recv()
+                        .expect("resume late reconciliation");
+                }
+            },
+        )
+        .expect("equivalent changed-package reimport");
+        assert!(
+            late_probe_emitted,
+            "late reconciliation probe was not reached"
+        );
+        report
+    });
+    late_reconciliation_ready_rx
+        .recv()
+        .expect("observe late reconciliation");
+
+    let concurrent_home_library = SqliteLibraryHome::new(database.to_path_buf());
+    let concurrent_training_library = SqliteTrainingLibrary::new(database.to_path_buf());
+    let concurrent_session_query = TrainingSessionSearchRequest {
+        from: None,
+        through: None,
+        sport_refs: Vec::new(),
+        required_measurements: Vec::new(),
+        text: None,
+        sort: TrainingSessionSort::StartedDescending,
+        offset: 0,
+        limit: 25,
+        snapshot_ref: None,
+    };
+    let (concurrent_library_home_p95, concurrent_session_page_p95) = measure_concurrent_navigation(
+        || {
+            query_library_home(&concurrent_home_library, LibraryHomeRequest::default())
+                .expect("query Home during late reconciliation")
+                .training
+                .expect("training identity during late reconciliation")
+                .recent_sessions
+                .len()
+        },
+        || {
+            query_training_sessions(
+                &concurrent_training_library,
+                concurrent_session_query.clone(),
+            )
+            .expect("query History during late reconciliation")
+            .sessions
+            .len()
+        },
+    );
+    navigation_measured_tx
+        .send(())
+        .expect("release late reconciliation");
+    let equivalent_report = equivalent_reimport
+        .join()
+        .expect("join equivalent changed-package reimport");
+    let equivalent_reimport = equivalent_reimport_started.elapsed();
 
     let connection = Connection::open(database).expect("open dense-history library");
     connection
@@ -139,6 +225,13 @@ fn main() {
             "runtime": "rust",
             "firstImportMilliseconds": milliseconds(first_import),
             "exactRepeatMilliseconds": milliseconds(exact_repeat),
+            "equivalentReimportMilliseconds": milliseconds(equivalent_reimport),
+            "equivalentReimportExactRepeat": equivalent_report.exact_repeat,
+            "equivalentReimportEquivalentObservations": equivalent_report.equivalent_observations,
+            "equivalentReimportNewObservations": equivalent_report.new_observations,
+            "concurrentQueryRounds": CONCURRENT_QUERY_RUNS,
+            "concurrentLibraryHomeP95Milliseconds": milliseconds(concurrent_library_home_p95),
+            "concurrentSessionPageP95Milliseconds": milliseconds(concurrent_session_page_p95),
             "libraryHomeP95Milliseconds": milliseconds(library_home_p95),
             "sessionPageP95Milliseconds": milliseconds(session_page_p95),
             "signalOverviewP95Milliseconds": milliseconds(signal_overview_p95),
@@ -191,6 +284,29 @@ fn measure(mut operation: impl FnMut() -> usize) -> (Duration, usize) {
     }
     timings.sort_unstable();
     (percentile(&timings, 0.95), result)
+}
+
+fn measure_concurrent_navigation(
+    mut home: impl FnMut() -> usize,
+    mut sessions: impl FnMut() -> usize,
+) -> (Duration, Duration) {
+    let mut home_timings = Vec::with_capacity(CONCURRENT_QUERY_RUNS);
+    let mut session_timings = Vec::with_capacity(CONCURRENT_QUERY_RUNS);
+    for _ in 0..CONCURRENT_QUERY_RUNS {
+        let home_started = Instant::now();
+        assert_eq!(home(), 4);
+        home_timings.push(home_started.elapsed());
+
+        let sessions_started = Instant::now();
+        assert_eq!(sessions(), 25);
+        session_timings.push(sessions_started.elapsed());
+    }
+    home_timings.sort_unstable();
+    session_timings.sort_unstable();
+    (
+        percentile(&home_timings, 0.95),
+        percentile(&session_timings, 0.95),
+    )
 }
 
 fn percentile(values: &[Duration], requested: f64) -> Duration {

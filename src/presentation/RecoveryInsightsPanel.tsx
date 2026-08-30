@@ -126,6 +126,10 @@ export function RecoveryInsightsPanel({
   }
 
   useEffect(() => {
+    if (navigationRequest) {
+      setLoadingOverview(false);
+      return;
+    }
     let active = true;
     setLoadingOverview(true);
     invoke<RecoveryOverview>("query_recovery_overview", { requestedRange: null })
@@ -142,7 +146,7 @@ export function RecoveryInsightsPanel({
       active = false;
       detailRequest.current += 1;
     };
-  }, [refreshToken, onError]);
+  }, [refreshToken, navigationRequest, onError]);
 
   useEffect(() => {
     if (!navigationRequest) return;
@@ -164,7 +168,7 @@ export function RecoveryInsightsPanel({
       .finally(() => setRangeOperation(
         (current) => current === "navigation" ? undefined : current,
       ));
-  }, [navigationRequest, onError]);
+  }, [refreshToken, navigationRequest, onError]);
 
   async function applyRange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

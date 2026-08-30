@@ -78,7 +78,7 @@ An exact package fingerprint may take a fast path that avoids repeated parsing o
 
 Supported artifacts are streamed through their source adapter. Structural validation and the anti-corruption layer produce typed normalized observations and local provenance locators in bounded batches. Relationships between separately exported artifacts, such as sleep results and scores, are validated and joined completely before any candidate becomes visible.
 
-Training artifacts use a deliberate two-pass boundary. The first pass performs complete semantic mapping, records coverage, detects duplicate aggregate identities, and then retains only a lightweight locator, digest, and identity manifest. It does not retain all mapped sessions, routes, or future signal values in process memory. After the complete package is accepted, the visibility transaction reopens each exact member, verifies its digest and identity against that manifest, remaps it, and reconciles one session at a time. Any second-pass failure rolls back every canonical change. The cost is one additional bounded parse per training artifact; the benefit is package-level atomicity without memory proportional to the complete training history or a second durable staging schema with private cleanup state.
+Training artifacts use a deliberate two-pass boundary. The first pass performs complete semantic mapping, records coverage, detects duplicate aggregate identities, and then retains only a lightweight locator, digest, source modification instant, and identity manifest. It does not retain all mapped sessions, routes, or future signal values in process memory. After the complete package is accepted, the visibility transaction verifies each manifest item against the latest provenance event that changed its current canonical state. An exact source digest under the same provider, adapter, and mapping versions records an equivalent decision without decoding the member again or rebuilding stored structure, routes, signals, and zones. Any evidence mismatch, adapter change, or mapping change reopens the exact member, verifies its digest and identity, remaps it, and reconciles the complete session. A second-pass failure rolls back every canonical change. This preserves package-level atomicity without memory proportional to the complete training history or a second durable staging schema with private cleanup state, while avoiding redundant reconstruction for a logically equivalent changed container.
 
 Staged candidates are not queryable as fitness history. Temporary state is private, bounded, permission-restricted, and either resumable under an exact implementation/version contract or safely disposable. Raw personal values never enter general application logs, public diagnostics, or test snapshots.
 
@@ -95,6 +95,11 @@ Fitness History evaluates each candidate using the logical identity and invarian
 - **rejected:** violate canonical invariants or an established semantic precondition.
 
 The complete decision set is prepared before visible state changes. Reconciliation order cannot alter the resulting canonical state.
+
+Equivalent training reuse is an evidence decision, not a container shortcut. Only the latest `create`, `enrich`, or
+`amend` provenance event can establish the current canonical artifact. A later `equivalent`, `preserve`, or `conflict`
+event cannot replace that state-changing evidence. The current artifact digest and provider, adapter, and mapping
+versions must all agree; otherwise the ordinary complete reconciliation path remains mandatory.
 
 ### 5. Committing
 

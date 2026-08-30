@@ -69,10 +69,17 @@ deterministic gaps. The accepted scale is exactly 521 archive entries, 520 sessi
 derivative of a private history.
 
 The release-mode Rust benchmark process uses the production archive adapter, anti-corruption mapping,
-reconciliation, SQLite persistence, and application query use cases. Three fresh processes each receive a
-new library, perform the first import, repeat the exact same archive, checkpoint SQLite, and verify every
-persisted count. Each process then executes five warm-ups and 20 measurements for the coherent Library Home,
-the first 25 sessions, the four-series 300-sample-per-series bounded overview, and one 250-sample exact page.
+reconciliation, SQLite persistence, and application query use cases. The generator creates two archives with
+identical logical members and different container bytes. Three fresh processes each receive a new library, perform
+the first import, repeat the exact same archive, and then import the byte-distinct equivalent archive through the
+ordinary changed-package path. During the final fifth of that reconciliation, a deterministic probe holds the
+late transaction boundary open while 20 Library Home and first-page History queries run through the production
+application use cases. Completion must report 520 equivalent observations, no new observation, and no exact-repeat
+shortcut. A changed digest or active adapter or mapping version still requires the complete remapping path.
+
+After changed-package reconciliation completes, each process checkpoints SQLite, verifies every persisted count,
+and executes five warm-ups and 20 measurements for the coherent Library Home, the first 25 sessions, the four-series
+300-sample-per-series bounded overview, and one 250-sample exact page.
 The Home measurement composes the complete history span, sport identities, four most recent sessions,
 historical or equal-period highlight, domain coverage, and latest import outcome through the production
 SQLite ports and application use case. Query p95 uses sorted
@@ -83,8 +90,10 @@ The gate enforces:
 
 - first import at or below 10 minutes;
 - exact repeat at or below 30 seconds;
+- equivalent changed-container reimport at or below 5 minutes;
 - peak resident memory strictly below 1,536 MiB;
 - checkpointed SQLite size at or below 512 MiB;
+- Library Home and first-page History p95 at or below 500 milliseconds during late changed-container reconciliation;
 - Library Home composition, session discovery, signal overview, and exact sample page p95 at or below 500 milliseconds; and
 - exact session, series, sample, visual-sample, and page counts.
 

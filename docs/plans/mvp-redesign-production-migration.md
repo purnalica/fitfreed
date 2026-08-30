@@ -12,7 +12,7 @@ redesign.
 
 ### Current execution snapshot
 
-Updated 2026-08-29. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
+Updated 2026-08-30. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
 machine-complete historical evidence. The production-native review of that result was paused and rejected after it
 found material defects in sport identity, calendar discovery, information density, analytical charts, route
 interaction, and report execution. X7-R8.0 through X7-R8.8 reached machine completion, but the bounded product-owner
@@ -59,8 +59,8 @@ provenance, duplication semantics, and result-first compact controls passed the 
 accessibility, visual, restart, export, update-recovery, and performance campaign. The independent X7-R8.7 audit
 accepted and closed one major report-conclusion defect and one minor repeated-date defect, then accepted no other
 critical or major finding. Its method, question inventory, findings, and machine verdict are recorded in the
-[X7-R8 product-experience audit](../research/x7-r8-product-experience-audit.md). X7-R8.8 is now the only remaining
-machine-delivery increment before the bounded product-owner experience gate.
+[X7-R8 product-experience audit](../research/x7-r8-product-experience-audit.md). That evidence led to X7-R8.8 and the
+bounded product-owner experience gate described below.
 
 The first exact R8.8 attempt passed the complete local and hosted campaigns for source `006e7c7`, but the additional
 candidate inspection rejected its revision-isolated native bundle: Rust compiler location metadata still contained
@@ -80,6 +80,16 @@ unpublished application was rejected by the bounded product-owner experience rev
 sport groups while History exposes a small recognized subset beside dominant unknown groups; late reconciliation loses
 fluidity; and compact sport cards become unreadable and overflow. These are XH-08, XH-27, and XH-28 in the canonical
 [human evaluation](../research/x6-product-experience-human-evaluation.md).
+
+X7-R8.9 and X7-R8.10 are machine-complete. Reusable local sport correlation and documented provider normalization
+now survive cumulative import, restart, removal, backup, migration, and restoration without erasing source evidence.
+A byte-distinct but logically equivalent changed package now reuses unchanged training artifacts only when the latest
+state-changing provenance proves the same digest, provider, adapter, and mapping versions; every mismatch retains the
+complete remapping path. All synchronous SQLite desktop commands run away from Tauri's main invoke path. The dense
+7,490,080-sample gate proves the non-exact reimport result and measures Home and History while late reconciliation is
+deliberately held active. Complete frontend, Rust, documentation, contract, repository-safety, packaged macOS, restart,
+accessibility, and performance evidence passes. X7-R8.11 compact sport-card geometry and the repeated X7-R8.12
+candidate gate remain open.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust failed that
 human gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -331,7 +341,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | Reopened — R8.0 through R8.8 and their exact machine gates remain evidence, but the 2026-08-30 product-owner review rejected the candidate through XH-08, XH-27, and XH-28 | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Reopened — R8.0 through R8.10 retain machine evidence, but the 2026-08-30 product-owner review rejected the earlier candidate and R8.11 compact geometry plus the repeated R8.12 candidate gate remain | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3381,13 +3391,25 @@ backup, schema-36 migration, incompatible evidence, origin separation, and bound
 contracts. Provider normalization version 1 groups only equal exact documented Polar sport codes from the same origin;
 personal relationships take precedence and unresolved or ambiguous evidence remains separate. Application,
 persistence, transport, JSON Schema, migration, documentation, localization, repository-safety, and full packaged
-macOS journeys pass with synthetic evidence. X7-R8.10, X7-R8.11, and the repeated X7-R8.12 candidate gate remain open.
+macOS journeys pass with synthetic evidence. X7-R8.11 and the repeated X7-R8.12 candidate gate remain open.
 
 **Execution increment X7-R8.10 — responsive changed-package reconciliation:** extend the dense-history benchmark with
 a non-identical equivalent reimport into an existing dense library and measure representative Home and History query
 latency while reconciliation is active. Move synchronous desktop database work away from the invoke thread, remove
 redundant reconstruction where unchanged artifact evidence proves equivalence under the active mapping version, and
 retain the full remapping path after mapping changes. The existing fresh-import and exact-repeat budgets remain.
+
+**Machine-complete checkpoint — 2026-08-30:** the dense-history gate now imports two byte-distinct containers with
+identical logical members into an existing 7,490,080-sample library. It proves the changed-package path, 520 equivalent
+training observations, no new observation, and representative Home and first-page History latency while the final
+fifth of reconciliation remains active. Reconciliation bypasses a second training decode and stored-evidence
+reconstruction only when the latest state-changing provenance matches the artifact digest, provider, adapter, and
+mapping versions; a version or evidence mismatch continues through full remapping. Every synchronous SQLite desktop
+command is dispatched away from Tauri's main invoke path. Focused race regressions protect direct Sleep and Recovery
+navigation, and the report-example journey now proves its visible preparation state before asserting the unchanged
+three-block result. Complete Rust, frontend, script, architecture, data-contract, localization, documentation,
+repository-safety, packaged macOS, restart, accessibility, and performance gates pass. X7-R8.11 and X7-R8.12 remain
+open.
 
 **Execution increment X7-R8.11 — compact sport-card geometry:** add closed-card geometry assertions at every supported
 zoom and compact width before changing layout. At high content zoom the list becomes one column, identity and actions

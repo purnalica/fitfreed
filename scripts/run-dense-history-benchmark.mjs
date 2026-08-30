@@ -19,6 +19,7 @@ import {
 const measuredProcesses = 3;
 const firstImportBudgetMilliseconds = 10 * 60 * 1_000;
 const exactRepeatBudgetMilliseconds = 30 * 1_000;
+const equivalentReimportBudgetMilliseconds = 5 * 60 * 1_000;
 const queryBudgetMilliseconds = 500;
 const peakMemoryExclusiveBudgetMiB = 1_536;
 const databaseSizeBudgetBytes = 512 * 1_024 ** 2;
@@ -126,6 +127,18 @@ export function validateDenseHistoryBenchmarkRun(run) {
     errors.push(`expected ${scenario.sessions} new observations`);
   }
   if (run.repeatDetected !== true) errors.push("exact repeat was not detected");
+  if (run.equivalentReimportExactRepeat !== false) {
+    errors.push("equivalent changed package used the exact-repeat path");
+  }
+  if (run.equivalentReimportEquivalentObservations !== scenario.sessions) {
+    errors.push(`expected ${scenario.sessions} equivalent observations`);
+  }
+  if (run.equivalentReimportNewObservations !== 0) {
+    errors.push("expected no new observation from the equivalent changed package");
+  }
+  if (!Number.isInteger(run.concurrentQueryRounds) || run.concurrentQueryRounds < 1) {
+    errors.push("expected concurrent navigation measurements");
+  }
   if (run.persistedSessions !== scenario.sessions) {
     errors.push(`expected ${scenario.sessions} persisted sessions`);
   }
@@ -152,6 +165,9 @@ export function validateDenseHistoryBenchmarkRun(run) {
   for (const name of [
     "firstImportMilliseconds",
     "exactRepeatMilliseconds",
+    "equivalentReimportMilliseconds",
+    "concurrentLibraryHomeP95Milliseconds",
+    "concurrentSessionPageP95Milliseconds",
     "libraryHomeP95Milliseconds",
     "sessionPageP95Milliseconds",
     "signalOverviewP95Milliseconds",
@@ -183,6 +199,18 @@ export function evaluateDenseHistoryBenchmarkRuns(runs) {
     exactRepeat: timedMeasurement(
       runs.map(({ exactRepeatMilliseconds }) => exactRepeatMilliseconds),
       exactRepeatBudgetMilliseconds,
+    ),
+    equivalentReimport: timedMeasurement(
+      runs.map(({ equivalentReimportMilliseconds }) => equivalentReimportMilliseconds),
+      equivalentReimportBudgetMilliseconds,
+    ),
+    concurrentLibraryHome: timedMeasurement(
+      runs.map(({ concurrentLibraryHomeP95Milliseconds }) => concurrentLibraryHomeP95Milliseconds),
+      queryBudgetMilliseconds,
+    ),
+    concurrentSessionPage: timedMeasurement(
+      runs.map(({ concurrentSessionPageP95Milliseconds }) => concurrentSessionPageP95Milliseconds),
+      queryBudgetMilliseconds,
     ),
     libraryHome: timedMeasurement(
       runs.map(({ libraryHomeP95Milliseconds }) => libraryHomeP95Milliseconds),
@@ -265,6 +293,10 @@ function executeDenseHistoryBenchmark() {
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-dense-history-"));
   try {
     const archivePath = path.join(temporaryDirectory, "dense-history.zip");
+    const equivalentArchivePath = path.join(
+      temporaryDirectory,
+      "dense-history-equivalent-container.zip",
+    );
     const fixture = parseJson(
       run(
         process.execPath,
@@ -274,13 +306,30 @@ function executeDenseHistoryBenchmark() {
       "dense-history fixture generator",
     );
     validateDenseHistoryBenchmarkFixture(fixture);
+    const equivalentFixture = parseJson(
+      run(
+        process.execPath,
+        [
+          "scripts/generate-dense-history-fixture.mjs",
+          equivalentArchivePath,
+          "--equivalent-container-variant",
+        ],
+        repositoryRoot,
+      ),
+      "dense-history equivalent fixture generator",
+    );
+    validateDenseHistoryBenchmarkFixture(equivalentFixture);
     const buildPlan = denseHistoryBenchmarkBuildPlan();
     execFileSync(buildPlan.program, buildPlan.arguments_, buildPlan.options);
     const runs = [];
     for (let index = 0; index < measuredProcesses; index += 1) {
       const databasePath = path.join(temporaryDirectory, `library-${index}.sqlite`);
       runs.push(parseJson(
-        run(denseHistoryBenchmarkExecutable, [archivePath, databasePath], repositoryRoot),
+        run(
+          denseHistoryBenchmarkExecutable,
+          [archivePath, equivalentArchivePath, databasePath],
+          repositoryRoot,
+        ),
         "dense-history benchmark process",
       ));
       for (const suffix of ["", "-wal", "-shm"]) {
@@ -308,8 +357,9 @@ function executeDenseHistoryBenchmark() {
         freshLibraryPerProcess: true,
         warmUpQueriesPerProcess: 5,
         measuredQueriesPerProcess: 20,
+        lateReconciliationQueryRoundsPerProcess: 20,
         percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-        scope: "release-mode production archive, mapping, reconciliation, SQLite storage, exact repeat, coherent Library Home composition, session discovery, signal overview, and exact pagination",
+        scope: "release-mode production archive, mapping, reconciliation, SQLite storage, exact repeat, equivalent changed-package reconciliation, concurrent Library Home and History navigation, coherent Library Home composition, session discovery, signal overview, and exact pagination",
       },
       ...evaluation,
     };

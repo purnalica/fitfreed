@@ -10,6 +10,7 @@ import { denseHistoryScenario } from "./run-dense-history-benchmark.mjs";
 const outputPath = path.resolve(
   process.argv[2] ?? ".artifacts/e2e/dense-history.zip",
 );
+const equivalentContainerVariant = process.argv[3] === "--equivalent-container-variant";
 const scenario = denseHistoryScenario();
 const fixedTime = new Date("2000-01-01T00:00:00.000Z");
 const firstDate = Date.parse(`${scenario.firstDate}T00:00:00.000Z`);
@@ -97,7 +98,9 @@ for (let index = 0; index < scenario.sessions; index += 1) {
   );
 }
 
-zip.end();
+zip.end(equivalentContainerVariant
+  ? { comment: "fitfreed-equivalent-container-variant-v1" }
+  : undefined);
 await new Promise((resolve, reject) => {
   zip.outputStream
     .pipe(createWriteStream(outputPath))

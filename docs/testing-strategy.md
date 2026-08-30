@@ -48,6 +48,10 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Anti-corruption mapping from Polar Flow structures to domain inputs.
 - Database constraints, transactions, migrations, queries, rollback, and restart behavior.
 - Import fingerprints, provenance, overlap reconciliation, and retry behavior.
+- Changed-container equivalent reimport proves that only the latest state-changing artifact provenance can bypass
+  redundant training reconstruction; different evidence or adapter or mapping versions retain complete remapping.
+- Every synchronous Tauri command that opens SQLite carries the framework's asynchronous-dispatch annotation, so
+  application queries and mutations do not execute on the main invoke thread.
 - Package-identity, provider-compatibility, malformed-content, safety, and resource-limit classification with
   complete member scanning; source-file and canonical-item progress; delayed-progress explanation; and
   cancellation rollback before the atomic commit boundary.
@@ -93,6 +97,11 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Compact sport classification measures are asserted across the 40-combination locale, appearance, viewport, and
   zoom matrix. The open native disclosure, editor, fields, preview, and actions must occupy the available WebKit
   width without min-content collapse, clipping, or one-character-per-line copy.
+- The dense-history gate imports a byte-distinct but logically equivalent archive into an existing 7,490,080-sample
+  library, proves that it did not use exact-package reuse, and measures 20 Library Home and first-page History queries
+  while the final fifth of reconciliation remains active. The changed-package duration and both interactive p95
+  measurements retain their independent budgets alongside all existing fresh-import, exact-repeat, storage, and
+  post-import query budgets.
 - Report Library, Compose, Preview, stale-evidence review, and export-review boundaries, including preserved mounted drafts and inaccessible inactive stages.
 - Value-first empty startup before Sources, plus one persistently mounted Settings workspace with distinct preference and update categories, a concrete preference preview, and one continuous update lifecycle.
 - Ordered same-process Home publication across deferred startup, mapping-aware reimport, and sport-classification refreshes, including suppression of stale exploration destinations and a Sessions request that settles after deliberate entry.

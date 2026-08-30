@@ -497,6 +497,36 @@ describe("RecoveryInsightsPanel", () => {
     expect(await screen.findByRole("region", { name: "Recovery detail" })).toBeVisible();
   });
 
+  it("keeps direct longitudinal navigation authoritative over a late default overview", async () => {
+    const exact = overview({ from: "2026-03-28", through: "2026-03-28" });
+    exact.series = exact.series.map((series) => ({ ...series, days: [series.days[0]] }));
+    let resolveDefault: (value: RecoveryOverview) => void = () => undefined;
+    const defaultOverview = new Promise<RecoveryOverview>((resolve) => {
+      resolveDefault = resolve;
+    });
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_recovery_overview") {
+        return arguments_.requestedRange ? Promise.resolve(exact) : defaultOverview;
+      }
+      if (command === "query_recovery_detail") {
+        return Promise.resolve(detail(arguments_.recoveryDate));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel({
+      navigationRequest: {
+        seriesRef: "opaque-recovery-alpha",
+        localDate: "2026-03-28",
+        requestId: 1,
+      },
+    });
+
+    expect(await screen.findByRole("region", { name: "Recovery detail" })).toBeVisible();
+    await act(async () => resolveDefault(overview()));
+    expect(screen.getByRole("region", { name: "Recovery detail" })).toBeVisible();
+  });
+
   it("validates, runs, presents, and clears a complete comparison", async () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_recovery_overview") return Promise.resolve(overview());

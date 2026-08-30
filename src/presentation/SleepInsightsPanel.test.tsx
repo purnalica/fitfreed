@@ -540,6 +540,34 @@ describe("SleepInsightsPanel", () => {
     expect(await screen.findByRole("region", { name: "Sleep detail" })).toBeVisible();
   });
 
+  it("keeps direct longitudinal navigation authoritative over a late default overview", async () => {
+    const exact = overview({ from: "2026-03-28", through: "2026-03-28" });
+    exact.series = exact.series.map((series) => ({ ...series, days: [series.days[0]] }));
+    let resolveDefault: (value: SleepOverview) => void = () => undefined;
+    const defaultOverview = new Promise<SleepOverview>((resolve) => {
+      resolveDefault = resolve;
+    });
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_sleep_overview") {
+        return arguments_.requestedRange ? Promise.resolve(exact) : defaultOverview;
+      }
+      if (command === "query_sleep_detail") return Promise.resolve(detail(arguments_.sleepDate));
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel({
+      navigationRequest: {
+        seriesRef: "opaque-origin-alpha",
+        localDate: "2026-03-28",
+        requestId: 1,
+      },
+    });
+
+    expect(await screen.findByRole("region", { name: "Sleep detail" })).toBeVisible();
+    await act(async () => resolveDefault(overview()));
+    expect(screen.getByRole("region", { name: "Sleep detail" })).toBeVisible();
+  });
+
   it("preserves valid results on invalid input and ignores stale detail responses", async () => {
     let resolveFirst: (value: SleepPeriodDetail) => void = () => undefined;
     const firstDetail = new Promise<SleepPeriodDetail>((resolve) => { resolveFirst = resolve; });

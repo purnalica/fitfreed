@@ -798,6 +798,7 @@ struct ValidatedTrainingArtifact {
     sha256: String,
     origin_id: String,
     session_id: String,
+    source_modified_at_utc: String,
 }
 
 impl From<MappedTrainingArtifact> for ValidatedTrainingArtifact {
@@ -807,6 +808,7 @@ impl From<MappedTrainingArtifact> for ValidatedTrainingArtifact {
             sha256: artifact.sha256,
             origin_id: artifact.observation.summary.origin_id,
             session_id: artifact.observation.summary.session_id,
+            source_modified_at_utc: artifact.source_modified_at_utc,
         }
     }
 }
@@ -1666,6 +1668,27 @@ fn execute_import(
     }
     for (training_index, validated) in validated_training_artifacts.iter().enumerate() {
         ensure_not_cancelled(cancellation)?;
+        let reconciliation_started = Instant::now();
+        if reconcile_equivalent_training_artifact(
+            &transaction,
+            operation_id,
+            validated,
+            &mut report,
+        )? {
+            timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+            reconciled_units += 1;
+            on_progress(ImportProgress::artifacts(
+                ImportPhase::Reconciling,
+                reconciled_units,
+                reconciliation_units,
+            ));
+            if interrupt_after == Some(mapped_artifacts.len() + training_index + 1) {
+                return Err(ImportError::InjectedInterruption(
+                    mapped_artifacts.len() + training_index + 1,
+                ));
+            }
+            continue;
+        }
         let decode_started = Instant::now();
         let mut member = archive.by_name(&validated.locator)?;
         let bytes = read_bytes(&mut member, &validated.locator, cancellation)?;
@@ -14775,6 +14798,106 @@ fn replace_training_session_evidence(
     insert_training_session_zones(transaction, record)
 }
 
+fn reconcile_equivalent_training_artifact(
+    transaction: &Transaction<'_>,
+    operation_id: i64,
+    artifact: &ValidatedTrainingArtifact,
+    report: &mut ImportReport,
+) -> Result<bool> {
+    if !training_artifact_matches_current_evidence(transaction, artifact)? {
+        return Ok(false);
+    }
+    insert_training_session_provenance(
+        transaction,
+        operation_id,
+        &artifact.origin_id,
+        &artifact.session_id,
+        &artifact.locator,
+        &artifact.sha256,
+        &artifact.source_modified_at_utc,
+        ReconciliationDecision::Equivalent,
+    )?;
+    report.record(ReconciliationDecision::Equivalent);
+    Ok(true)
+}
+
+fn training_artifact_matches_current_evidence(
+    transaction: &Transaction<'_>,
+    artifact: &ValidatedTrainingArtifact,
+) -> Result<bool> {
+    transaction
+        .query_row(
+            "SELECT EXISTS (
+             SELECT 1
+             FROM training_session_provenance AS provenance
+             WHERE provenance.id = (
+                 SELECT current.id
+                 FROM training_session_provenance AS current
+                 WHERE current.origin_id = ?1
+                   AND current.session_id = ?2
+                   AND current.reconciliation_decision IN ('create', 'enrich', 'amend')
+                 ORDER BY current.import_operation_id DESC, current.id DESC
+                 LIMIT 1
+             )
+               AND provenance.source_artifact_sha256 = ?3
+               AND provenance.source_provider = ?4
+               AND provenance.source_adapter_version = ?5
+               AND provenance.mapping_version = ?6
+         )",
+            params![
+                artifact.origin_id,
+                artifact.session_id,
+                artifact.sha256,
+                SOURCE_PROVIDER,
+                SOURCE_ADAPTER_VERSION,
+                TRAINING_SESSION_MAPPING_VERSION,
+            ],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(Into::into)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn insert_training_session_provenance(
+    transaction: &Transaction<'_>,
+    operation_id: i64,
+    origin_id: &str,
+    session_id: &str,
+    artifact_locator: &str,
+    source_artifact_sha256: &str,
+    source_modified_at_utc: &str,
+    decision: ReconciliationDecision,
+) -> Result<()> {
+    transaction.execute(
+        "INSERT INTO training_session_provenance (
+             origin_id, session_id, import_operation_id, artifact_locator,
+             source_record_locator, source_artifact_sha256, source_provider,
+             source_adapter_version, mapping_version, source_modified_at_utc,
+             reconciliation_decision, contributes_to_visible_state
+         ) VALUES (?1, ?2, ?3, ?4, 'json-root', ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![
+            origin_id,
+            session_id,
+            operation_id,
+            artifact_locator,
+            source_artifact_sha256,
+            SOURCE_PROVIDER,
+            SOURCE_ADAPTER_VERSION,
+            TRAINING_SESSION_MAPPING_VERSION,
+            source_modified_at_utc,
+            reconciliation_decision_code(decision),
+            matches!(
+                decision,
+                ReconciliationDecision::Create
+                    | ReconciliationDecision::Equivalent
+                    | ReconciliationDecision::Enrich
+                    | ReconciliationDecision::Amend
+            ),
+        ],
+    )?;
+    Ok(())
+}
+
 fn reconcile_training_session(
     transaction: &Transaction<'_>,
     operation_id: i64,
@@ -14963,32 +15086,15 @@ fn reconcile_training_session(
         }
     }
 
-    transaction.execute(
-        "INSERT INTO training_session_provenance (
-             origin_id, session_id, import_operation_id, artifact_locator,
-             source_record_locator, source_artifact_sha256, source_provider,
-             source_adapter_version, mapping_version, source_modified_at_utc,
-             reconciliation_decision, contributes_to_visible_state
-         ) VALUES (?1, ?2, ?3, ?4, 'json-root', ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-        params![
-            incoming_summary.origin_id,
-            incoming_summary.session_id,
-            operation_id,
-            artifact.locator,
-            artifact.sha256,
-            SOURCE_PROVIDER,
-            SOURCE_ADAPTER_VERSION,
-            TRAINING_SESSION_MAPPING_VERSION,
-            artifact.source_modified_at_utc,
-            reconciliation_decision_code(decision),
-            matches!(
-                decision,
-                ReconciliationDecision::Create
-                    | ReconciliationDecision::Equivalent
-                    | ReconciliationDecision::Enrich
-                    | ReconciliationDecision::Amend
-            ),
-        ],
+    insert_training_session_provenance(
+        transaction,
+        operation_id,
+        &incoming_summary.origin_id,
+        &incoming_summary.session_id,
+        &artifact.locator,
+        &artifact.sha256,
+        &artifact.source_modified_at_utc,
+        decision,
     )?;
     match decision {
         ReconciliationDecision::Enrich => reconcile_persisted_training_session_ranges(
@@ -18130,6 +18236,88 @@ mod tests {
             "durationMillis":{duration_milliseconds}
             }}"#
         )
+    }
+
+    #[test]
+    fn reuses_only_the_artifact_that_produced_the_current_training_state() {
+        let harness = Harness::new();
+        let session = training_session_json(
+            "current-evidence-session",
+            "2026-02-04T12:00:00",
+            "2026-02-04T13:00:00",
+            3_600_000,
+            "current-evidence-sport",
+        );
+        let archive = harness.archive(
+            "current-evidence.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-current-evidence-claim"}"#,
+                ),
+                (
+                    "training-session_2026-02-04T12-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &session,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("current evidence import");
+        let initial = ValidatedTrainingArtifact {
+            locator: "training-session-current.json".to_owned(),
+            sha256: sha256_bytes(session.as_bytes()),
+            origin_id: query_training_sessions(&harness.database())
+                .expect("current evidence session")
+                .into_iter()
+                .next()
+                .expect("one current evidence session")
+                .origin_id,
+            session_id: "current-evidence-session".to_owned(),
+            source_modified_at_utc: "2026-02-04T12:05:00Z".to_owned(),
+        };
+        let mut connection = Connection::open(harness.database()).expect("current evidence DB");
+        ensure_schema(&connection).expect("current evidence schema");
+        let transaction = connection
+            .transaction()
+            .expect("current evidence transaction");
+
+        assert!(
+            training_artifact_matches_current_evidence(&transaction, &initial)
+                .expect("matching current artifact")
+        );
+        let different_hash = ValidatedTrainingArtifact {
+            locator: initial.locator.clone(),
+            sha256: "b".repeat(64),
+            origin_id: initial.origin_id.clone(),
+            session_id: initial.session_id.clone(),
+            source_modified_at_utc: initial.source_modified_at_utc.clone(),
+        };
+        assert!(
+            !training_artifact_matches_current_evidence(&transaction, &different_hash)
+                .expect("different artifact")
+        );
+
+        let later_operation = begin_operation(&transaction).expect("later import operation");
+        insert_training_session_provenance(
+            &transaction,
+            later_operation,
+            &initial.origin_id,
+            &initial.session_id,
+            "training-session-later.json",
+            &different_hash.sha256,
+            "2026-02-04T12:06:00Z",
+            ReconciliationDecision::Amend,
+        )
+        .expect("later state-changing evidence");
+
+        assert!(
+            !training_artifact_matches_current_evidence(&transaction, &initial)
+                .expect("superseded artifact")
+        );
+        assert!(
+            training_artifact_matches_current_evidence(&transaction, &different_hash)
+                .expect("latest current artifact")
+        );
+        transaction.rollback().expect("rollback evidence fixture");
     }
 
     fn scheduled_training_target_json(name: &str, done: bool) -> String {

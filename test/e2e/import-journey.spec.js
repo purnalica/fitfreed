@@ -3534,6 +3534,13 @@ describe("packaged FitFreed import journey", () => {
       english.reports.examples.items["adjacent-period-volume"].action
     }`);
     await useExample.click();
+    await browser.waitUntil(
+      async () => (await $$(".report-block-editor:has(.report-analysis-block-help)")).length === 3,
+      {
+        timeout: 10_000,
+        timeoutMsg: "the reusable comparison example did not reveal its three analysis blocks",
+      },
+    );
     expect(await $$(".report-block-editor:has(.report-analysis-block-help)"))
       .toHaveLength(3);
     const exampleTitle = await $('.report-editor input[maxlength="120"]');

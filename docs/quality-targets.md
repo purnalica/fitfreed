@@ -55,14 +55,18 @@ persisted samples. It is an independently authored resource envelope, not a typi
 derivative of a private export.
 
 Three fresh release-mode processes each import the archive into a new current-schema library, repeat the
-exact archive, and query the production application boundary. The slowest process-level p95 must satisfy:
+exact archive, reconcile a byte-distinct container with equivalent logical artifacts, and query the production
+application boundary both during late reconciliation and after completion. The slowest process-level p95 must satisfy:
 
 | Scenario | Target |
 |---|---:|
 | First dense-history import | ≤ 10 min |
 | Exact dense-history reimport | ≤ 30 s |
+| Equivalent changed-container dense-history reimport | ≤ 5 min |
 | Peak process memory | < 1,536 MiB |
 | Resulting SQLite library | ≤ 512 MiB |
+| Library Home during late changed-container reconciliation, p95 | ≤ 500 ms |
+| First 25 History sessions during late changed-container reconciliation, p95 | ≤ 500 ms |
 | First 25 complete-history sessions, p95 | ≤ 500 ms |
 | Four-series bounded signal overview, p95 | ≤ 500 ms |
 | 250-sample exact signal page, p95 | ≤ 500 ms |

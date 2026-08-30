@@ -1932,6 +1932,51 @@ describe("ReportsPanel", () => {
     );
   });
 
+  it("shows report preparation before revealing a built-in comparison draft", async () => {
+    let resolvePreparedReport!: (value: {
+      sourceSnapshotRef: string;
+      origin: {
+        kind: "question";
+        question: "training-period-comparison";
+        questionVersion: 1;
+      };
+      suggestedQuery: typeof comparisonQuery;
+    }) => void;
+    const pendingPreparedReport = new Promise<Parameters<typeof resolvePreparedReport>[0]>(
+      (resolve) => {
+        resolvePreparedReport = resolve;
+      },
+    );
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "prepare_report_start") return pendingPreparedReport;
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: "Use as basis" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Resolving the report against the current library…",
+    );
+    expect(screen.queryByRole("heading", { name: "Compose report" })).not.toBeInTheDocument();
+    resolvePreparedReport({
+      sourceSnapshotRef: snapshotRef,
+      origin: {
+        kind: "question",
+        question: "training-period-comparison",
+        questionVersion: 1,
+      },
+      suggestedQuery: comparisonQuery,
+    });
+
+    expect(await screen.findByRole("heading", { name: "Compose report" })).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Report title" }))
+      .toHaveValue("How has my recent training changed?");
+    expect(screen.getAllByRole("button", { name: "Remove block" })).toHaveLength(3);
+  });
+
   it("cancels a saved edit from the keyboard and restores the reviewed definition", async () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "list_report_library") {

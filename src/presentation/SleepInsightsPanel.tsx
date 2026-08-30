@@ -109,6 +109,10 @@ export function SleepInsightsPanel({
   }
 
   useEffect(() => {
+    if (navigationRequest) {
+      setLoadingOverview(false);
+      return;
+    }
     let active = true;
     setLoadingOverview(true);
     invoke<SleepOverview>("query_sleep_overview", { requestedRange: null })
@@ -125,7 +129,7 @@ export function SleepInsightsPanel({
       active = false;
       detailRequest.current += 1;
     };
-  }, [refreshToken, onError]);
+  }, [refreshToken, navigationRequest, onError]);
 
   useEffect(() => {
     if (!navigationRequest) return;
@@ -147,7 +151,7 @@ export function SleepInsightsPanel({
       .finally(() => setRangeOperation(
         (current) => current === "navigation" ? undefined : current,
       ));
-  }, [navigationRequest, onError]);
+  }, [refreshToken, navigationRequest, onError]);
 
   async function applyRange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

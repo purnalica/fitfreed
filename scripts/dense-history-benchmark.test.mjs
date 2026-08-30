@@ -21,6 +21,13 @@ function validRun(overrides = {}) {
     runtime: "rust",
     firstImportMilliseconds: 120_000,
     exactRepeatMilliseconds: 2_000,
+    equivalentReimportMilliseconds: 45_000,
+    equivalentReimportExactRepeat: false,
+    equivalentReimportEquivalentObservations: 520,
+    equivalentReimportNewObservations: 0,
+    concurrentQueryRounds: 20,
+    concurrentLibraryHomeP95Milliseconds: 45,
+    concurrentSessionPageP95Milliseconds: 50,
     libraryHomeP95Milliseconds: 30,
     sessionPageP95Milliseconds: 35,
     signalOverviewP95Milliseconds: 40,
@@ -102,11 +109,15 @@ test("requires the complete dense-history fixture envelope", () => {
   );
 });
 
-test("validates production import, exact repeat, Home, discovery, overview, and pagination evidence", () => {
+test("validates changed-package reconciliation, concurrent navigation, and retained query evidence", () => {
   assert.equal(validateDenseHistoryBenchmarkRun(validRun()), true);
 
   for (const [override, message] of [
     [{ repeatDetected: false }, /exact repeat was not detected/],
+    [{ equivalentReimportExactRepeat: true }, /equivalent changed package used the exact-repeat path/],
+    [{ equivalentReimportEquivalentObservations: 519 }, /expected 520 equivalent observations/],
+    [{ equivalentReimportNewObservations: 1 }, /expected no new observation/],
+    [{ concurrentQueryRounds: 0 }, /expected concurrent navigation measurements/],
     [{ persistedSessions: 519 }, /expected 520 persisted sessions/],
     [{ persistedSeries: 2_079 }, /expected 2080 persisted signal series/],
     [{ persistedSamples: 7_490_079 }, /expected 7490080 persisted signal samples/],
@@ -124,6 +135,9 @@ test("uses the slowest of three fresh processes and enforces every accepted budg
   const runs = Array.from({ length: 3 }, (_, index) => validRun({
     firstImportMilliseconds: 100_000 + index * 10_000,
     exactRepeatMilliseconds: 1_000 + index * 100,
+    equivalentReimportMilliseconds: 40_000 + index * 1_000,
+    concurrentLibraryHomeP95Milliseconds: 40 + index,
+    concurrentSessionPageP95Milliseconds: 45 + index,
     libraryHomeP95Milliseconds: 15 + index,
     sessionPageP95Milliseconds: 20 + index,
     signalOverviewP95Milliseconds: 30 + index,
@@ -138,6 +152,9 @@ test("uses the slowest of three fresh processes and enforces every accepted budg
   assert.equal(evidence.measurements.firstImport.p95Milliseconds, 120_000);
   assert.equal(evidence.measurements.firstImport.passed, true);
   assert.equal(evidence.measurements.exactRepeat.passed, true);
+  assert.equal(evidence.measurements.equivalentReimport.passed, true);
+  assert.equal(evidence.measurements.concurrentLibraryHome.passed, true);
+  assert.equal(evidence.measurements.concurrentSessionPage.passed, true);
   assert.equal(evidence.measurements.libraryHome.passed, true);
   assert.equal(evidence.measurements.sessionPage.passed, true);
   assert.equal(evidence.measurements.signalOverview.passed, true);
@@ -156,6 +173,9 @@ test("fails closed for an incomplete campaign or any exceeded dense-history budg
   for (const override of [
     { firstImportMilliseconds: 600_001 },
     { exactRepeatMilliseconds: 30_001 },
+    { equivalentReimportMilliseconds: 300_001 },
+    { concurrentLibraryHomeP95Milliseconds: 501 },
+    { concurrentSessionPageP95Milliseconds: 501 },
     { libraryHomeP95Milliseconds: 501 },
     { sessionPageP95Milliseconds: 501 },
     { signalOverviewP95Milliseconds: 501 },
