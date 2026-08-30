@@ -415,6 +415,9 @@ describe("SleepInsightsPanel", () => {
     renderPanel({ onError });
     const sleep = await screen.findByRole("region", { name: "Sleep history" });
 
+    const detailButtons = await within(sleep).findAllByRole("button", {
+      name: /View sleep details for/,
+    });
     expect(within(sleep).getByText("Sleep origin 1")).toBeVisible();
     expect(within(sleep).getByText("Sleep origin 2")).toBeVisible();
     expect(within(sleep).getAllByText("7 h 15 min").length).toBeGreaterThan(0);
@@ -424,7 +427,6 @@ describe("SleepInsightsPanel", () => {
     expect(within(sleep).queryByText("opaque-origin-alpha")).not.toBeInTheDocument();
     expect(within(sleep).queryByText("opaque-origin-beta")).not.toBeInTheDocument();
 
-    const detailButtons = within(sleep).getAllByRole("button", { name: /View sleep details for/ });
     const detailOrigin = detailButtons[0];
     await user.click(detailOrigin);
     expect(mocks.invoke).toHaveBeenCalledWith("query_sleep_detail", {
@@ -582,7 +584,9 @@ describe("SleepInsightsPanel", () => {
     const user = userEvent.setup();
     const view = renderPanel({ onError });
     const sleep = await screen.findByRole("region", { name: "Sleep history" });
-    const buttons = within(sleep).getAllByRole("button", { name: /View sleep details for/ });
+    const buttons = await within(sleep).findAllByRole("button", {
+      name: /View sleep details for/,
+    });
     await user.click(buttons[0]);
     view.rerender(
       <SleepInsightsPanel
@@ -658,9 +662,9 @@ describe("SleepInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel({ onError });
     const sleep = await screen.findByRole("region", { name: "Sleep history" });
-    const detailOrigin = within(sleep).getAllByRole("button", {
+    const detailOrigin = (await within(sleep).findAllByRole("button", {
       name: "View sleep details for Mar 28, 2026",
-    })[0];
+    }))[0];
 
     await user.click(detailOrigin);
 

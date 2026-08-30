@@ -3453,6 +3453,15 @@ finding. This is not R8.12 completion or human acceptance: the executable inputs
 the complete hosted campaign, followed by revision-isolated production-native construction and inspection. Only that
 exact bundle may enter the bounded product-owner experience review.
 
+The first hosted attempt for the same executable inputs, [continuous-integration run
+`33291994459`](https://github.com/purnalica/fitfreed/actions/runs/33291994459), exposed a component-test readiness race
+before the macOS lane. Three sleep journeys treated the synchronously rendered History container as proof that its
+asynchronous overview result was available. Under concurrent Linux load, the stale-detail journey reached its first
+result control while the panel still presented its truthful loading state. Repository history confirms that the
+protected behavior is stale-response rejection, invalid-input recovery, detail focus, and preservation of valid
+results. All assertions remain; the three affected journeys now wait for an exact result-owned detail action before
+using the result. The focused sleep suite, all 480 presentation tests, documentation, and UI contracts pass locally.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,
