@@ -383,6 +383,18 @@ requireRule(
 for (const zoom of ["150", "175", "200"]) {
   requireRule(
     stylesheet,
+    `:root[data-content-zoom="${zoom}"] .training-sports-heading`,
+    [/align-items:\s*stretch/, /flex-direction:\s*column/],
+    `a stacked sports-overview heading at ${zoom}% content zoom`,
+  );
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .training-sports-heading > strong`,
+    [/align-self:\s*flex-start/],
+    `a content-sized sports-overview count at ${zoom}% content zoom`,
+  );
+  requireRule(
+    stylesheet,
     `:root[data-content-zoom="${zoom}"] .training-sport-editor`,
     [/grid-template-columns:\s*1fr/],
     `a single-column classification task at ${zoom}% content zoom`,
@@ -394,6 +406,16 @@ for (const zoom of ["150", "175", "200"]) {
     `a single-column closed sport-card list at ${zoom}% content zoom`,
   );
 }
+requireRule(
+  stylesheet,
+  ".training-sports-heading > strong",
+  [
+    /max-width:\s*100%/,
+    /white-space:\s*normal/,
+    /overflow-wrap:\s*break-word/,
+  ],
+  "a localized sports-overview count contained within its heading",
+);
 requireRule(
   stylesheet,
   ".training-sport-card-heading h3",

@@ -98,8 +98,10 @@ Automated testing is the primary source of evidence that the product behaves cor
   zoom matrix. The open native disclosure, editor, fields, preview, and actions must occupy the available WebKit
   width without min-content collapse, clipping, or one-character-per-line copy.
 - Closed sport-card composition has its own 40-combination locale, appearance, viewport, and zoom matrix. It verifies
-  complete word-readable identities, an independent wrapping action row, one-column compact and 150%–200% layouts,
-  contained cards and controls, persistent-navigation reveal, accessibility, and no page-level horizontal overflow.
+  a contained overview heading and localized count, complete word-readable identities, an independent wrapping action
+  row, one-column compact and 150%–200% layouts, contained cards and controls, persistent-navigation reveal,
+  accessibility, and no page-level horizontal overflow. From 150% content zoom, the overview heading and count form
+  separate rows so neither competes with the sport cards for minimum inline space.
   A native resize is ready only after the WebView width remains unchanged and within the platform allowance for three
   consecutive observations. Geometry failures record the viewport, document width, and overflowing element classes
   without retaining rendered text or user data.

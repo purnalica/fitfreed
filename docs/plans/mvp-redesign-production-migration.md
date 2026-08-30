@@ -3474,6 +3474,17 @@ requires three consecutive equal in-range WebView widths and makes any subsequen
 and element-class geometry. No layout assertion, breakpoint, or product CSS changes. A new complete hosted result is
 required to determine final disposition.
 
+The resulting exact hosted attempt, [continuous-integration run
+`33294836484`](https://github.com/purnalica/fitfreed/actions/runs/33294836484), proved that stable geometry was necessary
+diagnostic evidence but not the complete correction. At 200% Spanish content zoom, the hosted WebView settled at a
+705-pixel viewport while its sports-overview heading reached 710 pixels. Every sport card, identity, and action remained
+contained; the localized summary count stayed in the same row as the introductory copy and its non-shrinking width
+created the five-pixel page overflow. The narrow-width boundary already stacked that heading, but the independent
+150%–200% content-zoom boundary covered only the card headings. The shared high-zoom composition now stacks the
+overview copy and its content-sized count, and the count itself has an explicit full-width containment boundary. The
+UI contract protects all three supported high-zoom settings. Assertions and supported viewports remain unchanged; a
+new complete hosted result is required.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,
