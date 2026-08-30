@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { goToHome } from "../test/e2e/support/application-actions.js";
+import {
+  goToHome,
+  resizeApplication,
+} from "../test/e2e/support/application-actions.js";
 
 function navigationSession(currentAfterClick) {
   let clicks = 0;
@@ -54,4 +57,32 @@ test("fails after the bounded activation retry when navigation never completes",
     /settings did not become the current application section/,
   );
   assert.equal(harness.clicks(), 2);
+});
+
+test("waits for a stable viewport after native resize", async () => {
+  const observedWidths = [744, 732, 720, 720, 720];
+  let widthReads = 0;
+  const session = {
+    async executeAsync(_operation, width, height) {
+      assert.equal(width, 720);
+      assert.equal(height, 760);
+      return null;
+    },
+    async execute() {
+      const width = observedWidths[Math.min(widthReads, observedWidths.length - 1)];
+      widthReads += 1;
+      return width;
+    },
+    async waitUntil(condition, options) {
+      assert.equal(options.timeout, 10_000);
+      for (let attempt = 0; attempt < observedWidths.length; attempt += 1) {
+        if (await condition()) return;
+      }
+      throw new Error(options.timeoutMsg);
+    },
+  };
+
+  await resizeApplication(720, 760, session);
+
+  assert.equal(widthReads, observedWidths.length);
 });

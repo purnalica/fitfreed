@@ -3462,6 +3462,18 @@ protected behavior is stale-response rejection, invalid-input recovery, detail f
 results. All assertions remain; the three affected journeys now wait for an exact result-owned detail action before
 using the result. The focused sleep suite, all 480 presentation tests, documentation, and UI contracts pass locally.
 
+The next exact hosted attempt, [continuous-integration run
+`33292224913`](https://github.com/purnalica/fitfreed/actions/runs/33292224913), passed the corrected portable job and every
+macOS package, cold-launch, full-scale import, dense-history, Insights-performance, recovery-preparation, and boundary
+step before the instrumented functional journey. That journey reported page-level horizontal overflow while checking
+the sport-card matrix, although the same exact package and complete matrix pass locally. The assertion's diagnostic
+predicate omitted the page-overflow condition itself, so the retained evidence could not identify the active viewport
+or offending element. The shared native-resize helper also accepted the first width within a 24-pixel platform
+allowance and therefore did not prove that the hosted window had settled before geometry was measured. The correction
+requires three consecutive equal in-range WebView widths and makes any subsequent failure retain privacy-safe viewport
+and element-class geometry. No layout assertion, breakpoint, or product CSS changes. A new complete hosted result is
+required to determine final disposition.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,

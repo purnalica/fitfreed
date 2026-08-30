@@ -710,6 +710,28 @@ async function expectTrainingSportCardComposition(expectedColumns, expectedStack
     const cards = [...list.querySelectorAll(":scope > li")];
     const listBounds = list.getBoundingClientRect();
     const navigationBounds = navigation.getBoundingClientRect();
+    const overflowingElements = [...document.body.querySelectorAll("*")]
+      .map((element) => {
+        const bounds = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          tag: element.tagName,
+          className: element.className instanceof SVGAnimatedString
+            ? element.className.baseVal
+            : element.className,
+          left: bounds.left,
+          right: bounds.right,
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          overflowX: style.overflowX,
+        };
+      })
+      .filter((element) => (
+        element.left < -1
+        || element.right > root.clientWidth + 1
+        || (element.scrollWidth > element.clientWidth + 1 && element.overflowX === "visible")
+      ))
+      .slice(0, 20);
     const inspectedCards = cards.map((card) => {
       const bounds = card.getBoundingClientRect();
       const heading = card.querySelector(".training-sport-card-heading");
@@ -760,23 +782,29 @@ async function expectTrainingSportCardComposition(expectedColumns, expectedStack
       appearance: root.dataset.appearance,
       zoom: root.dataset.contentZoom,
       viewportWidth: root.clientWidth,
+      documentWidth: root.scrollWidth,
       hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+      overflowingElements,
       listOutsideNavigation: navigationBounds.width < root.clientWidth - 1
         || listBounds.top >= navigationBounds.bottom - 1,
       cards: inspectedCards,
     };
   });
-  if (!geometry.listOutsideNavigation || geometry.cards.some((card) => (
-    !card.cardInsideList
-    || !card.contentFits
-    || !card.identityAndActionsDoNotOverlap
-    || !card.identityHasReadableWidth
-    || !card.titleWrapsByWords
-    || !card.actionsInsideCard
-    || !card.actionsFit
-    || !card.buttonsInsideCard
-    || card.headingStacked !== expectedStackedHeading
-  ))) {
+  if (geometry.hasHorizontalOverflow
+    || !geometry.listOutsideNavigation
+    || geometry.columns !== expectedColumns
+    || geometry.cards.length < 2
+    || geometry.cards.some((card) => (
+      !card.cardInsideList
+      || !card.contentFits
+      || !card.identityAndActionsDoNotOverlap
+      || !card.identityHasReadableWidth
+      || !card.titleWrapsByWords
+      || !card.actionsInsideCard
+      || !card.actionsFit
+      || !card.buttonsInsideCard
+      || card.headingStacked !== expectedStackedHeading
+    ))) {
     process.stderr.write(`${JSON.stringify({ trainingSportCardGeometry: geometry })}\n`);
   }
   expect(geometry.hasHorizontalOverflow).toBe(false);

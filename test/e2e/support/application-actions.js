@@ -103,12 +103,25 @@ export async function resizeApplication(width, height, session = browser) {
     }).then(() => done(null), (error) => done(String(error)));
   }, width, height);
   if (resizeError !== null) throw new Error(`native window resize failed: ${resizeError}`);
+  let previousWidth;
+  let stableWidthObservations = 0;
   await session.waitUntil(
-    () => session.execute(
-      (expectedWidth) => Math.abs(document.documentElement.clientWidth - expectedWidth) <= 24,
-      width,
-    ),
-    { timeout: 10_000, timeoutMsg: `the application did not resize to ${width}px` },
+    async () => {
+      const currentWidth = await session.execute(
+        () => document.documentElement.clientWidth,
+      );
+      const withinRequestedRange = Math.abs(currentWidth - width) <= 24;
+      stableWidthObservations = withinRequestedRange && currentWidth === previousWidth
+        ? stableWidthObservations + 1
+        : Number(withinRequestedRange);
+      previousWidth = currentWidth;
+      return stableWidthObservations >= 3;
+    },
+    {
+      timeout: 10_000,
+      interval: 50,
+      timeoutMsg: `the application did not settle at ${width}px`,
+    },
   );
 }
 
