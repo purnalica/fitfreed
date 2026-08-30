@@ -74,6 +74,22 @@ function reportPhase(phase) {
   process.stdout.write(`${JSON.stringify({ performancePhase: phase })}\n`);
 }
 
+async function waitForExactControlCount(selector, expectedCount) {
+  await browser.waitUntil(
+    () => browser.execute(
+      (expectedSelector, count) => (
+        document.querySelectorAll(expectedSelector).length === count
+      ),
+      selector,
+      expectedCount,
+    ),
+    {
+      timeout: 10_000,
+      timeoutMsg: `${selector} did not expose ${expectedCount} controls`,
+    },
+  );
+}
+
 function safeCommand(program, arguments_) {
   try {
     return execFileSync(program, arguments_, { encoding: "utf8" }).trim();
@@ -126,6 +142,7 @@ function evidence(measurements) {
 
 async function applyActivityRange(from, through) {
   await openDisclosure(".activity-history-controls");
+  await waitForExactControlCount(".activity-filter input[type='date']", 2);
   const input = {
     from,
     through,
@@ -172,6 +189,7 @@ async function applyActivityRange(from, through) {
 }
 
 async function compareActivityRanges(ranges) {
+  await waitForExactControlCount(".activity-comparison input[type='date']", 4);
   const input = {
     ...ranges,
     expectedBaselineTotal: syntheticPeriodTotal(
@@ -229,6 +247,7 @@ async function compareActivityRanges(ranges) {
 }
 
 async function applyTrainingRange(from, through) {
+  await waitForExactControlCount(".training-session-search input[type='date']", 2);
   const input = {
     from,
     through,
@@ -275,6 +294,7 @@ async function applyTrainingRange(from, through) {
 }
 
 async function compareTrainingRanges(ranges) {
+  await waitForExactControlCount(".training-comparison input[type='date']", 4);
   const input = {
     ...ranges,
     expectedBaselineSessions: new Intl.NumberFormat("en-US").format(
@@ -854,6 +874,7 @@ async function expectDenseRouteExactEndpoint() {
 }
 
 async function applySleepRange(from, through) {
+  await waitForExactControlCount(".sleep-filter input[type='date']", 2);
   const input = {
     from,
     through,
@@ -897,6 +918,7 @@ async function applySleepRange(from, through) {
 }
 
 async function compareSleepRanges(ranges) {
+  await waitForExactControlCount(".sleep-comparison input[type='date']", 4);
   const input = {
     ...ranges,
     expectedBaselineNights: new Intl.NumberFormat("en-US").format(
@@ -987,6 +1009,7 @@ async function openSleepDetail(sleepDate) {
 }
 
 async function applyRecoveryRange(from, through) {
+  await waitForExactControlCount(".recovery-filter input[type='date']", 2);
   const input = {
     from,
     through,
@@ -1030,6 +1053,7 @@ async function applyRecoveryRange(from, through) {
 }
 
 async function compareRecoveryRanges(ranges) {
+  await waitForExactControlCount(".recovery-comparison input[type='date']", 4);
   const input = {
     ...ranges,
     expectedBaselineNights: new Intl.NumberFormat("en-US").format(
@@ -1135,6 +1159,7 @@ async function applyLongitudinalRange(from, through) {
   await openDisclosure(
     ".longitudinal-insights .explorer-history-workspace > .answer-controls",
   );
+  await waitForExactControlCount(".longitudinal-filter input[type='date']", 2);
   const input = {
     from,
     through,
@@ -1181,6 +1206,7 @@ async function applyLongitudinalRange(from, through) {
 
 async function compareLongitudinalRanges(ranges) {
   await openDisclosure(".longitudinal-comparison > .answer-controls");
+  await waitForExactControlCount(".longitudinal-comparison input[type='date']", 4);
   const input = {
     ...ranges,
     expectedBaselineTotal: syntheticPeriodTotal(

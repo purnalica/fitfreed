@@ -1119,6 +1119,17 @@ async function setReportComparisonRanges(
   comparisonThrough,
 ) {
   const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
+  await browser.waitUntil(
+    () => browser.execute(
+      () => document.querySelectorAll(
+        ".report-analysis-ranges input[type='date']",
+      ).length === 4,
+    ),
+    {
+      timeout: 10_000,
+      timeoutMsg: "report comparison ranges did not become available",
+    },
+  );
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".report-analysis-ranges input[type='date']");
     const setValue = Object.getOwnPropertyDescriptor(
