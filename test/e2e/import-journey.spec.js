@@ -1735,6 +1735,16 @@ async function openDisclosure(selector) {
 }
 
 async function openDisclosures(selector) {
+  await browser.waitUntil(
+    () => browser.execute(
+      (expectedSelector) => document.querySelectorAll(expectedSelector).length > 0,
+      selector,
+    ),
+    {
+      timeout: 10_000,
+      timeoutMsg: `${selector} did not become available`,
+    },
+  );
   const disclosures = await $$(selector);
   expect(disclosures.length).toBeGreaterThan(0);
   for (const disclosure of disclosures) {
