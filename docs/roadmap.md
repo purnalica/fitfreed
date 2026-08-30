@@ -26,8 +26,10 @@ native-bundle scan. The bounded product-owner evaluation nevertheless rejected t
 fluidity, and sport cards fail compact geometry. X7-R8.9 corrects the sport-identity causal boundary, X7-R8.10
 corrects the changed-package reconciliation boundary, and X7-R8.11 corrects closed sport-card geometry. The repeated
 independent audit and complete local candidate campaign now pass for clean source `8b174af` with no unresolved
-critical or major finding. The candidate gate remains open for exact hosted verification and revision-isolated native
-bundle construction and inspection before another product-owner evaluation may begin.
+critical or major finding. The subsequent exact-source correction passes repository safety, the complete hosted
+campaign, and revision-isolated native-bundle inspection for source `f082725` and executable-input fingerprint
+`e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. The bounded product-owner experience review is
+the only remaining X7-R8 gate before Milestone 3 may resume.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

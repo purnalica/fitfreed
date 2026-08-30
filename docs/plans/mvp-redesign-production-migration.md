@@ -90,7 +90,12 @@ complete remapping path. All synchronous SQLite desktop commands run away from T
 deliberately held active. Closed sport cards now preserve complete word-readable identities, independent action rows,
 contained controls, and one-column high-zoom composition across the exact 40-combination adaptive matrix. Complete
 frontend, Rust, documentation, contract, repository-safety, packaged macOS, restart, accessibility, and performance
-evidence passes. Only the repeated X7-R8.12 candidate gate remains open.
+evidence passes. X7-R8.12 then closed the independently exposed high-zoom sports-overview composition, and exact
+source `f082725` passed [repository safety `33297314554`](https://github.com/purnalica/fitfreed/actions/runs/33297314554),
+the complete [hosted campaign `33297314543`](https://github.com/purnalica/fitfreed/actions/runs/33297314543), and
+revision-isolated production-native bundle inspection for executable-input fingerprint
+`e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. The bounded product-owner experience review is
+the only remaining X7-R8 gate.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust failed that
 human gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -3484,6 +3489,18 @@ created the five-pixel page overflow. The narrow-width boundary already stacked 
 overview copy and its content-sized count, and the count itself has an explicit full-width containment boundary. The
 UI contract protects all three supported high-zoom settings. Assertions and supported viewports remain unchanged; a
 new complete hosted result is required.
+
+**Hosted and native checkpoint — 2026-08-30:** exact source `f082725` passes [repository safety
+`33297314554`](https://github.com/purnalica/fitfreed/actions/runs/33297314554) and the complete [continuous-integration
+campaign `33297314543`](https://github.com/purnalica/fitfreed/actions/runs/33297314543). Portable quality completed in
+4 minutes and 50 seconds. The Apple Silicon campaign completed in 54 minutes and 48 seconds after production-native
+package construction and scanning, cold launch, full-scale import, dense History, Insights, installation boundaries,
+the complete packaged functional and adaptive matrix, update replacement, deliberate rejection, and recovery all
+passed. Its immutable marker records executable-input fingerprint
+`e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. A separate local X6 build from the same clean
+source reports revision-derived bundle identity `org.fitfreed.desktop.x6-review.rf082725e9e31`, production native
+adapters, and no instrumented routing, dialog or opener mock, database override, or build-host path. X7-R8.12 is
+machine-complete. This evidence does not accept the product experience; one bounded product-owner review remains.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
 

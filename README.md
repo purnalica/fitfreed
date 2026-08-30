@@ -71,6 +71,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery</li>
 <li>Immediate coverage-aware daily activity answers and bounded visual comparisons</li>
 <li>Personal sport naming and complete-history session search without exposing provider identifiers</li>
+<li>Reusable personal sport combinations across later imports and versioned normalization for documented provider equivalences</li>
 <li>Chronology, source-separated calendar discovery, session comparison, and restart restoration</li>
 <li>Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection</li>
 <li>Interactive local primary and transition route workbench with route-point selection, local map navigation, and exact route evidence</li>
@@ -100,7 +101,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <summary><strong>Work in progress — MVP release preparation and human evaluation</strong></summary>
 <ul>
 <li>Exact current-source package, installation, update, recovery, and performance validation completed</li>
-<li>Repeating the independent and exact candidate gates after correcting sport identity, compact card layout, and late-reconciliation responsiveness</li>
+<li>Exact independent audit and native candidate gates passed; bounded product-owner experience evaluation pending</li>
 <li>Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition</li>
 </ul>
 <p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>
