@@ -35,13 +35,11 @@ const plannedReportOutput = path.join(evidenceDirectory, "planned-training-repor
 
 async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
-    async () => {
-      const notices = await $$("[role='status']");
-      for (const notice of notices) {
-        if ((await notice.getText()).includes(fragment)) return true;
-      }
-      return false;
-    },
+    () => browser.execute(
+      (expectedFragment) => [...document.querySelectorAll("[role='status']")]
+        .some((notice) => notice.textContent.includes(expectedFragment)),
+      fragment,
+    ),
     { timeout, timeoutMsg: `status did not contain ${fragment}` },
   );
 }
@@ -702,6 +700,150 @@ async function exerciseSportClassificationComposition() {
     async () => !(await $(".training-history-sport-editor form").isExisting()),
     { timeout: 10_000, timeoutMsg: "keyboard cancellation did not close sport classification" },
   );
+}
+
+async function expectTrainingSportCardComposition(expectedColumns, expectedStackedHeading) {
+  const geometry = await browser.execute(() => {
+    const root = document.documentElement;
+    const list = document.querySelector(".training-sport-list");
+    const navigation = document.querySelector(".app-sidebar");
+    const cards = [...list.querySelectorAll(":scope > li")];
+    const listBounds = list.getBoundingClientRect();
+    const navigationBounds = navigation.getBoundingClientRect();
+    const inspectedCards = cards.map((card) => {
+      const bounds = card.getBoundingClientRect();
+      const heading = card.querySelector(".training-sport-card-heading");
+      const identity = heading.querySelector(".training-sport-identity");
+      const title = identity.querySelector("h3");
+      const actions = heading.querySelector(".training-sport-card-actions");
+      const buttons = [...actions.querySelectorAll("button")];
+      const identityBounds = identity.getBoundingClientRect();
+      const titleBounds = title.getBoundingClientRect();
+      const actionBounds = actions.getBoundingClientRect();
+      const titleStyle = getComputedStyle(title);
+      const context = document.createElement("canvas").getContext("2d");
+      context.font = titleStyle.font;
+      const longestWordWidth = Math.max(...title.textContent
+        .split(/\s+/u)
+        .map((word) => context.measureText(word).width));
+      return {
+        title: title.textContent,
+        cardWidth: bounds.width,
+        identityWidth: identityBounds.width,
+        titleWidth: titleBounds.width,
+        titleFontSize: Number.parseFloat(titleStyle.fontSize),
+        longestWordWidth,
+        actionsWidth: actionBounds.width,
+        cardInsideList: bounds.left >= listBounds.left - 1
+          && bounds.right <= listBounds.right + 1,
+        contentFits: card.scrollWidth <= card.clientWidth + 1,
+        headingStacked: actionBounds.top >= identityBounds.bottom - 1,
+        identityAndActionsDoNotOverlap: identityBounds.bottom <= actionBounds.top + 1
+          || identityBounds.right <= actionBounds.left + 1,
+        identityHasReadableWidth: titleBounds.width + 1
+          >= Math.min(longestWordWidth, Number.parseFloat(titleStyle.fontSize) * 12),
+        titleWrapsByWords: titleStyle.overflowWrap !== "anywhere",
+        actionsInsideCard: actionBounds.left >= bounds.left - 1
+          && actionBounds.right <= bounds.right + 1,
+        actionsFit: actions.scrollWidth <= actions.clientWidth + 1,
+        buttonsInsideCard: buttons.every((button) => {
+          const buttonBounds = button.getBoundingClientRect();
+          return buttonBounds.left >= bounds.left - 1
+            && buttonBounds.right <= bounds.right + 1
+            && button.scrollWidth <= button.clientWidth + 1;
+        }),
+      };
+    });
+    return {
+      columns: getComputedStyle(list).gridTemplateColumns.split(" ").length,
+      locale: root.lang,
+      appearance: root.dataset.appearance,
+      zoom: root.dataset.contentZoom,
+      viewportWidth: root.clientWidth,
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+      listOutsideNavigation: navigationBounds.width < root.clientWidth - 1
+        || listBounds.top >= navigationBounds.bottom - 1,
+      cards: inspectedCards,
+    };
+  });
+  if (!geometry.listOutsideNavigation || geometry.cards.some((card) => (
+    !card.cardInsideList
+    || !card.contentFits
+    || !card.identityAndActionsDoNotOverlap
+    || !card.identityHasReadableWidth
+    || !card.titleWrapsByWords
+    || !card.actionsInsideCard
+    || !card.actionsFit
+    || !card.buttonsInsideCard
+    || card.headingStacked !== expectedStackedHeading
+  ))) {
+    process.stderr.write(`${JSON.stringify({ trainingSportCardGeometry: geometry })}\n`);
+  }
+  expect(geometry.hasHorizontalOverflow).toBe(false);
+  expect(geometry.listOutsideNavigation).toBe(true);
+  expect(geometry.columns).toBe(expectedColumns);
+  expect(geometry.cards.length).toBeGreaterThanOrEqual(2);
+  for (const card of geometry.cards) {
+    expect(card.cardInsideList).toBe(true);
+    expect(card.contentFits).toBe(true);
+    expect(card.identityAndActionsDoNotOverlap).toBe(true);
+    expect(card.identityHasReadableWidth).toBe(true);
+    expect(card.titleWrapsByWords).toBe(true);
+    expect(card.actionsInsideCard).toBe(true);
+    expect(card.actionsFit).toBe(true);
+    expect(card.buttonsInsideCard).toBe(true);
+    expect(card.headingStacked).toBe(expectedStackedHeading);
+  }
+}
+
+async function exerciseTrainingSportCardComposition() {
+  for (const [width, height, widthName] of [
+    [1280, 820, "wide"],
+    [720, 760, "compact"],
+  ]) {
+    await resizeApplication(width, height);
+    for (const locale of ["en-US", "es-ES"]) {
+      await selectLocale(locale, "explore");
+      for (const appearance of ["light", "dark"]) {
+        for (const zoom of [100, 125, 150, 175, 200]) {
+          await setAppearanceAndZoom(appearance, zoom, true, "explore");
+          await $(".training-sport-list").waitForDisplayed({ timeout: 10_000 });
+          await browser.execute(() => {
+            const root = document.documentElement;
+            const list = document.querySelector(".training-sport-list");
+            const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+            const revealOffset = navigation.width >= root.clientWidth - 1
+              ? navigation.bottom + 16
+              : 16;
+            window.scrollTo({
+              left: 0,
+              top: Math.max(0, window.scrollY + list.getBoundingClientRect().top - revealOffset),
+            });
+          });
+          const columns = widthName === "compact" || zoom >= 150 ? 1 : 2;
+          await expectTrainingSportCardComposition(columns, true);
+          if ((widthName === "wide" && locale === "en-US"
+              && appearance === "light" && zoom === 100)
+            || (widthName === "compact" && locale === "es-ES"
+              && appearance === "dark" && zoom === 200)) {
+            const accessibility = await new AxeBuilder({ client: browser })
+              .setLegacyMode()
+              .include(".training-sports")
+              .analyze();
+            expect(accessibility.violations).toEqual([]);
+            await browser.saveScreenshot(path.join(
+              evidenceDirectory,
+              `x7-r8-11-sport-cards-${locale}-${appearance}-${widthName}-${zoom}.png`,
+            ));
+          }
+        }
+      }
+    }
+  }
+
+  await selectLocale("en-US", "explore");
+  await resetSettings("explore");
+  await resizeApplication(1280, 820);
 }
 
 async function expectAnswerMeasurementOnOneLine(selector) {
@@ -2424,6 +2566,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".training-sport-list > li[data-state='personally-overridden']")).toHaveText(
       expect.stringContaining("Named by you"),
     );
+    await exerciseTrainingSportCardComposition();
     await openTrainingWorkspace(english, "sessions");
     await expectTrainingRows([
       [enJan5Card, "30 min"],
@@ -5720,6 +5863,13 @@ describe("packaged FitFreed import journey", () => {
     await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
     await goToHome("reports");
     await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);
+    await browser.waitUntil(
+      async () => (await $$(".report-list .report-library-open")).length === 3,
+      {
+        timeout: 10_000,
+        timeoutMsg: "the restored report library did not reveal its three saved reports",
+      },
+    );
     const sessionRestoredReports = await $$(".report-list .report-library-open");
     expect(sessionRestoredReports).toHaveLength(3);
     await expect($(`aria/${spanish.reports.library.open.replace(
@@ -5748,6 +5898,13 @@ describe("packaged FitFreed import journey", () => {
     await expectLibraryHome(spanish, { coverageExpanded: true });
     expect(await $$(".library-home-resume")).toHaveLength(1);
     await goToHome("reports");
+    await browser.waitUntil(
+      async () => (await $$(".report-list .report-library-open")).length === 3,
+      {
+        timeout: 10_000,
+        timeoutMsg: "the refreshed report library did not reveal its three saved reports",
+      },
+    );
     const reportsAfterRefreshImport = await $$(".report-list .report-library-open");
     expect(reportsAfterRefreshImport).toHaveLength(3);
     await $(`aria/${spanish.reports.library.open.replace(

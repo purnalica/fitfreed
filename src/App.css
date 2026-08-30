@@ -800,12 +800,12 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-sport-list > li[data-editor-open="true"] { grid-column: 1 / -1; }
 .training-sport-list > li[data-state="unknown"] { border-top-color: var(--warning); }
 .training-sport-list > li[data-state="unavailable"] { border-top-color: var(--muted); }
-.training-sport-card-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
-.training-sport-identity { align-items: start; }
-.training-sport-card-heading h3 { margin: 0 0 5px; font-size: 1.12rem; overflow-wrap: anywhere; }
+.training-sport-card-heading { display: flex; align-items: stretch; flex-direction: column; gap: 16px; }
+.training-sport-identity { flex: 1 1 0; align-items: start; }
+.training-sport-card-heading h3 { margin: 0 0 5px; font-size: 1.12rem; overflow-wrap: break-word; }
 .training-sport-card-heading p { margin: 0; color: var(--muted); font-size: .76rem; }
-.training-sport-card-heading button { flex: 0 0 auto; min-height: 38px; padding: 7px 10px; font-size: .76rem; }
-.training-sport-card-actions { display: flex; flex: 0 0 auto; gap: 8px; align-items: start; }
+.training-sport-card-heading button { flex: 0 1 auto; min-width: 0; max-width: 100%; min-height: 38px; padding: 7px 10px; overflow-wrap: break-word; white-space: normal; font-size: .76rem; }
+.training-sport-card-actions { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px; width: 100%; min-width: 0; align-items: start; }
 .training-session-return-to-sports { margin: 0 0 12px; }
 .training-sport-list > li > p { margin: 12px 0; color: var(--ink-soft); font-size: .82rem; }
 .training-sport-authorship { color: var(--success) !important; font-weight: 750; }
@@ -1855,6 +1855,7 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .activity-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-sport-list { grid-template-columns: 1fr; }
+  .training-sport-card-actions button { flex: 1 1 12rem; }
   .sport-unification-options, .sport-unification-primary-options { grid-template-columns: 1fr; }
   .training-session-search-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-analysis-picker > ul, .report-analysis-ranges > div { grid-template-columns: 1fr; }
@@ -2103,6 +2104,18 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 :root[data-content-zoom="150"] .training-workspace-navigation button,
 :root[data-content-zoom="175"] .training-workspace-navigation button,
 :root[data-content-zoom="200"] .training-workspace-navigation button { flex: 1 1 10rem; white-space: normal; }
+:root[data-content-zoom="150"] .training-sport-list,
+:root[data-content-zoom="175"] .training-sport-list,
+:root[data-content-zoom="200"] .training-sport-list { grid-template-columns: 1fr; }
+:root[data-content-zoom="150"] .training-sport-card-heading,
+:root[data-content-zoom="175"] .training-sport-card-heading,
+:root[data-content-zoom="200"] .training-sport-card-heading { align-items: stretch; flex-direction: column; }
+:root[data-content-zoom="150"] .training-sport-card-actions,
+:root[data-content-zoom="175"] .training-sport-card-actions,
+:root[data-content-zoom="200"] .training-sport-card-actions { width: 100%; justify-content: flex-start; }
+:root[data-content-zoom="150"] .training-sport-card-actions button,
+:root[data-content-zoom="175"] .training-sport-card-actions button,
+:root[data-content-zoom="200"] .training-sport-card-actions button { flex: 1 1 12rem; }
 :root[data-content-zoom="150"] .planned-training-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 :root[data-content-zoom="150"] .planned-training-filter-actions { grid-column: 1 / -1; justify-content: flex-end; }
 :root[data-content-zoom="175"] .planned-training-heading,

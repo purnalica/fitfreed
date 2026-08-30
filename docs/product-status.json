@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-08-29",
+  "updated": "2026-08-30",
   "statuses": [
     {
       "key": "available",
@@ -46,7 +46,7 @@
       "title": "MVP release preparation and human evaluation",
       "items": [
         { "key": "wholeProductHardening", "text": "Exact current-source package, installation, update, recovery, and performance validation completed" },
-        { "key": "independentAudit", "text": "Correcting the rejected sport identity, compact card layout, and late-reconciliation responsiveness" },
+        { "key": "independentAudit", "text": "Repeating the independent and exact candidate gates after correcting sport identity, compact card layout, and late-reconciliation responsiveness" },
         { "key": "polarSportCatalogue", "text": "Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition" }
       ],
       "source": {

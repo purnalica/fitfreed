@@ -81,15 +81,16 @@ sport groups while History exposes a small recognized subset beside dominant unk
 fluidity; and compact sport cards become unreadable and overflow. These are XH-08, XH-27, and XH-28 in the canonical
 [human evaluation](../research/x6-product-experience-human-evaluation.md).
 
-X7-R8.9 and X7-R8.10 are machine-complete. Reusable local sport correlation and documented provider normalization
+X7-R8.9 through X7-R8.11 are machine-complete. Reusable local sport correlation and documented provider normalization
 now survive cumulative import, restart, removal, backup, migration, and restoration without erasing source evidence.
 A byte-distinct but logically equivalent changed package now reuses unchanged training artifacts only when the latest
 state-changing provenance proves the same digest, provider, adapter, and mapping versions; every mismatch retains the
 complete remapping path. All synchronous SQLite desktop commands run away from Tauri's main invoke path. The dense
 7,490,080-sample gate proves the non-exact reimport result and measures Home and History while late reconciliation is
-deliberately held active. Complete frontend, Rust, documentation, contract, repository-safety, packaged macOS, restart,
-accessibility, and performance evidence passes. X7-R8.11 compact sport-card geometry and the repeated X7-R8.12
-candidate gate remain open.
+deliberately held active. Closed sport cards now preserve complete word-readable identities, independent action rows,
+contained controls, and one-column high-zoom composition across the exact 40-combination adaptive matrix. Complete
+frontend, Rust, documentation, contract, repository-safety, packaged macOS, restart, accessibility, and performance
+evidence passes. Only the repeated X7-R8.12 candidate gate remains open.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust failed that
 human gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -341,7 +342,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | Reopened — R8.0 through R8.10 retain machine evidence, but the 2026-08-30 product-owner review rejected the earlier candidate and R8.11 compact geometry plus the repeated R8.12 candidate gate remain | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Reopened — R8.0 through R8.11 retain machine evidence, but the 2026-08-30 product-owner review rejected the earlier candidate and the repeated R8.12 candidate gate remains | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3414,6 +3415,16 @@ open.
 **Execution increment X7-R8.11 — compact sport-card geometry:** add closed-card geometry assertions at every supported
 zoom and compact width before changing layout. At high content zoom the list becomes one column, identity and actions
 receive independent rows, labels wrap as words, and every action remains inside its card without horizontal overflow.
+
+**Machine-complete checkpoint — 2026-08-30:** the closed sport-card header now gives the complete identity and period
+their own row at every geometry and lets the separate action row wrap complete labels within the card. The list becomes
+one column at compact width and from 150% content zoom. Packaged WebKit evidence covers every combination of both
+locales, both appearances, wide and compact windows, and 100%, 125%, 150%, 175%, and 200% zoom; it asserts word-level
+readability, contained controls, absence of overlap and horizontal overflow, persistent-navigation reveal, and
+accessibility. Visual evidence for ordinary wide and maximum-zoom compact compositions was reviewed after the first
+layout attempt was rejected for reserving too little name width. The complete packaged import, reimport, report,
+restart, adaptive-session, accessibility, and performance campaign passes. X7-R8.12 is the only open execution
+increment.
 
 **Execution increment X7-R8.12 — candidate gate:** run complete Rust, frontend, documentation, format-contract,
 performance, accessibility, localization, and packaged macOS journeys; then perform an independent experience audit

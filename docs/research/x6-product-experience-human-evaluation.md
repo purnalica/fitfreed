@@ -766,13 +766,23 @@ analysis may resume without requesting further participant reproduction on this 
 
 ### XH-28 — Sport cards become unreadable and overflow at compact geometry
 
-- **Status:** observed in closing visual evidence from the rejected corrected-candidate review; no concurrent causal
-  analysis or disposition.
+- **Status:** machine-corrected on 2026-08-30; the reviewed candidate remains rejected and requires the later bounded
+  product-owner review after the repeated exact candidate gate.
 - **Observed behavior:** at compact application geometry, sport-card identity and date text collapse into
   single-character columns, cards become excessively tall, and the action row extends beyond its card and viewport.
   The collection is no longer legible or reliably operable.
 - **Evidence boundary:** the participant-provided screenshot and all personal labels, dates, counts, and library values
   are not retained.
+- **Causal trace:** the two-column list remained active at every content zoom unless the native window itself crossed
+  one narrow breakpoint. Inside each card, a non-wrapping action row retained its complete minimum width while the
+  flexible identity yielded the remaining space. `overflow-wrap: anywhere` then converted that near-zero identity
+  allocation into one-character lines, while the action row could extend beyond the card.
+- **Corrective evidence boundary:** closed cards now place identity and actions on independent rows, keep emergency
+  wrapping at word boundaries, wrap complete action labels inside the card, and switch the list to one column at
+  compact width or from 150% content zoom. A packaged 40-combination matrix covers both locales, both appearances,
+  wide and compact windows, and every supported zoom from 100% through 200%. It asserts readable identity allocation,
+  non-overlap, contained actions, persistent-navigation reveal, accessibility, and no page-level horizontal overflow.
+  Synthetic wide and maximum-zoom compact captures were visually reviewed; no participant value is retained.
 
 ## Passing observations
 

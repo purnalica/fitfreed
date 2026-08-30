@@ -387,7 +387,37 @@ for (const zoom of ["150", "175", "200"]) {
     [/grid-template-columns:\s*1fr/],
     `a single-column classification task at ${zoom}% content zoom`,
   );
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .training-sport-list`,
+    [/grid-template-columns:\s*1fr/],
+    `a single-column closed sport-card list at ${zoom}% content zoom`,
+  );
 }
+requireRule(
+  stylesheet,
+  ".training-sport-card-heading h3",
+  [/overflow-wrap:\s*break-word/],
+  "sport names that preserve words while retaining an emergency wrap for user labels",
+);
+requireRule(
+  stylesheet,
+  ".training-sport-card-heading",
+  [/align-items:\s*stretch/, /flex-direction:\s*column/],
+  "independent identity and action rows in every closed sport card",
+);
+requireRule(
+  stylesheet,
+  ".training-sport-card-actions",
+  [/flex-wrap:\s*wrap/, /width:\s*100%/],
+  "sport-card actions that yield readable space to the sport identity",
+);
+requireRule(
+  stylesheet,
+  ".training-sport-card-heading button",
+  [/min-width:\s*0/, /max-width:\s*100%/, /white-space:\s*normal/],
+  "complete sport-card action labels inside their allocated card width",
+);
 for (const [selector, maximum] of [
   [".sources-heading h1", "3rem"],
   [".explorer-workspace-heading h1", "2.8rem"],

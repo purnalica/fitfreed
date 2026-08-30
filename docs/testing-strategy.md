@@ -97,6 +97,9 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Compact sport classification measures are asserted across the 40-combination locale, appearance, viewport, and
   zoom matrix. The open native disclosure, editor, fields, preview, and actions must occupy the available WebKit
   width without min-content collapse, clipping, or one-character-per-line copy.
+- Closed sport-card composition has its own 40-combination locale, appearance, viewport, and zoom matrix. It verifies
+  complete word-readable identities, an independent wrapping action row, one-column compact and 150%–200% layouts,
+  contained cards and controls, persistent-navigation reveal, accessibility, and no page-level horizontal overflow.
 - The dense-history gate imports a byte-distinct but logically equivalent archive into an existing 7,490,080-sample
   library, proves that it did not use exact-package reuse, and measures 20 Library Home and first-page History queries
   while the final fifth of reconciliation remains active. The changed-package duration and both interactive p95

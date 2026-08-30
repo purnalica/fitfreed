@@ -14,10 +14,10 @@ product-owner review exposed material lower-layer and experience defects. X7-R8 
 the audit and exact automated campaign, and produced one scanned production-native review application. The bounded
 product-owner gate rejected that correction on 2026-08-30 after sport identity remained unusable, late reconciliation
 lost fluidity, and compact sport cards became unreadable. Those causal boundaries must be corrected and independently
-verified before another human gate or release preparation resumes. X7-R8.9 and X7-R8.10 now retain machine evidence
+verified before another human gate or release preparation resumes. X7-R8.9 through X7-R8.11 now retain machine evidence
 for the reusable sport-correlation, documented provider-normalization, and responsive changed-package reconciliation
-boundaries; compact sport-card geometry and the repeated candidate gate remain open. Implementation and machine evidence do not
-by themselves authorize a release claim.
+boundaries plus complete compact sport-card composition; the repeated candidate gate remains open. Implementation and
+machine evidence do not by themselves authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and
