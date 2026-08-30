@@ -25,7 +25,9 @@ native-bundle scan. The bounded product-owner evaluation nevertheless rejected t
 2026-08-30: sport identity remains unusable and inconsistent between Home and History, late reconciliation loses
 fluidity, and sport cards fail compact geometry. X7-R8.9 corrects the sport-identity causal boundary, X7-R8.10
 corrects the changed-package reconciliation boundary, and X7-R8.11 corrects closed sport-card geometry. The repeated
-candidate gate remains open before another candidate may exist.
+independent audit and complete local candidate campaign now pass for clean source `8b174af` with no unresolved
+critical or major finding. The candidate gate remains open for exact hosted verification and revision-isolated native
+bundle construction and inspection before another product-owner evaluation may begin.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

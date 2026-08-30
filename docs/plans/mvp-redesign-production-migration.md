@@ -3437,8 +3437,8 @@ rendered a one-day collection as the same date on both sides of a separator. A c
 manual range composition in Home and the activity, training, sleep, recovery, and aligned-history comparison panels.
 The shared semantic date-range boundary now owns all those ordinary surfaces, and a sport card presents its period
 once while retaining its session count as a separate labelled value. Both locales and affected component gates pass.
-Because the correction changes executable inputs, the complete exact gate and corrected packaged visual evidence must
-repeat before R8.12 or the independent audit can close.
+Because the correction changes executable inputs, the complete exact gate and corrected packaged visual evidence had
+to repeat before the independent audit could close.
 
 The repeated precommit campaign then exposed two pre-existing E2E synchronization races rather than product-output
 failures. Report composition waited only for the Reports heading before manipulating its asynchronously created four
@@ -3446,6 +3446,12 @@ date controls, while the performance campaign treated a visible domain workspace
 or comparison was ready. Repository history confirms that the protected contracts require the complete control sets.
 The journeys now wait for those exact sets without removing assertions or including readiness time in application
 response measurements; repeated packaged behavior and every measured domain pass after the correction.
+
+**Local exact checkpoint — 2026-08-30:** clean source `8b174af` passes the complete local campaign and regenerates the
+corrected packaged visual evidence. The repeated independent audit closes with no unresolved critical or major
+finding. This is not R8.12 completion or human acceptance: the executable inputs still require repository safety and
+the complete hosted campaign, followed by revision-isolated production-native construction and inspection. Only that
+exact bundle may enter the bounded product-owner experience review.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
 

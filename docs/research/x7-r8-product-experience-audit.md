@@ -14,11 +14,12 @@ accepted during the audit and corrected before the whole campaign repeated. This
 X7-R8.7 boundary only. It does not close the participant-assisted sport-correlation gate, create the exact R8.8
 candidate, accept the human experience, or authorize publication.
 
-The repeated X7-R8.12 audit started on 2026-08-30 after clean source `8ffeb7f` passed the complete exact local gate.
-It challenges every finding in the later rejected product-owner reviews rather than inheriting the earlier verdict.
-The visual and consumer-contract review accepted R8A-03 and corrected it across the complete ordinary date-range
-surface. Its focused localized gates pass, but the repeated audit remains open until the changed executable tree
-passes the complete exact and packaged visual campaign.
+The repeated X7-R8.12 audit closed locally on 2026-08-30 after clean source `8b174af` passed the complete exact local
+gate and regenerated the corrected packaged visual evidence. It challenged every finding in the later rejected
+product-owner reviews rather than inheriting the earlier verdict. The visual and consumer-contract review accepted
+R8A-03 and corrected it across the complete ordinary date-range surface. The repeated verdict is **pass with no
+unresolved critical or major finding**. Hosted verification, revision-isolated candidate construction, and the
+reserved product-owner experience evaluation remain separate gates.
 
 No private archive, library, route, date, quantity, source locator, screenshot, host profile, or participant identity
 is audit evidence. Generated applications, databases, exports, logs, and screenshots remain ignored local artifacts.
@@ -120,7 +121,7 @@ critical or major finding is accepted but uncorrected.
 | --- | --- | --- | --- | --- | --- |
 | R8A-01 | Major | A saved comparison's primary finding described a mechanical transition and prefixed the answer with `Imported source 1`, even when the library contained only one represented source. The result did not distinguish increase, decrease, or no change as a conclusion. | The report presentation had one direction-neutral sentence template and always rendered a source ordinal. The resolved comparison already supplied exact signed changes and source separation, so the defect was not in the report domain or application result. | Presentation now derives increase, decrease, unchanged, or unavailable from the exact resolved change. Localized findings state the conclusion; a source heading appears only when multiple source series require disambiguation. Component regression evidence covers all three available directions, exact values, one-source omission, and multiple-source separation. | Closed; affected and complete campaigns passed |
 | R8A-02 | Minor | A one-day selected period repeated the same formatted date on both sides of a range separator in sleep, recovery, aligned history, and report attribution. | Four presentation components independently composed start and end dates instead of entering one semantic range formatter. | The shared presentation-format boundary now emits one date for a one-day period and two dates only for a real range. Unit evidence covers both locales and component evidence protects the aligned-history interaction. | Closed; affected and complete campaigns passed |
-| R8A-03 | Minor | A one-day sport collection showed the same date on both sides of a separator, and each sport card repeated its complete period a second time beside its session count. The same manual one-day composition remained reachable in Home and five period-comparison surfaces. | Sport cards, Home, and the activity, training, sleep, recovery, and aligned-history comparison panels bypassed the semantic date-range formatter. The sport card also used its period as both identity context and the value paired with session count. | Every ordinary consumer now enters the shared semantic date-range boundary. Sport identity retains one period, while a separate labelled session-count value replaces the duplicate range. Localized component evidence covers one-day Home, comparison highlights, and sport cards; the existing formatter contract preserves real ranges. | Closed locally; affected gates passed, complete exact repeat pending |
+| R8A-03 | Minor | A one-day sport collection showed the same date on both sides of a separator, and each sport card repeated its complete period a second time beside its session count. The same manual one-day composition remained reachable in Home and five period-comparison surfaces. | Sport cards, Home, and the activity, training, sleep, recovery, and aligned-history comparison panels bypassed the semantic date-range formatter. The sport card also used its period as both identity context and the value paired with session count. | Every ordinary consumer now enters the shared semantic date-range boundary. Sport identity retains one period, while a separate labelled session-count value replaces the duplicate range. Localized component evidence covers one-day Home, comparison highlights, and sport cards; the existing formatter contract preserves real ranges. | Closed; affected and complete local campaigns passed |
 
 No other critical or major finding was accepted. Prior XH findings were used as active regression prompts rather than
 being assumed closed, and the production-adapter, packaged, responsive, accessibility, restart, update, recovery, and
@@ -153,12 +154,17 @@ performance campaign repeated after the accepted corrections.
    route, signal, planned-training, report, export, and Settings compositions. Inspection of the maximum-zoom sport
    card established R8A-03. A complete source scan then found every other ordinary consumer that still composed a
    one-day range manually; the correction was applied at their common semantic boundary.
-8. No additional critical or major finding has been accepted in the repeated review. The changed executable tree must
-   still reproduce the complete exact campaign and corrected packaged captures before this repeated audit can close.
+8. No additional critical or major finding was accepted in the repeated review. Clean source `8b174af` reproduced
+   the complete exact campaign and corrected packaged captures. The campaign covered portable and Rust gates,
+   contracts, localization, documentation, full-scale import, dense-history reconciliation, analytical performance,
+   every packaged journey, both update outcomes, production packaging, cold launch, bundle policy, and recovery
+   preparation without weakening a budget or assertion.
+9. This closes the repeated independent audit, not R8.12 as a whole. The exact executable inputs still require hosted
+   verification and a revision-isolated production-native bundle before the bounded product-owner experience review.
 
 External cartographic basemaps and curated themes are not audit omissions: they are explicitly confirmed post-MVP
 capabilities with separate privacy, attribution, caching, offline, and personalization decisions. Synthetic evidence
 also cannot establish an unrestricted global provider sport catalogue. The privacy-minimized X7-R8.0 correlation gate
 is complete, and reusable local correlations plus documented distributable defaults now own that boundary. The next
-required sequence is the repeated exact R8.12 campaign followed, only if it passes, by one bounded product-owner
-experience review of the exact production-native candidate.
+required sequence is hosted verification of the exact executable inputs, revision-isolated production-native
+candidate construction and inspection, and one bounded product-owner experience review of that exact candidate.
