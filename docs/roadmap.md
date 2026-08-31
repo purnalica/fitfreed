@@ -47,8 +47,12 @@ acquisition, generation, bundling, activation, and complete supported-reference 
 sport compatibility catalogue. Its public-source acquisition, deterministic generation, startup activation, complete
 supported-identifier runtime coverage, privacy-bounded real-reference predicate, complete changed-tree regression,
 performance campaigns, packaged update and recovery, production packaging, and repeated independent product audit
-pass locally on 2026-08-31. The correction has no exact committed source yet. Exact local and hosted gates plus
-revision-isolated native construction must pass before a new product-owner experience review is eligible.
+pass locally on 2026-08-31. Reviewed exact source `512972e` also passes the complete clean local campaign, exact
+repository safety, and every portable and macOS gate before the final update-recovery gate. GitHub cancelled that
+healthy final gate at the obsolete fixed 75-minute job boundary rather than on an assertion. The focused current
+orchestration correction raises only the aggregate allowance to 95 minutes while retaining every narrower watchdog,
+product budget, security validator, and acceptance assertion. A clean hosted campaign, its immutable executable-input
+marker, and revision-isolated native construction must pass before a new product-owner experience review is eligible.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

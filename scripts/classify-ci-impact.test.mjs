@@ -261,5 +261,5 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   );
   assert.match(workflow, /needs: \[quality, packaged-macos-e2e\]/);
   assert.match(workflow, /uses: actions\/cache\/save@[0-9a-f]{40}/);
-  assert.match(packagedMacosJob ?? "", /^    timeout-minutes: 75$/m);
+  assert.match(packagedMacosJob ?? "", /^    timeout-minutes: 95$/m);
 });

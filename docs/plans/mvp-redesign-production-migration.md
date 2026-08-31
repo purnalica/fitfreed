@@ -3579,6 +3579,21 @@ repeated independent audit accepts no unresolved critical or major product findi
 exact-source boundary: cold launch, repository safety, hosted verification, revision-isolated native construction,
 and product-owner experience cannot become current evidence before one reviewed source revision exists.
 
+**Exact-source orchestration checkpoint — 2026-08-31:** reviewed source `512972e` passes the complete clean local
+campaign, including cold launch, full-scale and dense import, Insights, the functional package, catalogue recognition
+and restart, replacement, rejected-candidate recovery, dependency audit, repository-content policy, secret scanning,
+and production `.app` and `.dmg` construction. Exact repository-safety run
+[`33387742943`](https://github.com/purnalica/fitfreed/actions/runs/33387742943) and product-site run
+[`33387742944`](https://github.com/purnalica/fitfreed/actions/runs/33387742944) pass. Exact continuous-integration run
+[`33387742954`](https://github.com/purnalica/fitfreed/actions/runs/33387742954) passes the portable lane and the first
+seventeen macOS steps, including the complete instrumented E2E campaign. GitHub then cancels the still-healthy final
+replacement and recovery step at the fixed 75-minute job boundary after that step has run for 8 minutes and 56
+seconds; there is no assertion failure. The maintained sequence now reaches that step after approximately 66 minutes,
+so the former allowance no longer contains the complete campaign. The focused orchestration correction raises only
+the aggregate job allowance to 95 minutes. Every narrower operation watchdog, product-performance budget, security
+validator, and acceptance assertion remains unchanged. One clean hosted campaign of the correction and its immutable
+executable-input marker remain required before revision-isolated native inspection and product-owner evaluation.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,
