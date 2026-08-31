@@ -202,6 +202,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   destination selection. Each adapter uses the WebdriverIO mock registry while preserving its complete options
   and result contract. Tests synchronize on the recorded invocation before asserting cancellation, selection,
   or output; unchanged UI state is not accepted as evidence that an operating-system action completed.
+- Synchronization against transient live regions reads the complete matching renderer state in one
+  `browser.execute` snapshot. It does not traverse a WebdriverIO `$$` collection across awaited element reads:
+  WebdriverIO may resolve each indexed element against a later DOM, while a completed operation legitimately removes
+  or replaces earlier status nodes. One shared helper preserves the exact expected text and timeout contract for every
+  packaged scenario.
 - The feature-gated host holds each instrumented report export for a bounded test-only interval, or until cancellation,
   before entering the unchanged application use case. This makes the packaged cancellation action deterministic
   while retaining the real coordinator, cancellation token, report resolution, output adapter, and cleanup path.

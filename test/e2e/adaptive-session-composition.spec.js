@@ -13,6 +13,7 @@ import {
   resizeApplication,
   selectArchive,
   selectLocale,
+  waitForNotice,
 } from "./support/application-actions.js";
 import { recordRestartProcessIdentity } from "./support/application-process.js";
 
@@ -25,16 +26,6 @@ const spanish = JSON.parse(
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const restartIdentityPath = process.env.FITFREED_E2E_RESTART_IDENTITY_PATH;
 const evidenceDirectory = path.resolve(".artifacts/e2e/evidence");
-
-async function waitForNotice(fragment) {
-  await browser.waitUntil(async () => {
-    const notices = await $$("[role='status']");
-    for (const notice of notices) {
-      if ((await notice.getText()).includes(fragment)) return true;
-    }
-    return false;
-  }, { timeout: 10_000, timeoutMsg: `status did not contain ${fragment}` });
-}
 
 async function expectSignalChartRangeDescription(workbench, expectedRange) {
   const chart = await workbench.$(".analytical-chart-canvas");

@@ -15,6 +15,7 @@ import {
   returnToLibraryHome,
   selectArchive,
   selectLocale,
+  waitForNotice,
 } from "./support/application-actions.js";
 import { recordRestartProcessIdentity } from "./support/application-process.js";
 
@@ -32,17 +33,6 @@ const reportOutput = path.join(evidenceDirectory, "session-report.html");
 const transientReportOutput = path.join(evidenceDirectory, "transient-comparison-report.html");
 const refreshedReportOutput = path.join(evidenceDirectory, "refreshed-comparison-report.html");
 const plannedReportOutput = path.join(evidenceDirectory, "planned-training-report.html");
-
-async function waitForNotice(fragment, timeout = 10_000) {
-  await browser.waitUntil(
-    () => browser.execute(
-      (expectedFragment) => [...document.querySelectorAll("[role='status']")]
-        .some((notice) => notice.textContent.includes(expectedFragment)),
-      fragment,
-    ),
-    { timeout, timeoutMsg: `status did not contain ${fragment}` },
-  );
-}
 
 async function selectNativeOption(select, value) {
   await browser.execute((element, nextValue) => {

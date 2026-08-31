@@ -3594,6 +3594,20 @@ the aggregate job allowance to 95 minutes. Every narrower operation watchdog, pr
 validator, and acceptance assertion remains unchanged. One clean hosted campaign of the correction and its immutable
 executable-input marker remain required before revision-isolated native inspection and product-owner evaluation.
 
+**Hosted synchronization checkpoint — 2026-08-31:** orchestration revision `e0e722c` passes exact repository-safety
+run [`33405424426`](https://github.com/purnalica/fitfreed/actions/runs/33405424426), the portable lane, native X6 bundle
+construction and inspection, cold launch, full-scale import, dense history, Insights, update-recovery preparation, and
+installation boundaries. The functional packaged journey and its real-process restart also pass. The subsequent
+adaptive-session process completes its import and presents populated Home, but its test helper fails before the exact
+repeat assertion while traversing a transient WebdriverIO `$$` status collection: the collection initially exposes
+three elements and exposes only two when a later indexed element is resolved. History traces that helper to
+`06c4e5f`; `a59be6c` had already corrected the same race in the main functional journey by reading all live-region
+text in one renderer snapshot. The causal correction centralizes that atomic synchronizer for the functional,
+adaptive-session, and catalogue-recognition journeys without changing the expected notice, timeout, product code, or
+acceptance assertion. A focused behavioral regression, both affected packaged scenarios, and the complete packaged
+campaign pass locally. The complete hosted campaign, update journey, immutable marker, and exact native admission
+remain open until one corrected source passes end to end.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,

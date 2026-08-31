@@ -60,6 +60,17 @@ export async function selectArchive(dialogMock, archivePath, chooseLabel) {
   );
 }
 
+export async function waitForNotice(fragment, timeout = 10_000, session = browser) {
+  await session.waitUntil(
+    () => session.execute(
+      (expectedFragment) => [...document.querySelectorAll("[role='status']")]
+        .some((notice) => notice.textContent?.includes(expectedFragment)),
+      fragment,
+    ),
+    { timeout, timeoutMsg: `status did not contain ${fragment}` },
+  );
+}
+
 export async function persistSettings() {
   const status = await $(".settings-status");
   const previewStatus = await status.getText();

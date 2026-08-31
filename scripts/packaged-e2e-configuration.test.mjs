@@ -11,6 +11,7 @@ import {
 } from "./e2e-paths.mjs";
 import { config as defaultConfig } from "../wdio.conf.js";
 import { config as performanceConfig } from "../wdio.performance.conf.js";
+import { waitForNotice } from "../test/e2e/support/application-actions.js";
 import { parseExactApplicationProcessIds } from "../test/e2e/support/application-process.js";
 
 test("keeps the instrumented executable outside the production target", () => {
@@ -111,6 +112,40 @@ test("reports bounded functional-journey phases without changing operation budge
   assert.equal(defaultConfig.waitforTimeout, 10_000);
   assert.equal(defaultConfig.connectionRetryTimeout, 90_000);
   assert.equal(defaultConfig.connectionRetryCount, 1);
+});
+
+test("reads transient status notices through one renderer snapshot", async () => {
+  const expectedFragment = "The repeated import is ready";
+  let executeCount = 0;
+  const session = {
+    async execute(query, fragment) {
+      executeCount += 1;
+      assert.equal(fragment, expectedFragment);
+      const originalDocument = globalThis.document;
+      globalThis.document = {
+        querySelectorAll: () => [
+          { textContent: "Unrelated status" },
+          { textContent: expectedFragment },
+        ],
+      };
+      try {
+        return query(fragment);
+      } finally {
+        globalThis.document = originalDocument;
+      }
+    },
+    async waitUntil(predicate, options) {
+      assert.equal(await predicate(), true);
+      assert.deepEqual(options, {
+        timeout: 2_500,
+        timeoutMsg: `status did not contain ${expectedFragment}`,
+      });
+    },
+  };
+
+  await waitForNotice(expectedFragment, 2_500, session);
+
+  assert.equal(executeCount, 1);
 });
 
 test("isolates the longer performance campaign without relaxing interaction budgets", () => {

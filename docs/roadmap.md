@@ -51,8 +51,14 @@ pass locally on 2026-08-31. Reviewed exact source `512972e` also passes the comp
 repository safety, and every portable and macOS gate before the final update-recovery gate. GitHub cancelled that
 healthy final gate at the obsolete fixed 75-minute job boundary rather than on an assertion. The focused current
 orchestration correction raises only the aggregate allowance to 95 minutes while retaining every narrower watchdog,
-product budget, security validator, and acceptance assertion. A clean hosted campaign, its immutable executable-input
-marker, and revision-isolated native construction must pass before a new product-owner experience review is eligible.
+product budget, security validator, and acceptance assertion. Exact orchestration source `e0e722c` then passes
+repository safety, the portable lane, native X6 inspection, every performance and installation gate, the complete
+functional package, and real-process restart. Its adaptive-session continuation exposes a separate test-harness race:
+WebdriverIO re-resolves an indexed transient status collection after the application has legitimately replaced one
+node. The current changed tree centralizes the already-proven atomic renderer-snapshot synchronizer without changing
+product behavior or an acceptance assertion; its focused regression, both affected packaged scenarios, and complete
+packaged campaign pass locally. A clean hosted campaign, its immutable executable-input marker, and exact native
+admission must pass before a new product-owner experience review is eligible.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

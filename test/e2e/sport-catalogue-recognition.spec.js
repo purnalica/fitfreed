@@ -7,6 +7,7 @@ import {
   resizeApplication,
   selectArchive,
   selectLocale,
+  waitForNotice,
 } from "./support/application-actions.js";
 import { recordRestartProcessIdentity } from "./support/application-process.js";
 
@@ -18,16 +19,6 @@ const spanish = JSON.parse(
 );
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const restartIdentityPath = process.env.FITFREED_E2E_RESTART_IDENTITY_PATH;
-
-async function waitForNotice(fragment) {
-  await browser.waitUntil(async () => {
-    const notices = await $$('[role="status"]');
-    for (const notice of notices) {
-      if ((await notice.getText()).includes(fragment)) return true;
-    }
-    return false;
-  }, { timeout: 10_000, timeoutMsg: `status did not contain ${fragment}` });
-}
 
 async function expectRecognizedSport(name) {
   const overview = await browser.executeAsync((done) => {
