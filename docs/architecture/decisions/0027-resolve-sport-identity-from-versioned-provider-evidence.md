@@ -29,10 +29,10 @@ fact. User-authored labels solve personal naming but are a separate kind of evid
 masquerade as provider recognition.
 
 The required provider catalogue is also not a canonical domain taxonomy. Providers own different identifiers,
-hierarchies, localized names, revisions, access controls, and redistribution terms. Polar's complete official
-catalogue currently requires authenticated `sports:read` access, and no redistribution basis has been established
-for a bundled snapshot. The architecture must therefore support trustworthy evidence without assuming that one
-provider's catalogue can be committed to the repository.
+hierarchies, localized names, revisions, access controls, and publication mechanisms. The architecture must support
+trustworthy evidence without assuming that one provider's catalogue can become the canonical model. For Polar, the
+numeric identifier mapping and supported localization namespaces were subsequently verified as public,
+unauthenticated inputs; the generated compatibility subset remains provider evidence behind this boundary.
 
 ## Considered alternatives
 

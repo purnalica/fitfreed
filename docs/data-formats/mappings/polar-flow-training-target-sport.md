@@ -10,7 +10,7 @@ map a provider sport code to an opaque `sport.id`.
 - Source adapter version: `polar-flow-archive@14`
 - Operation mapping set: `polar-flow-mapping-set@9`
 - Sport mapping: `polar-training-target-sport@1`
-- Sport normalization: `polar-sport-normalization@1`
+- Sport normalization: `polar-sport-normalization@2`
 - Vocabulary revision: `polar-accesslink-detailed-sport-info@2026-05-06`
 - Vocabulary source: [Polar AccessLink API](https://www.polar.com/accesslink-api/)
 - Source-format evidence: [Polar Flow personal data export](../providers/polar-flow.md)
@@ -77,14 +77,23 @@ takeout archive, that every published code is implemented, or that its FIT mappi
 `sport.id`. Extending this table changes `polar-training-target-sport` mapping version and requires synthetic
 contract evidence.
 
-## Provider-normalization rule version 1
+## Provider-normalization rule version 2
 
-The adapter derives one opaque normalization capability for an exact represented sport from the resolved observation
-origin, source provider, mapping version, normalization version, and the canonical sorted set of exact sport codes.
-The private opaque `sport.id` is deliberately excluded. Consequently, distinct source profile identifiers inside one
-origin normalize only when their exact completed-target code sets are equal and resolve to the same provider-neutral
-recognition. Different codes, different origins, ambiguous code sets, unresolved sessions, and personal
-classifications do not enter this default.
+The adapter derives one opaque normalization capability for a represented sport from the resolved observation origin,
+source provider, normalization version, and the canonical sorted set of stable provider name keys. A source-profile
+collection receives those keys from the active provider catalogue. An exact completed-target collection receives them
+from its exact sport codes after applying the explicit provider-vocabulary alias below. The private opaque `sport.id`
+is deliberately excluded.
+
+| Exact target sport code | Stable provider name key | Evidence |
+|---|---|---|
+| `ROAD_CYCLING` | `ROAD_BIKING` | Both provider vocabularies name the same road-cycling concept; the public numeric catalogue uses the latter key. |
+
+All other supported exact codes retain their exact value as the stable name key. Consequently, a catalogue-recognized
+source collection and an exact-target collection normalize when both resolve to the same provider key and the same
+provider-neutral recognition, including the documented road-cycling alias. Distinct stable keys, different origins,
+ambiguous evidence, unresolved sessions, and personal classifications do not enter this default. Alias additions or
+changes require a new normalization version and explicit synthetic regression evidence.
 
 The capability changes visible grouping only. Every exact base collection and source identifier remains intact, and
 all navigation continues through the complete set of exact member filter capabilities. An explicit local

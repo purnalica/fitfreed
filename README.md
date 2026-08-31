@@ -98,11 +98,11 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 </details>
 
 <details data-status="active" open>
-<summary><strong>Work in progress — MVP release preparation and human evaluation</strong></summary>
+<summary><strong>Work in progress — MVP correction and release preparation</strong></summary>
 <ul>
-<li>Exact current-source package, installation, update, recovery, and performance validation completed</li>
-<li>Exact independent audit and native candidate gates passed; bounded product-owner experience evaluation pending</li>
-<li>Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition</li>
+<li>Complete changed-tree quality, performance, packaged interaction, update recovery, and production packaging gates pass; exact-source and hosted gates remain</li>
+<li>Repeated current-source audit passes with no unresolved critical or major finding; the earlier native experience rejection remains until a new exact candidate is reviewed</li>
+<li>Bundled Polar sport identity resolves every supported catalogue identifier and the complete authorized reference without requiring an account connection</li>
 </ul>
 <p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>
 </details>
@@ -110,7 +110,8 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <details data-status="later">
 <summary><strong>Later scope — Outside the current MVP</strong></summary>
 <ul>
-<li>Additional providers and live APIs</li>
+<li>Optional connected-provider updates with archive/API reconciliation; architecture confirmed and provider eligibility open</li>
+<li>Additional provider archive importers</li>
 <li>Linux and Windows distribution</li>
 <li>Local MCP access for authorized agents</li>
 <li>Advanced encryption and extension systems</li>

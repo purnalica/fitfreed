@@ -8,6 +8,14 @@ export function packagedE2eScenarioPlan(runDirectory) {
     runDirectory,
     "adaptive-restart-process.json",
   );
+  const sportCatalogueDatabasePath = path.join(
+    runDirectory,
+    "sport-catalogue.sqlite",
+  );
+  const sportCatalogueRestartIdentityPath = path.join(
+    runDirectory,
+    "sport-catalogue-restart-process.json",
+  );
 
   return [
     {
@@ -37,6 +45,20 @@ export function packagedE2eScenarioPlan(runDirectory) {
       spec: "test/e2e/adaptive-session-restart.e2e.js",
       databasePath: adaptiveDatabasePath,
       restartIdentityPath: adaptiveRestartIdentityPath,
+    },
+    {
+      name: "sport-catalogue",
+      configuration: "wdio.conf.js",
+      spec: "test/e2e/sport-catalogue-recognition.spec.js",
+      databasePath: sportCatalogueDatabasePath,
+      restartIdentityPath: sportCatalogueRestartIdentityPath,
+    },
+    {
+      name: "sport-catalogue-restart",
+      configuration: "wdio.conf.js",
+      spec: "test/e2e/sport-catalogue-recognition-restart.e2e.js",
+      databasePath: sportCatalogueDatabasePath,
+      restartIdentityPath: sportCatalogueRestartIdentityPath,
     },
     {
       name: "performance",

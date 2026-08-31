@@ -63,14 +63,45 @@ The schema validates independently constructed JSON evidence. Runtime installati
 Rust representation; JSON is the stable inspectable expression of that boundary rather than a public user
 import format.
 
-## Polar Flow availability gate
+## Polar Flow acquisition and activation
 
-Polar's official Dynamic API documents the necessary identifier, localized name, and parent relationship,
-but complete catalogue retrieval requires authenticated `sports:read` access. No GPL-compatible right to
-redistribute a retrieved complete catalogue has been established. Consequently the MVP repository contains
-synthetic contract evidence only and does not bundle a Polar catalogue. Obtaining authenticated official
-evidence and establishing either redistribution authority or an explicitly local-only acquisition path is a
-documented human gate; it does not authorize inferred names.
+Polar Flow publicly exposes the numeric identifier-to-stable-name-key relationship required by this contract at
+`https://flow.polar.com/api/sports/sports`. Its versioned public `en/sport.json` and `es/sport.json` localization
+namespaces supply the supported human names. A maintainer acquisition command records the exact input digests,
+localization revision, and retrieval instant, then emits only the minimal deterministic compatibility snapshot used by
+FitFreed. Account records, authorization, profiles, sessions, devices, tokens, provider descriptions, and unrelated
+sport settings are neither generator inputs nor bundled output. The public mapping does not expose parent evidence,
+so generated entries leave `parentIdentifier` absent rather than inventing hierarchy.
+
+The supported application activates this snapshot out of the box so supported takeout identifiers resolve without
+requiring the person using FitFreed to connect a Polar account. The upstream responses remain ignored,
+replaceable maintainer inputs; the generated compatibility snapshot, its provenance manifest, and its generator are
+the reviewable product artifacts. A later optional connected-provider adapter may retrieve and activate a newer
+global snapshot through the same contract.
+
+The versioned artifacts are:
+
+- [`polar-flow-sport-acquisition-v1.json`](../../../assets/provider-compatibility/polar-flow-sport-acquisition-v1.json),
+  the exact accepted input digests, localization revision, retrieval instant, API-contract digest, and mapping version;
+- [`polar-flow-sport-family-v1.json`](../../../assets/provider-compatibility/polar-flow-sport-family-v1.json), the
+  explicit reviewed provider-name-key to provider-neutral visual-family decisions;
+- [`polar-flow-sport-catalogue-v1.json`](../../../assets/provider-compatibility/polar-flow-sport-catalogue-v1.json),
+  the generated runtime evidence; and
+- [`polar-flow-sport-catalogue-v1.manifest.json`](../../../assets/provider-compatibility/polar-flow-sport-catalogue-v1.manifest.json),
+  the generator, source, and output integrity binding.
+
+Run `npm run catalogue:polar:acquire` to retrieve the four public inputs into the ignored local research directory.
+Compare `observation.json` with the accepted acquisition metadata. Any changed digest, localization revision, stable
+key, translation, or family coverage requires review before updating the accepted metadata. Run
+`npm run catalogue:polar:generate` only after that review; generation fails on digest drift, malformed input,
+non-canonical identifiers, missing supported names, unsupported families, or an unreviewed stable key. Run
+`npm run check:data-contracts` and the acquisition and generation script tests before accepting the output. Repeating
+generation from identical accepted inputs must produce byte-identical catalogue and manifest files.
+
+A privacy-bounded authenticated diagnostic on 2026-08-30 established that the current catalogue identifier is the
+exact join to every non-null takeout `sport.id` in the authorized local library and that the catalogue supplies
+human-readable identity. No private value or retrieved catalogue content was retained. This establishes the semantic
+join independently from the maintainer catalogue acquisition.
 
 Changing field meaning, snapshot identity, ambiguity, ordering, digest derivation, activation, or failure
 semantics requires a new provider-catalogue evidence version.

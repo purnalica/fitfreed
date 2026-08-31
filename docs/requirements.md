@@ -452,11 +452,40 @@ All user-facing features included in the first release will be available in Engl
 ### FR-024 — Incremental connected-provider synchronization
 
 - After a historical export has established the library, FitFreed will be able to connect to supported provider APIs and ingest newly available records without requiring repeated full exports.
+- A provider connection will always be optional. Archive import, the bundled compatibility knowledge required to
+  interpret supported archives, and the already established local library will remain useful without an account
+  connection.
 - Connected synchronization will be implemented through source-specific adapters behind the same provider-neutral ingestion and reconciliation boundaries as archive import.
+- A connection will bind to an existing provider origin only through exact provider record identity shared with that
+  origin or another equally strong documented claim. Date, sport, duration, name, device, route, measurement, or
+  frequency similarity will not attach an account to imported history. Failure to prove one unambiguous origin will
+  stop synchronization rather than merge accounts.
+- When a person authorizes a provider connection, the connector may also retrieve current provider catalogues and
+  other interpretation evidence. That evidence may enrich or update the bundled compatibility baseline, but
+  connection will never be required to obtain ordinary sport names for identifiers already covered by the supported
+  archive format.
 - Each connector will declare authorization scopes, available history window, supported data families, polling or notification behavior, rate limits, freshness, known omissions, revocation, and deletion behavior.
+- Authorization will use the system browser, the least privilege required for each enabled family, and a provider-
+  approved native-client flow. A confidential provider client secret will never be embedded in the open-source
+  desktop application. Any secret-isolating service requires an explicit provider, security, privacy, operational,
+  and product-authority gate and may handle authorization only, never fitness records or library queries.
 - API records and archive records from the same provider will reconcile through explicit source identity and revision rules; connection order will not create duplicates, silently overwrite richer history, or invent equivalence.
+- Archive and API delivery channels will retain separate provenance and component coverage beneath the same canonical
+  provider identity. Equivalent evidence adds provenance; compatible missing evidence enriches; a strictly newer
+  provider revision may amend; older evidence cannot roll back; and equal or unorderable disagreement remains a
+  visible conflict. Removing one channel will recompute affected canonical results from retained evidence rather than
+  deleting facts independently supplied by another channel.
+- Incremental acquisition will use resumable, overlapping bounded windows plus periodic historical audits whenever a
+  provider offers no reliable modification cursor. A discovery response will not erase richer evidence, and absence
+  from a response will never be interpreted as deletion without an authoritative provider tombstone contract.
+- A synchronization operation will stage and validate its complete decision set before atomically publishing
+  canonical changes, source-channel provenance, conflicts, coverage, and its checkpoint. Failure or interruption will
+  expose neither partial history nor a checkpoint that claims uncommitted coverage.
 - Credentials and refresh tokens will use operating-system protected storage, never enter logs or portable data exports, and remain revocable independently of the local library.
-- Offline use and historical exploration will remain available when a provider is unreachable, access is revoked, or an API is discontinued.
+- Offline use and archive-derived historical exploration will remain available when a provider is unreachable,
+  access is revoked, or an API is discontinued. The exact retention and portable-exit rights for API-derived records
+  must be disclosed and compatible with the product thesis before a connector ships; incompatible or unresolved
+  provider terms block the connector rather than silently weakening user control.
 
 ### FR-025 — Evidence-complete session exploration
 
@@ -477,6 +506,19 @@ All user-facing features included in the first release will be available in Engl
 ### FR-026 — User-authored sport classification
 
 - An unresolved source sport reference will remain explicitly unknown until trustworthy evidence or the user supplies a classification; the application will never invent a sport name from an opaque provider value.
+- FitFreed will include, out of the box, a versioned Polar sport-identity compatibility catalogue sufficient to map
+  the supported takeout sport identifiers to human-readable localized names without requiring the user to connect a
+  Polar account. The catalogue requires independently reviewable provenance, deterministic generation, an update
+  policy, ambiguity handling, preserved source distinctions, and a user-visible correction path. Private participant
+  data is not an acceptable catalogue source.
+- Acquisition will not depend on provider assistance or account authorization. FitFreed will build an independently
+  reproducible evidence dossier from Polar Flow's public sport-identifier mapping, versioned public localization
+  assets, Polar's published API contract, official example clients, and independent public implementations. A
+  maintainer command will generate the minimal
+  catalogue deterministically with source and output digests, revision, transformation version, provenance, and
+  review. Exact identifiers, stable name keys, localized sport names, and parent relationships are interoperability
+  data. Guessed names, provider descriptions, icons, defaults, unrelated configuration, and private participant
+  responses remain prohibited.
 - A provider-neutral classification will be scoped by observation origin and exact source sport reference and may contain a canonical sport family and user display label with authorship and revision.
 - Classification will survive restart, reimport, migration, and portable backup without overwriting source evidence.
 - Automatic recognition will use only versioned, provenance-bearing provider evidence. This may be an explicitly
@@ -500,9 +542,10 @@ All user-facing features included in the first release will be available in Engl
   for review instead of silently changing the chosen meaning.
 - FitFreed will ship versioned provider-normalization rules for documented cases where one provider uses distinct
   identifiers for the same provider-neutral sport. A rule requires reproducible non-personal evidence, explicit
-  provenance, an update policy, preserved source distinctions, and a user-visible correction path. Official taxonomy
-  and independently reproducible source-format evidence may authorize a bundled rule; one private correlation, equal
-  visible names, equal broad families, or candidate order may not.
+  provenance, an update policy, preserved source distinctions, and a user-visible correction path. Within one
+  activated provider catalogue, distinct source identifiers carrying the same stable provider name key are one
+  documented provider-normalization identity. One private correlation, equal broad families, or candidate order may
+  not create a bundled rule.
 - Activating another catalogue or mapping revision invalidates earlier training-discovery snapshots before any new identity is projected.
 - Training history will use a recognizable provider-neutral sport label and visual identifier wherever trustworthy identity evidence exists. Unresolved references remain honest but are classifiable from the affected history itself; assigning or revising a display label and sport family updates every relevant view without requiring reimport.
 - Every sport identity available to the current history will be visibly discoverable at supported widths and zoom levels. Discovery will wrap complete labels and actions instead of relying on unannounced horizontal scrolling, truncation, or hidden continuation.

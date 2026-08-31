@@ -45,7 +45,7 @@ export const config = {
   connectionRetryCount: 1,
   mochaOpts: {
     ui: "bdd",
-    timeout: 420_000,
+    timeout: 600_000,
   },
   afterTest: async function (test, _context, result) {
     if (result.passed) return;

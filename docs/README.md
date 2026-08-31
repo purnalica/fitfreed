@@ -46,6 +46,8 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [Architecture decision records](architecture/decisions/README.md) preserve durable structural decisions.
 - [Release delivery architecture](architecture/release-delivery.md) separates private evidence preparation from publication authority and defines the composed product-site and update-channel deployment.
 - [Training exploration architecture](architecture/training-exploration.md) defines attributed session evidence, user criteria, classification, bounded series, and route privacy.
+- [Connected provider synchronization architecture](architecture/connected-provider-synchronization.md) defines the optional post-MVP authorization, incremental pull, archive/API reconciliation, retention, and external authority boundaries.
+- [Polar interoperability evidence](research/polar-interoperability-evidence.md) records the reproducible official and open-source inputs for sport-catalogue acquisition and connected-source design without retaining private account data.
 - [Reporting architecture](architecture/reporting.md) defines reproducible report definitions and deterministic self-contained HTML export.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.
 - [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) records the accepted report, deep-session, sport-classification, dependency, navigation, and public-communication evidence.

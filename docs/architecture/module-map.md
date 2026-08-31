@@ -34,8 +34,10 @@ Sport recognition follows [ADR 0027](decisions/0027-resolve-sport-identity-from-
 Infrastructure validates and stores immutable provider catalogue snapshots, exact join identifiers, and active
 selection. The domain validates provider-neutral localized-name and family suggestions; the application resolves
 recognized, ambiguous, unknown, personally overridden, and unavailable identity under one discovery revision.
-Tauri, React, and HTML receive no provider identifier. No Polar catalogue is bundled until the documented
-retrieval and redistribution gate closes.
+Tauri, React, and HTML receive no provider identifier. The host installs and activates the deterministic Polar
+compatibility asset during startup preparation. That asset contains only the reviewed numeric mapping, supported
+localized names, provider name keys, provenance, and provider-neutral family suggestions generated from public
+non-account inputs; it does not become domain taxonomy or connected-account state.
 
 ## Current MVP architecture
 

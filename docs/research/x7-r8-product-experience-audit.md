@@ -21,6 +21,14 @@ R8A-03 and corrected it across the complete ordinary date-range surface. The rep
 unresolved critical or major finding**. Hosted verification, revision-isolated candidate construction, and the
 reserved product-owner experience evaluation remain separate gates.
 
+The X7-R8.13 audit repeated on 2026-08-31 against the current changed tree after the later product-owner review
+rejected sport identity again. It treated automatic recognition as an import-product contract, not a presentation
+label. Public acquisition, deterministic generation, startup activation, complete supported-identifier resolution,
+existing-library enrichment, personal precedence, localization, session discovery, exact reimport, restart,
+performance, packaging, update recovery, and privacy-bounded reference compatibility were challenged separately. The
+verdict is **pass with no unresolved critical or major product finding**. This changed-tree verdict does not create an
+exact source, hosted result, revision-isolated application, or human acceptance.
+
 No private archive, library, route, date, quantity, source locator, screenshot, host profile, or participant identity
 is audit evidence. Generated applications, databases, exports, logs, and screenshots remain ignored local artifacts.
 
@@ -96,6 +104,45 @@ the complete packaged journey, restart and adaptive journeys, update and failed-
 and the production-bundle scan also pass. Raw logs, timings tied to the local host, generated libraries, screenshots,
 exports, packages, and exact workstation data remain local and ignored.
 
+The later X7-R8.13 changed tree passes 191 automation tests, 480 presentation tests, two vendored-updater tests, and
+626 workspace Rust tests. The Rust suite includes a runtime import of all 165 supported bundled identifiers and
+requires one recognized identity with non-empty `en-US` and `es-ES` names for each. The complete packaged functional,
+restart, adaptive-session, and interaction-performance matrix passes with an isolated catalogue-only archive. The
+import, dense-history, and Insights campaigns, packaged update success and deliberate failure recovery, dependency
+audit, and production `.app` and `.dmg` construction also pass. Cold launch and production-bundle identity inspection
+remain exact-source gates and are not inferred from changed-tree packaging.
+
+## X7-R8.13 sport-identity challenge
+
+The public acquisition path performs four credential-free requests with cookies and credentials omitted, requires
+JSON responses, records exact digests and one localization revision, and keeps raw upstream responses outside version
+control. The generator accepts only those pinned bytes, rejects changed digests, malformed identifiers, missing names,
+unsupported families, and unreviewed stable keys, and reproduces byte-identical minimal catalogue and manifest output.
+The versioned snapshot contains no account, session, route, device, profile, or participant value.
+
+Runtime installation validates every entry through the domain sport suggestion boundary before opening one immediate
+SQLite transaction. Conflicting immutable evidence, invalid input, insertion failure, or interruption cannot alter
+the selected catalogue. A new valid selection invalidates earlier discovery snapshots. Startup performs recovery and
+catalogue activation before releasing library commands, so both a new library and a library whose prior Home and
+History projections contained unknown sports enter the same recognition boundary.
+
+Resolution preserves the exact source identifier inside the provider adapter while exposing only opaque FitFreed
+references, localized names, provider-neutral family, confidence state, and privacy-safe provenance. Equal stable
+provider name keys may normalize documented provider identifiers; broad-family equality cannot. Personal naming and
+explicit unification retain presentation precedence across catalogue revision and exact reimport without deleting
+source recognition. Truly absent source sport evidence remains unavailable rather than receiving an invented name.
+
+Two verification weaknesses were found and closed before the verdict:
+
+| ID | Verification weakness | Root cause | Correction | Status |
+| --- | --- | --- | --- | --- |
+| R8V-01 | Existing synthetic unknown-sport scenarios changed meaning when arbitrary numeric fixture values became real catalogue identifiers. | The fixtures used plausible values from the provider namespace without proving that they were outside the selected snapshot. | Fixture sport identifiers now have one named source of truth, and generation fails if the known identifier is absent or any deliberately unknown identifier collides with the bundled catalogue. The complete packaged campaign then passed. | Closed |
+| R8V-02 | Bundle installation validated all entries, but the runtime recognition assertion exercised only one supported identifier. | Contract integrity and one end-to-end sample were incorrectly treated as complete projection evidence. | A synthetic runtime archive now carries every bundled identifier and requires complete one-to-one recognized projection with both supported names. | Closed |
+
+Neither weakness was classified as a product finding because the corrected application behavior already satisfied the
+contract. Both could have allowed later catalogue drift to escape a focused gate, so they are retained as durable
+verification evidence rather than omitted from the audit.
+
 ## Visual, adaptive, and accessibility challenge
 
 Direct inspection used the actual current WebView rather than prototypes. It covered empty acquisition, Sources,
@@ -161,10 +208,23 @@ performance campaign repeated after the accepted corrections.
    preparation without weakening a budget or assertion.
 9. This closes the repeated independent audit, not R8.12 as a whole. The exact executable inputs still require hosted
    verification and a revision-isolated production-native bundle before the bounded product-owner experience review.
+10. X7-R8.13 restarted from the later XH-08 rejection and traced opaque archive sport references through the bundled
+    public evidence, startup transaction, provider-neutral read models, localized Home and History, session filtering,
+    personal precedence, and restart. No account or participant catalogue was used.
+11. The first complete packaged repeat exposed R8V-01 when former arbitrary fixture identifiers resolved as real
+    sports. The fixture contract was corrected at its shared generator boundary, all generated packages were audited
+    against the bundle, and the complete packaged matrix passed without weakening unknown-state assertions.
+12. The audit then established R8V-02 and added complete runtime coverage for the bundled snapshot. The consolidated
+    changed-tree suite, maintained performance campaigns, both packaged update outcomes, dependency audit, and
+    production packaging passed after that correction.
+13. This closes the changed-tree independent audit for X7-R8.13. Exact cold launch, repository safety, hosted
+    verification, revision-isolated native construction and inspection, and the bounded product-owner review remain
+    sequential gates; none is represented as complete by this verdict.
 
 External cartographic basemaps and curated themes are not audit omissions: they are explicitly confirmed post-MVP
 capabilities with separate privacy, attribution, caching, offline, and personalization decisions. Synthetic evidence
-also cannot establish an unrestricted global provider sport catalogue. The privacy-minimized X7-R8.0 correlation gate
-is complete, and reusable local correlations plus documented distributable defaults now own that boundary. The next
-required sequence is hosted verification of the exact executable inputs, revision-isolated production-native
-candidate construction and inspection, and one bounded product-owner experience review of that exact candidate.
+does not establish an unrestricted global provider sport catalogue. It establishes the exact versioned snapshot
+covered by the public acquisition evidence; the privacy-bounded reference predicate separately establishes complete
+recognition for the authorized reference without publishing its contents. The next required sequence is one reviewed
+exact source, exact local and hosted verification, revision-isolated production-native construction and inspection,
+and one bounded product-owner experience review of that exact application.

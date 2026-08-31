@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-08-30",
+  "updated": "2026-08-31",
   "statuses": [
     {
       "key": "available",
@@ -44,11 +44,11 @@
     {
       "key": "active",
       "label": "Work in progress",
-      "title": "MVP release preparation and human evaluation",
+      "title": "MVP correction and release preparation",
       "items": [
-        { "key": "wholeProductHardening", "text": "Exact current-source package, installation, update, recovery, and performance validation completed" },
-        { "key": "independentAudit", "text": "Exact independent audit and native candidate gates passed; bounded product-owner experience evaluation pending" },
-        { "key": "polarSportCatalogue", "text": "Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition" }
+        { "key": "wholeProductHardening", "text": "Complete changed-tree quality, performance, packaged interaction, update recovery, and production packaging gates pass; exact-source and hosted gates remain" },
+        { "key": "independentAudit", "text": "Repeated current-source audit passes with no unresolved critical or major finding; the earlier native experience rejection remains until a new exact candidate is reviewed" },
+        { "key": "polarSportCatalogue", "text": "Bundled Polar sport identity resolves every supported catalogue identifier and the complete authorized reference without requiring an account connection" }
       ],
       "source": {
         "label": "Active production migration plan",
@@ -60,7 +60,8 @@
       "label": "Later scope",
       "title": "Outside the current MVP",
       "items": [
-        { "key": "additionalProviders", "text": "Additional providers and live APIs" },
+        { "key": "connectedProviders", "text": "Optional connected-provider updates with archive/API reconciliation; architecture confirmed and provider eligibility open" },
+        { "key": "additionalProviders", "text": "Additional provider archive importers" },
         { "key": "desktopPlatforms", "text": "Linux and Windows distribution" },
         { "key": "localMcp", "text": "Local MCP access for authorized agents" },
         { "key": "advancedProtection", "text": "Advanced encryption and extension systems" },

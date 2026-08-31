@@ -29,6 +29,8 @@
     "benchmark:import": "node scripts/run-import-benchmark.mjs",
     "benchmark:insights": "node scripts/run-insights-benchmark.mjs",
     "build:pages": "node scripts/pages-artifact.mjs .artifacts/pages",
+    "catalogue:polar:acquire": "node scripts/acquire-polar-sport-catalogue.mjs .local/research/polar/public-sport-catalogue",
+    "catalogue:polar:generate": "node scripts/generate-polar-sport-catalogue.mjs .local/research/polar/public-sport-catalogue/sports.json .local/research/polar/public-sport-catalogue/localization-index.json .local/research/polar/public-sport-catalogue/sport-en.json .local/research/polar/public-sport-catalogue/sport-es.json assets/provider-compatibility/polar-flow-sport-acquisition-v1.json assets/provider-compatibility/polar-flow-sport-family-v1.json assets/provider-compatibility/polar-flow-sport-catalogue-v1.json assets/provider-compatibility/polar-flow-sport-catalogue-v1.manifest.json",
     "check:architecture": "node scripts/check-rust-architecture.mjs",
     "check:data-contracts": "node scripts/check-data-contracts.mjs",
     "check:docs": "node scripts/check-markdown-links.mjs && node scripts/check-public-documentation.mjs && node scripts/check-current-documentation.mjs",

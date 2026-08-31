@@ -1,0 +1,1660 @@
+{
+  "sourceProvider": "polar-flow",
+  "catalogueRevision": "polar-flow-sports@f795b9f12a030abd2ae68d17cae220fddb94bdb02c8722f70831e2ceb975e942",
+  "retrievedAtUtc": "2026-08-30T22:31:31Z",
+  "provenanceUri": "https://flow.polar.com/api/sports/sports",
+  "provenanceSha256": "f795b9f12a030abd2ae68d17cae220fddb94bdb02c8722f70831e2ceb975e942",
+  "mappingVersion": "polar-flow-sport-suggestion@1",
+  "entries": [
+    {
+      "sourceIdentifier": "1",
+      "providerNameKey": "RUNNING",
+      "localizedNames": {
+        "en-US": "Running",
+        "es-ES": "Correr"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "2",
+      "providerNameKey": "CYCLING",
+      "localizedNames": {
+        "en-US": "Cycling",
+        "es-ES": "Ciclismo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "3",
+      "providerNameKey": "WALKING",
+      "localizedNames": {
+        "en-US": "Walking",
+        "es-ES": "Caminata"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "walking"
+    },
+    {
+      "sourceIdentifier": "4",
+      "providerNameKey": "JOGGING",
+      "localizedNames": {
+        "en-US": "Jogging",
+        "es-ES": "Footing"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "5",
+      "providerNameKey": "MOUNTAIN_BIKING",
+      "localizedNames": {
+        "en-US": "Mountain biking",
+        "es-ES": "Ciclismo de montaña"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "6",
+      "providerNameKey": "CROSS-COUNTRY_SKIING",
+      "localizedNames": {
+        "en-US": "Skiing",
+        "es-ES": "Esquí"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "7",
+      "providerNameKey": "DOWNHILL_SKIING",
+      "localizedNames": {
+        "en-US": "Downhill skiing",
+        "es-ES": "Esquí alpino"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "8",
+      "providerNameKey": "ROWING",
+      "localizedNames": {
+        "en-US": "Rowing",
+        "es-ES": "Remo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "9",
+      "providerNameKey": "NORDIC_WALKING",
+      "localizedNames": {
+        "en-US": "Nordic walking",
+        "es-ES": "Caminata nórdica"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "walking"
+    },
+    {
+      "sourceIdentifier": "10",
+      "providerNameKey": "SKATING",
+      "localizedNames": {
+        "en-US": "Skating",
+        "es-ES": "Patinaje"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "11",
+      "providerNameKey": "HIKING",
+      "localizedNames": {
+        "en-US": "Hiking",
+        "es-ES": "Senderismo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "hiking"
+    },
+    {
+      "sourceIdentifier": "12",
+      "providerNameKey": "TENNIS",
+      "localizedNames": {
+        "en-US": "Tennis",
+        "es-ES": "Tenis"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "13",
+      "providerNameKey": "SQUASH",
+      "localizedNames": {
+        "en-US": "Squash",
+        "es-ES": "Squash"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "14",
+      "providerNameKey": "BADMINTON",
+      "localizedNames": {
+        "en-US": "Badminton",
+        "es-ES": "Bádminton"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "15",
+      "providerNameKey": "STRENGTH_TRAINING",
+      "localizedNames": {
+        "en-US": "Strength training",
+        "es-ES": "Entrenamiento de fuerza"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "16",
+      "providerNameKey": "OTHER_OUTDOOR",
+      "localizedNames": {
+        "en-US": "Other outdoor",
+        "es-ES": "Otro al aire libre"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "17",
+      "providerNameKey": "TREADMILL_RUNNING",
+      "localizedNames": {
+        "en-US": "Treadmill running",
+        "es-ES": "Carrera en cinta"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "18",
+      "providerNameKey": "INDOOR_CYCLING",
+      "localizedNames": {
+        "en-US": "Indoor cycling",
+        "es-ES": "Ciclismo indoor"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "19",
+      "providerNameKey": "ROAD_RUNNING",
+      "localizedNames": {
+        "en-US": "Road running",
+        "es-ES": "Running en asfalto"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "20",
+      "providerNameKey": "CIRCUIT_TRAINING",
+      "localizedNames": {
+        "en-US": "Circuit training",
+        "es-ES": "Entrenamiento en circuito"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "22",
+      "providerNameKey": "SNOWBOARDING",
+      "localizedNames": {
+        "en-US": "Snowboarding",
+        "es-ES": "Snowboard"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "23",
+      "providerNameKey": "SWIMMING",
+      "localizedNames": {
+        "en-US": "Swimming",
+        "es-ES": "Natación"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "swimming"
+    },
+    {
+      "sourceIdentifier": "24",
+      "providerNameKey": "XC_SKIING_FREESTYLE",
+      "localizedNames": {
+        "en-US": "Freestyle XC skiing",
+        "es-ES": "Estilo libre, esquí nórdico"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "25",
+      "providerNameKey": "XC_SKIING_CLASSIC",
+      "localizedNames": {
+        "en-US": "Classic XC skiing",
+        "es-ES": "Clásico, esquí nórdico"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "27",
+      "providerNameKey": "TRAIL_RUNNING",
+      "localizedNames": {
+        "en-US": "Trail running",
+        "es-ES": "Trail running"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "28",
+      "providerNameKey": "ICE_SKATING",
+      "localizedNames": {
+        "en-US": "Ice skating",
+        "es-ES": "Patinaje sobre hielo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "29",
+      "providerNameKey": "INLINE_SKATING",
+      "localizedNames": {
+        "en-US": "Inline skating",
+        "es-ES": "Patinaje en línea"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "30",
+      "providerNameKey": "ROLLER_BLADING",
+      "localizedNames": {
+        "en-US": "Roller skating",
+        "es-ES": "Patinaje sobre ruedas"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "32",
+      "providerNameKey": "GROUP_EXERCISE",
+      "localizedNames": {
+        "en-US": "Group exercise",
+        "es-ES": "Ejercicio en grupo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "33",
+      "providerNameKey": "YOGA",
+      "localizedNames": {
+        "en-US": "Yoga",
+        "es-ES": "Yoga"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "34",
+      "providerNameKey": "CROSS_FIT",
+      "localizedNames": {
+        "en-US": "HIIT",
+        "es-ES": "HIIT"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "35",
+      "providerNameKey": "GOLF",
+      "localizedNames": {
+        "en-US": "Golf",
+        "es-ES": "Golf"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "36",
+      "providerNameKey": "TRACK_AND_FIELD_RUNNING",
+      "localizedNames": {
+        "en-US": "Track&field running",
+        "es-ES": "Atletismo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "38",
+      "providerNameKey": "ROAD_BIKING",
+      "localizedNames": {
+        "en-US": "Road cycling",
+        "es-ES": "Ciclismo de carretera"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "39",
+      "providerNameKey": "SOCCER",
+      "localizedNames": {
+        "en-US": "Soccer",
+        "es-ES": "Fútbol"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "40",
+      "providerNameKey": "CRICKET",
+      "localizedNames": {
+        "en-US": "Cricket",
+        "es-ES": "Cricket"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "41",
+      "providerNameKey": "BASKETBALL",
+      "localizedNames": {
+        "en-US": "Basketball",
+        "es-ES": "Basket"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "42",
+      "providerNameKey": "BASEBALL",
+      "localizedNames": {
+        "en-US": "Baseball",
+        "es-ES": "Béisbol"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "43",
+      "providerNameKey": "RUGBY",
+      "localizedNames": {
+        "en-US": "Rugby",
+        "es-ES": "Rugby"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "44",
+      "providerNameKey": "FIELD_HOCKEY",
+      "localizedNames": {
+        "en-US": "Field hockey",
+        "es-ES": "Hockey sobre hierba"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "45",
+      "providerNameKey": "VOLLEYBALL",
+      "localizedNames": {
+        "en-US": "Volleyball",
+        "es-ES": "Voleibol"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "46",
+      "providerNameKey": "ICE_HOCKEY",
+      "localizedNames": {
+        "en-US": "Ice hockey",
+        "es-ES": "Hockey sobre hielo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "47",
+      "providerNameKey": "AMERICAN_FOOTBALL",
+      "localizedNames": {
+        "en-US": "Football",
+        "es-ES": "Fútbol americano"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "48",
+      "providerNameKey": "HANDBALL",
+      "localizedNames": {
+        "en-US": "Handball",
+        "es-ES": "Balonmano"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "49",
+      "providerNameKey": "BEACH_VOLLEYBALL",
+      "localizedNames": {
+        "en-US": "Beach volley",
+        "es-ES": "Voley playa"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "50",
+      "providerNameKey": "FUTSAL",
+      "localizedNames": {
+        "en-US": "Futsal",
+        "es-ES": "Fútbol sala"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "51",
+      "providerNameKey": "FLOORBALL",
+      "localizedNames": {
+        "en-US": "Floorball",
+        "es-ES": "Floorball"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "52",
+      "providerNameKey": "DANCING",
+      "localizedNames": {
+        "en-US": "Dancing",
+        "es-ES": "Danza"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "53",
+      "providerNameKey": "TROTTING",
+      "localizedNames": {
+        "en-US": "Trotting",
+        "es-ES": "Carrera de trote"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "54",
+      "providerNameKey": "RIDING",
+      "localizedNames": {
+        "en-US": "Riding",
+        "es-ES": "Equitación"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "55",
+      "providerNameKey": "CROSS_TRAINER",
+      "localizedNames": {
+        "en-US": "Cross-trainer",
+        "es-ES": "Elíptica"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "56",
+      "providerNameKey": "FITNESS_MARTIAL_ARTS",
+      "localizedNames": {
+        "en-US": "Martial arts",
+        "es-ES": "Artes marciales"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "57",
+      "providerNameKey": "FUNCTIONAL_TRAINING",
+      "localizedNames": {
+        "en-US": "Functional training",
+        "es-ES": "Entrenamiento funcional"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "58",
+      "providerNameKey": "BOOTCAMP",
+      "localizedNames": {
+        "en-US": "Bootcamp",
+        "es-ES": "Bootcamp"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "59",
+      "providerNameKey": "ROLLER_SKIING_FREESTYLE",
+      "localizedNames": {
+        "en-US": "Freestyle roller skiing",
+        "es-ES": "Roller skiing, freestyle"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "60",
+      "providerNameKey": "ROLLER_SKIING_CLASSIC",
+      "localizedNames": {
+        "en-US": "Classic roller skiing",
+        "es-ES": "Roller skiing, classic"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "61",
+      "providerNameKey": "AEROBICS",
+      "localizedNames": {
+        "en-US": "Aerobics",
+        "es-ES": "Aeróbic"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "62",
+      "providerNameKey": "AQUATICS",
+      "localizedNames": {
+        "en-US": "Aqua fitness",
+        "es-ES": "Aqua fitness"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "63",
+      "providerNameKey": "FITNESS_STEP",
+      "localizedNames": {
+        "en-US": "Step workout",
+        "es-ES": "Steps"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "64",
+      "providerNameKey": "BODY_AND_MIND",
+      "localizedNames": {
+        "en-US": "Body&Mind",
+        "es-ES": "Body&Mind"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "65",
+      "providerNameKey": "PILATES",
+      "localizedNames": {
+        "en-US": "Pilates",
+        "es-ES": "Pilates"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "66",
+      "providerNameKey": "STRETCHING",
+      "localizedNames": {
+        "en-US": "Stretching",
+        "es-ES": "Estiramientos"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "67",
+      "providerNameKey": "FITNESS_DANCING",
+      "localizedNames": {
+        "en-US": "Fitness dancing",
+        "es-ES": "Fitness dancing"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "68",
+      "providerNameKey": "TRIATHLON",
+      "localizedNames": {
+        "en-US": "Triathlon",
+        "es-ES": "Triatlón"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "69",
+      "providerNameKey": "DUATHLON",
+      "localizedNames": {
+        "en-US": "Duathlon",
+        "es-ES": "Duatlón"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "70",
+      "providerNameKey": "OFFROADTRIATHLON",
+      "localizedNames": {
+        "en-US": "Off-road triathlon",
+        "es-ES": "Triatlón de montaña"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "71",
+      "providerNameKey": "OFFROADDUATHLON",
+      "localizedNames": {
+        "en-US": "Off-road duathlon",
+        "es-ES": "Duatlón de montaña"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "82",
+      "providerNameKey": "FREE_MULTISPORT",
+      "localizedNames": {
+        "en-US": "Multisport",
+        "es-ES": "Multisport"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "83",
+      "providerNameKey": "OTHER_INDOOR",
+      "localizedNames": {
+        "en-US": "Other indoor",
+        "es-ES": "Otro indoor"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "84",
+      "providerNameKey": "ORIENTEERING",
+      "localizedNames": {
+        "en-US": "Orienteering",
+        "es-ES": "Orientación"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "hiking"
+    },
+    {
+      "sourceIdentifier": "85",
+      "providerNameKey": "ORIENTEERING_SKI",
+      "localizedNames": {
+        "en-US": "Ski orienteering",
+        "es-ES": "Orientación sobre esquí"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "86",
+      "providerNameKey": "ORIENTEERING_MTB",
+      "localizedNames": {
+        "en-US": "Mountain bike orienteering",
+        "es-ES": "Orientación en bicicleta de montaña"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "87",
+      "providerNameKey": "BIATHLON",
+      "localizedNames": {
+        "en-US": "Biathlon",
+        "es-ES": "Biatlón"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "88",
+      "providerNameKey": "WATERSPORTS_SAILING",
+      "localizedNames": {
+        "en-US": "Sailing",
+        "es-ES": "Vela"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "89",
+      "providerNameKey": "PARASPORTS_WHEELCHAIR",
+      "localizedNames": {
+        "en-US": "Wheelchair racing",
+        "es-ES": "Atletismo en silla de ruedas"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "90",
+      "providerNameKey": "FRISBEEGOLF",
+      "localizedNames": {
+        "en-US": "Disc golf",
+        "es-ES": "Disc golf"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "91",
+      "providerNameKey": "TABLE_TENNIS",
+      "localizedNames": {
+        "en-US": "Table tennis",
+        "es-ES": "Ping-pong"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "92",
+      "providerNameKey": "ULTRARUNNING_RUNNING",
+      "localizedNames": {
+        "en-US": "Ultra running",
+        "es-ES": "Ultrafondo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "94",
+      "providerNameKey": "VERTICALSPORTS_WALLCLIMBING",
+      "localizedNames": {
+        "en-US": "Climbing (indoor)",
+        "es-ES": "Escalada (en sala)"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "95",
+      "providerNameKey": "WATERSPORTS_KAYAKING",
+      "localizedNames": {
+        "en-US": "Kayaking",
+        "es-ES": "Kayak"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "96",
+      "providerNameKey": "WATERSPORTS_CANOEING",
+      "localizedNames": {
+        "en-US": "Canoeing",
+        "es-ES": "Piragüismo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "100",
+      "providerNameKey": "WATERSPORTS_KITESURFING",
+      "localizedNames": {
+        "en-US": "Kitesurfing",
+        "es-ES": "Kitesurf"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "101",
+      "providerNameKey": "WATERSPORTS_WINDSURFING",
+      "localizedNames": {
+        "en-US": "Windsurfing",
+        "es-ES": "Windsurf"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "102",
+      "providerNameKey": "WATERSPORTS_SURFING",
+      "localizedNames": {
+        "en-US": "Surfing",
+        "es-ES": "Surf"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "103",
+      "providerNameKey": "POOL_SWIMMING",
+      "localizedNames": {
+        "en-US": "Pool swimming",
+        "es-ES": "Natación en piscina"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "swimming"
+    },
+    {
+      "sourceIdentifier": "104",
+      "providerNameKey": "FINNISH_BASEBALL",
+      "localizedNames": {
+        "en-US": "Finnish baseball",
+        "es-ES": "Béisbol finlandés"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "105",
+      "providerNameKey": "OPEN_WATER_SWIMMING",
+      "localizedNames": {
+        "en-US": "Open water swimming",
+        "es-ES": "Natación en aguas abiertas"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "swimming"
+    },
+    {
+      "sourceIdentifier": "107",
+      "providerNameKey": "WATERSPORTS_WAKEBOARDING",
+      "localizedNames": {
+        "en-US": "Wakeboarding",
+        "es-ES": "Wakeboard"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "108",
+      "providerNameKey": "WATERSPORTS_WATERSKI",
+      "localizedNames": {
+        "en-US": "Water skiing",
+        "es-ES": "Esquí náutico"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "109",
+      "providerNameKey": "BOXING",
+      "localizedNames": {
+        "en-US": "Boxing",
+        "es-ES": "Boxeo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "110",
+      "providerNameKey": "KICKBOXING_MARTIAL_ARTS",
+      "localizedNames": {
+        "en-US": "Kickboxing",
+        "es-ES": "Kickboxing"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "111",
+      "providerNameKey": "MOBILITY_DYNAMIC",
+      "localizedNames": {
+        "en-US": "Mobility (dynamic)",
+        "es-ES": "Movilidad (dinámica)"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "112",
+      "providerNameKey": "TELEMARK_SKIING",
+      "localizedNames": {
+        "en-US": "Telemark skiing",
+        "es-ES": "Esquí telemark"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "113",
+      "providerNameKey": "BACKCOUNTRY_SKIING",
+      "localizedNames": {
+        "en-US": "Backcountry skiing",
+        "es-ES": "Esquí fuera de pista"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "114",
+      "providerNameKey": "GYMNASTICK",
+      "localizedNames": {
+        "en-US": "Gymnastics",
+        "es-ES": "Gimnasia"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "115",
+      "providerNameKey": "JUDO_MARTIAL_ARTS",
+      "localizedNames": {
+        "en-US": "Judo",
+        "es-ES": "Judo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "116",
+      "providerNameKey": "SNOWSHOE_TREKKING",
+      "localizedNames": {
+        "en-US": "Snowshoe trekking",
+        "es-ES": "Senderismo raquetas nieve"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "hiking"
+    },
+    {
+      "sourceIdentifier": "117",
+      "providerNameKey": "INDOOR_ROWING",
+      "localizedNames": {
+        "en-US": "Indoor rowing",
+        "es-ES": "Remo indoor"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "118",
+      "providerNameKey": "SPINNING",
+      "localizedNames": {
+        "en-US": "Spinning",
+        "es-ES": "Spinning"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "119",
+      "providerNameKey": "STREET_DANCING",
+      "localizedNames": {
+        "en-US": "Street",
+        "es-ES": "Urbano"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "120",
+      "providerNameKey": "LATIN_DANCING",
+      "localizedNames": {
+        "en-US": "Latin",
+        "es-ES": "Latino"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "121",
+      "providerNameKey": "SHOW_DANCING",
+      "localizedNames": {
+        "en-US": "Show",
+        "es-ES": "Show dance"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "122",
+      "providerNameKey": "BALLET_DANCING",
+      "localizedNames": {
+        "en-US": "Ballet",
+        "es-ES": "Ballet"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "123",
+      "providerNameKey": "JAZZ_DANCING",
+      "localizedNames": {
+        "en-US": "Jazz",
+        "es-ES": "Jazz"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "124",
+      "providerNameKey": "MODERN_DANCING",
+      "localizedNames": {
+        "en-US": "Modern",
+        "es-ES": "Moderno"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "125",
+      "providerNameKey": "BALLROOM_DANCING",
+      "localizedNames": {
+        "en-US": "Ballroom",
+        "es-ES": "Salón"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "126",
+      "providerNameKey": "CORE",
+      "localizedNames": {
+        "en-US": "Core",
+        "es-ES": "Core"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "127",
+      "providerNameKey": "MOBILITY_STATIC",
+      "localizedNames": {
+        "en-US": "Mobility (static)",
+        "es-ES": "Movilidad (estática)"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "128",
+      "providerNameKey": "LES_MILLS_BODYPUMP",
+      "localizedNames": {
+        "en-US": "LES MILLS BODYPUMP",
+        "es-ES": "LES MILLS BODYPUMP"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "129",
+      "providerNameKey": "LES_MILLS_BODYATTACK",
+      "localizedNames": {
+        "en-US": "LES MILLS BODYATTACK",
+        "es-ES": "LES MILLS BODYATTACK"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "130",
+      "providerNameKey": "LES_MILLS_BODYCOMBAT",
+      "localizedNames": {
+        "en-US": "LES MILLS BODYCOMBAT",
+        "es-ES": "LES MILLS BODYCOMBAT"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "131",
+      "providerNameKey": "LES_MILLS_GRIT_CARDIO",
+      "localizedNames": {
+        "en-US": "LES MILLS GRIT Cardio",
+        "es-ES": "LES MILLS GRIT Cardio"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "132",
+      "providerNameKey": "LES_MILLS_GRIT_STRENGTH",
+      "localizedNames": {
+        "en-US": "LES MILLS GRIT Strength",
+        "es-ES": "LES MILLS GRIT Strength"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "133",
+      "providerNameKey": "LES_MILLS_GRIT_PLYO",
+      "localizedNames": {
+        "en-US": "LES MILLS GRIT Athletic",
+        "es-ES": "LES MILLS GRIT Athletic"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "134",
+      "providerNameKey": "LES_MILLS_SHBAM",
+      "localizedNames": {
+        "en-US": "LES MILLS SH'BAM",
+        "es-ES": "LES MILLS SH'BAM"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "135",
+      "providerNameKey": "LES_MILLS_RPM",
+      "localizedNames": {
+        "en-US": "LES MILLS RPM",
+        "es-ES": "LES MILLS RPM"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "136",
+      "providerNameKey": "LES_MILLS_BODYJAM",
+      "localizedNames": {
+        "en-US": "LES MILLS BODYJAM",
+        "es-ES": "LES MILLS BODYJAM"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "137",
+      "providerNameKey": "LES_MILLS_BODYSTEP",
+      "localizedNames": {
+        "en-US": "LES MILLS BODYSTEP",
+        "es-ES": "LES MILLS BODYSTEP"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "138",
+      "providerNameKey": "LES_MILLS_SPRINT",
+      "localizedNames": {
+        "en-US": "LES MILLS SPRINT",
+        "es-ES": "LES MILLS SPRINT"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "139",
+      "providerNameKey": "LES_MILLS_BODYVIVE",
+      "localizedNames": {
+        "en-US": "LES MILLS TONE",
+        "es-ES": "LES MILLS TONE"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "140",
+      "providerNameKey": "LES_MILLS_BODYBALANCE",
+      "localizedNames": {
+        "en-US": "LES MILLS BODYBALANCE",
+        "es-ES": "LES MILLS BODYBALANCE"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "141",
+      "providerNameKey": "LES_MILLS_TRIP",
+      "localizedNames": {
+        "en-US": "LES MILLS THE TRIP",
+        "es-ES": "LES MILLS THE TRIP"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "142",
+      "providerNameKey": "LES_MILLS_CXWORKS",
+      "localizedNames": {
+        "en-US": "LES MILLS CORE",
+        "es-ES": "LES MILLS CORE"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "143",
+      "providerNameKey": "LES_MILLS_BARRE",
+      "localizedNames": {
+        "en-US": "LES MILLS BARRE",
+        "es-ES": "LES MILLS BARRE"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "mobility"
+    },
+    {
+      "sourceIdentifier": "144",
+      "providerNameKey": "FITNESS_BOXING",
+      "localizedNames": {
+        "en-US": "Fitness boxing",
+        "es-ES": "Fitness boxing"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "147",
+      "providerNameKey": "CURLING",
+      "localizedNames": {
+        "en-US": "Curling",
+        "es-ES": "Curling"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "winter-sport"
+    },
+    {
+      "sourceIdentifier": "148",
+      "providerNameKey": "KETTLEBELL",
+      "localizedNames": {
+        "en-US": "Kettlebell",
+        "es-ES": "Kettlebell"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "149",
+      "providerNameKey": "KICKBIKE",
+      "localizedNames": {
+        "en-US": "Kickbiking",
+        "es-ES": "Kickbike"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "153",
+      "providerNameKey": "OBSTACLE_COURSE_RACING",
+      "localizedNames": {
+        "en-US": "Obstacle course racing",
+        "es-ES": "Carrera de obstáculos"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "154",
+      "providerNameKey": "RINGETTE",
+      "localizedNames": {
+        "en-US": "Ringette",
+        "es-ES": "Ringette"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "155",
+      "providerNameKey": "SHOOTING_SPORT_OUTDOOR",
+      "localizedNames": {
+        "en-US": "Shooting (outdoor)",
+        "es-ES": "Deportes de tiro (exterior)"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "156",
+      "providerNameKey": "SKATEBOARDING",
+      "localizedNames": {
+        "en-US": "Skateboarding",
+        "es-ES": "Skateboard"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "157",
+      "providerNameKey": "SUP",
+      "localizedNames": {
+        "en-US": "SUP",
+        "es-ES": "SUP"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "158",
+      "providerNameKey": "TAEKWONDO_MARTIAL_ARTS",
+      "localizedNames": {
+        "en-US": "Taekwondo",
+        "es-ES": "Taekwondo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "163",
+      "providerNameKey": "WATER_RUNNING",
+      "localizedNames": {
+        "en-US": "Water running",
+        "es-ES": "Aguajogging"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "164",
+      "providerNameKey": "WATER_EXERCISE",
+      "localizedNames": {
+        "en-US": "Water sports",
+        "es-ES": "Deportes acuáticos"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "173",
+      "providerNameKey": "MOTORSPORTS",
+      "localizedNames": {
+        "en-US": "Motor sports",
+        "es-ES": "Deportes de motor"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "174",
+      "providerNameKey": "MOTORSPORTS_HARD_ENDURO",
+      "localizedNames": {
+        "en-US": "Hard enduro",
+        "es-ES": "Hard enduro"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "175",
+      "providerNameKey": "MOTORSPORTS_CAR_RACING",
+      "localizedNames": {
+        "en-US": "Car racing",
+        "es-ES": "Automovilismo en circuito"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "176",
+      "providerNameKey": "PADEL",
+      "localizedNames": {
+        "en-US": "Padel",
+        "es-ES": "Pádel"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "177",
+      "providerNameKey": "E_BIKE",
+      "localizedNames": {
+        "en-US": "Electric biking",
+        "es-ES": "Bicicleta eléctrica"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "178",
+      "providerNameKey": "CROSS_COUNTRY_RUNNING",
+      "localizedNames": {
+        "en-US": "Cross-country running",
+        "es-ES": "Cross"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "running"
+    },
+    {
+      "sourceIdentifier": "179",
+      "providerNameKey": "VERTICALSPORTS_OUTCLIMBING",
+      "localizedNames": {
+        "en-US": "Climbing (outdoor)",
+        "es-ES": "Escalada (exterior)"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "180",
+      "providerNameKey": "MOTORSPORTS_ENDURO",
+      "localizedNames": {
+        "en-US": "Enduro",
+        "es-ES": "Enduro"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "181",
+      "providerNameKey": "MOTORSPORTS_ROADRACING",
+      "localizedNames": {
+        "en-US": "Road racing",
+        "es-ES": "Carrera de motor"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "182",
+      "providerNameKey": "MOTORSPORTS_SNOCROSS",
+      "localizedNames": {
+        "en-US": "Snocross",
+        "es-ES": "Moto de nieve"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "183",
+      "providerNameKey": "MOTORSPORTS_MOTOCROSS",
+      "localizedNames": {
+        "en-US": "Motocross",
+        "es-ES": "Motocross"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "184",
+      "providerNameKey": "JUMP_ROPE",
+      "localizedNames": {
+        "en-US": "Rope skipping",
+        "es-ES": "Salto de comba"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "185",
+      "providerNameKey": "STAIR_WORKOUT",
+      "localizedNames": {
+        "en-US": "Stair workout",
+        "es-ES": "Entrenamiento en escaleras"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "186",
+      "providerNameKey": "ULTIMATE",
+      "localizedNames": {
+        "en-US": "Ultimate",
+        "es-ES": "Ultimate"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "187",
+      "providerNameKey": "PARASPORTS_SLED_HOCKEY",
+      "localizedNames": {
+        "en-US": "Sled hockey",
+        "es-ES": "Hockey en trineo"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "188",
+      "providerNameKey": "PICKLEBALL",
+      "localizedNames": {
+        "en-US": "Pickleball",
+        "es-ES": "Pickleball"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "189",
+      "providerNameKey": "PARASPORTS_HAND_CYCLING",
+      "localizedNames": {
+        "en-US": "Handcycling",
+        "es-ES": "Ciclismo de mano"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "190",
+      "providerNameKey": "AGILITY",
+      "localizedNames": {
+        "en-US": "Dog agility",
+        "es-ES": "Agility"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "191",
+      "providerNameKey": "ESPORTS",
+      "localizedNames": {
+        "en-US": "Esports",
+        "es-ES": "E-sports"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "192",
+      "providerNameKey": "PARASPORTS_WHEELCHAIR_BASKETBALL",
+      "localizedNames": {
+        "en-US": "Wheelchair basketball",
+        "es-ES": "Baloncesto en silla de ruedas"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "team-sport"
+    },
+    {
+      "sourceIdentifier": "193",
+      "providerNameKey": "PARASPORTS_WHEELCHAIR_TENNIS",
+      "localizedNames": {
+        "en-US": "Wheelchair tennis",
+        "es-ES": "Tenis en silla de ruedas"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "194",
+      "providerNameKey": "SHOOTING_SPORT_INDOOR",
+      "localizedNames": {
+        "en-US": "Shooting (indoor)",
+        "es-ES": "Deportes de tiro (interior)"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "other"
+    },
+    {
+      "sourceIdentifier": "195",
+      "providerNameKey": "GRAVEL",
+      "localizedNames": {
+        "en-US": "Gravel cycling",
+        "es-ES": "Ciclismo de grava"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "cycling"
+    },
+    {
+      "sourceIdentifier": "196",
+      "providerNameKey": "PARASPORTS_WATER_SKIING",
+      "localizedNames": {
+        "en-US": "Adaptive water skiing",
+        "es-ES": "Esquí acuático adaptado"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "water-sport"
+    },
+    {
+      "sourceIdentifier": "197",
+      "providerNameKey": "BEACH_TENNIS",
+      "localizedNames": {
+        "en-US": "Beach tennis",
+        "es-ES": "Tenis de playa"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "racket-sport"
+    },
+    {
+      "sourceIdentifier": "202",
+      "providerNameKey": "HYROX",
+      "localizedNames": {
+        "en-US": "Fitness racing",
+        "es-ES": "Carrera de fitness"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "203",
+      "providerNameKey": "RUCKING",
+      "localizedNames": {
+        "en-US": "Rucking",
+        "es-ES": "Rucking"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "hiking"
+    },
+    {
+      "sourceIdentifier": "204",
+      "providerNameKey": "CALISTHENICS",
+      "localizedNames": {
+        "en-US": "Calisthenics",
+        "es-ES": "Calistenia"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    },
+    {
+      "sourceIdentifier": "205",
+      "providerNameKey": "SKIERG",
+      "localizedNames": {
+        "en-US": "Ski machine",
+        "es-ES": "Máquina de esquí"
+      },
+      "parentIdentifier": null,
+      "canonicalFamilySuggestion": "strength"
+    }
+  ]
+}

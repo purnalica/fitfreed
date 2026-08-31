@@ -14,10 +14,12 @@ Polar Flow is the only MVP source, but its importer will use the same boundary i
 flowchart LR
     PF[Polar Flow export] --> PFA[Polar Flow importer]
     PC[Provider sport catalogue evidence] --> PFA
+    PA[Optional Polar API] --> PCA[Polar connected adapter]
     GA[Future Garmin export] --> GAA[Future Garmin importer]
     OS[Other future source] --> OSA[Other importer]
 
     PFA --> IP[Provider-neutral import port]
+    PCA --> IP
     GAA --> IP
     OSA --> IP
 
@@ -44,6 +46,11 @@ Each source adapter owns:
   provider-neutral sport-recognition suggestions.
 
 Source adapters do not own domain reconciliation, persistence policy, reports, or user-interface navigation beyond source-specific import guidance.
+
+An archive adapter and a connected adapter for the same provider share source translation and canonical mapping
+rules, but remain distinct delivery-channel adapters. The connected adapter additionally owns authorization scopes,
+date-window and feature expansion, rate-limit handling, freshness, checkpoint input, and API response validation. It
+does not give API arrival order authority over archive evidence.
 
 ### Package identity and protected input
 
@@ -94,6 +101,26 @@ requests an export, polls provider delivery, or downloads the archive on the per
 
 The normative version 1 application-to-presentation contract is documented in [`../data-formats/guidance/source-acquisition-guide-v1.md`](../data-formats/guidance/source-acquisition-guide-v1.md). An adapter guide change increments its own `guideVersion` when the procedure, archive expectation, constraint meaning, troubleshooting meaning, or official destination changes. A verification-only review updates `verifiedOn` without changing the contract schema version.
 
+### Connected acquisition
+
+[FR-024](../requirements.md#fr-024--incremental-connected-provider-synchronization) extends an established archive
+history through an optional source-specific API adapter. The current architecture, external gates, account-to-origin
+binding, polling strategy, archive/API collision rules, disconnection, and verification obligations are maintained in
+[`connected-provider-synchronization.md`](connected-provider-synchronization.md). The descriptive Polar v4 contract is
+maintained separately in
+[`../data-formats/providers/polar-accesslink-v4.md`](../data-formats/providers/polar-accesslink-v4.md).
+
+Connected responses use the same provider-neutral reconciliation decisions as archive imports while retaining their
+delivery channel, retrieval interval, component completeness, source revision, and mapping provenance. A summary API
+response is discovery evidence, not authority to clear components that an archive or earlier complete response
+supplied. Missing records are not tombstones unless a provider contract explicitly makes them so.
+
+Provider authorization belongs outside the core. A client secret never enters a public desktop build. The proposed
+confidential-client topology in
+[ADR 0038](decisions/0038-isolate-confidential-provider-oauth.md) keeps fitness data provider-to-device and limits a
+possible broker to transient token exchange. It cannot be accepted or implemented until the provider and product
+authority gates close.
+
 ### Sport-catalogue evidence
 
 [ADR 0027](decisions/0027-resolve-sport-identity-from-versioned-provider-evidence.md) separates provider
@@ -109,15 +136,23 @@ evidence remains `unavailable`. Input order never chooses a candidate. A `person
 label has presentation precedence without deleting source recognition. Exact archive reimport does not overwrite
 either evidence class.
 
+The supported Polar adapter activates a bundled, versioned compatibility snapshot so archive-only use resolves every
+identifier covered by the supported takeout contract without provider authorization. A deterministic maintainer
+command generates that snapshot from Polar Flow's public sport-identifier mapping and versioned public localization
+namespaces, and records their provenance, source digests, update policy, ambiguity handling, and mapping rules. A
+later optional connected-provider adapter
+may install a newer authorized provider snapshot through the same evidence port. It enriches the local baseline; it
+does not make account connection a prerequisite for archive interpretation.
+
 The normative input and output fragments are the
 [provider sport catalogue evidence](../data-formats/providers/provider-sport-catalogue-v1.md) and
-[training sport identity](../data-formats/insights/training-sport-identity-v3.md) contracts. No real catalogue
-is bundled until its official retrieval provenance, update procedure, and lawful redistribution basis are
-established. Route, speed, distance, heart rate, device, and other session evidence are never recognition
-substitutes.
+[training sport identity](../data-formats/insights/training-sport-identity-v3.md) contracts. The catalogue is eligible
+for bundling only after deterministic generation, contract validation, provenance verification, source-identifier
+coverage, and upgrade and rollback tests pass. Route, speed, distance, heart rate, device, and other session evidence
+are never recognition substitutes.
 
 [ADR 0031](decisions/0031-scope-training-target-sport-evidence-to-one-session.md) adds a narrower source
-relationship that does not require the missing opaque-identifier catalogue. A completed training target may
+relationship that remains useful when catalogue evidence is absent or older than an exact target. A completed training target may
 contribute its exact detailed-sport code only when its normalized local start identifies one and only one current
 session in the same resolved origin. Sport-profile order and content do not join to session `sport.id`; neither do
 shared opaque values, frequency, measurements, routes, or device context. The adapter persists attributed private
@@ -195,7 +230,8 @@ A runtime plug-in system is not required to prove importer independence. The MVP
 ## Pending decisions
 
 - Canonical units and time-zone semantics.
-- Cross-source reconciliation and user-visible conflict handling.
+- Cross-provider identity and reconciliation beyond the same-provider archive/API rules confirmed in
+  [`connected-provider-synchronization.md`](connected-provider-synchronization.md).
 - Original-artifact and unsupported-field retention policy.
 - Importer packaging and discovery model after the MVP.
 - User-controlled recovery for a changed provider identifier and multiple accounts from one provider.

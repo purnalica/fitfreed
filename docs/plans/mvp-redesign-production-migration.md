@@ -94,8 +94,12 @@ evidence passes. X7-R8.12 then closed the independently exposed high-zoom sports
 source `f082725` passed [repository safety `33297314554`](https://github.com/purnalica/fitfreed/actions/runs/33297314554),
 the complete [hosted campaign `33297314543`](https://github.com/purnalica/fitfreed/actions/runs/33297314543), and
 revision-isolated production-native bundle inspection for executable-input fingerprint
-`e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. The bounded product-owner experience review is
-the only remaining X7-R8 gate.
+`e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. The later bounded product-owner review of exact
+source `3e280ca86955b7f2e2c453626dfe53f44bb7e579` rejected the application again because most represented sports and
+sessions remained unknown. The authenticated diagnostic proves that Polar's current catalogue has an exact identifier
+join and human-readable names, but neither that private response nor one participant library provides redistribution
+authority. X7-R8.13 therefore reopens the deterministic product path at catalogue acquisition and bundling. No new
+candidate or product-owner functional review is eligible until the automatic-recognition predicate passes.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust failed that
 human gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -347,7 +351,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | Reopened — R8.0 through R8.11 retain machine evidence, but the 2026-08-30 product-owner review rejected the earlier candidate and the repeated R8.12 candidate gate remains | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Reopened — R8.0 through R8.12 retain machine evidence, but the later 2026-08-30 review rejected source `3e280ca`; R8.13 owns the missing bundled catalogue and no candidate is eligible yet | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2331,12 +2335,11 @@ unresolved values, keeps personal naming as an override, and states a date range
 2. Support exact recognized, ambiguous, unknown, and personally overridden states through domain, application,
    persistence, transport, Home, History, session, report, filter, and export projections. Provider identifiers remain
    opaque outside the adapter and are never displayed as names.
-3. Polar's official Dynamic API defines the required identifier, localized names, and parent relationship, but its
-   complete catalogue endpoint requires authenticated `sports:read` access and is not part of the evaluated takeout.
-   Before committing a bundled snapshot, establish its retrieval provenance, update procedure, redistribution basis,
-   and exact relationship to takeout `sport.id`. The limited official BLE SDK vocabulary may provide test evidence for
-   its explicitly named identifiers only; it cannot masquerade as the complete catalogue. A developer or product-owner
-   authentication step is a human gate only if no official redistributable source can be obtained autonomously.
+3. Polar Flow's public sport endpoint maps each supported numeric identifier to a stable sport key, while its
+   versioned public localization namespaces supply the supported human names. Generate the bundled snapshot only from
+   those non-personal public inputs, with pinned digests, a reproducible update procedure, explicit transformation
+   rules, and verified relationship to takeout `sport.id`. Polar's richer authenticated Dynamic API remains supporting
+   contract evidence and a future connected-adapter input; it is not required to interpret an archive.
 4. Replace one unexplained combined Home range with documented per-domain usable ranges and an honest overall
    composition. A record with no available supported measurement may remain source evidence and coverage, but it cannot
    silently define the primary usable-history boundary. Preserve exact source coverage in Sources.
@@ -3324,8 +3327,9 @@ no-invented-correlation rule until a source contract proves a stronger relations
    not authority for a bundled global catalogue.
 4. Use that conclusion to finish the source-evidence decision before changing sport grouping. A reusable mapping
    requires provenance, confidence, ambiguity, version, update, licence, and user-correction rules.
-   An authenticated provider catalogue remains local-only and opt-in unless a separate connected-provider increment is
-   explicitly admitted later.
+   At this checkpoint an authenticated provider catalogue remained local-only and opt-in because no redistribution
+   authority existed. The later explicit out-of-the-box product requirement and X7-R8.13 supersede that delivery
+   constraint without weakening its provenance or permission gate.
 
 **Gate:** this is the next human intervention. It is bounded to reading a few locally selected session dates in the
 participant's own Polar Flow account. No code review, functional acceptance, archive inspection, credential transfer,
@@ -3500,7 +3504,80 @@ passed. Its immutable marker records executable-input fingerprint
 `e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. A separate local X6 build from the same clean
 source reports revision-derived bundle identity `org.fitfreed.desktop.x6-review.rf082725e9e31`, production native
 adapters, and no instrumented routing, dialog or opener mock, database override, or build-host path. X7-R8.12 is
-machine-complete. This evidence does not accept the product experience; one bounded product-owner review remains.
+machine-complete historical evidence. The later product-owner result rejected the application and activates R8.13;
+this source is not eligible for another handoff.
+
+### X7-R8.13 — Ship trustworthy Polar sport identity without account connection
+
+**User outcome:** importing a supported Polar archive produces recognizable human sport names immediately. The person
+does not have to connect an account, repeat manual classification, or infer which unknown collection contains their
+history.
+
+**Causal boundary:** the archive contains opaque `sport.id` references but not their catalogue. Existing exact target
+codes and reusable personal correlations can recognize only evidence present in the archive or previously authored by
+the person. The privacy-bounded authenticated diagnostic proves that Polar's current `/v4/data/sports/list`
+identifier joins every non-null sport reference in the authorized library and supplies human-readable identity. It
+independently confirms the join that the published API contract defines.
+
+**Execution sequence:**
+
+1. Close the acquisition gate without depending on provider assistance or account authorization. Pin Polar Flow's
+   public sport-identifier response, public localization revision, Polar's official API contract, official example
+   client, and representative independent public implementations. Never use a participant response or participant
+   history as the catalogue asset.
+2. Build a deterministic maintainer generator around the existing provider-catalogue schema. It accepts only the
+   pinned public upstream forms, emits the minimal reviewed fields and a provenance manifest, rejects unknown or missing
+   entries, and reproduces byte-identical output from the same inputs. Synthetic upstream data drives repository and
+   hosted tests; secrets and personal data never enter either environment.
+3. Bundle the approved snapshot as an application compatibility asset and install or select it atomically on new
+   library creation, upgrade, and mapping revision. A failed asset validation or activation retains the previous
+   library and catalogue selection and blocks candidate creation.
+4. Map every supported source identifier to exactly one localized name and provider-neutral visual family where the
+   evidence permits it. Use the stable provider name key as the provider-normalization identity so multiple documented
+   identifiers for one sport project as one collection while their source distinctions remain retained. Personal
+   precedence remains unchanged; ambiguity remains explicit and a later catalogue never erases authored
+   classification or unification.
+5. Extend the private-reference verifier with one fixed Boolean predicate: every non-null supported training sport
+   reference resolves to exactly one non-empty human-readable identity under the bundled catalogue. The verifier emits
+   no identifier, name, count, date, distribution, or fingerprint. Failure returns one fixed code and keeps the
+   candidate ineligible.
+6. Prove fresh import, existing-library upgrade, exact and changed reimport, catalogue revision, rollback, both
+   locales, Home and History coherence, sport drill-down, report filters, backup, migration, and portable-exit
+   behavior through synthetic unit, integration, contract, packaged E2E, accessibility, and adaptive evidence.
+7. Repeat the independent product audit and exact local and hosted candidate gates only after steps 1 through 6 pass.
+   A product-owner review then evaluates experience, not whether import functionality works.
+
+**Evidence gate:** the bundled catalogue requires independently reproducible identifier relationships, localized
+human names, source provenance, deterministic generation, complete supported-identifier coverage, and successful
+activation and rollback evidence. Provider contact or response is not part of the critical path.
+
+**Scope boundary:** optional connected-provider synchronization remains post-MVP. Its provider-neutral architecture is
+documented in [`../architecture/connected-provider-synchronization.md`](../architecture/connected-provider-synchronization.md);
+it does not become an account requirement or a prerequisite for bundled archive recognition.
+
+**Changed-tree audit checkpoint — 2026-08-31:** steps 1 through 6 pass locally. The public unauthenticated mapping and
+versioned `en-US` and `es-ES` localization inputs generate a deterministic 165-entry compatibility snapshot with
+pinned input and output digests. The application validates, installs, and activates that snapshot idempotently at
+startup; stable provider name keys normalize documented duplicate identifiers without discarding source identity or
+personal precedence. Focused generator, acquisition, contract, persistence, startup, upgrade, and normalization tests
+pass. The privacy-bounded private-reference verifier also passes its complete Boolean predicate: the import and exact
+repeat complete, all required history families remain available under one opaque origin, and every represented source
+sport resolves while records with no source sport remain unavailable. No private identifier, name, count, date,
+distribution, fingerprint, account response, or other participant value was retained. Synthetic runtime evidence now
+imports every supported bundled identifier and requires one recognized identity with non-empty names in both locales.
+The complete changed-tree precommit gate passes with 192 automation tests, 480 presentation tests, two vendored-updater
+tests, 305 host tests, 250 application tests, 69 domain tests, and two private-acceptance predicates. The three
+release-mode performance campaigns pass; first import measured 21.177 seconds p95, exact reimport 95 milliseconds,
+equivalent dense-history reimport 646 milliseconds while retaining 7,490,080 samples, and every read-model budget
+remained accepted. Seven isolated packaged application processes then passed the bilingual functional journey, real
+restart, adaptive-session restart, catalogue recognition and restart, and the dense Insights campaign. The functional
+journey completed in 7 minutes 9.6 seconds. Its aggregate watchdog is now ten minutes because the maintained journey
+has roughly doubled since the former seven-minute allowance; phase telemetry distinguishes progress from a stall,
+while every command, operation, and product-performance budget remains unchanged. The same run also passed successful
+replacement, rejected-candidate recovery, dependency audit, and production `.app` and `.dmg` construction. The
+repeated independent audit accepts no unresolved critical or major product finding. Step 7 remains open at the
+exact-source boundary: cold launch, repository safety, hosted verification, revision-isolated native construction,
+and product-owner experience cannot become current evidence before one reviewed source revision exists.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
 

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +14,10 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 
 function read(relativePath) {
   return readFileSync(path.join(repositoryRoot, relativePath), "utf8");
+}
+
+function sha256(content) {
+  return createHash("sha256").update(content).digest("hex");
 }
 
 function requireMention(content, value, documentPath) {
@@ -7822,7 +7827,8 @@ for (const [documentPath, fields] of [
   [providerSportCataloguePath, [
     "sourceProvider", "catalogueRevision", "retrievedAtUtc", "provenanceUri",
     "provenanceSha256", "mappingVersion", "sourceIdentifier", "providerNameKey",
-    "localizedNames", "parentIdentifier", "canonicalFamilySuggestion", "sports:read",
+    "localizedNames", "parentIdentifier", "canonicalFamilySuggestion",
+    "https://flow.polar.com/api/sports/sports",
   ]],
   [trainingSportIdentityPath, [
     "sportRef", "state", "classification", "recognition", "recognitionCandidateCount",
@@ -8127,6 +8133,73 @@ const reportResolutionV9SchemaPath = "schemas/report-resolution-v9.schema.json";
 const validateProviderSportCatalogue = compileContractSchema(
   providerSportCatalogueSchemaPath,
 );
+const bundledProviderSportCataloguePath =
+  "assets/provider-compatibility/polar-flow-sport-catalogue-v1.json";
+const bundledProviderSportCatalogueManifestPath =
+  "assets/provider-compatibility/polar-flow-sport-catalogue-v1.manifest.json";
+const bundledProviderSportAcquisitionPath =
+  "assets/provider-compatibility/polar-flow-sport-acquisition-v1.json";
+const bundledProviderSportFamilyPath =
+  "assets/provider-compatibility/polar-flow-sport-family-v1.json";
+const bundledProviderSportCatalogueBytes = read(bundledProviderSportCataloguePath);
+const bundledProviderSportCatalogue = JSON.parse(bundledProviderSportCatalogueBytes);
+const bundledProviderSportCatalogueManifest = JSON.parse(
+  read(bundledProviderSportCatalogueManifestPath),
+);
+const bundledProviderSportAcquisition = JSON.parse(read(bundledProviderSportAcquisitionPath));
+const bundledProviderSportFamilies = JSON.parse(read(bundledProviderSportFamilyPath));
+assertContract(
+  validateProviderSportCatalogue,
+  bundledProviderSportCataloguePath,
+  bundledProviderSportCatalogue,
+);
+if (
+  bundledProviderSportCatalogueManifest.output.sha256
+    !== sha256(bundledProviderSportCatalogueBytes)
+  || bundledProviderSportCatalogueManifest.output.entryCount
+    !== bundledProviderSportCatalogue.entries.length
+  || bundledProviderSportCatalogueManifest.output.catalogueRevision
+    !== bundledProviderSportCatalogue.catalogueRevision
+  || bundledProviderSportCatalogueManifest.output.mappingVersion
+    !== bundledProviderSportCatalogue.mappingVersion
+) {
+  throw new Error(`${bundledProviderSportCatalogueManifestPath} does not bind the bundled output`);
+}
+if (
+  bundledProviderSportCatalogue.provenanceSha256 !== bundledProviderSportAcquisition.sourceSha256
+  || bundledProviderSportCatalogue.retrievedAtUtc !== bundledProviderSportAcquisition.retrievedAtUtc
+  || bundledProviderSportCatalogue.mappingVersion !== bundledProviderSportAcquisition.mappingVersion
+  || bundledProviderSportCatalogueManifest.source.mapping.sha256
+    !== bundledProviderSportAcquisition.sourceSha256
+  || bundledProviderSportCatalogueManifest.source.localization.revision
+    !== bundledProviderSportAcquisition.localizationRevision
+) {
+  throw new Error(`${bundledProviderSportAcquisitionPath} disagrees with the generated evidence`);
+}
+const bundledProviderNameKeys = new Set();
+const bundledProviderSourceIdentifiers = new Set();
+for (const entry of bundledProviderSportCatalogue.entries) {
+  if (
+    bundledProviderSourceIdentifiers.has(entry.sourceIdentifier)
+    || typeof entry.localizedNames["en-US"] !== "string"
+    || typeof entry.localizedNames["es-ES"] !== "string"
+    || entry.localizedNames["en-US"].length === 0
+    || entry.localizedNames["es-ES"].length === 0
+    || bundledProviderSportFamilies[entry.providerNameKey]
+      !== entry.canonicalFamilySuggestion
+  ) {
+    throw new Error(`${bundledProviderSportCataloguePath} contains incomplete or conflicting evidence`);
+  }
+  bundledProviderSourceIdentifiers.add(entry.sourceIdentifier);
+  bundledProviderNameKeys.add(entry.providerNameKey);
+}
+if (
+  Object.keys(bundledProviderSportFamilies).length !== bundledProviderNameKeys.size
+  || !/include_str!\(\s*"\.\.\/\.\.\/assets\/provider-compatibility\/polar-flow-sport-catalogue-v1\.json"\s*\)/u
+    .test(infrastructure)
+) {
+  throw new Error("the reviewed provider family mapping or runtime bundle activation is incomplete");
+}
 const syntheticProviderSportCatalogue = {
   sourceProvider: "synthetic-provider",
   catalogueRevision: "synthetic-catalogue-2026-08-25",

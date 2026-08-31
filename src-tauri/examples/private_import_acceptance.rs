@@ -1,9 +1,11 @@
 use std::{env, path::Path, process::ExitCode};
 
+use fitfreed_application::{query_training_sports, TrainingSportState};
 use fitfreed_domain::ImportOperationState;
 use fitfreed_lib::infrastructure::{
-    profile_polar_import_archive, query_activity, query_latest_import_outcome,
-    query_nightly_recoveries, query_sleep_periods, query_training_sessions,
+    install_bundled_provider_sport_catalogue, profile_polar_import_archive, query_activity,
+    query_latest_import_outcome, query_nightly_recoveries, query_sleep_periods,
+    query_training_sessions, SqliteTrainingSports,
 };
 use serde_json::json;
 use tempfile::tempdir;
@@ -17,6 +19,7 @@ struct AcceptancePredicates {
     sleep_history_available: bool,
     recovery_history_available: bool,
     one_opaque_origin: bool,
+    source_sports_recognized: bool,
 }
 
 impl AcceptancePredicates {
@@ -29,6 +32,7 @@ impl AcceptancePredicates {
             && self.sleep_history_available
             && self.recovery_history_available
             && self.one_opaque_origin
+            && self.source_sports_recognized
     }
 }
 
@@ -57,6 +61,13 @@ fn main() -> ExitCode {
     };
     let database_path = directory.path().join("private-acceptance.sqlite");
 
+    if install_bundled_provider_sport_catalogue(&database_path).is_err() {
+        println!(
+            "{}",
+            json!({ "accepted": false, "code": "sport-catalogue-unavailable" })
+        );
+        return ExitCode::FAILURE;
+    }
     let Ok(_) = profile_polar_import_archive(&database_path, Path::new(archive)) else {
         return report_failure(&database_path);
     };
@@ -95,6 +106,15 @@ fn main() -> ExitCode {
         );
         return ExitCode::FAILURE;
     };
+    let Ok(training_sports) =
+        query_training_sports(&SqliteTrainingSports::new(database_path.clone()))
+    else {
+        println!(
+            "{}",
+            json!({ "accepted": false, "code": "training-sport-identity-unavailable" })
+        );
+        return ExitCode::FAILURE;
+    };
     let Ok(repeated) = profile_polar_import_archive(&database_path, Path::new(archive)) else {
         return report_failure(&database_path);
     };
@@ -108,6 +128,14 @@ fn main() -> ExitCode {
     let training_history_available = !training_history.is_empty();
     let sleep_history_available = !sleep_history.is_empty();
     let recovery_history_available = !recovery_history.is_empty();
+    let source_sports_recognized = training_sports.sports.iter().all(|sport| {
+        matches!(
+            sport.state,
+            TrainingSportState::Recognized
+                | TrainingSportState::PersonallyOverridden
+                | TrainingSportState::Unavailable
+        )
+    });
     let accepted = AcceptancePredicates {
         import_completed: first_outcome.state == ImportOperationState::Completed,
         coverage_complete: first_outcome.coverage_complete,
@@ -117,6 +145,7 @@ fn main() -> ExitCode {
         sleep_history_available,
         recovery_history_available,
         one_opaque_origin: one_origin,
+        source_sports_recognized,
     }
     .accepted();
 
@@ -131,6 +160,7 @@ fn main() -> ExitCode {
             "sleepHistoryAvailable": sleep_history_available,
             "recoveryHistoryAvailable": recovery_history_available,
             "oneOpaqueOrigin": one_origin,
+            "sourceSportsRecognized": source_sports_recognized,
             "exactRepeat": repeated.report.exact_repeat,
         })
     );
@@ -186,6 +216,7 @@ mod tests {
             sleep_history_available: true,
             recovery_history_available: true,
             one_opaque_origin: true,
+            source_sports_recognized: true,
         }
     }
 
@@ -224,6 +255,10 @@ mod tests {
             },
             AcceptancePredicates {
                 one_opaque_origin: false,
+                ..complete_predicates()
+            },
+            AcceptancePredicates {
+                source_sports_recognized: false,
                 ..complete_predicates()
             },
         ];

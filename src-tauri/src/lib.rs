@@ -86,16 +86,16 @@ use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
     acquire_update_recovery_candidate_lease, await_update_recovery_candidate_go,
     confirm_active_update_recovery, current_update_target, download_verified_update,
-    install_verified_update, library_schema_version, maintain_update_recovery,
-    recover_interrupted_imports, resolve_update_application_path, run_update_recovery_watchdog,
-    HttpsUpdateChannel, NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides,
-    SelfContainedHtmlReportExporter, SqliteActivityLibrary, SqliteApplicationPreferences,
-    SqliteImportOutcomeLibrary, SqliteLibraryHome, SqliteLongitudinalLibrary,
-    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary,
-    SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError,
-    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryCandidateLease,
-    UpdateRecoveryError, UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    install_bundled_provider_sport_catalogue, install_verified_update, library_schema_version,
+    maintain_update_recovery, recover_interrupted_imports, resolve_update_application_path,
+    run_update_recovery_watchdog, HttpsUpdateChannel, NativeOfficialSourceLinkOpener,
+    PolarFlowSourceAcquisitionGuides, SelfContainedHtmlReportExporter, SqliteActivityLibrary,
+    SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLibraryHome,
+    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
+    SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary, SqliteTrainingSports,
+    SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
+    UpdateRecoveryCandidateLease, UpdateRecoveryError, UpdateRecoveryMaintenance,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto,
@@ -2145,10 +2145,16 @@ struct CandidateStartup {
     launch_nonce: String,
 }
 
+fn prepare_library_for_startup(library_path: &Path) -> infrastructure::Result<()> {
+    recover_interrupted_imports(library_path)?;
+    install_bundled_provider_sport_catalogue(library_path)?;
+    Ok(())
+}
+
 fn start_library_recovery(library_path: PathBuf, startup_recovery: Arc<StartupLibraryRecovery>) {
     tauri::async_runtime::spawn(async move {
         let succeeded = tauri::async_runtime::spawn_blocking(move || {
-            recover_interrupted_imports(&library_path)
+            prepare_library_for_startup(&library_path)
         })
         .await
         .is_ok_and(|result| result.is_ok());
@@ -2719,6 +2725,17 @@ mod tests {
         let failed_recovery = StartupLibraryRecovery::default();
         failed_recovery.complete(false);
         assert!(failed_recovery.await_ready().await.is_err());
+    }
+
+    #[test]
+    fn startup_library_preparation_activates_the_bundled_sport_catalogue() {
+        let directory = TempDir::new().expect("temporary directory");
+        let database_path = directory.path().join("library.sqlite");
+
+        prepare_library_for_startup(&database_path).expect("startup library preparation");
+
+        assert!(!install_bundled_provider_sport_catalogue(&database_path)
+            .expect("bundled catalogue already active"));
     }
 
     #[test]

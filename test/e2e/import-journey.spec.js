@@ -2603,6 +2603,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".library-home-sports")).toHaveText(expect.stringContaining("Trail running"));
     await expect($(".library-home-recent")).toHaveText(expect.stringContaining("Trail running"));
     await captureR10WorkspaceEvidence("r10-home-en-wide.png", ".library-home");
+    recordJourneyPhase("english-training-discovery");
     await goToHome("explore");
     await openTrainingWorkspace(english, "sports");
     expect(await $$(".training-sport-list > li")).toHaveLength(2);
@@ -2725,6 +2726,7 @@ describe("packaged FitFreed import journey", () => {
       }
     }, previousCalendarPresentation);
     await resizeApplication(1280, 820);
+    recordJourneyPhase("english-session-workbench");
     await $('.training-calendar-day-summary[aria-label*="January 4, 2026"]').click();
     await expectTrainingRows([[enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"]]);
     await calendarActivity.click();
@@ -3134,6 +3136,7 @@ describe("packaged FitFreed import journey", () => {
       "r8-exact-route-range-editor-en-wide.png",
     ));
     await exactRouteEditor.$(`aria/${rangeCopy.cancel}`).click();
+    recordJourneyPhase("english-session-evidence");
     await $(".training-route:first-of-type button").click();
     await openTrainingDetailSection(english, "structure");
     await expect($("#training-structure-heading")).toHaveText(
@@ -3445,6 +3448,7 @@ describe("packaged FitFreed import journey", () => {
     await expect(personalRanges.$(".training-range-inspector h4")).toHaveText("Ridge effort");
     expect(await personalRanges.$$(".training-range-workspace > nav li")).toHaveLength(1);
 
+    recordJourneyPhase("english-report-composition");
     await openTrainingDetailSection(english, "structure");
     const segmentation = await $(".training-segmentation");
     await expect(segmentation.$("h4")).toHaveText(
@@ -3656,6 +3660,7 @@ describe("packaged FitFreed import journey", () => {
       "#report-preview-heading",
       "cancelling a saved composition did not focus its restored result",
     );
+    recordJourneyPhase("english-report-library-and-export");
     await openReportWorkspace(english, "library");
     expect(await $$(".report-list > li")).toHaveLength(1);
     const reportExamples = await $$(".report-example-list > li");
@@ -4102,6 +4107,7 @@ describe("packaged FitFreed import journey", () => {
       reviewExport,
       "leaving the cancelled export review did not restore its initiating action",
     );
+    recordJourneyPhase("english-domain-cross-navigation");
     await $(`aria/${english.reports.viewSourceSession}`).click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
     await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
@@ -6440,7 +6446,13 @@ describe("packaged FitFreed import journey", () => {
     await openTrainingWorkspace(english, "plans");
     expect(await $$(".planned-training-list > li")).toHaveLength(1);
     await $(`aria/${english.training.planned.favorites}`).click();
-    expect(await $$(".planned-training-list > li")).toHaveLength(1);
+    await browser.waitUntil(
+      async () => (await $$(".planned-training-list > li")).length === 1,
+      {
+        timeout: 10_000,
+        timeoutMsg: "the imported favorite training template did not become available",
+      },
+    );
     await expect($(".planned-training-list > li")).toHaveText(
       expect.stringContaining("Reusable tempo template"),
     );

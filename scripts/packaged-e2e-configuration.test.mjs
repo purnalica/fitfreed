@@ -89,8 +89,28 @@ test("keeps packaged update fixtures outside both retained application targets",
 });
 
 test("gives the exhaustive functional journey a bounded campaign watchdog", () => {
-  assert.equal(defaultConfig.mochaOpts.timeout, 420_000);
+  assert.equal(defaultConfig.mochaOpts.timeout, 600_000);
   assert.deepEqual(defaultConfig.specs, ["./test/e2e/**/*.spec.js"]);
+});
+
+test("reports bounded functional-journey phases without changing operation budgets", () => {
+  const functionalJourney = readFileSync(
+    path.resolve("test/e2e/import-journey.spec.js"),
+    "utf8",
+  );
+
+  assert.match(functionalJourney, /recordJourneyPhase\("shell-and-first-run"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("english-training-discovery"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("english-session-workbench"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("english-session-evidence"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("english-report-composition"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("english-report-library-and-export"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("english-domain-cross-navigation"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("localized-maximum-zoom"\)/);
+  assert.match(functionalJourney, /recordJourneyPhase\("complete"\)/);
+  assert.equal(defaultConfig.waitforTimeout, 10_000);
+  assert.equal(defaultConfig.connectionRetryTimeout, 90_000);
+  assert.equal(defaultConfig.connectionRetryCount, 1);
 });
 
 test("isolates the longer performance campaign without relaxing interaction budgets", () => {
@@ -111,6 +131,8 @@ test("restarts the packaged process against the exact functional-journey library
     "restart",
     "adaptive-sessions",
     "adaptive-sessions-restart",
+    "sport-catalogue",
+    "sport-catalogue-restart",
     "performance",
   ]);
   assert.equal(plan[0].databasePath, plan[1].databasePath);
@@ -126,7 +148,17 @@ test("restarts the packaged process against the exact functional-journey library
   assert.equal(plan[3].spec, "test/e2e/adaptive-session-restart.e2e.js");
   assert.notEqual(plan[4].databasePath, plan[0].databasePath);
   assert.notEqual(plan[4].databasePath, plan[2].databasePath);
-  assert.equal(plan[4].restartIdentityPath, null);
+  assert.equal(plan[4].databasePath, plan[5].databasePath);
+  assert.equal(plan[4].restartIdentityPath, plan[5].restartIdentityPath);
+  assert.equal(plan[4].spec, "test/e2e/sport-catalogue-recognition.spec.js");
+  assert.equal(
+    plan[5].spec,
+    "test/e2e/sport-catalogue-recognition-restart.e2e.js",
+  );
+  assert.notEqual(plan[6].databasePath, plan[0].databasePath);
+  assert.notEqual(plan[6].databasePath, plan[2].databasePath);
+  assert.notEqual(plan[6].databasePath, plan[4].databasePath);
+  assert.equal(plan[6].restartIdentityPath, null);
 });
 
 test("identifies only the exact packaged application command", () => {

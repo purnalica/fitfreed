@@ -16,8 +16,10 @@ product-owner gate rejected that correction on 2026-08-30 after sport identity r
 lost fluidity, and compact sport cards became unreadable. Those causal boundaries must be corrected and independently
 verified before another human gate or release preparation resumes. X7-R8.9 through X7-R8.11 now retain machine evidence
 for the reusable sport-correlation, documented provider-normalization, and responsive changed-package reconciliation
-boundaries plus complete compact sport-card composition; the repeated candidate gate remains open. Implementation and
-machine evidence do not by themselves authorize a release claim.
+boundaries plus complete compact sport-card composition. The later source `3e280ca` review nevertheless rejected the
+application because most represented sports and sessions remained unknown. X7-R8.13 now owns the missing bundled
+compatibility catalogue, and no repeated candidate gate is eligible until its automatic-recognition evidence passes.
+Implementation and machine evidence do not by themselves authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

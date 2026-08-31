@@ -2,7 +2,19 @@
 
 ## Status
 
-Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. D0 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication capability boundaries; P1 published the truthful canonical product site; E1 through E5 and the previously planned E6 corrections retain complete local and hosted engineering evidence. The subsequent [independent product-experience audit](research/mvp-product-experience-audit.md) invalidated product-experience acceptance. PX-03 is resolved by the accepted dense-history gate and compact recoverable schema, but the 2026-08-21 product-owner disposition confirmed a systemic experience-design failure that cannot be closed by treating the remaining findings as isolated presentation defects.
+Milestone 1 is complete. Milestone 2 retains substantial implemented capability and machine evidence but is reopened at
+X7-R8.13. The bundled automatic sport-identity correction, complete changed-tree regression, private-reference
+predicate, and repeated independent audit pass locally; exact-source, hosted, and product-owner experience gates
+remain open and no current MVP candidate is accepted. The implemented
+Milestone 3 public-release engineering baseline remains available but cannot advance until Milestone 2 regains product
+acceptance. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. D0
+established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
+capability boundaries; P1 published the truthful canonical product site; E1 through E5 and the previously planned E6
+corrections retain complete local and hosted engineering evidence. The subsequent [independent product-experience
+audit](research/mvp-product-experience-audit.md) invalidated product-experience acceptance. PX-03 is resolved by the
+accepted dense-history gate and compact recoverable schema, but the 2026-08-21 product-owner disposition confirmed a
+systemic experience-design failure that cannot be closed by treating the remaining findings as isolated presentation
+defects.
 
 The active stage is the production migration defined by the accepted [UI and UX redesign
 plan](plans/ui-redesign.md) and [MVP redesign production migration
@@ -28,8 +40,15 @@ corrects the changed-package reconciliation boundary, and X7-R8.11 corrects clos
 independent audit and complete local candidate campaign now pass for clean source `8b174af` with no unresolved
 critical or major finding. The subsequent exact-source correction passes repository safety, the complete hosted
 campaign, and revision-isolated native-bundle inspection for source `f082725` and executable-input fingerprint
-`e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. The bounded product-owner experience review is
-the only remaining X7-R8 gate before Milestone 3 may resume.
+`e0e09a5db6af35e6a7e074a27083acc59d3130590d9e7b0c893e57634722f4a8`. The later bounded product-owner review of
+source `3e280ca` rejected the application again because most represented sports and sessions remained unknown. That
+result exposes a missing product artifact rather than another personal correlation rule: X7-R8.13 now owns
+acquisition, generation, bundling, activation, and complete supported-reference coverage of the out-of-the-box Polar
+sport compatibility catalogue. Its public-source acquisition, deterministic generation, startup activation, complete
+supported-identifier runtime coverage, privacy-bounded real-reference predicate, complete changed-tree regression,
+performance campaigns, packaged update and recovery, production packaging, and repeated independent product audit
+pass locally on 2026-08-31. The correction has no exact committed source yet. Exact local and hosted gates plus
+revision-isolated native construction must pass before a new product-owner experience review is eligible.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate
@@ -121,7 +140,14 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Dependency:** Milestone 1 capabilities required by the agreed MVP journey.
 
-**Scope:** the complete journey in `requirements.md`: Polar Flow ZIP import; coverage reporting; provider-neutral local persistence; activity, training, sleep, recovery, and structured training-intent exploration; period filtering and comparison; mature analytical charts and exact alternatives; result-first reports with curated examples, independent duplication, and export; idempotent and cumulative reimport; actionable recovery; both initial locales; complete specifications for every provider and FitFreed data representation implemented by the MVP; user documentation; a privately distributed unsigned macOS alpha package; and safe notification and cryptographic verification of private alpha updates.
+**Scope:** the complete journey in `requirements.md`: Polar Flow ZIP import; an out-of-the-box versioned Polar
+sport-identity compatibility catalogue with human-readable localized names; coverage reporting; provider-neutral
+local persistence; activity, training, sleep, recovery, and structured training-intent exploration; period filtering
+and comparison; mature analytical charts and exact alternatives; result-first reports with curated examples,
+independent duplication, and export; idempotent and cumulative reimport; actionable recovery; both initial locales;
+complete specifications for every provider and FitFreed data representation implemented by the MVP; user
+documentation; a privately distributed unsigned macOS alpha package; and safe notification and cryptographic
+verification of private alpha updates.
 
 **Exit criteria:** the confirmed MVP journey and applicable acceptance criteria in `requirements.md` pass through real entry points and the budgets in `quality-targets.md` are satisfied. Capability implementation may hand off to Milestone 3 before external authority and participant-evaluation gates close; those gates remain visible and must pass before an accepted distribution.
 
@@ -183,7 +209,18 @@ Minimum operating-system versions, architectures, packaging, signing, and update
 2. Incremental provider-API connectors that extend an established historical library with newly available records.
 3. Additional provider importers and matching incremental connectors, potentially including Garmin, selected by user value and available export and API capabilities.
 
-Archive import remains the historical baseline; a provider API is an incremental convenience, not a substitute for historical portability. Connector authorization, limited history windows, unavailable data families, rate limits, revocation, outages, and API discontinuation remain explicit. The relative scheduling of platform expansion and additional data sources remains a product decision after MVP evaluation. Neither track may compromise the provider-neutral core.
+Archive import remains the historical baseline; a provider API is an optional incremental convenience, not a
+substitute for historical portability or for the bundled compatibility knowledge needed to interpret a supported
+archive. When authorized, the same connector may refresh provider catalogues while importing new or amended records.
+Connector authorization, limited history windows, unavailable data families, rate limits, revocation, outages, and
+API discontinuation remain explicit. The confirmed provider-neutral pull, account binding, archive/API collision,
+source-channel removal, and atomic checkpoint direction is documented in
+[`architecture/connected-provider-synchronization.md`](architecture/connected-provider-synchronization.md). Polar
+implementation remains gated by project-side published-contract analysis of GPL-client eligibility, native OAuth,
+local retention, catalogue redistribution, and deletion semantics; [ADR 0038](architecture/decisions/0038-isolate-confidential-provider-oauth.md)
+remains Proposed while those evidence, security, and product risk gates are open. Provider assistance is not part of
+the critical path. The relative scheduling of platform expansion and additional data sources remains a product
+decision after MVP evaluation. Neither track may compromise the provider-neutral core.
 
 ### Cartography track
 

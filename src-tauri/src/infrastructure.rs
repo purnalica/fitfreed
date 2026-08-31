@@ -251,6 +251,8 @@ const SCHEMA_V34: &str = include_str!("../migrations/0034_import_package_identit
 const SCHEMA_V35: &str = include_str!("../migrations/0035_training_discovery_workspace_v3.sql");
 const SCHEMA_V36: &str = include_str!("../migrations/0036_unified_sport_relationship.sql");
 const SCHEMA_V37: &str = include_str!("../migrations/0037_reusable_sport_correlation.sql");
+const BUNDLED_POLAR_SPORT_CATALOGUE: &str =
+    include_str!("../../assets/provider-compatibility/polar-flow-sport-catalogue-v1.json");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@14";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@9";
@@ -263,7 +265,7 @@ const POLAR_DETAILED_SPORT_CATALOGUE_REVISION: &str =
     "polar-accesslink-detailed-sport-info@2026-05-06";
 const POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC: &str = "2026-08-26T11:25:54Z";
 const POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION: &str = "polar-training-target-sport@1";
-const POLAR_SPORT_NORMALIZATION_VERSION: &str = "polar-sport-normalization@1";
+const POLAR_SPORT_NORMALIZATION_VERSION: &str = "polar-sport-normalization@2";
 const POLAR_PLANNED_TRAINING_MAPPING_VERSION: &str = "polar-planned-training@2";
 const TRAINING_WORKSPACE_VERSION: u32 = 3;
 
@@ -285,6 +287,28 @@ pub struct ProviderSportCatalogueEvidence {
     pub provenance_sha256: String,
     pub mapping_version: String,
     pub entries: Vec<ProviderSportCatalogueEntryEvidence>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct BundledProviderSportCatalogue {
+    source_provider: String,
+    catalogue_revision: String,
+    retrieved_at_utc: String,
+    provenance_uri: String,
+    provenance_sha256: String,
+    mapping_version: String,
+    entries: Vec<BundledProviderSportCatalogueEntry>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct BundledProviderSportCatalogueEntry {
+    source_identifier: String,
+    provider_name_key: String,
+    localized_names: BTreeMap<String, String>,
+    parent_identifier: Option<String>,
+    canonical_family_suggestion: Option<String>,
 }
 
 pub const fn library_schema_version() -> u32 {
@@ -2289,6 +2313,7 @@ pub fn query_training_between(
 struct TrainingDiscoverySportEntry {
     origin_id: String,
     source_sport_ref: Option<String>,
+    provider_normalization_name_keys: Vec<String>,
     classification: Option<SportClassification>,
     recognition_candidates: Vec<ProviderNeutralSportSuggestion>,
     public_sport: TrainingSessionSport,
@@ -7755,7 +7780,17 @@ fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDa
     }
 }
 
-type ProviderSportSuggestionLookup = HashMap<(String, String), Vec<ProviderNeutralSportSuggestion>>;
+#[derive(Default)]
+struct ProviderSportSuggestionLookup {
+    by_source_identifier: HashMap<(String, String), ProviderSportSuggestionCandidates>,
+    by_provider_name_key: HashMap<(String, String), Vec<ProviderNeutralSportSuggestion>>,
+}
+
+#[derive(Default)]
+struct ProviderSportSuggestionCandidates {
+    provider_name_keys: BTreeSet<String>,
+    suggestions: Vec<ProviderNeutralSportSuggestion>,
+}
 
 fn query_active_provider_sport_suggestions(
     connection: &Connection,
@@ -7807,7 +7842,7 @@ fn query_active_provider_sport_suggestions(
             row.get::<_, String>(10)?,
         ))
     })?;
-    let mut suggestions = ProviderSportSuggestionLookup::new();
+    let mut suggestions = ProviderSportSuggestionLookup::default();
     let mut encountered_providers = BTreeSet::new();
     for row in rows {
         let (
@@ -7835,7 +7870,10 @@ fn query_active_provider_sport_suggestions(
             )
         })?;
         let key = (source_provider.clone(), source_identifier);
-        let expected_ordinal = suggestions.get(&key).map_or(0, Vec::len);
+        let expected_ordinal = suggestions
+            .by_source_identifier
+            .get(&key)
+            .map_or(0, |candidates| candidates.suggestions.len());
         if candidate_ordinal != expected_ordinal {
             return Err(ImportError::InvalidTrainingLibrary(
                 "stored provider sport candidate ordinals are not contiguous".to_owned(),
@@ -7869,7 +7907,18 @@ fn query_active_provider_sport_suggestions(
         let suggestion =
             ProviderNeutralSportSuggestion::new(canonical_family, localized_names, provenance)
                 .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
-        suggestions.entry(key).or_default().push(suggestion);
+        let source_candidates = suggestions.by_source_identifier.entry(key).or_default();
+        source_candidates
+            .provider_name_keys
+            .insert(provider_name_key.clone());
+        merge_sport_suggestions(&mut source_candidates.suggestions, vec![suggestion.clone()]);
+        merge_sport_suggestions(
+            suggestions
+                .by_provider_name_key
+                .entry((source_provider.clone(), provider_name_key))
+                .or_default(),
+            vec![suggestion],
+        );
         encountered_providers.insert(source_provider);
     }
     if selected_providers != encountered_providers {
@@ -8099,6 +8148,13 @@ fn query_training_discovery_sports(
     connection: &Connection,
 ) -> Result<Vec<TrainingDiscoverySportEntry>> {
     let catalogue = query_active_provider_sport_suggestions(connection)?;
+    query_training_discovery_sports_with_catalogue(connection, &catalogue)
+}
+
+fn query_training_discovery_sports_with_catalogue(
+    connection: &Connection,
+    catalogue: &ProviderSportSuggestionLookup,
+) -> Result<Vec<TrainingDiscoverySportEntry>> {
     let mut statement = connection.prepare(
         "WITH source_sport AS (
              SELECT origin_id, sport_ref FROM training_session
@@ -8143,9 +8199,12 @@ fn query_training_discovery_sports(
             authorship,
             revision,
         ) = row?;
-        let (classification, recognition_candidates, public_sport) = match source_sport_ref
-            .as_deref()
-        {
+        let (
+            classification,
+            recognition_candidates,
+            provider_normalization_name_keys,
+            public_sport,
+        ) = match source_sport_ref.as_deref() {
             None => {
                 if state.is_some()
                     || family.is_some()
@@ -8159,7 +8218,7 @@ fn query_training_discovery_sports(
                 }
                 let public_sport = resolve_training_session_sport(None, None, Vec::new())
                     .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
-                (None, Vec::new(), public_sport)
+                (None, Vec::new(), Vec::new(), public_sport)
             }
             Some(source_sport_ref) => {
                 let key =
@@ -8167,9 +8226,15 @@ fn query_training_discovery_sports(
                         .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
                 let classification =
                     restore_sport_classification(key, state, family, label, authorship, revision)?;
-                let recognition_candidates = catalogue
-                    .get(&(source_provider, source_sport_ref.to_owned()))
-                    .cloned()
+                let catalogue_candidates = catalogue
+                    .by_source_identifier
+                    .get(&(source_provider, source_sport_ref.to_owned()));
+                let recognition_candidates = catalogue_candidates
+                    .map(|candidates| candidates.suggestions.clone())
+                    .unwrap_or_default();
+                let provider_normalization_name_keys = catalogue_candidates
+                    .filter(|candidates| candidates.provider_name_keys.len() == 1)
+                    .map(|candidates| candidates.provider_name_keys.iter().cloned().collect())
                     .unwrap_or_default();
                 let public_sport = resolve_training_session_sport(
                     Some(detected_sport_ref(classification.key())),
@@ -8177,12 +8242,18 @@ fn query_training_discovery_sports(
                     recognition_candidates.clone(),
                 )
                 .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
-                (Some(classification), recognition_candidates, public_sport)
+                (
+                    Some(classification),
+                    recognition_candidates,
+                    provider_normalization_name_keys,
+                    public_sport,
+                )
             }
         };
         Ok(TrainingDiscoverySportEntry {
             origin_id,
             source_sport_ref,
+            provider_normalization_name_keys,
             classification,
             recognition_candidates,
             public_sport,
@@ -8738,6 +8809,28 @@ struct ExactTrainingSportEvidence {
     suggestions: Vec<ProviderNeutralSportSuggestion>,
 }
 
+fn provider_name_key_for_exact_sport_code(source_sport_code: &str) -> &str {
+    match source_sport_code {
+        "ROAD_CYCLING" => "ROAD_BIKING",
+        _ => source_sport_code,
+    }
+}
+
+fn provider_catalogue_suggestions_for_exact(
+    catalogue: &ProviderSportSuggestionLookup,
+    evidence: &ExactTrainingSportEvidence,
+) -> Option<Vec<ProviderNeutralSportSuggestion>> {
+    let mut suggestions = Vec::new();
+    for source_sport_code in &evidence.source_sport_codes {
+        let provider_name_key = provider_name_key_for_exact_sport_code(source_sport_code);
+        let candidates = catalogue
+            .by_provider_name_key
+            .get(&(SOURCE_PROVIDER.to_owned(), provider_name_key.to_owned()))?;
+        merge_sport_suggestions(&mut suggestions, candidates.clone());
+    }
+    (!suggestions.is_empty()).then_some(suggestions)
+}
+
 struct PersistedTrainingSportGroup {
     key: TrainingSportGroupKey,
     detected: DetectedTrainingSport,
@@ -8746,6 +8839,7 @@ struct PersistedTrainingSportGroup {
 struct TrainingSportGroupAccumulator {
     sport_ref: Option<String>,
     origin_id: String,
+    provider_normalization_name_keys: Vec<String>,
     classification: Option<SportClassification>,
     recognition_candidates: Vec<ProviderNeutralSportSuggestion>,
     first_local_date: String,
@@ -8759,7 +8853,8 @@ struct TrainingSportGroupAccumulator {
 fn query_training_sport_groups(
     connection: &Connection,
 ) -> Result<Vec<PersistedTrainingSportGroup>> {
-    let source_entries = query_training_discovery_sports(connection)?
+    let catalogue = query_active_provider_sport_suggestions(connection)?;
+    let source_entries = query_training_discovery_sports_with_catalogue(connection, &catalogue)?
         .into_iter()
         .map(|entry| {
             (
@@ -8811,9 +8906,22 @@ fn query_training_sport_groups(
         let exact = exact_evidence.get(&(origin_id.clone(), session_id));
         let key = training_sport_group_key(source_entry, exact);
         let classification_applies = exact.is_none();
-        let recognition_candidates = exact
-            .map(|evidence| evidence.suggestions.clone())
-            .unwrap_or_else(|| source_entry.recognition_candidates.clone());
+        let recognition_candidates = exact.map_or_else(
+            || source_entry.recognition_candidates.clone(),
+            |evidence| {
+                provider_catalogue_suggestions_for_exact(&catalogue, evidence)
+                    .unwrap_or_else(|| evidence.suggestions.clone())
+            },
+        );
+        let provider_normalization_name_keys = exact
+            .map(|evidence| {
+                evidence
+                    .source_sport_codes
+                    .iter()
+                    .map(|code| provider_name_key_for_exact_sport_code(code).to_owned())
+                    .collect()
+            })
+            .unwrap_or_else(|| source_entry.provider_normalization_name_keys.clone());
         let group = groups
             .entry(key)
             .or_insert_with(|| TrainingSportGroupAccumulator {
@@ -8821,6 +8929,7 @@ fn query_training_sport_groups(
                     .then(|| source_entry.public_sport.sport_ref.clone())
                     .flatten(),
                 origin_id: origin_id.clone(),
+                provider_normalization_name_keys,
                 classification: classification_applies
                     .then(|| source_entry.classification.clone())
                     .flatten(),
@@ -8868,7 +8977,10 @@ fn query_training_sport_groups(
         .map(|(key, group)| PersistedTrainingSportGroup {
             detected: DetectedTrainingSport {
                 session_filter_ref: training_sport_filter_ref(&key),
-                provider_normalization_ref: provider_sport_normalization_ref(&key),
+                provider_normalization_ref: provider_sport_normalization_ref(
+                    &group.origin_id,
+                    &group.provider_normalization_name_keys,
+                ),
                 sport_ref: group.sport_ref,
                 origin_id: group.origin_id,
                 classification: group.classification,
@@ -8933,22 +9045,26 @@ fn training_sport_filter_ref(key: &TrainingSportGroupKey) -> String {
     format!("sport-{:x}", digest.finalize())
 }
 
-fn provider_sport_normalization_ref(key: &TrainingSportGroupKey) -> Option<String> {
-    let TrainingSportFilterScope::ExactEvidence { source_sport_codes } = &key.scope else {
+fn provider_sport_normalization_ref(
+    origin_id: &str,
+    provider_name_keys: &[String],
+) -> Option<String> {
+    if provider_name_keys.is_empty() {
         return None;
-    };
+    }
+    let mut provider_name_keys = provider_name_keys.to_vec();
+    provider_name_keys.sort();
+    provider_name_keys.dedup();
     let mut digest = Sha256::new();
     digest.update(b"fitfreed:provider-sport-normalization:v1\0");
-    digest.update(key.origin_id.as_bytes());
+    digest.update(origin_id.as_bytes());
     digest.update(b"\0");
     digest.update(SOURCE_PROVIDER.as_bytes());
     digest.update(b"\0");
-    digest.update(POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION.as_bytes());
-    digest.update(b"\0");
     digest.update(POLAR_SPORT_NORMALIZATION_VERSION.as_bytes());
     digest.update(b"\0");
-    for code in source_sport_codes {
-        digest.update(code.as_bytes());
+    for provider_name_key in provider_name_keys {
+        digest.update(provider_name_key.as_bytes());
         digest.update(b"\0");
     }
     Some(format!("sport-{:x}", digest.finalize()))
@@ -9013,6 +9129,57 @@ struct ValidatedProviderSportCatalogueEntry {
     parent_identifier: Option<String>,
     canonical_family_suggestion: Option<SportFamily>,
     evidence_ref: String,
+}
+
+fn bundled_provider_sport_catalogue() -> Result<ProviderSportCatalogueEvidence> {
+    let bundled =
+        serde_json::from_str::<BundledProviderSportCatalogue>(BUNDLED_POLAR_SPORT_CATALOGUE)
+            .map_err(|error| {
+                ImportError::InvalidTrainingLibrary(format!(
+                    "bundled provider sport catalogue is invalid: {error}"
+                ))
+            })?;
+    if bundled.source_provider != SOURCE_PROVIDER {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "bundled provider sport catalogue has an unexpected provider".to_owned(),
+        ));
+    }
+    let entries = bundled
+        .entries
+        .into_iter()
+        .map(|entry| {
+            let canonical_family_suggestion = entry
+                .canonical_family_suggestion
+                .map(|family| {
+                    SportFamily::from_code(&family).map_err(|error| {
+                        ImportError::InvalidTrainingLibrary(format!(
+                            "bundled provider sport catalogue family is invalid: {error}"
+                        ))
+                    })
+                })
+                .transpose()?;
+            Ok(ProviderSportCatalogueEntryEvidence {
+                source_identifier: entry.source_identifier,
+                provider_name_key: entry.provider_name_key,
+                localized_names: entry.localized_names,
+                parent_identifier: entry.parent_identifier,
+                canonical_family_suggestion,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok(ProviderSportCatalogueEvidence {
+        source_provider: bundled.source_provider,
+        catalogue_revision: bundled.catalogue_revision,
+        retrieved_at_utc: bundled.retrieved_at_utc,
+        provenance_uri: bundled.provenance_uri,
+        provenance_sha256: bundled.provenance_sha256,
+        mapping_version: bundled.mapping_version,
+        entries,
+    })
+}
+
+pub fn install_bundled_provider_sport_catalogue(database_path: &Path) -> Result<bool> {
+    install_provider_sport_catalogue(database_path, &bundled_provider_sport_catalogue()?)
 }
 
 pub fn install_provider_sport_catalogue(
@@ -18103,6 +18270,7 @@ impl ApplicationPreferencesPort for SqliteApplicationPreferences {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Days;
     use fitfreed_application::UnifiedSportRelationshipSaveOutcome;
     use fitfreed_domain::{
         author_session_report, refresh_report_definition, revise_report, revise_session_report,
@@ -18136,21 +18304,26 @@ mod tests {
             },
         };
 
-        let first_ref =
-            provider_sport_normalization_ref(&first).expect("exact sport normalization capability");
+        let normalization_ref = |key: &TrainingSportGroupKey| {
+            let TrainingSportFilterScope::ExactEvidence { source_sport_codes } = &key.scope else {
+                return None;
+            };
+            provider_sport_normalization_ref(&key.origin_id, source_sport_codes)
+        };
+        let first_ref = normalization_ref(&first).expect("exact sport normalization capability");
         assert_eq!(
-            provider_sport_normalization_ref(&same_evidence).as_deref(),
+            normalization_ref(&same_evidence).as_deref(),
             Some(first_ref.as_str())
         );
         assert_ne!(
-            provider_sport_normalization_ref(&different_code).as_deref(),
+            normalization_ref(&different_code).as_deref(),
             Some(first_ref.as_str())
         );
         assert_ne!(
-            provider_sport_normalization_ref(&different_origin).as_deref(),
+            normalization_ref(&different_origin).as_deref(),
             Some(first_ref.as_str())
         );
-        assert_eq!(provider_sport_normalization_ref(&unresolved), None);
+        assert_eq!(normalization_ref(&unresolved), None);
     }
 
     struct Harness {
@@ -22103,6 +22276,298 @@ mod tests {
                 .expect("updated retained recognition")
                 .localized_names["en"],
             "Road running"
+        );
+    }
+
+    #[test]
+    fn normalizes_distinct_catalogue_identifiers_with_one_stable_provider_name_key() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "catalogue-provider-normalization.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-catalogue-provider-normalization-claim"}"#,
+                ),
+                (
+                    "training-session_2026-06-01T08-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &training_session_json(
+                        "catalogue-provider-normalization-first",
+                        "2026-06-01T08:00:00",
+                        "2026-06-01T09:00:00",
+                        3_600_000,
+                        "provider-sport-id-a",
+                    ),
+                ),
+                (
+                    "training-session_2026-06-02T08-00-00_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &training_session_json(
+                        "catalogue-provider-normalization-second",
+                        "2026-06-02T08:00:00",
+                        "2026-06-02T09:15:00",
+                        4_500_000,
+                        "provider-sport-id-b",
+                    ),
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive)
+            .expect("provider catalogue normalization import");
+        let catalogue = ProviderSportCatalogueEvidence {
+            source_provider: SOURCE_PROVIDER.to_owned(),
+            catalogue_revision: "polar-catalogue-provider-normalization".to_owned(),
+            retrieved_at_utc: "2026-08-31T08:00:00Z".to_owned(),
+            provenance_uri: "https://www.polar.com/polar-api-v4/".to_owned(),
+            provenance_sha256: "a".repeat(64),
+            mapping_version: "polar-flow-sport-suggestion@1".to_owned(),
+            entries: vec![
+                provider_sport_entry(
+                    "provider-sport-id-a",
+                    "WATERSPORTS_KAYAKING",
+                    "Kayaking",
+                    "Piragüismo en kayak",
+                    Some(SportFamily::WaterSport),
+                ),
+                provider_sport_entry(
+                    "provider-sport-id-b",
+                    "WATERSPORTS_KAYAKING",
+                    "Kayaking",
+                    "Piragüismo en kayak",
+                    Some(SportFamily::WaterSport),
+                ),
+            ],
+        };
+        install_provider_sport_catalogue(&harness.database(), &catalogue)
+            .expect("provider catalogue installed");
+
+        let overview = query_training_sports(&SqliteTrainingSports::new(harness.database()))
+            .expect("provider-normalized catalogue sports");
+
+        assert_eq!(overview.session_count, 2);
+        assert_eq!(overview.sport_collections.len(), 2);
+        assert_eq!(overview.sports.len(), 1);
+        let kayaking = &overview.sports[0];
+        assert_eq!(kayaking.state, TrainingSportState::Recognized);
+        assert_eq!(kayaking.coverage.session_count, 2);
+        assert_eq!(kayaking.member_session_filter_refs.len(), 2);
+        assert_eq!(
+            kayaking
+                .recognition
+                .as_ref()
+                .expect("recognized kayaking")
+                .localized_names["en"],
+            "Kayaking"
+        );
+    }
+
+    #[test]
+    fn installs_and_activates_the_bundled_polar_sport_catalogue_idempotently() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "bundled-catalogue-recognition.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-bundled-catalogue-claim"}"#,
+                ),
+                (
+                    "training-session_2026-06-05T08-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &training_session_json(
+                        "bundled-catalogue-session",
+                        "2026-06-05T08:00:00",
+                        "2026-06-05T09:00:00",
+                        3_600_000,
+                        "1",
+                    ),
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive)
+            .expect("bundled catalogue recognition import");
+        let library = SqliteTrainingSports::new(harness.database());
+        assert_eq!(
+            query_training_sports(&library)
+                .expect("sports before bundled catalogue activation")
+                .sports[0]
+                .state,
+            TrainingSportState::Unknown
+        );
+        assert!(
+            install_bundled_provider_sport_catalogue(&harness.database())
+                .expect("bundled catalogue installation")
+        );
+        assert!(
+            !install_bundled_provider_sport_catalogue(&harness.database())
+                .expect("idempotent bundled catalogue installation")
+        );
+
+        let overview =
+            query_training_sports(&library).expect("sports recognized by bundled catalogue");
+
+        assert_eq!(overview.sports.len(), 1);
+        let running = &overview.sports[0];
+        assert_eq!(running.state, TrainingSportState::Recognized);
+        assert_eq!(
+            running
+                .recognition
+                .as_ref()
+                .expect("bundled running recognition")
+                .localized_names["en-US"],
+            "Running"
+        );
+        assert_eq!(
+            running
+                .recognition
+                .as_ref()
+                .expect("bundled running family")
+                .canonical_family
+                .as_deref(),
+            Some("running")
+        );
+    }
+
+    #[test]
+    fn recognizes_every_supported_bundled_sport_identifier() {
+        let harness = Harness::new();
+        let catalogue = bundled_provider_sport_catalogue().expect("bundled sport catalogue");
+        let first_date = NaiveDate::from_ymd_opt(2025, 1, 1).expect("first synthetic date");
+        let mut owned_entries = vec![(
+            "account-data-42-11111111-2222-4333-8444-555555555555.json".to_owned(),
+            r#"{"username":"fixture-complete-bundled-catalogue-claim"}"#.to_owned(),
+        )];
+        for (index, entry) in catalogue.entries.iter().enumerate() {
+            let date = first_date
+                .checked_add_days(Days::new(
+                    u64::try_from(index).expect("catalogue index fits in days"),
+                ))
+                .expect("synthetic catalogue date");
+            let date = date.format("%Y-%m-%d");
+            let start_time = format!("{date}T08:00:00");
+            let stop_time = format!("{date}T09:00:00");
+            owned_entries.push((
+                format!(
+                    "training-session_{date}T08-00-00_42-11111111-2222-4333-8444-555555555555.json"
+                ),
+                training_session_json(
+                    &format!("bundled-catalogue-session-{index}"),
+                    &start_time,
+                    &stop_time,
+                    3_600_000,
+                    &entry.source_identifier,
+                ),
+            ));
+        }
+        let borrowed_entries = owned_entries
+            .iter()
+            .map(|(name, contents)| (name.as_str(), contents.as_str()))
+            .collect::<Vec<_>>();
+        let archive = harness.archive("complete-bundled-catalogue.zip", &borrowed_entries);
+
+        install_bundled_provider_sport_catalogue(&harness.database())
+            .expect("bundled catalogue installation");
+        import_polar_archive(&harness.database(), &archive)
+            .expect("complete bundled catalogue import");
+        let overview = query_training_sports(&SqliteTrainingSports::new(harness.database()))
+            .expect("complete bundled catalogue overview");
+
+        assert_eq!(overview.session_count, catalogue.entries.len());
+        assert_eq!(overview.sport_collections.len(), catalogue.entries.len());
+        assert_eq!(overview.sports.len(), catalogue.entries.len());
+        assert!(overview.sports.iter().all(|sport| {
+            sport.state == TrainingSportState::Recognized
+                && sport.recognition.as_ref().is_some_and(|recognition| {
+                    recognition
+                        .localized_names
+                        .get("en-US")
+                        .is_some_and(|name| !name.is_empty())
+                        && recognition
+                            .localized_names
+                            .get("es-ES")
+                            .is_some_and(|name| !name.is_empty())
+                })
+        }));
+    }
+
+    #[test]
+    fn joins_catalogue_recognition_with_exact_target_recognition_for_one_sport() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "catalogue-exact-target-normalization.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-catalogue-exact-target-normalization-claim"}"#,
+                ),
+                (
+                    "training-session_2026-06-03T08-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &training_session_json(
+                        "catalogue-exact-target-first",
+                        "2026-06-03T08:00:00",
+                        "2026-06-03T09:00:00",
+                        3_600_000,
+                        "provider-road-cycling-id",
+                    ),
+                ),
+                (
+                    "training-session_2026-06-04T08-00-00_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &training_session_json(
+                        "catalogue-exact-target-second",
+                        "2026-06-04T08:00:00",
+                        "2026-06-04T09:15:00",
+                        4_500_000,
+                        "provider-road-cycling-id",
+                    ),
+                ),
+                (
+                    "training-target-2026-06-03-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Synthetic exact road-cycling session",
+                    "description":"",
+                    "startTime":"2026-06-03T08:00:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"ROAD_CYCLING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive)
+            .expect("catalogue and exact-target normalization import");
+        let catalogue = ProviderSportCatalogueEvidence {
+            source_provider: SOURCE_PROVIDER.to_owned(),
+            catalogue_revision: "polar-catalogue-exact-target-normalization".to_owned(),
+            retrieved_at_utc: "2026-08-31T08:00:00Z".to_owned(),
+            provenance_uri: "https://flow.polar.com/api/sports/sports".to_owned(),
+            provenance_sha256: "b".repeat(64),
+            mapping_version: "polar-flow-sport-suggestion@1".to_owned(),
+            entries: vec![provider_sport_entry(
+                "provider-road-cycling-id",
+                "ROAD_BIKING",
+                "Road cycling",
+                "Ciclismo de carretera",
+                Some(SportFamily::Cycling),
+            )],
+        };
+        install_provider_sport_catalogue(&harness.database(), &catalogue)
+            .expect("provider catalogue installed");
+
+        let overview = query_training_sports(&SqliteTrainingSports::new(harness.database()))
+            .expect("catalogue and exact-target normalized sports");
+
+        assert_eq!(overview.session_count, 2);
+        assert_eq!(overview.sport_collections.len(), 2);
+        assert_eq!(overview.sports.len(), 1);
+        let road_cycling = &overview.sports[0];
+        assert_eq!(road_cycling.state, TrainingSportState::Recognized);
+        assert_eq!(road_cycling.coverage.session_count, 2);
+        assert_eq!(road_cycling.member_session_filter_refs.len(), 2);
+        assert_eq!(
+            road_cycling
+                .recognition
+                .as_ref()
+                .expect("recognized road cycling")
+                .localized_names["en"],
+            "Road cycling"
         );
     }
 

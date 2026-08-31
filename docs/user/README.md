@@ -91,10 +91,12 @@ Sessions entry then open and filter all member sessions. **Edit combination** ca
 combination from equal names, one provider observation, import, or reimport. Changed evidence that invalidates a saved
 relationship leaves the collections separate and asks for explicit review.
 
-The current development preview does not bundle a real Polar sport catalogue. The official complete catalogue
-requires authenticated access, and no redistribution basis has yet been established. Consequently real Polar
-source identifiers remain honestly unknown until the person names them or the documented catalogue gate closes;
-FitFreed does not substitute a guess. Synthetic development evidence exercises every recognition state.
+The development preview bundles a versioned Polar compatibility catalogue generated from Polar Flow's public numeric
+sport mapping and public English and Spanish localization namespaces. Covered source identifiers therefore receive
+ordinary localized names and broad semantic icons without an account connection. A source value outside the bundled
+revision remains honestly unknown until newer trustworthy evidence or the person supplies meaning; FitFreed does not
+substitute a guess. Personal names, collection combinations, and source distinctions remain independent of provider
+recognition. Synthetic development evidence exercises every recognition state.
 Applied refinements remain visible after the editor closes, report the exact result count, and can be removed
 one at a time or cleared together. An empty refined result confirms that the imported history has not changed
 and provides a direct reset. Session detail progressively

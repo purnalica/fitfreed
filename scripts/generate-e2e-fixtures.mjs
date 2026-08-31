@@ -10,6 +10,36 @@ const uuidA = "11111111-2222-4333-8444-555555555555";
 const uuidB = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const uuidC = "12345678-90ab-4cde-8f01-234567890abc";
 const syntheticUsername = "fixture-primary-claim";
+const bundledSportCatalogue = JSON.parse(await readFile(
+  new URL(
+    "../assets/provider-compatibility/polar-flow-sport-catalogue-v1.json",
+    import.meta.url,
+  ),
+  "utf8",
+));
+const bundledSportIdentifiers = new Set(
+  bundledSportCatalogue.entries.map((entry) => entry.sourceIdentifier),
+);
+const recognizedFixtureSportIdentifier = "1";
+const deliberatelyUnknownFixtureSportIdentifiers = {
+  primary: "99",
+  cumulative: "999",
+  unification: "1001",
+  providerNormalization: "1002",
+  adaptiveSignal: "2001",
+  adaptiveStructure: "2002",
+  adaptiveZones: "2003",
+};
+if (!bundledSportIdentifiers.has(recognizedFixtureSportIdentifier)) {
+  throw new Error("the sport-catalogue fixture identifier is not supported by the bundled catalogue");
+}
+for (const identifier of Object.values(deliberatelyUnknownFixtureSportIdentifiers)) {
+  if (bundledSportIdentifiers.has(identifier)) {
+    throw new Error(
+      `the deliberately unknown fixture sport identifier ${identifier} collides with the bundled catalogue`,
+    );
+  }
+}
 
 function recordedOutdoorRoutes() {
   return {
@@ -318,7 +348,7 @@ await createArchive("valid.zip", [
       calories: 600,
       hrAvg: 142,
       hrMax: 171,
-      sportId: "99",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.primary,
       exercises: [{
         identifier: { id: "fixture-training-exercise-a" },
         created: "2026-01-04T08:00:00.000",
@@ -329,7 +359,7 @@ await createArchive("valid.zip", [
         durationMillis: 3_600_000,
         distanceMeters: 10_000,
         calories: 600,
-        sport: { id: "99" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.primary },
         laps: {
           laps: [{
             splitTimeMillis: 1_800_000,
@@ -373,6 +403,47 @@ await createArchive("valid.zip", [
   [`profile-picture-42-LARGE-${uuidA}.data`, "synthetic image"],
   [`future-family-42-${uuidA}.json`, "{}"],
 ]);
+
+await createArchive("sport-catalogue-recognition.zip", [
+  [
+    `account-data-97-${uuidC}.json`,
+    JSON.stringify({
+      exportVersion: "synthetic-sport-catalogue-recognition",
+      username: syntheticUsername,
+    }),
+  ],
+  [
+    `training-session_2026-02-01T08-00-00_97-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-training-session-catalogue-recognition",
+      created: "2026-02-01T09:00:00.000",
+      modified: "2026-02-01T09:00:00.000",
+      startTime: "2026-02-01T08:00:00",
+      stopTime: "2026-02-01T08:45:00",
+      durationMillis: 2_700_000,
+      distanceMeters: 7_500,
+      calories: 420,
+      hrAvg: 138,
+      hrMax: 166,
+      sportId: recognizedFixtureSportIdentifier,
+      exercises: [{
+        identifier: { id: "fixture-training-exercise-catalogue-recognition" },
+        created: "2026-02-01T09:00:00.000",
+        modified: "2026-02-01T09:00:00.000",
+        startTime: "2026-02-01T08:00:00",
+        stopTime: "2026-02-01T08:45:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 2_700_000,
+        distanceMeters: 7_500,
+        calories: 420,
+        sport: { id: recognizedFixtureSportIdentifier },
+        laps: { laps: [], autoLaps: [] },
+        pauseTimes: [],
+      }],
+    }),
+  ],
+]);
+
 await createArchive("overlap.zip", [
   [
     `account-data-77-${uuidB}.json`,
@@ -399,7 +470,7 @@ await createArchive("overlap.zip", [
       calories: 600,
       hrAvg: 142,
       hrMax: 171,
-      sportId: "99",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.primary,
       exercises: [{
         identifier: { id: "fixture-training-exercise-a" },
         created: "2026-01-04T08:00:00.000",
@@ -410,7 +481,7 @@ await createArchive("overlap.zip", [
         durationMillis: 3_600_000,
         distanceMeters: 10_500,
         calories: 600,
-        sport: { id: "99" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.primary },
         laps: {
           laps: [{
             splitTimeMillis: 1_800_000,
@@ -442,7 +513,7 @@ await createArchive("overlap.zip", [
       calories: 300,
       hrAvg: 130,
       hrMax: 155,
-      sportId: "99",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.primary,
       exercises: [{
         identifier: { id: "fixture-training-exercise-c-1" },
         created: "2026-01-06T09:00:00.000",
@@ -453,7 +524,7 @@ await createArchive("overlap.zip", [
         durationMillis: 1_800_000,
         distanceMeters: 3_500,
         calories: 220,
-        sport: { id: "99" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.primary },
         laps: { laps: [], autoLaps: [] },
         pauseTimes: [],
       }, {
@@ -466,7 +537,7 @@ await createArchive("overlap.zip", [
         durationMillis: 900_000,
         distanceMeters: 1_500,
         calories: 80,
-        sport: { id: "100" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.cumulative },
       }],
     }),
   ],
@@ -513,7 +584,7 @@ await createArchive("sport-unification.zip", [
       calories: 360,
       hrAvg: 134,
       hrMax: 162,
-      sportId: "101",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.unification,
       exercises: [{
         identifier: { id: "fixture-training-exercise-unification" },
         created: "2026-01-07T09:30:00.000",
@@ -524,7 +595,7 @@ await createArchive("sport-unification.zip", [
         durationMillis: 2_400_000,
         distanceMeters: 6_000,
         calories: 360,
-        sport: { id: "101" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.unification },
         laps: { laps: [], autoLaps: [] },
         pauseTimes: [],
       }],
@@ -562,7 +633,7 @@ await createArchive("sport-provider-normalization.zip", [
       calories: 310,
       hrAvg: 132,
       hrMax: 158,
-      sportId: "102",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.providerNormalization,
       exercises: [],
     }),
   ],
@@ -598,7 +669,7 @@ await createArchive("sport-correlation-expanded.zip", [
       calories: 390,
       hrAvg: 136,
       hrMax: 164,
-      sportId: "101",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.unification,
       exercises: [],
     }),
   ],
@@ -685,7 +756,7 @@ await createArchive("adaptive-sessions.zip", [
       calories: 410,
       hrAvg: 138,
       hrMax: 166,
-      sportId: "201",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.adaptiveSignal,
       exercises: [{
         identifier: { id: "fixture-adaptive-signal-exercise" },
         created: "2026-01-10T07:20:00.000",
@@ -696,7 +767,7 @@ await createArchive("adaptive-sessions.zip", [
         durationMillis: 2_400_000,
         distanceMeters: 7_200,
         calories: 410,
-        sport: { id: "201" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.adaptiveSignal },
         laps: { laps: [], autoLaps: [] },
         pauseTimes: [],
         samples: recordedTrainingSignals(),
@@ -714,7 +785,7 @@ await createArchive("adaptive-sessions.zip", [
       durationMillis: 2_700_000,
       distanceMeters: 8_000,
       calories: 460,
-      sportId: "202",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.adaptiveStructure,
       exercises: [{
         identifier: { id: "fixture-adaptive-structure-exercise" },
         created: "2026-01-11T08:00:00.000",
@@ -725,7 +796,7 @@ await createArchive("adaptive-sessions.zip", [
         durationMillis: 2_700_000,
         distanceMeters: 8_000,
         calories: 460,
-        sport: { id: "202" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.adaptiveStructure },
         laps: {
           laps: [{
             splitTimeMillis: 0,
@@ -755,7 +826,7 @@ await createArchive("adaptive-sessions.zip", [
       stopTime: "2026-01-12T08:30:00",
       durationMillis: 1_800_000,
       calories: 280,
-      sportId: "203",
+      sportId: deliberatelyUnknownFixtureSportIdentifiers.adaptiveZones,
       exercises: [{
         identifier: { id: "fixture-adaptive-zone-exercise" },
         created: "2026-01-12T08:40:00.000",
@@ -765,7 +836,7 @@ await createArchive("adaptive-sessions.zip", [
         timezoneOffsetMinutes: 60,
         durationMillis: 1_800_000,
         calories: 280,
-        sport: { id: "203" },
+        sport: { id: deliberatelyUnknownFixtureSportIdentifiers.adaptiveZones },
         laps: { laps: [], autoLaps: [] },
         pauseTimes: [],
         zones: recordedTrainingZones(),

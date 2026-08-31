@@ -1,0 +1,12 @@
+{
+  "retrievedAtUtc": "2026-08-30T22:31:31Z",
+  "contractSha256": "e69062ab64994e1ea1d279c8aa906cb6c13ec06d084edaf0e71f17bc889a5098",
+  "sourceSha256": "f795b9f12a030abd2ae68d17cae220fddb94bdb02c8722f70831e2ceb975e942",
+  "localizationRevision": "2.437.0",
+  "localizationIndexSha256": "0a1e97353ad063655c123852c0e6a07d20ce277951d8c2cc8567f29ff4cc6871",
+  "localizationSha256": {
+    "en-US": "e1395ca52a8157c3e1a6dcb82fe34f8750b18e4309213f1bb369808c89b6b845",
+    "es-ES": "15f0db314cda4373db1e19741a73e1c2e0966a6b0b9c653a51a597fd2b73741b"
+  },
+  "mappingVersion": "polar-flow-sport-suggestion@1"
+}

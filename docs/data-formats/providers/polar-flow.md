@@ -309,20 +309,28 @@ vocabulary subset, attribution, and session-recognition rules remain normative i
 
 ### Sport-catalogue acquisition boundary
 
-**Evidence: Official, verified 2026-08-25.** The Dynamic API defines
-`GET https://www.polaraccesslink.com/v4/data/sports/list` as the Polar-managed catalogue and requires OAuth with the
-`sports:read` scope. Its response carries the exact identifier, provider name key, localized long names, parent
-identifier, modification time, sport type, defaults, and supported features required to interpret takeout `sport.id`
-without guessing. The endpoint is not an anonymous static resource and its example values are illustrative rather
-than a usable catalogue.
+**Evidence: Public provider response, verified 2026-08-31.**
+`GET https://flow.polar.com/api/sports/sports` returns the global numeric identifier-to-stable-name-key mapping without
+authentication. Its raw retrieved response has SHA-256
+`f795b9f12a030abd2ae8d17cae220fddb94bdb02c8722f70831e2ceb975e942` and contains 165 distinct identifiers mapped
+to 165 distinct keys. Polar Flow's versioned public `en/sport.json` and `es/sport.json` namespaces supply a non-empty
+long name for every mapped key. The mapping and localization responses contain no participant data. They do not
+publish parent relationships, defaults, descriptions, or feature settings, so the generated compatibility evidence
+omits those fields rather than inferring them.
 
-The current [Polar API Limited License Agreement](https://www.polar.com/en/legal/polar-api-agreement) permits API use
-under its own terms, constrains automated collection to an authorized application, governs redistribution, and
-requires destruction of API Data when the agreement terminates. No official statement found in this review grants a
-GPL-compatible right to publish the retrieved catalogue as source data. FitFreed therefore does not scrape Polar
-sites, commit an unauthenticated reconstruction, or bundle an API response until both retrieval authority and a
-redistribution basis are recorded. This is a missing permission boundary, not a claim that redistribution is legally
-forbidden.
+**Evidence: Official API contract, verified 2026-08-30.** The Dynamic API additionally defines
+`GET https://www.polaraccesslink.com/v4/data/sports/list` as a richer authenticated catalogue with localized names,
+parent relationships, modification times, defaults, and supported features. It corroborates the identifier and stable
+name-key semantics and remains relevant to the optional connected adapter, but it is not an input or prerequisite for
+the bundled archive compatibility snapshot.
+
+**Evidence: Privacy-bounded authenticated diagnostic, verified 2026-08-30.** With explicit participant authorization,
+the current provider catalogue was compared with the already imported local library. Its identifier joined every
+non-null takeout `sport.id` in that library exactly and supplied a human-readable sport identity. No identifier, name,
+date, count, account content, credential, response, or private-library result was retained. This establishes the
+semantic relationship needed by the compatibility adapter; it does not make the inspected undocumented website
+transport a supported product contract, establish universal compatibility from one library, or provide a
+redistribution basis.
 
 Polar's public legacy [AccessLink v3 documentation](https://www.polar.com/accesslink-api/) publishes a broad
 `detailed_sport_info` string vocabulary and its display-name-to-FIT mapping. It does not publish the relationship
@@ -343,9 +351,11 @@ the adapter contract but cannot be installed as production takeout recognition e
 
 The implementation provides versioned session-scoped target evidence, a separate catalogue-evidence boundary,
 deterministic provider-neutral suggestions, personal-override precedence, persistence, and synthetic contract
-fixtures. Closing automatic recognition for sessions without exact target evidence still requires either an
-official redistributable catalogue source or a product-owner-approved authenticated acquisition whose local-only or
-distributable use is compatible with FitFreed's release model.
+fixtures. The accepted product contract requires a bundled, versioned Polar compatibility catalogue so a supported
+takeout resolves ordinary human-readable sport names without account connection. The deterministic generator retains
+only the minimal interoperability mapping and supported human names from independently reproducible public sources;
+it never uses or retains an authenticated participant response. Optional connected-provider synchronization may later
+retrieve newer authorized evidence through the same boundary while also ingesting new sessions.
 
 ### Identity, revision, time, and loss implications
 

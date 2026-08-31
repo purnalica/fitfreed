@@ -50,5 +50,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0035: Separate fallback sport classification from exact recognition](0035-separate-fallback-sport-classification-from-exact-recognition.md) — Accepted on 2026-08-28.
 - [ADR 0036: Unify sport collections through explicit user authorship](0036-unify-sport-collections-through-explicit-user-authorship.md) — Superseded by ADR 0037 on 2026-08-30.
 - [ADR 0037: Apply reusable local sport-correlation rules](0037-apply-reusable-local-sport-correlation-rules.md) — Accepted on 2026-08-30.
+- [ADR 0038: Isolate confidential provider OAuth from the desktop application](0038-isolate-confidential-provider-oauth.md) — Proposed on 2026-08-30; published-contract, security, and product risk gates remain open.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

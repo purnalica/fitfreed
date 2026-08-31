@@ -62,6 +62,7 @@ Directories are created with their first real contract; empty specifications are
 ## Current references
 
 - [Polar Flow personal data export](providers/polar-flow.md)
+- [Polar AccessLink Dynamic API v4](providers/polar-accesslink-v4.md) — descriptive connected-source design reference
 - [Provider sport catalogue evidence version 1](providers/provider-sport-catalogue-v1.md)
 - [Canonical daily activity](canonical/daily-activity.md)
 - [Canonical training session summary](canonical/training-session.md)

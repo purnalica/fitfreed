@@ -24,6 +24,12 @@ reconciliation. Home presented only unknown sport groups, while History exposed 
 dominant unknown groups. Because unusable sport identity is an acceptance-blocking failure reported in four
 product-owner reviews, the product owner ended the review rather than spend more time on the rejected candidate.**
 
+**A later corrected-candidate review started and ended on 2026-08-30 for exact source
+`3e280ca86955b7f2e2c453626dfe53f44bb7e579`. Most represented sports and sessions remained unknown. The product
+owner ended the review because the primary import result remains unusable without trustworthy sport identity. The
+candidate is rejected, and no further product-owner review is requested until this acceptance-blocking behavior is
+corrected and independently verified.**
+
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
 the [X6 profile](../testing/macos-candidate-manual-evaluation.md#x6-product-experience-profile). It records
 observable behavior and bounded participant impact without retaining personal fitness data, source paths,
@@ -84,6 +90,10 @@ product owner.
 The corrected-candidate collection started and ended on 2026-08-30. The product owner explicitly closed the session
 after XH-08 recurred for the fourth time. Observation collection is complete; consolidation and autonomous causal
 analysis may resume without requesting further participant reproduction on this candidate.
+
+The later corrected-candidate collection started and ended on 2026-08-30 after XH-08 reproduced for the fifth time.
+Observation collection is closed. Causal diagnosis, correction, and automated verification may resume, but another
+product-owner review must not be requested until sport recognition is demonstrably corrected.
 
 ## Findings
 
@@ -275,8 +285,9 @@ analysis may resume without requesting further participant reproduction on this 
 
 ### XH-08 — Imported sport types remain entirely unrecognized
 
-- **Status:** reopened by the corrected-candidate review on 2026-08-30. This acceptance-blocking failure has now been
-  reported in four product-owner reviews, and the latest candidate is rejected.
+- **Status:** the public-source catalogue correction, privacy-bounded real-reference recognition predicate, complete
+  changed-tree regression, and repeated independent audit pass locally on 2026-08-31. The previously reviewed
+  candidate remains rejected; exact-source and hosted gates plus a new exact candidate remain pending.
 - **Observed task:** reach Home after importing a long, multi-sport history.
 - **Observed behavior:** Home reports no recognized sports even though the same screen reports multiple recorded sport
   types and the imported history is known to contain several distinct activities.
@@ -291,14 +302,19 @@ analysis may resume without requesting further participant reproduction on this 
   unknown, and personally renamed sports.
 - **Root-cause and correction state:** Polar training records preserve opaque numeric sport references, while the
   evaluated takeout's separate sport-profile artifact supplies names without an authoritative join to those references.
-  FitFreed now has a provider-neutral, versioned
+  FitFreed now bundles a deterministic versioned compatibility snapshot derived from Polar Flow's public numeric
+  mapping and public localization assets. Startup activation, every supported identifier, both locales, existing and
+  fresh libraries, exact repeat, personal precedence, and the complete authorized reference pass their privacy-safe
+  machine predicates. This corrects the current source; it does not retroactively accept the rejected application.
   [catalogue-evidence boundary](../data-formats/providers/provider-sport-catalogue-v1.md) and complete synthetic
   regression coverage through import enrichment, precedence, persistence, Home, History, session, reports, export,
   restart, and reimport.
-  Polar's official complete catalogue requires authenticated `sports:read` access, and no GPL-compatible redistribution
-  grant has been established. No real catalogue is therefore bundled and sport identity is not inferred from route or
-  measurement patterns. The finding remains open until authorized catalogue evidence or an explicitly reviewed
-  local-only acquisition path supplies trustworthy names to the implemented boundary.
+  The initial investigation stopped at Polar's authenticated Dynamic API and therefore left the implemented boundary
+  without a real catalogue. Follow-up research on 2026-08-31 verified that Polar Flow publishes the required numeric
+  identifier mapping and supported localization namespaces without authentication. A deterministic public-source
+  snapshot is now bundled and activated, and the fixed private-reference acceptance predicate resolves every
+  represented source sport without using routes or measurements. Complete candidate regression and experience
+  acceptance remain separate open gates.
 - **Repeated-build observation:** after an authorized real export was imported in the production-native review on
   2026-08-26, every imported sport type remained unknown. No personal sport, count, source value, or archive detail is
   retained in this record. The observation is preserved for the post-session evaluation without concurrent diagnosis
@@ -334,6 +350,25 @@ analysis may resume without requesting further participant reproduction on this 
   participant-assisted session that correlates selected source sessions with the sport names shown in the
   participant's Polar account. Request that session after observation collection ends. No date, sport, route,
   identifier, value, account content, or other personal evidence may enter the repository or retained diagnostics.
+- **Renewed authorization:** after the fifth reproduction, the product owner explicitly renewed permission to inspect
+  the local takeout and offered a bounded authenticated-account correlation session. Local analysis must first reduce
+  the unresolved evidence to the smallest useful set of questions. The same no-retention boundary applies.
+- **Renewed-session finding:** the provider's authenticated sport-profile page exposes a provider sport identifier
+  beside each current profile's visible name, and the authenticated training-history catalogue exposes the complete
+  provider sport vocabulary. Those identifiers match the imported training-session `sport.id` evidence directly and
+  resolve every non-null sport reference in the authorized local library. The relation is not present in the takeout
+  itself. No identifier, name, date, count, account content, credential, or other personal value is retained.
+- **Acquisition boundary correction:** follow-up research on 2026-08-31 verified that the global numeric mapping used
+  by Polar Flow is publicly retrievable without browser state or authentication, and that every mapped stable key has
+  a human-readable long name in both supported public localization namespaces. Those public inputs, not the prior
+  participant-authorized diagnostic response, are the reproducible catalogue source. AccessLink version 4 remains the
+  official contract for later optional account synchronization.
+- **Product-owner catalogue direction:** FitFreed must ship an out-of-the-box Polar compatibility catalogue so
+  archive-only users receive ordinary human-readable sport names without connecting an account. A Polar connection
+  remains optional and belongs to the established connected-provider roadmap: when authorized, it may refresh sport
+  evidence while also ingesting new or amended sessions. The bundled catalogue still requires independently
+  reviewable provenance and a lawful redistribution basis; this direction does not authorize retaining or publishing
+  participant account content.
 - **Post-session root cause:** privacy-minimized, read-only predicates over the authorized local library establish that
   one opaque source sport reference can occur both with and without exact session-scoped sport evidence, and can be
   associated with more than one exact sport code. The discovery projection deliberately separates exact recognition
@@ -364,6 +399,10 @@ analysis may resume without requesting further participant reproduction on this 
   subset, but dominant collections remain unknown. The product owner ended the review immediately because the same
   fundamental failure had already consumed three earlier review sessions. No sport, count, provider value, archive
   detail, or personal history enters this record.
+- **Later corrected-candidate observation:** exact source `3e280ca86955b7f2e2c453626dfe53f44bb7e579` still presents
+  most represented sports and sessions as unknown. The participant reports no visible improvement in the repeated
+  acceptance-blocking behavior and questions how many further reviews of the same unresolved problem would be
+  required. No sport, count, provider value, archive detail, or personal history enters this record.
 - **Closing visual evidence:** participant-provided Home and History screenshots confirm the inconsistent projection,
   the predominance of unknown groups, and manual naming as the primary recovery. The screenshots and their personal
   library values are not retained.
@@ -784,6 +823,15 @@ analysis may resume without requesting further participant reproduction on this 
   non-overlap, contained actions, persistent-navigation reveal, accessibility, and no page-level horizontal overflow.
   Synthetic wide and maximum-zoom compact captures were visually reviewed; no participant value is retained.
 
+### XH-29 — Language changes fail while library reconciliation is active
+
+- **Status:** observed during the later corrected-candidate product-owner experience review; no concurrent analysis
+  or disposition.
+- **Observed task:** change the application language while library reconciliation is active.
+- **Observed behavior:** the language change is not saved, the previous settings are restored, and FitFreed displays:
+  “FitFreed could not save the application settings. The previous settings have been restored; restart the
+  application before trying again.”
+
 ## Passing observations
 
 ### XH-P01 — Import cancellation permits an immediate retry
@@ -810,7 +858,22 @@ analysis may resume without requesting further participant reproduction on this 
 - **Boundary:** native external opening and destination selection pass for the current X7 review source. This does not
   accept the complete acquisition or import journey.
 
+### XH-P04 — The library remains responsive during reconciliation
+
+- **Observed task:** navigate to other product areas while library reconciliation is active.
+- **Observed behavior:** the application responds promptly and the participant can use other product areas without
+  perceptible interaction problems during the observed reconciliation period.
+- **Product expectation:** importing a newer archive or data from another provider must not prevent the user from
+  continuing to use the existing library.
+- **Boundary:** this observation records the experience of the active review only; it does not characterize every
+  reconciliation phase or dataset size.
+
 ## Interim human disposition
+
+The later corrected candidate from exact source `3e280ca86955b7f2e2c453626dfe53f44bb7e579` is rejected. Most represented
+sports and sessions remain unknown, so the imported library lacks the primary identity needed to explore, compare,
+report on, or understand training history. The product owner ended the review and will not repeat this validation until
+sport recognition is corrected and the result is established without further participant functional QA.
 
 The corrected candidate from exact source `6a71002da2c8a63401f3291cff70ad898868ebeb` is rejected. Late
 reconciliation loses perceptible fluidity, XH-08 still prevents a person from recognizing the primary organizing

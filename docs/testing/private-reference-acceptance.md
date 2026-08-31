@@ -2,7 +2,7 @@
 
 ## Purpose and boundary
 
-This maintainer-only check evaluates the explicitly supplied private Polar Flow reference ZIP against the production importer without touching the normal FitFreed library. It is a local compatibility gate, not a fixture generator, user workflow, or hosted-CI job.
+This maintainer-only check evaluates the explicitly supplied private Polar Flow reference ZIP against the production importer and bundled sport catalogue without touching the normal FitFreed library. It is a local compatibility gate, not a fixture generator, user workflow, or hosted-CI job.
 
 The archive remains read-only at its original location. The verifier creates a random operating-system temporary directory, imports into a temporary SQLite library, repeats the same package, queries only existence and source-consistency predicates, and removes the temporary directory when the process exits. It never prints the archive path, temporary path, artifact names, source-subject claim, scoped digest, opaque origin, fitness values, dates, counts, durations, coverage distribution, or database contents.
 
@@ -21,10 +21,11 @@ The command emits one JSON object containing only:
 - a fixed privacy-safe terminal code on failure;
 - whether coverage completed;
 - whether daily-activity, training, sleep, and nightly-recovery history are each present;
-- whether all supported history used one opaque origin; and
+- whether all supported history used one opaque origin;
+- whether every represented source sport was recognized, except for records whose source explicitly provides no sport; and
 - exact-repeat behavior.
 
-Exit status `0` requires a completed first import, complete artifact coverage, non-empty daily-activity, training, sleep, and nightly-recovery history under one opaque origin, and a successful exact-repeat fast path. The predicate and its four-domain requirement are exercised by the normal `npm run test:rust` command. Any other result keeps the current private-reference acceptance open.
+Exit status `0` requires a completed first import, complete artifact coverage, non-empty daily-activity, training, sleep, and nightly-recovery history under one opaque origin, complete recognition of represented source sports, and a successful exact-repeat fast path. A record without any source sport remains honestly unavailable and does not fail the sport predicate. The predicate and its four-domain and sport-identity requirements are exercised by the normal `npm run test:rust` command. Any other result keeps the current private-reference acceptance open.
 
 ## Evidence handling
 
