@@ -98,8 +98,10 @@ revision-isolated production-native bundle inspection for executable-input finge
 source `3e280ca86955b7f2e2c453626dfe53f44bb7e579` rejected the application again because most represented sports and
 sessions remained unknown. The authenticated diagnostic proves that Polar's current catalogue has an exact identifier
 join and human-readable names, but neither that private response nor one participant library provides redistribution
-authority. X7-R8.13 therefore reopens the deterministic product path at catalogue acquisition and bundling. No new
-candidate or product-owner functional review is eligible until the automatic-recognition predicate passes.
+authority. X7-R8.13 therefore reopens the deterministic product path at catalogue acquisition and bundling. Exact
+source `a447910` now retains the unchanged complete local product evidence and passes the corrected local packaged
+campaign, complete hosted campaign, immutable executable-input evidence, and revision-isolated native inspection. Its
+bounded product-owner experience review is the next gate; machine evidence does not accept that experience.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust failed that
 human gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -344,14 +346,14 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C4 | Superseded by X7 — its reopened navigation findings are implemented and verified in X7-R2 | Prominent summaries and collections open useful evidence |
 | X6-C5 | Superseded by X7 — its reopened presentation findings are implemented and verified in X7-R3 through X7-R6 | Data is concise, aligned, precise, visual, and progressively disclosed |
 | X7-P0 | Complete — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
-| X7-R1 | Reopened by repeated-review XH-03; package identity and typed protection cause are machine-corrected locally, exact clean and hosted gates remain | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
+| X7-R1 | Machine-complete — the XH-03 package-identity and typed-protection correction retains its exact clean and hosted evidence | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
 | X7-R2 | Machine-complete — exact represented-sport identity, comparison presets, natural drill-down, and complete hosted campaign passed | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Machine-complete — independent density review and exact local and hosted presentation gates passed | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Machine-complete — mature renderers, route-relative zoom, and exact local and hosted analytical gates passed | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
-| X7-R5 | Reopened by repeated-review XH-24; unnamed provider phases are machine-corrected and private-reference compatible, exact clean and hosted gates remain | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
+| X7-R5 | Machine-complete — the XH-24 unnamed-provider-phase correction retains exact clean, hosted, and private-reference evidence | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | Reopened — R8.0 through R8.12 retain machine evidence, but the later 2026-08-30 review rejected source `3e280ca`; R8.13 owns the missing bundled catalogue and no candidate is eligible yet | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Awaiting human evaluation — R8.0 through R8.12 retain machine evidence; R8.13 closes the missing bundled catalogue and exact source `a447910` passes every automatable admission gate | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -3607,6 +3609,18 @@ adaptive-session, and catalogue-recognition journeys without changing the expect
 acceptance assertion. A focused behavioral regression, both affected packaged scenarios, and the complete packaged
 campaign pass locally. The complete hosted campaign, update journey, immutable marker, and exact native admission
 remain open until one corrected source passes end to end.
+
+**Exact native-admission checkpoint — 2026-08-31:** corrected source
+`a4479100002c2229c51264fc8fd0dfe0a2cab73e` passes [repository safety
+`33414102039`](https://github.com/purnalica/fitfreed/actions/runs/33414102039) and the complete [hosted campaign
+`33414102138`](https://github.com/purnalica/fitfreed/actions/runs/33414102138). The macOS lane finishes in 50 minutes
+19 seconds under the 95-minute aggregate allowance and passes the portable lane, X6 bundle inspection, every
+performance and installation boundary, the complete instrumented package, replacement, and recovery. GitHub records
+immutable executable-input fingerprint `89f0f31ee8821f426b0a7b745478fc480706e8ce96303746d6045d818fab2ea5`.
+The clean local revision-isolated application independently passes complete-bundle inspection with identifier
+`org.fitfreed.desktop.x6-review.ra4479100002c` and production native adapters. Every automatable X7-R8.13 admission
+gate is closed. The application remains unaccepted until the bounded product-owner experience review records its
+verdict.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
 

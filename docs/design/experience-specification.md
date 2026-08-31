@@ -18,8 +18,10 @@ verified before another human gate or release preparation resumes. X7-R8.9 throu
 for the reusable sport-correlation, documented provider-normalization, and responsive changed-package reconciliation
 boundaries plus complete compact sport-card composition. The later source `3e280ca` review nevertheless rejected the
 application because most represented sports and sessions remained unknown. X7-R8.13 now owns the missing bundled
-compatibility catalogue, and no repeated candidate gate is eligible until its automatic-recognition evidence passes.
-Implementation and machine evidence do not by themselves authorize a release claim.
+compatibility catalogue. Exact source `a447910` retains automatic-recognition evidence and passes the corrected local
+packaged campaign, complete hosted campaign, immutable evidence, and revision-isolated native inspection, so the
+bounded product-owner experience review is now eligible. Implementation and machine evidence do not accept that
+experience or authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

@@ -2,10 +2,11 @@
 
 ## Status
 
-Milestone 1 is complete. Milestone 2 retains substantial implemented capability and machine evidence but is reopened at
-X7-R8.13. The bundled automatic sport-identity correction, complete changed-tree regression, private-reference
-predicate, and repeated independent audit pass locally; exact-source, hosted, and product-owner experience gates
-remain open and no current MVP candidate is accepted. The implemented
+Milestone 1 is complete. Milestone 2 retains substantial implemented capability and is awaiting the bounded
+product-owner gate at X7-R8.13. The bundled automatic sport-identity correction, complete unchanged product regression,
+private-reference predicate, repeated independent audit, exact-source local packaged and hosted campaigns, immutable
+marker, and revision-isolated native inspection pass; no current MVP candidate is accepted until the human experience
+gate records its verdict. The implemented
 Milestone 3 public-release engineering baseline remains available but cannot advance until Milestone 2 regains product
 acceptance. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
@@ -57,8 +58,12 @@ functional package, and real-process restart. Its adaptive-session continuation 
 WebdriverIO re-resolves an indexed transient status collection after the application has legitimately replaced one
 node. The current changed tree centralizes the already-proven atomic renderer-snapshot synchronizer without changing
 product behavior or an acceptance assertion; its focused regression, both affected packaged scenarios, and complete
-packaged campaign pass locally. A clean hosted campaign, its immutable executable-input marker, and exact native
-admission must pass before a new product-owner experience review is eligible.
+packaged campaign pass locally. Corrected exact source `a447910` then passes [repository safety
+`33414102039`](https://github.com/purnalica/fitfreed/actions/runs/33414102039), the complete [hosted campaign
+`33414102138`](https://github.com/purnalica/fitfreed/actions/runs/33414102138), immutable executable-input fingerprint
+`89f0f31ee8821f426b0a7b745478fc480706e8ce96303746d6045d818fab2ea5`, and local revision-isolated native admission
+with bundle identifier `org.fitfreed.desktop.x6-review.ra4479100002c`. The bounded product-owner experience review is
+now the only open X7-R8.13 admission gate.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

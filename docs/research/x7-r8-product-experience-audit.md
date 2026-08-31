@@ -27,7 +27,10 @@ label. Public acquisition, deterministic generation, startup activation, complet
 existing-library enrichment, personal precedence, localization, session discovery, exact reimport, restart,
 performance, packaging, update recovery, and privacy-bounded reference compatibility were challenged separately. The
 verdict is **pass with no unresolved critical or major product finding**. This changed-tree verdict does not create an
-exact source, hosted result, revision-isolated application, or human acceptance.
+exact source, hosted result, revision-isolated application, or human acceptance. Subsequent exact source `a447910`
+passes the corrected local packaged campaign, complete hosted campaign, immutable executable-input evidence, and
+revision-isolated native inspection while retaining this unchanged product audit. Those later gates admit the bounded
+product-owner review but do not change this audit verdict or provide human acceptance.
 
 No private archive, library, route, date, quantity, source locator, screenshot, host profile, or participant identity
 is audit evidence. Generated applications, databases, exports, logs, and screenshots remain ignored local artifacts.
