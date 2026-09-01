@@ -3700,7 +3700,17 @@ slider input, starved the WebView for minutes, and left the handle at its origin
 slider `realtime` processing to `false`; ECharts moves the handle during the gesture and performs the analytical
 recalculation once on release. A unit contract protects that policy. Two consecutive rebuilt packaged campaigns pass
 the single-series SVG, default multi-lane SVG, maximum four-lane canvas, dense route, and every subsequent domain
-budget without retries. Complete exact-source verification must still pass before this checkpoint is admitted.
+budget without retries.
+
+The complete exact-source `verify:full` gate for commit `7b2983a` now passes. It includes dependency and repository
+contracts, 195 automation tests, 481 presentation tests, two updater tests, 305 host tests, 250 application tests,
+69 domain tests, strict lint and formatting, all three release-mode performance campaigns, exhaustive packaged
+behavior, process restarts, sport-catalogue persistence, the hardened dense Insights campaign, successful update
+replacement, deliberate update failure and recovery, production packaging, cold launch, bundle inspection, and
+recovery preparation. The exhaustive functional journey completed in 3 minutes 15.2 seconds and the hardened dense
+Insights journey in 1 minute 44.8 seconds. The local exact-source gate is admitted without retries. Synchronization,
+hosted verification, revision-isolated native inspection, independent audit, and bounded product-owner review remain
+required; this checkpoint alone does not rehabilitate the rejected X7-R8.13 candidate.
 
 The same exact gate exposed an independent unstable route-preview observation before the chart: WebDriver's
 accessible-name selector reported that the exact route preview was absent while the automatic failure screenshot
