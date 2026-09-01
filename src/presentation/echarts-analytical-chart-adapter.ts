@@ -458,6 +458,7 @@ export function compileEChartsAnalyticalChart(
           type: "slider",
           xAxisIndex: coordinateAxisIndexes,
           filterMode: "none",
+          realtime: false,
           height: scaledPixels(22, palette),
           bottom: scaledPixels(8, palette),
           borderColor: palette.line,

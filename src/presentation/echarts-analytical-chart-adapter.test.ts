@@ -81,6 +81,10 @@ describe("compileEChartsAnalyticalChart", () => {
     ]);
     expect(compiled.option.yAxis[0].axisLabel.formatter(4.999)).toBe("5:00");
     expect(compiled.option.dataZoom).toHaveLength(2);
+    expect(compiled.option.dataZoom[1]).toMatchObject({
+      type: "slider",
+      realtime: false,
+    });
     expect(compiled.option.series).toEqual([
       expect.objectContaining({
         connectNulls: false,

@@ -533,43 +533,8 @@ async function measureTrainingSignalOverview() {
   };
 }
 
-async function chartRendererFingerprint(selector) {
-  return browser.execute((expectedSelector) => {
-    const renderer = document.querySelector(expectedSelector);
-    if (!(renderer instanceof HTMLElement)) return null;
-    let checksum = 2_166_136_261;
-    const canvas = renderer.querySelector("canvas");
-    if (canvas instanceof HTMLCanvasElement) {
-      const context = canvas.getContext("2d");
-      if (!context) return null;
-      const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
-      const stride = Math.max(4, Math.floor(data.length / 16_384 / 4) * 4);
-      for (let index = 0; index < data.length; index += stride) {
-        checksum ^= data[index];
-        checksum = Math.imul(checksum, 16_777_619);
-        checksum ^= data[index + 1] ?? 0;
-        checksum = Math.imul(checksum, 16_777_619);
-        checksum ^= data[index + 2] ?? 0;
-        checksum = Math.imul(checksum, 16_777_619);
-        checksum ^= data[index + 3] ?? 0;
-        checksum = Math.imul(checksum, 16_777_619);
-      }
-      return `canvas:${checksum >>> 0}`;
-    }
-    const svg = renderer.querySelector("svg");
-    if (!(svg instanceof SVGSVGElement)) return null;
-    const markup = svg.innerHTML;
-    const stride = Math.max(1, Math.floor(markup.length / 16_384));
-    for (let index = 0; index < markup.length; index += stride) {
-      checksum ^= markup.charCodeAt(index);
-      checksum = Math.imul(checksum, 16_777_619);
-    }
-    return `svg:${checksum >>> 0}`;
-  }, selector);
-}
-
-async function dragChartZoomBoundary(selector, boundary, targetFraction) {
-  const geometry = await browser.execute((expectedSelector, expectedBoundary, expectedTarget) => {
+async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
+  return browser.execute((expectedSelector, expectedBoundary, expectedTarget) => {
     const renderer = document.querySelector(expectedSelector);
     if (!(renderer instanceof HTMLElement)) return null;
     renderer.scrollIntoView({ block: "center", inline: "nearest" });
@@ -618,7 +583,9 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
       const selectedHandle = expectedBoundary === "start" ? startHandle : endHandle;
       const fromX = expectedBoundary === "start" ? trackLeft : trackRight;
       return {
+        candidateCount: candidates.length,
         fromX,
+        handles: { end: endHandle, start: startHandle },
         targetX: trackLeft + (trackRight - trackLeft) * expectedTarget,
         y: selectedHandle.y,
         rendererBounds: {
@@ -698,6 +665,10 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
       renderer: "canvas",
     };
   }, selector, boundary, targetFraction);
+}
+
+async function dragChartZoomBoundary(selector, boundary, targetFraction) {
+  const geometry = await inspectChartZoomGeometry(selector, boundary, targetFraction);
   if (!geometry) throw new Error("the analytical chart renderer was not available");
   if (geometry.diagnostic) {
     throw new Error(`${geometry.diagnostic}: ${JSON.stringify(geometry.inspectedShapes)}`);
@@ -707,18 +678,20 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
   const y = Math.round(geometry.y);
   const interaction = await browser.executeAsync((expectedSelector, coordinates, done) => {
     const renderer = document.querySelector(expectedSelector);
-    const rendererRoot = renderer?.querySelector("canvas, svg");
-    if (!(rendererRoot instanceof Element)) {
-      done({ duration: null, error: "the chart renderer root was not available" });
+    const rendererContent = renderer?.querySelector("canvas, svg");
+    const viewportRoot = rendererContent?.parentElement;
+    if (!(viewportRoot instanceof HTMLElement)) {
+      done({ duration: null, error: "the chart viewport root was not available" });
       return;
     }
     const started = window.performance.now();
     const channel = new MessageChannel();
     const steps = 60;
+    const observedEvents = [];
     let step = 0;
 
     function dispatch(type, clientX, buttons) {
-      const rootBounds = rendererRoot.getBoundingClientRect();
+      const rootBounds = viewportRoot.getBoundingClientRect();
       const inputEvent = new MouseEvent(type, {
         bubbles: true,
         button: 0,
@@ -732,7 +705,20 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
         offsetX: { value: clientX - rootBounds.left },
         offsetY: { value: coordinates.y - rootBounds.top },
       });
-      rendererRoot.dispatchEvent(inputEvent);
+      viewportRoot.dispatchEvent(inputEvent);
+      if (type !== "mousemove" || buttons === 0 || step === 1 || step === steps) {
+        observedEvents.push({
+          buttons: inputEvent.buttons,
+          defaultPrevented: inputEvent.defaultPrevented,
+          offsetX: inputEvent.offsetX,
+          offsetY: inputEvent.offsetY,
+          type,
+          viewportCursor: viewportRoot.style.cursor,
+          which: inputEvent.which,
+          zrX: inputEvent.zrX ?? null,
+          zrY: inputEvent.zrY ?? null,
+        });
+      }
     }
 
     channel.port1.onmessage = () => {
@@ -750,60 +736,101 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
       dispatch("mouseup", coordinates.targetX, 0);
       channel.port1.close();
       channel.port2.close();
-      done({ duration: window.performance.now() - started, error: null });
+      done({
+        duration: window.performance.now() - started,
+        error: null,
+        observedEvents,
+      });
     };
 
+    dispatch("mousemove", coordinates.fromX, 0);
     dispatch("mousedown", coordinates.fromX, 1);
     channel.port2.postMessage(null);
   }, selector, { fromX, targetX, y });
   if (interaction.error) throw new Error(interaction.error);
-  return { ...geometry, duration: interaction.duration };
+  return { ...geometry, ...interaction };
+}
+
+async function waitForChartZoomBoundaryMove(
+  selector,
+  boundary,
+  previousX,
+  interaction,
+) {
+  let observedGeometry = null;
+  await browser.waitUntil(
+    async () => {
+      observedGeometry = await inspectChartZoomGeometry(
+        selector,
+        boundary,
+        boundary === "start" ? 0.2 : 0.8,
+      );
+      return observedGeometry !== null
+        && Math.abs(observedGeometry.fromX - previousX) >= 20;
+    },
+    {
+      timeout: 5_000,
+      timeoutMsg: `the analytical chart did not move its ${boundary} handle: ${JSON.stringify({
+        interaction,
+        observedGeometry,
+        previousX,
+      })}`,
+    },
+  );
 }
 
 async function verifyTrainingChartPointerZoomRemainsResponsive() {
   const rendererSelector = ".training-cross-signal-chart .analytical-chart-renderer";
+  let initialGeometry = null;
   await browser.waitUntil(
-    async () => await chartRendererFingerprint(rendererSelector) !== null,
+    async () => {
+      initialGeometry = await inspectChartZoomGeometry(rendererSelector, "start", 0.2);
+      return initialGeometry !== null;
+    },
     { timeout: 5_000, timeoutMsg: "the dense analytical chart renderer was not available" },
   );
-  const initialChecksum = await chartRendererFingerprint(rendererSelector);
   const startGeometry = await dragChartZoomBoundary(rendererSelector, "start", 0.2);
-  await browser.waitUntil(
-    async () => await chartRendererFingerprint(rendererSelector) !== initialChecksum,
-    {
-      timeout: 5_000,
-      timeoutMsg: `the analytical chart did not respond to its start handle: ${JSON.stringify(startGeometry)}`,
-    },
+  await waitForChartZoomBoundaryMove(
+    rendererSelector,
+    "start",
+    initialGeometry.fromX,
+    startGeometry,
   );
-  const startAdjustedChecksum = await chartRendererFingerprint(rendererSelector);
-  await dragChartZoomBoundary(rendererSelector, "end", 0.8);
-  await browser.waitUntil(
-    async () => await chartRendererFingerprint(rendererSelector) !== startAdjustedChecksum,
-    { timeout: 5_000, timeoutMsg: "the analytical chart did not respond to its end handle" },
+  const initialEndGeometry = await inspectChartZoomGeometry(rendererSelector, "end", 0.8);
+  const endGeometry = await dragChartZoomBoundary(rendererSelector, "end", 0.8);
+  await waitForChartZoomBoundaryMove(
+    rendererSelector,
+    "end",
+    initialEndGeometry.fromX,
+    endGeometry,
   );
   await expect($("#training-detail-signals")).toBeDisplayed();
 }
 
 async function verifyTrainingSingleSignalChartPointerZoomRemainsResponsive() {
   const rendererSelector = ".training-signal .analytical-chart-renderer";
+  let initialGeometry = null;
   await browser.waitUntil(
-    async () => await chartRendererFingerprint(rendererSelector) !== null,
+    async () => {
+      initialGeometry = await inspectChartZoomGeometry(rendererSelector, "start", 0.2);
+      return initialGeometry !== null;
+    },
     { timeout: 5_000, timeoutMsg: "the single-signal chart renderer was not available" },
   );
-  const initialFingerprint = await chartRendererFingerprint(rendererSelector);
   const startGeometry = await dragChartZoomBoundary(rendererSelector, "start", 0.2);
-  await browser.waitUntil(
-    async () => await chartRendererFingerprint(rendererSelector) !== initialFingerprint,
-    {
-      timeout: 5_000,
-      timeoutMsg: `the single-signal chart did not respond to its start handle: ${JSON.stringify(startGeometry)}`,
-    },
+  await waitForChartZoomBoundaryMove(
+    rendererSelector,
+    "start",
+    initialGeometry.fromX,
+    startGeometry,
   );
-  const startAdjustedFingerprint = await chartRendererFingerprint(rendererSelector);
-  await dragChartZoomBoundary(rendererSelector, "end", 0.8);
-  await browser.waitUntil(
-    async () => await chartRendererFingerprint(rendererSelector) !== startAdjustedFingerprint,
-    { timeout: 5_000, timeoutMsg: "the single-signal chart did not respond to its end handle" },
+  const initialEndGeometry = await inspectChartZoomGeometry(rendererSelector, "end", 0.8);
+  const endGeometry = await dragChartZoomBoundary(rendererSelector, "end", 0.8);
+  await waitForChartZoomBoundaryMove(
+    rendererSelector,
+    "end",
+    initialEndGeometry.fromX,
+    endGeometry,
   );
 }
 
@@ -1156,7 +1183,9 @@ async function openDenseTrainingRouteRangeEditor() {
   await $(`aria/${copy.useCurrentAsFirstBoundary}`).click();
   await measureTrainingRouteSelection({ value: "399", label: "Point 20,001 of 20,001" });
   await $(`aria/${copy.useCurrentAsSecondBoundary}`).click();
-  await $(`aria/${copy.draftPreviewRegion}`).waitForDisplayed({ timeout: 10_000 });
+  const exactPreview = await $(".training-route-draft-summary");
+  await exactPreview.waitForDisplayed({ timeout: 10_000 });
+  await expect(exactPreview).toHaveAttribute("aria-label", copy.draftPreviewRegion);
   await waitForExactControlCount(
     ".training-route-range-handles input[type='range']",
     2,
