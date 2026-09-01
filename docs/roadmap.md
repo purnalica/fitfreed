@@ -184,6 +184,35 @@ verification of private alpha updates.
 
 **Exit criteria:** Gatekeeper recognizes the application as signed and notarized, every public release gate passes, and no unsigned binary is exposed through the public release channel.
 
+### Milestone 4 — Public Linux MVP parity
+
+**Outcome:** the accepted first-MVP capability baseline is available to Linux users through a native, documented,
+updateable, recoverable, and supportable public distribution path without changing product functionality.
+
+**Dependency:** the public macOS MVP is accepted and published. A detailed Linux execution plan will establish the
+supported distributions, architectures, package formats, trust model, update mechanism, and clean-environment test
+matrix before implementation begins.
+
+**Exit criteria:** the selected Linux packages pass capability-parity, clean installation, first launch, update,
+migration, interruption recovery, removal, accessibility, localization, and supported-environment verification.
+
+### Milestone 5 — Public Windows MVP parity
+
+**Outcome:** the same accepted first-MVP capability baseline is available to Windows users through a native,
+documented, updateable, recoverable, and supportable public distribution path without changing product functionality.
+
+**Dependency:** the public Linux MVP is accepted and published. A detailed Windows execution plan will establish the
+supported Windows versions, architectures, package and signing model, update mechanism, and clean-environment test
+matrix before implementation begins.
+
+**Exit criteria:** the selected Windows package passes capability-parity, clean installation, first launch, update,
+migration, interruption recovery, removal, accessibility, localization, and supported-environment verification.
+
+**Cross-platform scope lock:** no post-MVP capability enters implementation between Milestones 3 and 5. Defect,
+security, compatibility, platform-integration, distribution, accessibility-parity, localization-parity, and required
+documentation changes continue because they protect the same baseline rather than expand it. Functional evolution
+resumes only after Milestone 5 is published.
+
 ### Active MVP experience delivery stage
 
 **Outcome:** redesign the existing MVP into one coherent journey from product promise and import to recognizable history, visual session understanding, and a durable portable result.
@@ -218,6 +247,11 @@ absent.
 
 Minimum operating-system versions, architectures, packaging, signing, and update mechanisms will be decided per platform before its implementation milestone.
 
+The accepted first-MVP capability baseline remains frozen through step 4. Platform expansion therefore precedes
+additional data sources, connected APIs, MCP, external cartography, advanced personalization, and every other
+post-MVP functional track. Only changes required to correct, secure, integrate, distribute, or preserve parity of the
+same baseline may enter before all three public platform releases exist.
+
 ### Data-source track
 
 1. Polar Flow importer in the MVP.
@@ -234,8 +268,8 @@ source-channel removal, and atomic checkpoint direction is documented in
 implementation remains gated by project-side published-contract analysis of GPL-client eligibility, native OAuth,
 local retention, catalogue redistribution, and deletion semantics; [ADR 0038](architecture/decisions/0038-isolate-confidential-provider-oauth.md)
 remains Proposed while those evidence, security, and product risk gates are open. Provider assistance is not part of
-the critical path. The relative scheduling of platform expansion and additional data sources remains a product
-decision after MVP evaluation. Neither track may compromise the provider-neutral core.
+the critical path. Platform publication now precedes additional data-source functionality under the cross-platform
+scope lock above. Neither track may compromise the provider-neutral core.
 
 ### Cartography track
 

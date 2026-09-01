@@ -14,6 +14,12 @@ The milestone is complete only when one exact public candidate passes every auto
 
 This plan adds public macOS distribution to the implemented MVP. It does not add product analytics, new data domains, another provider, Intel support, Linux, Windows, an application server, forced updates, telemetry, a custom domain, or a general release platform.
 
+Public macOS release begins a product-wide functional scope lock rather than opening post-MVP feature growth. The
+same accepted capability baseline proceeds next to Linux and then Windows under the roadmap's Milestones 4 and 5.
+Only defect, security, compatibility, platform-integration, distribution, accessibility-parity,
+localization-parity, and required documentation work may change the baseline before all three public platform
+releases exist.
+
 No unsigned binary may enter a public channel. No production private key, password, certificate export, API key, personal account value, private export, application library, or machine-local path may enter Git, GitHub artifacts, logs, Pages, or Releases.
 
 ## Increment M3.1 — Executable platform boundary

@@ -62,6 +62,12 @@ The project will remain legally precise: it will not claim that the GDPR require
 - Supported platforms will receive straightforward native installation packages and an in-application update path.
 - The MVP will support macOS only.
 - Linux will be the next supported desktop platform, followed by Windows.
+- The accepted first-MVP capability set will remain functionally frozen while that same product baseline is
+  published for macOS, Linux, and Windows in that order. Post-MVP capability growth begins only after the first
+  supported public release exists on all three platforms.
+- Defect correction, security remediation, platform integration, installation and update work, accessibility and
+  localization parity, compatibility maintenance, and documentation required to publish or support that baseline do
+  not constitute functional scope growth and remain mandatory throughout the cross-platform sequence.
 - The macOS MVP will be a private evaluation alpha without Apple code signing or notarization.
 - No unsigned macOS binary will be promoted to a public release channel.
 - The first publicly distributed macOS release will use Developer ID signing and Apple notarization.
@@ -606,6 +612,10 @@ The MVP explicitly excludes:
 - A runtime importer plug-in marketplace.
 - Model Context Protocol access.
 - Connected provider-API synchronization.
+
+These exclusions define the first-MVP capability baseline, not a decision to leave Linux and Windows unsupported.
+After the macOS implementation and public-release gates pass, the unchanged baseline proceeds to Linux and then
+Windows publication before any excluded or otherwise post-MVP capability is scheduled for implementation.
 
 ### NFR-001 — Local scalability
 
