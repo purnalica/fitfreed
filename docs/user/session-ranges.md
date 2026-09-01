@@ -46,6 +46,11 @@ track. Its two boundary controls visit only exact timed route points, and a map 
 in the inspector. The map and **Personal ranges** destination compose one draft and one command lifecycle, so a
 range saved or adjusted in either place is immediately the same durable object in the other.
 
+The selected boundaries and map markers follow pointer or keyboard movement immediately. The exact distance,
+duration, and altitude preview is recalculated from the complete recorded route after boundary movement settles;
+FitFreed shows that calculation state and does not queue every intermediate pointer position. You can continue
+moving either boundary, cancel the draft, or use the rest of the session view while the latest preview is prepared.
+
 When a regular measurement is the session's leading evidence, its chart offers the equivalent task beside the
 signal. The recorded-position control visits source samples with pointer or keyboard, including samples whose
 value is missing but whose elapsed position was recorded. Creating from that position chooses it and the next

@@ -83,7 +83,8 @@ Automated testing is the primary source of evidence that the product behaves cor
   evidence never creates duplicate table or scroll-region landmarks. The UI contract rejects direct production
   `<table>` ownership outside `DataTable` and CSS that assigns table alignment from first, last, or ordinal column
   position.
-- Personal-range creation, selection, exact elapsed validation, rename, immutable-coordinate adjustment, legacy anchoring, reimport review, optimistic-conflict draft retention, guarded removal, remount restoration, accessible signal-chart range descriptions, concise summary disclosure, both locales, and opaque-capability exclusion.
+- Personal-range creation, selection, exact elapsed validation, rename, immutable-coordinate adjustment, legacy anchoring, reimport review, optimistic-conflict draft retention, guarded removal, remount restoration, accessible signal-chart range descriptions, concise summary disclosure, both locales, and opaque-capability exclusion. Route-preview scheduling tests issue a rapid boundary burst while one exact query remains unresolved and require one active request plus only the latest pending pair. The packaged dense-route journey continuously moves both native range controls across 20,001 exact points, waits for the final complete-route preview, cancels, and proves the next route interaction remains responsive.
+- Analytical-chart zoom tests drag both rendered ECharts slider handles through sustained message-channel-separated pointer input in single-series SVG, default multi-lane SVG, and maximum four-lane canvas charts. They require changed renderer evidence and a responsive session workspace; configuration or control presence alone is insufficient. The input driver must not depend on animation-frame visibility because the packaged WebView may suspend those callbacks during automation.
 - Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail
   replacement, and progressive-disclosure boundaries. Activity retains its visual and day actions while its exact
   table is closed, then reveals the same gap-aware rows without another application query and remains coherent
@@ -153,7 +154,9 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Every in-WebView interaction measurement waits for its exact complete control set before starting the browser clock. A visible workspace container is not readiness evidence for asynchronously composed filters, comparisons, or report editors; their required controls remain asserted rather than treated as optional.
 - Component journeys follow the same readiness boundary: a synchronously rendered workspace container or heading does
   not prove that its asynchronous result is available. Before inspecting or activating result-owned controls, tests
-  wait for one exact result-owned element and retain every subsequent behavior assertion.
+  wait for one exact result-owned element and retain every subsequent behavior assertion. When a durable collection
+  has a known expected cardinality, the test waits for that complete cardinality before retaining element handles;
+  an empty collection observed while its query is still pending is not persistence evidence.
 - Longitudinal-chart coverage verifies four independently scaled labelled lanes over one exact local-date coordinate, source separation, locale-aware dates and durations, missing-value gaps, recorded training zero, the 366-day canvas and zoom boundary, invalid-date fail-closed behavior, high-zoom sizing, and the complete exact-table alternative. The packaged timing boundary verifies both the requested date count and first local date before accepting the laid-out result.
 - Explicit traversal between history and comparison in every other explorer, including preserved comparison input and results, exact-detail return, cross-explorer entry, and inaccessible hidden views.
 - Explicit traversal among report Library, Compose, and Preview, including preserved drafts, saved-report selection, independent review replacement, complete block manipulation, source return, and export.

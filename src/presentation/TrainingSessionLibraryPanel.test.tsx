@@ -1127,7 +1127,10 @@ function renderPanel(
   return { onAvailableRange, onCreateReport, onError, ...rendered };
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
   mocks.invoke.mockReset();
@@ -2269,6 +2272,8 @@ describe("TrainingSessionLibraryPanel", () => {
   });
 
   it("switches chronology and calendar, selects comparisons, and returns to the exact calendar origin", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-28T12:00:00Z"));
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
       if (workspaceResult) return workspaceResult;

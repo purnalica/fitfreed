@@ -2,8 +2,8 @@
 
 ## Status
 
-Milestone 1 is complete. Milestone 2 retains substantial implemented capability and is awaiting the bounded
-product-owner gate at X7-R8.13. The bundled automatic sport-identity correction, complete unchanged product regression,
+Milestone 1 is complete. Milestone 2 retains substantial implemented capability and is completing X7-R8.14 before a
+new bounded product-owner gate. The bundled automatic sport-identity correction, complete unchanged product regression,
 private-reference predicate, repeated independent audit, exact-source local packaged and hosted campaigns, immutable
 marker, and revision-isolated native inspection pass; no current MVP candidate is accepted until the human experience
 gate records its verdict. The implemented
@@ -62,8 +62,12 @@ packaged campaign pass locally. Corrected exact source `a447910` then passes [re
 `33414102039`](https://github.com/purnalica/fitfreed/actions/runs/33414102039), the complete [hosted campaign
 `33414102138`](https://github.com/purnalica/fitfreed/actions/runs/33414102138), immutable executable-input fingerprint
 `89f0f31ee8821f426b0a7b745478fc480706e8ce96303746d6045d818fab2ea5`, and local revision-isolated native admission
-with bundle identifier `org.fitfreed.desktop.x6-review.ra4479100002c`. The bounded product-owner experience review is
-now the only open X7-R8.13 admission gate.
+with bundle identifier `org.fitfreed.desktop.x6-review.ra4479100002c`. The bounded product-owner experience review
+accepted recognizable sport identity and rejected that application at XH-30 when pointer range adjustment made
+further use impossible. X7-R8.14 now passes its complete changed-tree local campaign: sustained zoom in every dense
+chart renderer, coalesced exact preview over 20,001 route points, distinct-process restart, update replacement and
+recovery, and production packaging all pass. Focused commit, later synchronization, exact hosted and native admission,
+the repeated independent audit, and one new bounded product-owner review remain open.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

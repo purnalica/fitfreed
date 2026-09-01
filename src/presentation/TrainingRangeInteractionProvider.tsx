@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -60,6 +61,31 @@ type RangeMutationCommand =
   | "rename_training_session_range"
   | "adjust_training_session_range"
   | "remove_training_session_range";
+
+type RouteDraftCoordinate = Extract<
+  TrainingSessionCurrentRangeCoordinate,
+  { scope: "route-elapsed" }
+>;
+
+interface DraftSummaryRequest {
+  generation: number;
+  query: {
+    sessionRef: string;
+    snapshotRef: string;
+    exerciseRef: string;
+    coordinate: RouteDraftCoordinate;
+    startedAtElapsedMilliseconds: string;
+    endedAtElapsedMilliseconds: string;
+  };
+}
+
+interface DraftSummaryCoordinator {
+  generation: number;
+  inFlight: boolean;
+  queued: DraftSummaryRequest | undefined;
+}
+
+const DRAFT_SUMMARY_SETTLING_MILLISECONDS = 150;
 
 export type TrainingRangeMutationOutcome = "success" | "conflict" | "failed" | "invalid";
 
@@ -166,6 +192,11 @@ export function TrainingRangeInteractionProvider({
   const [mutationCommand, setMutationCommand] = useState<RangeMutationCommand>();
   const [removeConfirmation, setRemoveConfirmation] = useState(false);
   const [status, setStatus] = useState<string>();
+  const draftSummaryCoordinator = useRef<DraftSummaryCoordinator>({
+    generation: 0,
+    inFlight: false,
+    queued: undefined,
+  });
   const copy = messages.training.sessionLibrary.ranges;
   const integer = useMemo(() => integerCountFormatter(locale), [locale]);
   const busy = mutationCommand !== undefined;
@@ -337,19 +368,25 @@ export function TrainingRangeInteractionProvider({
   }, [result?.snapshotRef, selectedRange?.rangeRef, selectedRange?.revision, sessionRef, summaryRetry]);
 
   useEffect(() => {
+    const coordinator = draftSummaryCoordinator.current;
+    coordinator.generation += 1;
+    const generation = coordinator.generation;
+    coordinator.queued = undefined;
     if (draftStartedAt === undefined || draftEndedAt === undefined || draftCoordinate === undefined
       || !result || !editorExercise) {
       setDraftSummary(undefined);
       setDraftSummaryLoading(false);
       setDraftSummaryFailed(false);
-      return;
+      return () => {
+        if (coordinator.generation === generation) coordinator.generation += 1;
+      };
     }
 
-    let active = true;
     setDraftSummary(undefined);
     setDraftSummaryLoading(true);
     setDraftSummaryFailed(false);
-    void invoke<TrainingSessionRangeDraftSummary>("query_training_session_range_draft_summary", {
+    const request: DraftSummaryRequest = {
+      generation,
       query: {
         sessionRef,
         snapshotRef: result.snapshotRef,
@@ -358,14 +395,42 @@ export function TrainingRangeInteractionProvider({
         startedAtElapsedMilliseconds: draftStartedAt,
         endedAtElapsedMilliseconds: draftEndedAt,
       },
-    }).then((value) => {
-      if (active) setDraftSummary(value);
-    }).catch(() => {
-      if (active) setDraftSummaryFailed(true);
-    }).finally(() => {
-      if (active) setDraftSummaryLoading(false);
-    });
-    return () => { active = false; };
+    };
+
+    function run(candidate: DraftSummaryRequest) {
+      if (candidate.generation !== coordinator.generation) return;
+      if (coordinator.inFlight) {
+        coordinator.queued = candidate;
+        return;
+      }
+      coordinator.inFlight = true;
+      void invoke<TrainingSessionRangeDraftSummary>(
+        "query_training_session_range_draft_summary",
+        { query: candidate.query },
+      ).then((value) => {
+        if (candidate.generation === coordinator.generation) setDraftSummary(value);
+      }).catch(() => {
+        if (candidate.generation === coordinator.generation) setDraftSummaryFailed(true);
+      }).finally(() => {
+        coordinator.inFlight = false;
+        const queued = coordinator.queued;
+        coordinator.queued = undefined;
+        if (queued && queued.generation === coordinator.generation) {
+          run(queued);
+          return;
+        }
+        if (candidate.generation === coordinator.generation) setDraftSummaryLoading(false);
+      });
+    }
+
+    const timer = window.setTimeout(
+      () => run(request),
+      DRAFT_SUMMARY_SETTLING_MILLISECONDS,
+    );
+    return () => {
+      window.clearTimeout(timer);
+      if (coordinator.generation === generation) coordinator.generation += 1;
+    };
   }, [
     draftSummaryRetry,
     draftCoordinate?.routeRef,

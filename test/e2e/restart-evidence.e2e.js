@@ -1,7 +1,10 @@
 import fs from "node:fs";
 
 import { e2eApplicationBinary } from "../../scripts/e2e-paths.mjs";
-import { goToHome } from "./support/application-actions.js";
+import {
+  goToHome,
+  waitForElementCount,
+} from "./support/application-actions.js";
 import {
   exactApplicationProcessId,
   readRestartProcessIdentity,
@@ -172,7 +175,11 @@ describe("packaged FitFreed application-process restart", () => {
     );
     await openTrainingWorkspace("plans");
     await expect($("#planned-training-heading")).toHaveText(spanish.training.planned.heading);
-    const plannedTargets = await $$(".planned-training-list > li");
+    const plannedTargets = await waitForElementCount(
+      ".planned-training-list > li",
+      4,
+      { timeoutMsg: "the restored planned-training library did not reveal its four targets" },
+    );
     expect(plannedTargets).toHaveLength(4);
     const plannedTargetLabels = [];
     for (const target of plannedTargets) plannedTargetLabels.push(await target.getText());

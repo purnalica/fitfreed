@@ -533,16 +533,289 @@ async function measureTrainingSignalOverview() {
   };
 }
 
+async function chartRendererFingerprint(selector) {
+  return browser.execute((expectedSelector) => {
+    const renderer = document.querySelector(expectedSelector);
+    if (!(renderer instanceof HTMLElement)) return null;
+    let checksum = 2_166_136_261;
+    const canvas = renderer.querySelector("canvas");
+    if (canvas instanceof HTMLCanvasElement) {
+      const context = canvas.getContext("2d");
+      if (!context) return null;
+      const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+      const stride = Math.max(4, Math.floor(data.length / 16_384 / 4) * 4);
+      for (let index = 0; index < data.length; index += stride) {
+        checksum ^= data[index];
+        checksum = Math.imul(checksum, 16_777_619);
+        checksum ^= data[index + 1] ?? 0;
+        checksum = Math.imul(checksum, 16_777_619);
+        checksum ^= data[index + 2] ?? 0;
+        checksum = Math.imul(checksum, 16_777_619);
+        checksum ^= data[index + 3] ?? 0;
+        checksum = Math.imul(checksum, 16_777_619);
+      }
+      return `canvas:${checksum >>> 0}`;
+    }
+    const svg = renderer.querySelector("svg");
+    if (!(svg instanceof SVGSVGElement)) return null;
+    const markup = svg.innerHTML;
+    const stride = Math.max(1, Math.floor(markup.length / 16_384));
+    for (let index = 0; index < markup.length; index += stride) {
+      checksum ^= markup.charCodeAt(index);
+      checksum = Math.imul(checksum, 16_777_619);
+    }
+    return `svg:${checksum >>> 0}`;
+  }, selector);
+}
+
+async function dragChartZoomBoundary(selector, boundary, targetFraction) {
+  const geometry = await browser.execute((expectedSelector, expectedBoundary, expectedTarget) => {
+    const renderer = document.querySelector(expectedSelector);
+    if (!(renderer instanceof HTMLElement)) return null;
+    renderer.scrollIntoView({ block: "center", inline: "nearest" });
+    const bounds = renderer.getBoundingClientRect();
+    const canvas = renderer.querySelector("canvas");
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      const svg = renderer.querySelector("svg");
+      if (!(svg instanceof SVGSVGElement)) return null;
+      const inspectedShapes = [...svg.querySelectorAll("path, rect")].flatMap((element) => {
+        const shapeBounds = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const color = `${style.fill} ${style.stroke}`;
+        const accent = [style.fill, style.stroke].some((candidate) => {
+          const channels = candidate.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (!channels) return candidate.includes("#1f583f");
+          const red = Number(channels[1]);
+          const green = Number(channels[2]);
+          const blue = Number(channels[3]);
+          return green < 150 && green > red + 20 && green > blue + 10;
+        });
+        const nearSlider = shapeBounds.top >= bounds.top + bounds.height * 0.8;
+        const handleShape = shapeBounds.width >= 2 && shapeBounds.width <= 24
+          && shapeBounds.height >= 10 && shapeBounds.height <= 48;
+        return nearSlider ? [{
+          accent,
+          color,
+          handleShape,
+          left: shapeBounds.left,
+          right: shapeBounds.right,
+          height: shapeBounds.height,
+          width: shapeBounds.width,
+          y: shapeBounds.top + shapeBounds.height / 2,
+        }] : [];
+      });
+      const candidates = inspectedShapes
+        .filter((shape) => shape.accent && shape.handleShape)
+        .sort((left, right) => left.left - right.left);
+      if (candidates.length < 2) return {
+        diagnostic: "slider handles were not identified",
+        inspectedShapes: inspectedShapes.slice(-20),
+      };
+      const startHandle = candidates[0];
+      const endHandle = candidates.at(-1);
+      const trackLeft = (startHandle.left + startHandle.right) / 2;
+      const trackRight = (endHandle.left + endHandle.right) / 2;
+      const selectedHandle = expectedBoundary === "start" ? startHandle : endHandle;
+      return {
+        fromX: expectedBoundary === "start" ? trackLeft : trackRight,
+        targetX: trackLeft + (trackRight - trackLeft) * expectedTarget,
+        y: selectedHandle.y,
+        rendererBounds: {
+          height: bounds.height,
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+        },
+        renderer: "svg",
+      };
+    }
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    const scanTop = Math.floor(canvas.height * 0.86);
+    const pixels = context.getImageData(
+      0,
+      scanTop,
+      canvas.width,
+      canvas.height - scanTop,
+    );
+    const columnCounts = new Uint16Array(canvas.width);
+    const columnYTotals = new Uint32Array(canvas.width);
+    for (let y = 0; y < pixels.height; y += 1) {
+      for (let x = 0; x < pixels.width; x += 1) {
+        const offset = (y * pixels.width + x) * 4;
+        const red = pixels.data[offset];
+        const green = pixels.data[offset + 1];
+        const blue = pixels.data[offset + 2];
+        const alpha = pixels.data[offset + 3];
+        if (alpha > 200 && green < 150 && green > red + 20 && green > blue + 10) {
+          columnCounts[x] += 1;
+          columnYTotals[x] += y + scanTop;
+        }
+      }
+    }
+    const clusters = [];
+    const minimumHandleHeight = Math.max(8, Math.floor(canvas.height * 0.025));
+    for (let x = 0; x < columnCounts.length; x += 1) {
+      if (columnCounts[x] < minimumHandleHeight) continue;
+      const last = clusters.at(-1);
+      if (last && x === last.through + 1) {
+        last.through = x;
+        last.pixelCount += columnCounts[x];
+        last.yTotal += columnYTotals[x];
+      } else {
+        clusters.push({
+          from: x,
+          through: x,
+          pixelCount: columnCounts[x],
+          yTotal: columnYTotals[x],
+        });
+      }
+    }
+    if (clusters.length < 2) return null;
+    const startHandle = clusters[0];
+    const endHandle = clusters.at(-1);
+    const canvasScaleX = bounds.width / canvas.width;
+    const canvasScaleY = bounds.height / canvas.height;
+    const trackLeft = bounds.left + ((startHandle.from + startHandle.through) / 2) * canvasScaleX;
+    const trackRight = bounds.left + ((endHandle.from + endHandle.through) / 2) * canvasScaleX;
+    const selectedHandle = expectedBoundary === "start" ? startHandle : endHandle;
+    return {
+      fromX: expectedBoundary === "start" ? trackLeft : trackRight,
+      targetX: trackLeft + (trackRight - trackLeft) * expectedTarget,
+      y: bounds.top + (selectedHandle.yTotal / selectedHandle.pixelCount) * canvasScaleY,
+      rendererBounds: {
+        height: bounds.height,
+        left: bounds.left,
+        top: bounds.top,
+        width: bounds.width,
+      },
+      canvasSize: { height: canvas.height, width: canvas.width },
+      handles: {
+        end: endHandle,
+        start: startHandle,
+      },
+      renderer: "canvas",
+    };
+  }, selector, boundary, targetFraction);
+  if (!geometry) throw new Error("the analytical chart renderer was not available");
+  if (geometry.diagnostic) {
+    throw new Error(`${geometry.diagnostic}: ${JSON.stringify(geometry.inspectedShapes)}`);
+  }
+  await browser.execute((expectedSelector, dragGeometry) => {
+    const renderer = document.querySelector(expectedSelector);
+    if (!(renderer instanceof HTMLElement)) return;
+    const eventTarget = document.elementFromPoint(dragGeometry.fromX, dragGeometry.y) ?? renderer;
+    const started = window.performance.now();
+    globalThis.__fitfreedChartPointerDrag = { completed: false, duration: null };
+    const emit = (type, clientX, buttons) => {
+      eventTarget.dispatchEvent(new MouseEvent(type, {
+        bubbles: true,
+        button: 0,
+        buttons,
+        cancelable: true,
+        clientX,
+        clientY: dragGeometry.y,
+        view: window,
+      }));
+    };
+    emit("mousedown", dragGeometry.fromX, 1);
+    let step = 0;
+    const steps = 60;
+    const channel = new MessageChannel();
+    const continueDrag = () => {
+      step += 1;
+      const progress = step / steps;
+      emit("mousemove", dragGeometry.fromX
+        + (dragGeometry.targetX - dragGeometry.fromX) * progress, 1);
+      if (step < steps) {
+        channel.port2.postMessage(null);
+        return;
+      }
+      emit("mouseup", dragGeometry.targetX, 0);
+      channel.port1.close();
+      channel.port2.close();
+      globalThis.__fitfreedChartPointerDrag = {
+        completed: true,
+        duration: window.performance.now() - started,
+      };
+    };
+    channel.port1.onmessage = continueDrag;
+    channel.port2.postMessage(null);
+  }, selector, geometry);
+  await browser.waitUntil(
+    () => browser.execute(() => globalThis.__fitfreedChartPointerDrag?.completed === true),
+    {
+      timeout: 5_000,
+      timeoutMsg: `the analytical chart pointer drag did not complete: ${JSON.stringify(geometry)}`,
+    },
+  );
+  const result = await browser.execute(() => {
+    const drag = globalThis.__fitfreedChartPointerDrag;
+    delete globalThis.__fitfreedChartPointerDrag;
+    return drag;
+  });
+  return { ...geometry, duration: result.duration };
+}
+
+async function verifyTrainingChartPointerZoomRemainsResponsive() {
+  const rendererSelector = ".training-cross-signal-chart .analytical-chart-renderer";
+  await browser.waitUntil(
+    async () => await chartRendererFingerprint(rendererSelector) !== null,
+    { timeout: 5_000, timeoutMsg: "the dense analytical chart renderer was not available" },
+  );
+  const initialChecksum = await chartRendererFingerprint(rendererSelector);
+  const startGeometry = await dragChartZoomBoundary(rendererSelector, "start", 0.2);
+  await browser.waitUntil(
+    async () => await chartRendererFingerprint(rendererSelector) !== initialChecksum,
+    {
+      timeout: 5_000,
+      timeoutMsg: `the analytical chart did not respond to its start handle: ${JSON.stringify(startGeometry)}`,
+    },
+  );
+  const startAdjustedChecksum = await chartRendererFingerprint(rendererSelector);
+  await dragChartZoomBoundary(rendererSelector, "end", 0.8);
+  await browser.waitUntil(
+    async () => await chartRendererFingerprint(rendererSelector) !== startAdjustedChecksum,
+    { timeout: 5_000, timeoutMsg: "the analytical chart did not respond to its end handle" },
+  );
+  await expect($("#training-detail-signals")).toBeDisplayed();
+}
+
+async function verifyTrainingSingleSignalChartPointerZoomRemainsResponsive() {
+  const rendererSelector = ".training-signal .analytical-chart-renderer";
+  await browser.waitUntil(
+    async () => await chartRendererFingerprint(rendererSelector) !== null,
+    { timeout: 5_000, timeoutMsg: "the single-signal chart renderer was not available" },
+  );
+  const initialFingerprint = await chartRendererFingerprint(rendererSelector);
+  const startGeometry = await dragChartZoomBoundary(rendererSelector, "start", 0.2);
+  await browser.waitUntil(
+    async () => await chartRendererFingerprint(rendererSelector) !== initialFingerprint,
+    {
+      timeout: 5_000,
+      timeoutMsg: `the single-signal chart did not respond to its start handle: ${JSON.stringify(startGeometry)}`,
+    },
+  );
+  const startAdjustedFingerprint = await chartRendererFingerprint(rendererSelector);
+  await dragChartZoomBoundary(rendererSelector, "end", 0.8);
+  await browser.waitUntil(
+    async () => await chartRendererFingerprint(rendererSelector) !== startAdjustedFingerprint,
+    { timeout: 5_000, timeoutMsg: "the single-signal chart did not respond to its end handle" },
+  );
+}
+
 async function verifyTrainingMaximumSignalComposition() {
   await $('.training-session-results button[aria-label^="View session details"]').click();
   await $(
     ".training-detail-navigation button[aria-controls='training-detail-signals']",
   ).click();
   await $("#training-detail-signals").waitForDisplayed({ timeout: 5_000 });
+  await verifyTrainingSingleSignalChartPointerZoomRemainsResponsive();
   const choices = await $$(
     ".training-cross-signal-selection input[type='checkbox']",
   );
   expect(choices).toHaveLength(4);
+  await verifyTrainingChartPointerZoomRemainsResponsive();
   await choices[2].click();
   await browser.waitUntil(
     async () => (await $$(".training-cross-signal-lanes article")).length === 3,
@@ -587,6 +860,7 @@ async function verifyTrainingMaximumSignalComposition() {
     evidenceDirectory,
     "x7-r8-4-cross-signal-chart-en-four-lanes.png",
   ));
+  await verifyTrainingChartPointerZoomRemainsResponsive();
   await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
   await browser.waitUntil(
     async () => (await $$(".training-detail")).length === 0,
@@ -871,6 +1145,120 @@ async function expectDenseRouteExactEndpoint() {
   const selectedRow = await $(".training-route-exact tbody tr[aria-current='true']");
   await expect(selectedRow).toExist();
   await expect(selectedRow.$("th")).toHaveText(expect.stringContaining("20,001"));
+}
+
+async function openDenseTrainingRouteRangeEditor() {
+  const copy = english.training.sessionLibrary.routeWorkbench;
+  await $(`aria/${copy.chooseRangeBoundaries}`).click();
+  await $(`aria/${copy.useCurrentAsFirstBoundary}`).click();
+  await measureTrainingRouteSelection({ value: "399", label: "Point 20,001 of 20,001" });
+  await $(`aria/${copy.useCurrentAsSecondBoundary}`).click();
+  await $(`aria/${copy.draftPreviewRegion}`).waitForDisplayed({ timeout: 10_000 });
+  await waitForExactControlCount(
+    ".training-route-range-handles input[type='range']",
+    2,
+  );
+}
+
+async function verifyDenseTrainingRouteRangeDragRemainsResponsive() {
+  const result = await browser.executeAsync((done) => {
+    const handles = document.querySelectorAll(
+      ".training-route-range-handles input[type='range']",
+    );
+    if (handles.length !== 2) {
+      done({ duration: null, error: "dense route range handles were not available" });
+      return;
+    }
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    const started = window.performance.now();
+    const stepsPerBoundary = 60;
+    const channel = new MessageChannel();
+    const scenarios = [{
+      control: handles[0],
+      from: Number(handles[0].value),
+      through: 120,
+    }, {
+      control: handles[1],
+      from: Number(handles[1].value),
+      through: 320,
+    }];
+    let scenarioIndex = 0;
+    let step = 0;
+
+    function continueDrag() {
+      const scenario = scenarios[scenarioIndex];
+      step += 1;
+      const progress = step / stepsPerBoundary;
+      const value = Math.round(
+        scenario.from + (scenario.through - scenario.from) * progress,
+      );
+      setValue.call(scenario.control, String(value));
+      scenario.control.dispatchEvent(new Event("input", { bubbles: true }));
+      if (step < stepsPerBoundary) {
+        channel.port2.postMessage(null);
+        return;
+      }
+      scenario.control.dispatchEvent(new Event("change", { bubbles: true }));
+      scenarioIndex += 1;
+      step = 0;
+      if (scenarioIndex < scenarios.length) {
+        channel.port2.postMessage(null);
+        return;
+      }
+      channel.port1.close();
+      channel.port2.close();
+      done({
+        duration: window.performance.now() - started,
+        error: null,
+      });
+    }
+
+    channel.port1.onmessage = continueDrag;
+    channel.port2.postMessage(null);
+  });
+  if (result.error) throw new Error(result.error);
+  expect(result.duration).toBeLessThan(2_500);
+  await browser.waitUntil(async () => {
+    const snapshot = await browser.execute((previewLabel) => {
+      const preview = document.querySelector(`[aria-label="${previewLabel}"]`);
+      const loading = document.querySelector(".training-route-draft-status");
+      const handles = document.querySelectorAll(
+        ".training-route-range-handles input[type='range']",
+      );
+      const start = handles[0];
+      const end = handles[1];
+      return {
+        end: end?.getAttribute("aria-valuetext") ?? null,
+        endValue: end?.value ?? null,
+        loading: loading !== null,
+        preview: preview !== null,
+        start: start?.getAttribute("aria-valuetext") ?? null,
+        startValue: start?.value ?? null,
+      };
+    }, english.training.sessionLibrary.routeWorkbench.draftPreviewRegion);
+    return snapshot.preview
+      && !snapshot.loading
+      && snapshot.start?.startsWith("Point ")
+      && snapshot.end?.startsWith("Point ")
+      && snapshot.startValue === "120"
+      && snapshot.endValue === "320";
+  }, {
+    timeout: 10_000,
+    timeoutMsg: "the exact dense-route preview did not settle after a continuous range drag",
+  });
+  const cancel = await $(`aria/${english.training.sessionLibrary.ranges.cancel}`);
+  await cancel.click();
+  await browser.waitUntil(
+    async () => (await $$(".training-route-range-handles")).length === 0,
+    {
+      timeout: 2_000,
+      timeoutMsg: "the application did not respond after the dense route range drag",
+    },
+  );
+  await measureTrainingRouteSelection({ value: "0", label: "Point 1 of 20,001" });
 }
 
 async function applySleepRange(from, through) {
@@ -1545,6 +1933,8 @@ export async function runInsightsPerformanceJourney({
     [null],
     measureTrainingRouteIndependentSignalReveal,
   );
+  await openDenseTrainingRouteRangeEditor();
+  await verifyDenseTrainingRouteRangeDragRemainsResponsive();
   await expectDenseRouteExactEndpoint();
   await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
   await browser.waitUntil(

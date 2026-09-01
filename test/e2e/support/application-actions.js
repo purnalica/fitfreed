@@ -71,6 +71,23 @@ export async function waitForNotice(fragment, timeout = 10_000, session = browse
   );
 }
 
+export async function waitForElementCount(
+  selector,
+  expectedCount,
+  {
+    session = browser,
+    timeout = 10_000,
+    timeoutMsg = `${selector} did not reveal ${expectedCount} elements`,
+  } = {},
+) {
+  let elements = [];
+  await session.waitUntil(async () => {
+    elements = await session.$$(selector);
+    return elements.length === expectedCount;
+  }, { timeout, timeoutMsg });
+  return elements;
+}
+
 export async function persistSettings() {
   const status = await $(".settings-status");
   const previewStatus = await status.getText();

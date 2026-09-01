@@ -30,6 +30,12 @@ owner ended the review because the primary import result remains unusable withou
 candidate is rejected, and no further product-owner review is requested until this acceptance-blocking behavior is
 corrected and independently verified.**
 
+**The X7-R8.13 product-owner review started and ended on 2026-09-01 for exact source
+`a4479100002c2229c51264fc8fd0dfe0a2cab73e`. Import identified the represented sports correctly, closing the
+experience failure that blocked the preceding reviews. Adjusting both boundaries of a chart viewing range with the
+pointer then made the chart unresponsive and blocked the application. The product owner declared this a no-go and
+closed the review. The review application is rejected.**
+
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
 the [X6 profile](../testing/macos-candidate-manual-evaluation.md#x6-product-experience-profile). It records
 observable behavior and bounded participant impact without retaining personal fitness data, source paths,
@@ -94,6 +100,10 @@ analysis may resume without requesting further participant reproduction on this 
 The later corrected-candidate collection started and ended on 2026-08-30 after XH-08 reproduced for the fifth time.
 Observation collection is closed. Causal diagnosis, correction, and automated verification may resume, but another
 product-owner review must not be requested until sport recognition is demonstrably corrected.
+
+The X7-R8.13 collection started and ended on 2026-09-01. The product owner confirmed that imported sport identity is
+now correct, then closed the review at the first acceptance-blocking chart failure. Observation collection is closed.
+Causal diagnosis, correction, and automated regression may proceed without participant reproduction.
 
 ## Findings
 
@@ -832,6 +842,31 @@ product-owner review must not be requested until sport recognition is demonstrab
   “FitFreed could not save the application settings. The previous settings have been restored; restart the
   application before trying again.”
 
+### XH-30 — Pointer range adjustment blocks chart interaction and the application
+
+- **Status:** acceptance-blocking failure observed in the X7-R8.13 product-owner review; causal defect isolated and
+  corrected on the later X7-R8.14 changed tree; complete exact admission and human re-evaluation pending.
+- **Observed task:** adjust the start and end boundaries of a chart viewing range with the pointer during ordinary
+  session exploration.
+- **Observed behavior:** the chart stopped responding and the application then became unresponsive.
+- **Expected behavior:** each boundary follows bounded pointer input, preserves a valid ordered range, and updates the
+  chart without blocking interaction or the application.
+- **Participant impact:** an ordinary analytical action can terminate useful exploration and requires abandoning the
+  application. This is a product no-go, not a tolerable Alpha UX limitation.
+- **Disposition:** reject the reviewed application. Do not request participant reproduction. Trace the complete event,
+  state, rendering, and native-process causal chain; add automated regression evidence at the lowest responsible
+  boundary and through the packaged production interaction before another human review.
+- **Automated diagnosis:** the review did not retain which of the two internal range controls was active, so neither is
+  assumed. Sustained start/end dragging passes across dense single-series SVG, default multi-lane SVG, and maximum
+  four-lane canvas ECharts renderers. The route-range controller exposed an independent concrete defect: twelve rapid
+  boundary changes launched twelve exact native queries while the first was unresolved, and every query streamed the
+  complete 20,001-point route. Stale-result suppression discarded only responses; it did not bound active work.
+- **Corrected changed-tree evidence:** presentation now updates local boundaries immediately, waits for 150
+  milliseconds of stable input, permits one exact query in flight, and retains only the latest pending request. The
+  focused component regression and rebuilt packaged Insights journey pass a 120-change two-handle route drag, final
+  exact preview, cancellation, immediate subsequent route selection, and all three ECharts renderer paths. This does
+  not accept a candidate or prove the participant's exact internal path retrospectively.
+
 ## Passing observations
 
 ### XH-P01 — Import cancellation permits an immediate retry
@@ -868,7 +903,20 @@ product-owner review must not be requested until sport recognition is demonstrab
 - **Boundary:** this observation records the experience of the active review only; it does not characterize every
   reconciliation phase or dataset size.
 
+### XH-P05 — Imported sports are recognizable
+
+- **Observed task:** import a representative history and inspect its resulting sport identity.
+- **Observed behavior:** the application identifies the represented sports correctly.
+- **Boundary:** this closes the product-owner experience failure that rejected the preceding sport-identity
+  candidates. It does not accept the complete X7-R8.13 experience or override XH-30.
+
 ## Interim human disposition
+
+The X7-R8.13 application from exact source `a4479100002c2229c51264fc8fd0dfe0a2cab73e` is rejected. Sport identity is
+finally recognizable, but pointer adjustment of a chart viewing range makes the chart and application unresponsive.
+The product owner declared the failure a no-go and ended the review. XH-30 now has causal diagnosis and focused
+automated regression on the X7-R8.14 changed tree, but complete exact verification and a new bounded product-owner
+review remain mandatory before X7-R8 can pass.
 
 The later corrected candidate from exact source `3e280ca86955b7f2e2c453626dfe53f44bb7e579` is rejected. Most represented
 sports and sessions remain unknown, so the imported library lacks the primary identity needed to explore, compare,
@@ -929,3 +977,9 @@ The later corrected-candidate profile ran on 2026-08-30 from exact source
 revision-isolated native full-bundle scan all pass. Human evidence nevertheless reopens XH-08 for the fourth time and
 adds XH-27 and XH-28. The source and its review application are rejected; causal diagnosis and regression return to
 autonomous engineering without further product-owner reproduction on this candidate.
+
+The X7-R8.13 profile ran on 2026-09-01 from exact source
+`a4479100002c2229c51264fc8fd0dfe0a2cab73e` with revision-isolated bundle identifier
+`org.fitfreed.desktop.x6-review.ra4479100002c`. Its exact automated and native-admission evidence remains valid for
+the behavior it covers. Human evidence passes recognizable sport identity and rejects the application at XH-30.
+Diagnosis and regression return to autonomous engineering; the product owner is not asked to reproduce the failure.

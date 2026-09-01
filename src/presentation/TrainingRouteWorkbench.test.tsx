@@ -585,6 +585,99 @@ describe("TrainingRouteWorkbench", () => {
     expect(draftAttempts).toBe(2);
   });
 
+  it("coalesces rapid route-boundary changes and never runs exact previews concurrently", async () => {
+    const currentStory = story();
+    const exerciseRef = currentStory.exercises[0].exerciseRef;
+    const routeRef = currentStory.exercises[0].primary.route!.routeRef;
+    const context: TrainingSessionRangesResult = {
+      snapshotRef: currentStory.snapshotRef,
+      sessionRef: currentStory.session.sessionRef,
+      sessionDurationMilliseconds: currentStory.session.durationMilliseconds,
+      evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+      exercises: [{
+        exerciseRef,
+        ordinal: 0,
+        coordinates: [{
+          coordinate: { scope: "route-elapsed", routeRef },
+          maximumElapsedMilliseconds: "2000",
+        }],
+      }],
+      ranges: [],
+    };
+    let resolveFirstDraft!: (value: TrainingSessionRangeDraftSummary) => void;
+    const firstDraft = new Promise<TrainingSessionRangeDraftSummary>((resolve) => {
+      resolveFirstDraft = resolve;
+    });
+    const draftQueries: Array<{
+      startedAtElapsedMilliseconds: string;
+      endedAtElapsedMilliseconds: string;
+    }> = [];
+    commands.invoke.mockImplementation((command, payload) => {
+      if (command === "query_training_session_ranges") return Promise.resolve(context);
+      if (command === "query_training_session_range_draft_summary") {
+        const query = (payload as {
+          query: {
+            startedAtElapsedMilliseconds: string;
+            endedAtElapsedMilliseconds: string;
+          };
+        }).query;
+        draftQueries.push(query);
+        return draftQueries.length === 1
+          ? firstDraft
+          : Promise.resolve(draftSummary(
+            currentStory,
+            query.startedAtElapsedMilliseconds,
+            query.endedAtElapsedMilliseconds,
+          ));
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    render(
+      <TrainingRangeInteractionProvider
+        sessionRef={currentStory.session.sessionRef}
+        snapshotRef={currentStory.snapshotRef}
+        story={currentStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      >
+        <TrainingRouteWorkbench
+          story={currentStory}
+          locale="en-US"
+          messages={catalogs["en-US"]}
+          onOpenExactRoute={vi.fn()}
+          onOpenExactSignal={vi.fn()}
+        />
+      </TrainingRangeInteractionProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Choose range boundaries" }));
+    await user.click(screen.getByRole("button", { name: "Use this point as start" }));
+    fireEvent.change(screen.getByRole("slider", { name: "Recorded position" }), {
+      target: { value: "1" },
+    });
+    await user.click(screen.getByRole("button", { name: "Use this point as end" }));
+    await waitFor(() => expect(draftQueries).toHaveLength(1));
+
+    const endHandle = screen.getByRole("slider", { name: "Range end on route" });
+    for (let index = 0; index < 12; index += 1) {
+      fireEvent.change(endHandle, { target: { value: index % 2 === 0 ? "1" : "2" } });
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    expect(draftQueries).toHaveLength(1);
+
+    resolveFirstDraft(draftSummary(currentStory));
+    await waitFor(() => expect(draftQueries).toHaveLength(2));
+    expect(draftQueries[1]).toMatchObject({
+      startedAtElapsedMilliseconds: "0",
+      endedAtElapsedMilliseconds: "2000",
+    });
+    expect(await screen.findByRole("region", { name: "Exact selection preview" }))
+      .toHaveTextContent("2 s");
+  });
+
   it("creates a chronologically ordered draft from two map points selected in reverse", async () => {
     const currentStory = story();
     const exerciseRef = currentStory.exercises[0].exerciseRef;

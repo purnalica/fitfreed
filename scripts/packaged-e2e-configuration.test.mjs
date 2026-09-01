@@ -11,7 +11,10 @@ import {
 } from "./e2e-paths.mjs";
 import { config as defaultConfig } from "../wdio.conf.js";
 import { config as performanceConfig } from "../wdio.performance.conf.js";
-import { waitForNotice } from "../test/e2e/support/application-actions.js";
+import {
+  waitForElementCount,
+  waitForNotice,
+} from "../test/e2e/support/application-actions.js";
 import { parseExactApplicationProcessIds } from "../test/e2e/support/application-process.js";
 
 test("keeps the instrumented executable outside the production target", () => {
@@ -148,6 +151,37 @@ test("reads transient status notices through one renderer snapshot", async () =>
   assert.equal(executeCount, 1);
 });
 
+test("waits for an asynchronously loaded collection before reading its elements", async () => {
+  const observations = [[], [{ id: "first" }], [{ id: "first" }, { id: "second" }]];
+  const session = {
+    async $$(selector) {
+      assert.equal(selector, ".planned-training-list > li");
+      return observations.shift() ?? [];
+    },
+    async waitUntil(predicate, options) {
+      assert.equal(await predicate(), false);
+      assert.equal(await predicate(), false);
+      assert.equal(await predicate(), true);
+      assert.deepEqual(options, {
+        timeout: 2_500,
+        timeoutMsg: "the planned targets did not finish loading",
+      });
+    },
+  };
+
+  const elements = await waitForElementCount(
+    ".planned-training-list > li",
+    2,
+    {
+      session,
+      timeout: 2_500,
+      timeoutMsg: "the planned targets did not finish loading",
+    },
+  );
+
+  assert.deepEqual(elements, [{ id: "first" }, { id: "second" }]);
+});
+
 test("isolates the longer performance campaign without relaxing interaction budgets", () => {
   assert.equal(performanceConfig.mochaOpts.timeout, 600_000);
   assert.deepEqual(performanceConfig.specs, ["./test/e2e/insights-performance.spec.js"]);
@@ -272,4 +306,35 @@ test("observes independent signal reveal without background-throttled polling ti
   assert.match(reveal, /new MessageChannel/);
   assert.doesNotMatch(reveal, /setTimeout\(observeResult/);
   assert.match(reveal, /getBoundingClientRect\(\)/);
+});
+
+test("drives sustained range input without animation-frame visibility", () => {
+  const performanceJourney = readFileSync(
+    path.resolve("test/e2e/support/insights-performance.js"),
+    "utf8",
+  );
+  const chartDragStart = performanceJourney.indexOf(
+    "async function dragChartZoomBoundary",
+  );
+  const chartDragEnd = performanceJourney.indexOf(
+    "async function verifyTrainingChartPointerZoomRemainsResponsive",
+    chartDragStart,
+  );
+  const routeDragStart = performanceJourney.indexOf(
+    "async function verifyDenseTrainingRouteRangeDragRemainsResponsive",
+  );
+  const routeDragEnd = performanceJourney.indexOf(
+    "async function applySleepRange",
+    routeDragStart,
+  );
+  assert.ok(chartDragStart >= 0 && chartDragEnd > chartDragStart);
+  assert.ok(routeDragStart >= 0 && routeDragEnd > routeDragStart);
+
+  for (const interaction of [
+    performanceJourney.slice(chartDragStart, chartDragEnd),
+    performanceJourney.slice(routeDragStart, routeDragEnd),
+  ]) {
+    assert.match(interaction, /new MessageChannel/);
+    assert.doesNotMatch(interaction, /requestAnimationFrame/);
+  }
 });

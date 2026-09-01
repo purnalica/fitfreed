@@ -523,6 +523,14 @@ extent, and an explicit partial-evidence note, while the documented exact model 
 source-overlap, and limitation detail for later progressive disclosure. Naming or saving the range remains a
 separate mutation.
 
+Pointer and keyboard boundary movement updates the local draft and map markers immediately, but it does not submit
+every intermediate pointer position to that complete-route read model. The presentation controller waits for 150
+milliseconds of boundary stability, permits at most one exact-preview command in flight, and retains only the latest
+valid pending pair while that command completes. Superseded results and failures cannot replace the current preview;
+closing or invalidating the draft also invalidates pending presentation work. This scheduling is a presentation
+responsibility: the application query remains an exact, independently valid command over the complete recorded
+coordinate rather than acquiring pointer-event or debounce semantics.
+
 `TrainingSignalWorkbench` composes the same controller and editor for one regular signal's own elapsed
 coordinate. Its selected-sample control and two boundary controls traverse exact bounded visual samples with
 pointer or the same explicit keyboard policy. `TrainingSignalPlot` creates a validated analytical model from that

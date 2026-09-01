@@ -101,7 +101,9 @@ join and human-readable names, but neither that private response nor one partici
 authority. X7-R8.13 therefore reopens the deterministic product path at catalogue acquisition and bundling. Exact
 source `a447910` now retains the unchanged complete local product evidence and passes the corrected local packaged
 campaign, complete hosted campaign, immutable executable-input evidence, and revision-isolated native inspection. Its
-bounded product-owner experience review is the next gate; machine evidence does not accept that experience.
+bounded product-owner experience review accepted recognizable sport identity and then rejected the application at
+XH-30 when pointer range adjustment made chart interaction and the application unresponsive. X7-R8.14 owns the
+causal correction and exact repeat gate; machine evidence does not overrule that rejection.
 
 Five-second comprehension, recognizable personal value, natural navigation, visual quality, and trust failed that
 human gate. Functional native selection, external opening, import, persistence, keyboard, accessibility
@@ -3619,8 +3621,66 @@ performance and installation boundary, the complete instrumented package, replac
 immutable executable-input fingerprint `89f0f31ee8821f426b0a7b745478fc480706e8ce96303746d6045d818fab2ea5`.
 The clean local revision-isolated application independently passes complete-bundle inspection with identifier
 `org.fitfreed.desktop.x6-review.ra4479100002c` and production native adapters. Every automatable X7-R8.13 admission
-gate is closed. The application remains unaccepted until the bounded product-owner experience review records its
-verdict.
+gate is closed. The later bounded product-owner review rejected that application at XH-30; its sport-identity pass
+remains valid only for the behavior observed. X7-R8.14 must pass a new exact admission before another review.
+
+### X7-R8.14 — Keep sustained range exploration responsive
+
+**User outcome:** moving either boundary of a dense chart or route range remains fluid, produces the latest correct
+view, and never makes session exploration or the application unresponsive.
+
+**Observed boundary:** the rejected X7-R8.13 review did not retain the internal control used at XH-30, and the product
+owner is not required to reproduce it. FitFreed has two relevant pointer boundaries, so automation must protect both:
+ECharts owns visual `dataZoom`, while the personal route-range controls request an exact summary over the complete
+recorded route.
+
+**Causal diagnosis:** sustained ECharts start/end dragging does not reproduce the failure across dense single-series
+SVG, default multi-lane SVG, or maximum four-lane canvas renderers. The personal route-range controller, however,
+submitted one native command for every intermediate pointer value. Twelve rapid changes launched twelve exact
+previews even while the first remained unresolved. Each preview opened SQLite state and streamed all 20,001 recorded
+points through the application summary accumulators. Ignoring a stale response prevented stale presentation but did
+not cancel or bound the already-running work.
+
+**Correction contract:** draft boundaries and map markers update immediately. Exact preview scheduling remains in
+presentation, waits for 150 milliseconds of stable input, permits at most one command in flight, and keeps only the
+latest valid pending pair. The application query remains an exact standalone complete-coordinate command; neither
+SQLite nor the bounded visual projection acquires pointer-event semantics. Closing or invalidating the editor
+invalidates pending presentation work, and stale success or failure cannot replace current state.
+
+**Verification sequence:** preserve a component regression that holds the first exact request unresolved while a
+boundary burst occurs, then requires one active request and one latest successor. Extend the packaged Insights journey
+with 120 message-channel-separated changes across both route handles on 20,001 points, the final exact preview,
+cancellation, and
+an immediate subsequent route selection. Drag both ECharts handles in every supported dense renderer and require
+changed output plus a responsive workspace. Run the complete local, repository-safety, hosted, revision-isolated
+native, and independent audit gates for the corrected exact source before another bounded product-owner review.
+
+**Changed-tree checkpoint — 2026-09-01:** the focused component regression first recorded twelve exact commands for
+twelve rapid changes while the first remained in flight, then passes with one active and one latest pending request.
+The rebuilt packaged macOS Insights journey passes the complete dense route, all three sustained ECharts interactions,
+every domain benchmark, and subsequent navigation. Complete exact-source verification and human acceptance remain
+open; the rejected X7-R8.13 application is not rehabilitated by this changed-tree result. The first complete local gate
+then exposed that the new sustained-input driver depended on animation-frame callbacks despite the existing
+visibility-safe E2E contract. That driver is now guarded by a script test and uses message-channel tasks for both route
+and chart changes. The corrected complete Insights-performance journey passes, including both range systems and every
+domain budget. A subsequent complete gate passed the exhaustive functional journey, then exposed an older restart-test
+race: after switching to Planned training, the test retained the empty result collection before the asynchronous
+chronology query completed. The failed run's SQLite library retained the expected planned evidence, proving that this
+was not state loss. The shared E2E synchronizer now waits for an expected durable collection cardinality before
+returning its element handles; its behavioral regression and the exact process-restart scenario pass without removing
+any persistence, content, deletion, or navigation assertion. At that checkpoint, the complete pre-commit gate still
+had to pass again rather than treating either focused rerun as sufficient.
+
+The repeated complete changed-tree gate now passes. It includes 195 automation tests, 481 presentation tests, two
+vendored-updater tests, 305 host tests, 250 application tests, 69 domain tests, strict lint and formatting, all three
+release-mode performance campaigns, seven isolated packaged application processes, successful update replacement,
+deliberate candidate rejection and recovery, and production `.app` plus `.dmg` construction. The exhaustive functional
+journey completed in 3 minutes 17.9 seconds, its distinct-process restart in 3.2 seconds, and the dense Insights journey
+in 1 minute 51.3 seconds. That final journey retains 20,001 route points, four independent 20,001-slot signals, both
+range boundaries, the 120-change burst, the final exact preview, and immediate subsequent interaction. X7-R8.14 is
+complete on the changed tree. A focused commit, synchronization after the explicit push suspension ends, exact
+repository safety, the complete hosted campaign, revision-isolated native inspection, repeated independent audit, and
+the bounded product-owner review remain required; local evidence does not rehabilitate the rejected application.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
