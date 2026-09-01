@@ -3718,8 +3718,17 @@ reviewed the regenerated packaged WebView evidence across the complete acquisiti
 rejected renderer fingerprints as proof of range movement. A revision-isolated production-native bundle built from
 documentation-only descendant `d917882` declares that source, uses the isolated X6 identity, retains production native
 adapters, and passes complete-bundle inspection. Its executable inputs are unchanged from `7b2983a`. This closes local
-audit and native-inspection work, but the bundle is not admitted to the human gate until synchronization, repository
-safety, the complete hosted campaign, and immutable evidence pass for the exact outgoing source.
+audit and native-inspection work.
+
+**Hosted admission checkpoint — 2026-09-01:** synchronized source `7583ca9` passes [repository safety
+`33554185450`](https://github.com/purnalica/fitfreed/actions/runs/33554185450) and the complete [hosted campaign
+`33554185602`](https://github.com/purnalica/fitfreed/actions/runs/33554185602). The hosted campaign repeats the portable
+lane, native X6 package construction and scan, cold launch, full-scale import, dense History, Insights performance,
+installation boundaries, instrumented packaged behavior, update replacement, deliberate rejection, and recovery. Its
+immutable marker records executable-input fingerprint
+`9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. The inspected revision-isolated application is
+therefore admitted to one bounded product-owner experience review. Machine evidence does not accept that experience
+or rehabilitate the rejected X7-R8.13 application retrospectively.
 
 The same exact gate exposed an independent unstable route-preview observation before the chart: WebDriver's
 accessible-name selector reported that the exact route preview was absent while the automatic failure screenshot

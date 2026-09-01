@@ -39,8 +39,11 @@ instead of treating a responsive chart or a green campaign as sufficient experie
 production-native bundle inspection with the same executable inputs. Current packaged WebView evidence was inspected
 again across acquisition, import outcomes, Home, History, calendar, session understanding, routes, signals, ranges,
 reports, export, and Settings in both representative wide and compact/high-zoom compositions. The verdict remains
-**pass with no unresolved critical or major product finding**. Synchronization and exact hosted verification remain
-open, so the locally inspected native bundle is not yet admitted to the next human gate.
+**pass with no unresolved critical or major product finding**. Synchronized source `7583ca9` passes [repository safety
+`33554185450`](https://github.com/purnalica/fitfreed/actions/runs/33554185450), the complete [hosted campaign
+`33554185602`](https://github.com/purnalica/fitfreed/actions/runs/33554185602), and immutable executable-input fingerprint
+`9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. Those gates admit the inspected application
+to the bounded product-owner review without changing this audit verdict or providing human acceptance.
 
 No private archive, library, route, date, quantity, source locator, screenshot, host profile, or participant identity
 is audit evidence. Generated applications, databases, exports, logs, and screenshots remain ignored local artifacts.
@@ -266,13 +269,13 @@ performance campaign repeated after the accepted corrections.
     covered the complete question inventory, responsive geometry, localized and themed states, progressive detail,
     recovery feedback, and the analytical surfaces. No additional critical or major finding was accepted.
 17. The documentation-only descendant `d917882` produced a revision-isolated native bundle whose scanner confirms
-    production adapters and the expected isolated identity. This closes local native inspection, not exact hosted
-    admission or human acceptance.
+    production adapters and the expected isolated identity. Synchronized source `7583ca9`, with unchanged executable
+    inputs, then passed exact repository safety, complete hosted verification, and immutable fingerprint admission.
+    This closes machine admission, not human acceptance.
 
 External cartographic basemaps and curated themes are not audit omissions: they are explicitly confirmed post-MVP
 capabilities with separate privacy, attribution, caching, offline, and personalization decisions. Synthetic evidence
 does not establish an unrestricted global provider sport catalogue. It establishes the exact versioned snapshot
 covered by the public acquisition evidence; the privacy-bounded reference predicate separately establishes complete
-recognition for the authorized reference without publishing its contents. The next required sequence is synchronization
-after the explicit push suspension ends, exact repository safety and hosted verification, immutable evidence admission,
-and one bounded product-owner experience review of the already inspected revision-isolated application.
+recognition for the authorized reference without publishing its contents. The next required gate is one bounded
+product-owner experience review of the machine-admitted revision-isolated application.

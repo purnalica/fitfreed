@@ -36,6 +36,10 @@ experience failure that blocked the preceding reviews. Adjusting both boundaries
 pointer then made the chart unresponsive and blocked the application. The product owner declared this a no-go and
 closed the review. The review application is rejected.**
 
+**The X7-R8.14 correction now passes complete exact local and hosted verification, the repeated independent audit,
+revision-isolated native inspection, exact repository safety, and immutable executable-input admission. The corrected
+application is eligible for one new bounded product-owner review. It is not accepted before that review.**
+
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
 the [X6 profile](../testing/macos-candidate-manual-evaluation.md#x6-product-experience-profile). It records
 observable behavior and bounded participant impact without retaining personal fitness data, source paths,
@@ -845,8 +849,9 @@ Causal diagnosis, correction, and automated regression may proceed without parti
 ### XH-30 — Pointer range adjustment blocks chart interaction and the application
 
 - **Status:** acceptance-blocking failure observed in the X7-R8.13 product-owner review; causal defect isolated and
-  corrected in X7-R8.14. Complete exact local verification, repeated independent audit, and local revision-isolated
-  native inspection pass; hosted admission and human re-evaluation remain pending.
+  corrected in X7-R8.14. Complete exact local and hosted verification, repeated independent audit, revision-isolated
+  native inspection, exact repository safety, and immutable executable-input admission pass; human re-evaluation
+  remains pending.
 - **Observed task:** adjust the start and end boundaries of a chart viewing range with the pointer during ordinary
   session exploration.
 - **Observed behavior:** the chart stopped responding and the application then became unresponsive.
@@ -869,8 +874,10 @@ Causal diagnosis, correction, and automated regression may proceed without parti
   once on release. The hardened packaged journey requires both rendered handle centres to move across dense
   single-series SVG, default multi-lane SVG, and maximum four-lane canvas charts, then requires the workspace to remain
   responsive. Two consecutive dense campaigns, complete exact local verification, the repeated independent audit, and
-  local revision-isolated native inspection pass. This does not accept the experience or prove the participant's exact
-  internal path retrospectively.
+  revision-isolated native inspection pass. Synchronized source `7583ca9` also passes exact repository safety, complete
+  hosted verification, and immutable executable-input fingerprint
+  `9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. This does not accept the experience or prove
+  the participant's exact internal path retrospectively.
 
 ## Passing observations
 
@@ -920,8 +927,8 @@ Causal diagnosis, correction, and automated regression may proceed without parti
 The X7-R8.13 application from exact source `a4479100002c2229c51264fc8fd0dfe0a2cab73e` is rejected. Sport identity is
 finally recognizable, but pointer adjustment of a chart viewing range makes the chart and application unresponsive.
 The product owner declared the failure a no-go and ended the review. XH-30 now has causal diagnosis, complete exact
-local verification, repeated independent audit, and a locally inspected revision-isolated application. Exact hosted
-admission and a new bounded product-owner review remain mandatory before X7-R8 can pass.
+local and hosted verification, repeated independent audit, and a machine-admitted revision-isolated application. A new
+bounded product-owner review remains mandatory before X7-R8 can pass.
 
 The later corrected candidate from exact source `3e280ca86955b7f2e2c453626dfe53f44bb7e579` is rejected. Most represented
 sports and sessions remain unknown, so the imported library lacks the primary identity needed to explore, compare,

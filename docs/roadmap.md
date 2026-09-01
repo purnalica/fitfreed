@@ -2,12 +2,12 @@
 
 ## Status
 
-Milestone 1 is complete. Milestone 2 retains substantial implemented capability and is completing hosted admission for
+Milestone 1 is complete. Milestone 2 retains substantial implemented capability and has completed machine admission for
 X7-R8.14 before a new bounded product-owner gate. The bundled automatic sport-identity correction, complete unchanged
 product regression, and private-reference predicate retain their evidence. The corrected analytical-range source now
-passes complete exact local verification, the repeated independent audit, and local revision-isolated native
-inspection. Synchronization, exact hosted evidence, and the human experience verdict remain open; no current MVP
-candidate is accepted. The implemented
+passes complete exact local verification, the repeated independent audit, revision-isolated native inspection, exact
+repository safety, the complete hosted campaign, and immutable executable-input evidence. The human experience verdict
+remains open; no current MVP candidate is accepted. The implemented
 Milestone 3 public-release engineering baseline remains available but cannot advance until Milestone 2 regains product
 acceptance. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
@@ -69,8 +69,11 @@ further use impossible. X7-R8.14 now passes its complete changed-tree local camp
 chart renderer, coalesced exact preview over 20,001 route points, distinct-process restart, update replacement and
 recovery, and production packaging all pass. Exact source `7b2983a` passes the complete local gate. The repeated
 question-first audit closes with no unresolved critical or major product finding, and documentation-only descendant
-`d917882` passes local revision-isolated native inspection with unchanged executable inputs. Synchronization remains
-deliberately suspended; exact hosted admission and one new bounded product-owner review remain open.
+`d917882` passes local revision-isolated native inspection with unchanged executable inputs. Synchronized source
+`7583ca9` passes [repository safety `33554185450`](https://github.com/purnalica/fitfreed/actions/runs/33554185450), the
+complete [hosted campaign `33554185602`](https://github.com/purnalica/fitfreed/actions/runs/33554185602), and immutable
+executable-input fingerprint `9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. One new bounded
+product-owner review remains open.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate
