@@ -3661,8 +3661,9 @@ The rebuilt packaged macOS Insights journey passes the complete dense route, all
 every domain benchmark, and subsequent navigation. Complete exact-source verification and human acceptance remain
 open; the rejected X7-R8.13 application is not rehabilitated by this changed-tree result. The first complete local gate
 then exposed that the new sustained-input driver depended on animation-frame callbacks despite the existing
-visibility-safe E2E contract. That driver is now guarded by a script test and uses message-channel tasks for both route
-and chart changes. The corrected complete Insights-performance journey passes, including both range systems and every
+visibility-safe E2E contract. Both range drivers now use message-channel tasks. Chart input enters at the renderer root
+with renderer-relative coordinates so zrender performs its own hit-test and drag lifecycle. A script test rejects
+animation-frame dependency, retained-child targets, and WebDriver Actions for this boundary. The corrected complete Insights-performance journey passes, including both range systems and every
 domain budget. A subsequent complete gate passed the exhaustive functional journey, then exposed an older restart-test
 race: after switching to Planned training, the test retained the empty result collection before the asynchronous
 chronology query completed. The failed run's SQLite library retained the expected planned evidence, proving that this
@@ -3681,6 +3682,18 @@ range boundaries, the 120-change burst, the final exact preview, and immediate s
 complete on the changed tree. A focused commit, synchronization after the explicit push suspension ends, exact
 repository safety, the complete hosted campaign, revision-isolated native inspection, repeated independent audit, and
 the bounded product-owner review remain required; local evidence does not rehabilitate the rejected application.
+
+**Exact-source input-driver checkpoint — 2026-09-01:** the first complete gate from commit `201f3d3` passed dependency,
+architecture, documentation, unit, integration, lint, formatting, release-mode performance, exhaustive packaged,
+restart, adaptive-history, and sport-catalogue gates before the dense Insights journey rejected its single-signal
+start-handle drag. Reproduction proved that WebDriver hit the rendered SVG handle, but every move arrived with no
+pressed mouse button and with a vertical child-relative offset thousands of pixels outside the renderer. zrender
+therefore received an invalid coordinate stream and could not move the selected handle. The input boundary, not the
+product scheduling fix, is the causal defect. The replacement driver targets the SVG or canvas root, supplies coherent
+renderer-relative mouse input across message-channel tasks, and retains zrender's own hit-test and drag behavior.
+Its behavioral script contract passes, followed by two consecutive complete dense Insights campaigns covering the
+single-series SVG, default multi-lane SVG, maximum four-lane canvas, and subsequent domain interactions within every
+budget. Complete exact-source verification must still pass again before this checkpoint can be admitted.
 
 ### X7-R8.2 — Turn History and Home into direct session discovery
 

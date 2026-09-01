@@ -330,11 +330,16 @@ test("drives sustained range input without animation-frame visibility", () => {
   assert.ok(chartDragStart >= 0 && chartDragEnd > chartDragStart);
   assert.ok(routeDragStart >= 0 && routeDragEnd > routeDragStart);
 
-  for (const interaction of [
-    performanceJourney.slice(chartDragStart, chartDragEnd),
-    performanceJourney.slice(routeDragStart, routeDragEnd),
-  ]) {
-    assert.match(interaction, /new MessageChannel/);
-    assert.doesNotMatch(interaction, /requestAnimationFrame/);
-  }
+  const chartInteraction = performanceJourney.slice(chartDragStart, chartDragEnd);
+  const routeInteraction = performanceJourney.slice(routeDragStart, routeDragEnd);
+  assert.match(chartInteraction, /new MessageChannel/);
+  assert.match(chartInteraction, /rendererRoot\.dispatchEvent\(inputEvent/);
+  assert.match(chartInteraction, /Object\.defineProperties\(inputEvent/);
+  assert.match(chartInteraction, /offsetX/);
+  assert.match(chartInteraction, /offsetY/);
+  assert.doesNotMatch(chartInteraction, /browser\.action\("pointer"/);
+  assert.doesNotMatch(chartInteraction, /eventTarget\.dispatchEvent/);
+  assert.doesNotMatch(chartInteraction, /requestAnimationFrame/);
+  assert.match(routeInteraction, /new MessageChannel/);
+  assert.doesNotMatch(routeInteraction, /requestAnimationFrame/);
 });

@@ -616,8 +616,9 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
       const trackLeft = (startHandle.left + startHandle.right) / 2;
       const trackRight = (endHandle.left + endHandle.right) / 2;
       const selectedHandle = expectedBoundary === "start" ? startHandle : endHandle;
+      const fromX = expectedBoundary === "start" ? trackLeft : trackRight;
       return {
-        fromX: expectedBoundary === "start" ? trackLeft : trackRight,
+        fromX,
         targetX: trackLeft + (trackRight - trackLeft) * expectedTarget,
         y: selectedHandle.y,
         rendererBounds: {
@@ -701,60 +702,62 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
   if (geometry.diagnostic) {
     throw new Error(`${geometry.diagnostic}: ${JSON.stringify(geometry.inspectedShapes)}`);
   }
-  await browser.execute((expectedSelector, dragGeometry) => {
+  const fromX = Math.round(geometry.fromX);
+  const targetX = Math.round(geometry.targetX);
+  const y = Math.round(geometry.y);
+  const interaction = await browser.executeAsync((expectedSelector, coordinates, done) => {
     const renderer = document.querySelector(expectedSelector);
-    if (!(renderer instanceof HTMLElement)) return;
-    const eventTarget = document.elementFromPoint(dragGeometry.fromX, dragGeometry.y) ?? renderer;
+    const rendererRoot = renderer?.querySelector("canvas, svg");
+    if (!(rendererRoot instanceof Element)) {
+      done({ duration: null, error: "the chart renderer root was not available" });
+      return;
+    }
     const started = window.performance.now();
-    globalThis.__fitfreedChartPointerDrag = { completed: false, duration: null };
-    const emit = (type, clientX, buttons) => {
-      eventTarget.dispatchEvent(new MouseEvent(type, {
+    const channel = new MessageChannel();
+    const steps = 60;
+    let step = 0;
+
+    function dispatch(type, clientX, buttons) {
+      const rootBounds = rendererRoot.getBoundingClientRect();
+      const inputEvent = new MouseEvent(type, {
         bubbles: true,
         button: 0,
         buttons,
         cancelable: true,
         clientX,
-        clientY: dragGeometry.y,
+        clientY: coordinates.y,
         view: window,
-      }));
-    };
-    emit("mousedown", dragGeometry.fromX, 1);
-    let step = 0;
-    const steps = 60;
-    const channel = new MessageChannel();
-    const continueDrag = () => {
+      });
+      Object.defineProperties(inputEvent, {
+        offsetX: { value: clientX - rootBounds.left },
+        offsetY: { value: coordinates.y - rootBounds.top },
+      });
+      rendererRoot.dispatchEvent(inputEvent);
+    }
+
+    channel.port1.onmessage = () => {
       step += 1;
       const progress = step / steps;
-      emit("mousemove", dragGeometry.fromX
-        + (dragGeometry.targetX - dragGeometry.fromX) * progress, 1);
+      dispatch(
+        "mousemove",
+        Math.round(coordinates.fromX + (coordinates.targetX - coordinates.fromX) * progress),
+        1,
+      );
       if (step < steps) {
         channel.port2.postMessage(null);
         return;
       }
-      emit("mouseup", dragGeometry.targetX, 0);
+      dispatch("mouseup", coordinates.targetX, 0);
       channel.port1.close();
       channel.port2.close();
-      globalThis.__fitfreedChartPointerDrag = {
-        completed: true,
-        duration: window.performance.now() - started,
-      };
+      done({ duration: window.performance.now() - started, error: null });
     };
-    channel.port1.onmessage = continueDrag;
+
+    dispatch("mousedown", coordinates.fromX, 1);
     channel.port2.postMessage(null);
-  }, selector, geometry);
-  await browser.waitUntil(
-    () => browser.execute(() => globalThis.__fitfreedChartPointerDrag?.completed === true),
-    {
-      timeout: 5_000,
-      timeoutMsg: `the analytical chart pointer drag did not complete: ${JSON.stringify(geometry)}`,
-    },
-  );
-  const result = await browser.execute(() => {
-    const drag = globalThis.__fitfreedChartPointerDrag;
-    delete globalThis.__fitfreedChartPointerDrag;
-    return drag;
-  });
-  return { ...geometry, duration: result.duration };
+  }, selector, { fromX, targetX, y });
+  if (interaction.error) throw new Error(interaction.error);
+  return { ...geometry, duration: interaction.duration };
 }
 
 async function verifyTrainingChartPointerZoomRemainsResponsive() {
