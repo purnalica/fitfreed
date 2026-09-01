@@ -2,11 +2,12 @@
 
 ## Status
 
-Milestone 1 is complete. Milestone 2 retains substantial implemented capability and is completing X7-R8.14 before a
-new bounded product-owner gate. The bundled automatic sport-identity correction, complete unchanged product regression,
-private-reference predicate, repeated independent audit, exact-source local packaged and hosted campaigns, immutable
-marker, and revision-isolated native inspection pass; no current MVP candidate is accepted until the human experience
-gate records its verdict. The implemented
+Milestone 1 is complete. Milestone 2 retains substantial implemented capability and is completing hosted admission for
+X7-R8.14 before a new bounded product-owner gate. The bundled automatic sport-identity correction, complete unchanged
+product regression, and private-reference predicate retain their evidence. The corrected analytical-range source now
+passes complete exact local verification, the repeated independent audit, and local revision-isolated native
+inspection. Synchronization, exact hosted evidence, and the human experience verdict remain open; no current MVP
+candidate is accepted. The implemented
 Milestone 3 public-release engineering baseline remains available but cannot advance until Milestone 2 regains product
 acceptance. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
@@ -66,8 +67,10 @@ with bundle identifier `org.fitfreed.desktop.x6-review.ra4479100002c`. The bound
 accepted recognizable sport identity and rejected that application at XH-30 when pointer range adjustment made
 further use impossible. X7-R8.14 now passes its complete changed-tree local campaign: sustained zoom in every dense
 chart renderer, coalesced exact preview over 20,001 route points, distinct-process restart, update replacement and
-recovery, and production packaging all pass. Focused commit, later synchronization, exact hosted and native admission,
-the repeated independent audit, and one new bounded product-owner review remain open.
+recovery, and production packaging all pass. Exact source `7b2983a` passes the complete local gate. The repeated
+question-first audit closes with no unresolved critical or major product finding, and documentation-only descendant
+`d917882` passes local revision-isolated native inspection with unchanged executable inputs. Synchronization remains
+deliberately suspended; exact hosted admission and one new bounded product-owner review remain open.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate

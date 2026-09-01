@@ -32,6 +32,16 @@ passes the corrected local packaged campaign, complete hosted campaign, immutabl
 revision-isolated native inspection while retaining this unchanged product audit. Those later gates admit the bounded
 product-owner review but do not change this audit verdict or provide human acceptance.
 
+The X7-R8.14 audit repeated on 2026-09-01 after the next product-owner review rejected pointer range adjustment at
+XH-30. It challenged both range systems independently, then repeated the complete question-first product review
+instead of treating a responsive chart or a green campaign as sufficient experience evidence. Exact executable source
+`7b2983a` passes the complete local gate, and the documentation-only descendant `d917882` passes revision-isolated
+production-native bundle inspection with the same executable inputs. Current packaged WebView evidence was inspected
+again across acquisition, import outcomes, Home, History, calendar, session understanding, routes, signals, ranges,
+reports, export, and Settings in both representative wide and compact/high-zoom compositions. The verdict remains
+**pass with no unresolved critical or major product finding**. Synchronization and exact hosted verification remain
+open, so the locally inspected native bundle is not yet admitted to the next human gate.
+
 No private archive, library, route, date, quantity, source locator, screenshot, host profile, or participant identity
 is audit evidence. Generated applications, databases, exports, logs, and screenshots remain ignored local artifacts.
 
@@ -146,6 +156,29 @@ Neither weakness was classified as a product finding because the corrected appli
 contract. Both could have allowed later catalogue drift to escape a focused gate, so they are retained as durable
 verification evidence rather than omitted from the audit.
 
+## X7-R8.14 analytical-range challenge
+
+The rejected human application established the observable failure but did not retain which range control had blocked.
+The audit therefore challenged the route editor and the analytical chart as separate causal chains. The route editor
+previously submitted one complete 20,001-point native preview for every intermediate pointer value. Presentation now
+settles draft input for 150 milliseconds, permits one exact request in flight, and retains only the latest valid pending
+pair. A 120-change two-handle packaged interaction requires the final exact preview, cancellation, and immediate
+subsequent route use.
+
+The first analytical-chart E2E oracle was independently rejected during exact-source verification. It compared SVG or
+canvas fingerprints, but hover emphasis and delayed renderer reconciliation could change those bytes while both zoom
+handles remained stationary. The corrected oracle locates the rendered start and end handles, sends one coherent
+sustained mouse stream through zrender's stable viewport root, and requires each observed handle centre to move by at
+least 20 logical pixels. It covers single-series SVG, default multi-lane SVG, and maximum four-lane canvas renderers
+and then requires the surrounding workspace to remain responsive.
+
+That outcome-based oracle reproduced a second product cause: ECharts recalculated the complete analytical range and
+series throughout sustained slider input, starved the WebView, and left the handle at its original boundary. The shared
+analytical adapter now disables real-time slider recalculation. The handle follows the pointer during the gesture and
+the analytical range is recalculated once on release. Two consecutive rebuilt dense packaged campaigns pass all three
+renderers without retries, and the complete exact local campaign passes every retained product, restart, performance,
+update-recovery, and packaging gate.
+
 ## Visual, adaptive, and accessibility challenge
 
 Direct inspection used the actual current WebView rather than prototypes. It covered empty acquisition, Sources,
@@ -223,11 +256,23 @@ performance campaign repeated after the accepted corrections.
 13. This closes the changed-tree independent audit for X7-R8.13. Exact cold launch, repository safety, hosted
     verification, revision-isolated native construction and inspection, and the bounded product-owner review remain
     sequential gates; none is represented as complete by this verdict.
+14. X7-R8.14 restarted from XH-30 and treated the route-range editor and ECharts slider as independent systems. The
+    route controller's unbounded exact-preview scheduling was corrected at its presentation coordinator, and its
+    sustained-input packaged regression passed.
+15. Exact-source chart verification then rejected the renderer-fingerprint oracle, reproduced the WebView starvation
+    with observed handle positions, and corrected recalculation policy at the shared ECharts adapter. Two consecutive
+    dense packaged campaigns passed every supported renderer and subsequent workspace interaction without retries.
+16. The complete exact local campaign passed for `7b2983a`. Direct review of the regenerated packaged WebView evidence
+    covered the complete question inventory, responsive geometry, localized and themed states, progressive detail,
+    recovery feedback, and the analytical surfaces. No additional critical or major finding was accepted.
+17. The documentation-only descendant `d917882` produced a revision-isolated native bundle whose scanner confirms
+    production adapters and the expected isolated identity. This closes local native inspection, not exact hosted
+    admission or human acceptance.
 
 External cartographic basemaps and curated themes are not audit omissions: they are explicitly confirmed post-MVP
 capabilities with separate privacy, attribution, caching, offline, and personalization decisions. Synthetic evidence
 does not establish an unrestricted global provider sport catalogue. It establishes the exact versioned snapshot
 covered by the public acquisition evidence; the privacy-bounded reference predicate separately establishes complete
-recognition for the authorized reference without publishing its contents. The next required sequence is one reviewed
-exact source, exact local and hosted verification, revision-isolated production-native construction and inspection,
-and one bounded product-owner experience review of that exact application.
+recognition for the authorized reference without publishing its contents. The next required sequence is synchronization
+after the explicit push suspension ends, exact repository safety and hosted verification, immutable evidence admission,
+and one bounded product-owner experience review of the already inspected revision-isolated application.

@@ -845,7 +845,8 @@ Causal diagnosis, correction, and automated regression may proceed without parti
 ### XH-30 — Pointer range adjustment blocks chart interaction and the application
 
 - **Status:** acceptance-blocking failure observed in the X7-R8.13 product-owner review; causal defect isolated and
-  corrected on the later X7-R8.14 changed tree; complete exact admission and human re-evaluation pending.
+  corrected in X7-R8.14. Complete exact local verification, repeated independent audit, and local revision-isolated
+  native inspection pass; hosted admission and human re-evaluation remain pending.
 - **Observed task:** adjust the start and end boundaries of a chart viewing range with the pointer during ordinary
   session exploration.
 - **Observed behavior:** the chart stopped responding and the application then became unresponsive.
@@ -856,16 +857,20 @@ Causal diagnosis, correction, and automated regression may proceed without parti
 - **Disposition:** reject the reviewed application. Do not request participant reproduction. Trace the complete event,
   state, rendering, and native-process causal chain; add automated regression evidence at the lowest responsible
   boundary and through the packaged production interaction before another human review.
-- **Automated diagnosis:** the review did not retain which of the two internal range controls was active, so neither is
-  assumed. Sustained start/end dragging passes across dense single-series SVG, default multi-lane SVG, and maximum
-  four-lane canvas ECharts renderers. The route-range controller exposed an independent concrete defect: twelve rapid
-  boundary changes launched twelve exact native queries while the first was unresolved, and every query streamed the
-  complete 20,001-point route. Stale-result suppression discarded only responses; it did not bound active work.
-- **Corrected changed-tree evidence:** presentation now updates local boundaries immediately, waits for 150
+- **Automated diagnosis:** the review did not retain which of the two internal range controls was active, so both were
+  challenged independently. The route-range controller launched one complete 20,001-point exact native query for
+  every intermediate pointer value. The original ECharts E2E oracle was also unsound: hover emphasis and delayed
+  reconciliation changed SVG or canvas fingerprints without proving that either zoom handle moved. An outcome-based
+  handle-position oracle then reproduced WebView starvation while ECharts recalculated the analytical range and
+  series throughout sustained slider input.
+- **Corrected exact-source evidence:** route presentation now updates local boundaries immediately, waits for 150
   milliseconds of stable input, permits one exact query in flight, and retains only the latest pending request. The
-  focused component regression and rebuilt packaged Insights journey pass a 120-change two-handle route drag, final
-  exact preview, cancellation, immediate subsequent route selection, and all three ECharts renderer paths. This does
-  not accept a candidate or prove the participant's exact internal path retrospectively.
+  shared analytical adapter disables real-time slider recalculation so handles follow input and the chart recalculates
+  once on release. The hardened packaged journey requires both rendered handle centres to move across dense
+  single-series SVG, default multi-lane SVG, and maximum four-lane canvas charts, then requires the workspace to remain
+  responsive. Two consecutive dense campaigns, complete exact local verification, the repeated independent audit, and
+  local revision-isolated native inspection pass. This does not accept the experience or prove the participant's exact
+  internal path retrospectively.
 
 ## Passing observations
 
@@ -914,9 +919,9 @@ Causal diagnosis, correction, and automated regression may proceed without parti
 
 The X7-R8.13 application from exact source `a4479100002c2229c51264fc8fd0dfe0a2cab73e` is rejected. Sport identity is
 finally recognizable, but pointer adjustment of a chart viewing range makes the chart and application unresponsive.
-The product owner declared the failure a no-go and ended the review. XH-30 now has causal diagnosis and focused
-automated regression on the X7-R8.14 changed tree, but complete exact verification and a new bounded product-owner
-review remain mandatory before X7-R8 can pass.
+The product owner declared the failure a no-go and ended the review. XH-30 now has causal diagnosis, complete exact
+local verification, repeated independent audit, and a locally inspected revision-isolated application. Exact hosted
+admission and a new bounded product-owner review remain mandatory before X7-R8 can pass.
 
 The later corrected candidate from exact source `3e280ca86955b7f2e2c453626dfe53f44bb7e579` is rejected. Most represented
 sports and sessions remain unknown, so the imported library lacks the primary identity needed to explore, compare,

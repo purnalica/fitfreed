@@ -3679,9 +3679,10 @@ deliberate candidate rejection and recovery, and production `.app` plus `.dmg` c
 journey completed in 3 minutes 17.9 seconds, its distinct-process restart in 3.2 seconds, and the dense Insights journey
 in 1 minute 51.3 seconds. That final journey retains 20,001 route points, four independent 20,001-slot signals, both
 range boundaries, the 120-change burst, the final exact preview, and immediate subsequent interaction. X7-R8.14 is
-complete on the changed tree. A focused commit, synchronization after the explicit push suspension ends, exact
-repository safety, the complete hosted campaign, revision-isolated native inspection, repeated independent audit, and
-the bounded product-owner review remain required; local evidence does not rehabilitate the rejected application.
+complete on the changed tree. Focused commits, the exact local gate, repeated independent audit, and local
+revision-isolated native inspection now pass. Synchronization after the explicit push suspension ends, exact repository
+safety, the complete hosted campaign, immutable evidence admission, and the bounded product-owner review remain
+required; local evidence does not rehabilitate the rejected application.
 
 **Exact-source chart-interaction checkpoint — 2026-09-01:** the first complete gate from commit `201f3d3` passed
 dependency, architecture, documentation, unit, integration, lint, formatting, release-mode performance, exhaustive
@@ -3709,8 +3710,16 @@ behavior, process restarts, sport-catalogue persistence, the hardened dense Insi
 replacement, deliberate update failure and recovery, production packaging, cold launch, bundle inspection, and
 recovery preparation. The exhaustive functional journey completed in 3 minutes 15.2 seconds and the hardened dense
 Insights journey in 1 minute 44.8 seconds. The local exact-source gate is admitted without retries. Synchronization,
-hosted verification, revision-isolated native inspection, independent audit, and bounded product-owner review remain
-required; this checkpoint alone does not rehabilitate the rejected X7-R8.13 candidate.
+hosted verification, and bounded product-owner review remain required; this checkpoint alone does not rehabilitate
+the rejected X7-R8.13 candidate.
+
+The repeated independent question-first audit now passes with no unresolved critical or major product finding. It
+reviewed the regenerated packaged WebView evidence across the complete acquisition-to-export question inventory and
+rejected renderer fingerprints as proof of range movement. A revision-isolated production-native bundle built from
+documentation-only descendant `d917882` declares that source, uses the isolated X6 identity, retains production native
+adapters, and passes complete-bundle inspection. Its executable inputs are unchanged from `7b2983a`. This closes local
+audit and native-inspection work, but the bundle is not admitted to the human gate until synchronization, repository
+safety, the complete hosted campaign, and immutable evidence pass for the exact outgoing source.
 
 The same exact gate exposed an independent unstable route-preview observation before the chart: WebDriver's
 accessible-name selector reported that the exact route preview was absent while the automatic failure screenshot
