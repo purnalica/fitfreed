@@ -546,6 +546,28 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
     if (!(renderer instanceof HTMLElement)) return null;
     renderer.scrollIntoView({ block: "center", inline: "nearest" });
     const bounds = renderer.getBoundingClientRect();
+    const accentProbe = document.createElement("span");
+    accentProbe.style.color = getComputedStyle(renderer)
+      .getPropertyValue("--accent-deep")
+      .trim();
+    renderer.append(accentProbe);
+    const resolvedAccent = getComputedStyle(accentProbe).color;
+    accentProbe.remove();
+    const colorChannels = (color) => {
+      const channels = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      return channels
+        ? [Number(channels[1]), Number(channels[2]), Number(channels[3])]
+        : null;
+    };
+    const resolvedAccentChannels = colorChannels(resolvedAccent);
+    const matchesAccent = (color, tolerance = 2) => {
+      const channels = colorChannels(color);
+      return channels !== null
+        && resolvedAccentChannels !== null
+        && channels.every((channel, index) => (
+          Math.abs(channel - resolvedAccentChannels[index]) <= tolerance
+        ));
+    };
     const canvas = renderer.querySelector("canvas");
     if (!(canvas instanceof HTMLCanvasElement)) {
       const svg = renderer.querySelector("svg");
@@ -554,14 +576,7 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
         const shapeBounds = element.getBoundingClientRect();
         const style = getComputedStyle(element);
         const color = `${style.fill} ${style.stroke}`;
-        const accent = [style.fill, style.stroke].some((candidate) => {
-          const channels = candidate.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-          if (!channels) return candidate.includes("#1f583f");
-          const red = Number(channels[1]);
-          const green = Number(channels[2]);
-          const blue = Number(channels[3]);
-          return green < 150 && green > red + 20 && green > blue + 10;
-        });
+        const accent = [style.fill, style.stroke].some((candidate) => matchesAccent(candidate));
         const nearSlider = shapeBounds.top >= bounds.top + bounds.height * 0.8;
         const handleShape = shapeBounds.width >= 2 && shapeBounds.width <= 24
           && shapeBounds.height >= 10 && shapeBounds.height <= 48;
@@ -581,7 +596,10 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
         .sort((left, right) => left.left - right.left);
       if (candidates.length < 2) return {
         diagnostic: "slider handles were not identified",
-        inspectedShapes: inspectedShapes.slice(-20),
+        inspectedShapes: {
+          expectedAccent: resolvedAccent,
+          shapes: inspectedShapes.slice(-20),
+        },
       };
       const startHandle = candidates[0];
       const endHandle = candidates.at(-1);
@@ -622,7 +640,10 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
         const green = pixels.data[offset + 1];
         const blue = pixels.data[offset + 2];
         const alpha = pixels.data[offset + 3];
-        if (alpha > 200 && green < 150 && green > red + 20 && green > blue + 10) {
+        if (alpha > 200 && resolvedAccentChannels !== null
+          && Math.abs(red - resolvedAccentChannels[0]) <= 12
+          && Math.abs(green - resolvedAccentChannels[1]) <= 12
+          && Math.abs(blue - resolvedAccentChannels[2]) <= 12) {
           columnCounts[x] += 1;
           columnYTotals[x] += y + scanTop;
         }

@@ -575,6 +575,7 @@ export function mountEChartsAnalyticalChart(
     devicePixelRatio: window.devicePixelRatio,
   });
   chart.setOption(compiled.option as unknown as EChartsCoreOption);
+  chart.on("datazoom", () => chart.getZr().flush());
   chart.on("click", (event) => {
     if (!activeModel.interaction.pointSelection || !activeOnSelection) return;
     const candidate = event as unknown as { seriesIndex?: number; dataIndex?: number };

@@ -390,6 +390,28 @@ test("drives sustained range input without animation-frame visibility", () => {
   assert.doesNotMatch(routeInteraction, /requestAnimationFrame/);
 });
 
+test("locates analytical zoom handles from the active appearance palette", () => {
+  const performanceJourney = readFileSync(
+    path.resolve("test/e2e/support/insights-performance.js"),
+    "utf8",
+  );
+  const geometryStart = performanceJourney.indexOf(
+    "async function inspectChartZoomGeometry",
+  );
+  const geometryEnd = performanceJourney.indexOf(
+    "async function dragChartZoomBoundary",
+    geometryStart,
+  );
+  assert.ok(geometryStart >= 0 && geometryEnd > geometryStart);
+  const geometryInspection = performanceJourney.slice(geometryStart, geometryEnd);
+
+  assert.match(geometryInspection, /getPropertyValue\("--accent-deep"\)/);
+  assert.match(geometryInspection, /resolvedAccentChannels/);
+  assert.match(geometryInspection, /matchesAccent/);
+  assert.doesNotMatch(geometryInspection, /green < 150/);
+  assert.doesNotMatch(geometryInspection, /#1f583f/);
+});
+
 test("keeps dense session-detail closure scoped to its visible action", () => {
   const performanceJourney = readFileSync(
     path.resolve("test/e2e/support/insights-performance.js"),
