@@ -59,6 +59,13 @@ impl LinuxNativePackageIdentity {
     pub fn desktop_entry_path(&self) -> &Path {
         Path::new(INSTALLED_DESKTOP_ENTRY_PATH)
     }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(version: &str) -> Self {
+        Self {
+            version: version.to_owned(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
