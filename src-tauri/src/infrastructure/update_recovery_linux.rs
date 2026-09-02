@@ -1,6 +1,7 @@
 use std::{
     ffi::OsString,
-    fs, io,
+    fs::{self, File},
+    io::{self, Read},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -20,6 +21,8 @@ const MAX_COMMAND_OUTPUT_BYTES: usize = 64 * 1024;
 
 #[derive(Debug, Error)]
 pub enum LinuxUpdateRecoveryError {
+    #[error("authorization for Linux package recovery is unavailable")]
+    AuthorizationUnavailable,
     #[error("the Linux package manager is unavailable")]
     PackageManagerUnavailable,
     #[error("the installed Linux package identity is invalid")]
@@ -106,6 +109,7 @@ impl LinuxRecoveryProcessIdentity {
 
 struct NativeCommandOutput {
     success: bool,
+    exit_code: Option<i32>,
     stdout: Vec<u8>,
 }
 
@@ -128,6 +132,7 @@ impl NativeCommandPort for SystemNativeCommand {
         let output = Command::new(executable).args(arguments).output()?;
         Ok(NativeCommandOutput {
             success: output.status.success(),
+            exit_code: output.status.code(),
             stdout: output.stdout,
         })
     }
@@ -175,6 +180,16 @@ pub fn reinstall_linux_predecessor_package(
         Path::new(INSTALLED_DESKTOP_ENTRY_PATH),
     )?;
     Ok(identity)
+}
+
+pub(crate) fn verify_linux_native_installation_matches_runnable(
+    runnable_root: &Path,
+) -> Result<(), LinuxUpdateRecoveryError> {
+    verify_linux_native_installation_matches_runnable_with(
+        runnable_root,
+        Path::new(INSTALLED_EXECUTABLE_PATH),
+        Path::new(INSTALLED_DESKTOP_ENTRY_PATH),
+    )
 }
 
 pub fn observe_linux_recovery_process(
@@ -239,7 +254,11 @@ fn reinstall_linux_predecessor_package_with(
         )
         .map_err(|_| LinuxUpdateRecoveryError::PackageManagerUnavailable)?;
     if !output.success {
-        return Err(LinuxUpdateRecoveryError::NativeRollbackFailed);
+        return if matches!(output.exit_code, Some(126 | 127)) {
+            Err(LinuxUpdateRecoveryError::AuthorizationUnavailable)
+        } else {
+            Err(LinuxUpdateRecoveryError::NativeRollbackFailed)
+        };
     }
     query_linux_native_package_identity_with(command)
 }
@@ -322,6 +341,67 @@ fn validate_native_installation_files(
 ) -> Result<(), LinuxUpdateRecoveryError> {
     validate_installed_file(executable_path, true)?;
     validate_installed_file(desktop_entry_path, false)
+}
+
+fn verify_linux_native_installation_matches_runnable_with(
+    runnable_root: &Path,
+    installed_executable: &Path,
+    installed_desktop_entry: &Path,
+) -> Result<(), LinuxUpdateRecoveryError> {
+    let metadata = fs::symlink_metadata(runnable_root)
+        .map_err(|_| LinuxUpdateRecoveryError::InvalidPackageIdentity)?;
+    if !metadata.file_type().is_dir() || runnable_root.canonicalize()? != runnable_root {
+        return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    let runnable_executable = runnable_root.join("usr/bin/fitfreed");
+    let runnable_desktop_entry = runnable_root.join("usr/share/applications/FitFreed.desktop");
+    validate_installed_file(&runnable_executable, true)?;
+    validate_installed_file(&runnable_desktop_entry, false)?;
+    validate_native_installation_files(installed_executable, installed_desktop_entry)?;
+    if !files_are_equal(&runnable_executable, installed_executable)?
+        || !files_are_equal(&runnable_desktop_entry, installed_desktop_entry)?
+    {
+        return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    Ok(())
+}
+
+fn files_are_equal(left: &Path, right: &Path) -> Result<bool, LinuxUpdateRecoveryError> {
+    let mut left = open_regular_file_no_follow(left)?;
+    let mut right = open_regular_file_no_follow(right)?;
+    let left_metadata = left.metadata()?;
+    let right_metadata = right.metadata()?;
+    if left_metadata.len() != right_metadata.len() {
+        return Ok(false);
+    }
+    let mut left_buffer = [0_u8; 64 * 1024];
+    let mut right_buffer = [0_u8; 64 * 1024];
+    loop {
+        let left_read = left.read(&mut left_buffer)?;
+        let right_read = right.read(&mut right_buffer)?;
+        if left_read != right_read || left_buffer[..left_read] != right_buffer[..right_read] {
+            return Ok(false);
+        }
+        if left_read == 0 {
+            return Ok(true);
+        }
+    }
+}
+
+fn open_regular_file_no_follow(path: &Path) -> Result<File, LinuxUpdateRecoveryError> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let file = options.open(path)?;
+    if !file.metadata()?.file_type().is_file() {
+        return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    Ok(file)
 }
 
 fn observe_linux_recovery_process_with(
@@ -459,6 +539,7 @@ mod tests {
     fn successful_output(stdout: impl Into<Vec<u8>>) -> NativeCommandOutput {
         NativeCommandOutput {
             success: true,
+            exit_code: Some(0),
             stdout: stdout.into(),
         }
     }
@@ -551,6 +632,50 @@ mod tests {
         command.assert_exhausted();
     }
 
+    #[test]
+    fn distinguishes_unavailable_authorization_from_a_failed_package_operation() {
+        let directory = TempDir::new().expect("temporary directory");
+        let attempt_directory = directory.path().join("attempt");
+        let package_path = attempt_directory.join(PREDECESSOR_PACKAGE_RELATIVE_PATH);
+        fs::create_dir_all(package_path.parent().expect("package parent"))
+            .expect("package directory");
+        fs::write(&package_path, "synthetic Debian package").expect("predecessor package");
+        let canonical_package_path = package_path.canonicalize().expect("canonical package path");
+
+        for (exit_code, authorization_unavailable) in [
+            (Some(126), true),
+            (Some(127), true),
+            (Some(1), false),
+            (None, false),
+        ] {
+            let command = SyntheticCommand::new(vec![ExpectedCommand {
+                executable: PathBuf::from(PKEXEC_PATH),
+                arguments: vec![
+                    OsString::from(DPKG_PATH),
+                    OsString::from("--install"),
+                    canonical_package_path.clone().into_os_string(),
+                ],
+                output: NativeCommandOutput {
+                    success: false,
+                    exit_code,
+                    stdout: Vec::new(),
+                },
+            }]);
+
+            let error = reinstall_linux_predecessor_package_with(&command, &attempt_directory)
+                .expect_err("failed native recovery");
+            assert_eq!(
+                matches!(error, LinuxUpdateRecoveryError::AuthorizationUnavailable),
+                authorization_unavailable
+            );
+            assert_eq!(
+                matches!(error, LinuxUpdateRecoveryError::NativeRollbackFailed),
+                !authorization_unavailable
+            );
+            command.assert_exhausted();
+        }
+    }
+
     #[cfg(unix)]
     #[test]
     fn requires_regular_installed_files_and_an_executable_application() {
@@ -582,6 +707,51 @@ mod tests {
         symlink(&symlink_target, &executable).expect("symbolic executable");
         assert!(matches!(
             validate_native_installation_files(&executable, &desktop_entry),
+            Err(LinuxUpdateRecoveryError::InvalidPackageIdentity)
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn requires_installed_payload_bytes_to_match_the_preserved_runnable_image() {
+        let directory = TempDir::new().expect("temporary directory");
+        let root = directory.path().canonicalize().expect("canonical root");
+        let runnable = root.join("runnable");
+        let runnable_executable = runnable.join("usr/bin/fitfreed");
+        let runnable_desktop = runnable.join("usr/share/applications/FitFreed.desktop");
+        let installed_executable = root.join("installed/fitfreed");
+        let installed_desktop = root.join("installed/FitFreed.desktop");
+        for path in [
+            &runnable_executable,
+            &runnable_desktop,
+            &installed_executable,
+            &installed_desktop,
+        ] {
+            fs::create_dir_all(path.parent().expect("file parent")).expect("file parent");
+        }
+        fs::write(&runnable_executable, "exact executable").expect("runnable executable");
+        fs::write(&runnable_desktop, "exact desktop entry").expect("runnable desktop entry");
+        fs::write(&installed_executable, "exact executable").expect("installed executable");
+        fs::write(&installed_desktop, "exact desktop entry").expect("installed desktop entry");
+        for path in [&runnable_executable, &installed_executable] {
+            fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+                .expect("executable permissions");
+        }
+
+        verify_linux_native_installation_matches_runnable_with(
+            &runnable,
+            &installed_executable,
+            &installed_desktop,
+        )
+        .expect("matching installed payload");
+
+        fs::write(&installed_desktop, "changed desktop entry").expect("changed desktop entry");
+        assert!(matches!(
+            verify_linux_native_installation_matches_runnable_with(
+                &runnable,
+                &installed_executable,
+                &installed_desktop,
+            ),
             Err(LinuxUpdateRecoveryError::InvalidPackageIdentity)
         ));
     }

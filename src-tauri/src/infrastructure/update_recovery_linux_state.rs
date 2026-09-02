@@ -18,13 +18,15 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 use url::Url;
 
+use super::update_recovery_linux::verify_linux_native_installation_matches_runnable;
 use super::{
     backup_database,
     local_file::{sync_directory, PrivateStagingFile},
     observe_linux_recovery_process, prepare_linux_recovery_packages_from_path,
-    query_linux_native_package_identity, verify_library_file, verify_linux_recovery_packages,
-    ImportError, LinuxNativePackageIdentity, LinuxRecoveryPackageError,
-    LinuxRecoveryPackageExpectation, LinuxRecoveryProcessIdentity, SCHEMA_VERSION,
+    query_linux_native_package_identity, reinstall_linux_predecessor_package, verify_library_file,
+    verify_linux_recovery_packages, ImportError, LinuxNativePackageIdentity,
+    LinuxRecoveryPackageError, LinuxRecoveryPackageExpectation, LinuxRecoveryProcessIdentity,
+    LinuxUpdateRecoveryError, SCHEMA_VERSION,
 };
 
 const RECOVERY_FORMAT: &str = "org.fitfreed.update-recovery";
@@ -176,6 +178,32 @@ pub struct LinuxUpdateRecoveryWatchdogLease {
     recovery_id: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinuxNativeRecoveryFailure {
+    AuthorizationUnavailable,
+    PackageManagerFailed,
+    InstalledStateInvalid,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinuxUpdateRecoveryRestorationOutcome {
+    Recovered,
+    NativeRecoveryUnavailable {
+        attempts: u8,
+        failure: LinuxNativeRecoveryFailure,
+    },
+    RecoveryFailed {
+        attempts: u8,
+        failure: LinuxNativeRecoveryFailure,
+    },
+}
+
+pub struct LinuxUpdateRecoveryRestoration<'a> {
+    pub recovery_root: &'a Path,
+    pub recovery_id: &'a str,
+    pub expected_library_path: &'a Path,
+}
+
 impl LinuxUpdateRecoveryWatchdogLease {
     pub fn recovery_id(&self) -> &str {
         &self.recovery_id
@@ -237,6 +265,32 @@ trait RecoveryPackagePort {
         candidate: &LinuxRecoveryPackageExpectation,
         runnable_tree_sha256: &str,
     ) -> Result<(), LinuxRecoveryPackageError>;
+}
+
+trait LinuxNativeRecoveryPort {
+    fn reinstall_and_verify(
+        &self,
+        attempt_directory: &Path,
+        expected_version: &str,
+    ) -> Result<(), LinuxUpdateRecoveryError>;
+}
+
+struct SystemLinuxNativeRecovery;
+
+impl LinuxNativeRecoveryPort for SystemLinuxNativeRecovery {
+    fn reinstall_and_verify(
+        &self,
+        attempt_directory: &Path,
+        expected_version: &str,
+    ) -> Result<(), LinuxUpdateRecoveryError> {
+        let identity = reinstall_linux_predecessor_package(attempt_directory)?;
+        if identity.version() != expected_version {
+            return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
+        }
+        verify_linux_native_installation_matches_runnable(
+            &attempt_directory.join(RUNNABLE_PREDECESSOR_RELATIVE_PATH),
+        )
+    }
 }
 
 struct SystemRecoveryPackages;
@@ -446,6 +500,16 @@ enum NativeRecoveryFailure {
     AuthorizationUnavailable,
     PackageManagerFailed,
     InstalledStateInvalid,
+}
+
+impl From<LinuxNativeRecoveryFailure> for NativeRecoveryFailure {
+    fn from(value: LinuxNativeRecoveryFailure) -> Self {
+        match value {
+            LinuxNativeRecoveryFailure::AuthorizationUnavailable => Self::AuthorizationUnavailable,
+            LinuxNativeRecoveryFailure::PackageManagerFailed => Self::PackageManagerFailed,
+            LinuxNativeRecoveryFailure::InstalledStateInvalid => Self::InstalledStateInvalid,
+        }
+    }
 }
 
 pub fn prepare_linux_update_recovery(
@@ -716,6 +780,168 @@ fn acquire_linux_update_recovery_candidate_lease_with(
         _lock: lock,
         recovery_id: recovery_id.to_owned(),
         launch_nonce: launch_nonce.to_owned(),
+    })
+}
+
+pub fn restore_active_linux_update_recovery(
+    watchdog_lease: &LinuxUpdateRecoveryWatchdogLease,
+    restoration: LinuxUpdateRecoveryRestoration<'_>,
+) -> Result<LinuxUpdateRecoveryRestorationOutcome, LinuxRecoveryStateError> {
+    restore_active_linux_update_recovery_with(
+        &SystemRecoveryPackages,
+        &SystemLinuxNativeRecovery,
+        watchdog_lease,
+        restoration,
+    )
+}
+
+fn restore_active_linux_update_recovery_with(
+    packages: &impl RecoveryPackagePort,
+    native_recovery: &impl LinuxNativeRecoveryPort,
+    watchdog_lease: &LinuxUpdateRecoveryWatchdogLease,
+    restoration: LinuxUpdateRecoveryRestoration<'_>,
+) -> Result<LinuxUpdateRecoveryRestorationOutcome, LinuxRecoveryStateError> {
+    if !valid_sha256(restoration.recovery_id)
+        || watchdog_lease.recovery_id() != restoration.recovery_id
+        || !restoration.expected_library_path.is_absolute()
+    {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_root = canonical_private_directory(restoration.recovery_root)?;
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, restoration.recovery_id)?;
+    let _candidate_lock = FileLock::acquire(open_private_lock_file(
+        &attempt_directory,
+        CANDIDATE_LOCK_FILE_NAME,
+        false,
+    )?)?;
+    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != restoration.recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
+    let mut manifest =
+        verify_linux_update_recovery_with(packages, &recovery_root, restoration.recovery_id)?;
+    if manifest.phase != LinuxRecoveryPhaseWire::Recovering
+        || manifest.recovery_id != restoration.recovery_id
+        || manifest.native_recovery.attempts >= 3
+        || Path::new(&manifest.source.library_path) != restoration.expected_library_path
+    {
+        return Err(LinuxRecoveryStateError::InvalidTransition);
+    }
+    restore_linux_library(
+        &attempt_directory.join(&manifest.library_backup.relative_path),
+        restoration.expected_library_path,
+        &manifest.library_backup,
+        manifest.source.library_schema_version,
+    )?;
+
+    let native_result = native_recovery
+        .reinstall_and_verify(&attempt_directory, &manifest.source.version)
+        .map_err(classify_native_recovery_error);
+    let attempts = manifest
+        .native_recovery
+        .attempts
+        .checked_add(1)
+        .filter(|attempts| *attempts <= 3)
+        .ok_or(LinuxRecoveryStateError::InvalidState)?;
+    manifest.native_recovery.attempts = attempts;
+    let outcome = match native_result {
+        Ok(()) => {
+            manifest.native_recovery.last_failure = None;
+            manifest.phase = LinuxRecoveryPhaseWire::Recovered;
+            LinuxUpdateRecoveryRestorationOutcome::Recovered
+        }
+        Err(failure) if attempts < 3 => {
+            manifest.native_recovery.last_failure = Some(failure.into());
+            manifest.phase = LinuxRecoveryPhaseWire::NativeRecoveryUnavailable;
+            LinuxUpdateRecoveryRestorationOutcome::NativeRecoveryUnavailable { attempts, failure }
+        }
+        Err(failure) => {
+            manifest.native_recovery.last_failure = Some(failure.into());
+            manifest.phase = LinuxRecoveryPhaseWire::RecoveryFailed;
+            LinuxUpdateRecoveryRestorationOutcome::RecoveryFailed { attempts, failure }
+        }
+    };
+    validate_manifest(&manifest)?;
+    write_manifest(&manifest_path, &manifest)?;
+    Ok(outcome)
+}
+
+fn classify_native_recovery_error(error: LinuxUpdateRecoveryError) -> LinuxNativeRecoveryFailure {
+    match error {
+        LinuxUpdateRecoveryError::AuthorizationUnavailable => {
+            LinuxNativeRecoveryFailure::AuthorizationUnavailable
+        }
+        LinuxUpdateRecoveryError::PackageManagerUnavailable
+        | LinuxUpdateRecoveryError::NativeRollbackFailed => {
+            LinuxNativeRecoveryFailure::PackageManagerFailed
+        }
+        LinuxUpdateRecoveryError::InvalidPackageIdentity
+        | LinuxUpdateRecoveryError::Io(_)
+        | LinuxUpdateRecoveryError::InvalidPredecessorPackage
+        | LinuxUpdateRecoveryError::InvalidProcessIdentity => {
+            LinuxNativeRecoveryFailure::InstalledStateInvalid
+        }
+    }
+}
+
+fn restore_linux_library(
+    backup_path: &Path,
+    destination_path: &Path,
+    backup: &LibraryBackup,
+    schema_version: u32,
+) -> Result<(), LinuxRecoveryStateError> {
+    if library_matches(destination_path, backup, schema_version) {
+        return Ok(());
+    }
+    if fs::symlink_metadata(destination_path)
+        .is_ok_and(|metadata| metadata.file_type().is_symlink())
+    {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let parent = destination_path
+        .parent()
+        .ok_or(LinuxRecoveryStateError::InvalidInput)?
+        .canonicalize()?;
+    if parent.join("fitfreed.sqlite") != destination_path {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let source = options.open(backup_path)?;
+    let metadata = source.metadata()?;
+    if !metadata.file_type().is_file() || metadata.len() != backup.size_bytes {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let mut staging = PrivateStagingFile::new(&parent, "fitfreed-library-recovery", ".sqlite")?;
+    let copied = io::copy(&mut source.take(backup.size_bytes + 1), staging.file_mut()?)?;
+    if copied != backup.size_bytes {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    staging.sync_and_close()?;
+    if file_sha256(staging.path(), backup.size_bytes)? != backup.sha256 {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    verify_library_file(staging.path(), i64::from(schema_version))?;
+    staging.persist_replace(destination_path)?;
+    if !library_matches(destination_path, backup, schema_version) {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    Ok(())
+}
+
+fn library_matches(path: &Path, backup: &LibraryBackup, schema_version: u32) -> bool {
+    fs::symlink_metadata(path).is_ok_and(|metadata| {
+        metadata.file_type().is_file()
+            && metadata.len() == backup.size_bytes
+            && file_sha256(path, backup.size_bytes).is_ok_and(|digest| digest == backup.sha256)
+            && verify_library_file(path, i64::from(schema_version)).is_ok()
     })
 }
 
@@ -1661,7 +1887,11 @@ fn path_entry_exists(path: &Path) -> Result<bool, LinuxRecoveryStateError> {
 
 #[cfg(all(test, unix))]
 mod tests {
-    use std::{cell::Cell, io::Cursor};
+    use std::{
+        cell::{Cell, RefCell},
+        collections::VecDeque,
+        io::Cursor,
+    };
 
     use minisign::{sign, KeyPair};
     use rusqlite::Connection;
@@ -1744,6 +1974,36 @@ mod tests {
                 return Err(LinuxRecoveryPackageError::InvalidPackage);
             }
             Ok(())
+        }
+    }
+
+    struct SyntheticNativeRecovery {
+        outcomes: RefCell<VecDeque<Result<(), LinuxUpdateRecoveryError>>>,
+        observed_attempts: RefCell<Vec<PathBuf>>,
+    }
+
+    impl SyntheticNativeRecovery {
+        fn new(outcomes: Vec<Result<(), LinuxUpdateRecoveryError>>) -> Self {
+            Self {
+                outcomes: RefCell::new(outcomes.into()),
+                observed_attempts: RefCell::new(Vec::new()),
+            }
+        }
+    }
+
+    impl LinuxNativeRecoveryPort for SyntheticNativeRecovery {
+        fn reinstall_and_verify(
+            &self,
+            attempt_directory: &Path,
+            _expected_version: &str,
+        ) -> Result<(), LinuxUpdateRecoveryError> {
+            self.observed_attempts
+                .borrow_mut()
+                .push(attempt_directory.to_owned());
+            self.outcomes
+                .borrow_mut()
+                .pop_front()
+                .expect("configured native recovery outcome")
         }
     }
 
@@ -2251,5 +2511,257 @@ mod tests {
             )
             .is_err());
         }
+    }
+
+    #[test]
+    fn restores_the_library_and_native_predecessor_as_one_recovered_pair() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("watchdog context");
+        let watchdog = acquire_linux_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("watchdog lease");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering");
+        Connection::open(&harness.library_path)
+            .expect("candidate library")
+            .execute_batch("CREATE TABLE candidate_only(value TEXT);")
+            .expect("candidate mutation");
+        let native = SyntheticNativeRecovery::new(vec![Ok(())]);
+
+        let outcome = restore_active_linux_update_recovery_with(
+            &packages,
+            &native,
+            &watchdog,
+            LinuxUpdateRecoveryRestoration {
+                recovery_root: &harness.recovery_root,
+                recovery_id: prepared.recovery_id(),
+                expected_library_path: &harness.library_path,
+            },
+        )
+        .expect("restored predecessor pair");
+
+        assert_eq!(outcome, LinuxUpdateRecoveryRestorationOutcome::Recovered);
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root).expect("recovered phase"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                PackagedUpdateRecoveryPhase::Recovered,
+            ))
+        );
+        assert_eq!(
+            fs::read(&harness.library_path).expect("restored library"),
+            fs::read(
+                prepared
+                    .attempt_directory()
+                    .join(LIBRARY_BACKUP_RELATIVE_PATH)
+            )
+            .expect("library backup")
+        );
+        assert_eq!(
+            native.observed_attempts.borrow().as_slice(),
+            &[prepared.attempt_directory().to_owned()]
+        );
+    }
+
+    #[test]
+    fn records_closed_native_failures_and_stops_after_three_attempts() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("watchdog context");
+        let watchdog = acquire_linux_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("watchdog lease");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering");
+        let native = SyntheticNativeRecovery::new(vec![
+            Err(LinuxUpdateRecoveryError::AuthorizationUnavailable),
+            Err(LinuxUpdateRecoveryError::NativeRollbackFailed),
+            Err(LinuxUpdateRecoveryError::InvalidPackageIdentity),
+        ]);
+        let restoration = || LinuxUpdateRecoveryRestoration {
+            recovery_root: &harness.recovery_root,
+            recovery_id: prepared.recovery_id(),
+            expected_library_path: &harness.library_path,
+        };
+
+        assert_eq!(
+            restore_active_linux_update_recovery_with(
+                &packages,
+                &native,
+                &watchdog,
+                restoration(),
+            )
+            .expect("first failed attempt"),
+            LinuxUpdateRecoveryRestorationOutcome::NativeRecoveryUnavailable {
+                attempts: 1,
+                failure: LinuxNativeRecoveryFailure::AuthorizationUnavailable,
+            }
+        );
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("second recovery attempt");
+        assert_eq!(
+            restore_active_linux_update_recovery_with(
+                &packages,
+                &native,
+                &watchdog,
+                restoration(),
+            )
+            .expect("second failed attempt"),
+            LinuxUpdateRecoveryRestorationOutcome::NativeRecoveryUnavailable {
+                attempts: 2,
+                failure: LinuxNativeRecoveryFailure::PackageManagerFailed,
+            }
+        );
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("third recovery attempt");
+        assert_eq!(
+            restore_active_linux_update_recovery_with(
+                &packages,
+                &native,
+                &watchdog,
+                restoration(),
+            )
+            .expect("third failed attempt"),
+            LinuxUpdateRecoveryRestorationOutcome::RecoveryFailed {
+                attempts: 3,
+                failure: LinuxNativeRecoveryFailure::InstalledStateInvalid,
+            }
+        );
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root)
+                .expect("terminal failed phase")
+                .map(|(_, phase)| phase),
+            Some(PackagedUpdateRecoveryPhase::RecoveryFailed)
+        );
+    }
+
+    #[test]
+    fn refuses_linux_restoration_while_the_candidate_lease_is_held() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("watchdog context");
+        let watchdog = acquire_linux_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("watchdog lease");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementInstalled,
+        )
+        .expect("replacement installed");
+        let process = LinuxRecoveryProcessIdentity::for_test(
+            42,
+            "12345678-1234-4123-8123-123456789abc",
+            123_456,
+        );
+        let launch_nonce = "a".repeat(64);
+        record_active_linux_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            LinuxUpdateRecoveryReplacementLaunch {
+                process: &process,
+                launch_nonce: &launch_nonce,
+                confirmation_deadline: "2026-09-02T08:01:00Z",
+            },
+        )
+        .expect("recorded replacement");
+        let candidate = acquire_linux_update_recovery_candidate_lease_with(
+            &packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &launch_nonce,
+            &process,
+            &LinuxNativePackageIdentity::for_test("0.2.0"),
+        )
+        .expect("candidate lease");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering");
+
+        assert!(matches!(
+            restore_active_linux_update_recovery_with(
+                &packages,
+                &SyntheticNativeRecovery::new(vec![Ok(())]),
+                &watchdog,
+                LinuxUpdateRecoveryRestoration {
+                    recovery_root: &harness.recovery_root,
+                    recovery_id: prepared.recovery_id(),
+                    expected_library_path: &harness.library_path,
+                },
+            ),
+            Err(LinuxRecoveryStateError::ActiveAttemptExists)
+        ));
+        drop(candidate);
     }
 }
