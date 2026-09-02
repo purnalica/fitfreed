@@ -9,7 +9,11 @@ passes complete exact local verification, the repeated independent audit, revisi
 repository safety, the complete hosted campaign, and immutable executable-input evidence. The human experience verdict
 remains open; no current MVP candidate is accepted. The implemented
 Milestone 3 public-release engineering baseline remains available but cannot advance until Milestone 2 regains product
-acceptance. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. D0
+acceptance. Apple Silicon on macOS 15.0 or later is the accepted macOS MVP platform boundary. The product owner opened
+Linux and Windows parity engineering on 2026-09-02 without accepting the current macOS candidate or authorizing any
+application publication. Platform engineering and automated evidence may therefore advance independently where their
+contracts do not depend on an open earlier-platform gate; per-platform acceptance and public promotion remain ordered
+macOS, Linux, then Windows. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
 capability boundaries; P1 published the truthful canonical product site; E1 through E5 and the previously planned E6
 corrections retain complete local and hosted engineering evidence. The subsequent [independent product-experience
@@ -79,7 +83,8 @@ The [production-native human evaluation](research/x6-product-experience-human-ev
 rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate
 preparation, and advanced personalization remain outside this loop. The production application remains the only
 implementation and the [MVP experience delivery plan](plans/mvp-experience-delivery.md) remains its engineering
-evidence baseline. Milestone 3 resumes only after X7-R8 and the repeated human gate accept the corrected experience.
+evidence baseline. Milestone 3 promotion remains blocked until X7-R8 and the repeated human gate accept the corrected
+experience; that gate does not block independent Linux or Windows parity engineering.
 
 ## Purpose
 
@@ -199,9 +204,13 @@ verification of private alpha updates.
 **Outcome:** the accepted first-MVP capability baseline is available to Linux users through a native, documented,
 updateable, recoverable, and supportable public distribution path without changing product functionality.
 
-**Dependency:** the public macOS MVP is accepted and published. A detailed Linux execution plan will establish the
-supported distributions, architectures, package formats, trust model, update mechanism, and clean-environment test
-matrix before implementation begins.
+**Engineering dependency:** the first-MVP capability baseline is functionally frozen and has sufficient automated
+evidence to make platform-parity failures attributable. Linux investigation, implementation, packaging, and automated
+evidence may proceed while macOS acceptance or publication remains open.
+
+**Publication dependency:** the public macOS MVP is accepted and published. A detailed Linux execution plan will
+establish the supported distributions, architectures, package formats, trust model, update mechanism, and
+clean-environment test matrix before Linux implementation begins.
 
 **Exit criteria:** the selected Linux packages pass capability-parity, clean installation, first launch, update,
 migration, interruption recovery, removal, accessibility, localization, and supported-environment verification.
@@ -211,9 +220,13 @@ migration, interruption recovery, removal, accessibility, localization, and supp
 **Outcome:** the same accepted first-MVP capability baseline is available to Windows users through a native,
 documented, updateable, recoverable, and supportable public distribution path without changing product functionality.
 
-**Dependency:** the public Linux MVP is accepted and published. A detailed Windows execution plan will establish the
-supported Windows versions, architectures, package and signing model, update mechanism, and clean-environment test
-matrix before implementation begins.
+**Engineering dependency:** the first-MVP capability baseline is functionally frozen. Windows investigation,
+implementation, packaging, and automated evidence may proceed independently of an open macOS or Linux acceptance gate
+when no unresolved platform decision is an input to that work.
+
+**Publication dependency:** the public Linux MVP is accepted and published. A detailed Windows execution plan will
+establish the supported Windows versions, architectures, package and signing model, update mechanism, and
+clean-environment test matrix before Windows implementation begins.
 
 **Exit criteria:** the selected Windows package passes capability-parity, clean installation, first launch, update,
 migration, interruption recovery, removal, accessibility, localization, and supported-environment verification.

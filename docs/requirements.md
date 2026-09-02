@@ -60,8 +60,11 @@ The project will remain legally precise: it will not claim that the GDPR require
 - The canonical repository is `purnalica/fitfreed` at `https://github.com/purnalica/fitfreed`.
 - The repository is owned by the `purnalica` GitHub organization from its creation; the superseded plan to begin under a personal account was never adopted.
 - Supported platforms will receive straightforward native installation packages and an in-application update path.
-- The MVP will support macOS only.
-- Linux will be the next supported desktop platform, followed by Windows.
+- The private evaluation MVP candidate remains macOS-first. The first public MVP capability baseline will be supported
+  on macOS, Linux, and Windows.
+- Cross-platform parity engineering and automated evidence may proceed before the preceding platform is accepted or
+  published when that work does not depend on a still-open human gate. Acceptance and public promotion remain separate
+  per-platform gates, and public availability will still proceed in the order macOS, Linux, then Windows.
 - The accepted first-MVP capability set will remain functionally frozen while that same product baseline is
   published for macOS, Linux, and Windows in that order. Post-MVP capability growth begins only after the first
   supported public release exists on all three platforms.

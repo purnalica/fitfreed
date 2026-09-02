@@ -15,6 +15,19 @@ Current private-development preparation under [ADR 0003](decisions/0003-stage-ve
 
 These stages prepare unsigned development evidence; they do not publish it. Tags, GitHub releases, artifact uploads, production signatures, notarization, live update metadata, and promotion remain separate authorized actions.
 
+## Cross-platform parity engineering sequence
+
+Linux and Windows parity engineering may proceed while an earlier platform still has an open human acceptance,
+credential, or publication gate. This separation applies to portability investigation, native compilation, packaging,
+installation and removal automation, update and recovery implementation, platform E2E, accessibility and localization
+parity, and release-shaped evidence. It does not treat later-platform evidence as acceptance of the macOS candidate or
+authorize a public artifact.
+
+Each platform owns an independent complete acceptance boundary. Public promotion remains ordered macOS, Linux, then
+Windows; a later platform cannot be promoted merely because its engineering campaign passes. The current milestone
+sequence and gate ownership remain canonical in the [roadmap](../roadmap.md), and the rationale for separating
+engineering from promotion is recorded in [ADR 0039](decisions/0039-decouple-platform-engineering-from-promotion.md).
+
 ## Release evidence set
 
 The staged evidence set will contain:
