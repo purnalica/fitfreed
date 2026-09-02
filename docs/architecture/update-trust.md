@@ -131,10 +131,12 @@ does not hide manual checking. Query, retry, installation, and import are serial
 and a retry never accepts a recovery identifier, path, package, or command from React.
 
 The native Debian E2E campaign installs signed predecessor and candidate packages through the production `pkexec` and
-`dpkg` boundary. It currently proves successful replacement and automatic native rollback after candidate rejection,
-including package identity, library preservation, terminal cleanup, localized outcome presentation, and explicit
-acknowledgement. Native installer failure, authorization unavailability, explicit retry, attempt exhaustion, and
-restart resumption remain open M4.2 scenarios.
+`dpkg` boundary. It proves successful replacement and automatic native rollback after either candidate rejection or
+a real Debian pre-installation failure. The failure candidate is derived from the ordinary synthetic package, receives
+one closed failing maintainer script, is rebuilt with root ownership, signed independently, and traverses the same
+authenticated download, recovery preparation, native installation, rollback, package-identity, library-preservation,
+terminal-cleanup, localized-result, and explicit-acknowledgement boundaries. Authorization unavailability, explicit
+retry, attempt exhaustion, and restart resumption remain open M4.2 scenarios.
 
 ## Verification pipeline
 

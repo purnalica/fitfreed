@@ -274,7 +274,7 @@ async function main() {
   }
   const expectedScenario = scenario === "success"
     ? { outcome: "updated", installedVersion: "0.2.0" }
-    : scenario === "candidate-failure"
+    : ["candidate-failure", "installer-failure"].includes(scenario)
       ? { outcome: "recovered", installedVersion: "0.1.0" }
       : undefined;
   if (

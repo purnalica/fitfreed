@@ -244,11 +244,14 @@ Linux recovery tests protect the application-owned phase and three-attempt polic
 exclusive-watchdog transition, spawn-failure rollback, privacy-minimized host DTO, fail-closed update presentation, and
 the distinction between a recovery-state read failure and an ordinary channel failure. The package-shaped campaign
 runs through `npm run verify:linux-update-e2e` on native x86-64 Ubuntu. Its first scenarios install real signed Debian
-packages and prove both successful native replacement and automatic rollback after candidate rejection. Both verify
-package-manager identity, SQLite integrity, locale persistence, terminal cleanup, localized result presentation, and
-explicit acknowledgement. The remaining campaign must deliberately fail native authorization and installation, drive
-the visible explicit retry, prove one durable increment per attempt and restart resumption, and require manual
-reinstallation after exhaustion while the previous application, library, and recovery evidence remain intact.
+packages and prove successful native replacement plus automatic rollback after either candidate rejection or a Debian
+maintainer-script failure during native installation. The installer-failure package is a root-owned rebuild of the
+ordinary synthetic candidate, is signed as distinct exact bytes, and fails through the real package-manager boundary.
+Every terminal scenario verifies package-manager identity, SQLite integrity, locale persistence, terminal cleanup,
+localized result presentation, and explicit acknowledgement. The remaining campaign must deliberately fail native
+authorization, drive the visible explicit retry, prove one durable increment per attempt and restart resumption, and
+require manual reinstallation after exhaustion while the previous application, library, and recovery evidence remain
+intact.
 
 Recurring discovery is split at its real boundary without waiting a day in CI. Paused-time host tests prove the exact production interval, first and subsequent 24-hour waits, and the absence of catch-up bursts; coordinator tests prove an occupied update operation is skipped. React tests drive the exact typed desktop event and prove that attention states become visible while unconfigured, offline, current, dismissed, and postponed results retain scheduled-policy silence. The architecture check binds both sides to the same event name. The production capability manifest includes Tauri's event listener permission, and the production-bundle gate proves no test capability is required or retained.
 

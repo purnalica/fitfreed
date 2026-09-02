@@ -4,6 +4,7 @@ import {
   copyFileSync,
   createReadStream,
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -32,6 +33,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const artifactRoot = path.join(repositoryRoot, ".artifacts/linux-update-e2e");
 const targetDirectory = path.join(artifactRoot, "target");
 const packageDirectory = path.join(artifactRoot, "packages");
+const variantDirectory = path.join(artifactRoot, "variants");
 const generatedConfiguration = path.join(artifactRoot, "tauri-build.json");
 const keyDirectory = path.join(artifactRoot, "signing");
 const privateKeyPath = path.join(keyDirectory, "synthetic.key");
@@ -41,6 +43,7 @@ const certificatePath = path.join(tlsDirectory, "ca.crt");
 const serverCertificatePath = path.join(tlsDirectory, "server.crt");
 const serverKeyPath = path.join(tlsDirectory, "server.key");
 const installedApplication = "/usr/bin/fitfreed";
+const debianPackageTool = "/usr/bin/dpkg-deb";
 const polkitRulePath = "/etc/polkit-1/rules.d/49-fitfreed-update-e2e.rules";
 const keyId = "synthetic-linux-e2e-key";
 const currentVersion = "0.1.0";
@@ -69,11 +72,34 @@ export function linuxUpdateBuildArguments(configurationPath) {
   ];
 }
 
+export function debianPackageVariantArguments(extractionRoot, outputPath) {
+  if (!path.isAbsolute(extractionRoot) || !path.isAbsolute(outputPath)) {
+    throw new Error("Linux update E2E Debian variant paths must be absolute");
+  }
+  return ["--root-owner-group", "--build", extractionRoot, outputPath];
+}
+
+export function linuxInstallerFailureScript() {
+  return "#!/bin/sh\nset -eu\nexit 42\n";
+}
+
 export function linuxUpdateScenarioPlan() {
   return [
-    { name: "success", expectedOutcome: "updated", expectedVersion: candidateVersion },
+    {
+      name: "success",
+      candidateVariant: "ordinary",
+      expectedOutcome: "updated",
+      expectedVersion: candidateVersion,
+    },
+    {
+      name: "installer-failure",
+      candidateVariant: "installer-failure",
+      expectedOutcome: "recovered",
+      expectedVersion: currentVersion,
+    },
     {
       name: "candidate-failure",
+      candidateVariant: "ordinary",
       expectedOutcome: "recovered",
       expectedVersion: currentVersion,
     },
@@ -308,6 +334,23 @@ function buildDebianPackage(version, publicKey) {
   return retained;
 }
 
+function buildInstallerFailureCandidate(sourcePackage) {
+  const extractionRoot = path.join(variantDirectory, "installer-failure/root");
+  const controlDirectory = path.join(extractionRoot, "DEBIAN");
+  const preinstallPath = path.join(controlDirectory, "preinst");
+  const outputPath = path.join(packageDirectory, "candidate-installer-failure.deb");
+  rmSync(path.dirname(extractionRoot), { recursive: true, force: true });
+  mkdirSync(extractionRoot, { recursive: true, mode: 0o700 });
+  run(debianPackageTool, ["--raw-extract", sourcePackage, extractionRoot]);
+  if (existsSync(preinstallPath) || lstatSync(controlDirectory).isSymbolicLink()) {
+    throw new Error("The synthetic installer-failure candidate has an unexpected preinstall boundary");
+  }
+  writeFileSync(preinstallPath, linuxInstallerFailureScript(), { mode: 0o755 });
+  run(debianPackageTool, debianPackageVariantArguments(extractionRoot, outputPath));
+  signFile(outputPath);
+  return outputPath;
+}
+
 async function availableTcpPort() {
   const server = net.createServer();
   await new Promise((resolve, reject) => {
@@ -321,12 +364,12 @@ async function availableTcpPort() {
   return port;
 }
 
-async function startUpdateServer(candidatePackage, predecessorPackage) {
+async function startUpdateServer(candidatePackages, predecessorPackage) {
   let envelopeBytes;
-  const routes = new Map([
-    ["/candidate.deb", candidatePackage],
-    ["/predecessor.deb", predecessorPackage],
-  ]);
+  const routes = new Map([["/predecessor.deb", predecessorPackage]]);
+  for (const [variant, candidatePackage] of candidatePackages) {
+    routes.set(`/candidate-${variant}.deb`, candidatePackage);
+  }
   const server = https.createServer({
     key: readFileSync(serverKeyPath),
     cert: readFileSync(serverCertificatePath),
@@ -371,7 +414,13 @@ async function startUpdateServer(candidatePackage, predecessorPackage) {
   };
 }
 
-function createChannelDocuments({ candidatePackage, predecessorPackage, port, publicKey }) {
+function createChannelDocuments({
+  candidatePackage,
+  candidateVariant,
+  predecessorPackage,
+  port,
+  publicKey,
+}) {
   const target = updateTarget(process.platform, process.arch);
   const issuedAt = new Date(Date.now() - 1_000).toISOString();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000).toISOString();
@@ -382,7 +431,7 @@ function createChannelDocuments({ candidatePackage, predecessorPackage, port, pu
     sequence: 1,
     releaseVersion: candidateVersion,
     target,
-    packageUrl: `https://127.0.0.1:${port}/candidate.deb`,
+    packageUrl: `https://127.0.0.1:${port}/candidate-${candidateVariant}.deb`,
     packageSize: statSync(candidatePackage).size,
     packageSha256: sha256(candidatePackage),
     packageSignature: readFileSync(`${candidatePackage}.sig`, "utf8").trim(),
@@ -541,18 +590,27 @@ async function main() {
   mkdirSync(packageDirectory, { recursive: true });
   createTlsAuthority();
   const publicKey = generateSigningKey();
-  const candidatePackage = buildDebianPackage(candidateVersion, publicKey);
+  const ordinaryCandidatePackage = buildDebianPackage(candidateVersion, publicKey);
+  const candidatePackages = new Map([
+    ["ordinary", ordinaryCandidatePackage],
+    ["installer-failure", buildInstallerFailureCandidate(ordinaryCandidatePackage)],
+  ]);
   const predecessorPackage = buildDebianPackage(currentVersion, publicKey);
-  const updateServer = await startUpdateServer(candidatePackage, predecessorPackage);
+  const updateServer = await startUpdateServer(candidatePackages, predecessorPackage);
   try {
-    updateServer.publish(createChannelDocuments({
-      candidatePackage,
-      predecessorPackage,
-      port: updateServer.port,
-      publicKey,
-    }));
     const endpoint = `https://127.0.0.1:${updateServer.port}/stable.json`;
     for (const scenario of linuxUpdateScenarioPlan()) {
+      const candidatePackage = candidatePackages.get(scenario.candidateVariant);
+      if (!candidatePackage) {
+        throw new Error(`The ${scenario.name} scenario has no candidate package`);
+      }
+      updateServer.publish(createChannelDocuments({
+        candidatePackage,
+        candidateVariant: scenario.candidateVariant,
+        predecessorPackage,
+        port: updateServer.port,
+        publicKey,
+      }));
       await runScenario(scenario, endpoint, publicKey, predecessorPackage);
     }
   } finally {

@@ -5,6 +5,8 @@ import test from "node:test";
 
 import {
   createLinuxUpdatePolkitRule,
+  debianPackageVariantArguments,
+  linuxInstallerFailureScript,
   linuxUpdateBuildArguments,
   linuxUpdateScenarioPlan,
   validateLinuxUpdateEvidence,
@@ -31,11 +33,54 @@ test("builds only an instrumented Debian package from the closed Linux overlays"
   assert.throws(() => linuxUpdateBuildArguments("relative.json"), /absolute/);
 });
 
-test("covers replacement and native predecessor restoration with exact Debian packages", () => {
+test("covers replacement and distinct candidate and installer failures with exact Debian packages", () => {
   assert.deepEqual(linuxUpdateScenarioPlan(), [
-    { name: "success", expectedOutcome: "updated", expectedVersion: "0.2.0" },
-    { name: "candidate-failure", expectedOutcome: "recovered", expectedVersion: "0.1.0" },
+    {
+      name: "success",
+      candidateVariant: "ordinary",
+      expectedOutcome: "updated",
+      expectedVersion: "0.2.0",
+    },
+    {
+      name: "installer-failure",
+      candidateVariant: "installer-failure",
+      expectedOutcome: "recovered",
+      expectedVersion: "0.1.0",
+    },
+    {
+      name: "candidate-failure",
+      candidateVariant: "ordinary",
+      expectedOutcome: "recovered",
+      expectedVersion: "0.1.0",
+    },
   ]);
+});
+
+test("builds the installer-failure candidate as a closed root-owned Debian variant", () => {
+  assert.deepEqual(
+    debianPackageVariantArguments(
+      "/workspace/.artifacts/linux-update-e2e/variants/installer-failure/root",
+      "/workspace/.artifacts/linux-update-e2e/packages/candidate-installer-failure.deb",
+    ),
+    [
+      "--root-owner-group",
+      "--build",
+      "/workspace/.artifacts/linux-update-e2e/variants/installer-failure/root",
+      "/workspace/.artifacts/linux-update-e2e/packages/candidate-installer-failure.deb",
+    ],
+  );
+  assert.throws(
+    () => debianPackageVariantArguments("relative", "/workspace/candidate.deb"),
+    /absolute/,
+  );
+  assert.throws(
+    () => debianPackageVariantArguments("/workspace/root", "relative.deb"),
+    /absolute/,
+  );
+  assert.equal(
+    linuxInstallerFailureScript(),
+    "#!/bin/sh\nset -eu\nexit 42\n",
+  );
 });
 
 test("limits unattended Polkit authority to recovery packages under one isolated root", () => {
@@ -68,6 +113,13 @@ test("accepts only closed privacy-safe Linux update evidence", () => {
     retainedAttempt: false,
   };
   assert.deepEqual(validateLinuxUpdateEvidence(success), success);
+  const installerFailure = {
+    ...success,
+    scenario: "installer-failure",
+    outcome: "recovered",
+    installedVersion: "0.1.0",
+  };
+  assert.deepEqual(validateLinuxUpdateEvidence(installerFailure), installerFailure);
 
   assert.throws(
     () => validateLinuxUpdateEvidence({ ...success, installedVersion: "0.1.0" }),
