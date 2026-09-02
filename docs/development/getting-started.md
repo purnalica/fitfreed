@@ -68,6 +68,7 @@ npm run test:fast
 | Build the unsigned production package | `npm run package` |
 | Build the Linux Debian package on Linux | `npm run package:linux` |
 | Inspect the generated Debian identity and installed layout | `npm run verify:linux-package` |
+| Generate the deterministic exact Debian package inventory | `npm run inventory:linux-package` |
 | Install and remove the Debian package in a clean Ubuntu 24.04 container | `npm run verify:linux-installation` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
@@ -94,6 +95,11 @@ temporary directory and fails unless its artifact name, Debian control identity,
 executable permissions, desktop entry, icons, and installed GPL text agree. Neither command constitutes an accepted or
 public Linux release until the remaining Milestone 4 installation, trust, recovery, parity, and exact-candidate gates
 pass.
+
+`npm run inventory:linux-package` reopens the same exact `.deb` and writes
+`FitFreed_<version>_amd64.deb.inventory.json` beside it only after the complete schema, target, control, path, digest,
+permission, and symbolic-link contract passes. Repeating it against unchanged package bytes produces identical evidence.
+The inventory is not an SBOM, signature, or publication authorization.
 
 The clean-installation command additionally requires Docker on an x86-64 Linux host. It mounts only the exact Debian
 artifact, read-only, into a digest-pinned Ubuntu 24.04 base image. The gate first proves that Node.js, npm, Cargo,

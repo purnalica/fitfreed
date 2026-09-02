@@ -64,6 +64,11 @@ source-bound production wrapper for only Tauri's `deb` target. Platform metadata
 `src-tauri/tauri.linux.conf.json`; hosted jobs and local contributors must use this command rather than reproducing its
 arguments or package metadata independently.
 
+`npm run inventory:linux-package` selects that one version-derived artifact, reads its complete Debian control record,
+extracts it privately, and atomically writes the schema-validated adjacent inventory. Its deterministic entries cover
+every installed path, permission mode, file digest, and non-escaping symbolic-link target. CI generates this evidence
+from the package it has just inspected; an inventory from another build is not reusable.
+
 `npm run verify:linux-installation` owns the repeatable clean Ubuntu 24.04 package-manager check. It admits only an
 x86-64 Linux host and the exact version-derived Debian name, passes only that file into a digest-pinned container,
 reports a bounded privacy-safe failure phase, and verifies installation, dynamic dependencies, package identity, and

@@ -40,7 +40,10 @@ metadata, the canonical public origin, GPL licensing, and Debian section and pri
 with the generic ZIP MIME type. Tauri derives the native runtime dependency list during package creation; package
 inspection extracts the package into an isolated temporary directory and validates the exact artifact name, Debian
 control identity, mandatory WebKitGTK and GTK dependencies, production executable permissions, desktop entry, icon
-set, and installed GPL text. The resulting complete dependency field must still enter release evidence before the
+set, and installed GPL text. The same exact artifact generates the versioned
+[Linux package inventory](../data-formats/release/linux-package-inventory-v1.md): its digest-bound control metadata and
+complete byte-sorted extracted layout are the canonical package-content evidence. The resulting inventory and complete
+dependency field must still enter the release manifest, checksum, signing, and provenance boundaries before the
 artifact can become a candidate.
 
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base

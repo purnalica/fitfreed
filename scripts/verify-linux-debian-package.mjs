@@ -39,7 +39,7 @@ export function parseDebianControl(text) {
   return fields;
 }
 
-function dependencyNames(value) {
+export function dependencyNames(value) {
   return [...new Set(
     (value ?? "")
       .split(",")

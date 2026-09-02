@@ -56,6 +56,7 @@
     "install:workflow-tools": "scripts/install-workflow-tools.sh",
     "lint:rust": "npm run icons && cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --all-features -- -D warnings && CARGO_TARGET_DIR=src-tauri/target/vendor-updater cargo clippy --manifest-path src-tauri/vendor/tauri-plugin-updater/Cargo.toml --lib -- -D warnings",
     "icons": "tauri icon assets/brand/fitfreed-icon.svg --output src-tauri/icons",
+    "inventory:linux-package": "node scripts/linux-package-inventory.mjs",
     "package": "npm run icons && node scripts/build-production.mjs",
     "package:app": "npm run icons && node scripts/build-production.mjs --bundles app",
     "package:linux": "npm run icons && node scripts/build-linux-package.mjs",

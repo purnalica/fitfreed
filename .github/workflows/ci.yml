@@ -191,6 +191,10 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run verify:linux-package
 
+      - name: Inventory the exact Linux Debian package
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run inventory:linux-package
+
       - name: Verify clean Linux installation and removal
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run verify:linux-installation

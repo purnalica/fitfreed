@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/linux-package-inventory-v1.schema.json",
+  "title": "FitFreed Linux package inventory version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "schemaVersion", "target", "artifact", "control", "entries"],
+  "properties": {
+    "format": { "const": "org.fitfreed.linux-package-inventory" },
+    "schemaVersion": { "const": 1 },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["distributionFamily", "architecture", "packageFormat"],
+      "properties": {
+        "distributionFamily": { "const": "debian" },
+        "architecture": { "const": "amd64" },
+        "packageFormat": { "const": "deb" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/topLevelPath" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packageName",
+        "version",
+        "architecture",
+        "maintainer",
+        "section",
+        "priority",
+        "homepage",
+        "description",
+        "dependencyExpression",
+        "dependencyNames"
+      ],
+      "properties": {
+        "packageName": { "const": "fitfreed" },
+        "version": { "$ref": "#/$defs/semver" },
+        "architecture": { "const": "amd64" },
+        "maintainer": { "const": "FitFreed contributors" },
+        "section": { "const": "utils" },
+        "priority": { "const": "optional" },
+        "homepage": { "const": "https://fitfreed.org/" },
+        "description": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "dependencyExpression": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "dependencyNames": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9+.-]*$" }
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "topLevelPath": { "type": "string", "pattern": "^[^/\\\\]+$", "maxLength": 255 },
+    "entryPath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*\\\\)[^\\u0000]+$",
+      "maxLength": 4096
+    },
+    "mode": { "type": "string", "pattern": "^[0-7]{4}$" },
+    "fileEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "type", "mode", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/entryPath" },
+        "type": { "const": "file" },
+        "mode": { "$ref": "#/$defs/mode" },
+        "size": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "directoryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "type", "mode"],
+      "properties": {
+        "path": { "$ref": "#/$defs/entryPath" },
+        "type": { "const": "directory" },
+        "mode": { "$ref": "#/$defs/mode" }
+      }
+    },
+    "symbolicLinkEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "type", "mode", "target"],
+      "properties": {
+        "path": { "$ref": "#/$defs/entryPath" },
+        "type": { "const": "symbolic-link" },
+        "mode": { "const": "0777" },
+        "target": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      }
+    },
+    "entry": {
+      "oneOf": [
+        { "$ref": "#/$defs/fileEntry" },
+        { "$ref": "#/$defs/directoryEntry" },
+        { "$ref": "#/$defs/symbolicLinkEntry" }
+      ]
+    }
+  }
+}
