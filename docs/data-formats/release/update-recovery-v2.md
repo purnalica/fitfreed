@@ -168,6 +168,17 @@ matches. A runnable predecessor fallback receives no private candidate argument 
 preserved executable path before the watchdog exits. Failure to establish that ownership terminates the spawned child
 and retains the recovery attempt.
 
+An ordinary Linux startup resolves restart authority only from the active pointer and the fully verified preserved
+executable layout. The application-layer lifecycle policy requests reattachment for `prepared`,
+`replacement-started`, `replacement-installed`, `launching`, and `recovering`; it never reopens a terminal state and
+leaves `native-recovery-unavailable` waiting for an explicit user retry. The adapter probes the exclusive watchdog
+lease before spawning, treats a held lease as an already active monitor, and resolves a concurrent start in the same
+way after a failed readiness handshake. A replacement watchdog receives the separate fixed private
+`--fitfreed-update-recovery-watchdog-resume` argument. It discards an interrupted `prepared` attempt immediately and
+moves an interrupted `replacement-started` attempt directly into recovery rather than waiting for the original
+installation deadline. Later phases retain their ordinary persisted-state behavior. No caller supplies a recovery
+identifier, attempt path, or executable path for reattachment.
+
 ## Process, privacy, and failure behavior
 
 Linux actors derive fixed paths from the canonical recovery root or native package identity. They use no-follow file

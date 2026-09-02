@@ -9,6 +9,8 @@ use std::{
 use sha2::{Digest, Sha256};
 
 pub const UPDATE_RECOVERY_WATCHDOG_ARGUMENT: &str = "--fitfreed-update-recovery-watchdog";
+pub const UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT: &str =
+    "--fitfreed-update-recovery-watchdog-resume";
 pub const UPDATE_RECOVERY_CANDIDATE_ARGUMENT: &str = "--fitfreed-update-recovery-candidate";
 
 pub(super) const WATCHDOG_READY_TIMEOUT: Duration = Duration::from_secs(10);

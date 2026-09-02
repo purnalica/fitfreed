@@ -289,12 +289,13 @@ pub use update::{
 };
 mod update_recovery;
 pub use update_recovery::{
+    decide_packaged_update_recovery_startup_action,
     decide_packaged_update_recovery_watchdog_action, decide_update_recovery_watchdog_action,
     validate_packaged_update_recovery_transition, validate_update_recovery_transition,
     InvalidPackagedUpdateRecoveryTransition, InvalidUpdateRecoveryTransition,
-    PackagedUpdateRecoveryPhase, PackagedUpdateRecoveryWatchdogAction, UpdateRecoveryOutcome,
-    UpdateRecoveryOutcomeKind, UpdateRecoveryPhase, UpdateRecoveryWatchdogAction,
-    UpdateRecoveryWatchdogEvent,
+    PackagedUpdateRecoveryPhase, PackagedUpdateRecoveryStartupAction,
+    PackagedUpdateRecoveryWatchdogAction, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
+    UpdateRecoveryPhase, UpdateRecoveryWatchdogAction, UpdateRecoveryWatchdogEvent,
 };
 mod source_acquisition;
 pub use source_acquisition::{

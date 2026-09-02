@@ -670,6 +670,50 @@ pub fn resolve_linux_update_recovery_watchdog_context(
     )
 }
 
+pub fn resolve_active_linux_update_recovery_watchdog_context(
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<
+    Option<(
+        LinuxUpdateRecoveryWatchdogContext,
+        PackagedUpdateRecoveryPhase,
+    )>,
+    LinuxRecoveryStateError,
+> {
+    resolve_active_linux_update_recovery_watchdog_context_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        expected_installed_executable,
+    )
+}
+
+fn resolve_active_linux_update_recovery_watchdog_context_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<
+    Option<(
+        LinuxUpdateRecoveryWatchdogContext,
+        PackagedUpdateRecoveryPhase,
+    )>,
+    LinuxRecoveryStateError,
+> {
+    let Some((recovery_id, phase)) = active_linux_update_recovery_phase(recovery_root)? else {
+        return Ok(None);
+    };
+    let watchdog_executable = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(recovery_id)
+        .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+        .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+    resolve_linux_update_recovery_watchdog_context_with(
+        packages,
+        &watchdog_executable,
+        expected_installed_executable,
+    )
+    .map(|context| Some((context, phase)))
+}
+
 fn resolve_linux_update_recovery_watchdog_context_with(
     packages: &impl RecoveryPackagePort,
     watchdog_executable: &Path,
@@ -2770,6 +2814,36 @@ mod tests {
             Path::new(INSTALLED_EXECUTABLE_PATH),
         )
         .is_err());
+    }
+
+    #[test]
+    fn resolves_restart_authority_only_from_the_active_verified_attempt() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+
+        let (context, phase) = resolve_active_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &harness.recovery_root,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("active recovery lookup")
+        .expect("active recovery");
+        assert_eq!(context.recovery_id(), prepared.recovery_id());
+        assert_eq!(context.library_path(), harness.library_path);
+        assert_eq!(phase, PackagedUpdateRecoveryPhase::Prepared);
+
+        fs::remove_file(harness.recovery_root.join(ACTIVE_FILE_NAME))
+            .expect("remove active pointer");
+        assert!(resolve_active_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &harness.recovery_root,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("inactive recovery lookup")
+        .is_none());
     }
 
     #[test]

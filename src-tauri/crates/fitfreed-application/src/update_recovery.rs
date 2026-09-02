@@ -71,6 +71,30 @@ pub enum PackagedUpdateRecoveryWatchdogAction {
     FinishFailed,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PackagedUpdateRecoveryStartupAction {
+    NoAction,
+    ResumeWatchdog,
+    AwaitExplicitNativeRecoveryRetry,
+}
+
+pub fn decide_packaged_update_recovery_startup_action(
+    phase: PackagedUpdateRecoveryPhase,
+) -> PackagedUpdateRecoveryStartupAction {
+    use PackagedUpdateRecoveryPhase as Phase;
+    use PackagedUpdateRecoveryStartupAction as Action;
+
+    match phase {
+        Phase::Prepared
+        | Phase::ReplacementStarted
+        | Phase::ReplacementInstalled
+        | Phase::Launching
+        | Phase::Recovering => Action::ResumeWatchdog,
+        Phase::NativeRecoveryUnavailable => Action::AwaitExplicitNativeRecoveryRetry,
+        Phase::Confirmed | Phase::Recovered | Phase::RecoveryFailed => Action::NoAction,
+    }
+}
+
 pub fn decide_packaged_update_recovery_watchdog_action(
     phase: PackagedUpdateRecoveryPhase,
     event: UpdateRecoveryWatchdogEvent,
@@ -397,6 +421,34 @@ mod tests {
         for (phase, event, expected) in expectations {
             assert_eq!(
                 decide_packaged_update_recovery_watchdog_action(phase, event),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn resumes_only_interrupted_packaged_recovery_work_on_startup() {
+        use PackagedUpdateRecoveryPhase as Phase;
+        use PackagedUpdateRecoveryStartupAction as Action;
+
+        let expectations = [
+            (Phase::Prepared, Action::ResumeWatchdog),
+            (Phase::ReplacementStarted, Action::ResumeWatchdog),
+            (Phase::ReplacementInstalled, Action::ResumeWatchdog),
+            (Phase::Launching, Action::ResumeWatchdog),
+            (Phase::Confirmed, Action::NoAction),
+            (Phase::Recovering, Action::ResumeWatchdog),
+            (
+                Phase::NativeRecoveryUnavailable,
+                Action::AwaitExplicitNativeRecoveryRetry,
+            ),
+            (Phase::Recovered, Action::NoAction),
+            (Phase::RecoveryFailed, Action::NoAction),
+        ];
+
+        for (phase, expected) in expectations {
+            assert_eq!(
+                decide_packaged_update_recovery_startup_action(phase),
                 expected
             );
         }

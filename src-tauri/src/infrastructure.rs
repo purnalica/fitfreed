@@ -216,6 +216,7 @@ pub use update_recovery_linux_state::{
     discard_prepared_linux_update_recovery, maintain_linux_update_recovery,
     maintain_linux_update_recovery_with_watchdog_lease, prepare_linux_update_recovery,
     record_active_linux_update_recovery_replacement_launch,
+    resolve_active_linux_update_recovery_watchdog_context,
     resolve_linux_update_recovery_watchdog_context, restore_active_linux_update_recovery,
     transition_active_linux_update_recovery, verify_linux_update_recovery,
     LinuxNativeRecoveryFailure, LinuxRecoveryStateError, LinuxUpdateRecoveryCandidateLease,
@@ -233,11 +234,12 @@ pub use update_watchdog::{
 };
 #[cfg(any(test, target_os = "linux"))]
 pub use update_watchdog_linux::{
-    run_linux_update_recovery_watchdog, start_linux_update_recovery_watchdog,
-    StartedLinuxUpdateRecoveryWatchdog,
+    reattach_linux_update_recovery_watchdog, run_linux_update_recovery_watchdog,
+    start_linux_update_recovery_watchdog, StartedLinuxUpdateRecoveryWatchdog,
 };
 pub use update_watchdog_protocol::{
     UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
 };
 
 use iso_duration::parse_iso_duration_milliseconds;

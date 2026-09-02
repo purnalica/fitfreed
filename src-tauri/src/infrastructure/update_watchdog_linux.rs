@@ -10,8 +10,10 @@ use std::{
 
 use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
+    decide_packaged_update_recovery_startup_action,
     decide_packaged_update_recovery_watchdog_action, PackagedUpdateRecoveryPhase,
-    PackagedUpdateRecoveryWatchdogAction, UpdateRecoveryOutcomeKind, UpdateRecoveryWatchdogEvent,
+    PackagedUpdateRecoveryStartupAction, PackagedUpdateRecoveryWatchdogAction,
+    UpdateRecoveryOutcomeKind, UpdateRecoveryWatchdogEvent,
 };
 use libc::{kill, ESRCH, SIGKILL, SIGTERM};
 
@@ -24,12 +26,14 @@ use super::update_watchdog::{
 };
 use super::update_watchdog_protocol::{
     generate_launch_nonce, read_watchdog_readiness, write_candidate_go, write_watchdog_readiness,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT, WATCHDOG_READY_TIMEOUT,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT, WATCHDOG_READY_TIMEOUT,
 };
 use super::{
     acquire_linux_update_recovery_watchdog_lease, active_linux_update_recovery_phase,
     discard_prepared_linux_update_recovery, maintain_linux_update_recovery_with_watchdog_lease,
     observe_linux_recovery_process, record_active_linux_update_recovery_replacement_launch,
+    resolve_active_linux_update_recovery_watchdog_context,
     resolve_linux_update_recovery_watchdog_context, restore_active_linux_update_recovery,
     transition_active_linux_update_recovery, LinuxRecoveryProcessIdentity, LinuxRecoveryStateError,
     LinuxUpdateRecoveryReplacementLaunch, LinuxUpdateRecoveryReplacementProcess,
@@ -61,8 +65,58 @@ pub fn start_linux_update_recovery_watchdog(
     let executable = prepared
         .attempt_directory()
         .join("previous/runnable/usr/bin/fitfreed");
+    spawn_linux_update_recovery_watchdog(
+        &executable,
+        installed_executable_path,
+        UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    )
+}
+
+pub fn reattach_linux_update_recovery_watchdog(
+    recovery_root: &Path,
+    installed_executable_path: &Path,
+) -> Result<Option<StartedLinuxUpdateRecoveryWatchdog>, UpdateRecoveryWatchdogError> {
+    let Some((context, phase)) = resolve_active_linux_update_recovery_watchdog_context(
+        recovery_root,
+        installed_executable_path,
+    )?
+    else {
+        return Ok(None);
+    };
+    if decide_packaged_update_recovery_startup_action(phase)
+        != PackagedUpdateRecoveryStartupAction::ResumeWatchdog
+    {
+        return Ok(None);
+    }
+    match acquire_linux_update_recovery_watchdog_lease(&context) {
+        Ok(lease) => drop(lease),
+        Err(LinuxRecoveryStateError::ActiveAttemptExists) => return Ok(None),
+        Err(error) => return Err(error.into()),
+    }
+    match spawn_linux_update_recovery_watchdog(
+        context.runnable_predecessor_executable_path(),
+        installed_executable_path,
+        UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    ) {
+        Ok(watchdog) => Ok(Some(watchdog)),
+        Err(start_error) => match acquire_linux_update_recovery_watchdog_lease(&context) {
+            Err(LinuxRecoveryStateError::ActiveAttemptExists) => Ok(None),
+            Ok(lease) => {
+                drop(lease);
+                Err(start_error)
+            }
+            Err(error) => Err(error.into()),
+        },
+    }
+}
+
+fn spawn_linux_update_recovery_watchdog(
+    executable: &Path,
+    installed_executable_path: &Path,
+    private_argument: &str,
+) -> Result<StartedLinuxUpdateRecoveryWatchdog, UpdateRecoveryWatchdogError> {
     let mut child = Command::new(executable)
-        .arg(UPDATE_RECOVERY_WATCHDOG_ARGUMENT)
+        .arg(private_argument)
         .arg(installed_executable_path)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -94,6 +148,7 @@ pub fn start_linux_update_recovery_watchdog(
 pub fn run_linux_update_recovery_watchdog(
     watchdog_executable: &Path,
     installed_executable_path: &Path,
+    resumed_after_interruption: bool,
     readiness: &mut impl Write,
 ) -> Result<UpdateRecoveryWatchdogOutcome, UpdateRecoveryWatchdogError> {
     let context = resolve_linux_update_recovery_watchdog_context(
@@ -113,7 +168,12 @@ pub fn run_linux_update_recovery_watchdog(
 
     loop {
         let phase = active_phase(&context)?;
-        let event = watchdog_event(phase, replacement.as_mut(), installation_deadline)?;
+        let event = watchdog_event(
+            phase,
+            replacement.as_mut(),
+            installation_deadline,
+            resumed_after_interruption,
+        )?;
         match decide_packaged_update_recovery_watchdog_action(phase, event) {
             PackagedUpdateRecoveryWatchdogAction::Wait => thread::sleep(POLL_INTERVAL),
             PackagedUpdateRecoveryWatchdogAction::LaunchReplacement => {
@@ -254,7 +314,16 @@ fn watchdog_event(
     phase: PackagedUpdateRecoveryPhase,
     replacement: Option<&mut MonitoredLinuxReplacement>,
     installation_deadline: DateTime<Utc>,
+    resumed_after_interruption: bool,
 ) -> Result<UpdateRecoveryWatchdogEvent, UpdateRecoveryWatchdogError> {
+    if resumed_after_interruption
+        && matches!(
+            phase,
+            PackagedUpdateRecoveryPhase::Prepared | PackagedUpdateRecoveryPhase::ReplacementStarted
+        )
+    {
+        return Ok(UpdateRecoveryWatchdogEvent::DeadlineExpired);
+    }
     if phase == PackagedUpdateRecoveryPhase::Launching {
         let replacement = replacement.ok_or(UpdateRecoveryWatchdogError::UnownedReplacement)?;
         if !replacement.is_running()? {
@@ -516,6 +585,7 @@ mod tests {
                 PackagedUpdateRecoveryPhase::Launching,
                 None,
                 Utc::now() + ChronoDuration::minutes(15),
+                false,
             ),
             Err(UpdateRecoveryWatchdogError::UnownedReplacement)
         ));
@@ -528,6 +598,31 @@ mod tests {
                 .expect("persisted deadline")
                 .to_rfc3339_opts(SecondsFormat::Secs, true),
             "2026-09-02T08:15:00Z"
+        );
+    }
+
+    #[test]
+    fn treats_preinstallation_coordinator_loss_as_an_immediate_interruption() {
+        let future_deadline = Utc::now() + ChronoDuration::minutes(15);
+
+        for phase in [
+            PackagedUpdateRecoveryPhase::Prepared,
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        ] {
+            assert_eq!(
+                watchdog_event(phase, None, future_deadline, true).expect("restart event"),
+                UpdateRecoveryWatchdogEvent::DeadlineExpired
+            );
+        }
+        assert_eq!(
+            watchdog_event(
+                PackagedUpdateRecoveryPhase::ReplacementStarted,
+                None,
+                future_deadline,
+                false,
+            )
+            .expect("ordinary installation event"),
+            UpdateRecoveryWatchdogEvent::Observe
         );
     }
 

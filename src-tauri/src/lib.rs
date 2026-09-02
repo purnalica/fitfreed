@@ -93,14 +93,14 @@ use infrastructure::{
     SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary, SqliteTrainingSports,
     SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
     UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
 };
 #[cfg(target_os = "linux")]
 use infrastructure::{
     acquire_linux_update_recovery_candidate_lease, confirm_active_linux_update_recovery,
     download_verified_predecessor, maintain_linux_update_recovery,
-    resolve_linux_update_installation_path, run_linux_update_recovery_watchdog,
-    LinuxUpdateRecoveryCandidateLease,
+    reattach_linux_update_recovery_watchdog, resolve_linux_update_installation_path,
+    run_linux_update_recovery_watchdog, LinuxUpdateRecoveryCandidateLease,
 };
 #[cfg(not(target_os = "linux"))]
 use infrastructure::{
@@ -2093,7 +2093,10 @@ fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
 enum StartupMode {
     Desktop,
     UpdateRecoveryCandidate(CandidateStartup),
-    UpdateRecoveryWatchdog { installed_application: PathBuf },
+    UpdateRecoveryWatchdog {
+        installed_application: PathBuf,
+        resumed_after_interruption: bool,
+    },
     InvalidPrivateMode,
 }
 
@@ -2103,10 +2106,31 @@ fn startup_mode(arguments: &[OsString]) -> StartupMode {
             [_, _, installed_application] if Path::new(installed_application).is_absolute() => {
                 StartupMode::UpdateRecoveryWatchdog {
                     installed_application: PathBuf::from(installed_application),
+                    resumed_after_interruption: false,
                 }
             }
             _ => StartupMode::InvalidPrivateMode,
         },
+        Some(UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT) => {
+            #[cfg(target_os = "linux")]
+            {
+                match arguments {
+                    [_, _, installed_application]
+                        if Path::new(installed_application).is_absolute() =>
+                    {
+                        StartupMode::UpdateRecoveryWatchdog {
+                            installed_application: PathBuf::from(installed_application),
+                            resumed_after_interruption: true,
+                        }
+                    }
+                    _ => StartupMode::InvalidPrivateMode,
+                }
+            }
+            #[cfg(not(target_os = "linux"))]
+            {
+                StartupMode::InvalidPrivateMode
+            }
+        }
         Some(UPDATE_RECOVERY_CANDIDATE_ARGUMENT) => match arguments {
             [_, _, recovery_id, launch_nonce]
                 if recovery_id.to_str().is_some_and(valid_recovery_id)
@@ -2225,15 +2249,23 @@ struct CandidateStartup {
 fn run_platform_update_recovery_watchdog(
     watchdog_executable: &Path,
     installed_target: &Path,
+    resumed_after_interruption: bool,
     readiness: &mut impl Write,
 ) -> bool {
     #[cfg(target_os = "linux")]
     {
-        run_linux_update_recovery_watchdog(watchdog_executable, installed_target, readiness).is_ok()
+        run_linux_update_recovery_watchdog(
+            watchdog_executable,
+            installed_target,
+            resumed_after_interruption,
+            readiness,
+        )
+        .is_ok()
     }
 
     #[cfg(not(target_os = "linux"))]
     {
+        let _ = resumed_after_interruption;
         run_update_recovery_watchdog(watchdog_executable, installed_target, readiness).is_ok()
     }
 }
@@ -2386,11 +2418,13 @@ pub fn run() {
         }
         StartupMode::UpdateRecoveryWatchdog {
             installed_application,
+            resumed_after_interruption,
         } => {
             let succeeded = env::current_exe().is_ok_and(|executable| {
                 run_platform_update_recovery_watchdog(
                     &executable,
                     &installed_application,
+                    resumed_after_interruption,
                     &mut io::stdout().lock(),
                 )
             });
@@ -2438,6 +2472,18 @@ pub fn run() {
                 pending.hold_lease(lease).map_err(|_| {
                     std::io::Error::other("candidate recovery state is unavailable")
                 })?;
+            }
+            #[cfg(target_os = "linux")]
+            {
+                let recovery_root = library_path
+                    .parent()
+                    .ok_or_else(|| std::io::Error::other("Linux recovery path is invalid"))?
+                    .join("update-recovery");
+                let executable = env::current_exe()?;
+                let installed_executable = installed_update_recovery_target(&executable)
+                    .map_err(|_| std::io::Error::other("Linux installation path is invalid"))?;
+                reattach_linux_update_recovery_watchdog(&recovery_root, &installed_executable)
+                    .map_err(|_| std::io::Error::other("Linux update recovery could not resume"))?;
             }
             start_library_recovery(library_path, Arc::clone(&startup_recovery));
             start_periodic_update_checks(
@@ -2949,6 +2995,7 @@ mod tests {
     fn routes_only_the_exact_private_watchdog_invocation_away_from_desktop_startup() {
         let executable = OsString::from("fitfreed");
         let argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_ARGUMENT);
+        let resume_argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT);
         let installed = OsString::from("/Applications/FitFreed.app");
 
         assert!(matches!(
@@ -2956,8 +3003,24 @@ mod tests {
             StartupMode::Desktop
         ));
         assert!(matches!(
-            startup_mode(&[executable.clone(), argument.clone(), installed]),
-            StartupMode::UpdateRecoveryWatchdog { .. }
+            startup_mode(&[executable.clone(), argument.clone(), installed.clone()]),
+            StartupMode::UpdateRecoveryWatchdog {
+                resumed_after_interruption: false,
+                ..
+            }
+        ));
+        #[cfg(target_os = "linux")]
+        assert!(matches!(
+            startup_mode(&[executable.clone(), resume_argument, installed]),
+            StartupMode::UpdateRecoveryWatchdog {
+                resumed_after_interruption: true,
+                ..
+            }
+        ));
+        #[cfg(not(target_os = "linux"))]
+        assert!(matches!(
+            startup_mode(&[executable.clone(), resume_argument, installed]),
+            StartupMode::InvalidPrivateMode
         ));
         assert!(matches!(
             startup_mode(&[executable.clone(), argument.clone()]),
