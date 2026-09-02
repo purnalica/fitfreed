@@ -94,6 +94,7 @@
     "verify:update-recovery-preparation": "scripts/verify-update-recovery-preparation.sh",
     "verify:linux-installation": "node scripts/verify-linux-clean-install.mjs",
     "verify:linux-package": "node scripts/verify-linux-debian-package.mjs",
+    "verify:linux-public-release": "node scripts/verify-linux-public-release.mjs",
     "verify:update-e2e": "node scripts/verify-packaged-update.mjs",
     "verify:public-release": "node scripts/verify-public-release.mjs",
     "verify:pages:preflight": "node scripts/pages-publication.mjs preflight .artifacts/pages",

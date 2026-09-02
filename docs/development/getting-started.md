@@ -70,6 +70,7 @@ npm run test:fast
 | Inspect the generated Debian identity and installed layout | `npm run verify:linux-package` |
 | Generate the deterministic exact Debian package inventory | `npm run inventory:linux-package` |
 | Install and remove the Debian package in a clean Ubuntu 24.04 container | `npm run verify:linux-installation` |
+| Verify a complete signed Linux public candidate | `npm run verify:linux-public-release -- <candidate-directory>` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
@@ -100,6 +101,12 @@ pass.
 `FitFreed_<version>_amd64.deb.inventory.json` beside it only after the complete schema, target, control, path, digest,
 permission, and symbolic-link contract passes. Repeating it against unchanged package bytes produces identical evidence.
 The inventory is not an SBOM, signature, or publication authorization.
+
+`npm run verify:linux-public-release -- <candidate-directory>` reopens a candidate's `release/` and `pages/`
+directories. It verifies the version 4 manifest, every artifact digest, the package inventory's binding to the Debian
+bytes, the upgrade matrix, the exact checksum set, the detached checksum signature, both stable-channel signatures,
+and the complete macOS-plus-Linux Pages snapshot. The command uses only the active public trust configurations; an
+inactive or unknown key fails closed. Passing verifies candidate consistency but does not grant publication authority.
 
 The clean-installation command additionally requires Docker on an x86-64 Linux host. It mounts only the exact Debian
 artifact, read-only, into a digest-pinned Ubuntu 24.04 base image. The gate first proves that Node.js, npm, Cargo,

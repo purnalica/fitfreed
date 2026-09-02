@@ -71,6 +71,11 @@ source-bound build, so ordinary unsigned package work cannot be mistaken for a p
 `npm run check:public-release-signing-config` validates the separate versioned Linux checksum-signing trust set on
 every complete quality run. Its canonical inactive state admits no key; activation remains an accountable human gate.
 
+`npm run verify:linux-public-release -- <candidate-directory>` independently reopens the complete Linux release and
+Pages snapshots. It cryptographically authenticates the checksum inventory, stable metadata, the Debian updater
+package, and the retained macOS updater package; binds manifest, inventory, upgrade, and provenance subjects; and
+rejects any extra, absent, cross-version, cross-target, or byte-divergent artifact.
+
 `npm run inventory:linux-package` selects that one version-derived artifact, reads its complete Debian control record,
 extracts it privately, and atomically writes the schema-validated adjacent inventory. Its deterministic entries cover
 every installed path, permission mode, file digest, and non-escaping symbolic-link target. CI generates this evidence
