@@ -6716,6 +6716,43 @@ for (const field of [
 const publicUpdateConfigurationSchemaPath =
   "schemas/public-update-configuration-v1.schema.json";
 
+const publicReleaseSigningConfigurationPath =
+  "docs/data-formats/release/public-release-signing-configuration-v1.md";
+const publicReleaseSigningConfiguration = read(publicReleaseSigningConfigurationPath);
+for (const field of [
+  "org.fitfreed.release-signing-configuration",
+  "schemaVersion",
+  "status",
+  "inactive",
+  "active",
+  "purpose",
+  "linux-release-checksums",
+  "algorithm",
+  "minisign-ed25519",
+  "keys.*.id",
+  "keys.*.publicKey",
+]) {
+  requireMention(
+    publicReleaseSigningConfiguration,
+    field,
+    publicReleaseSigningConfigurationPath,
+  );
+}
+const publicReleaseSigningConfigurationSchemaPath =
+  "schemas/public-release-signing-configuration-v1.schema.json";
+const validatePublicReleaseSigningConfiguration = ajv.compile(
+  JSON.parse(read(publicReleaseSigningConfigurationSchemaPath)),
+);
+const canonicalPublicReleaseSigningConfiguration = JSON.parse(
+  read("release/public-release-signing.json"),
+);
+if (!validatePublicReleaseSigningConfiguration(canonicalPublicReleaseSigningConfiguration)) {
+  throw new Error(
+    `${publicReleaseSigningConfigurationSchemaPath} rejected its canonical configuration: `
+      + ajv.errorsText(validatePublicReleaseSigningConfiguration.errors),
+  );
+}
+
 const updateRecoveryPath = "docs/data-formats/release/update-recovery-v1.md";
 const updateRecovery = read(updateRecoveryPath);
 for (const field of [
@@ -10076,6 +10113,7 @@ for (const contractPath of [
   updateChannelPath,
   stableUpdateChannelPath,
   publicUpdateConfigurationPath,
+  publicReleaseSigningConfigurationPath,
   updateRecoveryPath,
   reportDefinitionCanonicalPath,
   reportDefinitionPortablePath,
@@ -10306,6 +10344,8 @@ process.stdout.write(
       stableUpdateChannelPayloadSchemaPath,
     ],
     publicUpdateConfigurationSchema: publicUpdateConfigurationSchemaPath,
+    publicReleaseSigningConfigurationSchema:
+      publicReleaseSigningConfigurationSchemaPath,
     updateRecoverySchema: updateRecoverySchemaPath,
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
     reportSchemas: [
