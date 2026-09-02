@@ -25,6 +25,27 @@ function validMetadata() {
     publicTauri: {
       bundle: { createUpdaterArtifacts: true },
     },
+    linuxTauri: {
+      bundle: {
+        targets: ["deb"],
+        publisher: "FitFreed contributors",
+        homepage: "https://fitfreed.org/",
+        copyright: "Copyright FitFreed contributors",
+        license: "GPL-3.0-or-later",
+        licenseFile: "../LICENSE",
+        category: "HealthcareAndFitness",
+        shortDescription: "Explore your fitness history on your own computer.",
+        longDescription:
+          "FitFreed imports portable fitness data into a local library for private exploration, reports, and export.",
+        linux: {
+          deb: {
+            files: { "/usr/share/doc/fitfreed/copyright": "../LICENSE" },
+            section: "utils",
+            priority: "optional",
+          },
+        },
+      },
+    },
     recoveryBundleIdentifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"].map((name) => ({
       path: `${name}/Cargo.toml`,
@@ -42,6 +63,7 @@ test("accepts one consistent private development release identity", () => {
     productName: "FitFreed",
     identifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"],
+    linuxPackage: { architecture: "amd64", packageName: "fitfreed", target: "deb" },
   });
 });
 
@@ -51,6 +73,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
   metadata.tauri.security = { capability: "wdio-webdriver" };
   metadata.recoveryBundleIdentifier = "org.fitfreed.other";
   metadata.cargoPackages[1].license = "UNKNOWN";
+  metadata.linuxTauri.bundle.targets.push("appimage");
 
   assert.throws(
     () => validateReleaseMetadata(metadata, "0.3.0"),
@@ -59,6 +82,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
       assert.match(error.message, /production Tauri configuration contains E2E instrumentation/);
       assert.match(error.message, /update recovery bundle identifier does not match Tauri/);
       assert.match(error.message, /fitfreed-application\/Cargo\.toml license mismatch/);
+      assert.match(error.message, /Linux Tauri targets must contain only deb/);
       assert.match(error.message, /expected version 0\.3\.0, found 0\.1\.0/);
       return true;
     },

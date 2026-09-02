@@ -59,6 +59,11 @@ Public release remains an explicit authorized action even when every preparation
 
 Unsigned macOS MVP alpha artifacts remain in restricted evaluation workflows. Public macOS release automation must use protected Developer ID credentials, complete notarization, verify the stapled ticket and Gatekeeper result, and refuse promotion when any trust check fails. Linux release automation must bind the exact Debian artifact to checksums, detached release signing, updater signing, SBOM, provenance, installation, recovery, and both supported Ubuntu environments. Windows release automation must additionally use protected Authenticode authority and inspect the signed setup and installed binaries on a supported Windows 11 desktop. Public promotion remains serial even while those engineering lanes advance independently.
 
+Linux package automation uses `npm run package:linux`, which refuses non-Linux hosts and invokes the shared
+source-bound production wrapper for only Tauri's `deb` target. Platform metadata remains in
+`src-tauri/tauri.linux.conf.json`; hosted jobs and local contributors must use this command rather than reproducing its
+arguments or package metadata independently.
+
 ### Maintenance and community
 
 - Dependency-update proposals with compatibility and quality checks.

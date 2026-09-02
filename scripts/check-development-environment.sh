@@ -86,6 +86,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 
 if [[ "$(uname -s)" == "Linux" ]]; then
+  require_command "dpkg-deb" || true
   if require_command pkg-config; then
     for module in glib-2.0 gio-2.0 gobject-2.0 gtk+-3.0 webkit2gtk-4.1; do
       if ! pkg-config --exists "$module"; then

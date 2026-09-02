@@ -16,7 +16,7 @@ refinement. Debian and Ubuntu contributors running that lane need Tauri's native
 `libwebkit2gtk-4.1-dev`, `build-essential`, `curl`, `wget`, `file`, `libxdo-dev`, `libssl-dev`,
 `libayatana-appindicator3-dev`, `librsvg2-dev`, and `pkg-config`. GitHub Actions installs them explicitly before
 running `npm run doctor`; the doctor checks the required GLib, GIO, GObject, GTK, and WebKitGTK modules before reporting
-a usable Linux environment.
+a usable Linux environment, and it also requires the standard `dpkg-deb` package inspection command.
 
 ## First setup
 
@@ -66,6 +66,8 @@ npm run test:fast
 | Build only the unsigned production application bundle | `npm run package:app` |
 | Verify cold launch against that clean production bundle | `npm run benchmark:cold-launch` |
 | Build the unsigned production package | `npm run package` |
+| Build the Linux Debian package on Linux | `npm run package:linux` |
+| Inspect the generated Debian identity and installed layout | `npm run verify:linux-package` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
@@ -80,6 +82,17 @@ npm run test:fast
 Generated application, database, fixture, log, screenshot, icon, and bundle output is ignored. Never replace the synthetic generators with a real provider export or a record copied from one.
 
 The unsigned macOS production application and DMG are generated under `src-tauri/target/release/bundle/`. `npm run package:app` builds only `FitFreed.app` for the cold-launch campaign; `npm run package` builds the complete application and DMG set. Both commands bind the exact Git revision and clean-tree state into the host and normalize compiler source paths to stable virtual prefixes. The production-bundle check traverses the complete `.app` and rejects build-host paths as well as test routing. The instrumented behavioral E2E executable and application bundle use the separate `src-tauri/target/e2e/` target and must never be opened as a user build, used for human evaluation, or distributed. Its build deliberately omits an instrumented DMG because WebdriverIO consumes only the `.app`; production packaging and installation verification retain the DMG boundary. WebdriverIO is contractually pinned to that isolated executable, so an E2E campaign cannot replace the native application a reviewer launches. The X6 human-review profile instead uses a separate revision-derived bundle identity under `src-tauri/target/x6-review/`, production native adapters, and no test routing; CI and `npm run review:x6` inspect that complete bundle for both forbidden content classes before use. Packaged-update test builds, ephemeral keys and certificates, isolated installed bundles, libraries, recovery state, logs, and screenshots live under ignored `.artifacts/update-e2e`; its Cargo output is further isolated under `.artifacts/update-e2e/target`.
+
+On Linux, `npm run package:linux` is the production-bound engineering entry point for the single supported package
+family. It rejects another host operating system, requests only Tauri's `deb` target, and merges
+`src-tauri/tauri.linux.conf.json`. That overlay fixes the package homepage, GPL identifier and license file, fitness
+category, descriptions, Debian `utils` section, and `optional` priority. It deliberately claims no generic ZIP file
+association: taking ownership of every ZIP on the desktop would be misleading. A successful build is written below
+`src-tauri/target/release/bundle/deb/`. `npm run verify:linux-package` then extracts that package into an isolated
+temporary directory and fails unless its artifact name, Debian control identity, Ubuntu runtime dependencies,
+executable permissions, desktop entry, icons, and installed GPL text agree. Neither command constitutes an accepted or
+public Linux release until the remaining Milestone 4 installation, trust, recovery, parity, and exact-candidate gates
+pass.
 
 The instrumented executable resolves to `fitfreed` on macOS and Linux and `fitfreed.exe` on Windows. macOS builds an
 isolated application bundle; Linux and Windows host admission builds the isolated executable without an unrelated

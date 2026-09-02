@@ -21,7 +21,7 @@ jobs:
   quality:
     name: Portable quality and Linux host checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     outputs:
       executable-fingerprint: ${{ steps.impact.outputs.executable-fingerprint }}
       full-verification: ${{ steps.decision.outputs.full-verification }}
@@ -182,6 +182,14 @@ jobs:
       - name: Lint the complete Linux desktop host
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run lint:rust
+
+      - name: Build the Linux Debian package
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run package:linux
+
+      - name: Inspect the Linux Debian package
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run verify:linux-package
 
       - name: Test the bounded updater refinement
         if: steps.decision.outputs.full-verification == 'true'

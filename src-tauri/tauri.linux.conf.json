@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": ["deb"],
+    "publisher": "FitFreed contributors",
+    "homepage": "https://fitfreed.org/",
+    "copyright": "Copyright FitFreed contributors",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../LICENSE",
+    "category": "HealthcareAndFitness",
+    "shortDescription": "Explore your fitness history on your own computer.",
+    "longDescription": "FitFreed imports portable fitness data into a local library for private exploration, reports, and export.",
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/doc/fitfreed/copyright": "../LICENSE"
+        },
+        "section": "utils",
+        "priority": "optional"
+      }
+    }
+  }
+}

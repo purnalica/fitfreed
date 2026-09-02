@@ -267,6 +267,9 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   assert.match(qualityJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(qualityJob ?? "", /npm run test:rust/);
   assert.match(qualityJob ?? "", /npm run lint:rust/);
+  assert.match(qualityJob ?? "", /npm run package:linux/);
+  assert.match(qualityJob ?? "", /npm run verify:linux-package/);
+  assert.doesNotMatch(qualityJob ?? "", /actions\/upload-artifact/);
   assert.doesNotMatch(
     qualityJob ?? "",
     /cargo test --manifest-path src-tauri\/Cargo\.toml -p fitfreed-domain -p fitfreed-application/,

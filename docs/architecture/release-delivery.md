@@ -34,6 +34,15 @@ evidence. AppImage, RPM, Flatpak, Snap, AUR, ARM64, and other distribution famil
 contracts. Public Debian bytes require checksums, detached FitFreed release signing, updater signing, SBOM, source-bound
 provenance, exact package inventory, and version-matched documentation.
 
+The versioned Linux Tauri overlay and `npm run package:linux` command form the single source-build entry point for that
+Debian package. The command is Linux-only and requests only `deb`; the overlay binds vendor-neutral application
+metadata, the canonical public origin, GPL licensing, and Debian section and priority. It does not associate FitFreed
+with the generic ZIP MIME type. Tauri derives the native runtime dependency list during package creation; package
+inspection extracts the package into an isolated temporary directory and validates the exact artifact name, Debian
+control identity, mandatory WebKitGTK and GTK dependencies, production executable permissions, desktop entry, icon
+set, and installed GPL text. The resulting complete dependency field must still enter release evidence before the
+artifact can become a candidate.
+
 [ADR 0041](decisions/0041-support-windows-11-with-per-user-nsis.md) defines the first Windows release as one x86-64
 current-user NSIS setup executable for Windows 11 editions still in Microsoft support at candidate issuance. The
 installer includes the offline WebView2 runtime and both initial locales. Public setup and installed binaries require
@@ -68,7 +77,11 @@ and Rustup homes, and temporary roots to stable virtual prefixes before compilat
 the independent fail-closed control: it recognizes macOS, Linux, and Windows local-home and temporary path classes as
 well as test-only routing, and reports only classification labels rather than the matching local bytes.
 
-`npm run check:release-contracts` is the current machine-readable identity gate. It requires one SemVer value across npm, Tauri, and all three Cargo packages; the approved product and bundle identifiers; `GPL-3.0-or-later` package declarations; the canonical repository; active production bundling; no E2E capability in the production Tauri configuration; and a complete reviewed release-note body at the exact version-derived path.
+`npm run check:release-contracts` is the current machine-readable identity gate. It requires one SemVer value across
+npm, Tauri, and all three Cargo packages; the approved product and bundle identifiers; `GPL-3.0-or-later` package
+declarations; the canonical repository; active production bundling; no E2E capability in the production Tauri
+configuration; the closed Debian-only Linux overlay; and a complete reviewed release-note body at the exact
+version-derived path.
 
 `npm run prepare:development-release -- <version>` is the staging entry point. It accepts only a clean commit and writes through a temporary directory before promoting it to ignored `.artifacts/releases/<version>/`; a failed promotion restores the previous complete directory. The generated note header binds version, source revision, target architecture, storage schema, compatibility matrix, unsigned status, and integrity guidance to the reviewed body. The [release manifest version 2 contract](../data-formats/release/release-manifest-v2.md) is the canonical description of its machine-readable output. It binds the exact [upgrade matrix](../data-formats/release/upgrade-matrix-v1.md) for the candidate by size and SHA-256 digest.
 

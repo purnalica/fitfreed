@@ -6,6 +6,7 @@ import {
   releaseNotesSourcePath,
   validateReviewedReleaseNotes,
 } from "./release-notes.mjs";
+import { validateLinuxPackageConfiguration } from "./linux-package-contract.mjs";
 
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
@@ -78,6 +79,12 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
       JSON.stringify({ bundle: { createUpdaterArtifacts: true } }),
     "public Tauri overlay contains unexpected configuration",
   );
+  let linuxPackage;
+  try {
+    linuxPackage = validateLinuxPackageConfiguration(metadata.linuxTauri);
+  } catch (error) {
+    errors.push(...error.message.split("\n"));
+  }
 
   const expectedCargoPackages = new Set([
     "fitfreed",
@@ -114,6 +121,7 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
     productName: metadata.tauri.productName,
     identifier: metadata.tauri.identifier,
     cargoPackages: metadata.cargoPackages.map(({ name }) => name).sort(),
+    linuxPackage,
   };
 }
 
@@ -121,6 +129,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
   const npm = readJson(repositoryRoot, "package.json");
   const tauri = readJson(repositoryRoot, "src-tauri/tauri.conf.json");
   const publicTauri = readJson(repositoryRoot, "src-tauri/tauri.public.conf.json");
+  const linuxTauri = readJson(repositoryRoot, "src-tauri/tauri.linux.conf.json");
   const recoverySourcePath = "src-tauri/src/infrastructure/update_recovery.rs";
   const recoverySource = readFileSync(path.join(repositoryRoot, recoverySourcePath), "utf8");
   const recoveryBundleIdentifier = recoverySource.match(
@@ -131,6 +140,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
       npm,
       tauri,
       publicTauri,
+      linuxTauri,
       recoveryBundleIdentifier,
       cargoPackages: cargoManifestPaths(repositoryRoot).map((manifestPath) =>
         readCargoPackage(repositoryRoot, manifestPath)),
