@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v4.schema.json",
+  "title": "FitFreed public Linux release manifest version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "release",
+    "target",
+    "application",
+    "trust",
+    "update",
+    "generators",
+    "artifacts",
+    "provenanceRequirements"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.release-manifest" },
+    "schemaVersion": { "const": 4 },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "revision", "generatedAt", "channel"],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "revision": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "channel": { "const": "public-stable" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "architecture",
+        "packageFormat",
+        "updateTarget",
+        "supportedDistributions"
+      ],
+      "properties": {
+        "os": { "const": "linux" },
+        "architecture": { "const": "x86_64" },
+        "packageFormat": { "const": "deb" },
+        "updateTarget": { "const": "linux-x86_64-deb" },
+        "supportedDistributions": {
+          "const": [
+            { "id": "ubuntu", "version": "24.04", "edition": "desktop" },
+            { "id": "ubuntu", "version": "26.04", "edition": "desktop" }
+          ]
+        }
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["productName", "identifier", "executable", "storageSchemaVersion"],
+      "properties": {
+        "productName": { "const": "FitFreed" },
+        "identifier": { "const": "org.fitfreed.desktop" },
+        "executable": { "const": "fitfreed" },
+        "storageSchemaVersion": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nativePackageIdentity", "releaseSignature", "updaterSignature"],
+      "properties": {
+        "nativePackageIdentity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reason"],
+          "properties": {
+            "status": { "const": "not-provided" },
+            "reason": { "const": "no-selected-linux-platform-signature" }
+          }
+        },
+        "releaseSignature": { "$ref": "#/$defs/releaseSignature" },
+        "updaterSignature": { "$ref": "#/$defs/updaterSignature" }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "metadataEndpoint", "keyId", "sequence", "target"],
+      "properties": {
+        "contract": { "const": "stable-v2" },
+        "metadataEndpoint": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "keyId": { "$ref": "#/$defs/keyId" },
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "target": { "const": "linux-x86_64-deb" }
+      }
+    },
+    "generators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cargoCycloneDx", "linuxPackageInventory", "npmCycloneDx", "tauri"],
+      "properties": {
+        "cargoCycloneDx": { "type": "string", "minLength": 1 },
+        "linuxPackageInventory": { "const": "1" },
+        "npmCycloneDx": { "type": "string", "minLength": 1 },
+        "tauri": { "type": "string", "minLength": 1 }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 7,
+      "allOf": [
+        { "$ref": "#/$defs/containsDebianPackage" },
+        { "$ref": "#/$defs/containsPackageInventory" },
+        { "$ref": "#/$defs/containsUpdaterSignature" },
+        { "$ref": "#/$defs/containsUpdateEnvelope" },
+        { "$ref": "#/$defs/containsSbom" },
+        { "$ref": "#/$defs/containsUpgradeMatrix" },
+        { "$ref": "#/$defs/containsReleaseNotes" }
+      ],
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "provenanceRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "digestBoundSubjects", "generatedSubjects"],
+      "properties": {
+        "provider": { "const": "github-artifact-attestations" },
+        "digestBoundSubjects": {
+          "type": "array",
+          "minItems": 7,
+          "items": { "$ref": "#/$defs/provenanceSubject" }
+        },
+        "generatedSubjects": {
+          "const": ["release-manifest.json", "SHA256SUMS", "SHA256SUMS.minisig"]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "path": { "type": "string", "pattern": "^[^/\\\\]+$", "maxLength": 255 },
+    "keyId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "releaseSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "keyId", "subjectPath", "signaturePath"],
+      "properties": {
+        "algorithm": { "const": "minisign-ed25519" },
+        "keyId": { "$ref": "#/$defs/keyId" },
+        "subjectPath": { "const": "SHA256SUMS" },
+        "signaturePath": { "const": "SHA256SUMS.minisig" }
+      }
+    },
+    "updaterSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "keyId", "subjectPath", "signaturePath"],
+      "properties": {
+        "algorithm": { "const": "minisign-ed25519" },
+        "keyId": { "$ref": "#/$defs/keyId" },
+        "subjectPath": { "$ref": "#/$defs/path" },
+        "signaturePath": { "$ref": "#/$defs/path" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": {
+          "enum": [
+            "linux-x86_64-deb",
+            "linux-package-inventory",
+            "updater-signature",
+            "stable-update-envelope",
+            "cyclonedx-sbom",
+            "upgrade-matrix",
+            "release-notes"
+          ]
+        },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "provenanceSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "containsDebianPackage": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "linux-x86_64-deb" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsPackageInventory": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "linux-package-inventory" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsUpdaterSignature": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "updater-signature" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsUpdateEnvelope": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "stable-update-envelope" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsSbom": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "cyclonedx-sbom" } }
+      },
+      "minContains": 1
+    },
+    "containsUpgradeMatrix": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "upgrade-matrix" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsReleaseNotes": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "release-notes" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    }
+  }
+}
