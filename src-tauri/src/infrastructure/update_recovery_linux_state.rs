@@ -21,10 +21,10 @@ use url::Url;
 use super::{
     backup_database,
     local_file::{sync_directory, PrivateStagingFile},
-    prepare_linux_recovery_packages_from_path, query_linux_native_package_identity,
-    verify_library_file, verify_linux_recovery_packages, ImportError, LinuxNativePackageIdentity,
-    LinuxRecoveryPackageError, LinuxRecoveryPackageExpectation, LinuxRecoveryProcessIdentity,
-    SCHEMA_VERSION,
+    observe_linux_recovery_process, prepare_linux_recovery_packages_from_path,
+    query_linux_native_package_identity, verify_library_file, verify_linux_recovery_packages,
+    ImportError, LinuxNativePackageIdentity, LinuxRecoveryPackageError,
+    LinuxRecoveryPackageExpectation, LinuxRecoveryProcessIdentity, SCHEMA_VERSION,
 };
 
 const RECOVERY_FORMAT: &str = "org.fitfreed.update-recovery";
@@ -153,6 +153,33 @@ pub struct LinuxUpdateRecoveryWatchdogContext {
     target_library_schema_version: u32,
     prepared_at: String,
     replacement_process: Option<LinuxUpdateRecoveryReplacementProcess>,
+}
+
+pub struct LinuxUpdateRecoveryCandidateLease {
+    _lock: FileLock,
+    recovery_id: String,
+    launch_nonce: String,
+}
+
+impl LinuxUpdateRecoveryCandidateLease {
+    pub fn recovery_id(&self) -> &str {
+        &self.recovery_id
+    }
+
+    pub fn launch_nonce(&self) -> &str {
+        &self.launch_nonce
+    }
+}
+
+pub struct LinuxUpdateRecoveryWatchdogLease {
+    _lock: FileLock,
+    recovery_id: String,
+}
+
+impl LinuxUpdateRecoveryWatchdogLease {
+    pub fn recovery_id(&self) -> &str {
+        &self.recovery_id
+    }
 }
 
 impl LinuxUpdateRecoveryWatchdogContext {
@@ -596,6 +623,102 @@ fn resolve_linux_update_recovery_watchdog_context_with(
     })
 }
 
+pub fn acquire_linux_update_recovery_watchdog_lease(
+    context: &LinuxUpdateRecoveryWatchdogContext,
+) -> Result<LinuxUpdateRecoveryWatchdogLease, LinuxRecoveryStateError> {
+    acquire_linux_update_recovery_watchdog_lease_with(&SystemRecoveryPackages, context)
+}
+
+fn acquire_linux_update_recovery_watchdog_lease_with(
+    packages: &impl RecoveryPackagePort,
+    context: &LinuxUpdateRecoveryWatchdogContext,
+) -> Result<LinuxUpdateRecoveryWatchdogLease, LinuxRecoveryStateError> {
+    let recovery_root = canonical_private_directory(context.recovery_root())?;
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, context.recovery_id())?;
+    let lock = FileLock::acquire(open_private_lock_file(
+        &attempt_directory,
+        WATCHDOG_LOCK_FILE_NAME,
+        false,
+    )?)?;
+    let manifest =
+        verify_linux_update_recovery_with(packages, &recovery_root, context.recovery_id())?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != context.recovery_id()
+        || manifest.target.version != context.target_version()
+        || manifest.target.library_schema_version != context.target_library_schema_version()
+        || manifest.prepared_at != context.prepared_at()
+    {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    Ok(LinuxUpdateRecoveryWatchdogLease {
+        _lock: lock,
+        recovery_id: context.recovery_id().to_owned(),
+    })
+}
+
+pub fn acquire_linux_update_recovery_candidate_lease(
+    recovery_root: &Path,
+    recovery_id: &str,
+    launch_nonce: &str,
+) -> Result<LinuxUpdateRecoveryCandidateLease, LinuxRecoveryStateError> {
+    let process = observe_linux_recovery_process(std::process::id())
+        .map_err(|_| LinuxRecoveryStateError::InvalidState)?;
+    let native_identity =
+        query_linux_native_package_identity().map_err(|_| LinuxRecoveryStateError::InvalidState)?;
+    acquire_linux_update_recovery_candidate_lease_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        recovery_id,
+        launch_nonce,
+        &process,
+        &native_identity,
+    )
+}
+
+fn acquire_linux_update_recovery_candidate_lease_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    recovery_id: &str,
+    launch_nonce: &str,
+    process: &LinuxRecoveryProcessIdentity,
+    native_identity: &LinuxNativePackageIdentity,
+) -> Result<LinuxUpdateRecoveryCandidateLease, LinuxRecoveryStateError> {
+    if !valid_sha256(recovery_id) || !valid_sha256(launch_nonce) {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, recovery_id)?;
+    let lock = FileLock::acquire(open_private_lock_file(
+        &attempt_directory,
+        CANDIDATE_LOCK_FILE_NAME,
+        false,
+    )?)?;
+    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let manifest = verify_linux_update_recovery_with(packages, &recovery_root, recovery_id)?;
+    let replacement = manifest
+        .replacement_process
+        .as_ref()
+        .ok_or(LinuxRecoveryStateError::InvalidState)?;
+    if manifest.phase != LinuxRecoveryPhaseWire::Launching
+        || manifest.recovery_id != recovery_id
+        || replacement.launch_nonce != launch_nonce
+        || replacement.process_id != process.process_id()
+        || replacement.boot_id != process.boot_id()
+        || replacement.start_time_clock_ticks != process.start_time_clock_ticks()
+        || replacement.executable_path != path_text(process.executable_path())?
+        || !native_identity_matches(native_identity, &manifest.target.version)
+    {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    Ok(LinuxUpdateRecoveryCandidateLease {
+        _lock: lock,
+        recovery_id: recovery_id.to_owned(),
+        launch_nonce: launch_nonce.to_owned(),
+    })
+}
+
 fn prepare_linux_update_recovery_with(
     packages: &impl RecoveryPackagePort,
     native_identity: &LinuxNativePackageIdentity,
@@ -989,6 +1112,14 @@ fn valid_native_identity(identity: &NativePackageIdentity, source_version: &str)
         && identity.architecture == PACKAGE_ARCHITECTURE
         && identity.executable_path == INSTALLED_EXECUTABLE_PATH
         && identity.desktop_entry_path == INSTALLED_DESKTOP_ENTRY_PATH
+}
+
+fn native_identity_matches(identity: &LinuxNativePackageIdentity, version: &str) -> bool {
+    identity.name() == PACKAGE_NAME
+        && identity.version() == version
+        && identity.architecture() == PACKAGE_ARCHITECTURE
+        && identity.executable_path() == Path::new(INSTALLED_EXECUTABLE_PATH)
+        && identity.desktop_entry_path() == Path::new(INSTALLED_DESKTOP_ENTRY_PATH)
 }
 
 fn valid_preserved_package(package: &PreservedPackage, relative_path: &str, version: &str) -> bool {
@@ -1951,5 +2082,174 @@ mod tests {
             Path::new(INSTALLED_EXECUTABLE_PATH),
         )
         .is_err());
+    }
+
+    #[test]
+    fn permits_only_one_linux_watchdog_and_one_exact_candidate_process() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("watchdog context");
+
+        let watchdog = acquire_linux_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("watchdog lease");
+        assert_eq!(watchdog.recovery_id(), prepared.recovery_id());
+        assert!(matches!(
+            acquire_linux_update_recovery_watchdog_lease_with(&packages, &context),
+            Err(LinuxRecoveryStateError::ActiveAttemptExists)
+        ));
+
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementInstalled,
+        )
+        .expect("replacement installed");
+        let process = LinuxRecoveryProcessIdentity::for_test(
+            42,
+            "12345678-1234-4123-8123-123456789abc",
+            123_456,
+        );
+        let launch_nonce = "a".repeat(64);
+        record_active_linux_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            LinuxUpdateRecoveryReplacementLaunch {
+                process: &process,
+                launch_nonce: &launch_nonce,
+                confirmation_deadline: "2026-09-02T08:01:00Z",
+            },
+        )
+        .expect("recorded replacement");
+
+        let candidate = acquire_linux_update_recovery_candidate_lease_with(
+            &packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &launch_nonce,
+            &process,
+            &LinuxNativePackageIdentity::for_test("0.2.0"),
+        )
+        .expect("candidate lease");
+        assert_eq!(candidate.recovery_id(), prepared.recovery_id());
+        assert_eq!(candidate.launch_nonce(), launch_nonce);
+        assert!(matches!(
+            acquire_linux_update_recovery_candidate_lease_with(
+                &packages,
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                &launch_nonce,
+                &process,
+                &LinuxNativePackageIdentity::for_test("0.2.0"),
+            ),
+            Err(LinuxRecoveryStateError::ActiveAttemptExists)
+        ));
+
+        drop(candidate);
+        assert!(acquire_linux_update_recovery_candidate_lease_with(
+            &packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &"b".repeat(64),
+            &process,
+            &LinuxNativePackageIdentity::for_test("0.2.0"),
+        )
+        .is_err());
+        drop(watchdog);
+        acquire_linux_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("released watchdog lease");
+    }
+
+    #[test]
+    fn rejects_candidate_authority_when_any_process_or_package_component_differs() {
+        for (observed_process, native_identity) in [
+            (
+                LinuxRecoveryProcessIdentity::for_test(
+                    43,
+                    "12345678-1234-4123-8123-123456789abc",
+                    123_456,
+                ),
+                LinuxNativePackageIdentity::for_test("0.2.0"),
+            ),
+            (
+                LinuxRecoveryProcessIdentity::for_test(
+                    42,
+                    "12345678-1234-4123-8123-123456789abc",
+                    123_457,
+                ),
+                LinuxNativePackageIdentity::for_test("0.2.0"),
+            ),
+            (
+                LinuxRecoveryProcessIdentity::for_test(
+                    42,
+                    "12345678-1234-4123-8123-123456789abc",
+                    123_456,
+                ),
+                LinuxNativePackageIdentity::for_test("0.2.1"),
+            ),
+        ] {
+            let harness = Harness::new();
+            let packages = SyntheticPackages::available();
+            let prepared = prepare_linux_update_recovery_with(
+                &packages,
+                &harness.identity,
+                harness.preparation(),
+            )
+            .expect("prepared recovery");
+            transition_active_linux_update_recovery(
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                PackagedUpdateRecoveryPhase::ReplacementStarted,
+            )
+            .expect("replacement started");
+            transition_active_linux_update_recovery(
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                PackagedUpdateRecoveryPhase::ReplacementInstalled,
+            )
+            .expect("replacement installed");
+            let recorded_process = LinuxRecoveryProcessIdentity::for_test(
+                42,
+                "12345678-1234-4123-8123-123456789abc",
+                123_456,
+            );
+            let launch_nonce = "a".repeat(64);
+            record_active_linux_update_recovery_replacement_launch(
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                LinuxUpdateRecoveryReplacementLaunch {
+                    process: &recorded_process,
+                    launch_nonce: &launch_nonce,
+                    confirmation_deadline: "2026-09-02T08:01:00Z",
+                },
+            )
+            .expect("recorded replacement");
+            assert!(acquire_linux_update_recovery_candidate_lease_with(
+                &packages,
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                &launch_nonce,
+                &observed_process,
+                &native_identity,
+            )
+            .is_err());
+        }
     }
 }
