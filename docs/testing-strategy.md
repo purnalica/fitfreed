@@ -92,7 +92,8 @@ Automated testing is the primary source of evidence that the product behaves cor
   answer during a pending operation, and closes after a successful replacement while focus returns to the Activity
   heading instead of remaining in hidden controls.
 - Shared focus-settling behavior, including restoration after a reveal, surrender after an explicit focus change,
-  and the transient case in which that new control disappears before the next scheduled settling check.
+  the transient case in which that new control disappears before the next scheduled settling check, and cleanup
+  through the initiating element's captured document after an owning view or test DOM is disposed.
 - Sleep and recovery select singular or plural night units through the shared locale boundary for conclusions and
   exact coverage. Both locales protect one-night and multiple-night evidence rather than accepting a fixed plural.
 - Compact sport classification measures are asserted across the 40-combination locale, appearance, viewport, and

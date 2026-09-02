@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.useRealTimers();
   vi.restoreAllMocks();
   document.body.replaceChildren();
@@ -189,5 +190,19 @@ describe("restoreFocusAfterReveal", () => {
     vi.runAllTimers();
 
     expect(target).not.toHaveFocus();
+  });
+
+  it("settles against its owner document after the ambient DOM is unavailable", () => {
+    vi.useFakeTimers();
+    const ownerDocument = document;
+    const target = ownerDocument.createElement("button");
+    ownerDocument.body.append(target);
+
+    const cancel = restoreFocusAfterReveal(target);
+    vi.stubGlobal("document", undefined);
+    vi.stubGlobal("window", undefined);
+
+    expect(() => cancel()).not.toThrow();
+    expect(() => vi.runAllTimers()).not.toThrow();
   });
 });

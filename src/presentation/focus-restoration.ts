@@ -8,17 +8,20 @@ interface RevealFocusOptions {
   revealElement?: HTMLElement | null;
 }
 
-function measuredCompactTopRevealMargin(): string | undefined {
-  const obstruction = document.querySelector<HTMLElement>(
+function measuredCompactTopRevealMargin(
+  ownerDocument: Document,
+  ownerWindow: Window,
+): string | undefined {
+  const obstruction = ownerDocument.querySelector<HTMLElement>(
     '[data-reveal-obstruction="compact-top"]',
   );
   if (!obstruction) return undefined;
-  const rootWidth = document.documentElement.clientWidth;
+  const rootWidth = ownerDocument.documentElement.clientWidth;
   const obstructionBox = obstruction.getBoundingClientRect();
   if (
     rootWidth <= 0
     || obstructionBox.width < rootWidth - 1
-    || !["fixed", "sticky"].includes(window.getComputedStyle(obstruction).position)
+    || !["fixed", "sticky"].includes(ownerWindow.getComputedStyle(obstruction).position)
   ) return undefined;
   return `${Math.ceil(obstructionBox.height) + REVEAL_GAP_PIXELS}px`;
 }
@@ -29,6 +32,9 @@ export function restoreFocusAfterReveal(
   options: RevealFocusOptions = {},
 ): () => void {
   if (!element) return () => undefined;
+  const ownerDocument = element.ownerDocument;
+  const ownerWindow = ownerDocument.defaultView;
+  if (!ownerWindow) return () => undefined;
   let cancelled = false;
   let focusEstablished = false;
   let attemptCount = 0;
@@ -37,8 +43,8 @@ export function restoreFocusAfterReveal(
   const stop = () => {
     if (cancelled) return;
     cancelled = true;
-    document.removeEventListener("focusin", observeExplicitFocusMovement);
-    if (timer !== undefined) window.clearTimeout(timer);
+    ownerDocument.removeEventListener("focusin", observeExplicitFocusMovement);
+    if (timer !== undefined) ownerWindow.clearTimeout(timer);
   };
 
   function observeExplicitFocusMovement(event: FocusEvent) {
@@ -50,7 +56,7 @@ export function restoreFocusAfterReveal(
     stop();
   }
 
-  document.addEventListener("focusin", observeExplicitFocusMovement);
+  ownerDocument.addEventListener("focusin", observeExplicitFocusMovement);
 
   const attempt = () => {
     if (cancelled) return;
@@ -58,12 +64,12 @@ export function restoreFocusAfterReveal(
       stop();
       return;
     }
-    const activeElement = document.activeElement;
+    const activeElement = ownerDocument.activeElement;
     if (
       activeElement !== element
       && activeElement !== initiatingElement
-      && activeElement !== document.body
-      && activeElement !== document.documentElement
+      && activeElement !== ownerDocument.body
+      && activeElement !== ownerDocument.documentElement
       && activeElement !== null
       && (focusEstablished || !options.forceInitialFocus)
     ) {
@@ -77,7 +83,7 @@ export function restoreFocusAfterReveal(
         const revealElement = options.revealElement ?? element;
         if (typeof revealElement.scrollIntoView === "function") {
           const previousMargin = revealElement.style.scrollMarginBlockStart;
-          const measuredMargin = measuredCompactTopRevealMargin();
+          const measuredMargin = measuredCompactTopRevealMargin(ownerDocument, ownerWindow);
           if (measuredMargin) revealElement.style.scrollMarginBlockStart = measuredMargin;
           try {
             revealElement.scrollIntoView({ block: "start", inline: "nearest" });
@@ -89,14 +95,14 @@ export function restoreFocusAfterReveal(
         element.focus();
       }
     }
-    if (document.activeElement === element) focusEstablished = true;
+    if (ownerDocument.activeElement === element) focusEstablished = true;
     if (attemptCount < MAXIMUM_FOCUS_ATTEMPTS) {
-      timer = window.setTimeout(attempt, FOCUS_SETTLING_MILLISECONDS);
+      timer = ownerWindow.setTimeout(attempt, FOCUS_SETTLING_MILLISECONDS);
     } else {
       stop();
     }
   };
 
-  timer = window.setTimeout(attempt, 0);
+  timer = ownerWindow.setTimeout(attempt, 0);
   return stop;
 }
