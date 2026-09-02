@@ -64,6 +64,10 @@ source-bound production wrapper for only Tauri's `deb` target. Platform metadata
 `src-tauri/tauri.linux.conf.json`; hosted jobs and local contributors must use this command rather than reproducing its
 arguments or package metadata independently.
 
+`npm run package:linux-public-candidate` applies the same closed Debian boundary plus the public updater overlay. It
+requires an active versioned public-update configuration and external updater signing authority before invoking the
+source-bound build, so ordinary unsigned package work cannot be mistaken for a public candidate.
+
 `npm run inventory:linux-package` selects that one version-derived artifact, reads its complete Debian control record,
 extracts it privately, and atomically writes the schema-validated adjacent inventory. Its deterministic entries cover
 every installed path, permission mode, file digest, and non-escaping symbolic-link target. CI generates this evidence

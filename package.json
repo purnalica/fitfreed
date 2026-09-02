@@ -60,6 +60,7 @@
     "package": "npm run icons && node scripts/build-production.mjs",
     "package:app": "npm run icons && node scripts/build-production.mjs --bundles app",
     "package:linux": "npm run icons && node scripts/build-linux-package.mjs",
+    "package:linux-public-candidate": "npm run icons && node scripts/build-linux-public-candidate.mjs",
     "package:public-candidate": "npm run icons && node scripts/build-public-candidate.mjs",
     "build:x6-review": "npm run icons && node scripts/build-x6-review.mjs",
     "launch:x6-review": "node scripts/run-x6-human-review.mjs",

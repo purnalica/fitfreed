@@ -46,6 +46,11 @@ complete byte-sorted extracted layout are the canonical package-content evidence
 dependency field must still enter the release manifest, checksum, signing, and provenance boundaries before the
 artifact can become a candidate.
 
+`npm run package:linux-public-candidate` reuses that package boundary and adds only the public updater overlay. It
+requires active embedded update trust and external updater signing authority, causing Tauri to emit the mandatory
+signature for the exact Debian bytes. An ordinary `package:linux` result remains installation evidence, not a signed
+public candidate.
+
 The public stable-channel staging boundary accepts an explicit closed set of target packages. It derives the canonical
 name and direct URL for `darwin-aarch64` and `linux-x86_64-deb`, binds every package's size, digest, and updater
 signature into one signed payload, and mirrors that same complete target set for Tauri. Targets are sorted and unique;
