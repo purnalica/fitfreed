@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/update-channel-payload-v3.schema.json",
+  "title": "FitFreed signed update channel payload version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "channel",
+    "sequence",
+    "issuedAt",
+    "expiresAt",
+    "release",
+    "withdrawnVersions"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.update-channel" },
+    "schemaVersion": { "const": 3 },
+    "channel": { "const": "stable" },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "release": { "$ref": "#/$defs/release" },
+    "withdrawnVersions": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/withdrawal" }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "localizedText": {
+      "type": "object",
+      "required": ["en-US", "es-ES"],
+      "minProperties": 2,
+      "maxProperties": 32,
+      "propertyNames": {
+        "pattern": "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2}|-[0-9]{3})$"
+      },
+      "properties": {
+        "en-US": { "$ref": "#/$defs/localizedValue" },
+        "es-ES": { "$ref": "#/$defs/localizedValue" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/localizedValue" }
+    },
+    "localizedValue": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000,
+      "pattern": "\\S"
+    },
+    "librarySchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumReadableVersion", "maximumReadableVersion", "targetVersion"],
+      "properties": {
+        "minimumReadableVersion": { "$ref": "#/$defs/librarySchemaVersion" },
+        "maximumReadableVersion": { "$ref": "#/$defs/librarySchemaVersion" },
+        "targetVersion": { "$ref": "#/$defs/librarySchemaVersion" }
+      }
+    },
+    "librarySchemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "size", "sha256", "tauriSignature"],
+      "properties": {
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1073741824
+        },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "tauriSignature": { "$ref": "#/$defs/signature" }
+      }
+    },
+    "platforms": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 16,
+      "propertyNames": { "$ref": "#/$defs/target" },
+      "additionalProperties": { "$ref": "#/$defs/artifact" }
+    },
+    "recoveryArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "target",
+        "packageKind",
+        "librarySchemaVersions",
+        "url",
+        "size",
+        "sha256",
+        "tauriSignature"
+      ],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "target": {
+          "enum": ["linux-x86_64-deb", "windows-x86_64-nsis"]
+        },
+        "packageKind": { "enum": ["deb", "nsis"] },
+        "librarySchemaVersions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/librarySchemaVersion" }
+        },
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1073741824
+        },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "tauriSignature": { "$ref": "#/$defs/signature" }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "publishedAt",
+        "minimumSupportedVersion",
+        "librarySchema",
+        "releaseNotes",
+        "platforms",
+        "recoveryArtifacts"
+      ],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "minimumSupportedVersion": { "$ref": "#/$defs/semver" },
+        "librarySchema": { "$ref": "#/$defs/librarySchema" },
+        "releaseNotes": { "$ref": "#/$defs/localizedText" },
+        "platforms": { "$ref": "#/$defs/platforms" },
+        "recoveryArtifacts": {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/recoveryArtifact" }
+        }
+      }
+    },
+    "withdrawal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "reason", "guidance", "replacementVersion"],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "reason": {
+          "enum": ["security", "data-integrity", "stability", "compatibility"]
+        },
+        "guidance": { "$ref": "#/$defs/localizedText" },
+        "replacementVersion": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/semver" }
+          ]
+        }
+      }
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^(darwin|linux|windows)-(aarch64|x86_64|i686|armv7)(?:-(app|appimage|deb|rpm|msi|nsis))?$"
+    },
+    "httpsUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "maxLength": 2048
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "signature": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 16384,
+      "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+    }
+  }
+}

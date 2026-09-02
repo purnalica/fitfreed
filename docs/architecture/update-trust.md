@@ -114,6 +114,11 @@ authenticates the exact predecessor Debian package, a runnable extraction of tha
 identity. A failed Linux native rollback remains a non-terminal condition with retained assets and a bounded explicit
 retry path; launching the runnable predecessor does not masquerade as restored native installation.
 
+The recovery-capable [stable update channel version 3](../data-formats/release/update-channel-v3.md) authenticates the
+exact predecessor package for every declared Debian or NSIS application baseline. Stable version 2 remains a closed
+contract; production selection moves to version 3 only after its generator, consumers, platform recovery adapters, and
+release verifier all accept the same evidence.
+
 Both contracts preserve these invariants:
 
 - The application recovery copy contains the exact previously running application image and lives outside Tauri's temporary replacement directory.

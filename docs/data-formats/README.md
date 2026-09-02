@@ -229,7 +229,8 @@ Directories are created with their first real contract; empty specifications are
 - [Linux package inventory version 1](release/linux-package-inventory-v1.md)
 - [Upgrade matrix version 1](release/upgrade-matrix-v1.md)
 - [Update channel version 1](release/update-channel-v1.md)
-- [Public stable update channel version 2](release/update-channel-v2.md)
+- [Public stable update channel version 3](release/update-channel-v3.md)
+- [Public stable update channel version 2](release/update-channel-v2.md) — preceding contract
 - [Public update build configuration version 1](release/public-update-configuration-v1.md)
 - [Public release-signing configuration version 1](release/public-release-signing-configuration-v1.md)
 - [Public release policy version 1](release/public-release-policy-v1.md)

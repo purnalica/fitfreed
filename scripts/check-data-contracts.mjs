@@ -6693,6 +6693,135 @@ for (const invalidEnvelope of [
   }
 }
 
+const recoverableStableUpdateChannelPath =
+  "docs/data-formats/release/update-channel-v3.md";
+const recoverableStableUpdateChannel = read(recoverableStableUpdateChannelPath);
+for (const field of [
+  "org.fitfreed.update-envelope",
+  "org.fitfreed.update-channel",
+  "schemaVersion",
+  "stable",
+  "release.recoveryArtifacts",
+  "release.recoveryArtifacts.*.version",
+  "release.recoveryArtifacts.*.target",
+  "release.recoveryArtifacts.*.packageKind",
+  "release.recoveryArtifacts.*.librarySchemaVersions",
+  "release.recoveryArtifacts.*.url",
+  "release.recoveryArtifacts.*.size",
+  "release.recoveryArtifacts.*.sha256",
+  "release.recoveryArtifacts.*.tauriSignature",
+  "linux-x86_64-deb",
+  "windows-x86_64-nsis",
+]) {
+  requireMention(
+    recoverableStableUpdateChannel,
+    field,
+    recoverableStableUpdateChannelPath,
+  );
+}
+
+const recoverableStableUpdatePayloadSchemaPath =
+  "schemas/update-channel-payload-v3.schema.json";
+const validateRecoverableStableUpdatePayload = ajv.compile(
+  JSON.parse(read(recoverableStableUpdatePayloadSchemaPath)),
+);
+const syntheticRecoverableStableUpdatePayload = structuredClone(
+  syntheticStableUpdateChannelPayload,
+);
+syntheticRecoverableStableUpdatePayload.schemaVersion = 3;
+syntheticRecoverableStableUpdatePayload.release.recoveryArtifacts = [
+  {
+    version: "0.1.0",
+    target: "linux-x86_64-deb",
+    packageKind: "deb",
+    librarySchemaVersions: [8],
+    url: publicUpdateUrl("0.1.0/FitFreed_0.1.0_amd64.deb"),
+    size: 1048576,
+    sha256: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    tauriSignature: "U3ludGhldGljIFRhdXJpIHNpZ25hdHVyZQ==",
+  },
+];
+syntheticRecoverableStableUpdatePayload.release.platforms["linux-x86_64-deb"] = {
+  url: publicUpdateUrl("0.2.0/FitFreed_0.2.0_amd64.deb"),
+  size: 1048576,
+  sha256: "bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a",
+  tauriSignature: "U3ludGhldGljIFRhdXJpIHNpZ25hdHVyZQ==",
+};
+if (!validateRecoverableStableUpdatePayload(syntheticRecoverableStableUpdatePayload)) {
+  throw new Error(
+    recoverableStableUpdatePayloadSchemaPath
+      + " rejected its synthetic payload: "
+      + ajv.errorsText(validateRecoverableStableUpdatePayload.errors),
+  );
+}
+if (
+  validateRecoverableStableUpdatePayload(syntheticStableUpdateChannelPayload)
+  || validateStableUpdateChannelPayload(syntheticRecoverableStableUpdatePayload)
+) {
+  throw new Error("stable update payload schemas accepted another contract version");
+}
+for (const invalidPayload of [
+  (() => {
+    const value = structuredClone(syntheticRecoverableStableUpdatePayload);
+    delete value.release.recoveryArtifacts;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoverableStableUpdatePayload);
+    value.release.recoveryArtifacts[0].packageKind = "app";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoverableStableUpdatePayload);
+    value.release.recoveryArtifacts[0].target = "darwin-aarch64";
+    return value;
+  })(),
+]) {
+  if (validateRecoverableStableUpdatePayload(invalidPayload)) {
+    throw new Error(recoverableStableUpdatePayloadSchemaPath + " accepted an invalid payload");
+  }
+}
+
+const recoverableStableUpdateEnvelopeSchemaPath =
+  "schemas/update-channel-envelope-v3.schema.json";
+const validateRecoverableStableUpdateEnvelope = ajv.compile(
+  JSON.parse(read(recoverableStableUpdateEnvelopeSchemaPath)),
+);
+const syntheticRecoverableStableUpdateEnvelope = {
+  version: syntheticRecoverableStableUpdatePayload.release.version,
+  platforms: Object.fromEntries(
+    Object.entries(syntheticRecoverableStableUpdatePayload.release.platforms).map(
+      ([target, artifact]) => [
+        target,
+        { url: artifact.url, signature: artifact.tauriSignature },
+      ],
+    ),
+  ),
+  fitfreed: {
+    format: "org.fitfreed.update-envelope",
+    schemaVersion: 3,
+    algorithm: "minisign-ed25519",
+    keyId: "stable.synthetic-1",
+    payloadBase64: Buffer.from(
+      JSON.stringify(syntheticRecoverableStableUpdatePayload),
+    ).toString("base64"),
+    signatureBase64: "U3ludGhldGljIG1ldGFkYXRhIHNpZ25hdHVyZQ==",
+  },
+};
+if (!validateRecoverableStableUpdateEnvelope(syntheticRecoverableStableUpdateEnvelope)) {
+  throw new Error(
+    recoverableStableUpdateEnvelopeSchemaPath
+      + " rejected its synthetic envelope: "
+      + ajv.errorsText(validateRecoverableStableUpdateEnvelope.errors),
+  );
+}
+if (
+  validateRecoverableStableUpdateEnvelope(syntheticStableUpdateChannelEnvelope)
+  || validateStableUpdateChannelEnvelope(syntheticRecoverableStableUpdateEnvelope)
+) {
+  throw new Error("stable update envelope schemas accepted another contract version");
+}
+
 const publicUpdateConfigurationPath =
   "docs/data-formats/release/public-update-configuration-v1.md";
 const publicUpdateConfiguration = read(publicUpdateConfigurationPath);
@@ -10217,6 +10346,7 @@ for (const contractPath of [
   libraryHomeV5Path,
   updateChannelPath,
   stableUpdateChannelPath,
+  recoverableStableUpdateChannelPath,
   publicUpdateConfigurationPath,
   publicReleaseSigningConfigurationPath,
   updateRecoveryPath,
@@ -10447,6 +10577,8 @@ process.stdout.write(
       updateChannelPayloadSchemaPath,
       stableUpdateChannelEnvelopeSchemaPath,
       stableUpdateChannelPayloadSchemaPath,
+      recoverableStableUpdateEnvelopeSchemaPath,
+      recoverableStableUpdatePayloadSchemaPath,
     ],
     publicUpdateConfigurationSchema: publicUpdateConfigurationSchemaPath,
     publicReleaseSigningConfigurationSchema:
