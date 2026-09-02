@@ -44,6 +44,13 @@ manager and obtains the exact predecessor package from a verified local cache or
 URL. It verifies the signed-channel entry, updater signature, size, SHA-256, Debian control identity, installed version,
 architecture, and complete package inventory before copying it to `previous/package.deb`.
 
+Native identity discovery uses only `/usr/bin/dpkg-query --show` and `--listfiles` for the fixed `fitfreed` package.
+The accepted identity is an installed `amd64` package with a SemVer version that owns the fixed executable and desktop
+entry paths. Both paths must reopen as non-symbolic regular files, and the executable must carry an execute bit. Native
+rollback derives `previous/package.deb` from the canonical attempt directory, rejects an absent, empty, non-regular,
+or symbolic package, invokes only `/usr/bin/pkexec /usr/bin/dpkg --install` with that derived path, and repeats the
+native identity and installed-file validation after success.
+
 The adapter extracts that same package without executing maintainer scripts into `previous/runnable`, validates the
 complete tree and required `usr/bin/fitfreed`, records a deterministic tree digest, and binds it back to the predecessor
 package SHA-256. This image is a last runnable predecessor, not a replacement for native rollback. The independently
@@ -103,6 +110,11 @@ native-recovery-unavailable → recovering
 only when a candidate was launched. A replacement process is authoritative only when its process identifier, boot
 identifier, start-time clock ticks, canonical executable path, launch nonce, held candidate lease, and manifest record
 all agree.
+
+The process adapter reads the boot identifier from `/proc/sys/kernel/random/boot_id`, the start-time clock ticks from
+field 22 of `/proc/<pid>/stat`, and the executable target from `/proc/<pid>/exe`. It accepts only the exact
+`/usr/bin/fitfreed` target and compares every recorded component when determining whether a process still owns the
+identity. A PID match alone never authorizes process control or lifecycle mutation.
 
 During recovery the watchdog first quiesces the exact candidate, restores the verified library backup, and invokes the
 platform adapter's fixed predecessor-package installation path through the operating system's authorization boundary.
