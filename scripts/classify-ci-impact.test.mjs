@@ -269,6 +269,7 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   assert.match(qualityJob ?? "", /npm run lint:rust/);
   assert.match(qualityJob ?? "", /npm run package:linux/);
   assert.match(qualityJob ?? "", /npm run verify:linux-package/);
+  assert.match(qualityJob ?? "", /npm run verify:linux-installation/);
   assert.doesNotMatch(qualityJob ?? "", /actions\/upload-artifact/);
   assert.doesNotMatch(
     qualityJob ?? "",

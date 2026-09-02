@@ -191,6 +191,10 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run verify:linux-package
 
+      - name: Verify clean Linux installation and removal
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run verify:linux-installation
+
       - name: Test the bounded updater refinement
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run test:vendor-updater

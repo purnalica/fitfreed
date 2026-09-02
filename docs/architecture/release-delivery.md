@@ -43,6 +43,12 @@ control identity, mandatory WebKitGTK and GTK dependencies, production executabl
 set, and installed GPL text. The resulting complete dependency field must still enter release evidence before the
 artifact can become a candidate.
 
+The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
+image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
+installation must resolve the declared runtime dependencies, leave a completely linked executable and registered
+package identity, and native purge must remove every FitFreed package-owned path. This establishes a repeatable clean
+package-manager boundary; graphical desktop launch and both supported Ubuntu versions remain later independent gates.
+
 [ADR 0041](decisions/0041-support-windows-11-with-per-user-nsis.md) defines the first Windows release as one x86-64
 current-user NSIS setup executable for Windows 11 editions still in Microsoft support at candidate issuance. The
 installer includes the offline WebView2 runtime and both initial locales. Public setup and installed binaries require

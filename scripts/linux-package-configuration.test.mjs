@@ -50,6 +50,10 @@ test("exposes a Linux-only production package command", () => {
     packageJson.scripts["package:linux"],
     "npm run icons && node scripts/build-linux-package.mjs",
   );
+  assert.equal(
+    packageJson.scripts["verify:linux-installation"],
+    "node scripts/verify-linux-clean-install.mjs",
+  );
   assert.deepEqual(linuxPackageBuildArguments([], "linux"), ["--bundles", "deb"]);
   assert.deepEqual(linuxPackageBuildArguments(["--verbose"], "linux"), [
     "--bundles",

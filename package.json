@@ -89,6 +89,7 @@
     "verify:e2e": "npm run build:e2e && npm run test:e2e",
     "verify:development-release": "scripts/verify-macos-development-release.sh",
     "verify:update-recovery-preparation": "scripts/verify-update-recovery-preparation.sh",
+    "verify:linux-installation": "node scripts/verify-linux-clean-install.mjs",
     "verify:linux-package": "node scripts/verify-linux-debian-package.mjs",
     "verify:update-e2e": "node scripts/verify-packaged-update.mjs",
     "verify:public-release": "node scripts/verify-public-release.mjs",

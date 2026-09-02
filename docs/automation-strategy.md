@@ -64,6 +64,12 @@ source-bound production wrapper for only Tauri's `deb` target. Platform metadata
 `src-tauri/tauri.linux.conf.json`; hosted jobs and local contributors must use this command rather than reproducing its
 arguments or package metadata independently.
 
+`npm run verify:linux-installation` owns the repeatable clean Ubuntu 24.04 package-manager check. It admits only an
+x86-64 Linux host and the exact version-derived Debian name, passes only that file into a digest-pinned container,
+reports a bounded privacy-safe failure phase, and verifies installation, dynamic dependencies, package identity, and
+purge. Updating the pinned image digest is a reviewed dependency change and must preserve the declared distribution
+and architecture inside the container.
+
 ### Maintenance and community
 
 - Dependency-update proposals with compatibility and quality checks.
