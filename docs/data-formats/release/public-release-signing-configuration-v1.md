@@ -29,6 +29,12 @@ Unknown properties and duplicate key identifiers are invalid. `inactive` require
 at least one key. A Linux public candidate names exactly one configured key, signs the final `SHA256SUMS` bytes, and
 writes the detached signature as `SHA256SUMS.minisig`.
 
+Verification accepts the canonical four-line Minisign signature format and the modern prehashed `ED` algorithm only.
+It matches the signature key identifier to the selected trusted public key, verifies the Ed25519 payload signature
+over the BLAKE2b-512 checksum-file digest, and independently verifies the signed trusted comment. Noncanonical Base64,
+legacy signatures, extra lines, a mismatched key identifier, or a failed payload or trusted-comment signature fail
+closed.
+
 ## Lifecycle and failure behavior
 
 The initial canonical instance is deliberately `inactive`. Activating it is a reviewed human authority gate after an
