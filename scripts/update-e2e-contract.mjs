@@ -57,6 +57,7 @@ export function createUpdatePayload({
     "es-ES": "Versión sintética para aceptar la actualización empaquetada.",
   },
   withdrawnVersions = [],
+  platforms,
   target,
   packageUrl,
   packageSize,
@@ -85,7 +86,7 @@ export function createUpdatePayload({
         targetVersion: targetSchemaVersion,
       },
       releaseNotes,
-      platforms: {
+      platforms: platforms ?? {
         [target]: {
           url: packageUrl,
           size: packageSize,
@@ -104,15 +105,18 @@ export function createUpdateEnvelope({
   metadataSignature,
   keyId,
 }) {
-  const [target, artifact] = Object.entries(payload.release.platforms)[0];
-  return {
-    version: payload.release.version,
-    platforms: {
-      [target]: {
+  const platforms = Object.fromEntries(
+    Object.entries(payload.release.platforms).map(([target, artifact]) => [
+      target,
+      {
         url: artifact.url,
         signature: artifact.tauriSignature,
       },
-    },
+    ]),
+  );
+  return {
+    version: payload.release.version,
+    platforms,
     fitfreed: {
       format: "org.fitfreed.update-envelope",
       schemaVersion: payload.schemaVersion,

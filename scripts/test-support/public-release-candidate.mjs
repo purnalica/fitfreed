@@ -52,8 +52,11 @@ export function createPublicReleaseCandidateFixture() {
   stageStableUpdateChannel({
     outputDirectory: pagesDirectory,
     configuration: publicUpdateConfiguration,
-    packagePath: updaterPath,
-    packageSignaturePath: `${updaterPath}.sig`,
+    packages: [{
+      packagePath: updaterPath,
+      packageSignaturePath: `${updaterPath}.sig`,
+      target: "darwin-aarch64",
+    }],
     signingKeyId: "stable.synthetic-1",
     version: "0.1.0",
     sequence: 1,

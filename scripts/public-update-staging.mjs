@@ -12,6 +12,7 @@ import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
+import { expectedLinuxDebianArtifactName } from "./linux-package-contract.mjs";
 import { publicUpdateUrl } from "./public-origin.mjs";
 import { validatePublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { promoteStagedDirectory } from "./release-evidence.mjs";
@@ -73,16 +74,17 @@ function validateTemporalPolicy(issuedAt, expiresAt, publishedAt) {
   }
 }
 
-function publicPackageName(version) {
+function publicPackageName(version, target) {
   if (!semanticVersion.test(version)) throw new Error("public update version is invalid");
-  return `FitFreed_${version}_aarch64.app.tar.gz`;
+  if (target === "darwin-aarch64") return `FitFreed_${version}_aarch64.app.tar.gz`;
+  if (target === "linux-x86_64-deb") return expectedLinuxDebianArtifactName(version);
+  throw new Error("public update target is unsupported");
 }
 
 export function stageStableUpdateChannel({
   outputDirectory,
   configuration,
-  packagePath,
-  packageSignaturePath,
+  packages,
   signingKeyId,
   version,
   sequence,
@@ -124,14 +126,50 @@ export function stageStableUpdateChannel({
   if (resolvedOutputDirectory === path.parse(resolvedOutputDirectory).root) {
     throw new Error("public update staging directory is unsafe");
   }
-  const packageMetadata = statSync(packagePath);
-  if (!packageMetadata.isFile() || packageMetadata.size < 1) {
-    throw new Error("public update package is invalid");
+  if (!Array.isArray(packages) || packages.length === 0) {
+    throw new Error("public update packages are unavailable");
   }
-  const packageSignature = readFileSync(packageSignaturePath, "utf8").trim();
-  const packageName = publicPackageName(version);
-  const packageUrl = publicUpdateUrl(`${version}/${packageName}`);
-  const packageBytes = readFileSync(packagePath);
+  const packageTargets = new Set();
+  const packageEvidence = packages
+    .map(({ packagePath, packageSignaturePath, target }) => {
+      const packageName = publicPackageName(version, target);
+      if (packageTargets.has(target)) throw new Error(`public update target is duplicated: ${target}`);
+      packageTargets.add(target);
+      const packageMetadata = statSync(packagePath);
+      if (!packageMetadata.isFile() || packageMetadata.size < 1) {
+        throw new Error("public update package is invalid");
+      }
+      const packageSignature = readFileSync(packageSignaturePath, "utf8").trim();
+      const packageBytes = readFileSync(packagePath);
+      return {
+        packageBytes,
+        packageName,
+        packagePath,
+        packageSha256: sha256(packageBytes),
+        packageSignature,
+        packageSize: packageMetadata.size,
+        packageUrl: publicUpdateUrl(`${version}/${packageName}`),
+        target,
+      };
+    })
+    .sort((left, right) => left.target.localeCompare(right.target, "en"));
+  if (
+    packageTargets.has("linux-x86_64-deb")
+    && !packageTargets.has("darwin-aarch64")
+  ) {
+    throw new Error("the Linux public update target requires the existing macOS target");
+  }
+  const platforms = Object.fromEntries(
+    packageEvidence.map((artifact) => [
+      artifact.target,
+      {
+        url: artifact.packageUrl,
+        size: artifact.packageSize,
+        sha256: artifact.packageSha256,
+        tauriSignature: artifact.packageSignature,
+      },
+    ]),
+  );
   const payload = createUpdatePayload({
     contractSchemaVersion: 2,
     channel: "stable",
@@ -143,11 +181,7 @@ export function stageStableUpdateChannel({
     minimumSupportedVersion,
     releaseNotes,
     withdrawnVersions,
-    target: "darwin-aarch64",
-    packageUrl,
-    packageSize: packageMetadata.size,
-    packageSha256: sha256(packageBytes),
-    packageSignature,
+    platforms,
     minimumReadableSchemaVersion,
     schemaVersion: targetSchemaVersion,
     maximumReadableSchemaVersion,
@@ -170,7 +204,9 @@ export function stageStableUpdateChannel({
   try {
     const packageDirectory = path.join(stagingDirectory, "updates", version);
     mkdirSync(packageDirectory, { recursive: true });
-    copyFileSync(packagePath, path.join(packageDirectory, packageName));
+    for (const artifact of packageEvidence) {
+      copyFileSync(artifact.packagePath, path.join(packageDirectory, artifact.packageName));
+    }
     writeFileSync(
       path.join(stagingDirectory, "updates", "stable.json"),
       `${JSON.stringify(envelope)}\n`,
@@ -186,9 +222,7 @@ export function stageStableUpdateChannel({
     sequence,
     keyId: signingKeyId,
     payloadSha256: sha256(payloadBytes),
-    packageSha256: sha256(packageBytes),
-    packageSize: packageMetadata.size,
-    packageUrl,
+    targets: packageEvidence.map(({ target }) => target),
     outputDirectory: resolvedOutputDirectory,
   };
 }

@@ -301,8 +301,11 @@ function preparePublicRelease() {
     stageStableUpdateChannel({
       outputDirectory: pagesDirectory,
       configuration,
-      packagePath: built.paths.updaterArchive,
-      packageSignaturePath: built.paths.updaterSignature,
+      packages: [{
+        packagePath: built.paths.updaterArchive,
+        packageSignaturePath: built.paths.updaterSignature,
+        target: "darwin-aarch64",
+      }],
       signingKeyId: updateKeyId,
       version,
       sequence: policy.update.sequence,

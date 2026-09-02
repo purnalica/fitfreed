@@ -82,6 +82,12 @@ The request carries no current version, locale, library schema, account, install
 
 ## Signing, hosting, and release relationship
 
-The protected release authority signs the exact payload and updater package independently with the key named by `fitfreed.keyId`. The signed payload binds that package to stable policy, compatibility, localized notes, withdrawal state, direct Pages URL, byte size, digest, and Tauri signature. Both files are promoted with the complete product site in one Pages deployment artifact; the human-facing DMG and complete evidence set remain in the corresponding GitHub Release under [ADR 0020](../../architecture/decisions/0020-compose-product-and-update-pages.md).
+The protected release authority signs the exact payload and every updater package independently with the key named by
+`fitfreed.keyId`. One payload may bind multiple platform targets to stable policy, compatibility, localized notes,
+withdrawal state, direct Pages URLs, byte sizes, digests, and Tauri signatures. Its untrusted Tauri mirror contains the
+same complete target set. The envelope and every bound package are promoted with the complete product site in one Pages
+deployment artifact; human-facing installers and complete evidence sets remain in the corresponding GitHub Release
+under [ADR 0020](../../architecture/decisions/0020-compose-product-and-update-pages.md). Adding a platform never
+publishes a replacement snapshot that silently removes an already supported target.
 
 Public keys and endpoint configuration are build inputs. Production private keys, passwords, Apple credentials, generated signatures, payloads, packages, and deployment credentials never enter Git. Synthetic contract examples and test keys never become production trust.

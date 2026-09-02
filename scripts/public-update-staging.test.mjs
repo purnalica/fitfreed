@@ -44,7 +44,13 @@ function fixture() {
 function stageArguments(fixtureValues) {
   return {
     ...fixtureValues,
-    packageSignaturePath: `${fixtureValues.packagePath}.sig`,
+    packages: [
+      {
+        packagePath: fixtureValues.packagePath,
+        packageSignaturePath: `${fixtureValues.packagePath}.sig`,
+        target: "darwin-aarch64",
+      },
+    ],
     signingKeyId: "stable.synthetic-1",
     version: "0.2.0",
     sequence: 2,
@@ -116,6 +122,67 @@ test("stages one atomic Pages snapshot with exact stable metadata and package by
     values.packageBytes,
   );
   assert.equal(result.payloadSha256, createHash("sha256").update(payloadBytes).digest("hex"));
+});
+
+test("stages exact macOS and Debian updater artifacts in one signed snapshot", () => {
+  const values = fixture();
+  const arguments_ = stageArguments(values);
+  const linuxPackagePath = path.join(values.root, "FitFreed.deb");
+  writeFileSync(linuxPackagePath, "synthetic Debian package");
+  writeFileSync(`${linuxPackagePath}.sig`, "U3ludGhldGljIERlYmlhbiBzaWduYXR1cmU=\n");
+  arguments_.packages.push({
+    packagePath: linuxPackagePath,
+    packageSignaturePath: `${linuxPackagePath}.sig`,
+    target: "linux-x86_64-deb",
+  });
+
+  const result = stageStableUpdateChannel(arguments_);
+
+  const linuxPackageName = "FitFreed_0.2.0_amd64.deb";
+  assert.deepEqual(relativeFiles(values.outputDirectory), [
+    "updates/0.2.0/FitFreed_0.2.0_aarch64.app.tar.gz",
+    `updates/0.2.0/${linuxPackageName}`,
+    "updates/stable.json",
+  ]);
+  const envelope = JSON.parse(
+    readFileSync(path.join(values.outputDirectory, "updates/stable.json"), "utf8"),
+  );
+  const payload = JSON.parse(
+    Buffer.from(envelope.fitfreed.payloadBase64, "base64"),
+  );
+  assert.deepEqual(Object.keys(envelope.platforms), [
+    "darwin-aarch64",
+    "linux-x86_64-deb",
+  ]);
+  assert.deepEqual(Object.keys(payload.release.platforms), [
+    "darwin-aarch64",
+    "linux-x86_64-deb",
+  ]);
+  assert.equal(
+    payload.release.platforms["linux-x86_64-deb"].url,
+    publicUpdateUrl(`0.2.0/${linuxPackageName}`),
+  );
+  assert.deepEqual(result.targets, ["darwin-aarch64", "linux-x86_64-deb"]);
+});
+
+test("rejects an omitted or unsupported public update target", () => {
+  const values = fixture();
+  const missing = stageArguments(values);
+  delete missing.packages[0].target;
+  const unsupported = stageArguments(values);
+  unsupported.packages[0].target = "linux-aarch64-deb";
+  const duplicate = stageArguments(values);
+  duplicate.packages.push({ ...duplicate.packages[0] });
+  const linuxWithoutMacos = stageArguments(values);
+  linuxWithoutMacos.packages[0].target = "linux-x86_64-deb";
+
+  assert.throws(() => stageStableUpdateChannel(missing), /target is unsupported/);
+  assert.throws(() => stageStableUpdateChannel(unsupported), /target is unsupported/);
+  assert.throws(() => stageStableUpdateChannel(duplicate), /target is duplicated/);
+  assert.throws(
+    () => stageStableUpdateChannel(linuxWithoutMacos),
+    /requires the existing macOS target/,
+  );
 });
 
 test("preserves the previous Pages snapshot when staging cannot be signed", () => {

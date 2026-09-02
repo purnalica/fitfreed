@@ -46,6 +46,12 @@ complete byte-sorted extracted layout are the canonical package-content evidence
 dependency field must still enter the release manifest, checksum, signing, and provenance boundaries before the
 artifact can become a candidate.
 
+The public stable-channel staging boundary accepts an explicit closed set of target packages. It derives the canonical
+name and direct URL for `darwin-aarch64` and `linux-x86_64-deb`, binds every package's size, digest, and updater
+signature into one signed payload, and mirrors that same complete target set for Tauri. Targets are sorted and unique;
+an absent, duplicated, or unsupported target fails before staging. This prevents Linux enablement from silently
+removing the already published macOS update path.
+
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
 image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
 installation must resolve the declared runtime dependencies, leave a completely linked executable and registered
