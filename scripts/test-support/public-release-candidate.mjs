@@ -6,6 +6,9 @@ import { createPublicReleaseManifest } from "../public-release-evidence.mjs";
 import { publicUpdateEndpoint } from "../public-origin.mjs";
 import { stageStableUpdateChannel } from "../public-update-staging.mjs";
 import { inspectArtifact, renderChecksumFile } from "../release-evidence.mjs";
+import { createSyntheticMinisignAuthority } from "./minisign.mjs";
+
+const signingAuthority = createSyntheticMinisignAuthority();
 
 export const publicUpdateConfiguration = {
   format: "org.fitfreed.public-update-configuration",
@@ -16,7 +19,7 @@ export const publicUpdateConfiguration = {
   keys: [
     {
       id: "stable.synthetic-1",
-      publicKey: "U3ludGhldGljIHB1YmxpYyBrZXkgZm9yIHZlcmlmaWNhdGlvbiB0ZXN0cy4=",
+      publicKey: signingAuthority.publicKey,
     },
   ],
 };
@@ -30,11 +33,13 @@ export function createPublicReleaseCandidateFixture() {
     path.join(releaseDirectory, "FitFreed.app", "Contents", "synthetic"),
     "signed application bytes",
   );
+  const updaterArchiveName = "FitFreed_0.1.0_aarch64.app.tar.gz";
+  const updaterArchive = "signed updater archive";
   const files = {
     "FitFreed_0.1.0_aarch64.dmg": "signed and notarized disk image",
-    "FitFreed_0.1.0_aarch64.app.tar.gz": "signed updater archive",
+    [updaterArchiveName]: updaterArchive,
     "FitFreed_0.1.0_aarch64.app.tar.gz.sig":
-      "U3ludGhldGljIHVwZGF0ZXIgc2lnbmF0dXJl",
+      signingAuthority.signTauri(Buffer.from(updaterArchive), updaterArchiveName),
     "npm.cdx.json": "{\"bomFormat\":\"CycloneDX\"}\n",
     "supported-upgrades.json": `${JSON.stringify({
       format: "org.fitfreed.upgrade-matrix",
@@ -72,7 +77,7 @@ export function createPublicReleaseCandidateFixture() {
       "es-ES": "Versión pública sintética.",
     },
     withdrawnVersions: [],
-    signPayload: () => "U3ludGhldGljIG1ldGFkYXRhIHNpZ25hdHVyZQ==",
+    signPayload: (payload) => signingAuthority.signTauri(payload, "stable-payload.json"),
   });
   copyFileSync(
     path.join(pagesDirectory, "updates", "stable.json"),

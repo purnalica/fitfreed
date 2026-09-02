@@ -63,3 +63,24 @@ test("rejects release mutation and Pages divergence", () => {
     /Pages byte mismatch/,
   );
 });
+
+test("cryptographically rejects mutated stable metadata", () => {
+  const candidate = createPublicReleaseCandidateFixture();
+  const stablePath = path.join(candidate.releaseDirectory, "stable.json");
+  const envelope = JSON.parse(readFileSync(stablePath, "utf8"));
+  const signatureLines = Buffer.from(
+    envelope.fitfreed.signatureBase64,
+    "base64",
+  ).toString("utf8").trimEnd().split("\n");
+  const signatureRecord = Buffer.from(signatureLines[1], "base64");
+  signatureRecord[10] ^= 1;
+  signatureLines[1] = signatureRecord.toString("base64");
+  envelope.fitfreed.signatureBase64 = Buffer.from(`${signatureLines.join("\n")}\n`)
+    .toString("base64");
+  writeFileSync(stablePath, `${JSON.stringify(envelope)}\n`);
+
+  assert.throws(
+    () => verifyPublicReleaseCandidate(candidate.root, publicUpdateConfiguration),
+    /invalid stable update evidence: Minisign payload signature is invalid/,
+  );
+});

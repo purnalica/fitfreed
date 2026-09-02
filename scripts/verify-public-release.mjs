@@ -2,37 +2,16 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import Ajv2020 from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
-
-import { publicUpdateUrl } from "./public-origin.mjs";
 import { validatePublicReleaseManifest } from "./public-release-evidence.mjs";
 import {
   loadPublicUpdateConfiguration,
   validatePublicUpdateConfiguration,
 } from "./public-update-configuration.mjs";
+import { verifyStableUpdateEvidence } from "./public-update-verification.mjs";
 import { inspectArtifact, sha256File } from "./release-evidence.mjs";
 import { validateUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const checksumLine = /^([0-9a-f]{64})  ([^/]+)$/;
-
-function compileUpdateValidators() {
-  const ajv = new Ajv2020({ allErrors: true, strict: true });
-  addFormats(ajv);
-  return {
-    envelope: ajv.compile(JSON.parse(readFileSync(
-      new URL("../schemas/update-channel-envelope-v2.schema.json", import.meta.url),
-      "utf8",
-    ))),
-    payload: ajv.compile(JSON.parse(readFileSync(
-      new URL("../schemas/update-channel-payload-v2.schema.json", import.meta.url),
-      "utf8",
-    ))),
-    errorsText: (errors) => ajv.errorsText(errors),
-  };
-}
-
-const updateValidators = compileUpdateValidators();
 
 function verifyManifestArtifacts(releaseDirectory, manifest, errors, requireApplication) {
   for (const expected of manifest.artifacts) {
@@ -122,62 +101,15 @@ function verifyChecksums(releaseDirectory, manifest, errors) {
   }
 }
 
-function validateUpdateDocument(validator, document, name, errors) {
-  if (!validator(document)) {
-    errors.push(`${name} failed its JSON Schema: ${updateValidators.errorsText(validator.errors)}`);
-  }
-}
-
 function verifyStableUpdate(releaseDirectory, manifest, configuration, errors) {
   try {
-    const envelopeArtifact = manifest.artifacts.find(
-      ({ kind }) => kind === "stable-update-envelope",
-    );
-    const archiveArtifact = manifest.artifacts.find(
-      ({ kind }) => kind === "macos-updater-archive",
-    );
-    const signatureArtifact = manifest.artifacts.find(
-      ({ kind }) => kind === "updater-signature",
-    );
-    const envelope = JSON.parse(
-      readFileSync(path.join(releaseDirectory, envelopeArtifact.path), "utf8"),
-    );
-    validateUpdateDocument(updateValidators.envelope, envelope, "stable envelope", errors);
-    const payloadBytes = Buffer.from(envelope.fitfreed.payloadBase64, "base64");
-    if (payloadBytes.toString("base64") !== envelope.fitfreed.payloadBase64) {
-      errors.push("stable payload uses a non-canonical base64 representation");
-    }
-    const payload = JSON.parse(payloadBytes.toString("utf8"));
-    validateUpdateDocument(updateValidators.payload, payload, "stable payload", errors);
-    const target = payload.release.platforms["darwin-aarch64"];
-    const mirror = envelope.platforms["darwin-aarch64"];
-    const detachedSignature = readFileSync(
-      path.join(releaseDirectory, signatureArtifact.path),
-      "utf8",
-    ).trim();
-    const expectedUrl = publicUpdateUrl(
-      `${manifest.release.version}/${archiveArtifact.path}`,
-    );
-
-    if (envelope.version !== manifest.release.version) errors.push("stable envelope version mismatch");
-    if (payload.release.version !== manifest.release.version) errors.push("stable payload version mismatch");
-    if (envelope.fitfreed.keyId !== manifest.update.keyId) errors.push("stable key identifier mismatch");
-    if (payload.sequence !== manifest.update.sequence) errors.push("stable sequence mismatch");
-    if (!configuration.keys.some(({ id }) => id === manifest.update.keyId)) {
-      errors.push("stable key identifier is outside configured trust");
-    }
-    if (target.url !== expectedUrl) errors.push("stable updater URL mismatch");
-    if (target.size !== archiveArtifact.size) errors.push("stable updater size mismatch");
-    if (target.sha256 !== archiveArtifact.sha256) errors.push("stable updater digest mismatch");
-    if (target.tauriSignature !== detachedSignature) {
-      errors.push("stable updater detached signature mismatch");
-    }
-    if (mirror.url !== target.url || mirror.signature !== target.tauriSignature) {
-      errors.push("stable Tauri compatibility mirror mismatch");
-    }
-    if (payload.release.librarySchema.targetVersion !== manifest.application.storageSchemaVersion) {
-      errors.push("stable target storage schema mismatch");
-    }
+    verifyStableUpdateEvidence({
+      releaseDirectory,
+      manifest,
+      publicUpdateConfiguration: configuration,
+      packageKind: "macos-updater-archive",
+      target: "darwin-aarch64",
+    });
   } catch (error) {
     errors.push(`invalid stable update evidence: ${error.message}`);
   }

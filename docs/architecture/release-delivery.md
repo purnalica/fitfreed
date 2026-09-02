@@ -57,6 +57,12 @@ signature into one signed payload, and mirrors that same complete target set for
 an absent, duplicated, or unsupported target fails before staging. This prevents Linux enablement from silently
 removing the already published macOS update path.
 
+Candidate verification reopens the signed payload from the stable envelope, resolves its key identifier only through
+the versioned public trust set, and cryptographically verifies both the metadata signature and the independent package
+signature. It then binds the selected platform entry and Tauri compatibility mirror to the manifest's exact package
+name, bytes, digest, version, schema target, and canonical direct URL. Structural equality without valid signatures is
+not release evidence.
+
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
 image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
 installation must resolve the declared runtime dependencies, leave a completely linked executable and registered
