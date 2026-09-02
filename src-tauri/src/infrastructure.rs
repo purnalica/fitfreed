@@ -207,7 +207,8 @@ pub use update_recovery_linux_package::{
 #[cfg(any(test, target_os = "linux"))]
 pub use update_recovery_linux_state::{
     acquire_linux_update_recovery_candidate_lease, acquire_linux_update_recovery_watchdog_lease,
-    active_linux_update_recovery_phase, prepare_linux_update_recovery,
+    active_linux_update_recovery_phase, confirm_active_linux_update_recovery,
+    discard_prepared_linux_update_recovery, prepare_linux_update_recovery,
     record_active_linux_update_recovery_replacement_launch,
     resolve_linux_update_recovery_watchdog_context, restore_active_linux_update_recovery,
     transition_active_linux_update_recovery, verify_linux_update_recovery,

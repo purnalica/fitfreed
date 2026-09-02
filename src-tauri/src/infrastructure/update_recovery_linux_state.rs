@@ -783,6 +783,133 @@ fn acquire_linux_update_recovery_candidate_lease_with(
     })
 }
 
+pub fn confirm_active_linux_update_recovery(
+    candidate_lease: &LinuxUpdateRecoveryCandidateLease,
+    recovery_root: &Path,
+    library_path: &Path,
+    running_version: &str,
+    running_library_schema_version: u32,
+) -> Result<(), LinuxRecoveryStateError> {
+    let native_identity =
+        query_linux_native_package_identity().map_err(|_| LinuxRecoveryStateError::InvalidState)?;
+    confirm_active_linux_update_recovery_with(
+        &SystemRecoveryPackages,
+        &native_identity,
+        candidate_lease,
+        recovery_root,
+        library_path,
+        running_version,
+        running_library_schema_version,
+    )
+}
+
+fn confirm_active_linux_update_recovery_with(
+    packages: &impl RecoveryPackagePort,
+    native_identity: &LinuxNativePackageIdentity,
+    candidate_lease: &LinuxUpdateRecoveryCandidateLease,
+    recovery_root: &Path,
+    library_path: &Path,
+    running_version: &str,
+    running_library_schema_version: u32,
+) -> Result<(), LinuxRecoveryStateError> {
+    if !library_path.is_absolute()
+        || library_path.file_name().and_then(|name| name.to_str()) != Some("fitfreed.sqlite")
+        || valid_semver(running_version).is_none()
+    {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let library_path = library_path.canonicalize()?;
+    if library_path.parent() != recovery_root.parent() {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_id = candidate_lease.recovery_id();
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, recovery_id)?;
+    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
+    let mut manifest = verify_linux_update_recovery_with(packages, &recovery_root, recovery_id)?;
+    let replacement_process = manifest
+        .replacement_process
+        .as_ref()
+        .ok_or(LinuxRecoveryStateError::InvalidState)?;
+    if manifest.phase != LinuxRecoveryPhaseWire::Launching
+        || manifest.recovery_id != recovery_id
+        || replacement_process.launch_nonce != candidate_lease.launch_nonce()
+        || !native_identity_matches(native_identity, &manifest.target.version)
+    {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    if Path::new(&manifest.source.library_path) != library_path
+        || running_version != manifest.target.version
+        || running_library_schema_version != manifest.target.library_schema_version
+    {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    verify_library_file(
+        &library_path,
+        i64::from(manifest.target.library_schema_version),
+    )?;
+    validate_packaged_update_recovery_transition(
+        manifest.phase.into(),
+        PackagedUpdateRecoveryPhase::Confirmed,
+    )
+    .map_err(|_| LinuxRecoveryStateError::InvalidTransition)?;
+    manifest.phase = LinuxRecoveryPhaseWire::Confirmed;
+    validate_manifest(&manifest)?;
+    write_manifest(&manifest_path, &manifest)
+}
+
+pub fn discard_prepared_linux_update_recovery(
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<(), LinuxRecoveryStateError> {
+    discard_prepared_linux_update_recovery_with(&SystemRecoveryPackages, recovery_root, recovery_id)
+}
+
+fn discard_prepared_linux_update_recovery_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<(), LinuxRecoveryStateError> {
+    if !valid_sha256(recovery_id) {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, false)?;
+    let _outcome_lock = FileLock::acquire(outcome_lock)?;
+    let attempts_directory =
+        canonical_private_directory(&recovery_root.join(ATTEMPTS_DIRECTORY_NAME))?;
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, recovery_id)?;
+    let _watchdog_lock = FileLock::acquire(open_private_lock_file(
+        &attempt_directory,
+        WATCHDOG_LOCK_FILE_NAME,
+        false,
+    )?)?;
+    let _candidate_lock = FileLock::acquire(open_private_lock_file(
+        &attempt_directory,
+        CANDIDATE_LOCK_FILE_NAME,
+        false,
+    )?)?;
+    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    if read_active_recovery_id(&active_path)? != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let manifest = verify_linux_update_recovery_with(packages, &recovery_root, recovery_id)?;
+    if manifest.phase != LinuxRecoveryPhaseWire::Prepared || manifest.recovery_id != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidTransition);
+    }
+
+    fs::remove_file(active_path)?;
+    sync_directory(&recovery_root)?;
+    fs::remove_dir_all(attempt_directory)?;
+    sync_directory(&attempts_directory)?;
+    Ok(())
+}
+
 pub fn restore_active_linux_update_recovery(
     watchdog_lease: &LinuxUpdateRecoveryWatchdogLease,
     restoration: LinuxUpdateRecoveryRestoration<'_>,
@@ -2763,5 +2890,148 @@ mod tests {
             Err(LinuxRecoveryStateError::ActiveAttemptExists)
         ));
         drop(candidate);
+    }
+
+    #[test]
+    fn confirms_only_the_candidate_bound_target_package_and_library() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementInstalled,
+        )
+        .expect("replacement installed");
+        let process = LinuxRecoveryProcessIdentity::for_test(
+            42,
+            "12345678-1234-4123-8123-123456789abc",
+            123_456,
+        );
+        let launch_nonce = "a".repeat(64);
+        record_active_linux_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            LinuxUpdateRecoveryReplacementLaunch {
+                process: &process,
+                launch_nonce: &launch_nonce,
+                confirmation_deadline: "2026-09-02T08:01:00Z",
+            },
+        )
+        .expect("recorded replacement");
+        let candidate = acquire_linux_update_recovery_candidate_lease_with(
+            &packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &launch_nonce,
+            &process,
+            &LinuxNativePackageIdentity::for_test("0.2.0"),
+        )
+        .expect("candidate lease");
+
+        assert!(matches!(
+            confirm_active_linux_update_recovery_with(
+                &packages,
+                &LinuxNativePackageIdentity::for_test("0.0.0"),
+                &candidate,
+                &harness.recovery_root,
+                &harness.library_path,
+                "0.2.0",
+                u32::try_from(SCHEMA_VERSION).expect("current schema"),
+            ),
+            Err(LinuxRecoveryStateError::InvalidState)
+        ));
+        assert!(matches!(
+            confirm_active_linux_update_recovery_with(
+                &packages,
+                &LinuxNativePackageIdentity::for_test("0.2.0"),
+                &candidate,
+                &harness.recovery_root,
+                &harness.library_path,
+                "0.1.0",
+                u32::try_from(SCHEMA_VERSION).expect("current schema"),
+            ),
+            Err(LinuxRecoveryStateError::InvalidInput)
+        ));
+        assert!(matches!(
+            confirm_active_linux_update_recovery_with(
+                &packages,
+                &LinuxNativePackageIdentity::for_test("0.2.0"),
+                &candidate,
+                &harness.recovery_root,
+                &harness.library_path,
+                "0.2.0",
+                u32::try_from(SCHEMA_VERSION).expect("current schema") + 1,
+            ),
+            Err(LinuxRecoveryStateError::InvalidInput)
+        ));
+
+        confirm_active_linux_update_recovery_with(
+            &packages,
+            &LinuxNativePackageIdentity::for_test("0.2.0"),
+            &candidate,
+            &harness.recovery_root,
+            &harness.library_path,
+            "0.2.0",
+            u32::try_from(SCHEMA_VERSION).expect("current schema"),
+        )
+        .expect("confirmed candidate");
+
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root).expect("confirmed phase"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                PackagedUpdateRecoveryPhase::Confirmed,
+            ))
+        );
+    }
+
+    #[test]
+    fn discards_only_a_quiescent_prepared_linux_attempt() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+
+        discard_prepared_linux_update_recovery_with(
+            &packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+        )
+        .expect("discarded prepared recovery");
+
+        assert!(!prepared.attempt_directory().exists());
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root).expect("no active attempt"),
+            None
+        );
+
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("next prepared recovery");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        assert!(matches!(
+            discard_prepared_linux_update_recovery_with(
+                &packages,
+                &harness.recovery_root,
+                prepared.recovery_id(),
+            ),
+            Err(LinuxRecoveryStateError::InvalidTransition)
+        ));
+        assert!(prepared.attempt_directory().exists());
     }
 }
