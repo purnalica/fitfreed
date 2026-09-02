@@ -227,7 +227,8 @@ Directories are created with their first real contract; empty specifications are
 - [Public release manifest version 3](release/release-manifest-v3.md)
 - [Public Linux release manifest version 4](release/release-manifest-v4.md)
 - [Linux package inventory version 1](release/linux-package-inventory-v1.md)
-- [Upgrade matrix version 1](release/upgrade-matrix-v1.md)
+- [Upgrade matrix version 2](release/upgrade-matrix-v2.md)
+- [Upgrade matrix version 1](release/upgrade-matrix-v1.md) — preceding contract
 - [Update channel version 1](release/update-channel-v1.md)
 - [Public stable update channel version 3](release/update-channel-v3.md)
 - [Public stable update channel version 2](release/update-channel-v2.md) — preceding contract

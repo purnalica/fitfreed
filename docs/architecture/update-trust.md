@@ -135,6 +135,8 @@ version 2 remains a closed contract. Configuration version 2 and the host build 
 atomic Pages generator accepts only an independently declared recovery-baseline set, derives every signed predecessor
 field from reopened package bytes, and stages those exact bytes beside the current packages. Production activation
 waits until predecessor discovery, platform recovery adapters, and the release verifier all accept the same evidence.
+The [upgrade matrix version 2](../data-formats/release/upgrade-matrix-v2.md) is the only matrix contract that can declare
+Debian and NSIS application baselines; version 1 remains valid for its closed macOS-only target vocabulary.
 
 Both contracts preserve these invariants:
 

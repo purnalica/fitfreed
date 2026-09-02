@@ -38,6 +38,25 @@ test("accepts distinct application and library support dimensions", () => {
   });
 });
 
+test("admits packaged Linux and Windows baselines only through matrix version 2", () => {
+  const matrix = validMatrix();
+  matrix.schemaVersion = 2;
+  matrix.supportedApplicationBaselines[0].targets = [
+    "darwin-aarch64",
+    "linux-x86_64-deb",
+    "windows-x86_64-nsis",
+  ];
+
+  assert.equal(
+    validateUpgradeMatrix(matrix, expectedRepository).applicationBaselineCount,
+    1,
+  );
+  assert.throws(() => validateUpgradeMatrix({
+    ...matrix,
+    schemaVersion: 1,
+  }, expectedRepository));
+});
+
 test("accepts an empty application list for a first release", () => {
   const matrix = validMatrix();
   matrix.release.version = "0.1.0";

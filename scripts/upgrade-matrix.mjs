@@ -4,11 +4,14 @@ import { fileURLToPath } from "node:url";
 
 import Ajv2020 from "ajv/dist/2020.js";
 
-const schema = JSON.parse(
-  readFileSync(new URL("../schemas/upgrade-matrix-v1.schema.json", import.meta.url), "utf8"),
-);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
-const validateSchema = ajv.compile(schema);
+const validators = new Map([1, 2].map((version) => [
+  version,
+  ajv.compile(JSON.parse(readFileSync(
+    new URL(`../schemas/upgrade-matrix-v${version}.schema.json`, import.meta.url),
+    "utf8",
+  ))),
+]));
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
 
 function parseSemanticVersion(value) {
@@ -66,6 +69,10 @@ function lexicalOrder(left, right) {
 }
 
 export function validateUpgradeMatrix(matrix, repository) {
+  const validateSchema = validators.get(matrix?.schemaVersion);
+  if (!validateSchema) {
+    throw new Error("upgrade matrix schema version is unsupported");
+  }
   if (!validateSchema(matrix)) {
     throw new Error(
       validateSchema.errors

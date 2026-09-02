@@ -6822,6 +6822,65 @@ if (
   throw new Error("stable update envelope schemas accepted another contract version");
 }
 
+const upgradeMatrixPath = "docs/data-formats/release/upgrade-matrix-v1.md";
+const upgradeMatrix = read(upgradeMatrixPath);
+const multiplatformUpgradeMatrixPath =
+  "docs/data-formats/release/upgrade-matrix-v2.md";
+const multiplatformUpgradeMatrix = read(multiplatformUpgradeMatrixPath);
+for (const [documentPath, document, version, target] of [
+  [upgradeMatrixPath, upgradeMatrix, "1", "darwin-aarch64"],
+  [multiplatformUpgradeMatrixPath, multiplatformUpgradeMatrix, "2", "linux-x86_64-deb"],
+]) {
+  for (const field of [
+    "org.fitfreed.upgrade-matrix",
+    "schemaVersion",
+    version,
+    "supportedApplicationBaselines",
+    "version",
+    "targets",
+    "librarySchemaVersions",
+    "supportedLibrarySchemaVersions",
+    target,
+  ]) {
+    requireMention(document, field, documentPath);
+  }
+}
+const upgradeMatrixSchemaPath = "schemas/upgrade-matrix-v1.schema.json";
+const multiplatformUpgradeMatrixSchemaPath = "schemas/upgrade-matrix-v2.schema.json";
+const validateUpgradeMatrix = ajv.compile(JSON.parse(read(upgradeMatrixSchemaPath)));
+const validateMultiplatformUpgradeMatrix = ajv.compile(
+  JSON.parse(read(multiplatformUpgradeMatrixSchemaPath)),
+);
+const syntheticUpgradeMatrix = {
+  format: "org.fitfreed.upgrade-matrix",
+  schemaVersion: 1,
+  release: { version: "0.2.0", librarySchemaVersion: 2 },
+  supportedApplicationBaselines: [{
+    version: "0.1.0",
+    targets: ["darwin-aarch64"],
+    librarySchemaVersions: [1],
+  }],
+  supportedLibrarySchemaVersions: [1, 2],
+};
+const syntheticMultiplatformUpgradeMatrix = structuredClone(syntheticUpgradeMatrix);
+syntheticMultiplatformUpgradeMatrix.schemaVersion = 2;
+syntheticMultiplatformUpgradeMatrix.supportedApplicationBaselines[0].targets.push(
+  "linux-x86_64-deb",
+  "windows-x86_64-nsis",
+);
+if (
+  !validateUpgradeMatrix(syntheticUpgradeMatrix)
+  || !validateMultiplatformUpgradeMatrix(syntheticMultiplatformUpgradeMatrix)
+) {
+  throw new Error("an upgrade matrix schema rejected its own contract");
+}
+if (
+  validateUpgradeMatrix(syntheticMultiplatformUpgradeMatrix)
+  || validateMultiplatformUpgradeMatrix(syntheticUpgradeMatrix)
+) {
+  throw new Error("upgrade matrix schemas accepted another contract version");
+}
+
 const publicUpdateConfigurationPath =
   "docs/data-formats/release/public-update-configuration-v1.md";
 const publicUpdateConfiguration = read(publicUpdateConfigurationPath);
@@ -10633,6 +10692,10 @@ process.stdout.write(
       stableUpdateChannelPayloadSchemaPath,
       recoverableStableUpdateEnvelopeSchemaPath,
       recoverableStableUpdatePayloadSchemaPath,
+    ],
+    upgradeMatrixSchemas: [
+      upgradeMatrixSchemaPath,
+      multiplatformUpgradeMatrixSchemaPath,
     ],
     publicUpdateConfigurationSchemas: [
       publicUpdateConfigurationSchemaPath,
