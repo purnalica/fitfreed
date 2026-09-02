@@ -54,6 +54,7 @@ fn main() -> ExitCode {
                 .to_owned(),
             package_signature: "synthetic-acceptance-signature".to_owned(),
         },
+        predecessor_artifact: None,
     };
     let recovery_root = directory.path().join("update-recovery");
     let prepared_at = Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true);

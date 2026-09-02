@@ -283,8 +283,9 @@ pub use update::{
     AuthenticatedUpdateSnapshot, LocalizedUpdateText, ManualUpdateReason, PersistedUpdateState,
     PostponedUpdate, TrustedSnapshotRecord, UpdateArtifact, UpdateChannelPort, UpdateChannelRead,
     UpdateCheckContext, UpdateCheckOutcome, UpdateCheckStatus, UpdateCheckTrigger, UpdateError,
-    UpdateInstallationAuthorization, UpdateRelease, UpdateReleaseSummary, UpdateStatePort,
-    UpdateTrustFailure, UpdateWithdrawal, UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    UpdateInstallationAuthorization, UpdateRecoveryArtifact, UpdateRelease, UpdateReleaseSummary,
+    UpdateStatePort, UpdateTrustFailure, UpdateWithdrawal, UpdateWithdrawalReason,
+    UpdateWithdrawalSummary,
 };
 mod update_recovery;
 pub use update_recovery::{

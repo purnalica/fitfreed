@@ -3,10 +3,13 @@ use std::collections::BTreeMap;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use fitfreed_application::{
     AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact, UpdateChannelRead,
-    UpdateRelease, UpdateTrustFailure, UpdateWithdrawal, UpdateWithdrawalReason,
+    UpdateRecoveryArtifact, UpdateRelease, UpdateTrustFailure, UpdateWithdrawal,
+    UpdateWithdrawalReason,
 };
 use minisign_verify::{PublicKey, Signature};
+use semver::Version;
 use serde::Deserialize;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use url::Url;
@@ -27,6 +30,7 @@ pub struct SignedUpdateChannelVerifier {
 enum UpdateChannelContract {
     PrivateAlphaV1,
     StableV2,
+    StableV3,
 }
 
 impl UpdateChannelContract {
@@ -34,13 +38,14 @@ impl UpdateChannelContract {
         match self {
             Self::PrivateAlphaV1 => 1,
             Self::StableV2 => 2,
+            Self::StableV3 => 3,
         }
     }
 
     fn channel(self) -> &'static str {
         match self {
             Self::PrivateAlphaV1 => "private-alpha",
-            Self::StableV2 => "stable",
+            Self::StableV2 | Self::StableV3 => "stable",
         }
     }
 }
@@ -73,6 +78,17 @@ impl SignedUpdateChannelVerifier {
             trusted_public_keys,
             current_target,
             UpdateChannelContract::StableV2,
+        )
+    }
+
+    pub fn try_new_for_recoverable_stable(
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+    ) -> Result<Self, UpdateVerifierConfigurationError> {
+        Self::try_new_for_contract(
+            trusted_public_keys,
+            current_target,
+            UpdateChannelContract::StableV3,
         )
     }
 
@@ -149,9 +165,15 @@ impl SignedUpdateChannelVerifier {
         )?;
 
         let payload_sha256 = hex_digest(&payload);
-        let payload: UpdatePayload =
+        let payload_value: Value =
             serde_json::from_slice(&payload).map_err(|_| UpdateTrustFailure::InvalidPayload)?;
-        validate_payload_identity(&payload, self.contract)?;
+        let has_recovery_artifacts = payload_value
+            .get("release")
+            .and_then(Value::as_object)
+            .is_some_and(|release| release.contains_key("recoveryArtifacts"));
+        let payload: UpdatePayload = serde_json::from_value(payload_value)
+            .map_err(|_| UpdateTrustFailure::InvalidPayload)?;
+        validate_payload_identity(&payload, self.contract, has_recovery_artifacts)?;
         validate_localized_text(&payload.release.release_notes)?;
         if payload.withdrawn_versions.len() > 256 {
             return Err(UpdateTrustFailure::InvalidPayload);
@@ -159,13 +181,32 @@ impl SignedUpdateChannelVerifier {
         for withdrawal in &payload.withdrawn_versions {
             validate_localized_text(&withdrawal.guidance)?;
         }
-        validate_platforms(&payload.release.platforms)?;
+        validate_platforms(&payload.release.platforms, self.contract)?;
+        validate_recovery_artifacts(&payload.release, self.contract)?;
         validate_mirrors(&envelope, &payload)?;
         let artifact = payload
             .release
             .platforms
             .get(&self.current_target)
             .ok_or(UpdateTrustFailure::MissingTarget)?;
+
+        let recovery_artifacts = payload
+            .release
+            .recovery_artifacts
+            .iter()
+            .filter(|recovery| recovery.target == self.current_target)
+            .map(|recovery| UpdateRecoveryArtifact {
+                source_version: recovery.version.clone(),
+                source_library_schema_versions: recovery.library_schema_versions.clone(),
+                artifact: UpdateArtifact {
+                    target: recovery.target.clone(),
+                    package_url: recovery.url.clone(),
+                    expected_size_bytes: recovery.size,
+                    expected_sha256: recovery.sha256.clone(),
+                    package_signature: recovery.tauri_signature.clone(),
+                },
+            })
+            .collect();
 
         Ok(AuthenticatedUpdateSnapshot {
             sequence: payload.sequence,
@@ -196,6 +237,7 @@ impl SignedUpdateChannelVerifier {
                     expected_sha256: artifact.sha256.clone(),
                     package_signature: artifact.tauri_signature.clone(),
                 },
+                recovery_artifacts,
             },
             withdrawn_versions: payload
                 .withdrawn_versions
@@ -234,6 +276,7 @@ fn verify_minisign(
 fn validate_payload_identity(
     payload: &UpdatePayload,
     contract: UpdateChannelContract,
+    has_recovery_artifacts: bool,
 ) -> Result<(), UpdateTrustFailure> {
     if payload.format != "org.fitfreed.update-channel"
         || payload.schema_version != contract.schema_version()
@@ -246,11 +289,15 @@ fn validate_payload_identity(
     if payload.sequence == 0 || payload.sequence > MAX_SAFE_JSON_INTEGER {
         return Err(UpdateTrustFailure::InvalidPayload);
     }
+    if matches!(contract, UpdateChannelContract::StableV3) != has_recovery_artifacts {
+        return Err(UpdateTrustFailure::InvalidPayload);
+    }
     Ok(())
 }
 
 fn validate_platforms(
     platforms: &BTreeMap<String, SignedPlatformArtifact>,
+    contract: UpdateChannelContract,
 ) -> Result<(), UpdateTrustFailure> {
     if platforms.is_empty() || platforms.len() > 16 {
         return Err(UpdateTrustFailure::InvalidPayload);
@@ -262,11 +309,72 @@ fn validate_platforms(
             || !valid_sha256(&artifact.sha256)
             || artifact.url.len() > 2_048
             || !valid_https_url(&artifact.url)
+            || (matches!(contract, UpdateChannelContract::StableV3)
+                && Url::parse(&artifact.url).is_ok_and(|url| url.query().is_some()))
             || !(16..=16_384).contains(&artifact.tauri_signature.len())
             || decode_minisign_signature(&artifact.tauri_signature).is_err()
         {
             return Err(UpdateTrustFailure::InvalidPayload);
         }
+    }
+    Ok(())
+}
+
+fn validate_recovery_artifacts(
+    release: &SignedRelease,
+    contract: UpdateChannelContract,
+) -> Result<(), UpdateTrustFailure> {
+    if !matches!(contract, UpdateChannelContract::StableV3) {
+        return if release.recovery_artifacts.is_empty() {
+            Ok(())
+        } else {
+            Err(UpdateTrustFailure::InvalidPayload)
+        };
+    }
+    if release.recovery_artifacts.len() > 256 {
+        return Err(UpdateTrustFailure::InvalidPayload);
+    }
+
+    let release_version =
+        Version::parse(&release.version).map_err(|_| UpdateTrustFailure::InvalidPayload)?;
+    let mut previous: Option<(Version, &str)> = None;
+    for recovery in &release.recovery_artifacts {
+        let version =
+            Version::parse(&recovery.version).map_err(|_| UpdateTrustFailure::InvalidPayload)?;
+        let expected_package_kind = match recovery.target.as_str() {
+            "linux-x86_64-deb" => SignedPackageKind::Deb,
+            "windows-x86_64-nsis" => SignedPackageKind::Nsis,
+            _ => return Err(UpdateTrustFailure::InvalidPayload),
+        };
+        let ordered_after_previous = previous.as_ref().is_none_or(|(previous_version, target)| {
+            version > *previous_version
+                || (version == *previous_version && recovery.target.as_str() > *target)
+        });
+        if !ordered_after_previous
+            || version >= release_version
+            || recovery.package_kind != expected_package_kind
+            || !release.platforms.contains_key(&recovery.target)
+            || recovery.library_schema_versions.is_empty()
+            || recovery.library_schema_versions.len() > 1_024
+            || recovery
+                .library_schema_versions
+                .windows(2)
+                .any(|versions| versions[0] >= versions[1])
+            || recovery.library_schema_versions.iter().any(|version| {
+                *version < release.library_schema.minimum_readable_version
+                    || *version > release.library_schema.maximum_readable_version
+            })
+            || recovery.size == 0
+            || recovery.size > MAX_UPDATE_PACKAGE_BYTES
+            || !valid_sha256(&recovery.sha256)
+            || recovery.url.len() > 2_048
+            || !valid_immutable_https_url(&recovery.url)
+            || !(16..=16_384).contains(&recovery.tauri_signature.len())
+            || decode_minisign_signature(&recovery.tauri_signature).is_err()
+        {
+            return Err(UpdateTrustFailure::InvalidPayload);
+        }
+        previous = Some((version, recovery.target.as_str()));
     }
     Ok(())
 }
@@ -365,6 +473,10 @@ fn valid_https_url(value: &str) -> bool {
     })
 }
 
+fn valid_immutable_https_url(value: &str) -> bool {
+    valid_https_url(value) && Url::parse(value).is_ok_and(|url| url.query().is_none())
+}
+
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -447,6 +559,8 @@ struct SignedRelease {
     library_schema: SignedLibrarySchema,
     release_notes: BTreeMap<String, String>,
     platforms: BTreeMap<String, SignedPlatformArtifact>,
+    #[serde(default)]
+    recovery_artifacts: Vec<SignedRecoveryArtifact>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -464,6 +578,26 @@ struct SignedPlatformArtifact {
     size: u64,
     sha256: String,
     tauri_signature: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SignedRecoveryArtifact {
+    version: String,
+    target: String,
+    package_kind: SignedPackageKind,
+    library_schema_versions: Vec<u32>,
+    url: String,
+    size: u64,
+    sha256: String,
+    tauri_signature: String,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum SignedPackageKind {
+    Deb,
+    Nsis,
 }
 
 #[derive(Debug, Deserialize)]
@@ -527,6 +661,29 @@ mod tests {
             Self::for_contract(2, "stable")
         }
 
+        fn recoverable_stable() -> Self {
+            let mut feed = Self::for_contract(3, "stable");
+            let signature =
+                feed.payload["release"]["platforms"]["darwin-aarch64"]["tauriSignature"].clone();
+            feed.payload["release"]["platforms"]["linux-x86_64-deb"] = json!({
+                "url": "https://updates.invalid/FitFreed_0.2.0_amd64.deb",
+                "size": 26,
+                "sha256": "1123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "tauriSignature": signature.clone()
+            });
+            feed.payload["release"]["recoveryArtifacts"] = json!([{
+                "version": "0.1.0",
+                "target": "linux-x86_64-deb",
+                "packageKind": "deb",
+                "librarySchemaVersions": [7, 8],
+                "url": "https://updates.invalid/FitFreed_0.1.0_amd64.deb",
+                "size": 25,
+                "sha256": "2123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "tauriSignature": signature
+            }]);
+            feed
+        }
+
         fn for_contract(schema_version: u32, channel: &str) -> Self {
             let key_pair = KeyPair::generate_unencrypted_keypair().expect("synthetic key pair");
             let public_key = key_pair
@@ -582,6 +739,10 @@ mod tests {
                     "replacementVersion": "0.2.0"
                 }]
             });
+            let mut payload = payload;
+            if schema_version == 3 {
+                payload["release"]["recoveryArtifacts"] = json!([]);
+            }
             Self {
                 key_pair,
                 public_key_base64: BASE64.encode(public_key),
@@ -614,6 +775,17 @@ mod tests {
             )
             .expect("synthetic stable verifier")
         }
+
+        fn recoverable_stable_verifier(&self, target: &str) -> SignedUpdateChannelVerifier {
+            SignedUpdateChannelVerifier::try_new_for_recoverable_stable(
+                BTreeMap::from([(
+                    "synthetic-test-key".to_owned(),
+                    self.public_key_base64.clone(),
+                )]),
+                target.to_owned(),
+            )
+            .expect("synthetic recoverable stable verifier")
+        }
     }
 
     fn signed_response(key_pair: &KeyPair, payload: &Value) -> Vec<u8> {
@@ -627,15 +799,23 @@ mod tests {
         )
         .expect("synthetic metadata signature")
         .into_string();
-        let platform = &payload["release"]["platforms"]["darwin-aarch64"];
+        let platforms = payload["release"]["platforms"]
+            .as_object()
+            .expect("synthetic platforms")
+            .iter()
+            .map(|(target, platform)| {
+                (
+                    target.clone(),
+                    json!({
+                        "url": platform["url"],
+                        "signature": platform["tauriSignature"]
+                    }),
+                )
+            })
+            .collect::<serde_json::Map<_, _>>();
         serde_json::to_vec(&json!({
             "version": payload["release"]["version"],
-            "platforms": {
-                "darwin-aarch64": {
-                    "url": platform["url"],
-                    "signature": platform["tauriSignature"]
-                }
-            },
+            "platforms": platforms,
             "fitfreed": {
                 "format": "org.fitfreed.update-envelope",
                 "schemaVersion": payload["schemaVersion"],
@@ -688,6 +868,7 @@ mod tests {
     fn selects_the_stable_v2_contract_without_accepting_cross_channel_metadata() {
         let private_alpha = SyntheticFeed::new();
         let stable = SyntheticFeed::stable();
+        let recoverable_stable = SyntheticFeed::recoverable_stable();
 
         assert!(matches!(
             stable.stable_verifier().verify_response(&stable.response()),
@@ -703,6 +884,79 @@ mod tests {
             private_alpha.verifier().verify_response(&stable.response()),
             UpdateChannelRead::Untrusted(UpdateTrustFailure::InvalidEnvelope)
         );
+        assert_eq!(
+            recoverable_stable
+                .recoverable_stable_verifier("darwin-aarch64")
+                .verify_response(&stable.response()),
+            UpdateChannelRead::Untrusted(UpdateTrustFailure::InvalidEnvelope)
+        );
+        let mut v2_with_v3_field = stable.payload.clone();
+        v2_with_v3_field["release"]["recoveryArtifacts"] = json!([]);
+        assert_eq!(
+            stable
+                .stable_verifier()
+                .verify_response(&signed_response(&stable.key_pair, &v2_with_v3_field)),
+            UpdateChannelRead::Untrusted(UpdateTrustFailure::InvalidPayload)
+        );
+    }
+
+    #[test]
+    fn authenticates_only_exact_recoverable_stable_predecessor_evidence() {
+        let feed = SyntheticFeed::recoverable_stable();
+        let result = feed
+            .recoverable_stable_verifier("linux-x86_64-deb")
+            .verify_response(&feed.response());
+
+        let UpdateChannelRead::Authenticated(snapshot) = result else {
+            panic!("expected authenticated recoverable update snapshot")
+        };
+        assert_eq!(snapshot.release.recovery_artifacts.len(), 1);
+        let recovery = &snapshot.release.recovery_artifacts[0];
+        assert_eq!(recovery.source_version, "0.1.0");
+        assert_eq!(recovery.source_library_schema_versions, vec![7, 8]);
+        assert_eq!(recovery.artifact.target, "linux-x86_64-deb");
+        assert_eq!(
+            recovery.artifact.package_url,
+            "https://updates.invalid/FitFreed_0.1.0_amd64.deb"
+        );
+
+        for mutation in [
+            "missing",
+            "wrong-kind",
+            "mutable-url",
+            "mutable-current-url",
+            "non-predecessor",
+        ] {
+            let mut payload = feed.payload.clone();
+            match mutation {
+                "missing" => {
+                    payload["release"]
+                        .as_object_mut()
+                        .expect("release")
+                        .remove("recoveryArtifacts");
+                }
+                "wrong-kind" => {
+                    payload["release"]["recoveryArtifacts"][0]["packageKind"] = json!("nsis");
+                }
+                "mutable-url" => {
+                    payload["release"]["recoveryArtifacts"][0]["url"] =
+                        json!("https://updates.invalid/FitFreed_0.1.0_amd64.deb?mutable=true");
+                }
+                "mutable-current-url" => {
+                    payload["release"]["platforms"]["linux-x86_64-deb"]["url"] =
+                        json!("https://updates.invalid/FitFreed_0.2.0_amd64.deb?mutable=true");
+                }
+                "non-predecessor" => {
+                    payload["release"]["recoveryArtifacts"][0]["version"] = json!("0.2.0");
+                }
+                _ => unreachable!(),
+            }
+            assert_eq!(
+                feed.recoverable_stable_verifier("linux-x86_64-deb")
+                    .verify_response(&signed_response(&feed.key_pair, &payload)),
+                UpdateChannelRead::Untrusted(UpdateTrustFailure::InvalidPayload)
+            );
+        }
     }
 
     #[test]

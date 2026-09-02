@@ -238,6 +238,7 @@ mod tests {
                         expected_sha256: "2".repeat(64),
                         package_signature: "synthetic-signature".to_owned(),
                     },
+                    predecessor_artifact: None,
                 },
                 events,
                 fail,

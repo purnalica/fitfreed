@@ -47,6 +47,13 @@ pub struct UpdateArtifact {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateRecoveryArtifact {
+    pub source_version: String,
+    pub source_library_schema_versions: Vec<u32>,
+    pub artifact: UpdateArtifact,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateRelease {
     pub version: String,
     pub published_at: String,
@@ -56,6 +63,7 @@ pub struct UpdateRelease {
     pub target_library_schema_version: u32,
     pub release_notes: LocalizedUpdateText,
     pub artifact: UpdateArtifact,
+    pub recovery_artifacts: Vec<UpdateRecoveryArtifact>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -213,6 +221,7 @@ pub struct UpdateInstallationAuthorization {
     pub signing_key_id: String,
     pub target_library_schema_version: u32,
     pub artifact: UpdateArtifact,
+    pub predecessor_artifact: Option<UpdateArtifact>,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -443,6 +452,30 @@ fn evaluate_snapshot(
         return Ok(outcome);
     }
 
+    let predecessor_artifact = snapshot
+        .release
+        .recovery_artifacts
+        .iter()
+        .find(|recovery| {
+            recovery.source_version == context.installed_version
+                && recovery.artifact.target == snapshot.release.artifact.target
+                && recovery
+                    .source_library_schema_versions
+                    .contains(&context.library_schema_version)
+        })
+        .map(|recovery| recovery.artifact.clone());
+    if native_package_recovery_required(&snapshot.release.artifact.target)
+        && predecessor_artifact.is_none()
+    {
+        outcome.status = if installed_is_withdrawn {
+            UpdateCheckStatus::WithdrawnInstalled
+        } else {
+            UpdateCheckStatus::ManualRecoveryRequired
+        };
+        outcome.manual_recovery_reason = Some(ManualUpdateReason::NoSafeReplacement);
+        return Ok(outcome);
+    }
+
     outcome.update_action_available = true;
     outcome.installation_authorization = Some(UpdateInstallationAuthorization {
         version: snapshot.release.version.clone(),
@@ -451,6 +484,7 @@ fn evaluate_snapshot(
         signing_key_id: snapshot.signing_key_id.clone(),
         target_library_schema_version: snapshot.release.target_library_schema_version,
         artifact: snapshot.release.artifact.clone(),
+        predecessor_artifact,
     });
 
     if installed_is_withdrawn {
@@ -521,6 +555,32 @@ fn validate_snapshot(
         || !valid_update_artifact(&snapshot.release.artifact)
     {
         return Err(UpdateTrustFailure::InvalidPayload);
+    }
+
+    let mut recovery_source_versions = BTreeSet::new();
+    for recovery in &snapshot.release.recovery_artifacts {
+        let source_version = Version::parse(&recovery.source_version)
+            .map_err(|_| UpdateTrustFailure::InvalidPayload)?;
+        if source_version >= release_version
+            || !recovery_source_versions.insert(source_version)
+            || recovery.artifact.target != snapshot.release.artifact.target
+            || !native_package_recovery_required(&recovery.artifact.target)
+            || !valid_update_artifact(&recovery.artifact)
+            || recovery.source_library_schema_versions.is_empty()
+            || recovery
+                .source_library_schema_versions
+                .windows(2)
+                .any(|versions| versions[0] >= versions[1])
+            || recovery
+                .source_library_schema_versions
+                .iter()
+                .any(|version| {
+                    *version < snapshot.release.minimum_readable_library_schema_version
+                        || *version > snapshot.release.maximum_readable_library_schema_version
+                })
+        {
+            return Err(UpdateTrustFailure::InvalidPayload);
+        }
     }
 
     let mut withdrawn_versions = BTreeSet::new();
@@ -656,6 +716,10 @@ fn valid_update_target(value: &str) -> bool {
             if matches!(*os, "darwin" | "linux" | "windows")
                 && matches!(*architecture, "aarch64" | "x86_64" | "i686" | "armv7")
                 && matches!(*installer, "app" | "appimage" | "deb" | "rpm" | "msi" | "nsis"))
+}
+
+fn native_package_recovery_required(target: &str) -> bool {
+    matches!(target, "linux-x86_64-deb" | "windows-x86_64-nsis")
 }
 
 fn valid_locale_code(value: &str) -> bool {

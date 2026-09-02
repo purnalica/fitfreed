@@ -27,7 +27,16 @@ Dependency direction remains inward: neither the domain nor application crate im
 
 The HTTPS adapter accepts only one static URL with no credentials, query, or fragment, uses platform-verified rustls roots, honors the system proxy, disables TLS key logging and redirects, and stores no cookies. Connection and complete-request limits are 5 and 10 seconds. Both declared and streamed response size are bounded before the exact bytes enter the verifier. Network, timeout, read, non-success-status, and redirect failures map to the provider-neutral `offline` outcome; an oversize response maps to `untrusted`. Its `unconfigured` construction performs no network access and is the ordinary-build path; configured construction rejects absent or malformed trust before a request.
 
-The verifier selects one complete contract before reading a response. Private-alpha trust accepts only envelope and payload version 1 with channel `private-alpha`. Public trust accepts only envelope and payload version 2 with channel `stable`. A schema selector or channel from the other contract fails before policy evaluation. The public endpoint and up to eight active public keys come from the versioned [public update configuration](../data-formats/release/public-update-configuration-v1.md), then become explicit compile-time inputs only for a public candidate build. All three compile-time values are absent in an ordinary build; a partial, malformed, unsupported, or mixed instrumented/public configuration fails closed.
+The verifier selects one complete contract before reading a response. Private-alpha trust accepts only envelope and
+payload version 1 with channel `private-alpha`. Public trust accepts either the closed stable version 2 contract or the
+recovery-capable stable version 3 contract, according to one explicit build selector; neither verifier accepts the
+other contract's schema or fields. Version 3 additionally validates the complete ordered predecessor set before
+selecting only the current target's evidence for the application layer. Its current and predecessor URLs are immutable
+credential-free HTTPS locations without a query or fragment. The public endpoint and up to eight active public keys
+come from the versioned public update configuration, then become explicit compile-time inputs only for a public
+candidate build. The checked-in version 1 configuration still selects stable version 2 until its versioned successor
+and every release producer and verifier move together. All three compile-time values are absent in an ordinary build;
+a partial, malformed, unsupported, or mixed instrumented/public configuration fails closed.
 
 The Tauri host supplies the compiled application version, current SQLite schema version, persisted locale, UTC timestamp, and fixed manual or launch trigger. React cannot submit or override those policy inputs. Network and SQLite work runs outside the UI thread. The host returns only closed camel-case DTOs and stable error codes; endpoint URLs, response bodies, signing material, package paths, and database errors never cross the command boundary. The application result retains exact current-target package expectations and the authenticated signing-key identifier only in a transient authorization for native installation; the presentation mapper deliberately omits that authorization. A launch check runs only after locale initialization. A successfully persisted locale change causes a new launch-style evaluation so authenticated release text changes language with the interface. A candidate process retains its validated recovery identifier in host state; React emits only a no-argument readiness signal after locale startup. The host serializes the claim and derives the current executable, compiled version and schema, library path, and recovery root independently before confirmation.
 
@@ -47,7 +56,10 @@ native installation state beyond a copied application directory. Their next reco
 an authenticated predecessor installer, a minimum complete runnable predecessor image, the matching library backup,
 and the candidate authorization before replacement begins.
 
-The application layer retains the same update authorization, lifecycle policy, and provider-neutral outcomes. An
+The application layer retains the same lifecycle policy and provider-neutral outcomes. Its authorization now carries
+the authenticated predecessor package selected by exact installed version, native package target, and current library
+schema. A Debian or NSIS update without that exact predecessor is `manual-recovery-required` and exposes no
+installation action; macOS continues to preserve its running application locally and requires no predecessor entry. An
 infrastructure installation port owns target and package identity, installed destination derivation, predecessor
 material, package-state validation, native rollback, runnable fallback, filesystem durability, exclusive leases,
 process creation evidence, process control, and launch. Linux and Windows adapters must never infer authority from a
@@ -115,9 +127,12 @@ identity. A failed Linux native rollback remains a non-terminal condition with r
 retry path; launching the runnable predecessor does not masquerade as restored native installation.
 
 The recovery-capable [stable update channel version 3](../data-formats/release/update-channel-v3.md) authenticates the
-exact predecessor package for every declared Debian or NSIS application baseline. Stable version 2 remains a closed
-contract; production selection moves to version 3 only after its generator, consumers, platform recovery adapters, and
-release verifier all accept the same evidence.
+exact predecessor package for every declared Debian or NSIS application baseline. The Rust consumer rejects absent,
+unordered, cross-target, wrong-package-kind, mutable-URL, incompatible-schema, non-predecessor, malformed-signature,
+and contract-crossing evidence before policy evaluation. The host maps supported packaged targets exactly as
+`linux-x86_64-deb` and `windows-x86_64-nsis`; unsupported platform and architecture combinations fail closed. Stable
+version 2 remains a closed contract; production selection moves to version 3 only after its public configuration,
+generator, platform recovery adapters, and release verifier all accept the same evidence.
 
 Both contracts preserve these invariants:
 

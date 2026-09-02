@@ -1955,16 +1955,20 @@ fn public_update_channel_from_build_configuration(
     if configured_values == 0 {
         return Ok(None);
     }
-    if configured_values != values.len() || contract != Some("stable-v2") {
+    if configured_values != values.len() {
         return Err(());
     }
     let trusted_public_keys: BTreeMap<String, String> =
         serde_json::from_str(trust.ok_or(())?).map_err(|_| ())?;
-    HttpsUpdateChannel::configured_stable(
-        endpoint.ok_or(())?,
-        trusted_public_keys,
-        current_update_target().map_err(|_| ())?,
-    )
+    let endpoint = endpoint.ok_or(())?;
+    let target = current_update_target().map_err(|_| ())?;
+    match contract.ok_or(())? {
+        "stable-v2" => HttpsUpdateChannel::configured_stable(endpoint, trusted_public_keys, target),
+        "stable-v3" => {
+            HttpsUpdateChannel::configured_recoverable_stable(endpoint, trusted_public_keys, target)
+        }
+        _ => return Err(()),
+    }
     .map(Some)
     .map_err(|_| ())
 }
@@ -2009,6 +2013,12 @@ fn instrumented_update_channel_from_environment() -> Result<Option<HttpsUpdateCh
             root_certificate,
         ),
         "stable-v2" => HttpsUpdateChannel::configured_stable_for_instrumented_e2e(
+            &endpoint,
+            trust,
+            target,
+            root_certificate,
+        ),
+        "stable-v3" => HttpsUpdateChannel::configured_recoverable_stable_for_instrumented_e2e(
             &endpoint,
             trust,
             target,
@@ -2494,6 +2504,13 @@ mod tests {
             Some(&trust),
         )
         .expect("complete public configuration")
+        .is_some());
+        assert!(public_update_channel_from_build_configuration(
+            Some("stable-v3"),
+            Some("https://fitfreed.org/updates/stable.json"),
+            Some(&trust),
+        )
+        .expect("complete recoverable public configuration")
         .is_some());
 
         for incomplete in [
@@ -2990,6 +3007,7 @@ mod tests {
                             .to_owned(),
                     package_signature: "synthetic-package-signature".to_owned(),
                 },
+                recovery_artifacts: Vec::new(),
             },
             withdrawn_versions: Vec::new(),
         }

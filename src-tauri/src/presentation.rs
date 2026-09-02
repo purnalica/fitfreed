@@ -8275,6 +8275,7 @@ mod tests {
                             .to_owned(),
                     package_signature: "synthetic-package-signature".to_owned(),
                 },
+                predecessor_artifact: None,
             }),
         };
 

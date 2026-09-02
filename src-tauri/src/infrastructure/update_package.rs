@@ -268,6 +268,7 @@ mod tests {
                     .collect(),
                 package_signature: "synthetic-package-signature".to_owned(),
             },
+            predecessor_artifact: None,
         }
     }
 

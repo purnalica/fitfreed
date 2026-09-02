@@ -98,6 +98,24 @@ fn release(version: &str) -> UpdateRelease {
                 .to_owned(),
             package_signature: "synthetic-package-signature".to_owned(),
         },
+        recovery_artifacts: Vec::new(),
+    }
+}
+
+fn linux_recovery_artifact(
+    version: &str,
+    library_schema_versions: Vec<u32>,
+) -> UpdateRecoveryArtifact {
+    UpdateRecoveryArtifact {
+        source_version: version.to_owned(),
+        source_library_schema_versions: library_schema_versions,
+        artifact: UpdateArtifact {
+            target: "linux-x86_64-deb".to_owned(),
+            package_url: format!("https://updates.invalid/FitFreed_{version}_amd64.deb"),
+            expected_size_bytes: 1024,
+            expected_sha256: "a".repeat(64),
+            package_signature: "synthetic-predecessor-signature".to_owned(),
+        },
     }
 }
 
@@ -164,6 +182,7 @@ fn authorizes_only_the_exact_fresh_candidate_and_preserves_its_package_expectati
     assert_eq!(authorization.target_library_schema_version, 9);
     assert_eq!(authorization.artifact.target, "darwin-aarch64");
     assert_eq!(authorization.artifact.expected_size_bytes, 26);
+    assert_eq!(authorization.predecessor_artifact, None);
     assert_eq!(
         authorization.artifact.expected_sha256,
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -176,6 +195,63 @@ fn authorizes_only_the_exact_fresh_candidate_and_preserves_its_package_expectati
             .as_ref()
             .map(|trusted| trusted.sequence),
         Some(17)
+    );
+}
+
+#[test]
+fn requires_an_exact_authenticated_predecessor_for_native_package_targets() {
+    let mut unavailable = snapshot(17, "0.2.0");
+    unavailable.release.artifact.target = "linux-x86_64-deb".to_owned();
+    unavailable.release.artifact.package_url =
+        "https://updates.invalid/FitFreed_0.2.0_amd64.deb".to_owned();
+    let state = ControlledState::new(PersistedUpdateState::default());
+
+    let outcome = check_for_updates(
+        &channel(authenticated(unavailable.clone())),
+        &state,
+        context(LocalePreference::EnUs),
+    )
+    .expect("missing predecessor outcome");
+
+    assert_eq!(outcome.status, UpdateCheckStatus::ManualRecoveryRequired);
+    assert_eq!(
+        outcome.manual_recovery_reason,
+        Some(ManualUpdateReason::NoSafeReplacement)
+    );
+    assert!(!outcome.update_action_available);
+    assert!(outcome.installation_authorization.is_none());
+
+    unavailable.release.recovery_artifacts = vec![linux_recovery_artifact("0.1.0", vec![7])];
+    let wrong_schema = check_for_updates(
+        &channel(authenticated(unavailable.clone())),
+        &ControlledState::new(PersistedUpdateState::default()),
+        context(LocalePreference::EnUs),
+    )
+    .expect("unsupported predecessor schema outcome");
+    assert_eq!(
+        wrong_schema.status,
+        UpdateCheckStatus::ManualRecoveryRequired
+    );
+    assert!(!wrong_schema.update_action_available);
+
+    unavailable.release.recovery_artifacts = vec![linux_recovery_artifact("0.1.0", vec![8])];
+    let available = check_for_updates(
+        &channel(authenticated(unavailable)),
+        &ControlledState::new(PersistedUpdateState::default()),
+        context(LocalePreference::EnUs),
+    )
+    .expect("authenticated predecessor outcome");
+    let authorization = available
+        .installation_authorization
+        .expect("native installation authorization");
+    assert_eq!(available.status, UpdateCheckStatus::Available);
+    assert!(available.update_action_available);
+    assert_eq!(
+        authorization
+            .predecessor_artifact
+            .expect("predecessor artifact")
+            .package_url,
+        "https://updates.invalid/FitFreed_0.1.0_amd64.deb"
     );
 }
 
@@ -480,6 +556,23 @@ fn rejects_invalid_signed_policy_before_advancing_replay_state() {
         {
             let mut value = snapshot(17, "0.2.0");
             value.release.target_library_schema_version = 7;
+            (value, UpdateTrustFailure::InvalidPayload)
+        },
+        {
+            let mut value = snapshot(17, "0.2.0");
+            value.release.artifact.target = "linux-x86_64-deb".to_owned();
+            value.release.recovery_artifacts = vec![linux_recovery_artifact("0.2.0", vec![8])];
+            (value, UpdateTrustFailure::InvalidPayload)
+        },
+        {
+            let mut value = snapshot(17, "0.2.0");
+            value.release.artifact.target = "linux-x86_64-deb".to_owned();
+            value.release.recovery_artifacts = vec![linux_recovery_artifact("0.1.0", vec![8, 7])];
+            (value, UpdateTrustFailure::InvalidPayload)
+        },
+        {
+            let mut value = snapshot(17, "0.2.0");
+            value.release.recovery_artifacts = vec![linux_recovery_artifact("0.1.0", vec![8])];
             (value, UpdateTrustFailure::InvalidPayload)
         },
         {

@@ -364,6 +364,7 @@ mod tests {
                             .to_owned(),
                     package_signature: "synthetic-package-signature".to_owned(),
                 },
+                recovery_artifacts: Vec::new(),
             },
             withdrawn_versions: Vec::new(),
         }))

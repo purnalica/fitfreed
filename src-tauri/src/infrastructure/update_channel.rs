@@ -75,6 +75,26 @@ impl HttpsUpdateChannel {
         ))
     }
 
+    pub fn configured_recoverable_stable(
+        endpoint: &str,
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+    ) -> Result<Self, UpdateChannelConfigurationError> {
+        let endpoint = parse_static_https_endpoint(endpoint)?;
+        let verifier = SignedUpdateChannelVerifier::try_new_for_recoverable_stable(
+            trusted_public_keys,
+            current_target,
+        )
+        .map_err(map_verifier_configuration_error)?;
+        let transport = ReqwestUpdateTransport::new(None)?;
+        Ok(Self::from_configured(
+            endpoint,
+            verifier,
+            Box::new(transport),
+            None,
+        ))
+    }
+
     #[cfg(feature = "e2e")]
     pub fn configured_for_instrumented_e2e(
         endpoint: &str,
@@ -104,6 +124,28 @@ impl HttpsUpdateChannel {
         let verifier =
             SignedUpdateChannelVerifier::try_new_for_stable(trusted_public_keys, current_target)
                 .map_err(map_verifier_configuration_error)?;
+        let transport = ReqwestUpdateTransport::new(Some(&additional_root_certificate))?;
+        Ok(Self::from_configured(
+            endpoint,
+            verifier,
+            Box::new(transport),
+            Some(additional_root_certificate),
+        ))
+    }
+
+    #[cfg(feature = "e2e")]
+    pub fn configured_recoverable_stable_for_instrumented_e2e(
+        endpoint: &str,
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+        additional_root_certificate: Vec<u8>,
+    ) -> Result<Self, UpdateChannelConfigurationError> {
+        let endpoint = parse_static_https_endpoint(endpoint)?;
+        let verifier = SignedUpdateChannelVerifier::try_new_for_recoverable_stable(
+            trusted_public_keys,
+            current_target,
+        )
+        .map_err(map_verifier_configuration_error)?;
         let transport = ReqwestUpdateTransport::new(Some(&additional_root_certificate))?;
         Ok(Self::from_configured(
             endpoint,
@@ -174,20 +216,20 @@ impl UpdateChannelPort for HttpsUpdateChannel {
 }
 
 pub fn current_update_target() -> Result<String, UpdateChannelConfigurationError> {
-    let operating_system = match std::env::consts::OS {
-        "macos" => "darwin",
-        "linux" => "linux",
-        "windows" => "windows",
-        _ => return Err(UpdateChannelConfigurationError::UnsupportedTarget),
-    };
-    let architecture = match std::env::consts::ARCH {
-        "aarch64" => "aarch64",
-        "x86_64" => "x86_64",
-        "x86" => "i686",
-        "arm" => "armv7",
-        _ => return Err(UpdateChannelConfigurationError::UnsupportedTarget),
-    };
-    Ok(format!("{operating_system}-{architecture}"))
+    update_target(std::env::consts::OS, std::env::consts::ARCH)
+}
+
+fn update_target(
+    operating_system: &str,
+    architecture: &str,
+) -> Result<String, UpdateChannelConfigurationError> {
+    match (operating_system, architecture) {
+        ("macos", "aarch64") => Ok("darwin-aarch64".to_owned()),
+        ("macos", "x86_64") => Ok("darwin-x86_64".to_owned()),
+        ("linux", "x86_64") => Ok("linux-x86_64-deb".to_owned()),
+        ("windows", "x86_64") => Ok("windows-x86_64-nsis".to_owned()),
+        _ => Err(UpdateChannelConfigurationError::UnsupportedTarget),
+    }
 }
 
 fn parse_static_https_endpoint(value: &str) -> Result<Url, UpdateChannelConfigurationError> {
@@ -368,6 +410,26 @@ mod tests {
     }
 
     #[test]
+    fn maps_only_the_supported_packaged_platform_targets() {
+        assert_eq!(
+            update_target("macos", "aarch64").expect("Apple Silicon target"),
+            "darwin-aarch64"
+        );
+        assert_eq!(
+            update_target("linux", "x86_64").expect("Debian target"),
+            "linux-x86_64-deb"
+        );
+        assert_eq!(
+            update_target("windows", "x86_64").expect("NSIS target"),
+            "windows-x86_64-nsis"
+        );
+        assert_eq!(
+            update_target("linux", "aarch64"),
+            Err(UpdateChannelConfigurationError::UnsupportedTarget)
+        );
+    }
+
+    #[test]
     fn resolves_only_a_configured_active_package_signing_key() {
         let trust = synthetic_trust();
         let expected_key = trust["synthetic-test-key"].clone();
@@ -405,6 +467,17 @@ mod tests {
             Some(expected_key.as_str())
         );
         assert_eq!(channel.package_root_certificate(), None);
+
+        let recoverable_channel = HttpsUpdateChannel::configured_recoverable_stable(
+            "https://updates.invalid/stable.json",
+            synthetic_trust(),
+            "linux-x86_64-deb".to_owned(),
+        )
+        .expect("configured recoverable stable channel");
+        assert!(recoverable_channel
+            .package_public_key("synthetic-test-key")
+            .is_some());
+        assert_eq!(recoverable_channel.package_root_certificate(), None);
     }
 
     #[cfg(feature = "e2e")]
