@@ -92,6 +92,16 @@ impl LinuxRecoveryProcessIdentity {
     pub fn executable_path(&self) -> &Path {
         &self.executable_path
     }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(process_id: u32, boot_id: &str, start_time_clock_ticks: u64) -> Self {
+        Self {
+            process_id,
+            boot_id: boot_id.to_owned(),
+            start_time_clock_ticks,
+            executable_path: PathBuf::from(INSTALLED_EXECUTABLE_PATH),
+        }
+    }
 }
 
 struct NativeCommandOutput {

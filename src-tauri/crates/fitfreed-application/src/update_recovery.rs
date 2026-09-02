@@ -27,6 +27,19 @@ pub enum UpdateRecoveryPhase {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PackagedUpdateRecoveryPhase {
+    Prepared,
+    ReplacementStarted,
+    ReplacementInstalled,
+    Launching,
+    Confirmed,
+    Recovering,
+    NativeRecoveryUnavailable,
+    Recovered,
+    RecoveryFailed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UpdateRecoveryWatchdogEvent {
     Observe,
     DeadlineExpired,
@@ -43,6 +56,44 @@ pub enum UpdateRecoveryWatchdogAction {
     FinishConfirmed,
     FinishRecovered,
     FinishFailed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PackagedUpdateRecoveryWatchdogAction {
+    Wait,
+    LaunchReplacement,
+    BeginRecovery,
+    RestorePrevious,
+    LaunchRunnablePredecessor,
+    StopBeforeReplacement,
+    FinishConfirmed,
+    FinishRecovered,
+    FinishFailed,
+}
+
+pub fn decide_packaged_update_recovery_watchdog_action(
+    phase: PackagedUpdateRecoveryPhase,
+    event: UpdateRecoveryWatchdogEvent,
+) -> PackagedUpdateRecoveryWatchdogAction {
+    use PackagedUpdateRecoveryPhase as Phase;
+    use PackagedUpdateRecoveryWatchdogAction as Action;
+    use UpdateRecoveryWatchdogEvent as Event;
+
+    match (phase, event) {
+        (Phase::Prepared, Event::DeadlineExpired) => Action::StopBeforeReplacement,
+        (Phase::Prepared, _) => Action::Wait,
+        (Phase::ReplacementStarted, Event::Observe) => Action::Wait,
+        (Phase::ReplacementStarted, _) => Action::BeginRecovery,
+        (Phase::ReplacementInstalled, Event::Observe) => Action::LaunchReplacement,
+        (Phase::ReplacementInstalled, _) => Action::BeginRecovery,
+        (Phase::Launching, Event::Observe) => Action::Wait,
+        (Phase::Launching, _) => Action::BeginRecovery,
+        (Phase::Confirmed, _) => Action::FinishConfirmed,
+        (Phase::Recovering, _) => Action::RestorePrevious,
+        (Phase::NativeRecoveryUnavailable, _) => Action::LaunchRunnablePredecessor,
+        (Phase::Recovered, _) => Action::FinishRecovered,
+        (Phase::RecoveryFailed, _) => Action::FinishFailed,
+    }
 }
 
 pub fn decide_update_recovery_watchdog_action(
@@ -74,6 +125,43 @@ pub fn decide_update_recovery_watchdog_action(
 pub struct InvalidUpdateRecoveryTransition {
     pub current: UpdateRecoveryPhase,
     pub next: UpdateRecoveryPhase,
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
+#[error("invalid packaged update recovery transition from {current:?} to {next:?}")]
+pub struct InvalidPackagedUpdateRecoveryTransition {
+    pub current: PackagedUpdateRecoveryPhase,
+    pub next: PackagedUpdateRecoveryPhase,
+}
+
+pub fn validate_packaged_update_recovery_transition(
+    current: PackagedUpdateRecoveryPhase,
+    next: PackagedUpdateRecoveryPhase,
+) -> Result<(), InvalidPackagedUpdateRecoveryTransition> {
+    use PackagedUpdateRecoveryPhase as Phase;
+
+    if matches!(
+        (current, next),
+        (Phase::Prepared, Phase::ReplacementStarted)
+            | (
+                Phase::ReplacementStarted,
+                Phase::ReplacementInstalled | Phase::Recovering
+            )
+            | (
+                Phase::ReplacementInstalled,
+                Phase::Launching | Phase::Recovering
+            )
+            | (Phase::Launching, Phase::Confirmed | Phase::Recovering)
+            | (
+                Phase::Recovering,
+                Phase::Recovered | Phase::NativeRecoveryUnavailable | Phase::RecoveryFailed
+            )
+            | (Phase::NativeRecoveryUnavailable, Phase::Recovering)
+    ) {
+        Ok(())
+    } else {
+        Err(InvalidPackagedUpdateRecoveryTransition { current, next })
+    }
 }
 
 pub fn validate_update_recovery_transition(
@@ -225,6 +313,90 @@ mod tests {
         for (phase, event, expected) in expectations {
             assert_eq!(
                 decide_update_recovery_watchdog_action(phase, event),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_only_the_documented_packaged_recovery_transitions() {
+        use PackagedUpdateRecoveryPhase as Phase;
+
+        const PHASES: [Phase; 9] = [
+            Phase::Prepared,
+            Phase::ReplacementStarted,
+            Phase::ReplacementInstalled,
+            Phase::Launching,
+            Phase::Confirmed,
+            Phase::Recovering,
+            Phase::NativeRecoveryUnavailable,
+            Phase::Recovered,
+            Phase::RecoveryFailed,
+        ];
+        let allowed = [
+            (Phase::Prepared, Phase::ReplacementStarted),
+            (Phase::ReplacementStarted, Phase::ReplacementInstalled),
+            (Phase::ReplacementStarted, Phase::Recovering),
+            (Phase::ReplacementInstalled, Phase::Launching),
+            (Phase::ReplacementInstalled, Phase::Recovering),
+            (Phase::Launching, Phase::Confirmed),
+            (Phase::Launching, Phase::Recovering),
+            (Phase::Recovering, Phase::Recovered),
+            (Phase::Recovering, Phase::NativeRecoveryUnavailable),
+            (Phase::Recovering, Phase::RecoveryFailed),
+            (Phase::NativeRecoveryUnavailable, Phase::Recovering),
+        ];
+
+        for current in PHASES {
+            for next in PHASES {
+                let transition = validate_packaged_update_recovery_transition(current, next);
+                assert_eq!(transition.is_ok(), allowed.contains(&(current, next)));
+            }
+        }
+    }
+
+    #[test]
+    fn directs_packaged_recovery_without_treating_fallback_as_recovered() {
+        use PackagedUpdateRecoveryPhase as Phase;
+        use PackagedUpdateRecoveryWatchdogAction as Action;
+        use UpdateRecoveryWatchdogEvent as Event;
+
+        let expectations = [
+            (Phase::Prepared, Event::Observe, Action::Wait),
+            (
+                Phase::Prepared,
+                Event::DeadlineExpired,
+                Action::StopBeforeReplacement,
+            ),
+            (
+                Phase::ReplacementStarted,
+                Event::ReplacementExited,
+                Action::BeginRecovery,
+            ),
+            (
+                Phase::ReplacementInstalled,
+                Event::Observe,
+                Action::LaunchReplacement,
+            ),
+            (
+                Phase::Launching,
+                Event::ReplacementExited,
+                Action::BeginRecovery,
+            ),
+            (Phase::Confirmed, Event::Observe, Action::FinishConfirmed),
+            (Phase::Recovering, Event::Observe, Action::RestorePrevious),
+            (
+                Phase::NativeRecoveryUnavailable,
+                Event::Observe,
+                Action::LaunchRunnablePredecessor,
+            ),
+            (Phase::Recovered, Event::Observe, Action::FinishRecovered),
+            (Phase::RecoveryFailed, Event::Observe, Action::FinishFailed),
+        ];
+
+        for (phase, event, expected) in expectations {
+            assert_eq!(
+                decide_packaged_update_recovery_watchdog_action(phase, event),
                 expected
             );
         }

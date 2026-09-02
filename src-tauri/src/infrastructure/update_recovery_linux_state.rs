@@ -7,7 +7,10 @@ use std::{
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, SecondsFormat, Utc};
-use fitfreed_application::{UpdateArtifact, UpdateInstallationAuthorization};
+use fitfreed_application::{
+    validate_packaged_update_recovery_transition, PackagedUpdateRecoveryPhase, UpdateArtifact,
+    UpdateInstallationAuthorization,
+};
 use minisign_verify::Signature;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -20,7 +23,8 @@ use super::{
     local_file::{sync_directory, PrivateStagingFile},
     prepare_linux_recovery_packages_from_path, query_linux_native_package_identity,
     verify_library_file, verify_linux_recovery_packages, ImportError, LinuxNativePackageIdentity,
-    LinuxRecoveryPackageError, LinuxRecoveryPackageExpectation, SCHEMA_VERSION,
+    LinuxRecoveryPackageError, LinuxRecoveryPackageExpectation, LinuxRecoveryProcessIdentity,
+    SCHEMA_VERSION,
 };
 
 const RECOVERY_FORMAT: &str = "org.fitfreed.update-recovery";
@@ -58,6 +62,8 @@ pub enum LinuxRecoveryStateError {
     ActiveAttemptExists,
     #[error("the Linux recovery state is invalid")]
     InvalidState,
+    #[error("the Linux recovery transition is invalid")]
+    InvalidTransition,
     #[error("the Linux recovery package state is invalid")]
     Package(#[from] LinuxRecoveryPackageError),
     #[error("the Linux recovery library state is invalid")]
@@ -96,6 +102,94 @@ impl PreparedLinuxUpdateRecovery {
 
     pub fn source_library_schema_version(&self) -> u32 {
         self.source_library_schema_version
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinuxUpdateRecoveryReplacementProcess {
+    process_id: u32,
+    boot_id: String,
+    start_time_clock_ticks: u64,
+    launch_nonce: String,
+    confirmation_deadline: String,
+}
+
+impl LinuxUpdateRecoveryReplacementProcess {
+    pub fn process_id(&self) -> u32 {
+        self.process_id
+    }
+
+    pub fn boot_id(&self) -> &str {
+        &self.boot_id
+    }
+
+    pub fn start_time_clock_ticks(&self) -> u64 {
+        self.start_time_clock_ticks
+    }
+
+    pub fn launch_nonce(&self) -> &str {
+        &self.launch_nonce
+    }
+
+    pub fn confirmation_deadline(&self) -> &str {
+        &self.confirmation_deadline
+    }
+}
+
+pub struct LinuxUpdateRecoveryReplacementLaunch<'a> {
+    pub process: &'a LinuxRecoveryProcessIdentity,
+    pub launch_nonce: &'a str,
+    pub confirmation_deadline: &'a str,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinuxUpdateRecoveryWatchdogContext {
+    recovery_root: PathBuf,
+    recovery_id: String,
+    installed_executable_path: PathBuf,
+    runnable_predecessor_executable_path: PathBuf,
+    library_path: PathBuf,
+    target_version: String,
+    target_library_schema_version: u32,
+    prepared_at: String,
+    replacement_process: Option<LinuxUpdateRecoveryReplacementProcess>,
+}
+
+impl LinuxUpdateRecoveryWatchdogContext {
+    pub fn recovery_root(&self) -> &Path {
+        &self.recovery_root
+    }
+
+    pub fn recovery_id(&self) -> &str {
+        &self.recovery_id
+    }
+
+    pub fn installed_executable_path(&self) -> &Path {
+        &self.installed_executable_path
+    }
+
+    pub fn runnable_predecessor_executable_path(&self) -> &Path {
+        &self.runnable_predecessor_executable_path
+    }
+
+    pub fn library_path(&self) -> &Path {
+        &self.library_path
+    }
+
+    pub fn target_version(&self) -> &str {
+        &self.target_version
+    }
+
+    pub fn target_library_schema_version(&self) -> u32 {
+        self.target_library_schema_version
+    }
+
+    pub fn prepared_at(&self) -> &str {
+        &self.prepared_at
+    }
+
+    pub fn replacement_process(&self) -> Option<&LinuxUpdateRecoveryReplacementProcess> {
+        self.replacement_process.as_ref()
     }
 }
 
@@ -162,7 +256,7 @@ struct LinuxRecoveryManifest {
     format: String,
     schema_version: u32,
     recovery_id: String,
-    phase: LinuxRecoveryPhase,
+    phase: LinuxRecoveryPhaseWire,
     prepared_at: String,
     replacement_process: Option<LinuxReplacementProcess>,
     platform: LinuxPlatform,
@@ -177,7 +271,7 @@ struct LinuxRecoveryManifest {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-enum LinuxRecoveryPhase {
+enum LinuxRecoveryPhaseWire {
     Prepared,
     ReplacementStarted,
     ReplacementInstalled,
@@ -189,6 +283,40 @@ enum LinuxRecoveryPhase {
     RecoveryFailed,
 }
 
+impl From<LinuxRecoveryPhaseWire> for PackagedUpdateRecoveryPhase {
+    fn from(value: LinuxRecoveryPhaseWire) -> Self {
+        match value {
+            LinuxRecoveryPhaseWire::Prepared => Self::Prepared,
+            LinuxRecoveryPhaseWire::ReplacementStarted => Self::ReplacementStarted,
+            LinuxRecoveryPhaseWire::ReplacementInstalled => Self::ReplacementInstalled,
+            LinuxRecoveryPhaseWire::Launching => Self::Launching,
+            LinuxRecoveryPhaseWire::Confirmed => Self::Confirmed,
+            LinuxRecoveryPhaseWire::Recovering => Self::Recovering,
+            LinuxRecoveryPhaseWire::NativeRecoveryUnavailable => Self::NativeRecoveryUnavailable,
+            LinuxRecoveryPhaseWire::Recovered => Self::Recovered,
+            LinuxRecoveryPhaseWire::RecoveryFailed => Self::RecoveryFailed,
+        }
+    }
+}
+
+impl From<PackagedUpdateRecoveryPhase> for LinuxRecoveryPhaseWire {
+    fn from(value: PackagedUpdateRecoveryPhase) -> Self {
+        match value {
+            PackagedUpdateRecoveryPhase::Prepared => Self::Prepared,
+            PackagedUpdateRecoveryPhase::ReplacementStarted => Self::ReplacementStarted,
+            PackagedUpdateRecoveryPhase::ReplacementInstalled => Self::ReplacementInstalled,
+            PackagedUpdateRecoveryPhase::Launching => Self::Launching,
+            PackagedUpdateRecoveryPhase::Confirmed => Self::Confirmed,
+            PackagedUpdateRecoveryPhase::Recovering => Self::Recovering,
+            PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable => {
+                Self::NativeRecoveryUnavailable
+            }
+            PackagedUpdateRecoveryPhase::Recovered => Self::Recovered,
+            PackagedUpdateRecoveryPhase::RecoveryFailed => Self::RecoveryFailed,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct LinuxReplacementProcess {
@@ -198,6 +326,18 @@ struct LinuxReplacementProcess {
     executable_path: String,
     launch_nonce: String,
     confirmation_deadline: String,
+}
+
+impl From<LinuxReplacementProcess> for LinuxUpdateRecoveryReplacementProcess {
+    fn from(value: LinuxReplacementProcess) -> Self {
+        Self {
+            process_id: value.process_id,
+            boot_id: value.boot_id,
+            start_time_clock_ticks: value.start_time_clock_ticks,
+            launch_nonce: value.launch_nonce,
+            confirmation_deadline: value.confirmation_deadline,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -297,6 +437,165 @@ pub fn verify_linux_update_recovery(
         .map(|_| ())
 }
 
+pub fn active_linux_update_recovery_phase(
+    recovery_root: &Path,
+) -> Result<Option<(String, PackagedUpdateRecoveryPhase)>, LinuxRecoveryStateError> {
+    if !path_entry_exists(recovery_root)? {
+        return Ok(None);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    if !path_entry_exists(&active_path)? {
+        return Ok(None);
+    }
+    let recovery_id = read_active_recovery_id(&active_path)?;
+    let manifest = read_active_manifest(&recovery_root, &recovery_id)?;
+    Ok(Some((recovery_id, manifest.phase.into())))
+}
+
+pub fn transition_active_linux_update_recovery(
+    recovery_root: &Path,
+    recovery_id: &str,
+    next: PackagedUpdateRecoveryPhase,
+) -> Result<(), LinuxRecoveryStateError> {
+    if !valid_sha256(recovery_id) {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, recovery_id)?;
+    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
+    let mut manifest = read_manifest(&manifest_path)?;
+    validate_manifest(&manifest)?;
+    if manifest.recovery_id != recovery_id || next == PackagedUpdateRecoveryPhase::Launching {
+        return Err(LinuxRecoveryStateError::InvalidTransition);
+    }
+    validate_packaged_update_recovery_transition(manifest.phase.into(), next)
+        .map_err(|_| LinuxRecoveryStateError::InvalidTransition)?;
+    manifest.phase = next.into();
+    validate_manifest(&manifest)?;
+    write_manifest(&manifest_path, &manifest)
+}
+
+pub fn record_active_linux_update_recovery_replacement_launch(
+    recovery_root: &Path,
+    recovery_id: &str,
+    launch: LinuxUpdateRecoveryReplacementLaunch<'_>,
+) -> Result<LinuxUpdateRecoveryReplacementProcess, LinuxRecoveryStateError> {
+    if !valid_sha256(recovery_id) {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, recovery_id)?;
+    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
+    let mut manifest = read_manifest(&manifest_path)?;
+    validate_manifest(&manifest)?;
+    validate_packaged_update_recovery_transition(
+        manifest.phase.into(),
+        PackagedUpdateRecoveryPhase::Launching,
+    )
+    .map_err(|_| LinuxRecoveryStateError::InvalidTransition)?;
+    let replacement_process = LinuxReplacementProcess {
+        process_id: launch.process.process_id(),
+        boot_id: launch.process.boot_id().to_owned(),
+        start_time_clock_ticks: launch.process.start_time_clock_ticks(),
+        executable_path: path_text(launch.process.executable_path())?,
+        launch_nonce: launch.launch_nonce.to_owned(),
+        confirmation_deadline: launch.confirmation_deadline.to_owned(),
+    };
+    if !valid_replacement_process(&replacement_process) {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    manifest.phase = LinuxRecoveryPhaseWire::Launching;
+    manifest.replacement_process = Some(replacement_process.clone());
+    validate_manifest(&manifest)?;
+    write_manifest(&manifest_path, &manifest)?;
+    Ok(replacement_process.into())
+}
+
+pub fn resolve_linux_update_recovery_watchdog_context(
+    watchdog_executable: &Path,
+    expected_installed_executable: &Path,
+) -> Result<LinuxUpdateRecoveryWatchdogContext, LinuxRecoveryStateError> {
+    resolve_linux_update_recovery_watchdog_context_with(
+        &SystemRecoveryPackages,
+        watchdog_executable,
+        expected_installed_executable,
+    )
+}
+
+fn resolve_linux_update_recovery_watchdog_context_with(
+    packages: &impl RecoveryPackagePort,
+    watchdog_executable: &Path,
+    expected_installed_executable: &Path,
+) -> Result<LinuxUpdateRecoveryWatchdogContext, LinuxRecoveryStateError> {
+    if expected_installed_executable != Path::new(INSTALLED_EXECUTABLE_PATH) {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let metadata = fs::symlink_metadata(watchdog_executable)?;
+    if !metadata.file_type().is_file() {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let watchdog_executable = watchdog_executable.canonicalize()?;
+    let attempt_directory = watchdog_executable
+        .ancestors()
+        .nth(5)
+        .ok_or(LinuxRecoveryStateError::InvalidInput)?;
+    if attempt_directory
+        .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+        .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH)
+        != watchdog_executable
+    {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let recovery_id = attempt_directory
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|value| valid_sha256(value))
+        .ok_or(LinuxRecoveryStateError::InvalidInput)?;
+    let attempts_directory = attempt_directory
+        .parent()
+        .filter(|path| {
+            path.file_name().and_then(|name| name.to_str()) == Some(ATTEMPTS_DIRECTORY_NAME)
+        })
+        .ok_or(LinuxRecoveryStateError::InvalidInput)?;
+    let recovery_root = attempts_directory
+        .parent()
+        .ok_or(LinuxRecoveryStateError::InvalidInput)?;
+    canonical_private_directory(recovery_root)?;
+    canonical_private_directory(attempts_directory)?;
+    canonical_private_directory(attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let manifest = verify_linux_update_recovery_with(packages, recovery_root, recovery_id)?;
+    let library_path = recovery_root
+        .parent()
+        .ok_or(LinuxRecoveryStateError::InvalidState)?
+        .join("fitfreed.sqlite");
+    if Path::new(&manifest.source.library_path) != library_path {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    Ok(LinuxUpdateRecoveryWatchdogContext {
+        recovery_root: recovery_root.to_owned(),
+        recovery_id: recovery_id.to_owned(),
+        installed_executable_path: expected_installed_executable.to_owned(),
+        runnable_predecessor_executable_path: watchdog_executable,
+        library_path,
+        target_version: manifest.target.version,
+        target_library_schema_version: manifest.target.library_schema_version,
+        prepared_at: manifest.prepared_at,
+        replacement_process: manifest.replacement_process.map(Into::into),
+    })
+}
+
 fn prepare_linux_update_recovery_with(
     packages: &impl RecoveryPackagePort,
     native_identity: &LinuxNativePackageIdentity,
@@ -361,7 +660,7 @@ fn prepare_linux_update_recovery_with(
         format: RECOVERY_FORMAT.to_owned(),
         schema_version: RECOVERY_SCHEMA_VERSION,
         recovery_id: recovery_id.clone(),
-        phase: LinuxRecoveryPhase::Prepared,
+        phase: LinuxRecoveryPhaseWire::Prepared,
         prepared_at: validated.prepared_at,
         replacement_process: None,
         platform: LinuxPlatform {
@@ -489,6 +788,20 @@ fn validate_preparation(
     let library_path = preparation.library_path.canonicalize()?;
     if library_path != preparation.library_path
         || library_path.file_name().and_then(|name| name.to_str()) != Some("fitfreed.sqlite")
+        || preparation
+            .recovery_root
+            .file_name()
+            .and_then(|name| name.to_str())
+            != Some("update-recovery")
+        || preparation
+            .recovery_root
+            .parent()
+            .ok_or(LinuxRecoveryStateError::InvalidInput)?
+            .canonicalize()?
+            != library_path
+                .parent()
+                .ok_or(LinuxRecoveryStateError::InvalidInput)?
+                .canonicalize()?
     {
         return Err(LinuxRecoveryStateError::InvalidInput);
     }
@@ -618,13 +931,13 @@ fn validate_manifest(manifest: &LinuxRecoveryManifest) -> Result<(), LinuxRecove
 fn valid_lifecycle_evidence(manifest: &LinuxRecoveryManifest) -> bool {
     let process_required = matches!(
         manifest.phase,
-        LinuxRecoveryPhase::Launching | LinuxRecoveryPhase::Confirmed
+        LinuxRecoveryPhaseWire::Launching | LinuxRecoveryPhaseWire::Confirmed
     );
     let process_forbidden = matches!(
         manifest.phase,
-        LinuxRecoveryPhase::Prepared
-            | LinuxRecoveryPhase::ReplacementStarted
-            | LinuxRecoveryPhase::ReplacementInstalled
+        LinuxRecoveryPhaseWire::Prepared
+            | LinuxRecoveryPhaseWire::ReplacementStarted
+            | LinuxRecoveryPhaseWire::ReplacementInstalled
     );
     if (process_required && manifest.replacement_process.is_none())
         || (process_forbidden && manifest.replacement_process.is_some())
@@ -636,32 +949,32 @@ fn valid_lifecycle_evidence(manifest: &LinuxRecoveryManifest) -> bool {
         return false;
     }
     match manifest.phase {
-        LinuxRecoveryPhase::Prepared
-        | LinuxRecoveryPhase::ReplacementStarted
-        | LinuxRecoveryPhase::ReplacementInstalled
-        | LinuxRecoveryPhase::Launching
-        | LinuxRecoveryPhase::Confirmed => {
+        LinuxRecoveryPhaseWire::Prepared
+        | LinuxRecoveryPhaseWire::ReplacementStarted
+        | LinuxRecoveryPhaseWire::ReplacementInstalled
+        | LinuxRecoveryPhaseWire::Launching
+        | LinuxRecoveryPhaseWire::Confirmed => {
             manifest.native_recovery.attempts == 0
                 && manifest.native_recovery.last_failure.is_none()
         }
-        LinuxRecoveryPhase::NativeRecoveryUnavailable => {
+        LinuxRecoveryPhaseWire::NativeRecoveryUnavailable => {
             (1..=2).contains(&manifest.native_recovery.attempts)
                 && manifest.native_recovery.last_failure.is_some()
         }
-        LinuxRecoveryPhase::RecoveryFailed => {
+        LinuxRecoveryPhaseWire::RecoveryFailed => {
             manifest.native_recovery.attempts == 3
                 && manifest.native_recovery.last_failure.is_some()
         }
-        LinuxRecoveryPhase::Recovered => {
+        LinuxRecoveryPhaseWire::Recovered => {
             (1..=3).contains(&manifest.native_recovery.attempts)
                 && manifest.native_recovery.last_failure.is_none()
         }
-        LinuxRecoveryPhase::Recovering => true,
+        LinuxRecoveryPhaseWire::Recovering => true,
     }
 }
 
 fn valid_replacement_process(process: &LinuxReplacementProcess) -> bool {
-    process.process_id > 1
+    (2..=i32::MAX as u32).contains(&process.process_id)
         && valid_boot_id(&process.boot_id)
         && (1..=MAX_SAFE_JSON_INTEGER).contains(&process.start_time_clock_ticks)
         && process.executable_path == INSTALLED_EXECUTABLE_PATH
@@ -946,6 +1259,39 @@ struct FileLock {
     file: File,
 }
 
+struct StateLock {
+    file: File,
+}
+
+impl StateLock {
+    #[cfg(unix)]
+    fn acquire(attempt_directory: &Path) -> Result<Self, LinuxRecoveryStateError> {
+        use std::os::fd::AsRawFd;
+
+        let file = open_private_lock_file(attempt_directory, STATE_LOCK_FILE_NAME, false)?;
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
+            return Err(io::Error::last_os_error().into());
+        }
+        Ok(Self { file })
+    }
+
+    #[cfg(not(unix))]
+    fn acquire(_attempt_directory: &Path) -> Result<Self, LinuxRecoveryStateError> {
+        Err(LinuxRecoveryStateError::InvalidState)
+    }
+}
+
+impl Drop for StateLock {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        {
+            use std::os::fd::AsRawFd;
+
+            let _ = unsafe { libc::flock(self.file.as_raw_fd(), libc::LOCK_UN) };
+        }
+    }
+}
+
 impl FileLock {
     #[cfg(unix)]
     fn acquire(file: File) -> Result<Self, LinuxRecoveryStateError> {
@@ -1017,9 +1363,50 @@ fn write_new_manifest(
     Ok(())
 }
 
+fn write_manifest(
+    path: &Path,
+    manifest: &LinuxRecoveryManifest,
+) -> Result<(), LinuxRecoveryStateError> {
+    let bytes = serde_json::to_vec_pretty(manifest)?;
+    if bytes.len() as u64 > MAX_MANIFEST_BYTES {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    let parent = path.parent().ok_or(LinuxRecoveryStateError::InvalidState)?;
+    let mut staging = PrivateStagingFile::new(parent, "fitfreed-recovery-manifest", ".tmp")?;
+    staging.file_mut()?.write_all(&bytes)?;
+    staging.sync_and_close()?;
+    staging.persist_replace(path)?;
+    Ok(())
+}
+
 fn read_manifest(path: &Path) -> Result<LinuxRecoveryManifest, LinuxRecoveryStateError> {
     let bytes = read_bounded_file(path, MAX_MANIFEST_BYTES)?;
     serde_json::from_slice(&bytes).map_err(Into::into)
+}
+
+fn read_active_manifest(
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<LinuxRecoveryManifest, LinuxRecoveryStateError> {
+    let attempt_directory = canonical_recovery_attempt(recovery_root, recovery_id)?;
+    let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
+    validate_manifest(&manifest)?;
+    if manifest.recovery_id != recovery_id {
+        return Err(LinuxRecoveryStateError::InvalidState);
+    }
+    Ok(manifest)
+}
+
+fn canonical_recovery_attempt(
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<PathBuf, LinuxRecoveryStateError> {
+    if !valid_sha256(recovery_id) {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    let attempts_directory =
+        canonical_private_directory(&recovery_root.join(ATTEMPTS_DIRECTORY_NAME))?;
+    canonical_private_directory(&attempts_directory.join(recovery_id))
 }
 
 fn write_active_recovery_id(path: &Path, recovery_id: &str) -> Result<(), LinuxRecoveryStateError> {
@@ -1331,7 +1718,7 @@ mod tests {
         )
         .expect("verified Linux recovery");
         assert_eq!(manifest.schema_version, 2);
-        assert_eq!(manifest.phase, LinuxRecoveryPhase::Prepared);
+        assert_eq!(manifest.phase, LinuxRecoveryPhaseWire::Prepared);
         assert_eq!(manifest.source.version, "0.1.0");
         assert_eq!(manifest.target.version, "0.2.0");
         assert_eq!(manifest.predecessor_package.version, "0.1.0");
@@ -1466,5 +1853,103 @@ mod tests {
             )
             .is_err());
         }
+    }
+
+    #[test]
+    fn persists_only_legal_transitions_and_records_exact_linux_process_evidence() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root).expect("active phase"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                PackagedUpdateRecoveryPhase::Prepared,
+            ))
+        );
+        assert!(transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Launching,
+        )
+        .is_err());
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementInstalled,
+        )
+        .expect("replacement installed");
+
+        let process = LinuxRecoveryProcessIdentity::for_test(
+            42,
+            "12345678-1234-4123-8123-123456789abc",
+            123_456,
+        );
+        let recorded = record_active_linux_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            LinuxUpdateRecoveryReplacementLaunch {
+                process: &process,
+                launch_nonce: &"a".repeat(64),
+                confirmation_deadline: "2026-09-02T08:01:00Z",
+            },
+        )
+        .expect("recorded replacement");
+        assert_eq!(recorded.process_id(), 42);
+        assert_eq!(recorded.boot_id(), process.boot_id());
+        assert_eq!(recorded.start_time_clock_ticks(), 123_456);
+        assert_eq!(recorded.launch_nonce(), "a".repeat(64));
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root)
+                .expect("launching phase")
+                .map(|(_, phase)| phase),
+            Some(PackagedUpdateRecoveryPhase::Launching)
+        );
+    }
+
+    #[test]
+    fn resolves_watchdog_authority_only_from_the_preserved_linux_executable() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+
+        let context = resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("watchdog context");
+        assert_eq!(context.recovery_id(), prepared.recovery_id());
+        assert_eq!(context.library_path(), harness.library_path);
+        assert_eq!(context.target_version(), "0.2.0");
+        assert_eq!(context.replacement_process(), None);
+
+        assert!(resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            Path::new("/usr/local/bin/fitfreed"),
+        )
+        .is_err());
+        assert!(resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &prepared.attempt_directory().join("previous/package.deb"),
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .is_err());
     }
 }

@@ -206,8 +206,12 @@ pub use update_recovery_linux_package::{
 };
 #[cfg(any(test, target_os = "linux"))]
 pub use update_recovery_linux_state::{
-    prepare_linux_update_recovery, verify_linux_update_recovery, LinuxRecoveryStateError,
-    LinuxUpdateRecoveryPreparation, PreparedLinuxUpdateRecovery,
+    active_linux_update_recovery_phase, prepare_linux_update_recovery,
+    record_active_linux_update_recovery_replacement_launch,
+    resolve_linux_update_recovery_watchdog_context, transition_active_linux_update_recovery,
+    verify_linux_update_recovery, LinuxRecoveryStateError, LinuxUpdateRecoveryPreparation,
+    LinuxUpdateRecoveryReplacementLaunch, LinuxUpdateRecoveryReplacementProcess,
+    LinuxUpdateRecoveryWatchdogContext, PreparedLinuxUpdateRecovery,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
