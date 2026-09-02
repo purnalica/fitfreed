@@ -21,15 +21,16 @@ use thiserror::Error;
 use super::{
     backup_database,
     local_file::{sync_directory, PrivateStagingFile},
-    verify_library_file, ImportError, SCHEMA_VERSION,
+    update_recovery_outcome::{
+        read_update_recovery_outcome, remove_update_recovery_outcome,
+        write_update_recovery_outcome, UpdateRecoveryOutcomeStoreError,
+    },
+    verify_library_file, ImportError, UpdateRecoveryMaintenance, SCHEMA_VERSION,
 };
 
 const RECOVERY_FORMAT: &str = "org.fitfreed.update-recovery";
 const RECOVERY_SCHEMA_VERSION: u32 = 1;
-const RECOVERY_OUTCOME_FORMAT: &str = "org.fitfreed.update-recovery-outcome";
-const RECOVERY_OUTCOME_SCHEMA_VERSION: u32 = 1;
 const ACTIVE_FILE_NAME: &str = "active";
-const OUTCOME_FILE_NAME: &str = "last-outcome.json";
 const OUTCOME_LOCK_FILE_NAME: &str = "outcome.lock";
 const ATTEMPTS_DIRECTORY_NAME: &str = "attempts";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
@@ -41,7 +42,6 @@ const LIBRARY_BACKUP_RELATIVE_PATH: &str = "previous/fitfreed.sqlite";
 const EXPECTED_BUNDLE_IDENTIFIER: &str = "org.fitfreed.desktop";
 const EXPECTED_BUNDLE_EXECUTABLE: &str = "fitfreed";
 const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
-const MAX_OUTCOME_BYTES: u64 = 4 * 1024;
 const MAX_LIBRARY_BACKUP_BYTES: u64 = 1024 * 1024 * 1024 * 1024;
 const MAX_LOCAL_PATH_BYTES: usize = 4096;
 
@@ -69,6 +69,16 @@ pub enum UpdateRecoveryError {
     Manifest(#[from] serde_json::Error),
     #[error("update recovery library failure: {0}")]
     Library(#[from] ImportError),
+}
+
+impl From<UpdateRecoveryOutcomeStoreError> for UpdateRecoveryError {
+    fn from(value: UpdateRecoveryOutcomeStoreError) -> Self {
+        match value {
+            UpdateRecoveryOutcomeStoreError::InvalidState => Self::InvalidState,
+            UpdateRecoveryOutcomeStoreError::Io(error) => Self::Io(error),
+            UpdateRecoveryOutcomeStoreError::Manifest(error) => Self::Manifest(error),
+        }
+    }
 }
 
 pub trait ApplicationCopyPort {
@@ -238,13 +248,6 @@ pub struct UpdateRecoveryWatchdogLease {
     recovery_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UpdateRecoveryMaintenance {
-    NoTerminalOutcome,
-    Deferred,
-    OutcomeRetained(UpdateRecoveryOutcome),
-}
-
 impl UpdateRecoveryCandidateLease {
     pub fn recovery_id(&self) -> &str {
         &self.recovery_id
@@ -298,24 +301,6 @@ struct UpdateRecoveryManifest {
     target: RecoveryTarget,
     application_backup: ApplicationBackup,
     library_backup: LibraryBackup,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct UpdateRecoveryOutcomeWire {
-    format: String,
-    schema_version: u32,
-    recovery_id: String,
-    outcome: RecoveryOutcomeWire,
-    source_version: String,
-    target_version: String,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-enum RecoveryOutcomeWire {
-    Updated,
-    Recovered,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -417,48 +402,6 @@ impl From<UpdateRecoveryPhase> for RecoveryPhaseWire {
     }
 }
 
-impl From<RecoveryOutcomeWire> for UpdateRecoveryOutcomeKind {
-    fn from(value: RecoveryOutcomeWire) -> Self {
-        match value {
-            RecoveryOutcomeWire::Updated => Self::Updated,
-            RecoveryOutcomeWire::Recovered => Self::Recovered,
-        }
-    }
-}
-
-impl From<UpdateRecoveryOutcomeKind> for RecoveryOutcomeWire {
-    fn from(value: UpdateRecoveryOutcomeKind) -> Self {
-        match value {
-            UpdateRecoveryOutcomeKind::Updated => Self::Updated,
-            UpdateRecoveryOutcomeKind::Recovered => Self::Recovered,
-        }
-    }
-}
-
-impl From<UpdateRecoveryOutcomeWire> for UpdateRecoveryOutcome {
-    fn from(value: UpdateRecoveryOutcomeWire) -> Self {
-        Self {
-            recovery_id: value.recovery_id,
-            kind: value.outcome.into(),
-            source_version: value.source_version,
-            target_version: value.target_version,
-        }
-    }
-}
-
-impl From<&UpdateRecoveryOutcome> for UpdateRecoveryOutcomeWire {
-    fn from(value: &UpdateRecoveryOutcome) -> Self {
-        Self {
-            format: RECOVERY_OUTCOME_FORMAT.to_owned(),
-            schema_version: RECOVERY_OUTCOME_SCHEMA_VERSION,
-            recovery_id: value.recovery_id.clone(),
-            outcome: value.kind.into(),
-            source_version: value.source_version.clone(),
-            target_version: value.target_version.clone(),
-        }
-    }
-}
-
 pub fn prepare_update_recovery(
     copier: &impl ApplicationCopyPort,
     preparation: UpdateRecoveryPreparation<'_>,
@@ -473,7 +416,7 @@ pub fn prepare_update_recovery(
     if active_path.exists() {
         return Err(UpdateRecoveryError::ActiveAttemptExists);
     }
-    if let Some(outcome) = read_recovery_outcome_file(&recovery_root)? {
+    if let Some(outcome) = read_update_recovery_outcome(&recovery_root)? {
         let receipt_bound_attempt = recovery_root
             .join(ATTEMPTS_DIRECTORY_NAME)
             .join(outcome.recovery_id);
@@ -655,7 +598,7 @@ pub fn load_update_recovery_outcome(
     let recovery_root = recovery_root.canonicalize()?;
     let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)?;
     let _outcome_lock = RecoveryFileLock::acquire(outcome_lock)?;
-    read_recovery_outcome_file(&recovery_root)
+    read_update_recovery_outcome(&recovery_root).map_err(Into::into)
 }
 
 pub fn acknowledge_update_recovery_outcome(
@@ -667,7 +610,7 @@ pub fn acknowledge_update_recovery_outcome(
     let recovery_root = recovery_root.canonicalize()?;
     let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)?;
     let _outcome_lock = RecoveryFileLock::acquire(outcome_lock)?;
-    let Some(outcome) = read_recovery_outcome_file(&recovery_root)? else {
+    let Some(outcome) = read_update_recovery_outcome(&recovery_root)? else {
         return Ok(false);
     };
     let receipt_bound_attempt = recovery_root
@@ -676,8 +619,7 @@ pub fn acknowledge_update_recovery_outcome(
     if path_entry_exists(&receipt_bound_attempt)? {
         return Err(UpdateRecoveryError::InvalidState);
     }
-    fs::remove_file(recovery_root.join(OUTCOME_FILE_NAME))?;
-    sync_directory(&recovery_root)?;
+    remove_update_recovery_outcome(&recovery_root)?;
     Ok(true)
 }
 
@@ -693,7 +635,7 @@ fn maintain_update_recovery_inner(
     let recovery_root = recovery_root.canonicalize()?;
     let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)?;
     let _outcome_lock = RecoveryFileLock::acquire(outcome_lock)?;
-    let retained_outcome = read_recovery_outcome_file(&recovery_root)?;
+    let retained_outcome = read_update_recovery_outcome(&recovery_root)?;
     let active_path = recovery_root.join(ACTIVE_FILE_NAME);
     let active_recovery_id = if path_entry_exists(&active_path)? {
         Some(read_active_recovery_id(&active_path)?)
@@ -819,7 +761,7 @@ fn finalize_terminal_attempt(
     }
 
     if retained_outcome != Some(&outcome) {
-        write_recovery_outcome_file(recovery_root, &outcome)?;
+        write_update_recovery_outcome(recovery_root, &outcome)?;
     }
     if active_expected {
         fs::remove_file(&active_path)?;
@@ -1580,49 +1522,6 @@ fn remove_failed_candidate_application(
     }
 }
 
-fn validate_recovery_outcome(
-    outcome: &UpdateRecoveryOutcomeWire,
-) -> Result<(), UpdateRecoveryError> {
-    let source_version =
-        Version::parse(&outcome.source_version).map_err(|_| UpdateRecoveryError::InvalidState)?;
-    let target_version =
-        Version::parse(&outcome.target_version).map_err(|_| UpdateRecoveryError::InvalidState)?;
-    if outcome.format != RECOVERY_OUTCOME_FORMAT
-        || outcome.schema_version != RECOVERY_OUTCOME_SCHEMA_VERSION
-        || !valid_sha256(&outcome.recovery_id)
-        || target_version <= source_version
-    {
-        return Err(UpdateRecoveryError::InvalidState);
-    }
-    Ok(())
-}
-
-fn read_recovery_outcome_file(
-    recovery_root: &Path,
-) -> Result<Option<UpdateRecoveryOutcome>, UpdateRecoveryError> {
-    let path = recovery_root.join(OUTCOME_FILE_NAME);
-    if !path_entry_exists(&path)? {
-        return Ok(None);
-    }
-    let bytes = read_bounded_file(&path, MAX_OUTCOME_BYTES)?;
-    let outcome: UpdateRecoveryOutcomeWire = serde_json::from_slice(&bytes)?;
-    validate_recovery_outcome(&outcome)?;
-    Ok(Some(outcome.into()))
-}
-
-fn write_recovery_outcome_file(
-    recovery_root: &Path,
-    outcome: &UpdateRecoveryOutcome,
-) -> Result<(), UpdateRecoveryError> {
-    let wire = UpdateRecoveryOutcomeWire::from(outcome);
-    validate_recovery_outcome(&wire)?;
-    let bytes = serde_json::to_vec_pretty(&wire)?;
-    if bytes.len() as u64 > MAX_OUTCOME_BYTES {
-        return Err(UpdateRecoveryError::InvalidState);
-    }
-    write_atomic_file(&recovery_root.join(OUTCOME_FILE_NAME), &bytes)
-}
-
 fn path_entry_exists(path: &Path) -> Result<bool, UpdateRecoveryError> {
     match fs::symlink_metadata(path) {
         Ok(_) => Ok(true),
@@ -2379,6 +2278,7 @@ mod tests {
     use tempfile::TempDir;
 
     use super::*;
+    use crate::infrastructure::update_recovery_outcome::OUTCOME_FILE_NAME;
 
     struct SyntheticApplicationCopier;
 
@@ -3136,7 +3036,7 @@ mod tests {
             source_version: "0.1.0".to_owned(),
             target_version: "0.2.0".to_owned(),
         };
-        write_recovery_outcome_file(&harness.recovery_root, &expected)
+        write_update_recovery_outcome(&harness.recovery_root, &expected)
             .expect("durable terminal receipt");
         fs::remove_file(harness.recovery_root.join(ACTIVE_FILE_NAME))
             .expect("interrupted active removal");
@@ -3234,7 +3134,7 @@ mod tests {
             source_version: "0.1.0".to_owned(),
             target_version: "0.2.0".to_owned(),
         };
-        write_recovery_outcome_file(&harness.recovery_root, &outcome).expect("terminal receipt");
+        write_update_recovery_outcome(&harness.recovery_root, &outcome).expect("terminal receipt");
         assert!(acknowledge_update_recovery_outcome(&harness.recovery_root).is_err());
 
         maintain_update_recovery(

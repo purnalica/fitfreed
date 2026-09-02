@@ -163,6 +163,7 @@ mod update_recovery_linux;
 mod update_recovery_linux_package;
 #[cfg(any(test, target_os = "linux"))]
 mod update_recovery_linux_state;
+mod update_recovery_outcome;
 mod update_state;
 mod update_watchdog;
 
@@ -188,9 +189,9 @@ pub use update_recovery::{
     transition_active_update_recovery, update_recovery_process_is_running,
     verify_prepared_update_recovery, ApplicationCopyPort, PlatformApplicationCopier,
     PreparedUpdateRecovery, UpdateRecoveryCandidateLease, UpdateRecoveryError,
-    UpdateRecoveryMaintenance, UpdateRecoveryPreparation, UpdateRecoveryProcessIdentity,
-    UpdateRecoveryReplacementLaunch, UpdateRecoveryReplacementProcess, UpdateRecoveryRestoration,
-    UpdateRecoveryWatchdogContext, UpdateRecoveryWatchdogLease,
+    UpdateRecoveryPreparation, UpdateRecoveryProcessIdentity, UpdateRecoveryReplacementLaunch,
+    UpdateRecoveryReplacementProcess, UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
+    UpdateRecoveryWatchdogLease,
 };
 #[cfg(any(test, target_os = "linux"))]
 pub use update_recovery_linux::{
@@ -208,7 +209,8 @@ pub use update_recovery_linux_package::{
 pub use update_recovery_linux_state::{
     acquire_linux_update_recovery_candidate_lease, acquire_linux_update_recovery_watchdog_lease,
     active_linux_update_recovery_phase, confirm_active_linux_update_recovery,
-    discard_prepared_linux_update_recovery, prepare_linux_update_recovery,
+    discard_prepared_linux_update_recovery, maintain_linux_update_recovery,
+    maintain_linux_update_recovery_with_watchdog_lease, prepare_linux_update_recovery,
     record_active_linux_update_recovery_replacement_launch,
     resolve_linux_update_recovery_watchdog_context, restore_active_linux_update_recovery,
     transition_active_linux_update_recovery, verify_linux_update_recovery,
@@ -218,6 +220,7 @@ pub use update_recovery_linux_state::{
     LinuxUpdateRecoveryRestorationOutcome, LinuxUpdateRecoveryWatchdogContext,
     LinuxUpdateRecoveryWatchdogLease, PreparedLinuxUpdateRecovery,
 };
+pub use update_recovery_outcome::UpdateRecoveryMaintenance;
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
     await_update_recovery_candidate_go, run_update_recovery_watchdog,
