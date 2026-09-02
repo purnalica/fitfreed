@@ -27,7 +27,11 @@ Automation reduces contributor friction, prevents undocumented maintainer knowle
 
 ### Continuous integration
 
-GitHub Actions is the selected continuous-integration provider for the GitHub-hosted repository. The product workflow combines platform-independent checks with a mandatory macOS packaged-E2E and private-release-evidence job. Local and hosted execution call the same versioned project commands; the workflow does not encode a parallel test path.
+GitHub Actions is the selected continuous-integration provider for the GitHub-hosted repository. The product workflow
+combines platform-independent checks with mandatory platform-native desktop compilation and packaged evidence for
+every platform whose parity admission increment has entered the baseline. macOS currently has the complete packaged
+campaign; Milestones 4 and 5 add Ubuntu 24.04 and Windows jobs through the same versioned project commands rather than
+parallel CI-only test paths.
 
 Hosted verification is impact-aware. Every revision runs the versioned impact classifier, documentation links, and independent repository-safety gate. README, product-status, static product-page, and the closed set of publication-only compositor, verifier, test, and Pages-workflow changes additionally install the locked JavaScript toolchain; verify SSOT rendering, local resources, release-state honesty, automated accessibility, compositor and update-subtree preservation, workflow topology, and publication tests; and build and preflight the Pages artifact without rebuilding or repackaging unchanged application inputs. The closed documentation-verification set similarly runs its focused tests and workflow lint without entering the native package lane; those files are excluded from the application fingerprint because they cannot enter the application or release artifact. The impact classifier, its tests, and the CI workflow remain release-affecting control-plane inputs and therefore require both complete lanes whenever they change. Application, shared dependency, updater-client, release-candidate, or unknown changes still run the complete portable lane and the costly macOS packaging, installation, recovery, cold-launch, import, query, rendering, and packaged-E2E lane, as does every explicit release-candidate or manual verification request. Within the macOS lane, the production package and cold-launch gate precede the long synthetic import and Insights campaigns so a startup failure stops expensive downstream work early; every gate still runs after that check passes. A non-application revision may reuse prior evidence only when its Git-tree fingerprint for every executable and release input has an immutable evidence marker written after both complete lanes succeeded. A missing marker, an unknown path, an unavailable comparison, or a newly introduced path fails closed by requiring both complete lanes. Evidence-only documentation commits must not recursively rebuild an unchanged application merely to record the preceding successful run.
 
@@ -53,7 +57,7 @@ Pre-purge hosted proof on 2026-08-17 established both sides of the impact-aware 
 
 Public release remains an explicit authorized action even when every preparation and verification step is automated.
 
-Unsigned macOS MVP alpha artifacts remain in restricted evaluation workflows. Public macOS release automation must use protected Developer ID credentials, complete notarization, verify the stapled ticket and Gatekeeper result, and refuse promotion when any trust check fails.
+Unsigned macOS MVP alpha artifacts remain in restricted evaluation workflows. Public macOS release automation must use protected Developer ID credentials, complete notarization, verify the stapled ticket and Gatekeeper result, and refuse promotion when any trust check fails. Linux release automation must bind the exact Debian artifact to checksums, detached release signing, updater signing, SBOM, provenance, installation, recovery, and both supported Ubuntu environments. Windows release automation must additionally use protected Authenticode authority and inspect the signed setup and installed binaries on a supported Windows 11 desktop. Public promotion remains serial even while those engineering lanes advance independently.
 
 ### Maintenance and community
 
@@ -130,8 +134,9 @@ Explicit approval remains required for:
 
 ## Pending decisions
 
-- Primary cross-platform task runner and environment provisioning approach.
-- Linux and Windows runner expansion after their platform milestones begin.
+- Reproducible clean Ubuntu 26.04 Desktop and supported Windows 11 candidate environments when stable hosted desktop
+  equivalents are unavailable.
 - Dependency-update and scheduled-maintenance tooling.
 - Collaborative translation platform and synchronization mechanism.
-- Signing and notarization infrastructure for Linux and Windows when those platform milestones begin.
+- Custody provider and protected execution mechanism for the Linux detached release key and Windows Authenticode
+  authority.

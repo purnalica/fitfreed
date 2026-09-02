@@ -245,7 +245,10 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 
 ## Pending decisions
 
-- Linux and Windows E2E runner distribution when those platforms enter implementation.
+- Hosted Windows Server automation remains diagnostic rather than sufficient Windows 11 desktop evidence; select the
+  reproducible clean Windows 11 candidate environment before the first Windows promotion.
+- The Ubuntu 26.04 hosted runner is a public preview at the Milestone 4 planning boundary; select a stable hosted or
+  clean virtualized candidate environment before claiming Ubuntu 26.04 support.
 - Periodic review of performance budgets and maintained execution environments.
 - Accessibility conformance tooling and manual audit cadence.
 - Hosted-runner migration before the maintained macOS 15 image is retired.

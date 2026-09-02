@@ -208,8 +208,9 @@ updateable, recoverable, and supportable public distribution path without changi
 evidence to make platform-parity failures attributable. Linux investigation, implementation, packaging, and automated
 evidence may proceed while macOS acceptance or publication remains open.
 
-**Publication dependency:** the public macOS MVP is accepted and published. A detailed Linux execution plan will
-establish the supported distributions, architectures, package formats, trust model, update mechanism, and
+**Publication dependency:** the public macOS MVP is accepted and published. The [Milestone 4 execution
+plan](plans/milestone-4.md) and [Linux platform decision](architecture/decisions/0040-support-ubuntu-lts-with-debian-packages.md)
+define the supported distributions, architecture, package format, trust model, update mechanism, recovery design, and
 clean-environment test matrix before Linux implementation begins.
 
 **Exit criteria:** the selected Linux packages pass capability-parity, clean installation, first launch, update,
@@ -224,8 +225,9 @@ documented, updateable, recoverable, and supportable public distribution path wi
 implementation, packaging, and automated evidence may proceed independently of an open macOS or Linux acceptance gate
 when no unresolved platform decision is an input to that work.
 
-**Publication dependency:** the public Linux MVP is accepted and published. A detailed Windows execution plan will
-establish the supported Windows versions, architectures, package and signing model, update mechanism, and
+**Publication dependency:** the public Linux MVP is accepted and published. The [Milestone 5 execution
+plan](plans/milestone-5.md) and [Windows platform decision](architecture/decisions/0041-support-windows-11-with-per-user-nsis.md)
+define the supported Windows versions, architecture, package and signing model, update mechanism, recovery design, and
 clean-environment test matrix before Windows implementation begins.
 
 **Exit criteria:** the selected Windows package passes capability-parity, clean installation, first launch, update,

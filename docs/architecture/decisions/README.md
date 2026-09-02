@@ -52,5 +52,8 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0037: Apply reusable local sport-correlation rules](0037-apply-reusable-local-sport-correlation-rules.md) — Accepted on 2026-08-30.
 - [ADR 0038: Isolate confidential provider OAuth from the desktop application](0038-isolate-confidential-provider-oauth.md) — Proposed on 2026-08-30; published-contract, security, and product risk gates remain open.
 - [ADR 0039: Decouple platform engineering from public promotion](0039-decouple-platform-engineering-from-promotion.md) — Accepted on 2026-09-02.
+- [ADR 0040: Support Ubuntu LTS with Debian packages](0040-support-ubuntu-lts-with-debian-packages.md) — Accepted on 2026-09-02.
+- [ADR 0041: Support Windows 11 with a per-user NSIS installer](0041-support-windows-11-with-per-user-nsis.md) — Accepted on 2026-09-02.
+- [ADR 0042: Recover packaged updates from authenticated predecessors](0042-recover-packaged-updates-from-authenticated-predecessors.md) — Accepted on 2026-09-02.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

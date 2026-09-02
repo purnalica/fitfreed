@@ -2,7 +2,8 @@
 
 ## Status
 
-Initial measurable product budgets. They apply to the macOS MVP and will be validated during Milestone 0 technology spikes and every accepted increment.
+Initial measurable product budgets. They apply unchanged to the frozen MVP capability baseline on every supported
+platform and are validated during every accepted platform increment.
 
 Targets may be tightened through normal planning. Relaxing a target requires measured evidence, an impact analysis, and an explicit product decision.
 
@@ -12,12 +13,21 @@ Performance acceptance uses environments that the project can execute and reprod
 
 - Hosted macOS automation for every executable or release-input change.
 - A clean local Apple Silicon production campaign for the exact candidate before handoff.
+- Hosted Ubuntu 24.04 and Windows automation for every executable or release-input change once their platform
+  admission increments enter the baseline.
+- Clean supported Ubuntu Desktop and Windows 11 campaigns for their exact candidates before platform handoff.
 - SSD storage with enough free capacity for the source archive, temporary processing, database, and recovery state.
 - Release-shaped application packages for user-journey measurements.
 
 Raw local benchmark output records the exact execution environment needed to assess validity and remains local under the [repository content policy](repository-content-policy.md). Versioned evidence reports the application and source identity, data scenario, number of runs, warm-up policy, percentile calculation, aggregate measurements, result, and only whether the run used hosted macOS or local Apple Silicon. It never publishes a maintainer's or participant's workstation details.
 
-The same latency, throughput, cancellation, and memory budgets apply in every maintained performance environment. A passing result proves that environment, not universal performance across every supported Mac. Apple Silicon on macOS 15.0 or later defines functional support under [ADR 0016](architecture/decisions/0016-support-apple-silicon-on-macos-15-or-later.md); installed memory is not a private-alpha performance promise. [ADR 0015](architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md) owns the evidence model.
+The same latency, throughput, cancellation, and memory budgets apply in every maintained performance environment. A
+passing result proves that environment, not universal performance across a platform family. Apple Silicon on macOS
+15.0 or later defines the macOS boundary under [ADR 0016](architecture/decisions/0016-support-apple-silicon-on-macos-15-or-later.md),
+Ubuntu LTS x86-64 is defined by [ADR 0040](architecture/decisions/0040-support-ubuntu-lts-with-debian-packages.md), and
+Windows 11 x86-64 is defined by [ADR 0041](architecture/decisions/0041-support-windows-11-with-per-user-nsis.md).
+[ADR 0015](architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md) owns the evidence
+model.
 
 ## Responsiveness budgets
 

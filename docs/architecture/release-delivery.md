@@ -28,6 +28,29 @@ Windows; a later platform cannot be promoted merely because its engineering camp
 sequence and gate ownership remain canonical in the [roadmap](../roadmap.md), and the rationale for separating
 engineering from promotion is recorded in [ADR 0039](decisions/0039-decouple-platform-engineering-from-promotion.md).
 
+[ADR 0040](decisions/0040-support-ubuntu-lts-with-debian-packages.md) defines the first Linux release as one x86-64
+Debian package built on Ubuntu 24.04 and supported on Ubuntu Desktop 24.04 and 26.04 LTS after clean-environment
+evidence. AppImage, RPM, Flatpak, Snap, AUR, ARM64, and other distribution families remain separate future package
+contracts. Public Debian bytes require checksums, detached FitFreed release signing, updater signing, SBOM, source-bound
+provenance, exact package inventory, and version-matched documentation.
+
+[ADR 0041](decisions/0041-support-windows-11-with-per-user-nsis.md) defines the first Windows release as one x86-64
+current-user NSIS setup executable for Windows 11 editions still in Microsoft support at candidate issuance. The
+installer includes the offline WebView2 runtime and both initial locales. Public setup and installed binaries require
+trusted Authenticode signatures in addition to updater signing, checksums, SBOM, and source-bound provenance. MSI,
+Microsoft Store, WinGet, per-machine installation, Windows on ARM, and Windows 10 remain separate future contracts.
+
+Linux and Windows use the authenticated predecessor recovery architecture in
+[ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and
+stable-channel payloads bind the candidate plus every supported predecessor package needed for offline rollback. A
+candidate is incomplete when it contains only an installable new package: it must also prove native package-state
+recovery, runnable predecessor fallback, library pairing, interruption resumption, and terminal cleanup.
+
+The [Milestone 4](../plans/milestone-4.md) and [Milestone 5](../plans/milestone-5.md) plans own the executable
+increments, hosted matrices, clean-environment gates, documentation, and publication dependencies. GitHub-hosted
+Ubuntu or Windows Server results are engineering evidence; they do not replace the exact Ubuntu Desktop or Windows 11
+candidate gate.
+
 ## Release evidence set
 
 The staged evidence set will contain:
