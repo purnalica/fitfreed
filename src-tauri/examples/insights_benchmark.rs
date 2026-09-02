@@ -2477,8 +2477,16 @@ fn free_storage_bytes(path: &Path) -> Option<u64> {
         return None;
     }
     let statistics = unsafe { statistics.assume_init() };
-    let available_blocks = u64::from(statistics.f_bavail);
-    Some(available_blocks.saturating_mul(statistics.f_frsize))
+    Some(storage_bytes(statistics.f_bavail, statistics.f_frsize))
+}
+
+#[cfg(unix)]
+fn storage_bytes<Blocks, FragmentSize>(available_blocks: Blocks, fragment_size: FragmentSize) -> u64
+where
+    Blocks: Into<u64>,
+    FragmentSize: Into<u64>,
+{
+    available_blocks.into().saturating_mul(fragment_size.into())
 }
 
 #[cfg(not(unix))]
