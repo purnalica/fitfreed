@@ -51,6 +51,15 @@ every 24 hours while the application remains open; exact-candidate installation;
 outcomes stay quiet unless they require attention. The ordinary build has no endpoint or production trust
 key and therefore performs no update request or installation.
 
+On a supported Debian installation, an interrupted update that could open only the preserved previous application
+appears in **Settings → Updates** before FitFreed checks for another release. The page identifies the version being
+restored, shows how many protected recovery attempts have completed, and offers one explicit **Retry recovery and
+restart** action while another native recovery attempt remains. The operating system may request administrator
+authorization to reinstall the preserved package. A third failed native attempt removes that action and gives manual
+reinstall guidance. The local library, previous package, runnable application, and recovery evidence remain on the
+device throughout; do not start another update while this intervention is visible. If FitFreed cannot verify the
+recovery state, it exposes no update action rather than guessing.
+
 The independently generated synthetic journey covers both first-run acquisition paths, result-led Home
 exploration, exact recent-session entry and return, range filtering, exact aligned day detail, navigation to authoritative explorers, two-period
 comparison, mapping-aware reimport, cumulative import, and restart. Training separates Sessions, Sports,

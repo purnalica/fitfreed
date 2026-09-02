@@ -24,6 +24,7 @@ use fitfreed_application::{
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
     MoveTrainingSegmentCriterionRequest, OfficialSourceLink, OfficialSourceLinkOpenError,
     OfficialSourceLinkPurpose, OpenOfficialSourceLinkOutcome, OpenOfficialSourceLinkRequest,
+    PackagedUpdateRecoveryIntervention, PackagedUpdateRecoveryInterventionKind,
     PersistedTrainingRangeSummaryExercise, PersistedTrainingRoutePoints,
     PersistedTrainingSignalSamples, PlannedTrainingChronologyPage, PlannedTrainingChronologyQuery,
     PlannedTrainingCollection, PlannedTrainingCompletionFilter, PlannedTrainingPlanShape,
@@ -972,6 +973,35 @@ impl From<UpdateRecoveryOutcome> for UpdateRecoveryOutcomeDto {
             },
             source_version: outcome.source_version,
             target_version: outcome.target_version,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateRecoveryInterventionDto {
+    status: &'static str,
+    source_version: String,
+    target_version: String,
+    attempts_completed: u8,
+    maximum_attempts: u8,
+}
+
+impl From<PackagedUpdateRecoveryIntervention> for UpdateRecoveryInterventionDto {
+    fn from(intervention: PackagedUpdateRecoveryIntervention) -> Self {
+        Self {
+            status: match intervention.kind {
+                PackagedUpdateRecoveryInterventionKind::NativeRecoveryRetryAvailable => {
+                    "native-recovery-retry-available"
+                }
+                PackagedUpdateRecoveryInterventionKind::ManualReinstallRequired => {
+                    "manual-reinstall-required"
+                }
+            },
+            source_version: intervention.source_version,
+            target_version: intervention.target_version,
+            attempts_completed: intervention.attempts_completed,
+            maximum_attempts: intervention.maximum_attempts,
         }
     }
 }
@@ -8324,6 +8354,27 @@ mod tests {
             })
         );
         assert!(!recovery_json.to_string().contains("0123456789abcdef"));
+
+        let intervention_json = serde_json::to_value(UpdateRecoveryInterventionDto::from(
+            PackagedUpdateRecoveryIntervention {
+                kind: PackagedUpdateRecoveryInterventionKind::NativeRecoveryRetryAvailable,
+                source_version: "0.1.0".to_owned(),
+                target_version: "0.2.0".to_owned(),
+                attempts_completed: 1,
+                maximum_attempts: 3,
+            },
+        ))
+        .expect("update recovery intervention JSON");
+        assert_eq!(
+            intervention_json,
+            serde_json::json!({
+                "status": "native-recovery-retry-available",
+                "sourceVersion": "0.1.0",
+                "targetVersion": "0.2.0",
+                "attemptsCompleted": 1,
+                "maximumAttempts": 3
+            })
+        );
     }
 
     fn recovery_summary(value: i128) -> RecoverySeriesSummary {

@@ -991,6 +991,7 @@ beforeEach(() => {
     throw new Error(`Unexpected command: ${command}`);
   });
   mocks.updateInvoke.mockImplementation((command) => {
+    if (command === "query_update_recovery_intervention") return Promise.resolve(null);
     if (command === "confirm_update_recovery_startup") return Promise.resolve(null);
     if (command === "acknowledge_update_recovery_notice") return Promise.resolve(true);
     return Promise.resolve({
@@ -2868,6 +2869,7 @@ describe("FitFreed import interface", () => {
     emptyLibrary();
     let rejectInstallation!: (reason: unknown) => void;
     mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
       if (command === "confirm_update_recovery_startup") return Promise.resolve(false);
       if (command === "check_for_updates_on_launch") {
         return Promise.resolve({
@@ -2981,6 +2983,7 @@ describe("FitFreed import interface", () => {
   it("reports candidate confirmation failure without exposing recovery details", async () => {
     emptyLibrary();
     mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
       if (command === "confirm_update_recovery_startup") {
         return Promise.reject({
           code: "update-recovery-confirmation-failed",
@@ -3016,6 +3019,7 @@ describe("FitFreed import interface", () => {
     emptyLibrary();
     let completeAcknowledgement: (acknowledged: boolean) => void = () => undefined;
     mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
       if (command === "confirm_update_recovery_startup") {
         return Promise.resolve({
           outcome: "updated",
@@ -3072,6 +3076,7 @@ describe("FitFreed import interface", () => {
   it("explains automatic recovery in the persisted Spanish locale", async () => {
     emptyLibrary("es-ES");
     mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
       if (command === "confirm_update_recovery_startup") {
         return Promise.resolve({
           outcome: "recovered",
@@ -3109,6 +3114,7 @@ describe("FitFreed import interface", () => {
     emptyLibrary();
     let acknowledgementFails = true;
     mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
       if (command === "confirm_update_recovery_startup") {
         return Promise.resolve({
           outcome: "updated",

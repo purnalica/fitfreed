@@ -179,6 +179,21 @@ moves an interrupted `replacement-started` attempt directly into recovery rather
 installation deadline. Later phases retain their ordinary persisted-state behavior. No caller supplies a recovery
 identifier, attempt path, or executable path for reattachment.
 
+An ordinary application process exposes a read-only intervention view only after resolving the active pointer and
+revalidating the complete attempt. The view is either `native-recovery-retry-available` or
+`manual-reinstall-required` and contains only the source version, target version, completed attempt count, and fixed
+maximum of three attempts. It never exposes the recovery identifier, paths, package evidence, failure detail, or
+process identity. An unreadable or invalid active attempt fails closed and cannot be replaced by an ordinary update.
+
+Only an explicit no-argument application action can authorize the transition from `native-recovery-unavailable` to
+`recovering`. The application policy rejects every other phase and rejects a third retry. The Linux adapter proves
+that no watchdog owns the attempt before writing the transition, and the new watchdog must acquire the matching
+exclusive lease and acknowledge readiness. If that spawn fails before another watchdog acquires the lease, the
+adapter restores `native-recovery-unavailable` without incrementing the attempt count. Once the watchdog runs, each
+failed native installation increments the durable count exactly once; the third failure enters `recovery-failed` and
+the intervention view becomes `manual-reinstall-required`. Every package, runnable image, library backup, and
+manifest remains retained in either intervention state.
+
 ## Process, privacy, and failure behavior
 
 Linux actors derive fixed paths from the canonical recovery root or native package identity. They use no-follow file

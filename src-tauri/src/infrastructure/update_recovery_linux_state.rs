@@ -8,8 +8,10 @@ use std::{
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, SecondsFormat, Utc};
 use fitfreed_application::{
-    validate_packaged_update_recovery_transition, PackagedUpdateRecoveryPhase, UpdateArtifact,
-    UpdateInstallationAuthorization, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
+    authorize_packaged_update_recovery_retry, describe_packaged_update_recovery_intervention,
+    validate_packaged_update_recovery_transition, PackagedUpdateRecoveryIntervention,
+    PackagedUpdateRecoveryPhase, UpdateArtifact, UpdateInstallationAuthorization,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
 };
 use minisign_verify::Signature;
 use semver::Version;
@@ -174,9 +176,11 @@ pub struct LinuxUpdateRecoveryWatchdogContext {
     installed_executable_path: PathBuf,
     runnable_predecessor_executable_path: PathBuf,
     library_path: PathBuf,
+    source_version: String,
     target_version: String,
     target_library_schema_version: u32,
     prepared_at: String,
+    native_recovery_attempts: u8,
     replacement_process: Option<LinuxUpdateRecoveryReplacementProcess>,
 }
 
@@ -258,12 +262,20 @@ impl LinuxUpdateRecoveryWatchdogContext {
         &self.target_version
     }
 
+    pub fn source_version(&self) -> &str {
+        &self.source_version
+    }
+
     pub fn target_library_schema_version(&self) -> u32 {
         self.target_library_schema_version
     }
 
     pub fn prepared_at(&self) -> &str {
         &self.prepared_at
+    }
+
+    pub fn native_recovery_attempts(&self) -> u8 {
+        self.native_recovery_attempts
     }
 
     pub fn replacement_process(&self) -> Option<&LinuxUpdateRecoveryReplacementProcess> {
@@ -687,6 +699,87 @@ pub fn resolve_active_linux_update_recovery_watchdog_context(
     )
 }
 
+pub fn query_linux_update_recovery_intervention(
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<Option<PackagedUpdateRecoveryIntervention>, LinuxRecoveryStateError> {
+    query_linux_update_recovery_intervention_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        expected_installed_executable,
+    )
+}
+
+pub fn begin_linux_update_recovery_retry(
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<LinuxUpdateRecoveryWatchdogContext, LinuxRecoveryStateError> {
+    begin_linux_update_recovery_retry_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        expected_installed_executable,
+    )
+}
+
+fn begin_linux_update_recovery_retry_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<LinuxUpdateRecoveryWatchdogContext, LinuxRecoveryStateError> {
+    let (context, phase) = resolve_active_linux_update_recovery_watchdog_context_with(
+        packages,
+        recovery_root,
+        expected_installed_executable,
+    )?
+    .ok_or(LinuxRecoveryStateError::InvalidTransition)?;
+    authorize_packaged_update_recovery_retry(phase, context.native_recovery_attempts())
+        .map_err(|_| LinuxRecoveryStateError::InvalidTransition)?;
+    drop(acquire_linux_update_recovery_watchdog_lease_with(
+        packages, &context,
+    )?);
+    transition_active_linux_update_recovery(
+        context.recovery_root(),
+        context.recovery_id(),
+        PackagedUpdateRecoveryPhase::Recovering,
+    )?;
+    Ok(context)
+}
+
+pub fn cancel_linux_update_recovery_retry(
+    context: &LinuxUpdateRecoveryWatchdogContext,
+    watchdog_lease: &LinuxUpdateRecoveryWatchdogLease,
+) -> Result<(), LinuxRecoveryStateError> {
+    if context.recovery_id() != watchdog_lease.recovery_id() {
+        return Err(LinuxRecoveryStateError::InvalidInput);
+    }
+    transition_active_linux_update_recovery(
+        context.recovery_root(),
+        context.recovery_id(),
+        PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable,
+    )
+}
+
+fn query_linux_update_recovery_intervention_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<Option<PackagedUpdateRecoveryIntervention>, LinuxRecoveryStateError> {
+    let Some((context, phase)) = resolve_active_linux_update_recovery_watchdog_context_with(
+        packages,
+        recovery_root,
+        expected_installed_executable,
+    )?
+    else {
+        return Ok(None);
+    };
+    Ok(describe_packaged_update_recovery_intervention(
+        phase,
+        context.source_version(),
+        context.target_version(),
+        context.native_recovery_attempts(),
+    ))
+}
+
 fn resolve_active_linux_update_recovery_watchdog_context_with(
     packages: &impl RecoveryPackagePort,
     recovery_root: &Path,
@@ -772,9 +865,11 @@ fn resolve_linux_update_recovery_watchdog_context_with(
         installed_executable_path: expected_installed_executable.to_owned(),
         runnable_predecessor_executable_path: watchdog_executable,
         library_path,
+        source_version: manifest.source.version,
         target_version: manifest.target.version,
         target_library_schema_version: manifest.target.library_schema_version,
         prepared_at: manifest.prepared_at,
+        native_recovery_attempts: manifest.native_recovery.attempts,
         replacement_process: manifest.replacement_process.map(Into::into),
     })
 }
@@ -2339,7 +2434,9 @@ mod tests {
         ensure_schema, update_recovery_outcome::read_update_recovery_outcome,
         UpdateRecoveryMaintenance,
     };
-    use fitfreed_application::{UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind};
+    use fitfreed_application::{
+        PackagedUpdateRecoveryInterventionKind, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
+    };
 
     struct SyntheticPackages {
         fail_preparation: bool,
@@ -3142,6 +3239,21 @@ mod tests {
                 failure: LinuxNativeRecoveryFailure::AuthorizationUnavailable,
             }
         );
+        assert_eq!(
+            query_linux_update_recovery_intervention_with(
+                &packages,
+                &harness.recovery_root,
+                Path::new(INSTALLED_EXECUTABLE_PATH),
+            )
+            .expect("retry intervention"),
+            Some(PackagedUpdateRecoveryIntervention {
+                kind: PackagedUpdateRecoveryInterventionKind::NativeRecoveryRetryAvailable,
+                source_version: "0.1.0".to_owned(),
+                target_version: "0.2.0".to_owned(),
+                attempts_completed: 1,
+                maximum_attempts: 3,
+            })
+        );
         transition_active_linux_update_recovery(
             &harness.recovery_root,
             prepared.recovery_id(),
@@ -3185,6 +3297,104 @@ mod tests {
                 .expect("terminal failed phase")
                 .map(|(_, phase)| phase),
             Some(PackagedUpdateRecoveryPhase::RecoveryFailed)
+        );
+        assert_eq!(
+            query_linux_update_recovery_intervention_with(
+                &packages,
+                &harness.recovery_root,
+                Path::new(INSTALLED_EXECUTABLE_PATH),
+            )
+            .expect("manual intervention"),
+            Some(PackagedUpdateRecoveryIntervention {
+                kind: PackagedUpdateRecoveryInterventionKind::ManualReinstallRequired,
+                source_version: "0.1.0".to_owned(),
+                target_version: "0.2.0".to_owned(),
+                attempts_completed: 3,
+                maximum_attempts: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn begins_and_can_cancel_only_an_explicit_available_native_recovery_retry() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared =
+            prepare_linux_update_recovery_with(&packages, &harness.identity, harness.preparation())
+                .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_linux_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("watchdog context");
+        let watchdog = acquire_linux_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("watchdog lease");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_linux_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering");
+        let native = SyntheticNativeRecovery::new(vec![Err(
+            LinuxUpdateRecoveryError::AuthorizationUnavailable,
+        )]);
+        assert!(matches!(
+            restore_active_linux_update_recovery_with(
+                &packages,
+                &native,
+                &watchdog,
+                LinuxUpdateRecoveryRestoration {
+                    recovery_root: &harness.recovery_root,
+                    recovery_id: prepared.recovery_id(),
+                    expected_library_path: &harness.library_path,
+                },
+            )
+            .expect("failed native recovery"),
+            LinuxUpdateRecoveryRestorationOutcome::NativeRecoveryUnavailable { attempts: 1, .. }
+        ));
+        drop(watchdog);
+
+        let retry = begin_linux_update_recovery_retry_with(
+            &packages,
+            &harness.recovery_root,
+            Path::new(INSTALLED_EXECUTABLE_PATH),
+        )
+        .expect("authorized retry");
+        assert_eq!(retry.recovery_id(), prepared.recovery_id());
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root)
+                .expect("recovering retry")
+                .map(|(_, phase)| phase),
+            Some(PackagedUpdateRecoveryPhase::Recovering)
+        );
+        assert!(matches!(
+            begin_linux_update_recovery_retry_with(
+                &packages,
+                &harness.recovery_root,
+                Path::new(INSTALLED_EXECUTABLE_PATH),
+            ),
+            Err(LinuxRecoveryStateError::InvalidTransition)
+        ));
+
+        let retry_lease = acquire_linux_update_recovery_watchdog_lease_with(&packages, &retry)
+            .expect("retry cancellation lease");
+        cancel_linux_update_recovery_retry(&retry, &retry_lease).expect("cancel retry start");
+        assert_eq!(
+            active_linux_update_recovery_phase(&harness.recovery_root)
+                .expect("retry available again")
+                .map(|(_, phase)| phase),
+            Some(PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable)
         );
     }
 

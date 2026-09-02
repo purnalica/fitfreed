@@ -3,7 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
-import { UpdatePanel, type UpdateCheckOutcome } from "./UpdatePanel";
+import {
+  UpdatePanel,
+  type UpdateCheckOutcome,
+  type UpdateRecoveryIntervention,
+} from "./UpdatePanel";
 
 const invoke = vi.hoisted(() => vi.fn());
 const listen = vi.hoisted(() => vi.fn());
@@ -33,6 +37,27 @@ function outcome(overrides: Partial<UpdateCheckOutcome> = {}): UpdateCheckOutcom
   };
 }
 
+function withoutRecovery(
+  implementation: (command: string, arguments_?: unknown) => unknown,
+) {
+  invoke.mockImplementation((command, arguments_) => command === "query_update_recovery_intervention"
+    ? Promise.resolve(null)
+    : implementation(command, arguments_));
+}
+
+function recoveryIntervention(
+  overrides: Partial<UpdateRecoveryIntervention> = {},
+): UpdateRecoveryIntervention {
+  return {
+    status: "native-recovery-retry-available",
+    sourceVersion: "0.1.0",
+    targetVersion: "0.2.0",
+    attemptsCompleted: 1,
+    maximumAttempts: 3,
+    ...overrides,
+  };
+}
+
 afterEach(cleanup);
 
 beforeEach(() => {
@@ -49,11 +74,11 @@ beforeEach(() => {
 
 describe("UpdatePanel", () => {
   it("presents recurring attention outcomes and keeps recurring ordinary outcomes quiet", async () => {
-    invoke.mockResolvedValue(outcome({
+    withoutRecovery(() => Promise.resolve(outcome({
       status: "unconfigured",
       release: null,
       updateActionAvailable: false,
-    }));
+    })));
 
     render(
       <UpdatePanel
@@ -98,7 +123,7 @@ describe("UpdatePanel", () => {
 
   it("keeps the manual check action stable while announcing its progress", async () => {
     let completeCheck: (result: UpdateCheckOutcome) => void = () => undefined;
-    invoke.mockImplementation((command) => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") {
         return Promise.resolve(outcome({
           status: "unconfigured",
@@ -139,7 +164,7 @@ describe("UpdatePanel", () => {
 
   it("announces an authenticated launch update and persists a 24-hour postponement", async () => {
     let completePostponement: (until: string) => void = () => undefined;
-    invoke.mockImplementation((command) => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
       if (command === "postpone_available_update") {
         return new Promise((resolve) => {
@@ -186,7 +211,7 @@ describe("UpdatePanel", () => {
 
   it("installs the exact authorized candidate and prevents conflicting actions", async () => {
     let completeInstallation!: () => void;
-    invoke.mockImplementation((command) => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
       if (command === "install_available_update") {
         return new Promise<void>((resolve) => {
@@ -225,7 +250,7 @@ describe("UpdatePanel", () => {
   });
 
   it("reports an installation failure without losing the trusted release", async () => {
-    invoke.mockImplementation((command) => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
       if (command === "install_available_update") {
         return Promise.reject({ code: "update-native-installer-failed", detail: "private path" });
@@ -256,7 +281,7 @@ describe("UpdatePanel", () => {
   });
 
   it("disables installation while another desktop mutation is active", async () => {
-    invoke.mockResolvedValue(outcome());
+    withoutRecovery(() => Promise.resolve(outcome()));
 
     render(
       <UpdatePanel
@@ -276,7 +301,7 @@ describe("UpdatePanel", () => {
 
   it("persists dismissal for the exact candidate and keeps manual checking available", async () => {
     let completeDismissal: () => void = () => undefined;
-    invoke.mockImplementation((command) => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
       if (command === "dismiss_available_update") {
         return new Promise<void>((resolve) => {
@@ -315,7 +340,7 @@ describe("UpdatePanel", () => {
   });
 
   it("reveals quiet manual outcomes and retries every button activation", async () => {
-    invoke.mockImplementation((command) => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") {
         return Promise.resolve(outcome({ status: "unconfigured", release: null,
           updateActionAvailable: false }));
@@ -349,7 +374,7 @@ describe("UpdatePanel", () => {
 
   it("does not let an older launch response replace a newer manual result", async () => {
     let completeLaunch!: (result: UpdateCheckOutcome) => void;
-    invoke.mockImplementation((command) => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") {
         return new Promise<UpdateCheckOutcome>((resolve) => {
           completeLaunch = resolve;
@@ -384,7 +409,7 @@ describe("UpdatePanel", () => {
   });
 
   it("shows withdrawal guidance but never offers a dismiss or postpone action", async () => {
-    invoke.mockResolvedValue(outcome({
+    withoutRecovery(() => Promise.resolve(outcome({
       status: "withdrawn-installed",
       installedWithdrawal: {
         version: "0.1.0",
@@ -392,7 +417,7 @@ describe("UpdatePanel", () => {
         guidance: "Stop importing and preserve your library before upgrading.",
         replacementVersion: "0.2.0",
       },
-    }));
+    })));
 
     render(
       <UpdatePanel
@@ -417,11 +442,22 @@ describe("UpdatePanel", () => {
   });
 
   it("explains manual recovery and rejected trust without offering ordinary update actions", async () => {
-    invoke.mockResolvedValueOnce(outcome({
-      status: "manual-recovery-required",
-      manualRecoveryReason: "library-schema-unsupported",
-      updateActionAvailable: false,
-    }));
+    const results = [
+      outcome({
+        status: "manual-recovery-required",
+        manualRecoveryReason: "library-schema-unsupported",
+        updateActionAvailable: false,
+      }),
+      outcome({
+        status: "untrusted",
+        release: null,
+        updateActionAvailable: false,
+        trustFailure: "invalid-signature",
+      }),
+    ];
+    withoutRecovery((command) => command === "check_for_updates_on_launch"
+      ? Promise.resolve(results.shift())
+      : Promise.reject(new Error(`Unexpected command: ${command}`)));
     const view = render(
       <UpdatePanel
         locale="en-US"
@@ -438,12 +474,6 @@ describe("UpdatePanel", () => {
       .not.toBeInTheDocument();
 
     view.unmount();
-    invoke.mockResolvedValueOnce(outcome({
-      status: "untrusted",
-      release: null,
-      updateActionAvailable: false,
-      trustFailure: "invalid-signature",
-    }));
     render(
       <UpdatePanel
         locale="en-US"
@@ -461,8 +491,122 @@ describe("UpdatePanel", () => {
       .not.toBeInTheDocument();
   });
 
-  it("reports a privacy-safe command code without replacing the previous outcome", async () => {
+  it("makes an explicit native recovery retry the only available update action", async () => {
     invoke.mockImplementation((command) => {
+      if (command === "query_update_recovery_intervention") {
+        return Promise.resolve(recoveryIntervention());
+      }
+      if (command === "retry_update_recovery") return new Promise(() => {});
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const panel = await screen.findByRole("region", { name: "Application updates" });
+    expect(await within(panel).findByRole("heading", {
+      name: "Update recovery needs your permission",
+    })).toBeVisible();
+    expect(within(panel).getByText(/restore version 0.1.0/)).toBeVisible();
+    expect(within(panel).getByText(/1 of 3 recovery attempts/)).toBeVisible();
+    expect(invoke).not.toHaveBeenCalledWith("check_for_updates_on_launch");
+    expect(within(panel).queryByRole("button", { name: "Check now" }))
+      .not.toBeInTheDocument();
+
+    const retry = within(panel).getByRole("button", { name: "Retry recovery and restart" });
+    await user.click(retry);
+    expect(invoke).toHaveBeenCalledWith("retry_update_recovery");
+    expect(retry).toBeDisabled();
+    expect(panel).toHaveAttribute("aria-busy", "true");
+    expect(within(panel).getByRole("status")).toHaveTextContent(
+      "Starting the protected recovery…",
+    );
+  });
+
+  it("retains failed recovery evidence and gives manual reinstall guidance without retry", async () => {
+    invoke.mockImplementation((command) => command === "query_update_recovery_intervention"
+      ? Promise.resolve(recoveryIntervention({
+        status: "manual-reinstall-required",
+        attemptsCompleted: 3,
+      }))
+      : Promise.reject(new Error(`Unexpected command: ${command}`)));
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const panel = await screen.findByRole("region", { name: "Application updates" });
+    expect(await within(panel).findByRole("heading", {
+      name: "Manual reinstall required",
+    })).toBeVisible();
+    expect(within(panel).getByText(/Reinstall version 0.1.0/)).toBeVisible();
+    expect(within(panel).getByText(/recovery evidence remain on this device/)).toBeVisible();
+    expect(within(panel).queryByRole("button", { name: "Retry recovery and restart" }))
+      .not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: "Check now" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("fails closed when recovery state cannot be read", async () => {
+    invoke.mockRejectedValue({
+      code: "update-recovery-query-failed",
+      detail: "/private/update-recovery",
+    });
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("could not verify the local update-recovery state");
+    expect(alert).not.toHaveTextContent("/private/update-recovery");
+    expect(invoke).not.toHaveBeenCalledWith("check_for_updates_on_launch");
+  });
+
+  it("keeps manual checking available when only the launch update check fails", async () => {
+    withoutRecovery((command) => command === "check_for_updates_on_launch"
+      ? Promise.reject({ code: "update-channel-failed", detail: "private URL" })
+      : Promise.reject(new Error(`Unexpected command: ${command}`)));
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const panel = await screen.findByRole("region", { name: "Application updates" });
+    expect(await within(panel).findByRole("alert")).toHaveTextContent(
+      "could not complete the update check",
+    );
+    expect(within(panel).getByRole("button", { name: "Check now" })).toBeEnabled();
+  });
+
+  it("reports a privacy-safe command code without replacing the previous outcome", async () => {
+    withoutRecovery((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
       if (command === "check_for_updates") {
         return Promise.reject({ code: "update-channel-failed", detail: "private URL" });

@@ -78,6 +78,76 @@ pub enum PackagedUpdateRecoveryStartupAction {
     AwaitExplicitNativeRecoveryRetry,
 }
 
+pub const MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS: u8 = 3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PackagedUpdateRecoveryInterventionKind {
+    NativeRecoveryRetryAvailable,
+    ManualReinstallRequired,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackagedUpdateRecoveryIntervention {
+    pub kind: PackagedUpdateRecoveryInterventionKind,
+    pub source_version: String,
+    pub target_version: String,
+    pub attempts_completed: u8,
+    pub maximum_attempts: u8,
+}
+
+#[derive(Debug, Clone, Copy, Error, PartialEq, Eq)]
+pub enum PackagedUpdateRecoveryRetryError {
+    #[error("native update recovery retry is unavailable")]
+    Unavailable,
+    #[error("native update recovery retry attempts are exhausted")]
+    Exhausted,
+}
+
+pub fn describe_packaged_update_recovery_intervention(
+    phase: PackagedUpdateRecoveryPhase,
+    source_version: &str,
+    target_version: &str,
+    attempts_completed: u8,
+) -> Option<PackagedUpdateRecoveryIntervention> {
+    let kind = match phase {
+        PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable
+            if (1..MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS).contains(&attempts_completed) =>
+        {
+            PackagedUpdateRecoveryInterventionKind::NativeRecoveryRetryAvailable
+        }
+        PackagedUpdateRecoveryPhase::RecoveryFailed
+            if attempts_completed == MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS =>
+        {
+            PackagedUpdateRecoveryInterventionKind::ManualReinstallRequired
+        }
+        _ => return None,
+    };
+    Some(PackagedUpdateRecoveryIntervention {
+        kind,
+        source_version: source_version.to_owned(),
+        target_version: target_version.to_owned(),
+        attempts_completed,
+        maximum_attempts: MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS,
+    })
+}
+
+pub fn authorize_packaged_update_recovery_retry(
+    phase: PackagedUpdateRecoveryPhase,
+    attempts_completed: u8,
+) -> Result<(), PackagedUpdateRecoveryRetryError> {
+    if phase == PackagedUpdateRecoveryPhase::RecoveryFailed
+        || attempts_completed >= MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS
+    {
+        return Err(PackagedUpdateRecoveryRetryError::Exhausted);
+    }
+    if phase != PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable
+        || !(1..MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS).contains(&attempts_completed)
+    {
+        return Err(PackagedUpdateRecoveryRetryError::Unavailable);
+    }
+    Ok(())
+}
+
 pub fn decide_packaged_update_recovery_startup_action(
     phase: PackagedUpdateRecoveryPhase,
 ) -> PackagedUpdateRecoveryStartupAction {
@@ -452,5 +522,90 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn exposes_only_actionable_or_terminal_packaged_recovery_interventions() {
+        use PackagedUpdateRecoveryInterventionKind as Kind;
+        use PackagedUpdateRecoveryPhase as Phase;
+
+        assert_eq!(
+            describe_packaged_update_recovery_intervention(
+                Phase::NativeRecoveryUnavailable,
+                "0.1.0",
+                "0.2.0",
+                2,
+            ),
+            Some(PackagedUpdateRecoveryIntervention {
+                kind: Kind::NativeRecoveryRetryAvailable,
+                source_version: "0.1.0".to_owned(),
+                target_version: "0.2.0".to_owned(),
+                attempts_completed: 2,
+                maximum_attempts: MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS,
+            })
+        );
+        assert_eq!(
+            describe_packaged_update_recovery_intervention(
+                Phase::RecoveryFailed,
+                "0.1.0",
+                "0.2.0",
+                3,
+            ),
+            Some(PackagedUpdateRecoveryIntervention {
+                kind: Kind::ManualReinstallRequired,
+                source_version: "0.1.0".to_owned(),
+                target_version: "0.2.0".to_owned(),
+                attempts_completed: 3,
+                maximum_attempts: MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS,
+            })
+        );
+
+        for phase in [
+            Phase::Prepared,
+            Phase::ReplacementStarted,
+            Phase::ReplacementInstalled,
+            Phase::Launching,
+            Phase::Confirmed,
+            Phase::Recovering,
+            Phase::Recovered,
+        ] {
+            assert!(
+                describe_packaged_update_recovery_intervention(phase, "0.1.0", "0.2.0", 0,)
+                    .is_none()
+            );
+        }
+        assert!(describe_packaged_update_recovery_intervention(
+            Phase::NativeRecoveryUnavailable,
+            "0.1.0",
+            "0.2.0",
+            0,
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn authorizes_only_a_bounded_explicit_native_recovery_retry() {
+        use PackagedUpdateRecoveryPhase as Phase;
+
+        assert_eq!(
+            authorize_packaged_update_recovery_retry(Phase::NativeRecoveryUnavailable, 1),
+            Ok(())
+        );
+        assert_eq!(
+            authorize_packaged_update_recovery_retry(Phase::NativeRecoveryUnavailable, 2),
+            Ok(())
+        );
+        assert_eq!(
+            authorize_packaged_update_recovery_retry(Phase::NativeRecoveryUnavailable, 0),
+            Err(PackagedUpdateRecoveryRetryError::Unavailable)
+        );
+        assert_eq!(
+            authorize_packaged_update_recovery_retry(Phase::RecoveryFailed, 3),
+            Err(PackagedUpdateRecoveryRetryError::Exhausted)
+        );
+        assert_eq!(
+            authorize_packaged_update_recovery_retry(Phase::Recovering, 1),
+            Err(PackagedUpdateRecoveryRetryError::Unavailable)
+        );
     }
 }

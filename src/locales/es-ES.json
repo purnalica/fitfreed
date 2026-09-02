@@ -2520,8 +2520,18 @@
       "recoveredHeading": "Recuperación de actualización completada",
       "updated": "FitFreed se ha actualizado de la versión {sourceVersion} a la {targetVersion}. La aplicación instalada y la biblioteca local se han verificado antes de eliminar la copia de recuperación anterior.",
       "recovered": "FitFreed ha restaurado automáticamente la versión {sourceVersion} después de que la actualización a la versión {targetVersion} no se completara. La aplicación restaurada y la biblioteca local se han verificado.",
-      "acknowledge": "Descartar resultado de actualización",
-      "acknowledging": "Descartando…"
+     "acknowledge": "Descartar resultado de actualización",
+      "acknowledging": "Descartando…",
+      "intervention": {
+        "retryHeading": "La recuperación de la actualización necesita tu permiso",
+        "retryBody": "FitFreed no ha podido restaurar la versión {sourceVersion} después de la actualización a la {targetVersion}. Reintenta la recuperación protegida; el sistema operativo puede solicitar permiso de administración antes de que FitFreed se reinicie.",
+        "manualHeading": "Se necesita una reinstalación manual",
+        "manualBody": "FitFreed no ha podido restaurar la versión {sourceVersion} después de la actualización a la {targetVersion}. Reinstala la versión {sourceVersion} desde su paquete de versión verificado antes de intentar otra actualización.",
+        "attempts": "Se han completado {attemptsCompleted} de {maximumAttempts} intentos de recuperación.",
+        "evidenceRetained": "La biblioteca local y las pruebas verificadas de recuperación permanecen en este dispositivo.",
+        "retry": "Reintentar la recuperación y reiniciar",
+        "retrying": "Iniciando la recuperación protegida…"
+      }
     },
     "statuses": {
       "unconfigured": "La búsqueda de actualizaciones no está configurada en esta compilación de desarrollo.",
@@ -2646,6 +2656,9 @@
     "update-recovery-failed": "FitFreed no ha podido preparar o avanzar la recuperación segura de la actualización. Conserva los datos de la aplicación y reinstálala manualmente antes de volver a intentarlo.",
     "update-recovery-confirmation-failed": "FitFreed no ha podido confirmar la aplicación y la biblioteca actualizadas. Mantén la aplicación abierta mientras finaliza la recuperación automática.",
     "update-recovery-outcome-failed": "FitFreed no ha podido finalizar o confirmar la recuperación de la actualización de forma segura. Conserva los datos de la aplicación y reiníciala antes de intentar otra actualización.",
+    "update-recovery-query-failed": "FitFreed no ha podido verificar el estado local de recuperación de la actualización. Conserva los datos de la aplicación y no intentes otra actualización hasta que se haya investigado el problema.",
+    "update-recovery-intervention-required": "La actualización anterior todavía necesita recuperación. Completa la acción de recuperación mostrada en Ajustes antes de intentar otra actualización.",
+    "update-recovery-retry-failed": "FitFreed no ha podido iniciar el reintento de recuperación protegida. La biblioteca local y las pruebas de recuperación permanecen conservadas; reinicia FitFreed antes de volver a intentarlo.",
     "invalid-report-definition": "La definición del informe no es válida. Revisa el título, la interpretación y la sesión de origen.",
     "report-not-found": "Ese informe ya no existe en la biblioteca local. Actualiza la lista de informes.",
     "report-definition-conflict": "El informe cambió mientras estaba abierto. Vuelve a cargarlo antes de guardarlo de nuevo.",

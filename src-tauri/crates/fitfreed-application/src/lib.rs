@@ -289,13 +289,16 @@ pub use update::{
 };
 mod update_recovery;
 pub use update_recovery::{
-    decide_packaged_update_recovery_startup_action,
+    authorize_packaged_update_recovery_retry, decide_packaged_update_recovery_startup_action,
     decide_packaged_update_recovery_watchdog_action, decide_update_recovery_watchdog_action,
-    validate_packaged_update_recovery_transition, validate_update_recovery_transition,
-    InvalidPackagedUpdateRecoveryTransition, InvalidUpdateRecoveryTransition,
-    PackagedUpdateRecoveryPhase, PackagedUpdateRecoveryStartupAction,
+    describe_packaged_update_recovery_intervention, validate_packaged_update_recovery_transition,
+    validate_update_recovery_transition, InvalidPackagedUpdateRecoveryTransition,
+    InvalidUpdateRecoveryTransition, PackagedUpdateRecoveryIntervention,
+    PackagedUpdateRecoveryInterventionKind, PackagedUpdateRecoveryPhase,
+    PackagedUpdateRecoveryRetryError, PackagedUpdateRecoveryStartupAction,
     PackagedUpdateRecoveryWatchdogAction, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
     UpdateRecoveryPhase, UpdateRecoveryWatchdogAction, UpdateRecoveryWatchdogEvent,
+    MAX_PACKAGED_UPDATE_RECOVERY_ATTEMPTS,
 };
 mod source_acquisition;
 pub use source_acquisition::{

@@ -212,9 +212,11 @@ pub use update_recovery_linux_package::{
 #[cfg(any(test, target_os = "linux"))]
 pub use update_recovery_linux_state::{
     acquire_linux_update_recovery_candidate_lease, acquire_linux_update_recovery_watchdog_lease,
-    active_linux_update_recovery_phase, confirm_active_linux_update_recovery,
+    active_linux_update_recovery_phase, begin_linux_update_recovery_retry,
+    cancel_linux_update_recovery_retry, confirm_active_linux_update_recovery,
     discard_prepared_linux_update_recovery, maintain_linux_update_recovery,
     maintain_linux_update_recovery_with_watchdog_lease, prepare_linux_update_recovery,
+    query_linux_update_recovery_intervention,
     record_active_linux_update_recovery_replacement_launch,
     resolve_active_linux_update_recovery_watchdog_context,
     resolve_linux_update_recovery_watchdog_context, restore_active_linux_update_recovery,
@@ -234,8 +236,9 @@ pub use update_watchdog::{
 };
 #[cfg(any(test, target_os = "linux"))]
 pub use update_watchdog_linux::{
-    reattach_linux_update_recovery_watchdog, run_linux_update_recovery_watchdog,
-    start_linux_update_recovery_watchdog, StartedLinuxUpdateRecoveryWatchdog,
+    reattach_linux_update_recovery_watchdog, retry_linux_update_recovery,
+    run_linux_update_recovery_watchdog, start_linux_update_recovery_watchdog,
+    StartedLinuxUpdateRecoveryWatchdog,
 };
 pub use update_watchdog_protocol::{
     UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,

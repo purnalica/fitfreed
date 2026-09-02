@@ -78,9 +78,9 @@ use fitfreed_application::{
     update_session_report as update_session_report_through_port,
     update_training_segment_criterion as update_segment_criterion_through_port, ApplicationError,
     ApplicationPreferences, ImportCoordinator, ImportPhase, ImportProgress,
-    InvalidApplicationPreferences, LocalePreference, ReportExportCancellation, SessionStoryPorts,
-    UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger, UpdateInstallationAuthorization,
-    UpdateRecoveryOutcome,
+    InvalidApplicationPreferences, LocalePreference, PackagedUpdateRecoveryIntervention,
+    ReportExportCancellation, SessionStoryPorts, UpdateChannelPort, UpdateCheckContext,
+    UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
@@ -99,7 +99,8 @@ use infrastructure::{
 use infrastructure::{
     acquire_linux_update_recovery_candidate_lease, confirm_active_linux_update_recovery,
     download_verified_predecessor, maintain_linux_update_recovery,
-    reattach_linux_update_recovery_watchdog, resolve_linux_update_installation_path,
+    query_linux_update_recovery_intervention, reattach_linux_update_recovery_watchdog,
+    resolve_linux_update_installation_path, retry_linux_update_recovery,
     run_linux_update_recovery_watchdog, LinuxUpdateRecoveryCandidateLease,
 };
 #[cfg(not(target_os = "linux"))]
@@ -149,8 +150,9 @@ use presentation::{
     TrainingSessionStructureQueryDto, TrainingSessionStructureResultDto,
     TrainingSessionZonesQueryDto, TrainingSessionZonesResultDto, TrainingSignalSamplesQueryDto,
     TrainingSignalSamplesResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
-    UpdateComposedSessionReportRequestDto, UpdateRecoveryOutcomeDto, UpdateReportRequestDto,
-    UpdateSessionReportRequestDto, UpdateTrainingSegmentCriterionRequestDto,
+    UpdateComposedSessionReportRequestDto, UpdateRecoveryInterventionDto, UpdateRecoveryOutcomeDto,
+    UpdateReportRequestDto, UpdateSessionReportRequestDto,
+    UpdateTrainingSegmentCriterionRequestDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -1673,6 +1675,59 @@ async fn postpone_available_update(
 }
 
 #[tauri::command]
+async fn query_update_recovery_intervention(
+    app: AppHandle,
+    coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
+) -> Result<Option<UpdateRecoveryInterventionDto>, CommandErrorDto> {
+    let _operation = coordinator.reserve().await;
+    let library_path =
+        database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let recovery_root = library_path
+        .parent()
+        .map(|parent| parent.join("update-recovery"))
+        .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
+    let executable =
+        env::current_exe().map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
+    let installed_target = packaged_update_recovery_target(&executable);
+    tauri::async_runtime::spawn_blocking(move || {
+        query_platform_update_recovery_intervention(&recovery_root, &installed_target)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+    .map(|intervention| intervention.map(Into::into))
+    .map_err(|_| CommandErrorDto::new("update-recovery-query-failed"))
+}
+
+#[tauri::command]
+async fn retry_update_recovery(
+    app: AppHandle,
+    update_coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
+    import_coordinator: State<'_, ImportCoordinator>,
+) -> Result<(), CommandErrorDto> {
+    let _update_operation = update_coordinator.reserve().await;
+    let _import_operation = import_coordinator
+        .reserve_exclusive_operation()
+        .map_err(map_exclusive_operation_error)?;
+    let library_path =
+        database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let recovery_root = library_path
+        .parent()
+        .map(|parent| parent.join("update-recovery"))
+        .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
+    let executable =
+        env::current_exe().map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
+    let installed_target = packaged_update_recovery_target(&executable);
+    tauri::async_runtime::spawn_blocking(move || {
+        retry_platform_update_recovery(&recovery_root, &installed_target)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+    .map_err(|_| CommandErrorDto::new("update-recovery-retry-failed"))?;
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
 async fn install_available_update(
     app: AppHandle,
     channel: State<'_, Arc<HttpsUpdateChannel>>,
@@ -1699,6 +1754,19 @@ async fn install_available_update(
         .parent()
         .map(|parent| parent.join("update-recovery"))
         .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
+    let recovery_check_root = recovery_root.clone();
+    let recovery_check_target = current_application_path.clone();
+    let recovery_intervention = tauri::async_runtime::spawn_blocking(move || {
+        query_platform_update_recovery_intervention(&recovery_check_root, &recovery_check_target)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+    .map_err(|_| CommandErrorDto::new("update-recovery-query-failed"))?;
+    if recovery_intervention.is_some() {
+        return Err(CommandErrorDto::new(
+            "update-recovery-intervention-required",
+        ));
+    }
     let channel = Arc::clone(channel.inner());
     let authorization_path = library_path.clone();
     let installed_version = app.package_info().version.to_string();
@@ -2348,6 +2416,19 @@ fn installed_update_recovery_target(executable: &Path) -> Result<PathBuf, ()> {
     }
 }
 
+fn packaged_update_recovery_target(executable: &Path) -> PathBuf {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = executable;
+        PathBuf::from("/usr/bin/fitfreed")
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        executable.to_owned()
+    }
+}
+
 fn resolve_platform_update_installation_target(executable: &Path) -> Result<PathBuf, ()> {
     #[cfg(target_os = "linux")]
     {
@@ -2374,6 +2455,37 @@ fn maintain_platform_update_recovery(
     #[cfg(not(target_os = "linux"))]
     {
         maintain_update_recovery(recovery_root, installed_target, library_path).map_err(|_| ())
+    }
+}
+
+fn query_platform_update_recovery_intervention(
+    recovery_root: &Path,
+    installed_target: &Path,
+) -> Result<Option<PackagedUpdateRecoveryIntervention>, ()> {
+    #[cfg(target_os = "linux")]
+    {
+        query_linux_update_recovery_intervention(recovery_root, installed_target).map_err(|_| ())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (recovery_root, installed_target);
+        Ok(None)
+    }
+}
+
+fn retry_platform_update_recovery(recovery_root: &Path, installed_target: &Path) -> Result<(), ()> {
+    #[cfg(target_os = "linux")]
+    {
+        retry_linux_update_recovery(recovery_root, installed_target)
+            .map(|_| ())
+            .map_err(|_| ())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (recovery_root, installed_target);
+        Err(())
     }
 }
 
@@ -2576,6 +2688,8 @@ pub fn run() {
             check_for_updates,
             dismiss_available_update,
             postpone_available_update,
+            query_update_recovery_intervention,
+            retry_update_recovery,
             install_available_update,
             confirm_update_recovery_startup,
             acknowledge_update_recovery_notice,
@@ -3034,6 +3148,20 @@ mod tests {
             ]),
             StartupMode::InvalidPrivateMode
         ));
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    #[test]
+    fn packaged_recovery_query_does_not_require_a_packaged_application_on_other_platforms() {
+        let directory = TempDir::new().expect("temporary directory");
+        let unpackaged_executable = directory.path().join("debug").join("fitfreed");
+        let recovery_target = packaged_update_recovery_target(&unpackaged_executable);
+
+        assert_eq!(recovery_target, unpackaged_executable);
+        assert_eq!(
+            query_platform_update_recovery_intervention(directory.path(), &recovery_target),
+            Ok(None)
+        );
     }
 
     #[test]

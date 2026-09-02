@@ -2521,7 +2521,17 @@
       "updated": "FitFreed updated from version {sourceVersion} to {targetVersion}. The installed application and local library were verified before the previous recovery copy was removed.",
       "recovered": "FitFreed automatically restored version {sourceVersion} after the update to version {targetVersion} did not complete. The restored application and local library were verified.",
       "acknowledge": "Dismiss update result",
-      "acknowledging": "Dismissing…"
+      "acknowledging": "Dismissing…",
+      "intervention": {
+        "retryHeading": "Update recovery needs your permission",
+        "retryBody": "FitFreed could not restore version {sourceVersion} after the update to {targetVersion}. Retry the protected recovery; the operating system may ask for administrator permission before FitFreed restarts.",
+        "manualHeading": "Manual reinstall required",
+        "manualBody": "FitFreed could not restore version {sourceVersion} after the update to {targetVersion}. Reinstall version {sourceVersion} from its verified release package before attempting another update.",
+        "attempts": "Completed {attemptsCompleted} of {maximumAttempts} recovery attempts.",
+        "evidenceRetained": "Your local library and the verified recovery evidence remain on this device.",
+        "retry": "Retry recovery and restart",
+        "retrying": "Starting the protected recovery…"
+      }
     },
     "statuses": {
       "unconfigured": "Update checks are not configured in this development build.",
@@ -2646,6 +2656,9 @@
     "update-recovery-failed": "FitFreed could not prepare or advance safe update recovery. Preserve the application data and reinstall manually before retrying.",
     "update-recovery-confirmation-failed": "FitFreed could not confirm the updated application and library. Keep the application open while automatic recovery completes.",
     "update-recovery-outcome-failed": "FitFreed could not finish or acknowledge update recovery safely. Preserve the application data and restart before trying another update.",
+    "update-recovery-query-failed": "FitFreed could not verify the local update-recovery state. Preserve the application data and do not attempt another update until the problem has been investigated.",
+    "update-recovery-intervention-required": "The previous update still requires recovery. Complete the recovery action shown in Settings before attempting another update.",
+    "update-recovery-retry-failed": "FitFreed could not start the protected recovery retry. The local library and recovery evidence remain preserved; restart FitFreed before trying again.",
     "invalid-report-definition": "The report definition is not valid. Review its title, interpretation, and source session.",
     "report-not-found": "That report no longer exists in the local library. Reload the report list.",
     "report-definition-conflict": "This report changed while it was open. Reload it before saving again.",

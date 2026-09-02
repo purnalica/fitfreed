@@ -22,7 +22,7 @@ type ManualRecoveryReason = keyof (typeof catalogs)["en-US"]["updates"]["manualR
 type TrustFailure = keyof (typeof catalogs)["en-US"]["updates"]["trustFailures"];
 type WithdrawalReason = keyof (typeof catalogs)["en-US"]["updates"]["withdrawalReasons"];
 type UpdateMessages = (typeof catalogs)["en-US"]["updates"];
-type BusyAction = "check" | "dismiss" | "postpone" | "install";
+type BusyAction = "check" | "dismiss" | "postpone" | "install" | "recovery";
 
 interface UpdateRelease {
   version: string;
@@ -49,6 +49,14 @@ export interface UpdateCheckOutcome {
   postponedUntil: string | null;
   manualRecoveryReason: ManualRecoveryReason | null;
   trustFailure: TrustFailure | null;
+}
+
+export interface UpdateRecoveryIntervention {
+  status: "native-recovery-retry-available" | "manual-reinstall-required";
+  sourceVersion: string;
+  targetVersion: string;
+  attemptsCompleted: number;
+  maximumAttempts: number;
 }
 
 interface UpdatePanelProps {
@@ -86,10 +94,14 @@ export function UpdatePanel({
   onInstallationStateChange,
 }: UpdatePanelProps) {
   const [outcome, setOutcome] = useState<UpdateCheckOutcome>();
+  const [recoveryIntervention, setRecoveryIntervention] =
+    useState<UpdateRecoveryIntervention | null>();
+  const [recoveryInterventionResolved, setRecoveryInterventionResolved] = useState(false);
   const [busyAction, setBusyAction] = useState<BusyAction>();
   const [manuallyRevealed, setManuallyRevealed] = useState(false);
   const [errorCode, setErrorCode] = useState<string>();
   const requestSequence = useRef(0);
+  const recoveryInterventionActive = useRef(false);
   const dateTime = useMemo(
     () => localMediumDateTimeFormatter(locale),
     [locale],
@@ -99,7 +111,7 @@ export function UpdatePanel({
     let active = true;
     let unlisten: UnlistenFn | undefined;
     void listen<UpdateCheckOutcome>(UPDATE_CHECK_COMPLETED_EVENT, (event) => {
-      if (!active) return;
+      if (!active || recoveryInterventionActive.current) return;
       requestSequence.current += 1;
       setOutcome(event.payload);
       setManuallyRevealed(false);
@@ -124,24 +136,52 @@ export function UpdatePanel({
     let active = true;
     requestSequence.current += 1;
     const requestId = requestSequence.current;
-    invoke<UpdateCheckOutcome>("check_for_updates_on_launch")
-      .then((result) => {
+    setRecoveryInterventionResolved(false);
+    void (async () => {
+      let intervention: UpdateRecoveryIntervention | null;
+      try {
+        intervention = await invoke<UpdateRecoveryIntervention | null>(
+          "query_update_recovery_intervention",
+        );
+      } catch (reason) {
+        if (active && requestId === requestSequence.current) {
+          recoveryInterventionActive.current = true;
+          setRecoveryIntervention(undefined);
+          setRecoveryInterventionResolved(true);
+          setOutcome(undefined);
+          setErrorCode(commandErrorCode(reason));
+        }
+        return;
+      }
+      if (!active || requestId !== requestSequence.current) return;
+      recoveryInterventionActive.current = intervention !== null;
+      setRecoveryIntervention(intervention);
+      setRecoveryInterventionResolved(true);
+      setErrorCode(undefined);
+      if (intervention) {
+        setOutcome(undefined);
+        return;
+      }
+      try {
+        const result = await invoke<UpdateCheckOutcome>("check_for_updates_on_launch");
         if (active && requestId === requestSequence.current) {
           setOutcome(result);
           setErrorCode(undefined);
         }
-      })
-      .catch((reason) => {
+      } catch (reason) {
         if (active && requestId === requestSequence.current) {
+          setOutcome(undefined);
           setErrorCode(commandErrorCode(reason));
         }
-      });
+      }
+    })();
     return () => {
       active = false;
     };
   }, [ready, refreshToken]);
 
   async function checkNow() {
+    if (recoveryInterventionActive.current) return;
     requestSequence.current += 1;
     const requestId = requestSequence.current;
     setBusyAction("check");
@@ -237,6 +277,24 @@ export function UpdatePanel({
     }
   }
 
+  async function retryRecovery() {
+    if (recoveryIntervention?.status !== "native-recovery-retry-available") return;
+    requestSequence.current += 1;
+    const requestId = requestSequence.current;
+    setBusyAction("recovery");
+    onInstallationStateChange?.(true);
+    setErrorCode(undefined);
+    try {
+      await invoke("retry_update_recovery");
+    } catch (reason) {
+      if (requestId === requestSequence.current) {
+        setErrorCode(commandErrorCode(reason));
+        setBusyAction(undefined);
+        onInstallationStateChange?.(false);
+      }
+    }
+  }
+
   function formatInstant(value: string): string {
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? value : dateTime.format(parsed);
@@ -294,6 +352,8 @@ export function UpdatePanel({
       ? messages.dismissing
       : busyAction === "postpone"
         ? messages.postponing
+        : busyAction === "recovery"
+          ? messages.recovery.intervention.retrying
         : undefined;
 
   return (
@@ -307,12 +367,52 @@ export function UpdatePanel({
           <h2 id="update-heading">{messages.heading}</h2>
           <p>{messages.intro}</p>
         </div>
-        <button type="button" className="secondary" onClick={checkNow} disabled={!ready || busy}>
-          {messages.checkNow}
-        </button>
+        {recoveryInterventionResolved && !recoveryInterventionActive.current && (
+          <button type="button" className="secondary" onClick={checkNow} disabled={!ready || busy}>
+            {messages.checkNow}
+          </button>
+        )}
       </div>
 
-      {outcome && (
+      {recoveryIntervention && (
+        <div
+          className={`update-result update-result-${recoveryIntervention.status}`}
+          aria-live="polite"
+        >
+          <h3>
+            {recoveryIntervention.status === "native-recovery-retry-available"
+              ? messages.recovery.intervention.retryHeading
+              : messages.recovery.intervention.manualHeading}
+          </h3>
+          <p>
+            {interpolate(
+              recoveryIntervention.status === "native-recovery-retry-available"
+                ? messages.recovery.intervention.retryBody
+                : messages.recovery.intervention.manualBody,
+              {
+                sourceVersion: recoveryIntervention.sourceVersion,
+                targetVersion: recoveryIntervention.targetVersion,
+              },
+            )}
+          </p>
+          <p>
+            {interpolate(messages.recovery.intervention.attempts, {
+              attemptsCompleted: String(recoveryIntervention.attemptsCompleted),
+              maximumAttempts: String(recoveryIntervention.maximumAttempts),
+            })}
+          </p>
+          <p>{messages.recovery.intervention.evidenceRetained}</p>
+          {recoveryIntervention.status === "native-recovery-retry-available" && (
+            <div className="update-actions">
+              <button type="button" onClick={retryRecovery} disabled={busy}>
+                {messages.recovery.intervention.retry}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!recoveryIntervention && outcome && (
         <dl className="update-installed-version">
           <div>
             <dt>{messages.installedVersion}</dt>
@@ -327,7 +427,7 @@ export function UpdatePanel({
         </p>
       )}
 
-      {showOutcome && (
+      {!recoveryIntervention && showOutcome && (
         <div
           className={`update-result update-result-${outcome.status}`}
           role="status"

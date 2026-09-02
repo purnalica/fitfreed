@@ -31,6 +31,7 @@ use super::update_watchdog_protocol::{
 };
 use super::{
     acquire_linux_update_recovery_watchdog_lease, active_linux_update_recovery_phase,
+    begin_linux_update_recovery_retry, cancel_linux_update_recovery_retry,
     discard_prepared_linux_update_recovery, maintain_linux_update_recovery_with_watchdog_lease,
     observe_linux_recovery_process, record_active_linux_update_recovery_replacement_launch,
     resolve_active_linux_update_recovery_watchdog_context,
@@ -103,6 +104,28 @@ pub fn reattach_linux_update_recovery_watchdog(
             Err(LinuxRecoveryStateError::ActiveAttemptExists) => Ok(None),
             Ok(lease) => {
                 drop(lease);
+                Err(start_error)
+            }
+            Err(error) => Err(error.into()),
+        },
+    }
+}
+
+pub fn retry_linux_update_recovery(
+    recovery_root: &Path,
+    installed_executable_path: &Path,
+) -> Result<Option<StartedLinuxUpdateRecoveryWatchdog>, UpdateRecoveryWatchdogError> {
+    let context = begin_linux_update_recovery_retry(recovery_root, installed_executable_path)?;
+    match spawn_linux_update_recovery_watchdog(
+        context.runnable_predecessor_executable_path(),
+        installed_executable_path,
+        UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    ) {
+        Ok(watchdog) => Ok(Some(watchdog)),
+        Err(start_error) => match acquire_linux_update_recovery_watchdog_lease(&context) {
+            Err(LinuxRecoveryStateError::ActiveAttemptExists) => Ok(None),
+            Ok(lease) => {
+                cancel_linux_update_recovery_retry(&context, &lease)?;
                 Err(start_error)
             }
             Err(error) => Err(error.into()),

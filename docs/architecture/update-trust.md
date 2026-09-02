@@ -115,9 +115,20 @@ attempt, applies application-owned restart policy, probes the exclusive watchdog
 watchdog under a distinct private restart mode when interrupted work remains. That mode closes a merely prepared
 attempt, begins recovery immediately after an interrupted native replacement, and continues later phases from their
 persisted evidence without duplicating an active watchdog. It does not automatically repeat unavailable native
-authorization. Explicit native-recovery retry and the package-shaped failure campaign remain open in M4.2.
+authorization. The host instead exposes a privacy-minimized, read-only recovery intervention derived from the active
+verified attempt. The application layer permits a bounded explicit retry only from `native-recovery-unavailable` and
+requires manual reinstall after the third failed native attempt. The Linux adapter proves exclusive watchdog
+availability before the transition and returns to the unavailable state if a new watchdog cannot start. The
+package-shaped failure campaign remains open in M4.2.
 
 The current presentation always offers an explicit check. A ready startup performs an immediate scheduled-policy evaluation. The desktop host then owns a process-lifetime 24-hour schedule, skips missed ticks and ticks that coincide with another update operation, and emits only the existing closed outcome DTO. Scheduled launch and recurring outcomes remain quiet when they are unconfigured, offline, current, dismissed, or postponed; available releases, withdrawal guidance, manual-recovery requirements, and rejected trust are announced. A manual check reveals every outcome. The update surface marks itself busy, keeps check, installation, candidate dismissal, and postponement action names stable, and announces the exact localized operation without replacing the trusted outcome. One asynchronous host coordinator serializes launch, manual, dismissal, postponement, and installation operations so channel access and persisted policy state cannot race. Install, dismiss, and 24-hour postpone actions are offered only for an ordinary available release. Installation sends only the exact displayed version, announces that application and library preservation precede replacement, exposes a distinct busy state, and disables update, import, archive-selection, and locale mutations while the command owns the workflow. An active import disables installation. A native success closes the original process; a failure returns a fixed localized code, restores the controls, and retains the authenticated release for retry. On the next ready startup, the host returns only `updated` or `recovered` and the source and target versions from the durable receipt. React presents the localized result until explicit acknowledgement succeeds; its stable dismissal action and separate busy announcement preserve the result throughout that write. Neither the private recovery identifier nor a filesystem locator enters the DTO or failure message. Dismiss and postpone revalidate the same exact candidate against persisted trusted state. None of these actions is offered for a withdrawn installed version. The ordinary development build has no channel or trust key, performs no network request, and therefore exposes no installable candidate. The public build wrapper strips inherited public-update values and adds them only from a complete active versioned configuration. E2E transport accepts one explicitly named synthetic contract and cannot coexist with compiled public trust.
+
+On Linux, the update surface resolves recovery intervention before making any channel request. An available recovery
+retry replaces every ordinary update control with the exact source and target versions, completed-attempt count,
+retained-evidence statement, and one explicit retry-and-restart action. Exhaustion replaces that action with manual
+reinstall guidance. Failure to verify intervention state hides every update action; a separate channel-check failure
+does not hide manual checking. Query, retry, installation, and import are serialized through the host coordinators,
+and a retry never accepts a recovery identifier, path, package, or command from React.
 
 ## Verification pipeline
 
