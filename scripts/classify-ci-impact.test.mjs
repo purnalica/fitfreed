@@ -230,13 +230,16 @@ test("reuses a documentation-only result only with matching successful evidence"
   );
 });
 
-test("wires the fail-closed classifier into both hosted verification lanes", () => {
+test("wires the fail-closed classifier into every hosted verification lane", () => {
   const workflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
   const qualityJob = workflow.match(
     /  quality:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
   )?.groups?.body;
   const packagedMacosJob = workflow.match(
     /  packaged-macos-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
+  )?.groups?.body;
+  const packagedLinuxUpdateJob = workflow.match(
+    /  packaged-linux-update-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
   )?.groups?.body;
 
   assert.match(workflow, /fetch-depth: 0/);
@@ -262,7 +265,14 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
     workflow,
     /if: needs\.quality\.outputs\.full-verification == 'true'/,
   );
-  assert.match(workflow, /needs: \[quality, packaged-macos-e2e\]/);
+  assert.match(
+    workflow,
+    /needs: \[quality, packaged-macos-e2e, packaged-linux-update-e2e\]/,
+  );
+  assert.match(
+    workflow,
+    /needs\.packaged-linux-update-e2e\.result == 'success'/,
+  );
   assert.match(workflow, /uses: actions\/cache\/save@[0-9a-f]{40}/);
   assert.match(qualityJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(qualityJob ?? "", /npm run test:rust/);
@@ -277,4 +287,11 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
     /cargo test --manifest-path src-tauri\/Cargo\.toml -p fitfreed-domain -p fitfreed-application/,
   );
   assert.match(packagedMacosJob ?? "", /^    timeout-minutes: 95$/m);
+  assert.match(packagedLinuxUpdateJob ?? "", /^    needs: quality$/m);
+  assert.match(
+    packagedLinuxUpdateJob ?? "",
+    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
+  );
+  assert.match(packagedLinuxUpdateJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
+  assert.match(packagedLinuxUpdateJob ?? "", /npm run verify:linux-update-e2e/);
 });

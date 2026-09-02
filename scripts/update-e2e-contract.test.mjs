@@ -20,10 +20,12 @@ test("classifies version-overridden packages only as updater-mechanics evidence"
   );
 });
 
-test("maps the supported macOS architectures to update-channel targets", () => {
+test("maps the supported package-shaped E2E hosts to update-channel targets", () => {
   assert.equal(updateTarget("darwin", "arm64"), "darwin-aarch64");
   assert.equal(updateTarget("darwin", "x64"), "darwin-x86_64");
-  assert.throws(() => updateTarget("linux", "arm64"), /macOS/);
+  assert.equal(updateTarget("linux", "x64"), "linux-x86_64-deb");
+  assert.throws(() => updateTarget("linux", "arm64"), /architecture/);
+  assert.throws(() => updateTarget("win32", "x64"), /platform/);
   assert.throws(() => updateTarget("darwin", "ia32"), /architecture/);
 });
 
@@ -58,6 +60,40 @@ test("builds synthetic updates with the canonical production application identit
       productionIdentifier: "",
     }),
     /production application identifier/,
+  );
+
+  assert.deepEqual(
+    createUpdateBuildConfiguration({
+      version: "0.2.0",
+      createUpdaterArtifacts: false,
+      publicKey: "synthetic-public-key",
+      productionIdentifier: "org.fitfreed.desktop",
+      bundleTarget: "deb",
+    }),
+    {
+      identifier: "org.fitfreed.desktop",
+      version: "0.2.0",
+      bundle: {
+        targets: ["deb"],
+        createUpdaterArtifacts: false,
+      },
+      plugins: {
+        updater: {
+          pubkey: "synthetic-public-key",
+          endpoints: [],
+        },
+      },
+    },
+  );
+  assert.throws(
+    () => createUpdateBuildConfiguration({
+      version: "0.2.0",
+      createUpdaterArtifacts: false,
+      publicKey: "synthetic-public-key",
+      productionIdentifier: "org.fitfreed.desktop",
+      bundleTarget: "rpm",
+    }),
+    /bundle target/,
   );
 });
 

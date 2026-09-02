@@ -70,6 +70,7 @@ npm run test:fast
 | Inspect the generated Debian identity and installed layout | `npm run verify:linux-package` |
 | Generate the deterministic exact Debian package inventory | `npm run inventory:linux-package` |
 | Install and remove the Debian package in a clean Ubuntu 24.04 container | `npm run verify:linux-installation` |
+| Verify native Debian replacement and automatic recovery | `npm run verify:linux-update-e2e` |
 | Verify a complete signed Linux public candidate | `npm run verify:linux-public-release -- <candidate-directory>` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
@@ -123,6 +124,13 @@ identity and dynamic linking, purges FitFreed, and verifies removal. The reposit
 the clean environment. This repeatable engineering check does not replace graphical desktop installation or exact
 candidate evaluation on either supported Ubuntu release.
 
+Run `npm run verify:linux-update-e2e` on an x86-64 Linux desktop or CI host with Xvfb, WebKitWebDriver, SQLite,
+Polkit, and passwordless `sudo` for the isolated package-test setup. The command builds and signs two instrumented
+Debian versions, installs and replaces the native package, and removes both its narrowly scoped temporary Polkit rule
+and package state. It never uses production update trust or publishes an artifact. Generated packages, keys,
+certificates, databases, recovery state, and privacy-safe failure evidence remain under ignored
+`.artifacts/linux-update-e2e`. This update-specific command does not replace the complete packaged capability journey.
+
 The instrumented executable resolves to `fitfreed` on macOS and Linux and `fitfreed.exe` on Windows. macOS builds an
 isolated application bundle; Linux and Windows host admission builds the isolated executable without an unrelated
 installer. The instrumented macOS application has its own stable bundle identity. To keep local E2E windows away from
@@ -130,7 +138,9 @@ an active Desktop, run `npm run build:e2e`, open the generated
 `src-tauri/target/e2e/release/bundle/macos/FitFreed.app`, then use **Dock → Options → Assign To → This Desktop** once.
 macOS retains that assignment for subsequent E2E rebuilds. This is a local development preference rather than a test
 prerequisite; macOS does not expose a supported API for automation to move an arbitrary application window between
-Spaces.
+Spaces. Use `npm run verify:e2e` for acceptance evidence because it always rebuilds the instrumented application before
+the packaged journeys. A direct WebdriverIO command deliberately reuses the existing package and is suitable only for
+repeating a test against the exact source from which that package was built.
 
 ## Synthetic fixture workflow
 

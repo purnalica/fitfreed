@@ -11,12 +11,16 @@ export function assertSyntheticUpdateBoundary(matrixSummary) {
 }
 
 export function updateTarget(platform, architecture) {
-  if (platform !== "darwin") {
-    throw new Error("Packaged update E2E is supported only on macOS");
+  if (platform === "darwin") {
+    if (architecture === "arm64") return "darwin-aarch64";
+    if (architecture === "x64") return "darwin-x86_64";
+    throw new Error(`Unsupported macOS architecture: ${architecture}`);
   }
-  if (architecture === "arm64") return "darwin-aarch64";
-  if (architecture === "x64") return "darwin-x86_64";
-  throw new Error(`Unsupported macOS architecture: ${architecture}`);
+  if (platform === "linux") {
+    if (architecture === "x64") return "linux-x86_64-deb";
+    throw new Error(`Unsupported Linux architecture: ${architecture}`);
+  }
+  throw new Error(`Unsupported packaged update E2E platform: ${platform}`);
 }
 
 export function createUpdateBuildConfiguration({
@@ -24,15 +28,19 @@ export function createUpdateBuildConfiguration({
   createUpdaterArtifacts,
   publicKey,
   productionIdentifier,
+  bundleTarget = "app",
 }) {
   if (typeof productionIdentifier !== "string" || productionIdentifier.trim() === "") {
     throw new Error("The production application identifier is required");
+  }
+  if (!["app", "deb"].includes(bundleTarget)) {
+    throw new Error("The packaged update E2E bundle target is unsupported");
   }
   return {
     identifier: productionIdentifier,
     version,
     bundle: {
-      targets: ["app"],
+      targets: [bundleTarget],
       createUpdaterArtifacts,
     },
     plugins: {
