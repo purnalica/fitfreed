@@ -83,36 +83,87 @@ export function linuxInstallerFailureScript() {
   return "#!/bin/sh\nset -eu\nexit 42\n";
 }
 
+export function createLinuxUpdateTransportGate() {
+  let open = true;
+  let requestsWhileClosed = 0;
+  return Object.freeze({
+    allowRequest() {
+      if (open) return true;
+      requestsWhileClosed += 1;
+      return false;
+    },
+    close() {
+      open = false;
+      requestsWhileClosed = 0;
+    },
+    open() {
+      open = true;
+    },
+    assertUnusedWhileClosed() {
+      if (requestsWhileClosed !== 0) {
+        throw new Error("Linux recovery reached update transport while it was unavailable");
+      }
+    },
+  });
+}
+
 export function linuxUpdateScenarioPlan() {
   return [
     {
       name: "success",
       candidateVariant: "ordinary",
+      initialAuthorization: "candidate-and-predecessor",
       expectedOutcome: "updated",
       expectedVersion: candidateVersion,
     },
     {
       name: "installer-failure",
       candidateVariant: "installer-failure",
+      initialAuthorization: "candidate-and-predecessor",
       expectedOutcome: "recovered",
       expectedVersion: currentVersion,
     },
     {
       name: "candidate-failure",
       candidateVariant: "ordinary",
+      initialAuthorization: "candidate-and-predecessor",
+      expectedOutcome: "recovered",
+      expectedVersion: currentVersion,
+    },
+    {
+      name: "authorization-retry",
+      candidateVariant: "ordinary",
+      initialAuthorization: "candidate-only",
       expectedOutcome: "recovered",
       expectedVersion: currentVersion,
     },
   ];
 }
 
-export function createLinuxUpdatePolkitRule({ allowedRoot, user }) {
+export function createLinuxUpdatePolkitRule({
+  allowedRoot,
+  user,
+  allowedPackageRoles = ["candidate", "previous"],
+}) {
   if (!path.isAbsolute(allowedRoot)) {
     throw new Error("The Linux update E2E Polkit root must be absolute");
   }
   if (!/^[a-z_][a-z0-9_-]{0,63}$/i.test(user)) {
     throw new Error("The Linux update E2E Polkit user is invalid");
   }
+  const knownRoles = ["candidate", "previous"];
+  if (
+    !Array.isArray(allowedPackageRoles)
+    || allowedPackageRoles.length === 0
+    || allowedPackageRoles.some((role) => !knownRoles.includes(role))
+    || new Set(allowedPackageRoles).size !== allowedPackageRoles.length
+    || allowedPackageRoles.some((role, index) => role !== knownRoles[index])
+  ) {
+    throw new Error("The Linux update E2E Polkit package roles are invalid");
+  }
+  const allowedRolePattern = allowedPackageRoles.length === 1
+    ? allowedPackageRoles[0]
+    : `(${allowedPackageRoles.join("|")})`;
   const commandPrefix = `/usr/bin/dpkg --install ${allowedRoot}/`;
   return [
     "polkit.addRule(function(action, subject) {",
@@ -125,7 +176,7 @@ export function createLinuxUpdatePolkitRule({ allowedRoot, user }) {
     "    if (",
     '      typeof commandLine === "string" &&',
     `      commandLine.startsWith(${JSON.stringify(commandPrefix)}) &&`,
-    '      new RegExp("/update-recovery/attempts/[0-9a-f]{64}/(candidate|previous)/package[.]deb$").test(commandLine)',
+    `      new RegExp("/update-recovery/attempts/[0-9a-f]{64}/${allowedRolePattern}/package[.]deb$").test(commandLine)`,
     "    ) {",
     "      return polkit.Result.YES;",
     "    }",
@@ -366,6 +417,7 @@ async function availableTcpPort() {
 
 async function startUpdateServer(candidatePackages, predecessorPackage) {
   let envelopeBytes;
+  const transportGate = createLinuxUpdateTransportGate();
   const routes = new Map([["/predecessor.deb", predecessorPackage]]);
   for (const [variant, candidatePackage] of candidatePackages) {
     routes.set(`/candidate-${variant}.deb`, candidatePackage);
@@ -374,6 +426,11 @@ async function startUpdateServer(candidatePackages, predecessorPackage) {
     key: readFileSync(serverKeyPath),
     cert: readFileSync(serverCertificatePath),
   }, (request, response) => {
+    if (!transportGate.allowRequest()) {
+      response.writeHead(503, { "content-length": "0" });
+      response.end();
+      return;
+    }
     if (request.method !== "GET") {
       response.writeHead(405, { "content-length": "0" });
       response.end();
@@ -410,6 +467,15 @@ async function startUpdateServer(candidatePackages, predecessorPackage) {
     port: server.address().port,
     publish(bytes) {
       envelopeBytes = bytes;
+    },
+    closeTransport() {
+      transportGate.close();
+    },
+    openTransport() {
+      transportGate.open();
+    },
+    assertOfflineRecoveryUsedNoTransport() {
+      transportGate.assertUnusedWhileClosed();
     },
   };
 }
@@ -514,11 +580,15 @@ async function stopScopedProcesses(databasePath) {
   }
 }
 
-function installPolkitRule(scenarioRoot) {
+function installPolkitRule(
+  scenarioRoot,
+  allowedPackageRoles = ["candidate", "previous"],
+) {
   const source = path.join(scenarioRoot, "polkit.rules");
   writeFileSync(source, createLinuxUpdatePolkitRule({
     allowedRoot: scenarioRoot,
     user: process.env.USER,
+    allowedPackageRoles,
   }), { mode: 0o600 });
   run("sudo", ["install", "--owner=root", "--group=root", "--mode=0644", source, polkitRulePath]);
 }
@@ -527,16 +597,45 @@ function removePolkitRule() {
   run("sudo", ["rm", "--force", polkitRulePath], { allowFailure: true });
 }
 
+async function waitForScenarioMarker(markerPath, signal) {
+  const deadline = Date.now() + 120_000;
+  while (!signal.aborted && Date.now() < deadline) {
+    if (existsSync(markerPath)) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  if (!signal.aborted) {
+    throw new Error("The Linux update E2E authorization request was not published");
+  }
+}
+
+async function provideRecoveryAuthorization(
+  scenarioRoot,
+  requestPath,
+  readyPath,
+  updateServer,
+  signal,
+) {
+  await waitForScenarioMarker(requestPath, signal);
+  if (signal.aborted) return;
+  updateServer.closeTransport();
+  installPolkitRule(scenarioRoot);
+  await new Promise((resolve) => setTimeout(resolve, 1_000));
+  writeFileSync(readyPath, "ready\n", { mode: 0o600 });
+}
+
 async function runScenario(
   scenario,
   endpoint,
   publicKey,
   predecessorPackage,
+  updateServer,
 ) {
   const scenarioRoot = path.join(artifactRoot, "scenarios", scenario.name);
   const databasePath = path.join(scenarioRoot, "app-data/fitfreed.sqlite");
   const recoveryRoot = path.join(scenarioRoot, "app-data/update-recovery");
   const evidencePath = path.join(artifactRoot, "evidence", scenario.name, "result.json");
+  const recoveryAuthorizationRequest = path.join(scenarioRoot, "recovery-authorization.request");
+  const recoveryAuthorizationReady = path.join(scenarioRoot, "recovery-authorization.ready");
   rmSync(scenarioRoot, { recursive: true, force: true });
   mkdirSync(path.dirname(databasePath), { recursive: true });
   try {
@@ -550,28 +649,62 @@ async function runScenario(
     if (installedVersion !== currentVersion || !existsSync(installedApplication)) {
       throw new Error(`The ${scenario.name} scenario did not start from FitFreed ${currentVersion}`);
     }
-    installPolkitRule(scenarioRoot);
-    await runAsync("node", ["test/update-e2e/linux-update-journey.mjs"], {
-      FITFREED_UPDATE_E2E_APPLICATION: installedApplication,
-      FITFREED_UPDATE_E2E_SCENARIO: scenario.name,
-      FITFREED_UPDATE_E2E_EXPECTED_OUTCOME: scenario.expectedOutcome,
-      FITFREED_UPDATE_E2E_EXPECTED_VERSION: scenario.expectedVersion,
-      FITFREED_UPDATE_E2E_DRIVER_PORT: String(await availableTcpPort()),
-      FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
-      FITFREED_UPDATE_E2E_EVIDENCE_PATH: evidencePath,
-      FITFREED_E2E_DATABASE_PATH: databasePath,
-      FITFREED_E2E_UPDATE_CONTRACT: "stable-v3",
-      FITFREED_E2E_UPDATE_ENDPOINT: endpoint,
-      FITFREED_E2E_UPDATE_KEY_ID: keyId,
-      FITFREED_E2E_UPDATE_PUBLIC_KEY: publicKey,
-      FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH: certificatePath,
-      WDIO_LOG_LEVEL: "warn",
-      ...(scenario.name === "candidate-failure"
-        ? { FITFREED_E2E_REJECT_UPDATE_CANDIDATE: "1" }
-        : {}),
-    });
+    installPolkitRule(
+      scenarioRoot,
+      scenario.initialAuthorization === "candidate-only"
+        ? ["candidate"]
+        : ["candidate", "previous"],
+    );
+    const controller = new AbortController();
+    const recoveryAuthorization = scenario.name === "authorization-retry"
+      ? provideRecoveryAuthorization(
+        scenarioRoot,
+        recoveryAuthorizationRequest,
+        recoveryAuthorizationReady,
+        updateServer,
+        controller.signal,
+      )
+      : Promise.resolve();
+    try {
+      await Promise.all([
+        runAsync("node", ["test/update-e2e/linux-update-journey.mjs"], {
+          FITFREED_UPDATE_E2E_APPLICATION: installedApplication,
+          FITFREED_UPDATE_E2E_SCENARIO: scenario.name,
+          FITFREED_UPDATE_E2E_EXPECTED_OUTCOME: scenario.expectedOutcome,
+          FITFREED_UPDATE_E2E_EXPECTED_VERSION: scenario.expectedVersion,
+          FITFREED_UPDATE_E2E_DRIVER_PORT: String(await availableTcpPort()),
+          FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
+          FITFREED_UPDATE_E2E_EVIDENCE_PATH: evidencePath,
+          FITFREED_E2E_DATABASE_PATH: databasePath,
+          FITFREED_E2E_UPDATE_CONTRACT: "stable-v3",
+          FITFREED_E2E_UPDATE_ENDPOINT: endpoint,
+          FITFREED_E2E_UPDATE_KEY_ID: keyId,
+          FITFREED_E2E_UPDATE_PUBLIC_KEY: publicKey,
+          FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH: certificatePath,
+          WDIO_LOG_LEVEL: "warn",
+          ...(scenario.name === "authorization-retry"
+            ? {
+              FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_REQUEST:
+                recoveryAuthorizationRequest,
+              FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_READY:
+                recoveryAuthorizationReady,
+            }
+            : {}),
+          ...(["authorization-retry", "candidate-failure"].includes(scenario.name)
+            ? { FITFREED_E2E_REJECT_UPDATE_CANDIDATE: "1" }
+            : {}),
+        }),
+        recoveryAuthorization,
+      ]);
+      if (scenario.name === "authorization-retry") {
+        updateServer.assertOfflineRecoveryUsedNoTransport();
+      }
+    } finally {
+      controller.abort();
+    }
     validateLinuxUpdateEvidence(JSON.parse(readFileSync(evidencePath, "utf8")));
   } finally {
+    updateServer.openTransport();
     await stopScopedProcesses(databasePath);
     removePolkitRule();
     run("sudo", ["dpkg", "--purge", "fitfreed"], { allowFailure: true });
@@ -611,7 +744,7 @@ async function main() {
         port: updateServer.port,
         publicKey,
       }));
-      await runScenario(scenario, endpoint, publicKey, predecessorPackage);
+      await runScenario(scenario, endpoint, publicKey, predecessorPackage, updateServer);
     }
   } finally {
     await closeServer(updateServer.server);

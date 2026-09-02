@@ -5,12 +5,27 @@ import test from "node:test";
 
 import {
   createLinuxUpdatePolkitRule,
+  createLinuxUpdateTransportGate,
   debianPackageVariantArguments,
   linuxInstallerFailureScript,
   linuxUpdateBuildArguments,
   linuxUpdateScenarioPlan,
   validateLinuxUpdateEvidence,
 } from "./verify-packaged-linux-update.mjs";
+
+test("makes an offline recovery retry fail if it reaches update transport", () => {
+  const gate = createLinuxUpdateTransportGate();
+
+  assert.equal(gate.allowRequest(), true);
+  gate.close();
+  gate.assertUnusedWhileClosed();
+  assert.equal(gate.allowRequest(), false);
+  assert.throws(() => gate.assertUnusedWhileClosed(), /transport while it was unavailable/);
+  gate.open();
+  assert.equal(gate.allowRequest(), true);
+  gate.close();
+  gate.assertUnusedWhileClosed();
+});
 
 test("builds only an instrumented Debian package from the closed Linux overlays", () => {
   assert.deepEqual(
@@ -33,23 +48,33 @@ test("builds only an instrumented Debian package from the closed Linux overlays"
   assert.throws(() => linuxUpdateBuildArguments("relative.json"), /absolute/);
 });
 
-test("covers replacement and distinct candidate and installer failures with exact Debian packages", () => {
+test("covers replacement, package failures, and authorization recovery with exact Debian packages", () => {
   assert.deepEqual(linuxUpdateScenarioPlan(), [
     {
       name: "success",
       candidateVariant: "ordinary",
+      initialAuthorization: "candidate-and-predecessor",
       expectedOutcome: "updated",
       expectedVersion: "0.2.0",
     },
     {
       name: "installer-failure",
       candidateVariant: "installer-failure",
+      initialAuthorization: "candidate-and-predecessor",
       expectedOutcome: "recovered",
       expectedVersion: "0.1.0",
     },
     {
       name: "candidate-failure",
       candidateVariant: "ordinary",
+      initialAuthorization: "candidate-and-predecessor",
+      expectedOutcome: "recovered",
+      expectedVersion: "0.1.0",
+    },
+    {
+      name: "authorization-retry",
+      candidateVariant: "ordinary",
+      initialAuthorization: "candidate-only",
       expectedOutcome: "recovered",
       expectedVersion: "0.1.0",
     },
@@ -100,6 +125,30 @@ test("limits unattended Polkit authority to recovery packages under one isolated
     () => createLinuxUpdatePolkitRule({ allowedRoot, user: "runner\" || true" }),
     /user/,
   );
+
+  const candidateOnly = createLinuxUpdatePolkitRule({
+    allowedRoot,
+    user: "runner",
+    allowedPackageRoles: ["candidate"],
+  });
+  assert.match(candidateOnly, /\/candidate\/package\[\.\]deb/);
+  assert.doesNotMatch(candidateOnly, /previous/);
+  assert.throws(
+    () => createLinuxUpdatePolkitRule({
+      allowedRoot,
+      user: "runner",
+      allowedPackageRoles: ["candidate", "candidate"],
+    }),
+    /roles/,
+  );
+  assert.throws(
+    () => createLinuxUpdatePolkitRule({
+      allowedRoot,
+      user: "runner",
+      allowedPackageRoles: ["unbounded"],
+    }),
+    /roles/,
+  );
 });
 
 test("accepts only closed privacy-safe Linux update evidence", () => {
@@ -120,6 +169,11 @@ test("accepts only closed privacy-safe Linux update evidence", () => {
     installedVersion: "0.1.0",
   };
   assert.deepEqual(validateLinuxUpdateEvidence(installerFailure), installerFailure);
+  const authorizationRetry = {
+    ...installerFailure,
+    scenario: "authorization-retry",
+  };
+  assert.deepEqual(validateLinuxUpdateEvidence(authorizationRetry), authorizationRetry);
 
   assert.throws(
     () => validateLinuxUpdateEvidence({ ...success, installedVersion: "0.1.0" }),

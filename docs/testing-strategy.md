@@ -248,10 +248,11 @@ packages and prove successful native replacement plus automatic rollback after e
 maintainer-script failure during native installation. The installer-failure package is a root-owned rebuild of the
 ordinary synthetic candidate, is signed as distinct exact bytes, and fails through the real package-manager boundary.
 Every terminal scenario verifies package-manager identity, SQLite integrity, locale persistence, terminal cleanup,
-localized result presentation, and explicit acknowledgement. The remaining campaign must deliberately fail native
-authorization, drive the visible explicit retry, prove one durable increment per attempt and restart resumption, and
-require manual reinstallation after exhaustion while the previous application, library, and recovery evidence remain
-intact.
+localized result presentation, and explicit acknowledgement. The authorization scenario permits candidate installation
+but denies predecessor installation, verifies the retained first attempt and runnable fallback, grants only the same
+preserved predecessor boundary, and drives the visible explicit retry to terminal recovery without network access.
+The remaining campaign must prove one durable increment per failed attempt and restart resumption, and require manual
+reinstallation after exhaustion while the previous application, library, and recovery evidence remain intact.
 
 Recurring discovery is split at its real boundary without waiting a day in CI. Paused-time host tests prove the exact production interval, first and subsequent 24-hour waits, and the absence of catch-up bursts; coordinator tests prove an occupied update operation is skipped. React tests drive the exact typed desktop event and prove that attention states become visible while unconfigured, offline, current, dismissed, and postponed results retain scheduled-policy silence. The architecture check binds both sides to the same event name. The production capability manifest includes Tauri's event listener permission, and the production-bundle gate proves no test capability is required or retained.
 

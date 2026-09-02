@@ -89,13 +89,16 @@ and architecture inside the container.
 
 `npm run verify:linux-update-e2e` runs only on x86-64 Linux. It builds signed instrumented 0.1.0 and 0.2.0 Debian
 packages, installs the predecessor, serves a signed recoverable `stable-v3` channel over loopback HTTPS, and drives
-the real `pkexec` and `dpkg` replacement boundary under Xvfb. A temporary Polkit rule grants only the current test user
-permission to install the candidate or predecessor package retained below one isolated recovery root; cleanup removes
-the rule and package after every scenario. The initial campaign proves successful replacement and automatic native
-rollback after candidate rejection, including database integrity, locale persistence, package identity, terminal
-cleanup, localized result presentation, and explicit acknowledgement. Only privacy-safe synthetic diagnostics and
-the closed result are eligible for short-lived failure retention; packages, libraries, recovery identifiers, signing
-keys, and recovery paths remain transient.
+the real `pkexec` and `dpkg` replacement boundary under Xvfb. Temporary Polkit rules grant only the current test user
+permission to install exact candidate or predecessor packages retained below one isolated recovery root; cleanup
+removes the rule and package after every scenario. The campaign covers successful replacement, automatic native
+rollback after candidate rejection or a real Debian pre-installation failure, and recovery when predecessor
+authorization is initially unavailable. That last scenario first permits only candidate installation, verifies the
+runnable fallback and visible first-attempt intervention, then grants the predecessor boundary and activates the real
+retry action. Every terminal path checks database integrity, locale persistence, package identity, terminal cleanup,
+localized result presentation, and explicit acknowledgement. Only privacy-safe synthetic diagnostics and the closed
+result are eligible for short-lived failure retention; packages, libraries, recovery identifiers, signing keys, and
+recovery paths remain transient.
 
 ### Maintenance and community
 

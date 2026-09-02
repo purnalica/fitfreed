@@ -24,6 +24,10 @@ const recoveryRoot = requiredEnvironment("FITFREED_UPDATE_E2E_RECOVERY_ROOT");
 const evidencePath = requiredEnvironment("FITFREED_UPDATE_E2E_EVIDENCE_PATH");
 const driverPort = Number(requiredEnvironment("FITFREED_UPDATE_E2E_DRIVER_PORT"));
 const evidenceDirectory = path.dirname(evidencePath);
+const recoveryAuthorizationRequest =
+  process.env.FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_REQUEST;
+const recoveryAuthorizationReady =
+  process.env.FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_READY;
 
 function requiredEnvironment(name) {
   const value = process.env[name];
@@ -88,6 +92,37 @@ async function waitForTerminalCleanup(recovery) {
   throw new Error("Terminal Linux update recovery cleanup did not converge");
 }
 
+async function waitForRecoveryPhase(recoveryId, expectedPhase, expectedAttempts) {
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    try {
+      const recovery = activeRecovery();
+      if (
+        recovery.recoveryId === recoveryId
+        && recovery.manifest.phase === expectedPhase
+        && recovery.manifest.nativeRecovery.attempts === expectedAttempts
+      ) {
+        return recovery;
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    }
+    await delay(100);
+  }
+  throw new Error(
+    `Linux update recovery did not reach ${expectedPhase} after ${expectedAttempts} attempt(s)`,
+  );
+}
+
+async function waitForMarker(markerPath, description) {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(markerPath)) return;
+    await delay(50);
+  }
+  throw new Error(`Linux update E2E did not ${description}`);
+}
+
 function sqliteValues(libraryPath, statement) {
   return execFileSync("sqlite3", [libraryPath, statement], { encoding: "utf8" })
     .trim()
@@ -136,7 +171,7 @@ async function selectSpanish(browser) {
   });
 }
 
-function applicationProcessIds() {
+function applicationProcessIds(executablePath = applicationBinary) {
   return fs.readdirSync("/proc", { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
     .map((entry) => Number(entry.name))
@@ -144,7 +179,7 @@ function applicationProcessIds() {
       try {
         const executable = fs.readlinkSync(`/proc/${processId}/exe`);
         const environment = fs.readFileSync(`/proc/${processId}/environ`);
-        return executable.startsWith(applicationBinary)
+        return executable.startsWith(executablePath)
           && environment.includes(Buffer.from(`FITFREED_E2E_DATABASE_PATH=${databasePath}`));
       } catch {
         return false;
@@ -152,8 +187,8 @@ function applicationProcessIds() {
     });
 }
 
-async function stopApplication() {
-  for (const processId of applicationProcessIds()) {
+async function stopApplication(executablePath = applicationBinary) {
+  for (const processId of applicationProcessIds(executablePath)) {
     try {
       process.kill(processId, "SIGTERM");
     } catch (error) {
@@ -161,12 +196,21 @@ async function stopApplication() {
     }
   }
   const deadline = Date.now() + 5_000;
-  while (Date.now() < deadline && applicationProcessIds().length > 0) {
+  while (Date.now() < deadline && applicationProcessIds(executablePath).length > 0) {
     await delay(100);
   }
-  if (applicationProcessIds().length > 0) {
+  if (applicationProcessIds(executablePath).length > 0) {
     throw new Error("the installed Linux application did not stop");
   }
+}
+
+async function waitForApplication(executablePath) {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (applicationProcessIds(executablePath).length === 1) return;
+    await delay(100);
+  }
+  throw new Error("the expected Linux recovery application did not start");
 }
 
 async function verifyRecoveryNotice(browser, recoveryId) {
@@ -194,6 +238,23 @@ async function verifyRecoveryNotice(browser, recoveryId) {
     },
   );
   await notice.waitForDisplayed({ reverse: true, timeout: 15_000 });
+}
+
+async function verifyRecoveryIntervention(browser, recoveryId, expectedAttempts) {
+  await openSettingsCategory("updates", browser);
+  const result = await browser.$(".update-result-native-recovery-retry-available");
+  await result.waitForDisplayed({ timeout: 15_000 });
+  const resultText = await result.getText();
+  assert.match(resultText, new RegExp(spanish.updates.recovery.intervention.retryHeading));
+  assert.match(resultText, /0\.1\.0/);
+  assert.match(resultText, /0\.2\.0/);
+  assert.match(resultText, new RegExp(`completado ${expectedAttempts} de 3`));
+  assert.doesNotMatch(resultText, new RegExp(recoveryId));
+  const checkNow = await browser.$$(".update-panel-heading button");
+  assert.equal(checkNow.length, 0);
+  const retry = await browser.$(`aria/${spanish.updates.recovery.intervention.retry}`);
+  await retry.waitForEnabled({ timeout: 15_000 });
+  return retry;
 }
 
 async function verifyJourney(browser) {
@@ -251,6 +312,16 @@ async function verifyJourney(browser) {
     ),
     ["ok", "es-ES"],
   );
+  if (scenario === "authorization-retry") {
+    const unavailable = await waitForRecoveryPhase(
+      recovery.recoveryId,
+      "native-recovery-unavailable",
+      1,
+    );
+    assert.equal(unavailable.manifest.nativeRecovery.lastFailure, "authorization-unavailable");
+    assert.equal(installedVersion(), "0.2.0");
+    return unavailable;
+  }
   const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
   assert.deepEqual(outcome, {
     format: "org.fitfreed.update-recovery-outcome",
@@ -265,27 +336,8 @@ async function verifyJourney(browser) {
   return recovery;
 }
 
-async function main() {
-  if (!Number.isSafeInteger(driverPort) || driverPort < 1_024 || driverPort > 65_535) {
-    throw new Error("FITFREED_UPDATE_E2E_DRIVER_PORT must be a non-privileged TCP port");
-  }
-  if (!["updated", "recovered"].includes(expectedOutcome)) {
-    throw new Error("FITFREED_UPDATE_E2E_EXPECTED_OUTCOME is invalid");
-  }
-  const expectedScenario = scenario === "success"
-    ? { outcome: "updated", installedVersion: "0.2.0" }
-    : ["candidate-failure", "installer-failure"].includes(scenario)
-      ? { outcome: "recovered", installedVersion: "0.1.0" }
-      : undefined;
-  if (
-    !expectedScenario
-    || expectedOutcome !== expectedScenario.outcome
-    || expectedInstalledVersion !== expectedScenario.installedVersion
-  ) {
-    throw new Error("The Linux update E2E scenario contract is invalid");
-  }
-  fs.mkdirSync(evidenceDirectory, { recursive: true });
-  const capabilities = createTauriCapabilities(applicationBinary, {
+function capabilitiesFor(executablePath) {
+  const capabilities = createTauriCapabilities(executablePath, {
     driverProvider: "embedded",
     tauriDriverPort: driverPort,
     logLevel: "warn",
@@ -297,24 +349,83 @@ async function main() {
     captureFrontendLogs: true,
     logDir: path.join(evidenceDirectory, "logs"),
   });
+  return capabilities;
+}
+
+async function startSession(executablePath) {
+  return startWdioSession(capabilitiesFor(executablePath), {
+    rootDir: process.cwd(),
+    logLevel: "warn",
+  });
+}
+
+async function cleanupReplacedSession(browser) {
+  try {
+    await cleanupWdioSession(browser);
+  } catch {
+    // Native replacement invalidates the prior WebDriver session.
+  }
+}
+
+async function main() {
+  if (!Number.isSafeInteger(driverPort) || driverPort < 1_024 || driverPort > 65_535) {
+    throw new Error("FITFREED_UPDATE_E2E_DRIVER_PORT must be a non-privileged TCP port");
+  }
+  if (!["updated", "recovered"].includes(expectedOutcome)) {
+    throw new Error("FITFREED_UPDATE_E2E_EXPECTED_OUTCOME is invalid");
+  }
+  const expectedScenario = scenario === "success"
+    ? { outcome: "updated", installedVersion: "0.2.0" }
+    : ["authorization-retry", "candidate-failure", "installer-failure"].includes(scenario)
+      ? { outcome: "recovered", installedVersion: "0.1.0" }
+      : undefined;
+  const hasCompleteRecoveryAuthorizationMarkers =
+    Boolean(recoveryAuthorizationRequest) && Boolean(recoveryAuthorizationReady);
+  if (
+    !expectedScenario
+    || expectedOutcome !== expectedScenario.outcome
+    || expectedInstalledVersion !== expectedScenario.installedVersion
+    || (scenario === "authorization-retry") !== hasCompleteRecoveryAuthorizationMarkers
+    || Boolean(recoveryAuthorizationRequest) !== Boolean(recoveryAuthorizationReady)
+  ) {
+    throw new Error("The Linux update E2E scenario contract is invalid");
+  }
+  fs.mkdirSync(evidenceDirectory, { recursive: true });
   let browser;
   let journeyCompleted = false;
   try {
-    browser = await startWdioSession(capabilities, {
-      rootDir: process.cwd(),
-      logLevel: "warn",
-    });
+    browser = await startSession(applicationBinary);
     const recovery = await verifyJourney(browser);
-    await stopApplication();
-    try {
-      await cleanupWdioSession(browser);
-    } catch {
-      // Native replacement invalidates the original WebDriver session.
+    if (scenario === "authorization-retry") {
+      const fallbackExecutable = path.join(
+        recovery.attemptDirectory,
+        "previous/runnable/usr/bin/fitfreed",
+      );
+      await waitForApplication(fallbackExecutable);
+      await cleanupReplacedSession(browser);
+      browser = undefined;
+      await stopApplication(fallbackExecutable);
+      browser = await startSession(fallbackExecutable);
+      const retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 1);
+      fs.writeFileSync(recoveryAuthorizationRequest, "request\n", { mode: 0o600 });
+      await waitForMarker(recoveryAuthorizationReady, "receive recovery authorization");
+      await retry.click();
+      const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
+      assert.deepEqual(outcome, {
+        format: "org.fitfreed.update-recovery-outcome",
+        schemaVersion: 1,
+        recoveryId: recovery.recoveryId,
+        outcome: expectedOutcome,
+        sourceVersion: "0.1.0",
+        targetVersion: "0.2.0",
+      });
+      await waitForTerminalCleanup(recovery);
+      assert.equal(installedVersion(), expectedInstalledVersion);
     }
-    browser = await startWdioSession(capabilities, {
-      rootDir: process.cwd(),
-      logLevel: "warn",
-    });
+    await stopApplication();
+    await cleanupReplacedSession(browser);
+    browser = undefined;
+    browser = await startSession(applicationBinary);
     await verifyRecoveryNotice(browser, recovery.recoveryId);
     const evidence = {
       scenario,
