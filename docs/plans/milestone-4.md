@@ -42,7 +42,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 |---|---|---|
 | M4.0 | Complete | Hosted Ubuntu portability, source compilation, shared tests, input classification, and bounded failure evidence are versioned and enforced. |
 | M4.1 | Engineering complete; candidate gate pending | The Debian identity, exact inventory, clean Ubuntu 24.04 installation, signed public candidate, release manifest, and multiplatform Pages evidence are verified. Exact graphical-candidate evidence and production signing authority remain later gates rather than repository material. |
-| M4.2 | Active | Linux recovery version 2 and stable channel version 3 are defined. The Rust consumer, exact native predecessor authorization, public configuration version 2, and fail-closed host build mapping exist; generation, predecessor discovery, and platform adapters are next. |
+| M4.2 | Active | Linux recovery version 2 and stable channel version 3 are defined. Rust consumption, exact native predecessor authorization, public configuration version 2, host mapping, and atomic predecessor staging exist; predecessor discovery, release verification, and platform adapters are next. |
 | M4.3–M4.6 | Pending | Begin only through their ordered technical dependencies; protected signing, clean Ubuntu 26.04, human acceptance, and promotion remain explicit gates. |
 
 ## Increment M4.0 — Native portability admission

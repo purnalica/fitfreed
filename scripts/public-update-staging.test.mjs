@@ -165,6 +165,97 @@ test("stages exact macOS and Debian updater artifacts in one signed snapshot", (
   assert.deepEqual(result.targets, ["darwin-aarch64", "linux-x86_64-deb"]);
 });
 
+test("stages authenticated predecessor packages for recoverable stable updates", () => {
+  const values = fixture();
+  const arguments_ = stageArguments(values);
+  arguments_.configuration = {
+    ...values.configuration,
+    schemaVersion: 2,
+    contract: "stable-v3",
+  };
+  const predecessorPath = path.join(values.root, "FitFreed-predecessor.deb");
+  const predecessorBytes = Buffer.from("synthetic predecessor Debian package");
+  writeFileSync(predecessorPath, predecessorBytes);
+  writeFileSync(`${predecessorPath}.sig`, "U3ludGhldGljIHByZWRlY2Vzc29yIHNpZ25hdHVyZQ==\n");
+  const linuxPackagePath = path.join(values.root, "FitFreed-current.deb");
+  writeFileSync(linuxPackagePath, "synthetic current Debian package");
+  writeFileSync(`${linuxPackagePath}.sig`, "U3ludGhldGljIGN1cnJlbnQgc2lnbmF0dXJl\n");
+  arguments_.packages.push({
+    packagePath: linuxPackagePath,
+    packageSignaturePath: `${linuxPackagePath}.sig`,
+    target: "linux-x86_64-deb",
+  });
+  arguments_.recoveryPackages = [{
+    version: "0.1.0",
+    target: "linux-x86_64-deb",
+    librarySchemaVersions: [7, 8],
+    packagePath: predecessorPath,
+    packageSignaturePath: `${predecessorPath}.sig`,
+  }];
+  arguments_.expectedRecoveryArtifacts = [{
+    version: "0.1.0",
+    target: "linux-x86_64-deb",
+    librarySchemaVersions: [7, 8],
+  }];
+  arguments_.signPayload = (payloadBytes) => {
+    assert.equal(JSON.parse(payloadBytes).schemaVersion, 3);
+    return "U3ludGhldGljIG1ldGFkYXRhIHNpZ25hdHVyZQ==";
+  };
+
+  const result = stageStableUpdateChannel(arguments_);
+  const envelope = JSON.parse(
+    readFileSync(path.join(values.outputDirectory, "updates/stable.json"), "utf8"),
+  );
+  const payload = JSON.parse(Buffer.from(envelope.fitfreed.payloadBase64, "base64"));
+
+  assert.equal(envelope.fitfreed.schemaVersion, 3);
+  assert.deepEqual(payload.release.recoveryArtifacts, [{
+    version: "0.1.0",
+    target: "linux-x86_64-deb",
+    packageKind: "deb",
+    librarySchemaVersions: [7, 8],
+    url: publicUpdateUrl("0.1.0/FitFreed_0.1.0_amd64.deb"),
+    size: predecessorBytes.length,
+    sha256: createHash("sha256").update(predecessorBytes).digest("hex"),
+    tauriSignature: "U3ludGhldGljIHByZWRlY2Vzc29yIHNpZ25hdHVyZQ==",
+  }]);
+  assert.deepEqual(relativeFiles(values.outputDirectory), [
+    "updates/0.1.0/FitFreed_0.1.0_amd64.deb",
+    "updates/0.2.0/FitFreed_0.2.0_aarch64.app.tar.gz",
+    "updates/0.2.0/FitFreed_0.2.0_amd64.deb",
+    "updates/stable.json",
+  ]);
+  assert.deepEqual(result.recoveryTargets, ["0.1.0:linux-x86_64-deb"]);
+
+  const missingBaseline = { ...arguments_, expectedRecoveryArtifacts: [] };
+  assert.throws(
+    () => stageStableUpdateChannel(missingBaseline),
+    /does not match the declared application baselines/,
+  );
+});
+
+test("keeps recovery evidence out of the closed stable version 2 generator", () => {
+  const values = fixture();
+  const arguments_ = stageArguments(values);
+  arguments_.recoveryPackages = [{
+    version: "0.1.0",
+    target: "linux-x86_64-deb",
+    librarySchemaVersions: [1],
+    packagePath: values.packagePath,
+    packageSignaturePath: `${values.packagePath}.sig`,
+  }];
+  arguments_.expectedRecoveryArtifacts = [{
+    version: "0.1.0",
+    target: "linux-x86_64-deb",
+    librarySchemaVersions: [1],
+  }];
+
+  assert.throws(
+    () => stageStableUpdateChannel(arguments_),
+    /stable-v2 cannot carry recovery packages/,
+  );
+});
+
 test("rejects an omitted or unsupported public update target", () => {
   const values = fixture();
   const missing = stageArguments(values);

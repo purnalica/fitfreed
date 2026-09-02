@@ -131,9 +131,10 @@ exact predecessor package for every declared Debian or NSIS application baseline
 unordered, cross-target, wrong-package-kind, mutable-URL, incompatible-schema, non-predecessor, malformed-signature,
 and contract-crossing evidence before policy evaluation. The host maps supported packaged targets exactly as
 `linux-x86_64-deb` and `windows-x86_64-nsis`; unsupported platform and architecture combinations fail closed. Stable
-version 2 remains a closed contract. Configuration version 2 and the host build mapping can select version 3;
-production activation waits until its generator, platform recovery adapters, and release verifier all accept the same
-evidence.
+version 2 remains a closed contract. Configuration version 2 and the host build mapping can select version 3. The
+atomic Pages generator accepts only an independently declared recovery-baseline set, derives every signed predecessor
+field from reopened package bytes, and stages those exact bytes beside the current packages. Production activation
+waits until predecessor discovery, platform recovery adapters, and the release verifier all accept the same evidence.
 
 Both contracts preserve these invariants:
 

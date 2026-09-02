@@ -17,6 +17,11 @@ import { publicUpdateUrl } from "./public-origin.mjs";
 import { validatePublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { promoteStagedDirectory } from "./release-evidence.mjs";
 import { createUpdateEnvelope, createUpdatePayload } from "./update-e2e-contract.mjs";
+import {
+  validateStableUpdateV3Envelope,
+  validateStableUpdateV3Payload,
+} from "./update-channel-v3.mjs";
+import { compareSemanticVersions } from "./upgrade-matrix.mjs";
 
 const semanticVersion =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -46,11 +51,13 @@ function compileValidators() {
   };
 }
 
-const validators = compileValidators();
+const stableV2Validators = compileValidators();
 
 function validateDocument(validator, document, name) {
   if (!validator(document)) {
-    throw new Error(`${name} failed its JSON Schema: ${validators.errorsText(validator.errors)}`);
+    throw new Error(
+      `${name} failed its JSON Schema: ${stableV2Validators.errorsText(validator.errors)}`,
+    );
   }
 }
 
@@ -85,6 +92,8 @@ export function stageStableUpdateChannel({
   outputDirectory,
   configuration,
   packages,
+  recoveryPackages,
+  expectedRecoveryArtifacts,
   signingKeyId,
   version,
   sequence,
@@ -121,6 +130,13 @@ export function stageStableUpdateChannel({
   }
   validateTemporalPolicy(issuedAt, expiresAt, publishedAt);
   if (typeof signPayload !== "function") throw new Error("metadata signing authority is unavailable");
+  const recoverable = validatedConfiguration.contract === "stable-v3";
+  if (!recoverable && (recoveryPackages !== undefined || expectedRecoveryArtifacts !== undefined)) {
+    throw new Error("stable-v2 cannot carry recovery packages");
+  }
+  if (recoverable && (!Array.isArray(recoveryPackages) || !Array.isArray(expectedRecoveryArtifacts))) {
+    throw new Error("recoverable stable package evidence is unavailable");
+  }
 
   const resolvedOutputDirectory = path.resolve(outputDirectory);
   if (resolvedOutputDirectory === path.parse(resolvedOutputDirectory).root) {
@@ -170,8 +186,37 @@ export function stageStableUpdateChannel({
       },
     ]),
   );
+  const recoveryEvidence = recoverable
+    ? recoveryPackages
+      .map((recovery) => {
+        const packageName = publicPackageName(recovery.version, recovery.target);
+        const packageMetadata = statSync(recovery.packagePath);
+        if (!packageMetadata.isFile() || packageMetadata.size < 1) {
+          throw new Error("public update predecessor package is invalid");
+        }
+        const packageBytes = readFileSync(recovery.packagePath);
+        return {
+          version: recovery.version,
+          target: recovery.target,
+          packageKind: recovery.target === "linux-x86_64-deb" ? "deb" : "nsis",
+          librarySchemaVersions: recovery.librarySchemaVersions,
+          url: publicUpdateUrl(`${recovery.version}/${packageName}`),
+          size: packageMetadata.size,
+          sha256: sha256(packageBytes),
+          tauriSignature: readFileSync(recovery.packageSignaturePath, "utf8").trim(),
+          packageBytes,
+          packageName,
+        };
+      })
+      .sort((left, right) => {
+        const versionOrder = compareSemanticVersions(left.version, right.version);
+        return versionOrder === 0
+          ? left.target.localeCompare(right.target, "en")
+          : versionOrder;
+      })
+    : [];
   const payload = createUpdatePayload({
-    contractSchemaVersion: 2,
+    contractSchemaVersion: recoverable ? 3 : 2,
     channel: "stable",
     sequence,
     releaseVersion: version,
@@ -187,7 +232,16 @@ export function stageStableUpdateChannel({
     maximumReadableSchemaVersion,
     targetSchemaVersion,
   });
-  validateDocument(validators.payload, payload, "public stable update payload");
+  if (recoverable) {
+    payload.release.recoveryArtifacts = recoveryEvidence.map(({
+      packageBytes: _packageBytes,
+      packageName: _packageName,
+      ...artifact
+    }) => artifact);
+    validateStableUpdateV3Payload(payload, expectedRecoveryArtifacts);
+  } else {
+    validateDocument(stableV2Validators.payload, payload, "public stable update payload");
+  }
   const payloadBytes = Buffer.from(JSON.stringify(payload));
   const metadataSignature = signPayload(payloadBytes);
   const envelope = createUpdateEnvelope({
@@ -196,7 +250,11 @@ export function stageStableUpdateChannel({
     metadataSignature,
     keyId: signingKeyId,
   });
-  validateDocument(validators.envelope, envelope, "public stable update envelope");
+  if (recoverable) {
+    validateStableUpdateV3Envelope(envelope, payload);
+  } else {
+    validateDocument(stableV2Validators.envelope, envelope, "public stable update envelope");
+  }
 
   const operationId = randomUUID();
   const stagingDirectory = `${resolvedOutputDirectory}.staging-${operationId}`;
@@ -206,6 +264,11 @@ export function stageStableUpdateChannel({
     mkdirSync(packageDirectory, { recursive: true });
     for (const artifact of packageEvidence) {
       copyFileSync(artifact.packagePath, path.join(packageDirectory, artifact.packageName));
+    }
+    for (const artifact of recoveryEvidence) {
+      const recoveryDirectory = path.join(stagingDirectory, "updates", artifact.version);
+      mkdirSync(recoveryDirectory, { recursive: true });
+      writeFileSync(path.join(recoveryDirectory, artifact.packageName), artifact.packageBytes);
     }
     writeFileSync(
       path.join(stagingDirectory, "updates", "stable.json"),
@@ -223,6 +286,8 @@ export function stageStableUpdateChannel({
     keyId: signingKeyId,
     payloadSha256: sha256(payloadBytes),
     targets: packageEvidence.map(({ target }) => target),
+    recoveryTargets: recoveryEvidence.map(({ version: sourceVersion, target }) =>
+      `${sourceVersion}:${target}`),
     outputDirectory: resolvedOutputDirectory,
   };
 }
