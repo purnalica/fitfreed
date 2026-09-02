@@ -33,9 +33,9 @@ recovery-capable stable version 3 contract, according to one explicit build sele
 other contract's schema or fields. Version 3 additionally validates the complete ordered predecessor set before
 selecting only the current target's evidence for the application layer. Its current and predecessor URLs are immutable
 credential-free HTTPS locations without a query or fragment. The public endpoint and up to eight active public keys
-come from the versioned public update configuration, then become explicit compile-time inputs only for a public
-candidate build. The checked-in version 1 configuration still selects stable version 2 until its versioned successor
-and every release producer and verifier move together. All three compile-time values are absent in an ordinary build;
+come from the versioned [public update configuration](../data-formats/release/public-update-configuration-v2.md), then
+become explicit compile-time inputs only for a public candidate build. The checked-in version 1 instance still selects
+stable version 2 until every release producer and verifier moves to configuration version 2. All three compile-time values are absent in an ordinary build;
 a partial, malformed, unsupported, or mixed instrumented/public configuration fails closed.
 
 The Tauri host supplies the compiled application version, current SQLite schema version, persisted locale, UTC timestamp, and fixed manual or launch trigger. React cannot submit or override those policy inputs. Network and SQLite work runs outside the UI thread. The host returns only closed camel-case DTOs and stable error codes; endpoint URLs, response bodies, signing material, package paths, and database errors never cross the command boundary. The application result retains exact current-target package expectations and the authenticated signing-key identifier only in a transient authorization for native installation; the presentation mapper deliberately omits that authorization. A launch check runs only after locale initialization. A successfully persisted locale change causes a new launch-style evaluation so authenticated release text changes language with the interface. A candidate process retains its validated recovery identifier in host state; React emits only a no-argument readiness signal after locale startup. The host serializes the claim and derives the current executable, compiled version and schema, library path, and recovery root independently before confirmation.
@@ -131,8 +131,9 @@ exact predecessor package for every declared Debian or NSIS application baseline
 unordered, cross-target, wrong-package-kind, mutable-URL, incompatible-schema, non-predecessor, malformed-signature,
 and contract-crossing evidence before policy evaluation. The host maps supported packaged targets exactly as
 `linux-x86_64-deb` and `windows-x86_64-nsis`; unsupported platform and architecture combinations fail closed. Stable
-version 2 remains a closed contract; production selection moves to version 3 only after its public configuration,
-generator, platform recovery adapters, and release verifier all accept the same evidence.
+version 2 remains a closed contract. Configuration version 2 and the host build mapping can select version 3;
+production activation waits until its generator, platform recovery adapters, and release verifier all accept the same
+evidence.
 
 Both contracts preserve these invariants:
 

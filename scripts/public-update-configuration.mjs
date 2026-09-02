@@ -8,19 +8,22 @@ import addFormats from "ajv-formats";
 import { publicUpdateEndpoint } from "./public-origin.mjs";
 
 const expectedMetadataEndpoint = publicUpdateEndpoint;
-const schema = JSON.parse(
-  readFileSync(
-    new URL("../schemas/public-update-configuration-v1.schema.json", import.meta.url),
-    "utf8",
-  ),
-);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
-const validateSchema = ajv.compile(schema);
+const validators = new Map([1, 2].map((version) => [
+  version,
+  ajv.compile(JSON.parse(readFileSync(
+    new URL(`../schemas/public-update-configuration-v${version}.schema.json`, import.meta.url),
+    "utf8",
+  ))),
+]));
 
 export function validatePublicUpdateConfiguration(configuration) {
   const errors = [];
-  if (!validateSchema(configuration)) {
+  const validateSchema = validators.get(configuration?.schemaVersion);
+  if (!validateSchema) {
+    errors.push("public update configuration version is unsupported");
+  } else if (!validateSchema(configuration)) {
     errors.push(
       ...validateSchema.errors.map(
         ({ instancePath, message }) =>

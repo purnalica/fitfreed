@@ -6844,6 +6844,60 @@ for (const field of [
 }
 const publicUpdateConfigurationSchemaPath =
   "schemas/public-update-configuration-v1.schema.json";
+const recoverablePublicUpdateConfigurationPath =
+  "docs/data-formats/release/public-update-configuration-v2.md";
+const recoverablePublicUpdateConfiguration = read(recoverablePublicUpdateConfigurationPath);
+for (const field of [
+  "org.fitfreed.public-update-configuration",
+  "schemaVersion",
+  "status",
+  "inactive",
+  "active",
+  "contract",
+  "stable-v3",
+  "metadataEndpoint",
+  "keys.*.id",
+  "keys.*.publicKey",
+  "FITFREED_PUBLIC_UPDATE_CONTRACT",
+  "FITFREED_PUBLIC_UPDATE_ENDPOINT",
+  "FITFREED_PUBLIC_UPDATE_TRUST",
+]) {
+  requireMention(
+    recoverablePublicUpdateConfiguration,
+    field,
+    recoverablePublicUpdateConfigurationPath,
+  );
+}
+const recoverablePublicUpdateConfigurationSchemaPath =
+  "schemas/public-update-configuration-v2.schema.json";
+const validatePublicUpdateConfiguration = ajv.compile(
+  JSON.parse(read(publicUpdateConfigurationSchemaPath)),
+);
+const validateRecoverablePublicUpdateConfiguration = ajv.compile(
+  JSON.parse(read(recoverablePublicUpdateConfigurationSchemaPath)),
+);
+const canonicalPublicUpdateConfiguration = JSON.parse(
+  read("release/public-update-channel.json"),
+);
+const syntheticRecoverablePublicUpdateConfiguration = {
+  ...canonicalPublicUpdateConfiguration,
+  schemaVersion: 2,
+  contract: "stable-v3",
+};
+if (
+  !validatePublicUpdateConfiguration(canonicalPublicUpdateConfiguration)
+  || !validateRecoverablePublicUpdateConfiguration(
+    syntheticRecoverablePublicUpdateConfiguration,
+  )
+) {
+  throw new Error("a public update configuration schema rejected its own contract");
+}
+if (
+  validatePublicUpdateConfiguration(syntheticRecoverablePublicUpdateConfiguration)
+  || validateRecoverablePublicUpdateConfiguration(canonicalPublicUpdateConfiguration)
+) {
+  throw new Error("public update configuration schemas accepted another contract version");
+}
 
 const publicReleaseSigningConfigurationPath =
   "docs/data-formats/release/public-release-signing-configuration-v1.md";
@@ -10580,7 +10634,10 @@ process.stdout.write(
       recoverableStableUpdateEnvelopeSchemaPath,
       recoverableStableUpdatePayloadSchemaPath,
     ],
-    publicUpdateConfigurationSchema: publicUpdateConfigurationSchemaPath,
+    publicUpdateConfigurationSchemas: [
+      publicUpdateConfigurationSchemaPath,
+      recoverablePublicUpdateConfigurationSchemaPath,
+    ],
     publicReleaseSigningConfigurationSchema:
       publicReleaseSigningConfigurationSchemaPath,
     updateRecoverySchemas: [updateRecoverySchemaPath, linuxUpdateRecoverySchemaPath],

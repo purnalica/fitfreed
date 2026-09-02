@@ -27,6 +27,12 @@ const activeConfiguration = {
   ],
 };
 
+const recoverableConfiguration = {
+  ...activeConfiguration,
+  schemaVersion: 2,
+  contract: "stable-v3",
+};
+
 test("keeps the versioned public update channel inactive without production trust", () => {
   assert.equal(validatePublicUpdateConfiguration(inactiveConfiguration).status, "inactive");
   assert.deepEqual(publicUpdateBuildEnvironment(inactiveConfiguration, false), {});
@@ -49,6 +55,25 @@ test("maps complete active public trust to compile-time inputs without private m
   });
   assert.equal(JSON.stringify(environment).includes("PRIVATE"), false);
   assert.equal(JSON.stringify(environment).includes("PASSWORD"), false);
+});
+
+test("selects recoverable stable trust only through configuration version 2", () => {
+  assert.deepEqual(publicUpdateBuildEnvironment(recoverableConfiguration, true), {
+    FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v3",
+    FITFREED_PUBLIC_UPDATE_ENDPOINT: publicUpdateEndpoint,
+    FITFREED_PUBLIC_UPDATE_TRUST: JSON.stringify({
+      "stable.synthetic-1": recoverableConfiguration.keys[0].publicKey,
+      "stable.synthetic-2": recoverableConfiguration.keys[1].publicKey,
+    }),
+  });
+  assert.throws(() => validatePublicUpdateConfiguration({
+    ...recoverableConfiguration,
+    schemaVersion: 1,
+  }));
+  assert.throws(() => validatePublicUpdateConfiguration({
+    ...recoverableConfiguration,
+    contract: "stable-v2",
+  }));
 });
 
 test("rejects malformed, partial, duplicate, or relocated public channel configuration", () => {
