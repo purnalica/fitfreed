@@ -19,9 +19,9 @@ concurrency:
 
 jobs:
   quality:
-    name: Portable quality checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: Portable quality and Linux host checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     outputs:
       executable-fingerprint: ${{ steps.impact.outputs.executable-fingerprint }}
       full-verification: ${{ steps.decision.outputs.full-verification }}
@@ -175,9 +175,13 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run format:check
 
-      - name: Test domain and application crates
+      - name: Test the complete Linux desktop host
         if: steps.decision.outputs.full-verification == 'true'
-        run: cargo test --manifest-path src-tauri/Cargo.toml -p fitfreed-domain -p fitfreed-application
+        run: npm run test:rust
+
+      - name: Lint the complete Linux desktop host
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run lint:rust
 
       - name: Test the bounded updater refinement
         if: steps.decision.outputs.full-verification == 'true'

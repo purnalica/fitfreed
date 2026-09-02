@@ -232,6 +232,9 @@ test("reuses a documentation-only result only with matching successful evidence"
 
 test("wires the fail-closed classifier into both hosted verification lanes", () => {
   const workflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const qualityJob = workflow.match(
+    /  quality:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
+  )?.groups?.body;
   const packagedMacosJob = workflow.match(
     /  packaged-macos-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
   )?.groups?.body;
@@ -261,5 +264,12 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   );
   assert.match(workflow, /needs: \[quality, packaged-macos-e2e\]/);
   assert.match(workflow, /uses: actions\/cache\/save@[0-9a-f]{40}/);
+  assert.match(qualityJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
+  assert.match(qualityJob ?? "", /npm run test:rust/);
+  assert.match(qualityJob ?? "", /npm run lint:rust/);
+  assert.doesNotMatch(
+    qualityJob ?? "",
+    /cargo test --manifest-path src-tauri\/Cargo\.toml -p fitfreed-domain -p fitfreed-application/,
+  );
   assert.match(packagedMacosJob ?? "", /^    timeout-minutes: 95$/m);
 });

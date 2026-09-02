@@ -27,13 +27,15 @@ export function e2eBuildEnvironment(inheritedEnvironment, revision, status) {
   };
 }
 
-export function e2eBuildArguments(arguments_ = []) {
+export function e2eBuildArguments(arguments_ = [], platform = process.platform) {
+  if (!["darwin", "linux", "win32"].includes(platform)) {
+    throw new Error(`unsupported E2E desktop platform: ${platform}`);
+  }
   return [
     "build",
     "--features",
     "e2e",
-    "--bundles",
-    "app",
+    ...(platform === "darwin" ? ["--bundles", "app"] : ["--no-bundle"]),
     "--config",
     "src-tauri/tauri.e2e.conf.json",
     ...arguments_,

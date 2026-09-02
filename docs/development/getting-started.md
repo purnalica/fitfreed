@@ -2,7 +2,8 @@
 
 ## Supported development baseline
 
-The current product foundation is developed and packaged on macOS first. The repository pins:
+The product foundation is packaged on macOS first and admits the complete desktop host on Linux before Linux package
+work. The repository pins:
 
 - Node.js 22.14.0 in `.nvmrc`;
 - npm 10.9.2 in `package.json`;
@@ -10,7 +11,12 @@ The current product foundation is developed and packaged on macOS first. The rep
 
 Install the Xcode command-line tools and a Rustup installation before setup. Node version managers may read `.nvmrc`; Rustup reads the repository toolchain file automatically. The macOS system commands checked by `npm run doctor` include `ditto`, `hdiutil`, `openssl`, `plutil`, `shasum`, `sqlite3`, and `strings`. No separately installed Tauri, WebdriverIO, SQLite library, or fixture tool is required.
 
-The portable quality lane compiles the pinned Tauri updater refinement on Linux. Debian and Ubuntu contributors running that lane need Tauri's native development packages: `libwebkit2gtk-4.1-dev`, `build-essential`, `curl`, `wget`, `file`, `libxdo-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, and `pkg-config`. GitHub Actions installs them explicitly before running `npm run doctor`; the doctor checks the required GLib, GIO, GObject, GTK, and WebKitGTK modules before reporting a usable Linux environment.
+The Ubuntu 24.04 quality lane compiles, tests, and lints the complete Tauri desktop host and the pinned updater
+refinement. Debian and Ubuntu contributors running that lane need Tauri's native development packages:
+`libwebkit2gtk-4.1-dev`, `build-essential`, `curl`, `wget`, `file`, `libxdo-dev`, `libssl-dev`,
+`libayatana-appindicator3-dev`, `librsvg2-dev`, and `pkg-config`. GitHub Actions installs them explicitly before
+running `npm run doctor`; the doctor checks the required GLib, GIO, GObject, GTK, and WebKitGTK modules before reporting
+a usable Linux environment.
 
 ## First setup
 
@@ -75,7 +81,14 @@ Generated application, database, fixture, log, screenshot, icon, and bundle outp
 
 The unsigned macOS production application and DMG are generated under `src-tauri/target/release/bundle/`. `npm run package:app` builds only `FitFreed.app` for the cold-launch campaign; `npm run package` builds the complete application and DMG set. Both commands bind the exact Git revision and clean-tree state into the host and normalize compiler source paths to stable virtual prefixes. The production-bundle check traverses the complete `.app` and rejects build-host paths as well as test routing. The instrumented behavioral E2E executable and application bundle use the separate `src-tauri/target/e2e/` target and must never be opened as a user build, used for human evaluation, or distributed. Its build deliberately omits an instrumented DMG because WebdriverIO consumes only the `.app`; production packaging and installation verification retain the DMG boundary. WebdriverIO is contractually pinned to that isolated executable, so an E2E campaign cannot replace the native application a reviewer launches. The X6 human-review profile instead uses a separate revision-derived bundle identity under `src-tauri/target/x6-review/`, production native adapters, and no test routing; CI and `npm run review:x6` inspect that complete bundle for both forbidden content classes before use. Packaged-update test builds, ephemeral keys and certificates, isolated installed bundles, libraries, recovery state, logs, and screenshots live under ignored `.artifacts/update-e2e`; its Cargo output is further isolated under `.artifacts/update-e2e/target`.
 
-The instrumented macOS application has its own stable bundle identity. To keep local E2E windows away from an active Desktop, run `npm run build:e2e`, open the generated `src-tauri/target/e2e/release/bundle/macos/FitFreed.app`, then use **Dock → Options → Assign To → This Desktop** once. macOS retains that assignment for subsequent E2E rebuilds. This is a local development preference rather than a test prerequisite; macOS does not expose a supported API for automation to move an arbitrary application window between Spaces.
+The instrumented executable resolves to `fitfreed` on macOS and Linux and `fitfreed.exe` on Windows. macOS builds an
+isolated application bundle; Linux and Windows host admission builds the isolated executable without an unrelated
+installer. The instrumented macOS application has its own stable bundle identity. To keep local E2E windows away from
+an active Desktop, run `npm run build:e2e`, open the generated
+`src-tauri/target/e2e/release/bundle/macos/FitFreed.app`, then use **Dock → Options → Assign To → This Desktop** once.
+macOS retains that assignment for subsequent E2E rebuilds. This is a local development preference rather than a test
+prerequisite; macOS does not expose a supported API for automation to move an arbitrary application window between
+Spaces.
 
 ## Synthetic fixture workflow
 
@@ -114,7 +127,21 @@ The [public release guide](public-release.md) owns the inactive production trust
 
 ## Continuous integration
 
-GitHub Actions classifies every pull request and `main` revision through a closed non-application allowlist. Documentation links and repository safety always run; README, canonical product-status, static product-page, and publication-only automation changes additionally run the focused generated-content, page, compositor, update-preservation, workflow, and publication contracts. Such a revision skips application verification only when the exact Git-tree fingerprint of every executable and release input has evidence that both complete lanes previously passed; missing evidence fails closed. Application, shared-dependency, release-candidate, unknown, and explicitly requested changes run the complete portable quality checks and mandatory macOS packaged-E2E job. The macOS job verifies full-scale import, dense supported-signal import and storage, exact-repeat, detailed-domain, longitudinal read-model, and production cold-launch budgets, prepares and installation-tests a normal private production package, and then builds separate test variants. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, a second application process recovering the first process's controlled library and preferences, and in-WebView performance budgets for all four detailed Insights areas and their integrated longitudinal view. It also exercises a real signed 0.1.0-to-0.2.0 native update through loopback HTTPS, including successful confirmation and automatic rollback after deliberate candidate rejection.
+GitHub Actions classifies every pull request and `main` revision through a closed non-application allowlist.
+Documentation links and repository safety always run; README, canonical product-status, static product-page, and
+publication-only automation changes additionally run the focused generated-content, page, compositor,
+update-preservation, workflow, and publication contracts. Such a revision skips application verification only when
+the exact Git-tree fingerprint of every executable and release input has evidence that all admitted complete lanes
+previously passed; missing evidence fails closed. Application, shared-dependency, release-candidate, unknown, and
+explicitly requested changes run portable checks plus complete workspace and desktop-host tests and strict linting on
+the pinned Ubuntu 24.04 runner, followed by the mandatory macOS packaged-E2E job. The macOS job verifies full-scale
+import, dense supported-signal import and storage, exact-repeat, detailed-domain, longitudinal read-model, and
+production cold-launch budgets, prepares and installation-tests a normal private production package, and then builds
+separate test variants. It drives the packaged application through validation, progress, cancellation, both locales,
+exact and cumulative reimport, accessibility, a second application process recovering the first process's controlled
+library and preferences, and in-WebView performance budgets for all four detailed Insights areas and their integrated
+longitudinal view. It also exercises a real signed 0.1.0-to-0.2.0 native update through loopback HTTPS, including
+successful confirmation and automatic rollback after deliberate candidate rejection.
 
 The instrumented build routes the archive picker, explicit official-link opener, and report-destination picker
 through WebdriverIO mocks because these operating-system surfaces cannot be driven reliably through the embedded

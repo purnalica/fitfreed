@@ -6,6 +6,7 @@ import test from "node:test";
 import { e2eBuildArguments, e2eBuildEnvironment } from "./build-e2e.mjs";
 import { packagedE2eScenarioPlan } from "./packaged-e2e-plan.mjs";
 import {
+  e2eApplicationBinaryForPlatform,
   e2eTargetDirectory,
   updateE2eTargetDirectory,
 } from "./e2e-paths.mjs";
@@ -24,6 +25,25 @@ test("keeps the instrumented executable outside the production target", () => {
   assert.equal(application, path.resolve("src-tauri/target/e2e/release/fitfreed"));
   assert.equal(serviceApplication, application);
   assert.notEqual(application, path.resolve("src-tauri/target/release/fitfreed"));
+});
+
+test("resolves the instrumented executable for each desktop platform", () => {
+  assert.equal(
+    e2eApplicationBinaryForPlatform("darwin"),
+    path.resolve("src-tauri/target/e2e/release/fitfreed"),
+  );
+  assert.equal(
+    e2eApplicationBinaryForPlatform("linux"),
+    path.resolve("src-tauri/target/e2e/release/fitfreed"),
+  );
+  assert.equal(
+    e2eApplicationBinaryForPlatform("win32"),
+    path.resolve("src-tauri/target/e2e/release/fitfreed.exe"),
+  );
+  assert.throws(
+    () => e2eApplicationBinaryForPlatform("freebsd"),
+    /unsupported E2E desktop platform/,
+  );
 });
 
 test("gives the instrumented macOS application a stable isolated identity", () => {
@@ -61,8 +81,8 @@ test("binds the isolated E2E package to its exact source", () => {
   assert.equal(environment.FITFREED_PUBLIC_UPDATE_TRUST, undefined);
 });
 
-test("builds only the instrumented application consumed by the packaged journey", () => {
-  assert.deepEqual(e2eBuildArguments(), [
+test("builds only the instrumented application consumed by each packaged journey", () => {
+  assert.deepEqual(e2eBuildArguments([], "darwin"), [
     "build",
     "--features",
     "e2e",
@@ -71,7 +91,24 @@ test("builds only the instrumented application consumed by the packaged journey"
     "--config",
     "src-tauri/tauri.e2e.conf.json",
   ]);
-  assert.deepEqual(e2eBuildArguments(["--verbose"]), [
+  assert.deepEqual(e2eBuildArguments(["--verbose"], "linux"), [
+    "build",
+    "--features",
+    "e2e",
+    "--no-bundle",
+    "--config",
+    "src-tauri/tauri.e2e.conf.json",
+    "--verbose",
+  ]);
+  assert.deepEqual(e2eBuildArguments([], "win32"), [
+    "build",
+    "--features",
+    "e2e",
+    "--no-bundle",
+    "--config",
+    "src-tauri/tauri.e2e.conf.json",
+  ]);
+  assert.deepEqual(e2eBuildArguments(["--verbose"], "darwin"), [
     "build",
     "--features",
     "e2e",
@@ -81,6 +118,10 @@ test("builds only the instrumented application consumed by the packaged journey"
     "src-tauri/tauri.e2e.conf.json",
     "--verbose",
   ]);
+  assert.throws(
+    () => e2eBuildArguments([], "freebsd"),
+    /unsupported E2E desktop platform/,
+  );
 });
 
 test("keeps packaged update fixtures outside both retained application targets", () => {
