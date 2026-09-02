@@ -103,10 +103,18 @@ permission, and symbolic-link contract passes. Repeating it against unchanged pa
 The inventory is not an SBOM, signature, or publication authorization.
 
 `npm run verify:linux-public-release -- <candidate-directory>` reopens a candidate's `release/` and `pages/`
-directories. It verifies the version 4 manifest, every artifact digest, the package inventory's binding to the Debian
-bytes, the upgrade matrix, the exact checksum set, the detached checksum signature, both stable-channel signatures,
-and the complete macOS-plus-Linux Pages snapshot. The command uses only the active public trust configurations; an
-inactive or unknown key fails closed. Passing verifies candidate consistency but does not grant publication authority.
+directories. It verifies the recoverable version 5 manifest, every artifact digest, the package inventory's binding to
+the Debian bytes, upgrade matrix version 2, the exact checksum set, the detached checksum signature, both
+stable-channel signatures, and the complete macOS-plus-Linux Pages snapshot. Every predecessor named by `stable-v3`
+must exist at its canonical version path and match its authenticated size, digest, and updater signature. The command
+uses only the active public trust configurations; an inactive or unknown key fails closed. Passing verifies candidate
+consistency but does not grant publication authority.
+
+Release preparation obtains each Linux predecessor from ignored original-release evidence at
+`<evidence-root>/<version>/linux-x86_64-deb/release/`. Discovery derives the exact required directories from
+`supported-upgrades.json`; it rejects stale or missing entries and reopens the prior manifest, inventory, checksum
+set, release signature, and updater signature before the package can enter staging. Never copy a package from an
+installed system, rebuild an old version, or enter a predecessor path manually.
 
 The clean-installation command additionally requires Docker on an x86-64 Linux host. It mounts only the exact Debian
 artifact, read-only, into a digest-pinned Ubuntu 24.04 base image. The gate first proves that Node.js, npm, Cargo,

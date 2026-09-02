@@ -11,6 +11,11 @@ import {
   decodeTauriSignatureText,
   verifyMinisign,
 } from "./release-signature.mjs";
+import {
+  deriveRecoveryArtifactRequirements,
+  validateStableUpdateV3Envelope,
+  validateStableUpdateV3Payload,
+} from "./update-channel-v3.mjs";
 
 function validators() {
   const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -48,22 +53,34 @@ export function verifyStableUpdateEvidence({
   publicUpdateConfiguration,
   packageKind,
   target,
+  upgradeMatrix,
 }) {
   const configuration = validatePublicUpdateConfiguration(publicUpdateConfiguration);
   if (configuration.status !== "active") throw new Error("public update channel is inactive");
+  if (manifest.update.contract !== configuration.contract) {
+    throw new Error("public release and update configuration contracts do not match");
+  }
   const envelopeArtifact = onlyArtifact(manifest, "stable-update-envelope");
   const packageArtifact = onlyArtifact(manifest, packageKind);
   const signatureArtifact = onlyArtifact(manifest, "updater-signature");
   const envelope = JSON.parse(
     readFileSync(path.join(releaseDirectory, envelopeArtifact.path), "utf8"),
   );
-  validateUpdateDocument(updateValidators.envelope, envelope, "stable envelope");
+  if (configuration.contract === "stable-v2") {
+    validateUpdateDocument(updateValidators.envelope, envelope, "stable envelope");
+  }
   const payloadBytes = Buffer.from(envelope.fitfreed.payloadBase64, "base64");
   if (payloadBytes.toString("base64") !== envelope.fitfreed.payloadBase64) {
     throw new Error("stable payload uses a non-canonical Base64 representation");
   }
   const payload = JSON.parse(payloadBytes.toString("utf8"));
-  validateUpdateDocument(updateValidators.payload, payload, "stable payload");
+  if (configuration.contract === "stable-v3") {
+    const expectedRecoveryArtifacts = deriveRecoveryArtifactRequirements(upgradeMatrix);
+    validateStableUpdateV3Payload(payload, expectedRecoveryArtifacts);
+    validateStableUpdateV3Envelope(envelope, payload);
+  } else {
+    validateUpdateDocument(updateValidators.payload, payload, "stable payload");
+  }
 
   const trustedKey = configuration.keys.find(({ id }) => id === envelope.fitfreed.keyId);
   if (!trustedKey || envelope.fitfreed.keyId !== manifest.update.keyId) {

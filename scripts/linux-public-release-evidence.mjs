@@ -23,12 +23,18 @@ const requiredKinds = new Set([
   "release-notes",
 ]);
 const singleKinds = new Set([...requiredKinds].filter((kind) => kind !== "cyclonedx-sbom"));
-const schema = JSON.parse(
+const version4Schema = JSON.parse(
   readFileSync(new URL("../schemas/release-manifest-v4.schema.json", import.meta.url), "utf8"),
 );
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
-const validateSchema = ajv.compile(schema);
+ajv.addSchema(version4Schema);
+const validators = new Map([
+  [4, ajv.getSchema(version4Schema.$id)],
+  [5, ajv.compile(JSON.parse(
+    readFileSync(new URL("../schemas/release-manifest-v5.schema.json", import.meta.url), "utf8"),
+  ))],
+]);
 
 function invalidPath(candidate) {
   return (
@@ -42,7 +48,7 @@ function invalidPath(candidate) {
   );
 }
 
-export function createLinuxPublicReleaseManifest({
+function createManifest({
   version,
   revision: sourceRevision,
   generatedAt,
@@ -52,14 +58,14 @@ export function createLinuxPublicReleaseManifest({
   updateSequence,
   generators,
   artifacts,
-}) {
+}, schemaVersion, updateContract) {
   const debianPackage = expectedLinuxDebianArtifactName(version);
   const sortedArtifacts = [...artifacts].sort((left, right) =>
     left.path.localeCompare(right.path, "en"),
   );
   const manifest = {
     format: "org.fitfreed.release-manifest",
-    schemaVersion: 4,
+    schemaVersion,
     release: {
       version,
       revision: sourceRevision,
@@ -101,7 +107,7 @@ export function createLinuxPublicReleaseManifest({
       },
     },
     update: {
-      contract: "stable-v2",
+      contract: updateContract,
       metadataEndpoint: publicUpdateEndpoint,
       keyId: updateKeyId,
       sequence: updateSequence,
@@ -124,9 +130,19 @@ export function createLinuxPublicReleaseManifest({
   return manifest;
 }
 
+export function createLinuxPublicReleaseManifest(input) {
+  return createManifest(input, 4, "stable-v2");
+}
+
+export function createRecoverableLinuxPublicReleaseManifest(input) {
+  return createManifest(input, 5, "stable-v3");
+}
+
 export function validateLinuxPublicReleaseManifest(manifest) {
   const errors = [];
-  if (!validateSchema(manifest)) {
+  const validateSchema = validators.get(manifest?.schemaVersion);
+  if (!validateSchema) errors.push("unsupported Linux public manifest schema version");
+  else if (!validateSchema(manifest)) {
     errors.push(
       ...validateSchema.errors.map(
         ({ instancePath, message }) =>
@@ -134,7 +150,6 @@ export function validateLinuxPublicReleaseManifest(manifest) {
       ),
     );
   }
-  if (manifest?.schemaVersion !== 4) errors.push("unsupported Linux public manifest schema version");
   if (!semanticVersion.test(manifest?.release?.version ?? "")) {
     errors.push("invalid Linux public release version");
   }

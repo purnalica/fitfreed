@@ -68,7 +68,7 @@ function lexicalOrder(left, right) {
   return left.localeCompare(right, "en");
 }
 
-export function validateUpgradeMatrix(matrix, repository) {
+export function validateUpgradeMatrixDocument(matrix) {
   const validateSchema = validators.get(matrix?.schemaVersion);
   if (!validateSchema) {
     throw new Error("upgrade matrix schema version is unsupported");
@@ -81,6 +81,11 @@ export function validateUpgradeMatrix(matrix, repository) {
         .join("\n"),
     );
   }
+  return matrix;
+}
+
+export function validateUpgradeMatrix(matrix, repository) {
+  validateUpgradeMatrixDocument(matrix);
 
   const errors = [];
   const requireValue = (condition, message) => {

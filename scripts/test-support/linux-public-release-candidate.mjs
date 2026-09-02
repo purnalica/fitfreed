@@ -10,7 +10,9 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { createLinuxPublicReleaseManifest } from "../linux-public-release-evidence.mjs";
+import {
+  createRecoverableLinuxPublicReleaseManifest,
+} from "../linux-public-release-evidence.mjs";
 import { expectedLinuxDebianArtifactName, linuxPackageContract } from "../linux-package-contract.mjs";
 import { linuxPackageInventoryName } from "../linux-package-inventory.mjs";
 import { publicUpdateEndpoint } from "../public-origin.mjs";
@@ -23,9 +25,9 @@ const releaseAuthority = createSyntheticMinisignAuthority();
 
 export const linuxPublicUpdateConfiguration = {
   format: "org.fitfreed.public-update-configuration",
-  schemaVersion: 1,
+  schemaVersion: 2,
   status: "active",
-  contract: "stable-v2",
+  contract: "stable-v3",
   metadataEndpoint: publicUpdateEndpoint,
   keys: [{ id: "stable.synthetic-1", publicKey: updaterAuthority.publicKey }],
 };
@@ -54,7 +56,7 @@ function packageEntry(entryPath, mode = "0644") {
   };
 }
 
-function packageInventory(packageName, packageBytes) {
+function packageInventory(packageName, packageBytes, version) {
   return {
     format: "org.fitfreed.linux-package-inventory",
     schemaVersion: 1,
@@ -70,7 +72,7 @@ function packageInventory(packageName, packageBytes) {
     },
     control: {
       packageName: "fitfreed",
-      version: "0.1.0",
+      version,
       architecture: "amd64",
       maintainer: "FitFreed contributors",
       section: "utils",
@@ -89,7 +91,7 @@ function packageInventory(packageName, packageBytes) {
   };
 }
 
-export function createLinuxPublicReleaseCandidateFixture() {
+export function createLinuxPublicReleaseCandidateFixture({ withPredecessor = false } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-linux-public-candidate-"));
   const releaseDirectory = path.join(root, "release");
   const pagesDirectory = path.join(root, "pages");
@@ -97,7 +99,7 @@ export function createLinuxPublicReleaseCandidateFixture() {
   mkdirSync(releaseDirectory);
   mkdirSync(inputDirectory);
 
-  const version = "0.1.0";
+  const version = withPredecessor ? "0.2.0" : "0.1.0";
   const linuxPackageName = expectedLinuxDebianArtifactName(version);
   const linuxPackageBytes = Buffer.from("synthetic signed Debian package bytes");
   const linuxPackagePath = path.join(releaseDirectory, linuxPackageName);
@@ -109,7 +111,7 @@ export function createLinuxPublicReleaseCandidateFixture() {
   const inventoryName = linuxPackageInventoryName(version);
   writeFileSync(
     path.join(releaseDirectory, inventoryName),
-    `${JSON.stringify(packageInventory(linuxPackageName, linuxPackageBytes), null, 2)}\n`,
+    `${JSON.stringify(packageInventory(linuxPackageName, linuxPackageBytes, version), null, 2)}\n`,
   );
 
   const macosPackageName = `FitFreed_${version}_aarch64.app.tar.gz`;
@@ -120,6 +122,24 @@ export function createLinuxPublicReleaseCandidateFixture() {
     `${macosPackagePath}.sig`,
     updaterAuthority.signTauri(macosPackageBytes, macosPackageName),
   );
+  const predecessorVersion = "0.1.0";
+  const predecessorPackageName = expectedLinuxDebianArtifactName(predecessorVersion);
+  const predecessorPackagePath = path.join(inputDirectory, predecessorPackageName);
+  if (withPredecessor) {
+    const predecessorBytes = Buffer.from("authenticated predecessor Debian package bytes");
+    writeFileSync(predecessorPackagePath, predecessorBytes);
+    writeFileSync(
+      `${predecessorPackagePath}.sig`,
+      updaterAuthority.signTauri(predecessorBytes, predecessorPackageName),
+    );
+  }
+  const recoveryRequirements = withPredecessor
+    ? [{
+      version: predecessorVersion,
+      target: "linux-x86_64-deb",
+      librarySchemaVersions: [36, 37],
+    }]
+    : [];
   stageStableUpdateChannel({
     outputDirectory: pagesDirectory,
     configuration: linuxPublicUpdateConfiguration,
@@ -135,13 +155,19 @@ export function createLinuxPublicReleaseCandidateFixture() {
         target: "linux-x86_64-deb",
       },
     ],
+    recoveryPackages: recoveryRequirements.map((requirement) => ({
+      ...requirement,
+      packagePath: predecessorPackagePath,
+      packageSignaturePath: `${predecessorPackagePath}.sig`,
+    })),
+    expectedRecoveryArtifacts: recoveryRequirements,
     signingKeyId: "stable.synthetic-1",
     version,
     sequence: 2,
     issuedAt: "2026-09-02T08:00:00.000Z",
     expiresAt: "2026-09-09T08:00:00.000Z",
     publishedAt: "2026-09-02T08:00:00.000Z",
-    minimumSupportedVersion: version,
+    minimumSupportedVersion: withPredecessor ? predecessorVersion : version,
     minimumReadableSchemaVersion: 1,
     maximumReadableSchemaVersion: 37,
     targetSchemaVersion: 37,
@@ -163,9 +189,15 @@ export function createLinuxPublicReleaseCandidateFixture() {
     path.join(releaseDirectory, "supported-upgrades.json"),
     `${JSON.stringify({
       format: "org.fitfreed.upgrade-matrix",
-      schemaVersion: 1,
+      schemaVersion: 2,
       release: { version, librarySchemaVersion: 37 },
-      supportedApplicationBaselines: [],
+      supportedApplicationBaselines: withPredecessor
+        ? [{
+          version: predecessorVersion,
+          targets: ["darwin-aarch64", "linux-x86_64-deb"],
+          librarySchemaVersions: [36, 37],
+        }]
+        : [],
       supportedLibrarySchemaVersions: Array.from({ length: 37 }, (_, index) => index + 1),
     }, null, 2)}\n`,
   );
@@ -181,7 +213,7 @@ export function createLinuxPublicReleaseCandidateFixture() {
     inspectArtifact(releaseDirectory, "RELEASE_NOTES.md", "release-notes"),
   ];
   const revision = "c".repeat(40);
-  const manifest = createLinuxPublicReleaseManifest({
+  const manifest = createRecoverableLinuxPublicReleaseManifest({
     version,
     revision,
     generatedAt: "2026-09-02T08:00:00.000Z",

@@ -14,6 +14,7 @@ import {
   validatePublicUpdateConfiguration,
 } from "./public-update-configuration.mjs";
 import { verifyStableUpdateEvidence } from "./public-update-verification.mjs";
+import { publicUpdatePackageName } from "./public-update-staging.mjs";
 import {
   decodeReleasePublicKey,
   decodeTauriSignatureText,
@@ -67,6 +68,7 @@ function verifyUpgradeMatrix(releaseDirectory, manifest) {
       (_, index) => index + 1,
     ),
   });
+  return matrix;
 }
 
 function checksumEntries(releaseDirectory) {
@@ -126,6 +128,49 @@ function verifyReleaseSignature(releaseDirectory, manifest, signingConfiguration
   });
 }
 
+function verifyUpdaterSignature(releaseDirectory, manifest, updateConfiguration) {
+  const configuration = validatePublicUpdateConfiguration(updateConfiguration);
+  if (configuration.status !== "active") throw new Error("public update channel is inactive");
+  const keyId = manifest.trust.updaterSignature.keyId;
+  const trustedKey = configuration.keys.find(({ id }) => id === keyId);
+  if (!trustedKey) throw new Error("Linux updater-signing key is outside configured trust");
+  const packageArtifact = onlyArtifact(manifest, "linux-x86_64-deb");
+  const signatureArtifact = onlyArtifact(manifest, "updater-signature");
+  verifyMinisign({
+    payload: readFileSync(path.join(releaseDirectory, packageArtifact.path)),
+    publicKeyText: decodeReleasePublicKey(trustedKey.publicKey),
+    signatureText: decodeTauriSignatureText(
+      readFileSync(path.join(releaseDirectory, signatureArtifact.path), "utf8").trim(),
+    ),
+  });
+}
+
+export function verifyLinuxReleaseEvidenceDirectory(
+  releaseDirectory,
+  publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
+) {
+  const manifest = validateLinuxPublicReleaseManifest(JSON.parse(
+    readFileSync(path.join(releaseDirectory, "release-manifest.json"), "utf8"),
+  ));
+  verifyManifestArtifacts(releaseDirectory, manifest);
+  verifyPackageInventory(releaseDirectory, manifest);
+  const upgradeMatrix = verifyUpgradeMatrix(releaseDirectory, manifest);
+  verifyChecksums(releaseDirectory, manifest);
+  verifyReleaseSignature(releaseDirectory, manifest, publicReleaseSigningConfiguration);
+  verifyUpdaterSignature(releaseDirectory, manifest, publicUpdateConfiguration);
+  const packageArtifact = onlyArtifact(manifest, "linux-x86_64-deb");
+  const signatureArtifact = onlyArtifact(manifest, "updater-signature");
+  return {
+    manifest,
+    packagePath: path.join(releaseDirectory, packageArtifact.path),
+    packageSignaturePath: path.join(releaseDirectory, signatureArtifact.path),
+    target: manifest.target.updateTarget,
+    upgradeMatrix,
+    version: manifest.release.version,
+  };
+}
+
 function relativeFiles(root) {
   const files = [];
   const visit = (directory) => {
@@ -171,6 +216,28 @@ function verifyPagesSnapshot(
       signatureText: decodeTauriSignatureText(evidence.tauriSignature),
     });
   }
+  for (const evidence of stable.payload.release.recoveryArtifacts ?? []) {
+    const filename = publicUpdatePackageName(evidence.version, evidence.target);
+    if (evidence.url !== publicUpdateUrl(`${evidence.version}/${filename}`)) {
+      throw new Error(
+        `Linux Pages predecessor URL is not canonical: ${evidence.version}:${evidence.target}`,
+      );
+    }
+    const relativePath = path.join("updates", evidence.version, filename);
+    expectedFiles.push(relativePath);
+    const packagePath = path.join(pagesDirectory, relativePath);
+    const bytes = readFileSync(packagePath);
+    if (bytes.length !== evidence.size || sha256File(packagePath) !== evidence.sha256) {
+      throw new Error(
+        `Linux Pages predecessor bytes do not match stable metadata: ${evidence.version}:${evidence.target}`,
+      );
+    }
+    verifyMinisign({
+      payload: bytes,
+      publicKeyText,
+      signatureText: decodeTauriSignatureText(evidence.tauriSignature),
+    });
+  }
   expectedFiles.sort((left, right) => left.localeCompare(right, "en"));
   if (JSON.stringify(relativeFiles(pagesDirectory)) !== JSON.stringify(expectedFiles)) {
     throw new Error("Linux Pages staging contains an unexpected public file set");
@@ -202,20 +269,18 @@ export function verifyLinuxPublicReleaseCandidate(
   const pagesDirectory = path.join(root, "pages");
   const updateConfiguration = validatePublicUpdateConfiguration(publicUpdateConfiguration);
   if (updateConfiguration.status !== "active") throw new Error("public update channel is inactive");
-  const manifest = validateLinuxPublicReleaseManifest(JSON.parse(
-    readFileSync(path.join(releaseDirectory, "release-manifest.json"), "utf8"),
-  ));
-  verifyManifestArtifacts(releaseDirectory, manifest);
-  verifyPackageInventory(releaseDirectory, manifest);
-  verifyUpgradeMatrix(releaseDirectory, manifest);
-  verifyChecksums(releaseDirectory, manifest);
-  verifyReleaseSignature(releaseDirectory, manifest, publicReleaseSigningConfiguration);
+  const { manifest, upgradeMatrix } = verifyLinuxReleaseEvidenceDirectory(
+    releaseDirectory,
+    updateConfiguration,
+    publicReleaseSigningConfiguration,
+  );
   const stable = verifyStableUpdateEvidence({
     releaseDirectory,
     manifest,
     publicUpdateConfiguration: updateConfiguration,
     packageKind: "linux-x86_64-deb",
     target: "linux-x86_64-deb",
+    upgradeMatrix,
   });
   if (
     JSON.stringify(Object.keys(stable.payload.release.platforms).sort())

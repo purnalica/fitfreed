@@ -81,7 +81,7 @@ function validateTemporalPolicy(issuedAt, expiresAt, publishedAt) {
   }
 }
 
-function publicPackageName(version, target) {
+export function publicUpdatePackageName(version, target) {
   if (!semanticVersion.test(version)) throw new Error("public update version is invalid");
   if (target === "darwin-aarch64") return `FitFreed_${version}_aarch64.app.tar.gz`;
   if (target === "linux-x86_64-deb") return expectedLinuxDebianArtifactName(version);
@@ -148,7 +148,7 @@ export function stageStableUpdateChannel({
   const packageTargets = new Set();
   const packageEvidence = packages
     .map(({ packagePath, packageSignaturePath, target }) => {
-      const packageName = publicPackageName(version, target);
+      const packageName = publicUpdatePackageName(version, target);
       if (packageTargets.has(target)) throw new Error(`public update target is duplicated: ${target}`);
       packageTargets.add(target);
       const packageMetadata = statSync(packagePath);
@@ -189,7 +189,7 @@ export function stageStableUpdateChannel({
   const recoveryEvidence = recoverable
     ? recoveryPackages
       .map((recovery) => {
-        const packageName = publicPackageName(recovery.version, recovery.target);
+        const packageName = publicUpdatePackageName(recovery.version, recovery.target);
         const packageMetadata = statSync(recovery.packagePath);
         if (!packageMetadata.isFile() || packageMetadata.size < 1) {
           throw new Error("public update predecessor package is invalid");

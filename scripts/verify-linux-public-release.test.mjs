@@ -21,6 +21,8 @@ test("verifies the complete signed Linux candidate and multiplatform Pages snaps
   assert.equal(result.version, "0.1.0");
   assert.equal(result.revision, candidate.revision);
   assert.equal(result.updateSequence, 2);
+  assert.equal(candidate.manifest.schemaVersion, 5);
+  assert.equal(candidate.manifest.update.contract, "stable-v3");
   assert.equal(result.releaseKeyId, "linux-release.synthetic-1");
   assert.equal(result.attestationSubjectCount, 10);
   assert.equal(result.debianPackage, path.join(
@@ -80,5 +82,33 @@ test("rejects package-inventory and Pages divergence", () => {
       linuxPublicReleaseSigningConfiguration,
     ),
     /ENOENT/,
+  );
+});
+
+test("verifies every authenticated predecessor retained in the Pages snapshot", () => {
+  const candidate = createLinuxPublicReleaseCandidateFixture({ withPredecessor: true });
+  assert.equal(
+    verifyLinuxPublicReleaseCandidate(
+      candidate.root,
+      linuxPublicUpdateConfiguration,
+      linuxPublicReleaseSigningConfiguration,
+    ).version,
+    "0.2.0",
+  );
+
+  const predecessorPath = path.join(
+    candidate.pagesDirectory,
+    "updates",
+    "0.1.0",
+    "FitFreed_0.1.0_amd64.deb",
+  );
+  writeFileSync(predecessorPath, "changed predecessor bytes");
+  assert.throws(
+    () => verifyLinuxPublicReleaseCandidate(
+      candidate.root,
+      linuxPublicUpdateConfiguration,
+      linuxPublicReleaseSigningConfiguration,
+    ),
+    /predecessor bytes do not match stable metadata/,
   );
 });

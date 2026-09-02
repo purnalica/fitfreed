@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  createRecoverableLinuxPublicReleaseManifest,
   createLinuxPublicReleaseManifest,
   validateLinuxPublicReleaseManifest,
 } from "./linux-public-release-evidence.mjs";
@@ -127,6 +128,20 @@ test("rejects artifact ordering drift independently of provenance order", () => 
   );
 });
 
+test("creates a recoverable Linux manifest without reinterpreting version 4", () => {
+  const manifest = createRecoverableLinuxPublicReleaseManifest(manifestInput());
+
+  assert.equal(validateLinuxPublicReleaseManifest(manifest), manifest);
+  assert.equal(manifest.schemaVersion, 5);
+  assert.equal(manifest.update.contract, "stable-v3");
+
+  manifest.update.contract = "stable-v2";
+  assert.throws(
+    () => validateLinuxPublicReleaseManifest(manifest),
+    /schema violation/,
+  );
+});
+
 test("documents and indexes the immutable Linux manifest contract", () => {
   const document = readFileSync(
     new URL("../docs/data-formats/release/release-manifest-v4.md", import.meta.url),
@@ -144,4 +159,5 @@ test("documents and indexes the immutable Linux manifest contract", () => {
     assert.match(document, new RegExp(value.replaceAll(".", "\\.")));
   }
   assert.match(index, /release\/release-manifest-v4\.md/);
+  assert.match(index, /release\/release-manifest-v5\.md/);
 });

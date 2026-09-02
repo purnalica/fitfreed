@@ -4,7 +4,10 @@ import { isDeepStrictEqual } from "node:util";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
-import { compareSemanticVersions } from "./upgrade-matrix.mjs";
+import {
+  compareSemanticVersions,
+  validateUpgradeMatrixDocument,
+} from "./upgrade-matrix.mjs";
 
 const maximumValidityMilliseconds = 14 * 24 * 60 * 60 * 1_000;
 
@@ -54,6 +57,22 @@ function sameRecoveryDeclaration(left, right) {
   return left.version === right.version
     && left.target === right.target
     && isDeepStrictEqual(left.librarySchemaVersions, right.librarySchemaVersions);
+}
+
+export function deriveRecoveryArtifactRequirements(upgradeMatrix) {
+  validateUpgradeMatrixDocument(upgradeMatrix);
+  if (upgradeMatrix.schemaVersion !== 2) {
+    throw new Error("recoverable stable updates require upgrade matrix version 2");
+  }
+  return upgradeMatrix.supportedApplicationBaselines
+    .flatMap(({ version, targets, librarySchemaVersions }) => targets
+      .filter((target) => target === "linux-x86_64-deb" || target === "windows-x86_64-nsis")
+      .map((target) => ({
+        version,
+        target,
+        librarySchemaVersions: [...librarySchemaVersions],
+      })))
+    .sort(compareRecoveryArtifacts);
 }
 
 function validateTemporalPolicy(payload, errors) {

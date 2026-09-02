@@ -133,8 +133,12 @@ and contract-crossing evidence before policy evaluation. The host maps supported
 `linux-x86_64-deb` and `windows-x86_64-nsis`; unsupported platform and architecture combinations fail closed. Stable
 version 2 remains a closed contract. Configuration version 2 and the host build mapping can select version 3. The
 atomic Pages generator accepts only an independently declared recovery-baseline set, derives every signed predecessor
-field from reopened package bytes, and stages those exact bytes beside the current packages. Production activation
-waits until predecessor discovery, platform recovery adapters, and the release verifier all accept the same evidence.
+field from reopened package bytes, and stages those exact bytes beside the current packages. Predecessor discovery
+derives its required directory set from the matrix, rejects stale or missing evidence, reopens the prior Linux release
+manifest, package inventory, complete checksum set, release signature, and updater signature, and returns only the
+verified package and detached-signature paths. The recoverable Linux release manifest version 5 and candidate verifier
+then bind `stable-v3` to that same matrix and verify every current and predecessor Pages byte, canonical path, digest,
+size, and updater signature. Production activation waits until the platform recovery adapters accept this evidence.
 The [upgrade matrix version 2](../data-formats/release/upgrade-matrix-v2.md) is the only matrix contract that can declare
 Debian and NSIS application baselines; version 1 remains valid for its closed macOS-only target vocabulary.
 
@@ -162,7 +166,11 @@ Synthetic test keys are generated or scoped to test artifacts and are never acce
 
 The feature-gated packaged update journey generates a fresh Minisign key and a one-certificate HTTPS authority for each run. Only the instrumented host accepts that additional root from a test-process environment path; the metadata and package clients parse exactly one certificate, and ordinary builds expose neither the constructor nor the environment configuration. The current journey selects public stable version 2, while Rust and schema tests retain private-alpha version 1 coverage and reject cross-channel input. Each success or deliberate candidate-rejection scenario has its own embedded-WebDriver port, installed bundle, SQLite library, and recovery root. The journey proves native package verification and replacement, process-bound startup, candidate confirmation, exact previous-pair restoration, terminal cleanup, privacy-safe localized outcome presentation and acknowledgement, retained locale, and SQLite integrity without weakening the production trust store.
 
-Public Pages staging is an ignored artifact containing exactly the stable envelope and the versioned updater archive named by it. The payload binds direct URL, size, SHA-256, package signature, compatibility, localized notes, and withdrawal state before both files replace the previous staging tree as one operation. Generation or signing failure preserves the previous complete tree. Live Pages deployment remains a protected release action.
+Public Pages staging is an ignored artifact containing exactly the stable envelope, every current platform package,
+and every authenticated predecessor package named by it. The payload binds direct URL, size, SHA-256, package
+signature, compatibility, localized notes, recovery baselines, and withdrawal state before the complete tree replaces
+the previous staging tree as one operation. Generation or signing failure preserves the previous complete tree. Live
+Pages deployment remains a protected release action.
 
 ## External implementation boundary
 

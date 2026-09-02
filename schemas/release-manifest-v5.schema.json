@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v5.schema.json",
+  "title": "FitFreed recoverable public Linux release manifest version 5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "release",
+    "target",
+    "application",
+    "trust",
+    "update",
+    "generators",
+    "artifacts",
+    "provenanceRequirements"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.release-manifest" },
+    "schemaVersion": { "const": 5 },
+    "release": {
+      "$ref": "release-manifest-v4.schema.json#/properties/release"
+    },
+    "target": {
+      "$ref": "release-manifest-v4.schema.json#/properties/target"
+    },
+    "application": {
+      "$ref": "release-manifest-v4.schema.json#/properties/application"
+    },
+    "trust": {
+      "$ref": "release-manifest-v4.schema.json#/properties/trust"
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "metadataEndpoint", "keyId", "sequence", "target"],
+      "properties": {
+        "contract": { "const": "stable-v3" },
+        "metadataEndpoint": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "keyId": {
+          "$ref": "release-manifest-v4.schema.json#/$defs/keyId"
+        },
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "target": { "const": "linux-x86_64-deb" }
+      }
+    },
+    "generators": {
+      "$ref": "release-manifest-v4.schema.json#/properties/generators"
+    },
+    "artifacts": {
+      "$ref": "release-manifest-v4.schema.json#/properties/artifacts"
+    },
+    "provenanceRequirements": {
+      "$ref": "release-manifest-v4.schema.json#/properties/provenanceRequirements"
+    }
+  }
+}

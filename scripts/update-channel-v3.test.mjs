@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  deriveRecoveryArtifactRequirements,
   validateStableUpdateV3Envelope,
   validateStableUpdateV3Payload,
 } from "./update-channel-v3.mjs";
@@ -95,6 +96,44 @@ test("accepts an exact stable channel with one authenticated Linux predecessor",
   );
   const envelope = envelopeFor(signedPayload);
   assert.equal(validateStableUpdateV3Envelope(envelope, signedPayload), envelope);
+});
+
+test("derives native predecessor requirements from the multiplatform upgrade matrix", () => {
+  const requirements = deriveRecoveryArtifactRequirements({
+    format: "org.fitfreed.upgrade-matrix",
+    schemaVersion: 2,
+    release: { version: "0.2.0", librarySchemaVersion: 38 },
+    supportedApplicationBaselines: [
+      {
+        version: "0.0.9",
+        targets: ["darwin-aarch64", "windows-x86_64-nsis"],
+        librarySchemaVersions: [35],
+      },
+      {
+        version: "0.1.0",
+        targets: ["darwin-aarch64", "linux-x86_64-deb"],
+        librarySchemaVersions: [36, 37],
+      },
+    ],
+    supportedLibrarySchemaVersions: [35, 36, 37, 38],
+  });
+
+  assert.deepEqual(requirements, [
+    {
+      version: "0.0.9",
+      target: "windows-x86_64-nsis",
+      librarySchemaVersions: [35],
+    },
+    {
+      version: "0.1.0",
+      target: "linux-x86_64-deb",
+      librarySchemaVersions: [36, 37],
+    },
+  ]);
+  assert.throws(
+    () => deriveRecoveryArtifactRequirements({ schemaVersion: 1 }),
+    /upgrade matrix schema violation/,
+  );
 });
 
 test("accepts an initial release with no declared predecessor", () => {

@@ -100,11 +100,18 @@ recovery list. A later deployment cannot remove a predecessor while an advertise
 predecessor is byte-identical to the immutable package already admitted for its own release; staging never rebuilds or
 resigns it.
 
+The ignored acquisition layout is exactly
+`<evidence-root>/<version>/<target>/release/`. Its version and target directory set must equal the native requirements
+derived from upgrade matrix version 2; stale and missing entries are equally invalid. A Linux `release/` directory is
+accepted only after its version 4 or 5 manifest, every artifact digest, Debian inventory, complete checksum set,
+detached release signature, updater signature, version, and target have been reopened under the active public trust
+configuration. The generator consumes the resulting verified paths rather than a manually entered package list.
+
 Recovery entries contain only public release compatibility and integrity evidence. They contain no installation,
 account, locale, fitness, health, route, provider, library, device, interaction, credential, or machine-local value.
 The update request remains static and reveals no installed version or library schema. Selecting a package URL
 necessarily reveals the requested public artifact to the server and network path.
 
 Malformed encoding, unsupported schema, missing target, invalid signature, unsafe URL, baseline disagreement, package
-mutation, expiry, replay, equivocation, or any version 2 trust failure is untrusted. It cannot change persisted trust,
+mutation, expiry, replay, equivocation, or any inherited version 2 trust failure is untrusted. It cannot change persisted trust,
 download an application or predecessor, start replacement, touch the library, or delete retained recovery evidence.
