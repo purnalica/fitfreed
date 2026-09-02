@@ -235,4 +235,5 @@ Directories are created with their first real contract; empty specifications are
 - [Public release policy version 1](release/public-release-policy-v1.md)
 - [Public origin version 1](release/public-origin-v1.md)
 - [Update recovery version 1](release/update-recovery-v1.md)
+- [Linux update recovery version 2](release/update-recovery-v2.md)
 - [Update recovery outcome version 1](../../schemas/update-recovery-outcome-v1.schema.json)

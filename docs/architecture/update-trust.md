@@ -106,9 +106,17 @@ Checks are non-blocking and bounded by timeout. A service failure does not block
 
 ## Recovery ownership
 
-Application replacement and library migration are separate reversible transitions joined by the [version 1 recovery manifest](../data-formats/release/update-recovery-v1.md) and the external-watchdog design in [ADR 0010](decisions/0010-run-update-recovery-from-the-preserved-application.md):
+Application replacement and library migration are separate reversible transitions joined by the platform recovery
+manifest and the external-watchdog design in [ADR 0010](decisions/0010-run-update-recovery-from-the-preserved-application.md).
+macOS uses the closed [version 1 recovery contract](../data-formats/release/update-recovery-v1.md). Linux x86-64
+Debian installations use [version 2](../data-formats/release/update-recovery-v2.md), which additionally preserves and
+authenticates the exact predecessor Debian package, a runnable extraction of that package, and native package-manager
+identity. A failed Linux native rollback remains a non-terminal condition with retained assets and a bounded explicit
+retry path; launching the runnable predecessor does not masquerade as restored native installation.
 
-- The application recovery copy contains the exact previously running bundle and lives outside Tauri's temporary replacement directory.
+Both contracts preserve these invariants:
+
+- The application recovery copy contains the exact previously running application image and lives outside Tauri's temporary replacement directory.
 - The library backup is produced through SQLite's online backup API and passes an integrity check before replacement begins.
 - The previous application is paired only with its pre-update library. A migrated library is never handed to an application whose declared maximum schema is lower.
 - The recovery watchdog is launched from the preserved previous executable before replacement, launches the replacement itself, retains its child-process handle, and requires confirmation from the expected new version and schema.

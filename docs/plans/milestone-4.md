@@ -36,6 +36,15 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 - Signing authority, exact candidate creation, clean Ubuntu 26.04 access, and public publication are human or protected
   environment gates. Ordinary engineering continues without them.
 
+## Execution ledger
+
+| Increment | State | Current evidence or next gate |
+|---|---|---|
+| M4.0 | Complete | Hosted Ubuntu portability, source compilation, shared tests, input classification, and bounded failure evidence are versioned and enforced. |
+| M4.1 | Engineering complete; candidate gate pending | The Debian identity, exact inventory, clean Ubuntu 24.04 installation, signed public candidate, release manifest, and multiplatform Pages evidence are verified. Exact graphical-candidate evidence and production signing authority remain later gates rather than repository material. |
+| M4.2 | Active | The immutable Linux recovery version 2 contract is defined; signed predecessor discovery and platform adapters are next. |
+| M4.3–M4.6 | Pending | Begin only through their ordered technical dependencies; protected signing, clean Ubuntu 26.04, human acceptance, and promotion remain explicit gates. |
+
 ## Increment M4.0 — Native portability admission
 
 **Outcome:** ordinary CI detects Linux host regressions before packaging work can hide them.

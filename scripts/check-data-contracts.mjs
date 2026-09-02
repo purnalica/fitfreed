@@ -6854,6 +6854,111 @@ for (const invalidRecovery of [
   }
 }
 
+const linuxUpdateRecoveryPath = "docs/data-formats/release/update-recovery-v2.md";
+const linuxUpdateRecovery = read(linuxUpdateRecoveryPath);
+for (const field of [
+  "org.fitfreed.update-recovery",
+  "schemaVersion",
+  "recoveryId",
+  "phase",
+  "platform",
+  "source.nativePackage",
+  "predecessorPackage.*",
+  "runnablePredecessor.*",
+  "targetPackage.*",
+  "replacementProcess.bootId",
+  "replacementProcess.startTimeClockTicks",
+  "nativeRecovery.attempts",
+  "nativeRecovery.lastFailure",
+  "native-recovery-unavailable",
+]) {
+  requireMention(linuxUpdateRecovery, field, linuxUpdateRecoveryPath);
+}
+
+const linuxUpdateRecoverySchemaPath = "schemas/update-recovery-v2.schema.json";
+const linuxUpdateRecoverySchema = JSON.parse(read(linuxUpdateRecoverySchemaPath));
+const validateLinuxUpdateRecovery = ajv.compile(linuxUpdateRecoverySchema);
+const syntheticLinuxUpdateRecovery = {
+  format: "org.fitfreed.update-recovery",
+  schemaVersion: 2,
+  recoveryId: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  phase: "prepared",
+  preparedAt: "2026-09-02T08:00:00Z",
+  replacementProcess: null,
+  platform: {
+    os: "linux",
+    architecture: "x86_64",
+    packageKind: "deb",
+    updateTarget: "linux-x86_64-deb",
+  },
+  source: {
+    version: "0.1.0",
+    librarySchemaVersion: 37,
+    libraryPath: "/var/lib/fitfreed-test/fitfreed.sqlite",
+    nativePackage: {
+      name: "fitfreed",
+      version: "0.1.0",
+      architecture: "amd64",
+      executablePath: "/usr/bin/fitfreed",
+      desktopEntryPath: "/usr/share/applications/FitFreed.desktop",
+    },
+  },
+  target: {
+    version: "0.2.0",
+    librarySchemaVersion: 38,
+    trustedSequence: 2,
+    trustedPayloadSha256:
+      "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+  },
+  predecessorPackage: {
+    relativePath: "previous/package.deb",
+    version: "0.1.0",
+    sourceUrl: "https://fitfreed.org/updates/0.1.0/FitFreed_0.1.0_amd64.deb",
+    sizeBytes: 1024,
+    sha256: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    signingKeyId: "stable.synthetic-1",
+    updaterSignature: "c3ludGhldGljLXVwZGF0ZXItc2lnbmF0dXJl",
+  },
+  runnablePredecessor: {
+    relativePath: "previous/runnable",
+    executableRelativePath: "usr/bin/fitfreed",
+    treeSha256: "23456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+    sourcePackageSha256:
+      "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  },
+  libraryBackup: {
+    relativePath: "previous/fitfreed.sqlite",
+    sizeBytes: 1048576,
+    sha256: "3456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012",
+  },
+  targetPackage: {
+    relativePath: "candidate/package.deb",
+    version: "0.2.0",
+    sourceUrl: "https://fitfreed.org/updates/0.2.0/FitFreed_0.2.0_amd64.deb",
+    sizeBytes: 2048,
+    sha256: "456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123",
+    signingKeyId: "stable.synthetic-1",
+    updaterSignature: "c3ludGhldGljLXVwZGF0ZXItc2lnbmF0dXJl",
+  },
+  nativeRecovery: { attempts: 0, lastFailure: null },
+};
+if (!validateLinuxUpdateRecovery(syntheticLinuxUpdateRecovery)) {
+  throw new Error(
+    linuxUpdateRecoverySchemaPath
+      + " rejected its synthetic manifest: "
+      + ajv.errorsText(validateLinuxUpdateRecovery.errors),
+  );
+}
+for (const invalidRecovery of [
+  { ...syntheticLinuxUpdateRecovery, platform: { ...syntheticLinuxUpdateRecovery.platform, os: "macos" } },
+  { ...syntheticLinuxUpdateRecovery, predecessorPackage: { ...syntheticLinuxUpdateRecovery.predecessorPackage, relativePath: "candidate/package.deb" } },
+  { ...syntheticLinuxUpdateRecovery, nativeRecovery: { attempts: 4, lastFailure: null } },
+]) {
+  if (validateLinuxUpdateRecovery(invalidRecovery)) {
+    throw new Error(linuxUpdateRecoverySchemaPath + " accepted an invalid manifest");
+  }
+}
+
 const updateRecoveryOutcomeSchemaPath = "schemas/update-recovery-outcome-v1.schema.json";
 const updateRecoveryOutcomeSchema = JSON.parse(read(updateRecoveryOutcomeSchemaPath));
 const validateUpdateRecoveryOutcome = ajv.compile(updateRecoveryOutcomeSchema);
@@ -10346,7 +10451,7 @@ process.stdout.write(
     publicUpdateConfigurationSchema: publicUpdateConfigurationSchemaPath,
     publicReleaseSigningConfigurationSchema:
       publicReleaseSigningConfigurationSchemaPath,
-    updateRecoverySchema: updateRecoverySchemaPath,
+    updateRecoverySchemas: [updateRecoverySchemaPath, linuxUpdateRecoverySchemaPath],
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
     reportSchemas: [
       reportDefinitionSchemaPath,

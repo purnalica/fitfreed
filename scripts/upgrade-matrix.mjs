@@ -43,7 +43,7 @@ function comparePrerelease(left, right) {
   return 0;
 }
 
-function compareSemanticVersions(leftValue, rightValue) {
+export function compareSemanticVersions(leftValue, rightValue) {
   const left = parseSemanticVersion(leftValue);
   const right = parseSemanticVersion(rightValue);
   for (let index = 0; index < left.core.length; index += 1) {
