@@ -1,7 +1,16 @@
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt,
+    fs::OpenOptions,
+    io::{Read, Write},
+    path::Path,
+    time::Duration,
+};
 
-use fitfreed_application::UpdateInstallationAuthorization;
-use reqwest::{redirect::Policy, Certificate};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use fitfreed_application::{UpdateArtifact, UpdateInstallationAuthorization};
+use minisign_verify::{PublicKey, Signature};
+use reqwest::{blocking::Client as BlockingClient, redirect::Policy, Certificate};
 use semver::Version;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Runtime};
@@ -12,7 +21,7 @@ use tauri_plugin_updater::{
 use thiserror::Error;
 use url::Url;
 
-use super::{current_update_target, HttpsUpdateChannel};
+use super::{current_update_target, local_file::PrivateStagingFile, HttpsUpdateChannel};
 
 const PACKAGE_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const PACKAGE_REQUEST_TIMEOUT: Duration = Duration::from_secs(15 * 60);
@@ -38,6 +47,57 @@ pub struct VerifiedUpdatePackage {
     bytes: Vec<u8>,
     authorization: UpdateInstallationAuthorization,
     native_update: Update,
+}
+
+pub struct VerifiedPredecessorPackage {
+    staging: PrivateStagingFile,
+    byte_len: u64,
+    sha256: String,
+    package_signature: String,
+    public_key: String,
+}
+
+impl fmt::Debug for VerifiedPredecessorPackage {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("VerifiedPredecessorPackage")
+            .field("byte_len", &self.byte_len)
+            .field("sha256", &self.sha256)
+            .finish_non_exhaustive()
+    }
+}
+
+impl VerifiedPredecessorPackage {
+    pub fn path(&self) -> &Path {
+        self.staging.path()
+    }
+
+    pub fn byte_len(&self) -> u64 {
+        self.byte_len
+    }
+
+    pub fn sha256(&self) -> &str {
+        &self.sha256
+    }
+
+    pub fn persist_noclobber(self, destination: &Path) -> Result<(), UpdatePackageError> {
+        verify_predecessor_file(
+            self.staging.path(),
+            self.byte_len,
+            &self.sha256,
+            &self.package_signature,
+            &self.public_key,
+        )?;
+        self.staging
+            .persist_noclobber(destination)
+            .map_err(|error| {
+                if error.kind() == std::io::ErrorKind::AlreadyExists {
+                    UpdatePackageError::PackageUntrusted
+                } else {
+                    UpdatePackageError::DownloadUnavailable
+                }
+            })
+    }
 }
 
 impl VerifiedUpdatePackage {
@@ -134,6 +194,210 @@ pub async fn download_verified_update<R: Runtime>(
     })
 }
 
+pub fn download_verified_predecessor(
+    channel: &HttpsUpdateChannel,
+    authorization: &UpdateInstallationAuthorization,
+    staging_directory: &Path,
+) -> Result<VerifiedPredecessorPackage, UpdatePackageError> {
+    validate_authorization(authorization)?;
+    let artifact = authorization
+        .predecessor_artifact
+        .as_ref()
+        .ok_or(UpdatePackageError::InvalidAuthorization)?;
+    let public_key = channel
+        .package_public_key(&authorization.signing_key_id)
+        .ok_or(UpdatePackageError::TrustUnavailable)?;
+    let package_root_certificate = channel
+        .package_root_certificate()
+        .map(parse_single_root_certificate)
+        .transpose()
+        .map_err(|_| UpdatePackageError::TrustUnavailable)?;
+    let client = build_predecessor_client(package_root_certificate.as_ref())?;
+    let url = validate_update_artifact(artifact)?;
+    let response = client
+        .get(url)
+        .send()
+        .map_err(|_| UpdatePackageError::DownloadUnavailable)?;
+    if !response.status().is_success() {
+        return Err(UpdatePackageError::DownloadUnavailable);
+    }
+    let content_length = response.content_length();
+    transfer_verified_predecessor(
+        response,
+        content_length,
+        staging_directory,
+        artifact,
+        public_key,
+    )
+}
+
+fn build_predecessor_client(
+    root_certificate: Option<&Certificate>,
+) -> Result<BlockingClient, UpdatePackageError> {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let mut builder = BlockingClient::builder()
+        .connect_timeout(PACKAGE_CONNECT_TIMEOUT)
+        .timeout(PACKAGE_REQUEST_TIMEOUT)
+        .redirect(Policy::none())
+        .tls_sslkeylogfile(false);
+    if let Some(certificate) = root_certificate {
+        builder = builder.add_root_certificate(certificate.clone());
+    }
+    builder
+        .build()
+        .map_err(|_| UpdatePackageError::DownloadUnavailable)
+}
+
+fn transfer_verified_predecessor(
+    mut reader: impl Read,
+    content_length: Option<u64>,
+    staging_directory: &Path,
+    artifact: &UpdateArtifact,
+    public_key: &str,
+) -> Result<VerifiedPredecessorPackage, UpdatePackageError> {
+    validate_update_artifact(artifact)?;
+    if content_length.is_some_and(|length| length != artifact.expected_size_bytes) {
+        return Err(UpdatePackageError::PackageUntrusted);
+    }
+    let public_key_value = decode_public_key(public_key)?;
+    let signature = decode_signature(&artifact.package_signature)?;
+    let mut signature_verifier = public_key_value
+        .verify_stream(&signature)
+        .map_err(|_| UpdatePackageError::PackageUntrusted)?;
+    let mut staging =
+        PrivateStagingFile::new(staging_directory, "fitfreed-predecessor-package", ".tmp")
+            .map_err(|_| UpdatePackageError::DownloadUnavailable)?;
+    let mut digest = Sha256::new();
+    let mut total = 0_u64;
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = reader
+            .read(&mut buffer)
+            .map_err(|_| UpdatePackageError::DownloadUnavailable)?;
+        if read == 0 {
+            break;
+        }
+        total = total
+            .checked_add(u64::try_from(read).map_err(|_| UpdatePackageError::PackageUntrusted)?)
+            .filter(|value| *value <= artifact.expected_size_bytes)
+            .ok_or(UpdatePackageError::PackageUntrusted)?;
+        digest.update(&buffer[..read]);
+        signature_verifier.update(&buffer[..read]);
+        staging
+            .file_mut()
+            .and_then(|file| file.write_all(&buffer[..read]))
+            .map_err(|_| UpdatePackageError::DownloadUnavailable)?;
+    }
+    if total != artifact.expected_size_bytes {
+        return Err(UpdatePackageError::PackageUntrusted);
+    }
+    let sha256 = digest
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    if sha256 != artifact.expected_sha256 {
+        return Err(UpdatePackageError::DigestMismatch);
+    }
+    signature_verifier
+        .finalize()
+        .map_err(|_| UpdatePackageError::PackageUntrusted)?;
+    staging
+        .sync_and_close()
+        .map_err(|_| UpdatePackageError::DownloadUnavailable)?;
+    verify_predecessor_file(
+        staging.path(),
+        total,
+        &sha256,
+        &artifact.package_signature,
+        public_key,
+    )?;
+    Ok(VerifiedPredecessorPackage {
+        staging,
+        byte_len: total,
+        sha256,
+        package_signature: artifact.package_signature.clone(),
+        public_key: public_key.to_owned(),
+    })
+}
+
+fn verify_predecessor_file(
+    path: &Path,
+    expected_size: u64,
+    expected_sha256: &str,
+    encoded_signature: &str,
+    encoded_public_key: &str,
+) -> Result<(), UpdatePackageError> {
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let mut file = options
+        .open(path)
+        .map_err(|_| UpdatePackageError::PackageUntrusted)?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| UpdatePackageError::PackageUntrusted)?;
+    if !metadata.file_type().is_file() || metadata.len() != expected_size {
+        return Err(UpdatePackageError::PackageUntrusted);
+    }
+    let public_key = decode_public_key(encoded_public_key)?;
+    let signature = decode_signature(encoded_signature)?;
+    let mut signature_verifier = public_key
+        .verify_stream(&signature)
+        .map_err(|_| UpdatePackageError::PackageUntrusted)?;
+    let mut digest = Sha256::new();
+    let mut total = 0_u64;
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|_| UpdatePackageError::PackageUntrusted)?;
+        if read == 0 {
+            break;
+        }
+        total = total
+            .checked_add(u64::try_from(read).map_err(|_| UpdatePackageError::PackageUntrusted)?)
+            .filter(|value| *value <= expected_size)
+            .ok_or(UpdatePackageError::PackageUntrusted)?;
+        digest.update(&buffer[..read]);
+        signature_verifier.update(&buffer[..read]);
+    }
+    if total != expected_size
+        || digest
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+            != expected_sha256
+    {
+        return Err(UpdatePackageError::DigestMismatch);
+    }
+    signature_verifier
+        .finalize()
+        .map_err(|_| UpdatePackageError::PackageUntrusted)
+}
+
+fn decode_public_key(value: &str) -> Result<PublicKey, UpdatePackageError> {
+    PublicKey::decode(&decode_base64_text(value)?).map_err(|_| UpdatePackageError::TrustUnavailable)
+}
+
+fn decode_signature(value: &str) -> Result<Signature, UpdatePackageError> {
+    Signature::decode(&decode_base64_text(value)?)
+        .map_err(|_| UpdatePackageError::InvalidAuthorization)
+}
+
+fn decode_base64_text(value: &str) -> Result<String, UpdatePackageError> {
+    let bytes = BASE64
+        .decode(value)
+        .map_err(|_| UpdatePackageError::InvalidAuthorization)?;
+    String::from_utf8(bytes).map_err(|_| UpdatePackageError::InvalidAuthorization)
+}
+
 fn parse_single_root_certificate(pem: &[u8]) -> Result<Certificate, ()> {
     let mut certificates = Certificate::from_pem_bundle(pem).map_err(|_| ())?;
     if certificates.len() != 1 {
@@ -145,22 +409,17 @@ fn parse_single_root_certificate(pem: &[u8]) -> Result<Certificate, ()> {
 fn validate_authorization(
     authorization: &UpdateInstallationAuthorization,
 ) -> Result<(), UpdatePackageError> {
-    let package_url = Url::parse(&authorization.artifact.package_url)
-        .map_err(|_| UpdatePackageError::InvalidAuthorization)?;
     let current_target =
         current_update_target().map_err(|_| UpdatePackageError::InvalidAuthorization)?;
     if authorization.artifact.target != current_target
-        || package_url.as_str() != authorization.artifact.package_url
-        || package_url.scheme() != "https"
-        || !package_url.has_host()
-        || !package_url.username().is_empty()
-        || package_url.password().is_some()
-        || package_url.fragment().is_some()
+        || validate_update_artifact(&authorization.artifact).is_err()
+        || authorization
+            .predecessor_artifact
+            .as_ref()
+            .is_some_and(|artifact| {
+                artifact.target != current_target || validate_update_artifact(artifact).is_err()
+            })
         || Version::parse(&authorization.version).is_err()
-        || authorization.artifact.expected_size_bytes == 0
-        || authorization.artifact.expected_size_bytes > MAX_UPDATE_PACKAGE_BYTES
-        || !valid_sha256(&authorization.artifact.expected_sha256)
-        || !(16..=16_384).contains(&authorization.artifact.package_signature.len())
         || authorization.trusted_sequence == 0
         || !valid_sha256(&authorization.trusted_payload_sha256)
         || authorization.target_library_schema_version == 0
@@ -168,6 +427,27 @@ fn validate_authorization(
         return Err(UpdatePackageError::InvalidAuthorization);
     }
     Ok(())
+}
+
+fn validate_update_artifact(artifact: &UpdateArtifact) -> Result<Url, UpdatePackageError> {
+    let package_url =
+        Url::parse(&artifact.package_url).map_err(|_| UpdatePackageError::InvalidAuthorization)?;
+    if package_url.as_str() != artifact.package_url
+        || package_url.scheme() != "https"
+        || !package_url.has_host()
+        || !package_url.username().is_empty()
+        || package_url.password().is_some()
+        || package_url.query().is_some()
+        || package_url.fragment().is_some()
+        || artifact.expected_size_bytes == 0
+        || artifact.expected_size_bytes > MAX_UPDATE_PACKAGE_BYTES
+        || !valid_sha256(&artifact.expected_sha256)
+        || !(16..=16_384).contains(&artifact.package_signature.len())
+        || decode_signature(&artifact.package_signature).is_err()
+    {
+        return Err(UpdatePackageError::InvalidAuthorization);
+    }
+    Ok(package_url)
 }
 
 fn validate_native_identity(
@@ -247,27 +527,25 @@ fn classify_download_error(error: TauriUpdaterError) -> UpdatePackageError {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
+    use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
     use fitfreed_application::{UpdateArtifact, UpdateInstallationAuthorization};
+    use minisign::{sign, KeyPair};
+    use tempfile::tempdir;
 
     use super::*;
 
     fn authorization(bytes: &[u8]) -> UpdateInstallationAuthorization {
+        let (mut artifact, _) = signed_predecessor(bytes);
+        artifact.package_url = "https://updates.invalid/fitfreed-0.2.0.app.tar.gz".to_owned();
         UpdateInstallationAuthorization {
             version: "0.2.0".to_owned(),
             trusted_sequence: 17,
             trusted_payload_sha256: "1".repeat(64),
             signing_key_id: "synthetic-test-key".to_owned(),
             target_library_schema_version: 9,
-            artifact: UpdateArtifact {
-                target: current_update_target().expect("current target"),
-                package_url: "https://updates.invalid/fitfreed-0.2.0.app.tar.gz".to_owned(),
-                expected_size_bytes: bytes.len() as u64,
-                expected_sha256: Sha256::digest(bytes)
-                    .iter()
-                    .map(|byte| format!("{byte:02x}"))
-                    .collect(),
-                package_signature: "synthetic-package-signature".to_owned(),
-            },
+            artifact,
             predecessor_artifact: None,
         }
     }
@@ -318,6 +596,14 @@ mod tests {
             "https://updates.invalid/fitfreed/../fitfreed-0.2.0.app.tar.gz".to_owned();
         assert_eq!(
             validate_authorization(&noncanonical_url),
+            Err(UpdatePackageError::InvalidAuthorization)
+        );
+
+        let mut mutable_url = authorization(bytes);
+        mutable_url.artifact.package_url =
+            "https://updates.invalid/fitfreed-0.2.0.app.tar.gz?current=true".to_owned();
+        assert_eq!(
+            validate_authorization(&mutable_url),
             Err(UpdatePackageError::InvalidAuthorization)
         );
 
@@ -378,6 +664,209 @@ mod tests {
         assert_eq!(
             classify_download_error(TauriUpdaterError::DownloadSizeMismatch),
             UpdatePackageError::PackageUntrusted
+        );
+    }
+
+    fn signed_predecessor(bytes: &[u8]) -> (UpdateArtifact, String) {
+        let key_pair = KeyPair::generate_unencrypted_keypair().expect("synthetic key pair");
+        let public_key = key_pair
+            .pk
+            .to_box()
+            .expect("synthetic public key box")
+            .to_string();
+        let signature = sign(
+            Some(&key_pair.pk),
+            &key_pair.sk,
+            Cursor::new(bytes),
+            Some("synthetic predecessor"),
+            Some("untrusted comment: synthetic FitFreed predecessor"),
+        )
+        .expect("synthetic predecessor signature")
+        .into_string();
+        (
+            UpdateArtifact {
+                target: current_update_target().expect("current target"),
+                package_url: "https://updates.invalid/FitFreed_0.1.0_amd64.deb".to_owned(),
+                expected_size_bytes: bytes.len() as u64,
+                expected_sha256: Sha256::digest(bytes)
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect(),
+                package_signature: BASE64.encode(signature),
+            },
+            BASE64.encode(public_key),
+        )
+    }
+
+    #[test]
+    fn streams_and_reopens_one_exact_authenticated_predecessor() {
+        let bytes = b"synthetic predecessor Debian package";
+        let (artifact, public_key) = signed_predecessor(bytes);
+        let directory = tempdir().expect("temporary directory");
+
+        let package = transfer_verified_predecessor(
+            Cursor::new(bytes),
+            Some(bytes.len() as u64),
+            directory.path(),
+            &artifact,
+            &public_key,
+        )
+        .expect("verified predecessor");
+
+        assert_eq!(package.byte_len(), bytes.len() as u64);
+        assert_eq!(package.sha256(), artifact.expected_sha256);
+        assert_eq!(
+            std::fs::read(package.path()).expect("staged predecessor"),
+            bytes
+        );
+        let destination = directory.path().join("package.deb");
+        package
+            .persist_noclobber(&destination)
+            .expect("persisted predecessor");
+        assert_eq!(
+            std::fs::read(destination).expect("persisted predecessor bytes"),
+            bytes
+        );
+    }
+
+    #[test]
+    fn rejects_changed_oversized_and_malformed_predecessor_evidence_without_residue() {
+        let bytes = b"synthetic predecessor Debian package";
+        let (artifact, public_key) = signed_predecessor(bytes);
+        for (reader, length, expected) in [
+            (
+                Cursor::new(b"changed predecessor package".as_slice()),
+                None,
+                UpdatePackageError::PackageUntrusted,
+            ),
+            (
+                Cursor::new(bytes.as_slice()),
+                Some(bytes.len() as u64 + 1),
+                UpdatePackageError::PackageUntrusted,
+            ),
+        ] {
+            let directory = tempdir().expect("temporary directory");
+            assert_eq!(
+                transfer_verified_predecessor(
+                    reader,
+                    length,
+                    directory.path(),
+                    &artifact,
+                    &public_key,
+                )
+                .expect_err("rejected predecessor"),
+                expected
+            );
+            assert_eq!(
+                std::fs::read_dir(directory.path())
+                    .expect("empty staging directory")
+                    .count(),
+                0
+            );
+        }
+
+        let directory = tempdir().expect("temporary directory");
+        let mut malformed = artifact.clone();
+        malformed.package_signature = BASE64.encode("invalid signature");
+        assert_eq!(
+            transfer_verified_predecessor(
+                Cursor::new(bytes),
+                Some(bytes.len() as u64),
+                directory.path(),
+                &malformed,
+                &public_key,
+            )
+            .expect_err("invalid signature"),
+            UpdatePackageError::InvalidAuthorization
+        );
+        assert_eq!(
+            std::fs::read_dir(directory.path())
+                .expect("empty staging directory")
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn predecessor_publication_never_replaces_existing_evidence() {
+        let bytes = b"synthetic predecessor Debian package";
+        let (artifact, public_key) = signed_predecessor(bytes);
+        let directory = tempdir().expect("temporary directory");
+        let package = transfer_verified_predecessor(
+            Cursor::new(bytes),
+            None,
+            directory.path(),
+            &artifact,
+            &public_key,
+        )
+        .expect("verified predecessor");
+        let destination = directory.path().join("package.deb");
+        std::fs::write(&destination, "existing evidence").expect("existing evidence");
+
+        assert_eq!(
+            package
+                .persist_noclobber(&destination)
+                .expect_err("no-clobber publication"),
+            UpdatePackageError::PackageUntrusted
+        );
+        assert_eq!(
+            std::fs::read_to_string(destination).expect("preserved evidence"),
+            "existing evidence"
+        );
+        assert_eq!(
+            std::fs::read_dir(directory.path())
+                .expect("preserved destination only")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn rejects_wrong_signing_authority_and_mutation_before_publication() {
+        let bytes = b"synthetic predecessor Debian package";
+        let (artifact, public_key) = signed_predecessor(bytes);
+        let (_, wrong_public_key) = signed_predecessor(b"different signed package");
+        let directory = tempdir().expect("temporary directory");
+        assert_eq!(
+            transfer_verified_predecessor(
+                Cursor::new(bytes),
+                Some(bytes.len() as u64),
+                directory.path(),
+                &artifact,
+                &wrong_public_key,
+            )
+            .expect_err("wrong signing authority"),
+            UpdatePackageError::PackageUntrusted
+        );
+        assert_eq!(
+            std::fs::read_dir(directory.path())
+                .expect("empty staging directory")
+                .count(),
+            0
+        );
+
+        let package = transfer_verified_predecessor(
+            Cursor::new(bytes),
+            Some(bytes.len() as u64),
+            directory.path(),
+            &artifact,
+            &public_key,
+        )
+        .expect("verified predecessor");
+        std::fs::write(package.path(), vec![b'x'; bytes.len()]).expect("mutated predecessor");
+        let destination = directory.path().join("package.deb");
+        assert_eq!(
+            package
+                .persist_noclobber(&destination)
+                .expect_err("mutated predecessor"),
+            UpdatePackageError::DigestMismatch
+        );
+        assert!(!destination.exists());
+        assert_eq!(
+            std::fs::read_dir(directory.path())
+                .expect("empty staging directory")
+                .count(),
+            0
         );
     }
 }

@@ -171,7 +171,10 @@ pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_installation::{
     install_verified_update, UpdateInstallationError, UpdateInstallationRequest,
 };
-pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
+pub use update_package::{
+    download_verified_predecessor, download_verified_update, UpdatePackageError,
+    VerifiedPredecessorPackage, VerifiedUpdatePackage,
+};
 pub use update_recovery::{
     acknowledge_update_recovery_outcome, acquire_update_recovery_candidate_lease,
     acquire_update_recovery_watchdog_lease, active_update_recovery_phase,

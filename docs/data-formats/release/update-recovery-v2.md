@@ -44,6 +44,13 @@ manager and obtains the exact predecessor package from a verified local cache or
 URL. It verifies the signed-channel entry, updater signature, size, SHA-256, Debian control identity, installed version,
 architecture, and complete package inventory before copying it to `previous/package.deb`.
 
+Network acquisition is limited to preparation. The adapter uses the active package-signing key selected by the
+authenticated authorization, rejects redirects and mutable URLs, and streams no more than the signed size to a private
+temporary file. It calculates SHA-256 and the prehashed updater signature during that stream, synchronizes the file,
+then reopens it without following a symbolic link and repeats size, digest, and signature verification. Handoff into an
+attempt uses no-clobber publication; every error removes the temporary file without changing existing recovery
+evidence.
+
 Native identity discovery uses only `/usr/bin/dpkg-query --show` and `--listfiles` for the fixed `fitfreed` package.
 The accepted identity is an installed `amd64` package with a SemVer version that owns the fixed executable and desktop
 entry paths. Both paths must reopen as non-symbolic regular files, and the executable must carry an execute bit. Native
