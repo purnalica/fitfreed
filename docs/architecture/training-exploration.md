@@ -306,7 +306,9 @@ the inherited application palette, font family, and content-zoom scale; disables
 shared presentation boundary; preserves explicit source gaps; and renders selection or range annotations only when
 the model carries authoritative coordinates. Slider zoom defers analytical recalculation until release. When ECharts
 publishes that completed `dataZoom` action, the adapter performs one synchronous zrender flush so the committed range
-and handle positions do not wait for an animation frame that an occluded embedded WebView may suspend. The React
+and handle positions do not wait for an animation frame that an occluded embedded WebView may suspend. Normal and
+pointer-emphasized slider handles use the same application-palette accent and border. Hover therefore communicates
+interactivity without replacing the handle's theme identity or making its rendered boundary timing-dependent. The React
 boundary records the last rendered width, height, and device
 pixel ratio, so a chart is resized only after an actual geometry change; hiding and revealing an unchanged evidence
 section cannot trigger redundant renderer work. A localized error boundary fails closed without logging private

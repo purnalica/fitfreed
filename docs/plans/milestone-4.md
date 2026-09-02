@@ -45,6 +45,14 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.2 | Active | Linux recovery version 2, stable channel version 3, upgrade matrix version 2, recoverable Linux manifest version 5, exact predecessor discovery, Rust authorization, public build mapping, atomic staging, complete candidate/Pages verification, native package identity and fixed candidate/rollback commands, full `/proc` process identity, bounded authenticated predecessor transfer and no-clobber package handoff, exact package preservation, bounded Debian extraction, deterministic runnable-image verification, private atomic version 2 attempt preparation, packaged lifecycle policy, serialized transitions, process-bound launch records, preserved-watchdog context resolution, exact exclusive process leases, candidate-bound target confirmation, quiescent prepared-attempt discard, atomic library restoration, verified native rollback, closed three-attempt failure accounting, shared terminal receipts, exact-pair terminal cleanup, receipt-bound restart resumption, host installation coordination, private watchdog/candidate startup dispatch, verified runnable fallback, active-attempt restart resolution, duplicate-watchdog exclusion, interrupted-phase reattachment, privacy-minimized intervention discovery, and bounded explicit native-recovery retry exist. Native Debian E2E covers successful replacement, automatic rollback after either native installer failure or candidate rejection, authorization-unavailable runnable fallback, and an explicit retry after authorization becomes available. Hosted evidence for the new authorization scenario, attempt exhaustion, and restart resumption remain. |
 | M4.3–M4.6 | Pending | Begin only through their ordered technical dependencies; protected signing, clean Ubuntu 26.04, human acceptance, and promotion remain explicit gates. |
 
+Exact-source verification on 2026-09-02 exposed a timing-dependent false rejection in the dense canvas chart after
+the end boundary had visibly moved. The evidence capture showed the intended range, while the oracle could no longer
+identify the pointer-emphasized handle because ECharts had changed its palette color. The adapter now gives normal and
+emphasized handles the same application-theme identity, with a focused option contract. Two independent rebuilt
+packaged journeys now prove visible movement of both handles and a responsive workspace across the maximum four-lane
+canvas chart. The complete exact-source gate remains required before this correction or the enclosing M4.2 increment
+is admitted.
+
 ## Increment M4.0 — Native portability admission
 
 **Outcome:** ordinary CI detects Linux host regressions before packaging work can hide them.

@@ -84,6 +84,16 @@ describe("compileEChartsAnalyticalChart", () => {
     expect(compiled.option.dataZoom[1]).toMatchObject({
       type: "slider",
       realtime: false,
+      handleStyle: {
+        color: "#336655",
+        borderColor: "#336655",
+      },
+      emphasis: {
+        handleStyle: {
+          color: "#336655",
+          borderColor: "#336655",
+        },
+      },
     });
     expect(compiled.option.series).toEqual([
       expect.objectContaining({

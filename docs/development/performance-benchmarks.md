@@ -180,7 +180,9 @@ ECharts schedules the visual flush after a completed data-zoom action through it
 may suspend that loop while its native window is occluded, even though the action and range calculation completed.
 The live adapter therefore flushes zrender once when the completed `dataZoom` action is published. The packaged
 handle-position oracle remains animation-frame-independent and proves the final SVG and canvas positions rather than
-accepting the internal range or event payload as visible evidence.
+accepting the internal range or event payload as visible evidence. The normal and pointer-emphasized handles retain
+the exact active theme accent and border, preventing hover repaint timing from changing whether the same control is
+observable.
 
 While dense SVG evidence is mounted, journey controls are resolved inside their owning session-detail action region
 and their localized visible label is asserted before use. A document-wide accessibility XPath over thousands of SVG

@@ -464,6 +464,9 @@ export function compileEChartsAnalyticalChart(
           borderColor: palette.line,
           fillerColor: palette.accentSoft,
           handleStyle: { color: palette.accent, borderColor: palette.accent },
+          emphasis: {
+            handleStyle: { color: palette.accent, borderColor: palette.accent },
+          },
           textStyle: {
             color: palette.muted,
             fontFamily: palette.fontFamily,
