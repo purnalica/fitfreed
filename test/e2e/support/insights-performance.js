@@ -522,15 +522,22 @@ async function measureTrainingSignalOverview() {
     return measurement;
   });
   if (maximumSelection.error) throw new Error(maximumSelection.error);
-  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
-  await browser.waitUntil(
-    async () => (await $$(".training-detail")).length === 0,
-    { timeout: 5_000, timeoutMsg: "training signal detail did not close" },
-  );
+  await closeTrainingDetail("training signal detail did not close");
   return {
     overviewDuration: result.duration,
     maximumSelectionDuration: maximumSelection.duration,
   };
+}
+
+async function closeTrainingDetail(timeoutMsg) {
+  const closeButton = await $(".training-detail-actions button.secondary");
+  await closeButton.waitForDisplayed({ timeout: 5_000, timeoutMsg });
+  expect(await closeButton.getText()).toBe(english.training.sessionLibrary.closeDetail);
+  await closeButton.click();
+  await browser.waitUntil(
+    async () => (await $$(".training-detail")).length === 0,
+    { timeout: 5_000, timeoutMsg },
+  );
 }
 
 async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
@@ -758,25 +765,30 @@ async function waitForChartZoomBoundaryMove(
   interaction,
 ) {
   let observedGeometry = null;
-  await browser.waitUntil(
-    async () => {
-      observedGeometry = await inspectChartZoomGeometry(
-        selector,
-        boundary,
-        boundary === "start" ? 0.2 : 0.8,
-      );
-      return observedGeometry !== null
-        && Math.abs(observedGeometry.fromX - previousX) >= 20;
-    },
-    {
-      timeout: 5_000,
-      timeoutMsg: `the analytical chart did not move its ${boundary} handle: ${JSON.stringify({
-        interaction,
-        observedGeometry,
-        previousX,
-      })}`,
-    },
-  );
+  try {
+    await browser.waitUntil(
+      async () => {
+        observedGeometry = await inspectChartZoomGeometry(
+          selector,
+          boundary,
+          boundary === "start" ? 0.2 : 0.8,
+        );
+        return observedGeometry !== null
+          && Math.abs(observedGeometry.fromX - previousX) >= 20;
+      },
+      {
+        timeout: 5_000,
+        timeoutMsg: `the analytical chart did not move its ${boundary} handle`,
+      },
+    );
+  } catch (error) {
+    throw new Error(`the analytical chart did not move its ${boundary} handle: ${JSON.stringify({
+      cause: error instanceof Error ? error.message : String(error),
+      interaction,
+      observedGeometry,
+      previousX,
+    })}`);
+  }
 }
 
 async function verifyTrainingChartPointerZoomRemainsResponsive() {
@@ -891,11 +903,7 @@ async function verifyTrainingMaximumSignalComposition() {
     "x7-r8-4-cross-signal-chart-en-four-lanes.png",
   ));
   await verifyTrainingChartPointerZoomRemainsResponsive();
-  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
-  await browser.waitUntil(
-    async () => (await $$(".training-detail")).length === 0,
-    { timeout: 5_000, timeoutMsg: "training signal detail did not close" },
-  );
+  await closeTrainingDetail("training signal detail did not close");
 }
 
 async function measureTrainingSignalExactPage() {
@@ -962,11 +970,7 @@ async function measureTrainingSignalExactPage() {
     observeResult();
   });
   if (result.error) throw new Error(result.error);
-  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
-  await browser.waitUntil(
-    async () => (await $$(".training-detail")).length === 0,
-    { timeout: 5_000, timeoutMsg: "exact training signal detail did not close" },
-  );
+  await closeTrainingDetail("exact training signal detail did not close");
   return result.duration;
 }
 
@@ -1021,11 +1025,7 @@ async function measureTrainingRouteWorkbenchOpen() {
     setTimeout(observeResult, 16);
   });
   if (result.error) throw new Error(result.error);
-  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
-  await browser.waitUntil(
-    async () => (await $$(".training-detail")).length === 0,
-    { timeout: 5_000, timeoutMsg: "dense route detail did not close" },
-  );
+  await closeTrainingDetail("dense route detail did not close");
   return result.duration;
 }
 
@@ -1968,11 +1968,7 @@ export async function runInsightsPerformanceJourney({
   await openDenseTrainingRouteRangeEditor();
   await verifyDenseTrainingRouteRangeDragRemainsResponsive();
   await expectDenseRouteExactEndpoint();
-  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
-  await browser.waitUntil(
-    async () => (await $$(".training-detail")).length === 0,
-    { timeout: 5_000, timeoutMsg: "dense exact route detail did not close" },
-  );
+  await closeTrainingDetail("dense exact route detail did not close");
   reportPhase("training-signals");
   await measureAlternating(warmUpRuns, [null], measureTrainingSignalOverview);
   const trainingSignalMeasurements = await measureAlternating(

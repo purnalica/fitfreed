@@ -389,3 +389,26 @@ test("drives sustained range input without animation-frame visibility", () => {
   assert.match(routeInteraction, /new MessageChannel/);
   assert.doesNotMatch(routeInteraction, /requestAnimationFrame/);
 });
+
+test("keeps dense session-detail closure scoped to its visible action", () => {
+  const performanceJourney = readFileSync(
+    path.resolve("test/e2e/support/insights-performance.js"),
+    "utf8",
+  );
+  const closeStart = performanceJourney.indexOf("async function closeTrainingDetail");
+  const closeEnd = performanceJourney.indexOf(
+    "async function inspectChartZoomGeometry",
+    closeStart,
+  );
+  assert.ok(closeStart >= 0 && closeEnd > closeStart);
+
+  const closeInteraction = performanceJourney.slice(closeStart, closeEnd);
+  assert.match(closeInteraction, /\.training-detail-actions button\.secondary/);
+  assert.match(closeInteraction, /english\.training\.sessionLibrary\.closeDetail/);
+  assert.match(closeInteraction, /getText\(\)/);
+  assert.match(closeInteraction, /\.training-detail/);
+  assert.doesNotMatch(
+    performanceJourney,
+    /aria\/\$\{english\.training\.sessionLibrary\.closeDetail\}/,
+  );
+});
