@@ -166,6 +166,9 @@ mod update_recovery_linux_state;
 mod update_recovery_outcome;
 mod update_state;
 mod update_watchdog;
+#[cfg(any(test, target_os = "linux"))]
+mod update_watchdog_linux;
+mod update_watchdog_protocol;
 
 pub use planned_training_export::SqlitePlannedTrainingExporter;
 pub use report_html::SelfContainedHtmlReportExporter;
@@ -195,8 +198,9 @@ pub use update_recovery::{
 };
 #[cfg(any(test, target_os = "linux"))]
 pub use update_recovery_linux::{
-    linux_recovery_process_is_running, observe_linux_recovery_process,
-    query_linux_native_package_identity, reinstall_linux_predecessor_package,
+    install_linux_candidate_package, linux_recovery_process_is_running,
+    observe_linux_recovery_process, query_linux_native_package_identity,
+    reinstall_linux_predecessor_package, resolve_linux_update_installation_path,
     LinuxNativePackageIdentity, LinuxRecoveryProcessIdentity, LinuxUpdateRecoveryError,
 };
 #[cfg(any(test, target_os = "linux"))]
@@ -225,8 +229,15 @@ pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
     await_update_recovery_candidate_go, run_update_recovery_watchdog,
     start_update_recovery_watchdog, StartedUpdateRecoveryWatchdog, UpdateRecoveryWatchdogError,
-    UpdateRecoveryWatchdogOutcome, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    UpdateRecoveryWatchdogOutcome,
+};
+#[cfg(any(test, target_os = "linux"))]
+pub use update_watchdog_linux::{
+    run_linux_update_recovery_watchdog, start_linux_update_recovery_watchdog,
+    StartedLinuxUpdateRecoveryWatchdog,
+};
+pub use update_watchdog_protocol::{
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 
 use iso_duration::parse_iso_duration_milliseconds;

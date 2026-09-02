@@ -17,6 +17,7 @@ const PACKAGE_ARCHITECTURE: &str = "amd64";
 const INSTALLED_EXECUTABLE_PATH: &str = "/usr/bin/fitfreed";
 const INSTALLED_DESKTOP_ENTRY_PATH: &str = "/usr/share/applications/FitFreed.desktop";
 const PREDECESSOR_PACKAGE_RELATIVE_PATH: &str = "previous/package.deb";
+const CANDIDATE_PACKAGE_RELATIVE_PATH: &str = "candidate/package.deb";
 const MAX_COMMAND_OUTPUT_BYTES: usize = 64 * 1024;
 
 #[derive(Debug, Error)]
@@ -29,8 +30,12 @@ pub enum LinuxUpdateRecoveryError {
     InvalidPackageIdentity,
     #[error("the predecessor Debian package is invalid")]
     InvalidPredecessorPackage,
+    #[error("the candidate Debian package is invalid")]
+    InvalidCandidatePackage,
     #[error("the native Debian rollback failed")]
     NativeRollbackFailed,
+    #[error("the native Debian candidate installation failed")]
+    NativeInstallationFailed,
     #[error("the Linux process identity is invalid")]
     InvalidProcessIdentity,
     #[error("Linux update recovery input/output failure: {0}")]
@@ -113,6 +118,21 @@ struct NativeCommandOutput {
     stdout: Vec<u8>,
 }
 
+#[derive(Clone, Copy)]
+enum RecoveryPackageRole {
+    Predecessor,
+    Candidate,
+}
+
+impl RecoveryPackageRole {
+    fn invalid_error(self) -> LinuxUpdateRecoveryError {
+        match self {
+            Self::Predecessor => LinuxUpdateRecoveryError::InvalidPredecessorPackage,
+            Self::Candidate => LinuxUpdateRecoveryError::InvalidCandidatePackage,
+        }
+    }
+}
+
 trait NativeCommandPort {
     fn run(
         &self,
@@ -182,6 +202,40 @@ pub fn reinstall_linux_predecessor_package(
     Ok(identity)
 }
 
+pub fn install_linux_candidate_package(
+    attempt_directory: &Path,
+    expected_version: &str,
+) -> Result<LinuxNativePackageIdentity, LinuxUpdateRecoveryError> {
+    if Version::parse(expected_version).is_err() {
+        return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    let identity = install_linux_package_with(
+        &SystemNativeCommand,
+        attempt_directory,
+        CANDIDATE_PACKAGE_RELATIVE_PATH,
+        RecoveryPackageRole::Candidate,
+        LinuxUpdateRecoveryError::NativeInstallationFailed,
+    )?;
+    if identity.version() != expected_version {
+        return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    validate_native_installation_files(
+        Path::new(INSTALLED_EXECUTABLE_PATH),
+        Path::new(INSTALLED_DESKTOP_ENTRY_PATH),
+    )?;
+    Ok(identity)
+}
+
+pub fn resolve_linux_update_installation_path(
+    executable_path: &Path,
+) -> Result<PathBuf, LinuxUpdateRecoveryError> {
+    if executable_path != Path::new(INSTALLED_EXECUTABLE_PATH) {
+        return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    query_linux_native_package_identity()?;
+    Ok(PathBuf::from(INSTALLED_EXECUTABLE_PATH))
+}
+
 pub(crate) fn verify_linux_native_installation_matches_runnable(
     runnable_root: &Path,
 ) -> Result<(), LinuxUpdateRecoveryError> {
@@ -195,11 +249,19 @@ pub(crate) fn verify_linux_native_installation_matches_runnable(
 pub fn observe_linux_recovery_process(
     process_id: u32,
 ) -> Result<LinuxRecoveryProcessIdentity, LinuxUpdateRecoveryError> {
-    observe_linux_recovery_process_with(&SystemLinuxProc, process_id)
+    observe_linux_recovery_process_at(process_id, Path::new(INSTALLED_EXECUTABLE_PATH))
 }
 
 pub fn linux_recovery_process_is_running(expected: &LinuxRecoveryProcessIdentity) -> bool {
-    observe_linux_recovery_process(expected.process_id()).is_ok_and(|actual| actual == *expected)
+    observe_linux_recovery_process_at(expected.process_id(), expected.executable_path())
+        .is_ok_and(|actual| actual == *expected)
+}
+
+pub(crate) fn observe_linux_recovery_process_at(
+    process_id: u32,
+    expected_executable_path: &Path,
+) -> Result<LinuxRecoveryProcessIdentity, LinuxUpdateRecoveryError> {
+    observe_linux_recovery_process_with(&SystemLinuxProc, process_id, expected_executable_path)
 }
 
 fn query_linux_native_package_identity_with(
@@ -230,18 +292,33 @@ fn reinstall_linux_predecessor_package_with(
     command: &impl NativeCommandPort,
     attempt_directory: &Path,
 ) -> Result<LinuxNativePackageIdentity, LinuxUpdateRecoveryError> {
+    install_linux_package_with(
+        command,
+        attempt_directory,
+        PREDECESSOR_PACKAGE_RELATIVE_PATH,
+        RecoveryPackageRole::Predecessor,
+        LinuxUpdateRecoveryError::NativeRollbackFailed,
+    )
+}
+
+fn install_linux_package_with(
+    command: &impl NativeCommandPort,
+    attempt_directory: &Path,
+    package_relative_path: &str,
+    package_role: RecoveryPackageRole,
+    operation_failure: LinuxUpdateRecoveryError,
+) -> Result<LinuxNativePackageIdentity, LinuxUpdateRecoveryError> {
     if !attempt_directory.is_absolute() {
-        return Err(LinuxUpdateRecoveryError::InvalidPredecessorPackage);
+        return Err(package_role.invalid_error());
     }
     let attempt_directory = attempt_directory.canonicalize()?;
-    let package_path = attempt_directory.join(PREDECESSOR_PACKAGE_RELATIVE_PATH);
-    let metadata = fs::symlink_metadata(&package_path)
-        .map_err(|_| LinuxUpdateRecoveryError::InvalidPredecessorPackage)?;
+    let package_path = attempt_directory.join(package_relative_path);
+    let metadata = fs::symlink_metadata(&package_path).map_err(|_| package_role.invalid_error())?;
     if !metadata.file_type().is_file()
         || metadata.len() == 0
         || package_path.canonicalize()? != package_path
     {
-        return Err(LinuxUpdateRecoveryError::InvalidPredecessorPackage);
+        return Err(package_role.invalid_error());
     }
     let output = command
         .run(
@@ -257,7 +334,7 @@ fn reinstall_linux_predecessor_package_with(
         return if matches!(output.exit_code, Some(126 | 127)) {
             Err(LinuxUpdateRecoveryError::AuthorizationUnavailable)
         } else {
-            Err(LinuxUpdateRecoveryError::NativeRollbackFailed)
+            Err(operation_failure)
         };
     }
     query_linux_native_package_identity_with(command)
@@ -407,14 +484,15 @@ fn open_regular_file_no_follow(path: &Path) -> Result<File, LinuxUpdateRecoveryE
 fn observe_linux_recovery_process_with(
     proc: &impl LinuxProcPort,
     process_id: u32,
+    expected_executable_path: &Path,
 ) -> Result<LinuxRecoveryProcessIdentity, LinuxUpdateRecoveryError> {
-    if process_id <= 1 {
+    if process_id <= 1 || !expected_executable_path.is_absolute() {
         return Err(LinuxUpdateRecoveryError::InvalidProcessIdentity);
     }
     let boot_id = parse_boot_id(&proc.boot_id()?)?;
     let start_time_clock_ticks = parse_process_start_time(&proc.process_stat(process_id)?)?;
     let executable_path = proc.process_executable(process_id)?;
-    if executable_path != Path::new(INSTALLED_EXECUTABLE_PATH) {
+    if executable_path != expected_executable_path {
         return Err(LinuxUpdateRecoveryError::InvalidProcessIdentity);
     }
     Ok(LinuxRecoveryProcessIdentity {
@@ -633,6 +711,40 @@ mod tests {
     }
 
     #[test]
+    fn invokes_only_the_preserved_candidate_through_the_fixed_native_command() {
+        let directory = TempDir::new().expect("temporary directory");
+        let attempt_directory = directory.path().join("attempt");
+        let package_path = attempt_directory.join(CANDIDATE_PACKAGE_RELATIVE_PATH);
+        fs::create_dir_all(package_path.parent().expect("package parent"))
+            .expect("package directory");
+        fs::write(&package_path, "synthetic Debian package").expect("candidate package");
+        let canonical_package_path = package_path.canonicalize().expect("canonical package path");
+        let mut commands = vec![ExpectedCommand {
+            executable: PathBuf::from(PKEXEC_PATH),
+            arguments: vec![
+                OsString::from(DPKG_PATH),
+                OsString::from("--install"),
+                canonical_package_path.into_os_string(),
+            ],
+            output: successful_output(Vec::new()),
+        }];
+        commands.extend(query_commands());
+        let command = SyntheticCommand::new(commands);
+
+        let identity = install_linux_package_with(
+            &command,
+            &attempt_directory,
+            CANDIDATE_PACKAGE_RELATIVE_PATH,
+            RecoveryPackageRole::Candidate,
+            LinuxUpdateRecoveryError::NativeInstallationFailed,
+        )
+        .expect("native candidate installation");
+
+        assert_eq!(identity.version(), "0.1.0");
+        command.assert_exhausted();
+    }
+
+    #[test]
     fn distinguishes_unavailable_authorization_from_a_failed_package_operation() {
         let directory = TempDir::new().expect("temporary directory");
         let attempt_directory = directory.path().join("attempt");
@@ -767,7 +879,8 @@ mod tests {
         };
 
         let identity =
-            observe_linux_recovery_process_with(&proc, 42).expect("Linux process identity");
+            observe_linux_recovery_process_with(&proc, 42, Path::new(INSTALLED_EXECUTABLE_PATH))
+                .expect("Linux process identity");
 
         assert_eq!(identity.process_id(), 42);
         assert_eq!(identity.boot_id(), "12345678-1234-1234-1234-123456789abc");
@@ -787,19 +900,46 @@ mod tests {
             executable: PathBuf::from("/tmp/fitfreed"),
         };
         assert!(matches!(
-            observe_linux_recovery_process_with(&proc, 42),
+            observe_linux_recovery_process_with(&proc, 42, Path::new(INSTALLED_EXECUTABLE_PATH)),
             Err(LinuxUpdateRecoveryError::InvalidProcessIdentity)
         ));
         proc.executable = PathBuf::from(INSTALLED_EXECUTABLE_PATH);
         proc.boot_id = b"not-a-boot-id\n".to_vec();
         assert!(matches!(
-            observe_linux_recovery_process_with(&proc, 42),
+            observe_linux_recovery_process_with(&proc, 42, Path::new(INSTALLED_EXECUTABLE_PATH)),
             Err(LinuxUpdateRecoveryError::InvalidProcessIdentity)
         ));
         proc.boot_id = b"12345678-1234-1234-1234-123456789abc\n".to_vec();
         proc.stat = b"42 malformed\n".to_vec();
         assert!(matches!(
-            observe_linux_recovery_process_with(&proc, 42),
+            observe_linux_recovery_process_with(&proc, 42, Path::new(INSTALLED_EXECUTABLE_PATH)),
+            Err(LinuxUpdateRecoveryError::InvalidProcessIdentity)
+        ));
+    }
+
+    #[test]
+    fn observes_only_the_exact_preserved_recovery_executable() {
+        let preserved_executable = Path::new(
+            "/var/lib/fitfreed/update-recovery/attempts/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/previous/runnable/usr/bin/fitfreed",
+        );
+        let proc = SyntheticProc {
+            boot_id: b"12345678-1234-1234-1234-123456789abc\n".to_vec(),
+            stat:
+                b"42 (FitFreed fallback) S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 987654 20\n"
+                    .to_vec(),
+            executable: preserved_executable.to_owned(),
+        };
+
+        let identity = observe_linux_recovery_process_with(&proc, 42, preserved_executable)
+            .expect("preserved process identity");
+
+        assert_eq!(identity.executable_path(), preserved_executable);
+        assert!(matches!(
+            observe_linux_recovery_process_with(&proc, 42, Path::new(INSTALLED_EXECUTABLE_PATH),),
+            Err(LinuxUpdateRecoveryError::InvalidProcessIdentity)
+        ));
+        assert!(matches!(
+            observe_linux_recovery_process_with(&proc, 42, Path::new("relative/fitfreed")),
             Err(LinuxUpdateRecoveryError::InvalidProcessIdentity)
         ));
     }

@@ -84,18 +84,29 @@ use fitfreed_application::{
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
-    acquire_update_recovery_candidate_lease, await_update_recovery_candidate_go,
-    confirm_active_update_recovery, current_update_target, download_verified_update,
+    await_update_recovery_candidate_go, current_update_target, download_verified_update,
     install_bundled_provider_sport_catalogue, install_verified_update, library_schema_version,
-    maintain_update_recovery, recover_interrupted_imports, resolve_update_application_path,
-    run_update_recovery_watchdog, HttpsUpdateChannel, NativeOfficialSourceLinkOpener,
+    recover_interrupted_imports, HttpsUpdateChannel, NativeOfficialSourceLinkOpener,
     PolarFlowSourceAcquisitionGuides, SelfContainedHtmlReportExporter, SqliteActivityLibrary,
     SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLibraryHome,
     SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
     SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary, SqliteTrainingSports,
     SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
-    UpdateRecoveryCandidateLease, UpdateRecoveryError, UpdateRecoveryMaintenance,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+};
+#[cfg(target_os = "linux")]
+use infrastructure::{
+    acquire_linux_update_recovery_candidate_lease, confirm_active_linux_update_recovery,
+    download_verified_predecessor, maintain_linux_update_recovery,
+    resolve_linux_update_installation_path, run_linux_update_recovery_watchdog,
+    LinuxUpdateRecoveryCandidateLease,
+};
+#[cfg(not(target_os = "linux"))]
+use infrastructure::{
+    acquire_update_recovery_candidate_lease, confirm_active_update_recovery,
+    maintain_update_recovery, resolve_update_application_path, run_update_recovery_watchdog,
+    UpdateRecoveryCandidateLease,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto,
@@ -1677,8 +1688,13 @@ async fn install_available_update(
         database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let executable =
         env::current_exe().map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
-    let current_application_path = resolve_update_application_path(&executable)
-        .map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
+    let executable_for_resolution = executable.clone();
+    let current_application_path = tauri::async_runtime::spawn_blocking(move || {
+        resolve_platform_update_installation_target(&executable_for_resolution)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+    .map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
     let recovery_root = library_path
         .parent()
         .map(|parent| parent.join("update-recovery"))
@@ -1700,6 +1716,29 @@ async fn install_available_update(
     })
     .await
     .map_err(|_| CommandErrorDto::new("desktop-task-failed"))??;
+    #[cfg(target_os = "linux")]
+    let predecessor = {
+        let predecessor_channel = Arc::clone(&channel);
+        let predecessor_authorization = authorization.clone();
+        let staging_directory = recovery_root
+            .parent()
+            .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?
+            .to_owned();
+        Some(
+            tauri::async_runtime::spawn_blocking(move || {
+                download_verified_predecessor(
+                    predecessor_channel.as_ref(),
+                    &predecessor_authorization,
+                    &staging_directory,
+                )
+            })
+            .await
+            .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+            .map_err(map_update_package_error)?,
+        )
+    };
+    #[cfg(not(target_os = "linux"))]
+    let predecessor = None;
     let package = download_verified_update(&app, channel.as_ref(), authorization)
         .await
         .map_err(map_update_package_error)?;
@@ -1710,10 +1749,12 @@ async fn install_available_update(
         installed_version,
         prepared_at: current_utc_datetime(),
     };
-    tauri::async_runtime::spawn_blocking(move || install_verified_update(&package, request))
-        .await
-        .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
-        .map_err(map_update_installation_error)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        install_verified_update(&package, predecessor.as_ref(), request)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+    .map_err(map_update_installation_error)?;
     app.exit(0);
     Ok(())
 }
@@ -1777,6 +1818,12 @@ fn map_update_installation_error(error: UpdateInstallationError) -> CommandError
         UpdateInstallationError::Package(error) => map_update_package_error(error),
         UpdateInstallationError::Watchdog(_) => CommandErrorDto::new("update-watchdog-failed"),
         UpdateInstallationError::Recovery(_) => CommandErrorDto::new("update-recovery-failed"),
+        #[cfg(target_os = "linux")]
+        UpdateInstallationError::LinuxRecovery(_) => CommandErrorDto::new("update-recovery-failed"),
+        #[cfg(target_os = "linux")]
+        UpdateInstallationError::LinuxNative(_) => {
+            CommandErrorDto::new("update-native-installer-failed")
+        }
     }
 }
 
@@ -1817,7 +1864,7 @@ async fn confirm_update_recovery_startup(
         }
         CommandErrorDto::new("update-recovery-outcome-failed")
     })?;
-    let current_application_path = resolve_update_application_path(&executable).map_err(|_| {
+    let current_application_path = installed_update_recovery_target(&executable).map_err(|_| {
         if let Some(candidate) = candidate.clone() {
             pending.restore(candidate);
         }
@@ -1825,27 +1872,26 @@ async fn confirm_update_recovery_startup(
     })?;
 
     if let Some(candidate) = candidate.as_ref() {
-        if !pending
-            .has_matching_lease(candidate)
+        let Some(lease) = pending
+            .matching_lease(candidate)
             .map_err(|_| CommandErrorDto::new("update-recovery-confirmation-failed"))?
-        {
+        else {
             pending.restore(candidate.clone());
             return Err(CommandErrorDto::new("update-recovery-confirmation-failed"));
-        }
+        };
         let recovery_root_for_confirmation = recovery_root.clone();
         let executable_for_confirmation = executable.clone();
         let library_path_for_confirmation = library_path.clone();
         let candidate_for_confirmation = candidate.clone();
         let app_version = app.package_info().version.to_string();
         match tauri::async_runtime::spawn_blocking(move || {
-            confirm_active_update_recovery(
+            confirm_platform_update_recovery(
+                lease.as_ref(),
                 &recovery_root_for_confirmation,
-                &candidate_for_confirmation.recovery_id,
+                &candidate_for_confirmation,
                 &executable_for_confirmation,
                 &app_version,
                 &library_path_for_confirmation,
-                library_schema_version(),
-                &candidate_for_confirmation.launch_nonce,
             )
         })
         .await
@@ -1884,10 +1930,10 @@ fn retain_update_recovery_outcome_after_startup(
     application_path: &Path,
     library_path: &Path,
     wait_for_terminal_outcome: bool,
-) -> Result<Option<UpdateRecoveryOutcome>, UpdateRecoveryError> {
+) -> Result<Option<UpdateRecoveryOutcome>, ()> {
     let deadline = Instant::now() + UPDATE_RECOVERY_STARTUP_MAINTENANCE_TIMEOUT;
     loop {
-        match maintain_update_recovery(recovery_root, application_path, library_path)? {
+        match maintain_platform_update_recovery(recovery_root, application_path, library_path)? {
             UpdateRecoveryMaintenance::OutcomeRetained(outcome) => return Ok(Some(outcome)),
             UpdateRecoveryMaintenance::NoTerminalOutcome => return Ok(None),
             UpdateRecoveryMaintenance::Deferred
@@ -2084,10 +2130,15 @@ fn valid_recovery_id(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+#[cfg(target_os = "linux")]
+type PlatformUpdateRecoveryCandidateLease = LinuxUpdateRecoveryCandidateLease;
+#[cfg(not(target_os = "linux"))]
+type PlatformUpdateRecoveryCandidateLease = UpdateRecoveryCandidateLease;
+
 #[derive(Default)]
 struct PendingUpdateRecoveryConfirmation {
     candidate: Mutex<Option<CandidateStartup>>,
-    lease: Mutex<Option<UpdateRecoveryCandidateLease>>,
+    lease: Mutex<Option<Arc<PlatformUpdateRecoveryCandidateLease>>>,
 }
 
 impl PendingUpdateRecoveryConfirmation {
@@ -2105,12 +2156,12 @@ impl PendingUpdateRecoveryConfirmation {
             .map_err(|_| ())
     }
 
-    fn hold_lease(&self, lease: UpdateRecoveryCandidateLease) -> Result<(), ()> {
+    fn hold_lease(&self, lease: PlatformUpdateRecoveryCandidateLease) -> Result<(), ()> {
         let mut held = self.lease.lock().map_err(|_| ())?;
         if held.is_some() {
             return Err(());
         }
-        *held = Some(lease);
+        *held = Some(Arc::new(lease));
         Ok(())
     }
 
@@ -2121,12 +2172,28 @@ impl PendingUpdateRecoveryConfirmation {
             .map_err(|_| ())
     }
 
+    #[cfg(test)]
     fn has_matching_lease(&self, candidate: &CandidateStartup) -> Result<bool, ()> {
         self.lease.lock().map_err(|_| ()).map(|lease| {
             lease.as_ref().is_some_and(|lease| {
                 lease.recovery_id() == candidate.recovery_id
                     && lease.launch_nonce() == candidate.launch_nonce
             })
+        })
+    }
+
+    fn matching_lease(
+        &self,
+        candidate: &CandidateStartup,
+    ) -> Result<Option<Arc<PlatformUpdateRecoveryCandidateLease>>, ()> {
+        self.lease.lock().map_err(|_| ()).map(|lease| {
+            lease
+                .as_ref()
+                .filter(|lease| {
+                    lease.recovery_id() == candidate.recovery_id
+                        && lease.launch_nonce() == candidate.launch_nonce
+                })
+                .cloned()
         })
     }
 
@@ -2153,6 +2220,129 @@ impl PendingUpdateRecoveryConfirmation {
 struct CandidateStartup {
     recovery_id: String,
     launch_nonce: String,
+}
+
+fn run_platform_update_recovery_watchdog(
+    watchdog_executable: &Path,
+    installed_target: &Path,
+    readiness: &mut impl Write,
+) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        run_linux_update_recovery_watchdog(watchdog_executable, installed_target, readiness).is_ok()
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        run_update_recovery_watchdog(watchdog_executable, installed_target, readiness).is_ok()
+    }
+}
+
+fn acquire_platform_update_recovery_candidate_lease(
+    recovery_root: &Path,
+    candidate: &CandidateStartup,
+    executable: &Path,
+) -> Result<PlatformUpdateRecoveryCandidateLease, ()> {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = executable;
+        acquire_linux_update_recovery_candidate_lease(
+            recovery_root,
+            &candidate.recovery_id,
+            &candidate.launch_nonce,
+        )
+        .map_err(|_| ())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        acquire_update_recovery_candidate_lease(
+            recovery_root,
+            &candidate.recovery_id,
+            &candidate.launch_nonce,
+            executable,
+        )
+        .map_err(|_| ())
+    }
+}
+
+fn confirm_platform_update_recovery(
+    lease: &PlatformUpdateRecoveryCandidateLease,
+    recovery_root: &Path,
+    candidate: &CandidateStartup,
+    executable: &Path,
+    application_version: &str,
+    library_path: &Path,
+) -> Result<(), ()> {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = (candidate, executable);
+        confirm_active_linux_update_recovery(
+            lease,
+            recovery_root,
+            library_path,
+            application_version,
+            library_schema_version(),
+        )
+        .map_err(|_| ())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = lease;
+        confirm_active_update_recovery(
+            recovery_root,
+            &candidate.recovery_id,
+            executable,
+            application_version,
+            library_path,
+            library_schema_version(),
+            &candidate.launch_nonce,
+        )
+        .map_err(|_| ())
+    }
+}
+
+fn installed_update_recovery_target(executable: &Path) -> Result<PathBuf, ()> {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = executable;
+        Ok(PathBuf::from("/usr/bin/fitfreed"))
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        resolve_update_application_path(executable).map_err(|_| ())
+    }
+}
+
+fn resolve_platform_update_installation_target(executable: &Path) -> Result<PathBuf, ()> {
+    #[cfg(target_os = "linux")]
+    {
+        resolve_linux_update_installation_path(executable).map_err(|_| ())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        resolve_update_application_path(executable).map_err(|_| ())
+    }
+}
+
+fn maintain_platform_update_recovery(
+    recovery_root: &Path,
+    installed_target: &Path,
+    library_path: &Path,
+) -> Result<UpdateRecoveryMaintenance, ()> {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = installed_target;
+        maintain_linux_update_recovery(recovery_root, library_path).map_err(|_| ())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        maintain_update_recovery(recovery_root, installed_target, library_path).map_err(|_| ())
+    }
 }
 
 fn prepare_library_for_startup(library_path: &Path) -> infrastructure::Result<()> {
@@ -2198,12 +2388,11 @@ pub fn run() {
             installed_application,
         } => {
             let succeeded = env::current_exe().is_ok_and(|executable| {
-                run_update_recovery_watchdog(
+                run_platform_update_recovery_watchdog(
                     &executable,
                     &installed_application,
                     &mut io::stdout().lock(),
                 )
-                .is_ok()
             });
             process::exit(if succeeded { 0 } else { 1 });
         }
@@ -2240,10 +2429,9 @@ pub fn run() {
                     .ok_or_else(|| std::io::Error::other("candidate library path is invalid"))?
                     .join("update-recovery");
                 let executable = env::current_exe()?;
-                let lease = acquire_update_recovery_candidate_lease(
+                let lease = acquire_platform_update_recovery_candidate_lease(
                     &recovery_root,
-                    &candidate.recovery_id,
-                    &candidate.launch_nonce,
+                    &candidate,
                     &executable,
                 )
                 .map_err(|_| std::io::Error::other("candidate recovery validation failed"))?;
@@ -2355,9 +2543,11 @@ pub fn run() {
 mod tests {
     use std::{
         collections::BTreeMap,
-        fs::File,
         sync::atomic::{AtomicUsize, Ordering},
     };
+
+    #[cfg(not(target_os = "linux"))]
+    use std::fs::File;
 
     use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
     use fitfreed_application::{
@@ -2925,6 +3115,7 @@ mod tests {
         assert_eq!(pending.take(), Ok(Some(candidate)));
     }
 
+    #[cfg(not(target_os = "linux"))]
     #[test]
     fn releases_only_the_candidate_lease_bound_to_the_confirmed_claim() {
         let directory = TempDir::new().expect("temporary directory");

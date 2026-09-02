@@ -58,6 +58,11 @@ rollback derives `previous/package.deb` from the canonical attempt directory, re
 or symbolic package, invokes only `/usr/bin/pkexec /usr/bin/dpkg --install` with that derived path, and repeats the
 native identity and installed-file validation after success.
 
+Candidate installation derives `candidate/package.deb` through the same canonical attempt boundary, applies the same
+non-empty regular-file and no-symbolic-link checks, invokes only `/usr/bin/pkexec /usr/bin/dpkg --install` with that
+derived path, and repeats native identity validation. The resulting package version must equal `target.version` before
+the attempt can enter `replacement-installed`.
+
 The adapter extracts that same package without executing maintainer scripts into `previous/runnable`, validates the
 complete tree and required `usr/bin/fitfreed`, records a deterministic tree digest, and binds it back to the predecessor
 package SHA-256. This image is a last runnable predecessor, not a replacement for native rollback. The independently
@@ -154,6 +159,14 @@ This state is non-terminal: it retains every asset, blocks another update, tells
 not yet restored, and permits an explicit retry through `native-recovery-unavailable → recovering`. Three failed
 native attempts enter `recovery-failed`; no recovery asset is automatically removed. The fallback image can provide
 access to the previous application and matching library but can never be reported as `recovered`.
+
+The installer launches the watchdog only from `previous/runnable/usr/bin/fitfreed`, passes the fixed private watchdog
+argument and exact installed path, and requires an exact process-bound readiness record before replacement starts.
+The watchdog launches the installed candidate with a fresh recovery identifier and nonce handshake, records complete
+`/proc` process identity before releasing startup, and controls that process only while every identity component still
+matches. A runnable predecessor fallback receives no private candidate argument or nonce and is observed at its exact
+preserved executable path before the watchdog exits. Failure to establish that ownership terminates the spawned child
+and retains the recovery attempt.
 
 ## Process, privacy, and failure behavior
 

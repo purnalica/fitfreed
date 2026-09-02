@@ -1,14 +1,29 @@
 use std::path::{Path, PathBuf};
 
+#[cfg(not(target_os = "linux"))]
 use fitfreed_application::{UpdateInstallationAuthorization, UpdateRecoveryPhase};
 use thiserror::Error;
 
+#[cfg(target_os = "linux")]
+use super::{
+    discard_prepared_linux_update_recovery, install_linux_candidate_package,
+    prepare_linux_update_recovery, start_linux_update_recovery_watchdog,
+    transition_active_linux_update_recovery, LinuxRecoveryStateError, LinuxUpdateRecoveryError,
+    LinuxUpdateRecoveryPreparation, PreparedLinuxUpdateRecovery,
+    StartedLinuxUpdateRecoveryWatchdog,
+};
+#[cfg(not(target_os = "linux"))]
 use super::{
     discard_prepared_update_recovery, prepare_update_recovery, start_update_recovery_watchdog,
     transition_active_update_recovery, ApplicationCopyPort, PlatformApplicationCopier,
-    PreparedUpdateRecovery, StartedUpdateRecoveryWatchdog, UpdatePackageError, UpdateRecoveryError,
-    UpdateRecoveryPreparation, UpdateRecoveryWatchdogError, VerifiedUpdatePackage,
+    PreparedUpdateRecovery, StartedUpdateRecoveryWatchdog, UpdateRecoveryPreparation,
 };
+use super::{
+    UpdatePackageError, UpdateRecoveryError, UpdateRecoveryWatchdogError,
+    VerifiedPredecessorPackage, VerifiedUpdatePackage,
+};
+#[cfg(target_os = "linux")]
+use fitfreed_application::PackagedUpdateRecoveryPhase;
 
 #[derive(Debug, Error)]
 pub enum UpdateInstallationError {
@@ -18,6 +33,12 @@ pub enum UpdateInstallationError {
     Watchdog(#[from] UpdateRecoveryWatchdogError),
     #[error("the verified update package could not be installed: {0}")]
     Package(#[from] UpdatePackageError),
+    #[cfg(target_os = "linux")]
+    #[error("the Linux update recovery transition failed: {0}")]
+    LinuxRecovery(#[from] LinuxRecoveryStateError),
+    #[cfg(target_os = "linux")]
+    #[error("the Linux native package operation failed: {0}")]
+    LinuxNative(#[from] LinuxUpdateRecoveryError),
 }
 
 pub struct UpdateInstallationRequest {
@@ -30,21 +51,403 @@ pub struct UpdateInstallationRequest {
 
 pub fn install_verified_update(
     package: &VerifiedUpdatePackage,
+    predecessor: Option<&VerifiedPredecessorPackage>,
     request: UpdateInstallationRequest,
 ) -> Result<(), UpdateInstallationError> {
-    coordinate_update_installation(
-        &PlatformApplicationCopier,
-        &PlatformWatchdogLauncher,
-        package,
-        request,
+    #[cfg(target_os = "linux")]
+    {
+        coordinate_linux_update_installation(
+            &LinuxPlatformInstallationPort,
+            package,
+            predecessor.ok_or(UpdatePackageError::InvalidAuthorization)?,
+            request,
+        )
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = predecessor;
+        coordinate_update_installation(
+            &PlatformApplicationCopier,
+            &PlatformWatchdogLauncher,
+            package,
+            request,
+        )
+    }
+}
+
+#[cfg(target_os = "linux")]
+trait LinuxWatchdogHandle {
+    fn stop(self) -> Result<(), UpdateRecoveryWatchdogError>;
+}
+
+#[cfg(target_os = "linux")]
+impl LinuxWatchdogHandle for StartedLinuxUpdateRecoveryWatchdog {
+    fn stop(self) -> Result<(), UpdateRecoveryWatchdogError> {
+        StartedLinuxUpdateRecoveryWatchdog::stop(self)
+    }
+}
+
+#[cfg(target_os = "linux")]
+trait LinuxInstallationPort {
+    type Handle: LinuxWatchdogHandle;
+
+    fn start_watchdog(
+        &self,
+        prepared: &PreparedLinuxUpdateRecovery,
+        installed_executable_path: &Path,
+    ) -> Result<Self::Handle, UpdateRecoveryWatchdogError>;
+
+    fn transition(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+        phase: PackagedUpdateRecoveryPhase,
+    ) -> Result<(), LinuxRecoveryStateError>;
+
+    fn discard(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+    ) -> Result<(), LinuxRecoveryStateError>;
+
+    fn install_candidate(
+        &self,
+        attempt_directory: &Path,
+        expected_version: &str,
+    ) -> Result<(), LinuxUpdateRecoveryError>;
+}
+
+#[cfg(target_os = "linux")]
+struct LinuxPlatformInstallationPort;
+
+#[cfg(target_os = "linux")]
+impl LinuxInstallationPort for LinuxPlatformInstallationPort {
+    type Handle = StartedLinuxUpdateRecoveryWatchdog;
+
+    fn start_watchdog(
+        &self,
+        prepared: &PreparedLinuxUpdateRecovery,
+        installed_executable_path: &Path,
+    ) -> Result<Self::Handle, UpdateRecoveryWatchdogError> {
+        start_linux_update_recovery_watchdog(prepared, installed_executable_path)
+    }
+
+    fn transition(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+        phase: PackagedUpdateRecoveryPhase,
+    ) -> Result<(), LinuxRecoveryStateError> {
+        transition_active_linux_update_recovery(recovery_root, recovery_id, phase)
+    }
+
+    fn discard(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+    ) -> Result<(), LinuxRecoveryStateError> {
+        discard_prepared_linux_update_recovery(recovery_root, recovery_id)
+    }
+
+    fn install_candidate(
+        &self,
+        attempt_directory: &Path,
+        expected_version: &str,
+    ) -> Result<(), LinuxUpdateRecoveryError> {
+        install_linux_candidate_package(attempt_directory, expected_version).map(|_| ())
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn coordinate_linux_update_installation(
+    installation: &impl LinuxInstallationPort,
+    package: &VerifiedUpdatePackage,
+    predecessor: &VerifiedPredecessorPackage,
+    request: UpdateInstallationRequest,
+) -> Result<(), UpdateInstallationError> {
+    let prepared = prepare_linux_update_recovery(LinuxUpdateRecoveryPreparation {
+        recovery_root: &request.recovery_root,
+        library_path: &request.library_path,
+        installed_version: &request.installed_version,
+        prepared_at: &request.prepared_at,
+        authorization: package.authorization(),
+        predecessor_package_path: predecessor.path(),
+        candidate_package_bytes: package.bytes(),
+    })?;
+    coordinate_prepared_linux_update_installation(
+        installation,
+        &prepared,
+        package.version(),
+        &request.recovery_root,
+        &request.current_application_path,
     )
 }
 
+#[cfg(target_os = "linux")]
+fn coordinate_prepared_linux_update_installation(
+    installation: &impl LinuxInstallationPort,
+    prepared: &PreparedLinuxUpdateRecovery,
+    candidate_version: &str,
+    recovery_root: &Path,
+    current_application_path: &Path,
+) -> Result<(), UpdateInstallationError> {
+    let watchdog = match installation.start_watchdog(prepared, current_application_path) {
+        Ok(watchdog) => watchdog,
+        Err(error) => {
+            installation.discard(recovery_root, prepared.recovery_id())?;
+            return Err(error.into());
+        }
+    };
+    if let Err(error) = installation.transition(
+        recovery_root,
+        prepared.recovery_id(),
+        PackagedUpdateRecoveryPhase::ReplacementStarted,
+    ) {
+        watchdog.stop()?;
+        installation.discard(recovery_root, prepared.recovery_id())?;
+        return Err(error.into());
+    }
+    if let Err(error) =
+        installation.install_candidate(prepared.attempt_directory(), candidate_version)
+    {
+        installation.transition(
+            recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )?;
+        return Err(error.into());
+    }
+    if let Err(error) = installation.transition(
+        recovery_root,
+        prepared.recovery_id(),
+        PackagedUpdateRecoveryPhase::ReplacementInstalled,
+    ) {
+        installation.transition(
+            recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )?;
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod linux_tests {
+    use std::{cell::RefCell, rc::Rc};
+
+    use tempfile::TempDir;
+
+    use super::*;
+
+    #[derive(Clone, Copy)]
+    enum Failure {
+        None,
+        Watchdog,
+        ReplacementStarted,
+        CandidateInstallation,
+        ReplacementInstalled,
+    }
+
+    struct SyntheticWatchdog {
+        events: Rc<RefCell<Vec<String>>>,
+    }
+
+    impl LinuxWatchdogHandle for SyntheticWatchdog {
+        fn stop(self) -> Result<(), UpdateRecoveryWatchdogError> {
+            self.events.borrow_mut().push("stop-watchdog".to_owned());
+            Ok(())
+        }
+    }
+
+    struct SyntheticLinuxInstallation {
+        failure: Failure,
+        events: Rc<RefCell<Vec<String>>>,
+    }
+
+    impl SyntheticLinuxInstallation {
+        fn new(failure: Failure) -> Self {
+            Self {
+                failure,
+                events: Rc::new(RefCell::new(Vec::new())),
+            }
+        }
+
+        fn events(&self) -> Vec<String> {
+            self.events.borrow().clone()
+        }
+    }
+
+    impl LinuxInstallationPort for SyntheticLinuxInstallation {
+        type Handle = SyntheticWatchdog;
+
+        fn start_watchdog(
+            &self,
+            _prepared: &PreparedLinuxUpdateRecovery,
+            _installed_executable_path: &Path,
+        ) -> Result<Self::Handle, UpdateRecoveryWatchdogError> {
+            self.events.borrow_mut().push("start-watchdog".to_owned());
+            if matches!(self.failure, Failure::Watchdog) {
+                return Err(UpdateRecoveryWatchdogError::Readiness);
+            }
+            Ok(SyntheticWatchdog {
+                events: Rc::clone(&self.events),
+            })
+        }
+
+        fn transition(
+            &self,
+            _recovery_root: &Path,
+            _recovery_id: &str,
+            phase: PackagedUpdateRecoveryPhase,
+        ) -> Result<(), LinuxRecoveryStateError> {
+            self.events
+                .borrow_mut()
+                .push(format!("transition-{phase:?}"));
+            if matches!(
+                (self.failure, phase),
+                (
+                    Failure::ReplacementStarted,
+                    PackagedUpdateRecoveryPhase::ReplacementStarted
+                ) | (
+                    Failure::ReplacementInstalled,
+                    PackagedUpdateRecoveryPhase::ReplacementInstalled
+                )
+            ) {
+                return Err(LinuxRecoveryStateError::InvalidTransition);
+            }
+            Ok(())
+        }
+
+        fn discard(
+            &self,
+            _recovery_root: &Path,
+            _recovery_id: &str,
+        ) -> Result<(), LinuxRecoveryStateError> {
+            self.events.borrow_mut().push("discard".to_owned());
+            Ok(())
+        }
+
+        fn install_candidate(
+            &self,
+            _attempt_directory: &Path,
+            _expected_version: &str,
+        ) -> Result<(), LinuxUpdateRecoveryError> {
+            self.events
+                .borrow_mut()
+                .push("install-candidate".to_owned());
+            if matches!(self.failure, Failure::CandidateInstallation) {
+                return Err(LinuxUpdateRecoveryError::NativeInstallationFailed);
+            }
+            Ok(())
+        }
+    }
+
+    fn prepared(directory: &TempDir) -> PreparedLinuxUpdateRecovery {
+        PreparedLinuxUpdateRecovery::for_test("a".repeat(64), directory.path().join("attempt"))
+    }
+
+    fn coordinate(
+        installation: &SyntheticLinuxInstallation,
+        prepared: &PreparedLinuxUpdateRecovery,
+    ) -> Result<(), UpdateInstallationError> {
+        coordinate_prepared_linux_update_installation(
+            installation,
+            prepared,
+            "0.2.0",
+            Path::new("/recovery"),
+            Path::new("/usr/bin/fitfreed"),
+        )
+    }
+
+    #[test]
+    fn orders_watchdog_transition_native_installation_and_handoff() {
+        let directory = TempDir::new().expect("temporary directory");
+        let installation = SyntheticLinuxInstallation::new(Failure::None);
+
+        coordinate(&installation, &prepared(&directory)).expect("coordinated installation");
+
+        assert_eq!(
+            installation.events(),
+            [
+                "start-watchdog",
+                "transition-ReplacementStarted",
+                "install-candidate",
+                "transition-ReplacementInstalled",
+            ]
+        );
+    }
+
+    #[test]
+    fn discards_only_before_replacement_and_stops_a_started_watchdog() {
+        let directory = TempDir::new().expect("temporary directory");
+        let watchdog_failure = SyntheticLinuxInstallation::new(Failure::Watchdog);
+        assert!(matches!(
+            coordinate(&watchdog_failure, &prepared(&directory)),
+            Err(UpdateInstallationError::Watchdog(_))
+        ));
+        assert_eq!(watchdog_failure.events(), ["start-watchdog", "discard"]);
+
+        let transition_failure = SyntheticLinuxInstallation::new(Failure::ReplacementStarted);
+        assert!(matches!(
+            coordinate(&transition_failure, &prepared(&directory)),
+            Err(UpdateInstallationError::LinuxRecovery(_))
+        ));
+        assert_eq!(
+            transition_failure.events(),
+            [
+                "start-watchdog",
+                "transition-ReplacementStarted",
+                "stop-watchdog",
+                "discard",
+            ]
+        );
+    }
+
+    #[test]
+    fn hands_every_post_replacement_failure_to_the_recovery_lifecycle() {
+        let directory = TempDir::new().expect("temporary directory");
+        let native_failure = SyntheticLinuxInstallation::new(Failure::CandidateInstallation);
+        assert!(matches!(
+            coordinate(&native_failure, &prepared(&directory)),
+            Err(UpdateInstallationError::LinuxNative(_))
+        ));
+        assert_eq!(
+            native_failure.events(),
+            [
+                "start-watchdog",
+                "transition-ReplacementStarted",
+                "install-candidate",
+                "transition-Recovering",
+            ]
+        );
+
+        let handoff_failure = SyntheticLinuxInstallation::new(Failure::ReplacementInstalled);
+        assert!(matches!(
+            coordinate(&handoff_failure, &prepared(&directory)),
+            Err(UpdateInstallationError::LinuxRecovery(_))
+        ));
+        assert_eq!(
+            handoff_failure.events(),
+            [
+                "start-watchdog",
+                "transition-ReplacementStarted",
+                "install-candidate",
+                "transition-ReplacementInstalled",
+                "transition-Recovering",
+            ]
+        );
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
 trait NativeUpdatePackage {
     fn authorization(&self) -> &UpdateInstallationAuthorization;
     fn install(&self) -> Result<(), UpdatePackageError>;
 }
 
+#[cfg(not(target_os = "linux"))]
 impl NativeUpdatePackage for VerifiedUpdatePackage {
     fn authorization(&self) -> &UpdateInstallationAuthorization {
         VerifiedUpdatePackage::authorization(self)
@@ -55,16 +458,19 @@ impl NativeUpdatePackage for VerifiedUpdatePackage {
     }
 }
 
+#[cfg(not(target_os = "linux"))]
 trait WatchdogHandle {
     fn stop(self) -> Result<(), UpdateRecoveryWatchdogError>;
 }
 
+#[cfg(not(target_os = "linux"))]
 impl WatchdogHandle for StartedUpdateRecoveryWatchdog {
     fn stop(self) -> Result<(), UpdateRecoveryWatchdogError> {
         StartedUpdateRecoveryWatchdog::stop(self)
     }
 }
 
+#[cfg(not(target_os = "linux"))]
 trait WatchdogLauncher {
     type Handle: WatchdogHandle;
 
@@ -75,8 +481,10 @@ trait WatchdogLauncher {
     ) -> Result<Self::Handle, UpdateRecoveryWatchdogError>;
 }
 
+#[cfg(not(target_os = "linux"))]
 struct PlatformWatchdogLauncher;
 
+#[cfg(not(target_os = "linux"))]
 impl WatchdogLauncher for PlatformWatchdogLauncher {
     type Handle = StartedUpdateRecoveryWatchdog;
 
@@ -89,6 +497,7 @@ impl WatchdogLauncher for PlatformWatchdogLauncher {
     }
 }
 
+#[cfg(not(target_os = "linux"))]
 fn coordinate_update_installation<C, W, P>(
     copier: &C,
     watchdog_launcher: &W,

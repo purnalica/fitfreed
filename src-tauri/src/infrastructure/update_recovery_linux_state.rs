@@ -118,6 +118,16 @@ impl PreparedLinuxUpdateRecovery {
     pub fn source_library_schema_version(&self) -> u32 {
         self.source_library_schema_version
     }
+
+    #[cfg(all(test, target_os = "linux"))]
+    pub(crate) fn for_test(recovery_id: String, attempt_directory: PathBuf) -> Self {
+        Self {
+            recovery_id,
+            attempt_directory,
+            source_library_schema_version: u32::try_from(SCHEMA_VERSION)
+                .expect("schema version fits u32"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1254,12 +1264,14 @@ fn classify_native_recovery_error(error: LinuxUpdateRecoveryError) -> LinuxNativ
             LinuxNativeRecoveryFailure::AuthorizationUnavailable
         }
         LinuxUpdateRecoveryError::PackageManagerUnavailable
-        | LinuxUpdateRecoveryError::NativeRollbackFailed => {
+        | LinuxUpdateRecoveryError::NativeRollbackFailed
+        | LinuxUpdateRecoveryError::NativeInstallationFailed => {
             LinuxNativeRecoveryFailure::PackageManagerFailed
         }
         LinuxUpdateRecoveryError::InvalidPackageIdentity
         | LinuxUpdateRecoveryError::Io(_)
         | LinuxUpdateRecoveryError::InvalidPredecessorPackage
+        | LinuxUpdateRecoveryError::InvalidCandidatePackage
         | LinuxUpdateRecoveryError::InvalidProcessIdentity => {
             LinuxNativeRecoveryFailure::InstalledStateInvalid
         }

@@ -1,6 +1,5 @@
 use std::{
-    fs::File,
-    io::{self, BufRead, BufReader, Read, Write},
+    io::{self, Read, Write},
     path::Path,
     process::{Child, Command, Stdio},
     sync::mpsc,
@@ -15,9 +14,13 @@ use fitfreed_application::{
 };
 #[cfg(unix)]
 use libc::{getppid, kill, ESRCH, SIGKILL, SIGTERM};
-use sha2::{Digest, Sha256};
 use thiserror::Error;
 
+use super::update_watchdog_protocol::{
+    await_candidate_go, generate_launch_nonce, read_watchdog_readiness, write_candidate_go,
+    write_watchdog_readiness, CandidateGoError, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT, WATCHDOG_READY_TIMEOUT,
+};
 use super::{
     acquire_update_recovery_watchdog_lease, active_update_recovery_phase,
     discard_prepared_update_recovery, maintain_update_recovery_with_watchdog_lease,
@@ -29,25 +32,19 @@ use super::{
     UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext, UpdateRecoveryWatchdogLease,
 };
 
-pub const UPDATE_RECOVERY_WATCHDOG_ARGUMENT: &str = "--fitfreed-update-recovery-watchdog";
-pub const UPDATE_RECOVERY_CANDIDATE_ARGUMENT: &str = "--fitfreed-update-recovery-candidate";
-
-const WATCHDOG_READY_PREFIX: &str = "FITFREED-UPDATE-WATCHDOG-READY ";
-const CANDIDATE_GO_PREFIX: &str = "FITFREED-UPDATE-CANDIDATE-GO ";
-const WATCHDOG_READY_TIMEOUT: Duration = Duration::from_secs(10);
-const CANDIDATE_GO_TIMEOUT: Duration = Duration::from_secs(10);
-const INSTALLATION_TIMEOUT: Duration = Duration::from_secs(15 * 60);
-const REPLACEMENT_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(60);
-const PROCESS_STOP_TIMEOUT: Duration = Duration::from_secs(5);
-const POLL_INTERVAL: Duration = Duration::from_millis(100);
+pub(super) const INSTALLATION_TIMEOUT: Duration = Duration::from_secs(15 * 60);
+pub(super) const REPLACEMENT_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(60);
+pub(super) const PROCESS_STOP_TIMEOUT: Duration = Duration::from_secs(5);
+pub(super) const POLL_INTERVAL: Duration = Duration::from_millis(100);
 const RESTORATION_RETRY_INTERVAL: Duration = Duration::from_millis(250);
-const TERMINAL_CLEANUP_TIMEOUT: Duration = Duration::from_secs(10);
+pub(super) const TERMINAL_CLEANUP_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_RESTORATION_ATTEMPTS: u8 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UpdateRecoveryWatchdogOutcome {
     Confirmed,
     Recovered,
+    RunnablePredecessorStarted,
     StoppedBeforeReplacement,
 }
 
@@ -57,6 +54,9 @@ pub enum UpdateRecoveryWatchdogError {
     Io(#[from] io::Error),
     #[error("update recovery watchdog state failure: {0}")]
     Recovery(#[from] UpdateRecoveryError),
+    #[cfg(any(test, target_os = "linux"))]
+    #[error("Linux update recovery watchdog state failure: {0}")]
+    LinuxRecovery(#[from] super::LinuxRecoveryStateError),
     #[error("update recovery watchdog readiness failed")]
     Readiness,
     #[error("update recovery watchdog lost ownership of the replacement process")]
@@ -127,12 +127,6 @@ pub fn start_update_recovery_watchdog(
     Ok(StartedUpdateRecoveryWatchdog { child })
 }
 
-fn read_watchdog_readiness(reader: impl Read, expected_process_id: u32) -> io::Result<bool> {
-    let mut line = String::new();
-    BufReader::new(reader).take(128).read_line(&mut line)?;
-    Ok(line == format!("{WATCHDOG_READY_PREFIX}{expected_process_id}\n"))
-}
-
 pub fn run_update_recovery_watchdog(
     watchdog_executable: &Path,
     installed_application_path: &Path,
@@ -142,8 +136,7 @@ pub fn run_update_recovery_watchdog(
         resolve_update_recovery_watchdog_context(watchdog_executable, installed_application_path)?;
     let mut watchdog_lease = Some(acquire_update_recovery_watchdog_lease(&context)?);
     active_phase(&context)?;
-    writeln!(readiness, "{WATCHDOG_READY_PREFIX}{}", std::process::id())?;
-    readiness.flush()?;
+    write_watchdog_readiness(readiness)?;
 
     let original_parent = original_parent_process_id();
     let installation_deadline = persisted_deadline(context.prepared_at(), INSTALLATION_TIMEOUT)?;
@@ -328,7 +321,7 @@ fn require_monitored_replacement(
     replacement.ok_or(UpdateRecoveryWatchdogError::UnownedReplacement)
 }
 
-fn persisted_deadline(
+pub(super) fn persisted_deadline(
     started_at: &str,
     duration: Duration,
 ) -> Result<DateTime<Utc>, UpdateRecoveryWatchdogError> {
@@ -457,18 +450,12 @@ fn launch_replacement(
             return Err(error.into());
         }
     };
-    let signal = format!(
-        "{CANDIDATE_GO_PREFIX}{} {launch_nonce}\n",
-        context.recovery_id()
-    );
     let signal_result = child
         .stdin
         .take()
         .ok_or(UpdateRecoveryWatchdogError::ApplicationLaunch)
         .and_then(|mut stdin| {
-            stdin
-                .write_all(signal.as_bytes())
-                .and_then(|()| stdin.flush())
+            write_candidate_go(&mut stdin, context.recovery_id(), &launch_nonce)
                 .map_err(UpdateRecoveryWatchdogError::Io)
         });
     if let Err(error) = signal_result {
@@ -483,38 +470,16 @@ pub fn await_update_recovery_candidate_go(
     launch_nonce: &str,
     reader: impl Read + Send + 'static,
 ) -> Result<(), UpdateRecoveryWatchdogError> {
-    let recovery_id = recovery_id.to_owned();
-    let launch_nonce = launch_nonce.to_owned();
-    let (sender, receiver) = mpsc::channel();
-    thread::spawn(move || {
-        let mut line = String::new();
-        let result = BufReader::new(reader)
-            .take(256)
-            .read_line(&mut line)
-            .map(|_| line);
-        let _ = sender.send(result);
-    });
-    let expected = format!("{CANDIDATE_GO_PREFIX}{recovery_id} {launch_nonce}\n");
-    match receiver.recv_timeout(CANDIDATE_GO_TIMEOUT) {
-        Ok(Ok(line)) if line == expected => Ok(()),
-        Ok(Err(error)) => Err(error.into()),
-        Ok(Ok(_)) | Err(_) => Err(UpdateRecoveryWatchdogError::Readiness),
+    match await_candidate_go(recovery_id, launch_nonce, reader) {
+        Ok(()) => Ok(()),
+        Err(CandidateGoError::Io(error)) => Err(error.into()),
+        Err(CandidateGoError::InvalidRecord | CandidateGoError::Timeout) => {
+            Err(UpdateRecoveryWatchdogError::Readiness)
+        }
     }
 }
 
-fn generate_launch_nonce() -> Result<String, UpdateRecoveryWatchdogError> {
-    let mut entropy = [0_u8; 32];
-    File::open("/dev/urandom")?.read_exact(&mut entropy)?;
-    let mut digest = Sha256::new();
-    digest.update(entropy);
-    Ok(digest
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect())
-}
-
-fn stop_child(child: &mut Child) -> io::Result<()> {
+pub(super) fn stop_child(child: &mut Child) -> io::Result<()> {
     if child.try_wait()?.is_none() {
         child.kill()?;
     }
@@ -582,17 +547,17 @@ fn stop_inherited_replacement(
 }
 
 #[cfg(unix)]
-fn original_parent_process_id() -> u32 {
+pub(super) fn original_parent_process_id() -> u32 {
     unsafe { getppid() as u32 }
 }
 
 #[cfg(not(unix))]
-fn original_parent_process_id() -> u32 {
+pub(super) fn original_parent_process_id() -> u32 {
     0
 }
 
 #[cfg(unix)]
-fn stop_original_parent(process_id: u32) -> Result<(), UpdateRecoveryWatchdogError> {
+pub(super) fn stop_original_parent(process_id: u32) -> Result<(), UpdateRecoveryWatchdogError> {
     stop_original_parent_with(
         process_id,
         original_parent_process_id,
@@ -646,39 +611,15 @@ fn stop_original_parent_with(
 }
 
 #[cfg(not(unix))]
-fn stop_original_parent(_process_id: u32) -> Result<(), UpdateRecoveryWatchdogError> {
+pub(super) fn stop_original_parent(_process_id: u32) -> Result<(), UpdateRecoveryWatchdogError> {
     Err(UpdateRecoveryError::UnsupportedPlatform.into())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::Cell, io::Cursor};
+    use std::cell::Cell;
 
     use super::*;
-
-    #[test]
-    fn bounds_and_matches_the_exact_watchdog_readiness_record() {
-        let process_id = 42_u32;
-
-        assert!(read_watchdog_readiness(
-            Cursor::new(format!("{WATCHDOG_READY_PREFIX}{process_id}\nignored")),
-            process_id,
-        )
-        .expect("matching readiness"));
-        assert!(!read_watchdog_readiness(
-            Cursor::new(format!("{WATCHDOG_READY_PREFIX}43\n")),
-            process_id,
-        )
-        .expect("mismatched readiness"));
-        assert!(!read_watchdog_readiness(
-            Cursor::new(format!(
-                "{WATCHDOG_READY_PREFIX}{process_id}{}\n",
-                "x".repeat(128)
-            )),
-            process_id,
-        )
-        .expect("bounded readiness"));
-    }
 
     #[test]
     fn treats_a_launching_phase_without_an_owned_child_as_unsafe() {
@@ -697,40 +638,6 @@ mod tests {
             "2026-08-17T08:15:00Z"
         );
         assert!(persisted_deadline("not-an-instant", Duration::from_secs(900)).is_err());
-    }
-
-    #[test]
-    fn accepts_only_the_exact_candidate_go_record() {
-        let recovery_id = "a".repeat(64);
-        let launch_nonce = "b".repeat(64);
-
-        await_update_recovery_candidate_go(
-            &recovery_id,
-            &launch_nonce,
-            Cursor::new(format!(
-                "{CANDIDATE_GO_PREFIX}{recovery_id} {launch_nonce}\n"
-            )),
-        )
-        .expect("matching candidate signal");
-        assert!(await_update_recovery_candidate_go(
-            &recovery_id,
-            &launch_nonce,
-            Cursor::new(format!(
-                "{CANDIDATE_GO_PREFIX}{recovery_id} {}\n",
-                "c".repeat(64)
-            )),
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn generates_a_lowercase_process_launch_nonce() {
-        let nonce = generate_launch_nonce().expect("launch nonce");
-
-        assert_eq!(nonce.len(), 64);
-        assert!(nonce
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
     }
 
     #[cfg(unix)]

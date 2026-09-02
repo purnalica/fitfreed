@@ -117,6 +117,11 @@ impl VerifiedUpdatePackage {
         &self.authorization
     }
 
+    #[cfg(target_os = "linux")]
+    pub(crate) fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
     pub fn install(&self) -> Result<(), UpdatePackageError> {
         validate_downloaded_bytes(&self.bytes, &self.authorization)?;
         self.native_update
