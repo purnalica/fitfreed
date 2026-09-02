@@ -58,6 +58,26 @@ verified candidate package is copied to `candidate/package.deb`; the matching SQ
 online-backup, integrity, digest, synchronization, and atomic-promotion rules. All four assets must reopen and validate
 before `active` is published. Recovery after that point requires no network access.
 
+Preparation applies the updater's 1 GiB package bound to each package even though the storage schema reserves a wider
+forward-compatible integer range. Extraction is limited to 65,536 entries and 4 GiB of expanded regular-file content.
+An exceeded bound, unsupported filesystem object, non-UTF-8 or over-4,096-byte relative path, missing required file,
+non-executable application, absolute link, or relative link that escapes the image invalidates the complete
+preparation. Failure removes only the package and runnable directories created by that preparation and preserves any
+pre-existing attempt evidence.
+
+## Runnable tree digest
+
+`runnablePredecessor.treeSha256` is SHA-256 over every descendant entry sorted by UTF-8 relative-path bytes; the root
+directory itself is excluded. Each entry contributes its one-byte kind (`D`, `F`, or `L`), the unsigned 64-bit
+big-endian path byte length, the path bytes, and the unsigned 32-bit big-endian permission mode. File and directory
+modes retain the low twelve Unix permission bits; a symbolic link uses `0777`.
+
+A regular file then contributes its unsigned 64-bit big-endian byte length and the raw 32-byte SHA-256 of its content.
+A symbolic link contributes the unsigned 64-bit big-endian target byte length and its UTF-8 target bytes. Directories
+add no further value. The adapter calculates this digest before and after publishing the runnable tree and recalculates
+it whenever recovery state is reopened. The package digest remains independently authoritative for the source bytes;
+the tree digest proves the exact extracted fallback image derived from those bytes.
+
 ## Manifest fields
 
 | Field | Meaning |

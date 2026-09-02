@@ -159,6 +159,8 @@ mod update_package;
 mod update_recovery;
 #[cfg(any(test, target_os = "linux"))]
 mod update_recovery_linux;
+#[cfg(any(test, target_os = "linux"))]
+mod update_recovery_linux_package;
 mod update_state;
 mod update_watchdog;
 
@@ -190,6 +192,11 @@ pub use update_recovery_linux::{
     linux_recovery_process_is_running, observe_linux_recovery_process,
     query_linux_native_package_identity, reinstall_linux_predecessor_package,
     LinuxNativePackageIdentity, LinuxRecoveryProcessIdentity, LinuxUpdateRecoveryError,
+};
+#[cfg(any(test, target_os = "linux"))]
+pub use update_recovery_linux_package::{
+    prepare_linux_recovery_packages, verify_linux_recovery_packages, LinuxRecoveryPackageError,
+    LinuxRecoveryPackageExpectation, PreparedLinuxRecoveryPackages,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
