@@ -239,6 +239,23 @@ pub fn prepare_linux_recovery_packages(
     )
 }
 
+pub fn prepare_linux_recovery_packages_from_path(
+    attempt_directory: &Path,
+    predecessor_source: &Path,
+    predecessor: &LinuxRecoveryPackageExpectation,
+    candidate_bytes: &[u8],
+    candidate: &LinuxRecoveryPackageExpectation,
+) -> Result<PreparedLinuxRecoveryPackages, LinuxRecoveryPackageError> {
+    prepare_linux_recovery_packages_from_path_with(
+        &SystemDebianPackage,
+        attempt_directory,
+        predecessor_source,
+        predecessor,
+        candidate_bytes,
+        candidate,
+    )
+}
+
 pub fn verify_linux_recovery_packages(
     attempt_directory: &Path,
     predecessor: &LinuxRecoveryPackageExpectation,
@@ -262,8 +279,45 @@ fn prepare_linux_recovery_packages_with(
     candidate_bytes: &[u8],
     candidate: &LinuxRecoveryPackageExpectation,
 ) -> Result<PreparedLinuxRecoveryPackages, LinuxRecoveryPackageError> {
-    validate_version_order(predecessor, candidate)?;
     validate_package_bytes(predecessor_bytes, predecessor)?;
+    prepare_linux_recovery_packages_inner(
+        package_port,
+        attempt_directory,
+        predecessor,
+        candidate_bytes,
+        candidate,
+        |destination| write_private_package(destination, predecessor_bytes),
+    )
+}
+
+fn prepare_linux_recovery_packages_from_path_with(
+    package_port: &impl DebianPackagePort,
+    attempt_directory: &Path,
+    predecessor_source: &Path,
+    predecessor: &LinuxRecoveryPackageExpectation,
+    candidate_bytes: &[u8],
+    candidate: &LinuxRecoveryPackageExpectation,
+) -> Result<PreparedLinuxRecoveryPackages, LinuxRecoveryPackageError> {
+    validate_preserved_package(package_port, predecessor_source, predecessor)?;
+    prepare_linux_recovery_packages_inner(
+        package_port,
+        attempt_directory,
+        predecessor,
+        candidate_bytes,
+        candidate,
+        |destination| copy_private_package(predecessor_source, destination, predecessor),
+    )
+}
+
+fn prepare_linux_recovery_packages_inner(
+    package_port: &impl DebianPackagePort,
+    attempt_directory: &Path,
+    predecessor: &LinuxRecoveryPackageExpectation,
+    candidate_bytes: &[u8],
+    candidate: &LinuxRecoveryPackageExpectation,
+    preserve_predecessor: impl FnOnce(&Path) -> Result<(), LinuxRecoveryPackageError>,
+) -> Result<PreparedLinuxRecoveryPackages, LinuxRecoveryPackageError> {
+    validate_version_order(predecessor, candidate)?;
     validate_package_bytes(candidate_bytes, candidate)?;
     let attempt_directory = validate_attempt_directory(attempt_directory)?;
     let mut assets = PreparedAssetGuard::new(&attempt_directory);
@@ -271,7 +325,7 @@ fn prepare_linux_recovery_packages_with(
 
     let predecessor_package_path = attempt_directory.join(PREDECESSOR_PACKAGE_RELATIVE_PATH);
     let candidate_package_path = attempt_directory.join(CANDIDATE_PACKAGE_RELATIVE_PATH);
-    write_private_package(&predecessor_package_path, predecessor_bytes)?;
+    preserve_predecessor(&predecessor_package_path)?;
     write_private_package(&candidate_package_path, candidate_bytes)?;
     validate_preserved_package(package_port, &predecessor_package_path, predecessor)?;
     validate_preserved_package(package_port, &candidate_package_path, candidate)?;
@@ -395,6 +449,40 @@ fn write_private_package(
     staging.file_mut()?.write_all(bytes)?;
     staging.sync_and_close()?;
     staging.persist_noclobber(destination)?;
+    Ok(())
+}
+
+fn copy_private_package(
+    source: &Path,
+    destination: &Path,
+    expectation: &LinuxRecoveryPackageExpectation,
+) -> Result<(), LinuxRecoveryPackageError> {
+    let mut source_options = OpenOptions::new();
+    source_options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+
+        source_options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let mut source_file = source_options.open(source)?;
+    let source_metadata = source_file.metadata()?;
+    if !source_metadata.file_type().is_file() || source_metadata.len() != expectation.size_bytes() {
+        return Err(LinuxRecoveryPackageError::InvalidPackage);
+    }
+    let parent = destination
+        .parent()
+        .ok_or(LinuxRecoveryPackageError::InvalidPackage)?;
+    let mut staging = PrivateStagingFile::new(parent, "fitfreed-recovery-package", ".tmp")?;
+    let copied = io::copy(&mut source_file, staging.file_mut()?)?;
+    if copied != expectation.size_bytes() {
+        return Err(LinuxRecoveryPackageError::InvalidPackage);
+    }
+    staging.sync_and_close()?;
+    staging.persist_noclobber(destination)?;
+    if file_sha256(destination, copied)? != expectation.sha256() {
+        return Err(LinuxRecoveryPackageError::InvalidPackage);
+    }
     Ok(())
 }
 
@@ -901,6 +989,26 @@ mod tests {
             }
         }
 
+        fn valid_from_path(source_version: &str, target_version: &str) -> Self {
+            Self {
+                inspections: RefCell::new(
+                    [
+                        source_version,
+                        source_version,
+                        target_version,
+                        source_version,
+                        target_version,
+                    ]
+                    .into_iter()
+                    .map(|version| format!("fitfreed\n{version}\namd64\n").into_bytes())
+                    .collect(),
+                ),
+                extraction: Extraction::Valid,
+                inspected_paths: RefCell::new(Vec::new()),
+                extracted: RefCell::new(Vec::new()),
+            }
+        }
+
         fn assert_exhausted(&self) {
             assert!(self.inspections.borrow().is_empty());
         }
@@ -1083,6 +1191,43 @@ mod tests {
             harness.candidate_bytes
         );
         assert_eq!(package_port.extracted.borrow().len(), 1);
+        package_port.assert_exhausted();
+    }
+
+    #[test]
+    fn hands_off_a_streamed_predecessor_without_loading_it_into_candidate_memory() {
+        let harness = Harness::new();
+        let predecessor_source = harness
+            .attempt_directory
+            .parent()
+            .expect("attempt parent")
+            .join("authenticated-predecessor.tmp");
+        fs::write(&predecessor_source, &harness.predecessor_bytes)
+            .expect("authenticated predecessor");
+        let package_port = SyntheticDebianPackage::valid_from_path("0.1.0", "0.2.0");
+
+        let prepared = prepare_linux_recovery_packages_from_path_with(
+            &package_port,
+            &harness.attempt_directory,
+            &predecessor_source,
+            &harness.predecessor,
+            &harness.candidate_bytes,
+            &harness.candidate,
+        )
+        .expect("prepared Linux packages");
+
+        assert_eq!(
+            fs::read(prepared.predecessor_package_path()).expect("preserved predecessor"),
+            harness.predecessor_bytes
+        );
+        assert_eq!(
+            fs::read(prepared.candidate_package_path()).expect("preserved candidate"),
+            harness.candidate_bytes
+        );
+        assert_eq!(
+            package_port.inspected_paths.borrow().first(),
+            Some(&predecessor_source)
+        );
         package_port.assert_exhausted();
     }
 

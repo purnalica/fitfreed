@@ -198,8 +198,9 @@ pub use update_recovery_linux::{
 };
 #[cfg(any(test, target_os = "linux"))]
 pub use update_recovery_linux_package::{
-    prepare_linux_recovery_packages, verify_linux_recovery_packages, LinuxRecoveryPackageError,
-    LinuxRecoveryPackageExpectation, PreparedLinuxRecoveryPackages,
+    prepare_linux_recovery_packages, prepare_linux_recovery_packages_from_path,
+    verify_linux_recovery_packages, LinuxRecoveryPackageError, LinuxRecoveryPackageExpectation,
+    PreparedLinuxRecoveryPackages,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
