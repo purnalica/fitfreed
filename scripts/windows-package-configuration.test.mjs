@@ -9,6 +9,7 @@ import {
 } from "./build-windows-package.mjs";
 import {
   expectedWindowsNsisArtifactName,
+  validateWindowsPublicSigningOverlay,
   validateWindowsPackageConfiguration,
   windowsPackageContract,
 } from "./windows-package-contract.mjs";
@@ -19,6 +20,12 @@ const packageJson = JSON.parse(
 );
 const windowsConfig = JSON.parse(
   readFileSync(path.join(repositoryRoot, "src-tauri/tauri.windows.conf.json"), "utf8"),
+);
+const windowsPublicSigningConfig = JSON.parse(
+  readFileSync(
+    path.join(repositoryRoot, "src-tauri/tauri.windows.public-signing.conf.json"),
+    "utf8",
+  ),
 );
 
 test("keeps the first Windows package identity and dependency boundary closed", () => {
@@ -95,6 +102,26 @@ test("exposes a Windows-only production package command", () => {
   assert.throws(
     () => windowsPackageBuildArguments([], "win32", "arm64"),
     /requires x86-64/,
+  );
+});
+
+test("keeps the public signing overlay executable and authority free", () => {
+  assert.deepEqual(validateWindowsPublicSigningOverlay(windowsPublicSigningConfig), {
+    arguments: ["../scripts/windows-authenticode-sign.mjs", "%1"],
+    command: "node",
+  });
+
+  const withAuthority = structuredClone(windowsPublicSigningConfig);
+  withAuthority.bundle.windows.certificateThumbprint = "machine-specific-authority";
+  withAuthority.bundle.windows.timestampUrl = "https://timestamp.example.invalid";
+  withAuthority.bundle.windows.signCommand.args.push("secret-extra-argument");
+  assert.throws(
+    () => validateWindowsPublicSigningOverlay(withAuthority),
+    (error) => {
+      assert.match(error.message, /unexpected Windows fields/);
+      assert.match(error.message, /exact signing command/);
+      return true;
+    },
   );
 });
 

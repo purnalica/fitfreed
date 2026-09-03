@@ -117,9 +117,11 @@ user, installer resources to English and Spanish with operating-system locale se
 the silent bundled offline installer. It retains the visible `FitFreed` identity, canonical icon and public origin,
 GPL license, and vendor-neutral descriptions without claiming the generic ZIP association. Authenticated predecessor
 recovery requires the NSIS installer to permit a deliberate older-version reinstall; update metadata and exact
-predecessor verification, rather than the package version alone, grant that authority. The versioned overlay contains
-no certificate selection, signer command, timestamp service, account identity, or protected path. Public signing is a
-separate generated candidate input and is not implied by an ordinary unsigned package.
+predecessor verification, rather than the package version alone, grant that authority. The ordinary overlay contains
+no certificate selection, signer command, timestamp service, account identity, or protected path. The separate
+versioned `tauri.windows.public-signing.conf.json` overlay contains only the reviewed Node.js signing adapter and
+Tauri's `%1` binary placeholder. A future protected candidate build must select it explicitly and provide all authority
+through the protected process boundary; its presence cannot make the ordinary package signed or public.
 
 The pinned Windows engineering lane builds that NSIS package instead of compiling the release host a second time: the
 package build already contains the complete production host. A closed native adapter then runs only on a clean
@@ -137,6 +139,21 @@ records successful removal of package state and preservation of application data
 ordinary unsigned engineering profile from the future public Authenticode profile, but a structural public claim is
 never trust evidence without the independent protected inspector. One CI command performs installation, inspection,
 inventory generation, and removal so the expensive native transition is not repeated for the same package.
+
+The public signing adapter accepts only an explicit public or synthetic-test profile, an absolute `signtool.exe`, a
+SHA-1 certificate-store selector, an independently calculated lowercase SHA-256 leaf-certificate fingerprint, and—only
+for the public profile—a credential-free HTTPS RFC 3161 endpoint. SignTool signs with SHA-256; raw tool output is never
+retained. The independent inspector then runs SignTool's Windows application policy over every signature, requires an
+RFC 3161 timestamp for public evidence, compares the SHA-256 fingerprint from the actual signer certificate, verifies
+that inspection did not change the file digest, and closes product-binary evidence to x86-64 plus the expected name and
+version. Certificate subjects, store paths, account identity, and timestamp-service details are not evidence fields.
+
+The pinned hosted lane exercises this machinery with a fresh non-exportable self-signed certificate and a temporary
+copy of the unsigned release executable. It removes the certificate from the current user's personal, Root, and
+TrustedPublisher stores, deletes its private key and all temporary files, restores the process environment, and proves
+the source executable is unchanged before recording success. An untimestamped synthetic signature establishes adapter
+and cleanup behavior only. Public admission still requires the exact setup and installed binaries to pass the real
+trusted-chain, timestamp, digest, identity, package-inventory, and clean supported-Windows-11 gates.
 
 Linux and Windows use the authenticated predecessor recovery architecture in
 [ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and

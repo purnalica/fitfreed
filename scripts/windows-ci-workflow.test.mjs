@@ -26,6 +26,7 @@ test("rejects an unpinned, Unix-dependent, incomplete, or reusable-without-proof
     ), /Unix-only/],
     [(source) => source.replace("npm run package:windows", "cargo build"), /release-shaped NSIS package/],
     [(source) => source.replace("npm run inventory:windows-package", "node -e true"), /native NSIS installation/],
+    [(source) => source.replace("npm run verify:windows-authenticode-smoke", "node -e true"), /synthetic Authenticode/],
     [(source) => source.replaceAll(
       "fitfreed-windows-host-package-v1-${{ needs.quality.outputs.executable-fingerprint }}",
       "fitfreed-windows-host-package-v1-unbound",

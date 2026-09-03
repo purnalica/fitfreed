@@ -32,6 +32,38 @@ export function expectedWindowsNsisArtifactName(version) {
   return `${windowsPackageContract.bundleProductName}_${version}_x64-setup.exe`;
 }
 
+export function validateWindowsPublicSigningOverlay(config) {
+  const errors = [];
+  const bundle = config?.bundle ?? {};
+  const windows = bundle.windows ?? {};
+  const signCommand = windows.signCommand ?? {};
+  const topLevelFields = unexpectedFields(config, ["$schema", "bundle"]);
+  const bundleFields = unexpectedFields(bundle, ["windows"]);
+  const windowsFields = unexpectedFields(windows, ["signCommand"]);
+  const commandFields = unexpectedFields(signCommand, ["args", "cmd"]);
+  if (topLevelFields.length > 0) {
+    errors.push(`Windows public signing overlay has unexpected top-level fields: ${topLevelFields.join(", ")}`);
+  }
+  if (bundleFields.length > 0) {
+    errors.push(`Windows public signing overlay has unexpected bundle fields: ${bundleFields.join(", ")}`);
+  }
+  if (windowsFields.length > 0) {
+    errors.push(`Windows public signing overlay has unexpected Windows fields: ${windowsFields.join(", ")}`);
+  }
+  if (commandFields.length > 0) {
+    errors.push(`Windows public signing overlay has unexpected command fields: ${commandFields.join(", ")}`);
+  }
+  const expectedArguments = ["../scripts/windows-authenticode-sign.mjs", "%1"];
+  if (
+    signCommand.cmd !== "node"
+    || JSON.stringify(signCommand.args) !== JSON.stringify(expectedArguments)
+  ) {
+    errors.push("Windows public signing overlay must use the exact signing command");
+  }
+  if (errors.length > 0) throw new Error(errors.join("\n"));
+  return { arguments: expectedArguments, command: "node" };
+}
+
 function unexpectedFields(object, allowed) {
   return Object.keys(object ?? {}).filter((field) => !allowed.includes(field)).sort();
 }

@@ -8,7 +8,7 @@ remains ordered after the accepted public Linux MVP.
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
-| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, clean installation/removal, and deterministic package-inventory contracts are implemented and locally verified; native execution awaits the hosted lane, while Authenticode orchestration and trust evidence remain open. |
+| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, clean installation/removal, deterministic package inventory, fail-closed Authenticode signer and inspector, and synthetic authority-cleanup campaign are implemented and locally verified. Native execution awaits the hosted lane; protected public authority and exact Windows 11 trust evidence remain open. |
 | M5.2–M5.6 | Not started | Their recovery, parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
@@ -81,6 +81,21 @@ public trust contract.
 **Acceptance evidence:** synthetic signing tests cover orchestration and cleanup; exact trust inspection remains open
 until a real candidate has a valid trusted chain, timestamp, expected publisher authority, matching version and target,
 and unchanged digest.
+
+The implemented signing boundary uses the authority-free
+`tauri.windows.public-signing.conf.json` overlay only when a protected candidate build explicitly selects it. The
+overlay contains the executable adapter and `%1` binary placeholder, not certificate or service identity. The adapter
+requires an explicit profile, absolute SignTool path, SHA-1 certificate-store selector, independently derived lowercase
+SHA-256 certificate fingerprint, and a credential-free HTTPS RFC 3161 endpoint for the public profile. It signs with
+SHA-256 and immediately invokes the independent Windows policy inspector. The inspector requires SignTool policy
+verification, a valid Windows Authenticode result, exact certificate fingerprint, timestamp when public, unchanged
+file digest, and—when inspecting a product binary—x86-64 PE architecture plus exact FitFreed name and version.
+
+The hosted synthetic campaign uses only the already built unsigned `fitfreed.exe`. It creates a non-exportable,
+short-lived self-signed certificate, trusts it only in the disposable current-user process boundary, signs and verifies
+a temporary copy without a timestamp, proves the source binary is unchanged, and removes the trust-store copies,
+private key, environment values, and temporary directory before it can emit success. This proves orchestration and
+cleanup, not public publisher identity, timestamping, reputation, Windows 11 desktop behavior, or release authority.
 
 ## Increment M5.2 — Windows-native update recovery
 

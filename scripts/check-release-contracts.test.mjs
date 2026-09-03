@@ -74,6 +74,16 @@ function validMetadata() {
         },
       },
     },
+    windowsPublicSigningTauri: {
+      bundle: {
+        windows: {
+          signCommand: {
+            cmd: "node",
+            args: ["../scripts/windows-authenticode-sign.mjs", "%1"],
+          },
+        },
+      },
+    },
     recoveryBundleIdentifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"].map((name) => ({
       path: `${name}/Cargo.toml`,
@@ -104,6 +114,10 @@ test("accepts one consistent private development release identity", () => {
       target: "nsis",
       webviewInstallMode: "offlineInstaller",
     },
+    windowsPublicSigning: {
+      arguments: ["../scripts/windows-authenticode-sign.mjs", "%1"],
+      command: "node",
+    },
   });
 });
 
@@ -115,6 +129,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
   metadata.cargoPackages[1].license = "UNKNOWN";
   metadata.linuxTauri.bundle.targets.push("appimage");
   metadata.windowsTauri.bundle.windows.nsis.installMode = "perMachine";
+  metadata.windowsPublicSigningTauri.bundle.windows.timestampUrl = "https://unreviewed.invalid";
 
   assert.throws(
     () => validateReleaseMetadata(metadata, "0.3.0"),
@@ -125,6 +140,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
       assert.match(error.message, /fitfreed-application\/Cargo\.toml license mismatch/);
       assert.match(error.message, /Linux Tauri targets must contain only deb/);
       assert.match(error.message, /Windows NSIS install mode must be currentUser/);
+      assert.match(error.message, /public signing overlay has unexpected Windows fields/);
       assert.match(error.message, /expected version 0\.3\.0, found 0\.1\.0/);
       return true;
     },

@@ -67,6 +67,12 @@ export function validateWindowsCiWorkflow(source) {
     /npm run inventory:windows-package/,
     "Windows host must inventory one native NSIS installation and removal",
   );
+  requireMatch(
+    errors,
+    windows,
+    /npm run verify:windows-authenticode-smoke/,
+    "Windows host must verify synthetic Authenticode orchestration and cleanup",
+  );
   for (const command of [
     "npm run doctor",
     "npm run check:architecture",
@@ -130,6 +136,7 @@ export function validateWindowsCiWorkflow(source) {
     "npm run test:vendor-updater",
     "npm run package:windows",
     "npm run inventory:windows-package",
+    "npm run verify:windows-authenticode-smoke",
   ]) {
     if (windows.indexOf(command) > evidenceRecord) {
       errors.push("Windows evidence must be recorded after every required verification command");

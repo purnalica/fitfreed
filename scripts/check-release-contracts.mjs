@@ -7,7 +7,10 @@ import {
   validateReviewedReleaseNotes,
 } from "./release-notes.mjs";
 import { validateLinuxPackageConfiguration } from "./linux-package-contract.mjs";
-import { validateWindowsPackageConfiguration } from "./windows-package-contract.mjs";
+import {
+  validateWindowsPackageConfiguration,
+  validateWindowsPublicSigningOverlay,
+} from "./windows-package-contract.mjs";
 
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
@@ -92,6 +95,14 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
   } catch (error) {
     errors.push(...error.message.split("\n"));
   }
+  let windowsPublicSigning;
+  try {
+    windowsPublicSigning = validateWindowsPublicSigningOverlay(
+      metadata.windowsPublicSigningTauri,
+    );
+  } catch (error) {
+    errors.push(...error.message.split("\n"));
+  }
 
   const expectedCargoPackages = new Set([
     "fitfreed",
@@ -130,6 +141,7 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
     cargoPackages: metadata.cargoPackages.map(({ name }) => name).sort(),
     linuxPackage,
     windowsPackage,
+    windowsPublicSigning,
   };
 }
 
@@ -139,6 +151,10 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
   const publicTauri = readJson(repositoryRoot, "src-tauri/tauri.public.conf.json");
   const linuxTauri = readJson(repositoryRoot, "src-tauri/tauri.linux.conf.json");
   const windowsTauri = readJson(repositoryRoot, "src-tauri/tauri.windows.conf.json");
+  const windowsPublicSigningTauri = readJson(
+    repositoryRoot,
+    "src-tauri/tauri.windows.public-signing.conf.json",
+  );
   const recoverySourcePath = "src-tauri/src/infrastructure/update_recovery.rs";
   const recoverySource = readFileSync(path.join(repositoryRoot, recoverySourcePath), "utf8");
   const recoveryBundleIdentifier = recoverySource.match(
@@ -151,6 +167,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
       publicTauri,
       linuxTauri,
       windowsTauri,
+      windowsPublicSigningTauri,
       recoveryBundleIdentifier,
       cargoPackages: cargoManifestPaths(repositoryRoot).map((manifestPath) =>
         readCargoPackage(repositoryRoot, manifestPath)),

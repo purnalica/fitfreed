@@ -22,7 +22,8 @@ The Windows host lane runs on the pinned x86-64 `windows-2025` GitHub-hosted ima
 Windows contributors need the Microsoft C++ Build Tools and Windows SDK supplied by Visual Studio's Desktop development
 with C++ workload, WebView2, Rustup, and the pinned Node.js toolchain. `npm run doctor` verifies the x86-64 MSVC host,
 Rust components, Node.js, and npm without relying on Bash. Windows package, installation, update, and recovery tooling
-is introduced by later Milestone 5 increments and is not implied by host admission.
+does not follow from host admission: package, installation, inventory, and synthetic signing controls are now explicit,
+while native update recovery and packaged capability parity remain later Milestone 5 increments.
 
 ## First setup
 
@@ -46,6 +47,7 @@ npm run test:rust
 npm run lint:rust
 npm run package:windows
 npm run inventory:windows-package
+npm run verify:windows-authenticode-smoke
 ```
 
 The complete `npm run test:fast` composition still contains macOS and Linux workflow-tooling checks. The Windows CI job
@@ -88,6 +90,7 @@ or CI runner rather than a personal profile.
 | Build the unsigned x86-64 current-user NSIS package on Windows | `npm run package:windows` |
 | Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
 | Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
+| Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -151,6 +154,22 @@ registry, Start Menu, Add or Remove Programs, WebView2, Authenticode, update, or
 schema-validated digest-bound evidence beside the setup. Authenticode, update, recovery, and exact-candidate boundaries
 remain subsequent Milestone 5 work; do not add certificate selection, signer commands, timestamps, account identities,
 or machine-local protected paths to `tauri.windows.conf.json`.
+
+After `npm run package:windows`, `npm run verify:windows-authenticode-smoke` signs only a temporary copy of the unsigned
+release executable. It creates a non-exportable self-signed certificate in the current-user store, verifies the copy
+through SignTool and Windows Authenticode policy, proves the original digest is unchanged, and removes the certificate,
+private key, trust entries, process values, and temporary directory before success. Run it only in a disposable Windows
+user or CI runner. Its untimestamped synthetic result is automation evidence, never a distributable or publicly trusted
+binary.
+
+`tauri.windows.public-signing.conf.json` is a reviewed authority-free overlay for a future protected candidate build.
+It contains only the signing command and Tauri binary placeholder. Production certificate selection, its independent
+SHA-256 fingerprint, the Windows SDK SignTool path, and the credential-free HTTPS RFC 3161 service enter only as
+protected process values; they must not be added to source, retained evidence, or ordinary CI. The signer
+requires SHA-256 for file and timestamp digests, and the inspector independently requires Windows application-policy
+trust, the admitted leaf certificate, timestamp, unchanged file digest, x86-64 architecture, and exact product name and
+version. Do not pass protected values through contributor-facing command arguments or logs. Public signing remains a
+release-operator boundary and is not a contributor setup step.
 
 `npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same
 Debian package contract but requires active recoverable `stable-v3` configuration and embeds only that channel's public
@@ -275,7 +294,8 @@ explicitly requested changes run portable checks plus complete workspace and des
 the pinned Ubuntu 24.04 runner. They also run the complete desktop-host build, tests, formatting, strict linting, and
 pinned updater refinement on `windows-2025`; the job may reuse only an exact
 `windows-2025-x86_64-host-package` executable-input fingerprint marker produced after all those checks passed. A missing,
-malformed, stale, or mismatched marker fails closed by running the Windows checks. The mandatory macOS packaged-E2E
+malformed, stale, or mismatched marker fails closed by running the Windows checks, native NSIS installation inventory,
+and synthetic Authenticode cleanup campaign. The mandatory macOS packaged-E2E
 job verifies full-scale import, dense supported-signal import and storage, exact-repeat, detailed-domain, longitudinal
 read-model, and production cold-launch budgets, prepares and installation-tests a normal private production package, and then builds
 separate test variants. It drives the packaged application through validation, progress, cancellation, both locales,

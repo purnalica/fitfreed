@@ -207,12 +207,16 @@ Local and continuous-integration workflows will invoke the same underlying comma
 - A pinned `windows-2025` x86-64 job independently runs the portable contracts, presentation suite and build, Rust
   formatting, workspace and pinned-updater tests, strict Clippy, and the release-shaped unsigned NSIS build. It then
   performs one real current-user installation, identity inspection, complete installed-file inventory, removal, and
-  application-data preservation check.
+  application-data preservation check. It then creates a non-exportable synthetic code-signing certificate, signs only
+  a temporary copy of the already built release executable, verifies that signature through the same fail-closed
+  signing and independent Windows-policy inspection adapters, and requires complete certificate, private-key, trust,
+  environment, and temporary-file cleanup plus an unchanged source digest.
   Only a valid `windows-2025-x86_64-host-package` marker bound to the current executable-input fingerprint can reuse
   that evidence; missing or invalid evidence runs the job. Static workflow tests reject Unix-only commands, mutable
   actions, elevated permissions, protected secrets, incomplete completion dependencies, and evidence written before
-  every required Windows check passes. This hosted Windows Server lane is native portability and engineering-package
-  evidence, not signed Windows 11, desktop, accessibility, or product-acceptance evidence.
+  every required Windows check passes. This hosted Windows Server lane is native portability, engineering-package,
+  and synthetic Authenticode-orchestration evidence, not public timestamped signing, signed Windows 11, desktop,
+  accessibility, or product-acceptance evidence.
 - The Windows package-configuration contract independently rejects MSI or mixed target sets, Windows on ARM,
   per-machine installation, network-dependent WebView2 acquisition, missing installer locales, generic ZIP file
   association, unreviewed NSIS customization, and signing authority in the versioned overlay. The Windows-only build
@@ -222,7 +226,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   deliberately unsigned engineering signatures. It rejects reparse points, hashes every installed file under a safe
   relative path, validates the complete versioned inventory, and writes it atomically beside the exact setup. Real
   removal must erase package-owned state while retaining canonical application data. This evidence does not claim
-  public trust.
+  public trust. The separate public signing overlay contains no authority and must be explicitly selected only inside a
+  protected candidate build. Its adapter accepts authority solely through the process environment, signs with SHA-256,
+  suppresses native output, and invokes an independent inspector that requires exact signer fingerprint, public
+  timestamp, Windows application-policy trust, unchanged digest, x86-64 architecture, and exact FitFreed identity.
 - The Ubuntu 24.04 lane then builds the source-bound Debian package through the same Linux-only command documented for contributors and extracts it for inspection. The gate rejects any drift in the external `FitFreed_<version>_amd64.deb` artifact name, internal `fitfreed` package identity, architecture, version, homepage, section, priority, mandatory GTK and WebKitGTK dependencies, executable permissions, `usr/share/applications/fitfreed.desktop` path, visible `FitFreed` launcher name, icons, or installed GPL text. It also proves that the wrapper changed only Tauri's generated filesystem name rather than reconstructing signed package bytes. It generates a schema-validated, digest-bound, complete extracted-layout inventory from those exact package bytes and proves deterministic ordering, safe relative links, and atomic evidence replacement. It next mounts only the package into a digest-pinned clean Ubuntu 24.04 image that has no development toolchain, installs repository dependencies, verifies dynamic linking and package-manager identity, purges the package, and verifies package-owned removal. The unsigned engineering package and inventory are not uploaded as public workflow artifacts.
 - A separate Ubuntu 24.04 capability job builds an instrumented Debian package with the isolated technical
   `fitfreed-e2e` product and package name, `/usr/bin/fitfreed-e2e` executable, and `org.fitfreed.desktop.e2e`

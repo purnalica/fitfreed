@@ -562,6 +562,10 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run inventory:windows-package
 
+      - name: Verify synthetic Windows Authenticode orchestration and cleanup
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run verify:windows-authenticode-smoke
+
       - name: Record exact successful Windows host evidence
         if: steps.decision.outputs.full-verification == 'true'
         env:
