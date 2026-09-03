@@ -33,6 +33,10 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 - macOS machine admission does not prove Linux parity and an open macOS human gate does not block Linux engineering.
 - Linux public promotion remains blocked until the public macOS release exists and the exact Linux candidate passes
   its own gate.
+- The Linux expansion uses the next unreleased semantic version after that immutable macOS Release and contains newly
+  built, exact-version macOS and Linux targets as required by
+  [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md). The current repository version
+  supports engineering evidence but does not reserve a Linux public version while the macOS release is absent.
 - Signing authority, exact candidate creation, clean Ubuntu 26.04 access, and public publication are human or protected
   environment gates. Ordinary engineering continues without them.
 
@@ -44,7 +48,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.1 | Complete | Hosted Ubuntu 24.04 evidence builds the production Debian package from a clean clone, verifies its exact metadata and inventory, installs it in an isolated runtime without development tooling, and removes it without deleting the retained library. ADR 0043 keeps the technical `fitfreed` package, visible `FitFreed` launcher, and byte-preserving public artifact name distinct. Exact graphical-candidate evidence and production signing authority remain later gates rather than repository material. |
 | M4.2 | Complete | Exact hosted Ubuntu 24.04 run [`33724759396`](https://github.com/purnalica/fitfreed/actions/runs/33724759396) passed successful replacement, installer-failure rollback, candidate-failure rollback, offline authorization retry, three-attempt authorization exhaustion, and restart resumption against native Debian installation. The retry gate kept transport closed only through terminal recovery, proved that no request escaped that interval, and reopened it before the independent retained-notice restart. |
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
-| M4.4 | In progress | The source-bound installed-package cold-launch gate and the production import, equivalent-reimport, dense-history, and Insights harnesses now admit x86-64 Linux and use the correct Linux `getrusage` memory unit. An explicit publication-authority-free Ubuntu 24.04 admission workflow is under verification. The shared Unix local-library adapter creates, synchronizes, or repairs user-only directory and file boundaries and rejects symbolic or multiply linked objects before SQLite access. Corrupt-library preservation and competing-writer retry are covered by host tests; the exact Linux `ENOSPC` recovery path is wired into an isolated 32 MiB `tmpfs` admission and still requires hosted evidence. |
+| M4.4 | In progress | The source-bound installed-package cold-launch gate and the production import, equivalent-reimport, dense-history, and Insights harnesses now admit x86-64 Linux and use the correct Linux `getrusage` memory unit. An explicit publication-authority-free Ubuntu 24.04 admission workflow is under verification. The shared Unix local-library adapter creates, synchronizes, or repairs user-only directory and file boundaries and rejects symbolic or multiply linked objects before SQLite access. Corrupt-library preservation and competing-writer retry are covered by host tests; exact hosted evidence now proves the Linux `ENOSPC` recovery path on an isolated 32 MiB `tmpfs`. Completion still requires the active performance campaign to admit every remaining budget. |
 | M4.5–M4.6 | Pending | Begin only through their ordered technical dependencies; protected signing, clean Ubuntu 26.04, human acceptance, and promotion remain explicit gates. |
 
 Exact-source verification on 2026-09-02 exposed a timing-dependent false rejection in the dense canvas chart after
@@ -175,8 +179,9 @@ release without private project knowledge.
    authorization, recovery, offline behavior, removal, and explicit library retention or deletion.
 2. Document the exact Ubuntu support boundary and truthful behavior on an unsupported distribution.
 3. Extend contributor setup, packaging, E2E, performance, release, incident, withdrawal, and reproducibility guidance.
-4. Generate version-matched release notes, checksums, detached signatures, SBOMs, provenance, known limitations, and
-   support links from one release input.
+4. Generate the version-matched expanding macOS-plus-Linux release manifest, notes, checksums, detached signatures,
+   SBOMs, provenance, known limitations, and support links from one release input. Reject a target that appears only
+   in Pages or signed update metadata.
 5. Update the product site from the same support matrix only after candidate acceptance; no generic Linux download
    appears early.
 
@@ -185,21 +190,23 @@ reopening, and support-link tests pass for the exact candidate.
 
 ## Increment M4.6 — Exact candidate and promotion
 
-**Outcome:** one immutable Linux candidate is independently admitted and, only after macOS publication, promoted.
+**Outcome:** one immutable macOS-plus-Linux expansion candidate is independently admitted and, only after macOS
+publication, promoted.
 
 **Work:**
 
-1. Build the exact tagged candidate on the protected Ubuntu 24.04 environment with ephemeral release authority.
+1. Build the exact tagged macOS and Linux targets in their protected native environments with ephemeral release
+   authority, then compose only their same-version, same-revision evidence.
 2. Seal it before independent evaluation; never rebuild accepted bytes during promotion.
 3. Run clean Ubuntu Desktop 24.04 and 26.04 installation, update, recovery, removal, accessibility, localization, and
    product-experience evaluation.
-4. Attest and publish only the accepted bytes, atomically add versioned download and update metadata, and verify remote
-   bytes and direct endpoints.
+4. Attest and publish only the accepted complete expanding target set, atomically advance versioned download and update
+   metadata, and verify remote bytes and direct endpoints.
 5. Keep Linux promotion blocked until the macOS public-release dependency is objectively satisfied.
 
-**Acceptance evidence:** every row in the Linux readiness ledger passes for one revision and artifact digest; the
-public download, update channel, GitHub Release, Pages links, signatures, provenance, and documentation converge on
-those exact bytes.
+**Acceptance evidence:** every row in the Linux readiness ledger passes for one revision and the complete target-set
+digests; the public download, update channel, GitHub Release, Pages links, signatures, provenance, and documentation
+converge on those exact bytes.
 
 ## Human intervention boundary
 

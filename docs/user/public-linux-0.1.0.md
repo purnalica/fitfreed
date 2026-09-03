@@ -2,7 +2,18 @@
 
 ## Status
 
-This is the version-matched guide for a future FitFreed 0.1.0 public Linux release. No public Linux binary is available while the [Milestone 4 execution ledger](../plans/milestone-4.md) contains an open gate or before the public macOS release permits Linux promotion. This guide becomes operative only for the Linux assets in an immutable `v0.1.0` GitHub Release published by `purnalica/fitfreed`; source archives, development packages, Actions artifacts, forks, and third-party packages are not that release.
+This inactive pre-publication guide is rendered against the repository's current unreleased 0.1.0 development
+version so its exact names, commands, links, and documentation contracts can be verified. It does not announce or
+reserve a Linux 0.1.0 release. No public Linux binary is available while the
+[Milestone 4 execution ledger](../plans/milestone-4.md) contains an open gate or before the public macOS release
+permits Linux promotion.
+
+Under [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md), the operative guide and
+artifacts use the next unreleased semantic version after the first immutable public macOS Release and contain newly
+built macOS and Linux targets for that exact version. Release preparation regenerates every version-specific name and
+piece of evidence together. This guide becomes operative only for Linux assets in an immutable `v0.1.0` GitHub
+Release from `purnalica/fitfreed` when that is the version assigned to the expansion; source archives, development
+packages, Actions artifacts, forks, and third-party packages are not that release.
 
 FitFreed 0.1.0 will support x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through one Debian package only after the exact candidate passes both clean-desktop matrices. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
 

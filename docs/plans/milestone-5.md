@@ -34,6 +34,9 @@ Windows 10 are outside this release.
 - Windows engineering may proceed while macOS or Linux human and publication gates remain open.
 - Public Windows promotion requires an already published Linux release plus Windows signing, exact-candidate, clean
   Windows 11, human, and publication authority.
+- The Windows expansion uses the next unreleased semantic version after that immutable Linux Release and contains
+  newly built macOS, Linux, and Windows targets under
+  [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md).
 
 ## Increment M5.0 — Native portability admission
 
@@ -143,8 +146,8 @@ without private knowledge.
    per-machine environments.
 3. Extend contributor setup, PowerShell-safe commands, packaging, E2E, performance, signing, release, incident,
    certificate rotation, withdrawal, and reproducibility guidance.
-4. Generate version-matched notes, checksums, signatures, SBOMs, provenance, known limitations, and support links from
-   one release input.
+4. Generate the version-matched expanding macOS-plus-Linux-plus-Windows manifest, notes, checksums, signatures, SBOMs,
+   provenance, known limitations, and support links from one release input.
 5. Expose a Windows product-site download only after exact-candidate acceptance.
 
 **Acceptance evidence:** documentation, PowerShell clean-room setup, localized content, installed help, artifact
@@ -152,22 +155,23 @@ reopening, and support-link checks pass for the exact candidate.
 
 ## Increment M5.6 — Exact candidate and promotion
 
-**Outcome:** one immutable Windows candidate is independently admitted and promoted only after Linux publication.
+**Outcome:** one immutable macOS-plus-Linux-plus-Windows expansion candidate is independently admitted and promoted
+only after Linux publication.
 
 **Work:**
 
-1. Build the exact tagged candidate in a protected Windows environment with ephemeral Authenticode and updater
-   authority, then verify and remove that authority.
+1. Build the exact tagged target in each protected native environment with ephemeral platform and updater authority,
+   then compose only their same-version, same-revision evidence and remove all authority.
 2. Seal the candidate before independent evaluation and preserve exact bytes across promotion.
 3. Run the complete matrix on a clean supported Windows 11 x86-64 desktop, including trust UI, installation, first
    launch, update, recovery, migration, removal, accessibility, localization, and product experience.
-4. Attest and publish only the accepted bytes, atomically update versioned downloads and channel data, and verify every
-   remote digest and endpoint.
+4. Attest and publish only the accepted complete expanding target set, atomically update versioned downloads and
+   channel data, and verify every remote digest and endpoint.
 5. Keep promotion blocked until the public Linux dependency is objectively satisfied.
 
-**Acceptance evidence:** every Windows readiness row passes for one revision and digest; setup, installed signatures,
-GitHub Release, product site, update channel, release notes, provenance, and documentation all name and deliver that
-same candidate.
+**Acceptance evidence:** every Windows readiness row passes for one revision and the complete target-set digests;
+setup, installed signatures, GitHub Release, product site, update channel, release notes, provenance, and documentation
+all name and deliver that same candidate.
 
 ## Human intervention boundary
 

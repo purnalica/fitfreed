@@ -28,6 +28,14 @@ Windows; a later platform cannot be promoted merely because its engineering camp
 sequence and gate ownership remain canonical in the [roadmap](../roadmap.md), and the rationale for separating
 engineering from promotion is recorded in [ADR 0039](decisions/0039-decouple-platform-engineering-from-promotion.md).
 
+[ADR 0044](decisions/0044-publish-expanding-complete-platform-sets.md) reconciles that ordered availability with
+immutable GitHub Releases and the single-version stable channel. The first public version contains macOS only; the
+later Linux expansion contains newly built macOS and Linux targets; and the still-later Windows expansion contains
+newly built targets for all three platforms. Every expansion has one tag, source revision, application version,
+library schema, signed checksum set, release manifest, provenance set, support statement, and Pages snapshot. An
+earlier artifact is a predecessor, never the current-version package under a new name, and no target may exist only in
+Pages or signed update metadata.
+
 [ADR 0040](decisions/0040-support-ubuntu-lts-with-debian-packages.md) defines the first Linux release as one x86-64
 Debian package built on Ubuntu 24.04 and supported on Ubuntu Desktop 24.04 and 26.04 LTS after clean-environment
 evidence. AppImage, RPM, Flatpak, Snap, AUR, ARM64, and other distribution families remain separate future package
