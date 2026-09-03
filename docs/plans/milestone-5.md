@@ -8,7 +8,7 @@ remains ordered after the accepted public Linux MVP.
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
-| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, authority-separated three-file Windows expansion input, and digest-bound transport are implemented and locally verified. Native execution awaits the hosted lane; protected public authority, complete candidate composition, and exact Windows 11 trust remain open. |
+| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, authority-separated three-file Windows expansion input, digest-bound transport, and version 7 three-platform release contract are implemented and locally verified. Native execution awaits the hosted lane; protected public authority, complete candidate composition, and exact Windows 11 trust remain open. |
 | M5.2–M5.6 | Not started | Their recovery, parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
@@ -121,6 +121,12 @@ The transport commands reopen that input before packing, admit only its three ex
 SHA-256 archive digest. Reopening validates the digest and archive layout before extraction, repeats every internal
 identity and trust check in a temporary sibling directory, and promotes the result atomically. No signing or
 publication authority enters either transport operation.
+
+Release manifest version 7 closes the Windows expansion to the ordered macOS, Linux, and Windows targets and adds the
+NSIS package, inventory, native build evidence, updater signature, and Authenticode trust statement to the complete
+checksum and provenance set. Stable update staging derives the exact NSIS name from that same package contract and
+rejects Windows unless both previously supported targets are present. Candidate composition and independent reopening
+remain part of this increment's open work.
 
 ## Increment M5.2 — Windows-native update recovery
 

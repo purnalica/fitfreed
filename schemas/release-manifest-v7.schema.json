@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v7.schema.json",
+  "title": "FitFreed complete macOS, Linux, and Windows public release manifest version 7",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "release",
+    "application",
+    "platforms",
+    "trust",
+    "update",
+    "generators",
+    "artifacts",
+    "provenanceRequirements"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.release-manifest" },
+    "schemaVersion": { "const": 7 },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "revision", "generatedAt", "channel"],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "revision": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "channel": { "const": "public-stable" }
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["productName", "identifier", "executable", "storageSchemaVersion"],
+      "properties": {
+        "productName": { "const": "FitFreed" },
+        "identifier": { "const": "org.fitfreed.desktop" },
+        "executable": { "const": "fitfreed" },
+        "storageSchemaVersion": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "platforms": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "$ref": "#/$defs/macosPlatform" },
+        { "$ref": "#/$defs/linuxPlatform" },
+        { "$ref": "#/$defs/windowsPlatform" }
+      ],
+      "items": false
+    },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["releaseSignature", "updaterSignatures"],
+      "properties": {
+        "releaseSignature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "keyId", "subjectPath", "signaturePath"],
+          "properties": {
+            "algorithm": { "const": "minisign-ed25519" },
+            "keyId": { "$ref": "#/$defs/keyId" },
+            "subjectPath": { "const": "SHA256SUMS" },
+            "signaturePath": { "const": "SHA256SUMS.minisig" }
+          }
+        },
+        "updaterSignatures": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            { "$ref": "#/$defs/macosUpdaterSignature" },
+            { "$ref": "#/$defs/linuxUpdaterSignature" },
+            { "$ref": "#/$defs/windowsUpdaterSignature" }
+          ],
+          "items": false
+        }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "metadataEndpoint", "keyId", "sequence", "targets"],
+      "properties": {
+        "contract": { "const": "stable-v3" },
+        "metadataEndpoint": { "type": "string", "format": "uri", "maxLength": 2048 },
+        "keyId": { "$ref": "#/$defs/keyId" },
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "targets": {
+          "const": [
+            "darwin-aarch64",
+            "linux-x86_64-deb",
+            "windows-x86_64-nsis"
+          ]
+        }
+      }
+    },
+    "generators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cargoCycloneDx",
+        "linuxBuildEvidence",
+        "linuxPackageInventory",
+        "npmCycloneDx",
+        "tauri",
+        "windowsBuildEvidence",
+        "windowsPackageInventory"
+      ],
+      "properties": {
+        "cargoCycloneDx": { "type": "string", "minLength": 1 },
+        "linuxBuildEvidence": { "const": "1" },
+        "linuxPackageInventory": { "const": "1" },
+        "npmCycloneDx": { "type": "string", "minLength": 1 },
+        "tauri": { "type": "string", "minLength": 1 },
+        "windowsBuildEvidence": { "const": "1" },
+        "windowsPackageInventory": { "const": "1" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 16,
+      "allOf": [
+        { "$ref": "#/$defs/containsMacosApplication" },
+        { "$ref": "#/$defs/containsMacosDiskImage" },
+        { "$ref": "#/$defs/containsMacosUpdater" },
+        { "$ref": "#/$defs/containsMacosUpdaterSignature" },
+        { "$ref": "#/$defs/containsLinuxPackage" },
+        { "$ref": "#/$defs/containsLinuxInventory" },
+        { "$ref": "#/$defs/containsLinuxBuildEvidence" },
+        { "$ref": "#/$defs/containsLinuxUpdaterSignature" },
+        { "$ref": "#/$defs/containsWindowsPackage" },
+        { "$ref": "#/$defs/containsWindowsInventory" },
+        { "$ref": "#/$defs/containsWindowsBuildEvidence" },
+        { "$ref": "#/$defs/containsWindowsUpdaterSignature" },
+        { "$ref": "#/$defs/containsUpdateEnvelope" },
+        { "$ref": "#/$defs/containsSbom" },
+        { "$ref": "#/$defs/containsUpgradeMatrix" },
+        { "$ref": "#/$defs/containsReleaseNotes" }
+      ],
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "provenanceRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "digestBoundSubjects", "generatedSubjects"],
+      "properties": {
+        "provider": { "const": "github-artifact-attestations" },
+        "digestBoundSubjects": {
+          "type": "array",
+          "minItems": 15,
+          "items": { "$ref": "#/$defs/provenanceSubject" }
+        },
+        "generatedSubjects": {
+          "const": ["release-manifest.json", "SHA256SUMS", "SHA256SUMS.minisig"]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v6.schema.json#/$defs/semver"
+    },
+    "sha256": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v6.schema.json#/$defs/sha256"
+    },
+    "path": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v6.schema.json#/$defs/path"
+    },
+    "keyId": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v6.schema.json#/$defs/keyId"
+    },
+    "macosPlatform": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v6.schema.json#/$defs/macosPlatform"
+    },
+    "linuxPlatform": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v6.schema.json#/$defs/linuxPlatform"
+    },
+    "windowsPlatform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "os",
+        "architecture",
+        "operatingSystemFamily",
+        "supportPolicy",
+        "packageFormat",
+        "installMode",
+        "webviewInstallMode",
+        "trust"
+      ],
+      "properties": {
+        "target": { "const": "windows-x86_64-nsis" },
+        "os": { "const": "windows" },
+        "architecture": { "const": "x86_64" },
+        "operatingSystemFamily": { "const": "windows-11" },
+        "supportPolicy": { "const": "supported-editions-at-candidate-issuance" },
+        "packageFormat": { "const": "nsis" },
+        "installMode": { "const": "currentUser" },
+        "webviewInstallMode": { "const": "offlineInstaller" },
+        "trust": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authenticode"],
+          "properties": {
+            "authenticode": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "digestAlgorithm",
+                "certificateSha256",
+                "rfc3161Timestamp"
+              ],
+              "properties": {
+                "status": { "const": "valid" },
+                "digestAlgorithm": { "const": "sha256" },
+                "certificateSha256": { "$ref": "#/$defs/sha256" },
+                "rfc3161Timestamp": { "const": true }
+              }
+            }
+          }
+        }
+      }
+    },
+    "updaterSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "algorithm", "keyId", "subjectPath", "signaturePath"],
+      "properties": {
+        "target": {
+          "enum": ["darwin-aarch64", "linux-x86_64-deb", "windows-x86_64-nsis"]
+        },
+        "algorithm": { "const": "minisign-ed25519" },
+        "keyId": { "$ref": "#/$defs/keyId" },
+        "subjectPath": { "$ref": "#/$defs/path" },
+        "signaturePath": { "$ref": "#/$defs/path" }
+      }
+    },
+    "macosUpdaterSignature": {
+      "allOf": [
+        { "$ref": "#/$defs/updaterSignature" },
+        { "type": "object", "properties": { "target": { "const": "darwin-aarch64" } } }
+      ]
+    },
+    "linuxUpdaterSignature": {
+      "allOf": [
+        { "$ref": "#/$defs/updaterSignature" },
+        { "type": "object", "properties": { "target": { "const": "linux-x86_64-deb" } } }
+      ]
+    },
+    "windowsUpdaterSignature": {
+      "allOf": [
+        { "$ref": "#/$defs/updaterSignature" },
+        { "type": "object", "properties": { "target": { "const": "windows-x86_64-nsis" } } }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "target", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": {
+          "enum": [
+            "macos-application-bundle",
+            "macos-disk-image",
+            "macos-updater-archive",
+            "macos-updater-signature",
+            "linux-x86_64-deb",
+            "linux-package-inventory",
+            "linux-build-evidence",
+            "linux-updater-signature",
+            "windows-x86_64-nsis",
+            "windows-package-inventory",
+            "windows-build-evidence",
+            "windows-updater-signature",
+            "stable-update-envelope",
+            "cyclonedx-sbom",
+            "upgrade-matrix",
+            "release-notes"
+          ]
+        },
+        "target": {
+          "enum": [
+            "darwin-aarch64",
+            "linux-x86_64-deb",
+            "windows-x86_64-nsis",
+            "release"
+          ]
+        },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "provenanceSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "containsMacosApplication": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/macosApplicationArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsMacosDiskImage": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/macosDiskImageArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsMacosUpdater": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/macosUpdaterArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsMacosUpdaterSignature": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/macosUpdaterSignatureArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsLinuxPackage": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/linuxPackageArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsLinuxInventory": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/linuxInventoryArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsLinuxBuildEvidence": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/linuxBuildEvidenceArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsLinuxUpdaterSignature": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/linuxUpdaterSignatureArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsWindowsPackage": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/windowsPackageArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsWindowsInventory": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/windowsInventoryArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsWindowsBuildEvidence": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/windowsBuildEvidenceArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsWindowsUpdaterSignature": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/windowsUpdaterSignatureArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsUpdateEnvelope": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/updateEnvelopeArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsSbom": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/sbomArtifact" },
+      "minContains": 1
+    },
+    "containsUpgradeMatrix": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/upgradeMatrixArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsReleaseNotes": {
+      "type": "array",
+      "contains": { "$ref": "#/$defs/releaseNotesArtifact" },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "macosApplicationArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "macos-application-bundle" } }
+    },
+    "macosDiskImageArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "macos-disk-image" } }
+    },
+    "macosUpdaterArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "macos-updater-archive" } }
+    },
+    "macosUpdaterSignatureArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "macos-updater-signature" } }
+    },
+    "linuxPackageArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "linux-x86_64-deb" } }
+    },
+    "linuxInventoryArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "linux-package-inventory" } }
+    },
+    "linuxBuildEvidenceArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "linux-build-evidence" } }
+    },
+    "linuxUpdaterSignatureArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "linux-updater-signature" } }
+    },
+    "windowsPackageArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "windows-x86_64-nsis" } }
+    },
+    "windowsInventoryArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "windows-package-inventory" } }
+    },
+    "windowsBuildEvidenceArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "windows-build-evidence" } }
+    },
+    "windowsUpdaterSignatureArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "windows-updater-signature" } }
+    },
+    "updateEnvelopeArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "stable-update-envelope" } }
+    },
+    "sbomArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "cyclonedx-sbom" } }
+    },
+    "upgradeMatrixArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "upgrade-matrix" } }
+    },
+    "releaseNotesArtifact": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "const": "release-notes" } }
+    }
+  }
+}

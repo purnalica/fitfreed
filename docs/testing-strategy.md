@@ -238,6 +238,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   sealed bytes for the updater. Transport tests use the real compressed-tar adapter to prove the closed three-entry
   set, native line-ending handling, exact digest reopening, atomic visibility, mutation rejection, and cleanup after a
   certificate mismatch.
+  Release-contract tests require manifest version 7 to contain newly built macOS, Linux, and Windows targets in order;
+  bind the NSIS package, inventory, build evidence, Authenticode declaration, updater signature, checksums, and
+  provenance; and reject a narrowed earlier-platform set. Stable-channel tests likewise reject Windows without both
+  existing targets and prove its exact version-derived setup URL and bytes in the atomic Pages snapshot.
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.

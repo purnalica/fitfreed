@@ -98,6 +98,13 @@ paths, and proves that the library remains private and integral. Residual packag
 after either result. Promotion depends on both matrix rows, has no signing authority, and derives its expected GitHub
 provenance workflow from the immutable manifest version.
 
+The subsequent [complete-platform release manifest version 7](../data-formats/release/release-manifest-v7.md) closes
+the Windows expansion to newly built macOS, Linux, and Windows packages from one version, revision, and storage schema.
+It adds the NSIS setup, Windows package inventory, Windows public build evidence, Windows updater signature,
+Authenticode certificate fingerprint, Windows support family, and third stable target to checksums, provenance, Pages,
+and the release-signing boundary. Stable-channel staging derives the setup name from the Windows package contract and
+accepts Windows only when both existing macOS and Linux targets are present.
+
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
 image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
 installation must resolve the declared runtime dependencies, leave a completely linked executable and registered

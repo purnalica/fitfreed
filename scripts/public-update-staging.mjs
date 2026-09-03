@@ -22,6 +22,7 @@ import {
   validateStableUpdateV3Payload,
 } from "./update-channel-v3.mjs";
 import { compareSemanticVersions } from "./upgrade-matrix.mjs";
+import { expectedWindowsNsisArtifactName } from "./windows-package-contract.mjs";
 
 const semanticVersion =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -85,6 +86,7 @@ export function publicUpdatePackageName(version, target) {
   if (!semanticVersion.test(version)) throw new Error("public update version is invalid");
   if (target === "darwin-aarch64") return `FitFreed_${version}_aarch64.app.tar.gz`;
   if (target === "linux-x86_64-deb") return expectedLinuxDebianArtifactName(version);
+  if (target === "windows-x86_64-nsis") return expectedWindowsNsisArtifactName(version);
   throw new Error("public update target is unsupported");
 }
 
@@ -174,6 +176,15 @@ export function stageStableUpdateChannel({
     && !packageTargets.has("darwin-aarch64")
   ) {
     throw new Error("the Linux public update target requires the existing macOS target");
+  }
+  if (
+    packageTargets.has("windows-x86_64-nsis")
+    && (!packageTargets.has("darwin-aarch64") || !packageTargets.has("linux-x86_64-deb"))
+  ) {
+    throw new Error("the Windows public update target requires the existing macOS and Linux targets");
+  }
+  if (packageTargets.has("windows-x86_64-nsis") && !recoverable) {
+    throw new Error("the Windows public update target requires stable-v3 recovery");
   }
   const platforms = Object.fromEntries(
     packageEvidence.map((artifact) => [

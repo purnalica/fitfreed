@@ -165,6 +165,60 @@ test("stages exact macOS and Debian updater artifacts in one signed snapshot", (
   assert.deepEqual(result.targets, ["darwin-aarch64", "linux-x86_64-deb"]);
 });
 
+test("stages the complete macOS, Linux, and Windows updater set", () => {
+  const values = fixture();
+  const arguments_ = stageArguments(values);
+  arguments_.configuration = {
+    ...values.configuration,
+    schemaVersion: 2,
+    contract: "stable-v3",
+  };
+  const linuxPackagePath = path.join(values.root, "FitFreed.deb");
+  const windowsPackagePath = path.join(values.root, "FitFreed-setup.exe");
+  writeFileSync(linuxPackagePath, "synthetic Debian package");
+  writeFileSync(`${linuxPackagePath}.sig`, "U3ludGhldGljIERlYmlhbiBzaWduYXR1cmU=\n");
+  writeFileSync(windowsPackagePath, "synthetic NSIS package");
+  writeFileSync(`${windowsPackagePath}.sig`, "U3ludGhldGljIE5TSVMgc2lnbmF0dXJl\n");
+  arguments_.packages.push(
+    {
+      packagePath: linuxPackagePath,
+      packageSignaturePath: `${linuxPackagePath}.sig`,
+      target: "linux-x86_64-deb",
+    },
+    {
+      packagePath: windowsPackagePath,
+      packageSignaturePath: `${windowsPackagePath}.sig`,
+      target: "windows-x86_64-nsis",
+    },
+  );
+  arguments_.recoveryPackages = [];
+  arguments_.expectedRecoveryArtifacts = [];
+  arguments_.signPayload = () => "U3ludGhldGljIG1ldGFkYXRhIHNpZ25hdHVyZQ==";
+
+  const result = stageStableUpdateChannel(arguments_);
+
+  const windowsPackageName = "FitFreed_0.2.0_x64-setup.exe";
+  assert.deepEqual(relativeFiles(values.outputDirectory), [
+    "updates/0.2.0/FitFreed_0.2.0_aarch64.app.tar.gz",
+    "updates/0.2.0/FitFreed_0.2.0_amd64.deb",
+    `updates/0.2.0/${windowsPackageName}`,
+    "updates/stable.json",
+  ]);
+  const envelope = JSON.parse(
+    readFileSync(path.join(values.outputDirectory, "updates/stable.json"), "utf8"),
+  );
+  const payload = JSON.parse(Buffer.from(envelope.fitfreed.payloadBase64, "base64"));
+  assert.equal(
+    payload.release.platforms["windows-x86_64-nsis"].url,
+    publicUpdateUrl(`0.2.0/${windowsPackageName}`),
+  );
+  assert.deepEqual(result.targets, [
+    "darwin-aarch64",
+    "linux-x86_64-deb",
+    "windows-x86_64-nsis",
+  ]);
+});
+
 test("stages authenticated predecessor packages for recoverable stable updates", () => {
   const values = fixture();
   const arguments_ = stageArguments(values);
@@ -266,6 +320,25 @@ test("rejects an omitted or unsupported public update target", () => {
   duplicate.packages.push({ ...duplicate.packages[0] });
   const linuxWithoutMacos = stageArguments(values);
   linuxWithoutMacos.packages[0].target = "linux-x86_64-deb";
+  const windowsWithoutExistingTargets = stageArguments(values);
+  windowsWithoutExistingTargets.packages[0].target = "windows-x86_64-nsis";
+  const windowsWithoutLinux = stageArguments(values);
+  windowsWithoutLinux.configuration = {
+    ...values.configuration,
+    schemaVersion: 2,
+    contract: "stable-v3",
+  };
+  windowsWithoutLinux.packages.push({
+    ...windowsWithoutLinux.packages[0],
+    target: "windows-x86_64-nsis",
+  });
+  windowsWithoutLinux.recoveryPackages = [];
+  windowsWithoutLinux.expectedRecoveryArtifacts = [];
+  const windowsWithoutRecoveryContract = stageArguments(values);
+  windowsWithoutRecoveryContract.packages.push(
+    { ...windowsWithoutRecoveryContract.packages[0], target: "linux-x86_64-deb" },
+    { ...windowsWithoutRecoveryContract.packages[0], target: "windows-x86_64-nsis" },
+  );
 
   assert.throws(() => stageStableUpdateChannel(missing), /target is unsupported/);
   assert.throws(() => stageStableUpdateChannel(unsupported), /target is unsupported/);
@@ -273,6 +346,18 @@ test("rejects an omitted or unsupported public update target", () => {
   assert.throws(
     () => stageStableUpdateChannel(linuxWithoutMacos),
     /requires the existing macOS target/,
+  );
+  assert.throws(
+    () => stageStableUpdateChannel(windowsWithoutExistingTargets),
+    /requires the existing macOS and Linux targets/,
+  );
+  assert.throws(
+    () => stageStableUpdateChannel(windowsWithoutLinux),
+    /requires the existing macOS and Linux targets/,
+  );
+  assert.throws(
+    () => stageStableUpdateChannel(windowsWithoutRecoveryContract),
+    /requires stable-v3/,
   );
 });
 
