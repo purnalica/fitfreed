@@ -83,10 +83,18 @@ every complete quality run. Its canonical inactive state admits no key; activati
 The private checksum authority is distinct from updater signing and enters only the protected platform-expansion
 composition job.
 
-`npm run verify:linux-public-release -- <candidate-directory>` independently reopens the complete Linux release and
-Pages snapshots. It cryptographically authenticates the checksum inventory, stable metadata, the Debian updater
+`npm run verify:linux-public-release -- <candidate-directory>` independently reopens the recoverable manifest version
+5 Linux release and Pages snapshots. It cryptographically authenticates the checksum inventory, stable metadata, the Debian updater
 package, and the retained macOS updater package; binds manifest, inventory, upgrade, and provenance subjects; and
 rejects any extra, absent, cross-version, cross-target, or byte-divergent artifact.
+
+`npm run verify:linux-candidate-installation -- <install|remove> <candidate-directory> <version> <ubuntu-version>` is
+the privileged hosted-candidate boundary for the complete manifest version 6 set. It accepts only x86-64 Ubuntu 24.04
+or 26.04 matching the declared matrix row, a clean exact source revision, and the Debian artifact returned by the
+generic complete-candidate verifier. The install phase verifies package-manager identity, installed executable,
+desktop entry, icons, GPL text, dynamic linking, graphical first launch, and one private integral library. The remove
+phase verifies the manifest-declared library schema, purge, and retention of that same library. It changes native
+package state and is not a routine local contributor command.
 
 `npm run inventory:linux-package` selects that one version-derived artifact, reads its complete Debian control record,
 extracts it privately, and atomically writes the schema-validated adjacent inventory. Its deterministic entries cover
@@ -156,7 +164,12 @@ Ubuntu 24.04 embeds that public update trust, then builds, inventories, clean-in
 unsigned Debian input with no private signing material or protected environment. The first protected macOS job verifies
 that transport digest and source/schema identity before installing
 ephemeral Apple, updater, and checksum authority; it creates and seals one same-version macOS-plus-Linux candidate.
-The second protected job has no signing credentials, reopens only those exact bytes, attests the manifest-derived
+Before the second approval, a secret-free x86-64 matrix on `ubuntu-24.04` and `ubuntu-26.04` verifies the sealed
+transport digest and complete manifest version 6 candidate, installs and graphically launches the exact
+manifest-declared Debian package under Xvfb, verifies native package identity, dynamic linking, private-library
+creation, and the production cold-launch budget, then purges package-owned files while retaining the integral private
+library. An unconditional finalizer removes residual package state after a failed admission. The second protected job
+depends on both matrix rows, has no signing credentials, reopens only those exact bytes, attests the manifest-derived
 checksum subjects, checksum inventory, and detached checksum signature, publishes the immutable Release, and supplies the exact complete Pages snapshot. Remote verification derives
 the expected provenance workflow and direct download set from the immutable manifest version, so the initial macOS
 and later expansion workflows cannot authenticate one another accidentally.

@@ -149,6 +149,78 @@ export function validatePublicLinuxExpansionWorkflow(source) {
     "release authority cleanup must always execute",
   );
 
+  const admission = workflowSection(source, "admit-linux-candidate");
+  requireWorkflowPermissions(
+    errors,
+    admission,
+    4,
+    ["actions: read", "contents: read"],
+    "exact Linux candidate admission",
+  );
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /needs: build-candidate/,
+    "exact Linux candidate admission must follow protected composition",
+  );
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /matrix:\n        ubuntu-version:\n          - "24\.04"\n          - "26\.04"\n    runs-on:/,
+    "exact Linux candidate admission must use Ubuntu 24.04 and 26.04",
+  );
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /fail-fast: false/,
+    "exact Linux candidate admission must execute both Ubuntu rows",
+  );
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /runs-on: ubuntu-\$\{\{ matrix\.ubuntu-version \}\}/,
+    "exact Linux candidate admission runner does not match its declared Ubuntu version",
+  );
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /needs\.build-candidate\.outputs\.candidate-sha256/,
+    "exact Linux candidate admission must verify the sealed candidate digest",
+  );
+  requireWorkflowOrder(errors, admission, [
+    "Download only the sealed complete candidate from this workflow run",
+    "Verify and reopen the exact complete candidate",
+    "Reopen the complete candidate before native installation",
+    "Install and launch the exact Debian candidate",
+    "Verify the installed exact-candidate cold-launch budget",
+    "Remove the exact candidate and retain its local library",
+    "Remove residual candidate package after admission",
+  ]);
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /verify:linux-candidate-installation/,
+    "exact Linux candidate installation verifier is unavailable",
+  );
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /benchmark:cold-launch/,
+    "exact Linux candidate cold-launch gate is unavailable",
+  );
+  requireWorkflowMatch(
+    errors,
+    admission,
+    /- name: Remove residual candidate package after admission\n        if: always\(\)/,
+    "candidate package cleanup must always execute",
+  );
+  if (
+    /\$\{\{\s*(secrets|vars)\./.test(admission)
+    || /environment: public-macos-release/.test(admission)
+  ) {
+    errors.push("exact Linux candidate admission cannot receive protected release authority");
+  }
+
   const publish = workflowSection(source, "publish-candidate");
   requireWorkflowPermissions(errors, publish, 4, [
     "actions: read",
@@ -161,8 +233,8 @@ export function validatePublicLinuxExpansionWorkflow(source) {
   requireWorkflowMatch(
     errors,
     publish,
-    /needs: build-candidate/,
-    "candidate promotion must follow protected composition",
+    /needs: \[build-candidate, admit-linux-candidate\]/,
+    "candidate promotion must follow exact Linux candidate admission",
   );
   requireWorkflowMatch(errors, publish, /runs-on: macos-15/, "candidate promotion must use macOS");
   requireWorkflowMatch(
@@ -234,6 +306,7 @@ export function validatePublicLinuxExpansionWorkflow(source) {
     protectedEnvironment: "public-macos-release",
     approvalBoundaries: 2,
     nativeInputTarget: "linux-x86_64-deb",
+    candidateAdmissionRunners: ["ubuntu-24.04", "ubuntu-26.04"],
     actionReferenceCount,
     publicationOrder: "complete-platform-candidate-before-release-before-pages",
   };

@@ -106,13 +106,27 @@ updater key, signs the complete checksum inventory with the distinct release key
 version 6 candidate and one complete stable-v3 Pages snapshot. A target present only in release evidence, Pages, or
 signed metadata is rejected.
 
+The composer then seals that complete candidate before independent Linux admission. The secret-free
+`admit-linux-candidate` matrix downloads only that run's digest-bound archive on x86-64 Ubuntu 24.04 and 26.04,
+reopens the generic manifest version 6 candidate, and installs the exact Debian path returned by that verifier. Each
+row verifies installed identity, executable and resource paths, dynamic linking, graphical first launch into an
+isolated private library, the production cold-launch budget, native purge, and retained-library integrity. A finalizer
+removes residual package state after any result. `publish-candidate` cannot enter its second protected approval until
+both rows pass; rebuilding or substituting a package is not an admission path.
+
 ## Sealed evaluation and protected publication
 
 `.github/workflows/public-release.yml` is the initial macOS publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. The later `.github/workflows/public-linux-expansion.yml` entry point additionally accepts the public release-checksum key identifier and constructs the complete macOS-plus-Linux set described above. Both share one non-cancelling publication concurrency group.
 
 The first protected job has read-only repository permission. After local verification it seals only `release/` and `pages/` into one transport archive, records its SHA-256 digest, retains it for seven days as a private Actions artifact, and unconditionally removes Apple and updater authority. `npm run pack:public-release -- <candidate> <archive>` and `npm run unpack:public-release -- <archive> <sha256> <candidate>` verify the complete candidate on both sides of this boundary and reject mutation, additional roots, unsafe paths, partial extraction, or evidence drift.
 
-The publication job waits at the same environment for a second approval. While it waits, automation verifies the sealed candidate's functional and distribution behavior, and the product owner follows the bounded [macOS product-experience procedure](../testing/macos-candidate-manual-evaluation.md) on that same artifact. Promotion is rejected when the exact bytes did not pass, a serious finding remains open, or the seven-day signed metadata window expires. The second job receives no Apple or updater secret, downloads only the same run's named artifact, verifies its job-bound digest, and reopens the entire candidate before it can create a public effect.
+Both exact Linux candidate matrix rows must pass before the publication job can wait at the same environment for a
+second approval. While it waits, automation verifies the sealed candidate's functional and distribution behavior, and
+the product owner follows the bounded [macOS product-experience procedure](../testing/macos-candidate-manual-evaluation.md)
+on that same artifact. Promotion is rejected when the exact bytes did not pass, a serious finding remains open, or the
+seven-day signed metadata window expires. The second job receives no Apple or updater secret, downloads only the same
+run's named artifact, verifies its job-bound digest, and reopens the entire candidate before it can create a public
+effect.
 
 After that acceptance, GitHub creates provenance attestations for every file in `SHA256SUMS`, for the checksum file itself, and, on a platform expansion, for its detached checksum signature. The complete localized product-and-update Pages artifact is uploaded but remains private. `npm run publish:public-release -- <candidate>` then creates an exact draft without asset replacement, verifies its names, sizes, digests, notes, source-bound provenance, and tag, publishes it, and requires GitHub to report it as immutable. An existing public release is reusable only when every field and byte already agrees; drift fails rather than overwriting evidence.
 

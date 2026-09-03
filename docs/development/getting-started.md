@@ -78,6 +78,7 @@ npm run test:fast
 | Build, install, drive, and remove the isolated Debian capability-test package | `npm run verify:linux-e2e` |
 | Verify Linux disk-exhaustion recovery on an isolated filesystem | `npm run verify:linux-filesystem-reliability` |
 | Verify a complete signed Linux public candidate | `npm run verify:linux-public-release -- <candidate-directory>` |
+| Install or remove an exact complete-platform candidate on its hosted Ubuntu admission row | `npm run verify:linux-candidate-installation -- <install\|remove> <candidate-directory> <version> <ubuntu-version>` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
@@ -137,6 +138,11 @@ Rustc, Git, and GCC are absent; it then installs the package and its repository 
 identity and dynamic linking, purges FitFreed, and verifies removal. The repository and build toolchains never enter
 the clean environment. This repeatable engineering check does not replace graphical desktop installation or exact
 candidate evaluation on either supported Ubuntu release.
+
+The `verify:linux-candidate-installation` entry point is reserved for the public-release workflow's secret-free Ubuntu
+24.04 and 26.04 matrix. It requires x86-64 Linux, passwordless package-manager elevation, the exact clean tagged
+source, and a complete digest-reopened manifest version 6 candidate; it changes native package state. Contributors
+should use the package, clean-installation, Linux E2E, and Linux update commands above for ordinary engineering work.
 
 Run `npm run verify:linux-update-e2e` on an x86-64 Linux desktop or CI host with Xvfb, WebKitWebDriver, SQLite,
 Polkit, and passwordless `sudo` for the isolated package-test setup. The command builds and signs two instrumented

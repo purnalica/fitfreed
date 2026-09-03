@@ -304,8 +304,13 @@ function verifyExpandingPublicRelease(
     attestationSubjectCount:
       manifest.provenanceRequirements.digestBoundSubjects.length
       + manifest.provenanceRequirements.generatedSubjects.length,
+    debianPackage: path.join(
+      releaseDirectory,
+      onlyArtifact(manifest, "linux-x86_64-deb").path,
+    ),
     releaseKeyId: manifest.trust.releaseSignature.keyId,
     revision: manifest.release.revision,
+    storageSchemaVersion: manifest.application.storageSchemaVersion,
     targets: [...manifest.update.targets],
     updateSequence: manifest.update.sequence,
     version: manifest.release.version,

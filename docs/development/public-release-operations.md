@@ -88,6 +88,14 @@ exact reopening, attestation, immutable Release, Release-before-Pages, and remot
 macOS candidate. Provenance verification requires the expansion workflow for manifest version 6 and the initial
 workflow for manifest version 3; evidence from one cannot satisfy the other.
 
+Before the second approval becomes reachable, `admit-linux-candidate` runs the exact sealed archive on the hosted
+x86-64 `ubuntu-24.04` and `ubuntu-26.04` matrix. Both rows use the generic manifest version 6 verifier and install only
+its returned Debian path. A passing row requires package-manager identity, installed executable and resources, complete
+dynamic linking, graphical first launch into an isolated private library, the production cold-launch budget, package
+purge, and retained-library integrity. Neither row receives a protected environment, secret, signing key, nor
+publication permission. The unconditional package finalizer is cleanup, not acceptance evidence; a failed preceding
+check keeps promotion blocked even when cleanup succeeds.
+
 ## Build approval and sealed candidate
 
 The first protected approval admits `build-candidate` to the Apple, updater, and limited administrative read authority. The job repeats preflight, verifies immutable-release configuration, creates an ephemeral keychain, builds and notarizes the application, staples and inspects the application and DMG, generates the update snapshot and evidence, and verifies the complete candidate.
@@ -132,6 +140,7 @@ The run is accepted only when `verify-publication` succeeds. Record the immutabl
 | Preflight | None | Correct the versioned source or external prerequisite, obtain any required authority, and dispatch again from the exact tag. |
 | Protected build or notarization | None | Inspect privacy-safe diagnostics. Cleanup runs unconditionally. Correct the root cause and create a fresh candidate. |
 | Candidate packing or retained-artifact upload | None | Do not evaluate partial local output. Correct the cause and rerun the build. |
+| Ubuntu 24.04 or 26.04 exact-candidate admission | None | Preserve the sealed candidate and privacy-safe job diagnostics, let unconditional package cleanup finish, diagnose the failed distribution, package, launch, library, removal, or performance boundary, and create a new candidate only when bytes must change. Never bypass the failed matrix row. |
 | Manual evaluation or metadata validity | None | Reject or cancel promotion. Fix the cause and produce a new sealed candidate; do not alter accepted evidence. |
 | Candidate download, transport digest, or reopening in promotion | None | Reject the run. Never bypass transport or manifest verification. |
 | Draft creation or asset upload | A mutable draft may exist; no public Release or Pages change is accepted | Inspect the draft against the exact manifest. A partial or divergent draft requires explicit authority to delete that unpublished draft before a fresh run; never use `--clobber`. |

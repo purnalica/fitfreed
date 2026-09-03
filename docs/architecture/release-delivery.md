@@ -90,14 +90,20 @@ protected Apple Silicon
 composer reopens that digest and complete identity before receiving any private key. It builds current-version macOS
 bytes, signs the already verified Linux package, and emits one manifest version 6 set whose Release assets, checksums,
 stable-v3 targets, recovery packages, and Pages paths must be identical. The complete candidate is sealed again before
-the independent promotion approval; promotion has no signing authority and derives its expected GitHub provenance
-workflow from the immutable manifest version.
+the independent promotion approval. A secret-free hosted matrix reopens that sealed candidate by its transport digest
+on x86-64 Ubuntu 24.04 and 26.04, validates the complete manifest version 6 set, installs the exact manifest-declared
+Debian artifact, verifies native identity and dynamic linking, performs a graphical first launch into an isolated
+private library whose schema matches the manifest, applies the production cold-launch budget, purges package-owned
+paths, and proves that the library remains private and integral. Residual package state is removed unconditionally
+after either result. Promotion depends on both matrix rows, has no signing authority, and derives its expected GitHub
+provenance workflow from the immutable manifest version.
 
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
 image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
 installation must resolve the declared runtime dependencies, leave a completely linked executable and registered
 package identity, and native purge must remove every FitFreed package-owned path. This establishes a repeatable clean
-package-manager boundary; graphical desktop launch and both supported Ubuntu versions remain later independent gates.
+input boundary. It does not substitute for the later sealed-candidate matrix, which owns graphical launch and the
+exact-package check on both supported Ubuntu versions.
 
 [ADR 0041](decisions/0041-support-windows-11-with-per-user-nsis.md) defines the first Windows release as one x86-64
 current-user NSIS setup executable for Windows 11 editions still in Microsoft support at candidate issuance. The

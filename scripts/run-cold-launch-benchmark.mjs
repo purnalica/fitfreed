@@ -283,7 +283,7 @@ export function coldLaunchEnvironment(
   return environment;
 }
 
-async function measureFreshProcess(applicationBinary, home, expected) {
+export async function measureFreshProcess(applicationBinary, home, expected) {
   mkdirSync(home, { recursive: true });
   const startedAt = performance.now();
   const child = spawn(applicationBinary, [], {

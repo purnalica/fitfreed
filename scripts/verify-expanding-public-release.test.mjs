@@ -29,7 +29,12 @@ test("verifies one complete macOS and Linux expansion candidate", () => {
   assert.equal(result.revision, candidate.revision);
   assert.equal(result.updateSequence, 2);
   assert.deepEqual(result.targets, ["darwin-aarch64", "linux-x86_64-deb"]);
+  assert.equal(
+    result.debianPackage,
+    path.join(candidate.releaseDirectory, candidate.linuxPackageName),
+  );
   assert.equal(result.releaseKeyId, "expansion-release.synthetic-1");
+  assert.equal(result.storageSchemaVersion, 37);
   assert.equal(result.attestationSubjectCount, 17);
 });
 

@@ -217,6 +217,15 @@ Local and continuous-integration workflows will invoke the same underlying comma
   only the optional leading `./` used by some `dpkg-deb` versions when presenting relative paths; the package name,
   architecture, version, exact executable path, and executable mode remain independent fail-closed checks whose
   diagnostics identify the violated contract.
+- The manual complete-platform publication workflow independently admits the already sealed manifest version 6
+  candidate on hosted x86-64 Ubuntu 24.04 and 26.04 before promotion can reach its second approval. Each secret-free
+  row verifies the transport digest and complete candidate, installs only the manifest-declared Debian artifact,
+  verifies package identity, executable and resource paths, dynamic linking, graphical first launch into an isolated
+  `0700`/`0600` library with the manifest-declared schema, and the production cold-launch budget, then purges
+  package-owned paths while retaining an integral library. Unconditional cleanup removes residual package state after
+  failures but cannot convert a failed row into acceptance. These exact-candidate checks complement, rather than
+  replace, the same-revision instrumented
+  capability, update/recovery, accessibility, localization, and data-performance evidence.
 - The explicit Linux performance admission workflow builds and verifies the source-bound production Debian package,
   installs it, measures 100 fresh interactive-shell processes under Xvfb, and always purges it before running the
   production full-scale import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights,
@@ -320,8 +329,9 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 
 - Hosted Windows Server automation remains diagnostic rather than sufficient Windows 11 desktop evidence; select the
   reproducible clean Windows 11 candidate environment before the first Windows promotion.
-- The Ubuntu 26.04 hosted runner is a public preview at the Milestone 4 planning boundary; select a stable hosted or
-  clean virtualized candidate environment before claiming Ubuntu 26.04 support.
+- Reassess the hosted Ubuntu 26.04 public-preview runner before each exact candidate. If its image is unavailable or no
+  longer representative of Ubuntu Desktop 26.04, use a documented clean virtualized candidate environment before
+  claiming support; never silently drop that matrix row.
 - Periodic review of performance budgets and maintained execution environments.
 - Accessibility conformance tooling and manual audit cadence.
 - Hosted-runner migration before the maintained macOS 15 image is retired.
