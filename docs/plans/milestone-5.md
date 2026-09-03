@@ -8,7 +8,8 @@ remains ordered after the accepted public Linux MVP.
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host` run for the exact revision. |
-| M5.1–M5.6 | Not started | Their package, recovery, parity, reliability, documentation, candidate, human, and promotion gates remain open. |
+| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build contract is implemented and locally verified; native package inventory, installed identity, Authenticode orchestration and trust evidence remain open. |
+| M5.2–M5.6 | Not started | Their recovery, parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
 

@@ -48,6 +48,32 @@ function validMetadata() {
         },
       },
     },
+    windowsTauri: {
+      productName: "FitFreed",
+      bundle: {
+        targets: ["nsis"],
+        publisher: "FitFreed contributors",
+        homepage: "https://fitfreed.org/",
+        copyright: "Copyright FitFreed contributors",
+        license: "GPL-3.0-or-later",
+        licenseFile: "../LICENSE",
+        category: "HealthcareAndFitness",
+        shortDescription: "Explore your fitness history on your own computer.",
+        longDescription:
+          "FitFreed imports portable fitness data into a local library for private exploration, reports, and export.",
+        windows: {
+          allowDowngrades: true,
+          webviewInstallMode: { type: "offlineInstaller", silent: true },
+          nsis: {
+            installerIcon: "icons/icon.ico",
+            uninstallerIcon: "icons/icon.ico",
+            installMode: "currentUser",
+            languages: ["English", "Spanish"],
+            displayLanguageSelector: false,
+          },
+        },
+      },
+    },
     recoveryBundleIdentifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"].map((name) => ({
       path: `${name}/Cargo.toml`,
@@ -71,6 +97,13 @@ test("accepts one consistent private development release identity", () => {
       productName: "fitfreed",
       target: "deb",
     },
+    windowsPackage: {
+      architecture: "x86_64",
+      installMode: "currentUser",
+      packageName: "FitFreed_0.1.0_x64-setup.exe",
+      target: "nsis",
+      webviewInstallMode: "offlineInstaller",
+    },
   });
 });
 
@@ -81,6 +114,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
   metadata.recoveryBundleIdentifier = "org.fitfreed.other";
   metadata.cargoPackages[1].license = "UNKNOWN";
   metadata.linuxTauri.bundle.targets.push("appimage");
+  metadata.windowsTauri.bundle.windows.nsis.installMode = "perMachine";
 
   assert.throws(
     () => validateReleaseMetadata(metadata, "0.3.0"),
@@ -90,6 +124,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
       assert.match(error.message, /update recovery bundle identifier does not match Tauri/);
       assert.match(error.message, /fitfreed-application\/Cargo\.toml license mismatch/);
       assert.match(error.message, /Linux Tauri targets must contain only deb/);
+      assert.match(error.message, /Windows NSIS install mode must be currentUser/);
       assert.match(error.message, /expected version 0\.3\.0, found 0\.1\.0/);
       return true;
     },

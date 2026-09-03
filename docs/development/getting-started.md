@@ -48,8 +48,9 @@ npm run build:windows-host
 ```
 
 The complete `npm run test:fast` composition still contains macOS and Linux workflow-tooling checks. The Windows CI job
-runs every portable product contract as separate diagnosable steps in addition to the native-host loop above; Windows
-packaging commands join the contributor loop in later Milestone 5 increments.
+runs every portable product contract as separate diagnosable steps in addition to the native-host loop above. The
+unsigned NSIS source-build command is available now; installation and packaged verification join the contributor loop
+in later Milestone 5 increments.
 
 `npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, the live presentation inventory, presentation behavior, GitHub workflow syntax and policy, the updater refinement test, and all FitFreed Rust workspace tests. Its workflow check installs checksum-verified actionlint 1.7.12 and ShellCheck 0.10.0 under ignored `.tools/`; no global installation is required and shell analysis is identical on supported contributor and CI hosts.
 
@@ -82,6 +83,7 @@ packaging commands join the contributor loop in later Milestone 5 increments.
 | Run the pinned updater refinement test | `npm run test:vendor-updater` |
 | Compile the complete desktop host with all targets and features | `npm run build:windows-host` |
 | Verify Windows-portable host automation and its CI contract | `npm run test:windows-scripts && npm run check:windows-ci-workflow` |
+| Build the unsigned x86-64 current-user NSIS package on Windows | `npm run package:windows` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -131,6 +133,18 @@ temporary directory and fails unless its artifact name, `fitfreed` Debian contro
 dependencies, executable permissions, `usr/share/applications/fitfreed.desktop` entry and visible name, icons, and
 installed GPL text agree. Neither command constitutes an accepted or public Linux release until the remaining
 Milestone 4 installation, trust, recovery, parity, and exact-candidate gates pass.
+
+On x86-64 Windows, `npm run package:windows` is the production-bound engineering entry point for the single NSIS
+package. It rejects another operating system, architecture, target, configuration overlay, or caller-supplied build
+option and asks Tauri to produce only `FitFreed_<version>_x64-setup.exe` under
+`src-tauri/target/release/bundle/nsis/`. The setup installs for the current user, contains English and Spanish installer
+resources selected from the operating-system locale, and bundles the silent WebView2 offline installer. It may
+reinstall an older version only so the separately authenticated recovery flow can restore an exact predecessor.
+
+This ordinary engineering package is unsigned. It is not a public candidate and does not prove installation,
+registry, Start Menu, Add or Remove Programs, WebView2, Authenticode, update, or recovery behavior. Those boundaries
+enter through subsequent Milestone 5 commands and exact Windows evidence; do not add certificate selection, signer
+commands, timestamps, account identities, or machine-local protected paths to `tauri.windows.conf.json`.
 
 `npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same
 Debian package contract but requires active recoverable `stable-v3` configuration and embeds only that channel's public

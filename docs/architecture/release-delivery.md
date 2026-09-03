@@ -111,6 +111,16 @@ installer includes the offline WebView2 runtime and both initial locales. Public
 trusted Authenticode signatures in addition to updater signing, checksums, SBOM, and source-bound provenance. MSI,
 Microsoft Store, WinGet, per-machine installation, Windows on ARM, and Windows 10 remain separate future contracts.
 
+The versioned `tauri.windows.conf.json` overlay and `npm run package:windows` command form the only ordinary Windows
+package entry point. The overlay closes the target to NSIS, the host to x86-64 Windows, installation to the current
+user, installer resources to English and Spanish with operating-system locale selection, and WebView2 acquisition to
+the silent bundled offline installer. It retains the visible `FitFreed` identity, canonical icon and public origin,
+GPL license, and vendor-neutral descriptions without claiming the generic ZIP association. Authenticated predecessor
+recovery requires the NSIS installer to permit a deliberate older-version reinstall; update metadata and exact
+predecessor verification, rather than the package version alone, grant that authority. The versioned overlay contains
+no certificate selection, signer command, timestamp service, account identity, or protected path. Public signing is a
+separate generated candidate input and is not implied by an ordinary unsigned package.
+
 Linux and Windows use the authenticated predecessor recovery architecture in
 [ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and
 stable-channel payloads bind the candidate plus every supported predecessor package needed for offline rollback. A
@@ -142,8 +152,8 @@ well as test-only routing, and reports only classification labels rather than th
 `npm run check:release-contracts` is the current machine-readable identity gate. It requires one SemVer value across
 npm, Tauri, and all three Cargo packages; the approved product and bundle identifiers; `GPL-3.0-or-later` package
 declarations; the canonical repository; active production bundling; no E2E capability in the production Tauri
-configuration; the closed Debian-only Linux overlay; and a complete reviewed release-note body at the exact
-version-derived path.
+configuration; the closed Debian-only Linux overlay; the closed current-user, offline-WebView2, bilingual NSIS Windows
+overlay; and a complete reviewed release-note body at the exact version-derived path.
 
 `npm run prepare:development-release -- <version>` is the staging entry point. It accepts only a clean commit and writes through a temporary directory before promoting it to ignored `.artifacts/releases/<version>/`; a failed promotion restores the previous complete directory. The generated note header binds version, source revision, target architecture, storage schema, compatibility matrix, unsigned status, and integrity guidance to the reviewed body. The [release manifest version 2 contract](../data-formats/release/release-manifest-v2.md) is the canonical description of its machine-readable output. It binds the exact [upgrade matrix](../data-formats/release/upgrade-matrix-v1.md) for the candidate by size and SHA-256 digest.
 

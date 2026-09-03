@@ -7,6 +7,7 @@ import {
   validateReviewedReleaseNotes,
 } from "./release-notes.mjs";
 import { validateLinuxPackageConfiguration } from "./linux-package-contract.mjs";
+import { validateWindowsPackageConfiguration } from "./windows-package-contract.mjs";
 
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
@@ -85,6 +86,12 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
   } catch (error) {
     errors.push(...error.message.split("\n"));
   }
+  let windowsPackage;
+  try {
+    windowsPackage = validateWindowsPackageConfiguration(metadata.windowsTauri, version);
+  } catch (error) {
+    errors.push(...error.message.split("\n"));
+  }
 
   const expectedCargoPackages = new Set([
     "fitfreed",
@@ -122,6 +129,7 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
     identifier: metadata.tauri.identifier,
     cargoPackages: metadata.cargoPackages.map(({ name }) => name).sort(),
     linuxPackage,
+    windowsPackage,
   };
 }
 
@@ -130,6 +138,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
   const tauri = readJson(repositoryRoot, "src-tauri/tauri.conf.json");
   const publicTauri = readJson(repositoryRoot, "src-tauri/tauri.public.conf.json");
   const linuxTauri = readJson(repositoryRoot, "src-tauri/tauri.linux.conf.json");
+  const windowsTauri = readJson(repositoryRoot, "src-tauri/tauri.windows.conf.json");
   const recoverySourcePath = "src-tauri/src/infrastructure/update_recovery.rs";
   const recoverySource = readFileSync(path.join(repositoryRoot, recoverySourcePath), "utf8");
   const recoveryBundleIdentifier = recoverySource.match(
@@ -141,6 +150,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
       tauri,
       publicTauri,
       linuxTauri,
+      windowsTauri,
       recoveryBundleIdentifier,
       cargoPackages: cargoManifestPaths(repositoryRoot).map((manifestPath) =>
         readCargoPackage(repositoryRoot, manifestPath)),
