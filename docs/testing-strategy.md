@@ -245,6 +245,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   Complete-candidate reopening tests independently construct the release and reject Windows package, inventory, native
   build, source revision, storage schema, Authenticode certificate, updater signature, checksum, release signature,
   recovery, file-set, and Pages drift. The same tests preserve version 6 behavior through the shared reopening kernel.
+  Composition tests prove exact Authenticode-admitted setup bytes reach the updater signer, all three current packages
+  and both native predecessor packages reach Pages, mixed Windows trust is rejected before staging, every detached
+  signer is mandatory, failed staging is removed, and an existing candidate destination is never replaced.
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.
