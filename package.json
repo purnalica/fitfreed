@@ -99,6 +99,7 @@
     "verify:linux-filesystem-reliability": "scripts/verify-linux-filesystem-reliability.sh",
     "verify:linux-package": "node scripts/verify-linux-debian-package.mjs",
     "verify:linux-public-release": "node scripts/verify-linux-public-release.mjs",
+    "verify:expanding-public-release": "node scripts/verify-expanding-public-release.mjs",
     "verify:linux-update-e2e": "npm run icons && node scripts/verify-packaged-linux-update.mjs",
     "verify:update-e2e": "node scripts/verify-packaged-update.mjs",
     "verify:public-release": "node scripts/verify-public-release.mjs",

@@ -226,8 +226,10 @@ Directories are created with their first real contract; empty specifications are
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Release manifest version 2](release/release-manifest-v2.md)
 - [Public release manifest version 3](release/release-manifest-v3.md)
-- [Recoverable public Linux release manifest version 5](release/release-manifest-v5.md)
+- [Expanding macOS and Linux public release manifest version 6](release/release-manifest-v6.md)
+- [Recoverable public Linux release manifest version 5](release/release-manifest-v5.md) — preceding contract
 - [Public Linux release manifest version 4](release/release-manifest-v4.md) — preceding contract
+- [Linux public build evidence version 1](release/linux-public-build-evidence-v1.md)
 - [Linux package inventory version 1](release/linux-package-inventory-v1.md)
 - [Upgrade matrix version 2](release/upgrade-matrix-v2.md)
 - [Upgrade matrix version 1](release/upgrade-matrix-v1.md) — preceding contract

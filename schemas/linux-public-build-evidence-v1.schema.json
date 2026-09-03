@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/linux-public-build-evidence-v1.schema.json",
+  "title": "FitFreed Linux public build evidence version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "release",
+    "target",
+    "application",
+    "artifacts",
+    "verification"
+  ],
+  "properties": {
+    "format": {
+      "const": "org.fitfreed.linux-public-build-evidence"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "revision",
+        "generatedAt"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/semver"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40,64}$"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "target": {
+      "const": {
+        "id": "linux-x86_64-deb",
+        "os": "linux",
+        "architecture": "x86_64",
+        "packageFormat": "deb",
+        "buildDistribution": {
+          "id": "ubuntu",
+          "version": "24.04"
+        }
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "productName",
+        "identifier",
+        "executable",
+        "storageSchemaVersion"
+      ],
+      "properties": {
+        "productName": {
+          "const": "FitFreed"
+        },
+        "identifier": {
+          "const": "org.fitfreed.desktop"
+        },
+        "executable": {
+          "const": "fitfreed"
+        },
+        "storageSchemaVersion": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package",
+        "inventory"
+      ],
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/packageArtifact"
+        },
+        "inventory": {
+          "$ref": "#/$defs/inventoryArtifact"
+        }
+      }
+    },
+    "verification": {
+      "const": [
+        {
+          "id": "linux-package-contract",
+          "result": "passed"
+        },
+        {
+          "id": "linux-package-inventory",
+          "result": "passed"
+        },
+        {
+          "id": "ubuntu-24.04-clean-installation",
+          "result": "passed"
+        },
+        {
+          "id": "ubuntu-24.04-clean-removal",
+          "result": "passed"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "kind",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^[^/\\\\]+$",
+          "maxLength": 255
+        },
+        "kind": {
+          "enum": [
+            "linux-x86_64-deb",
+            "linux-package-inventory"
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "packageArtifact": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/artifact"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "linux-x86_64-deb"
+            }
+          }
+        }
+      ]
+    },
+    "inventoryArtifact": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/artifact"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "linux-package-inventory"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

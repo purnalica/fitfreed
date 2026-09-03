@@ -52,6 +52,7 @@ export function verifyStableUpdateEvidence({
   manifest,
   publicUpdateConfiguration,
   packageKind,
+  signatureKind = "updater-signature",
   target,
   upgradeMatrix,
 }) {
@@ -62,7 +63,7 @@ export function verifyStableUpdateEvidence({
   }
   const envelopeArtifact = onlyArtifact(manifest, "stable-update-envelope");
   const packageArtifact = onlyArtifact(manifest, packageKind);
-  const signatureArtifact = onlyArtifact(manifest, "updater-signature");
+  const signatureArtifact = onlyArtifact(manifest, signatureKind);
   const envelope = JSON.parse(
     readFileSync(path.join(releaseDirectory, envelopeArtifact.path), "utf8"),
   );
