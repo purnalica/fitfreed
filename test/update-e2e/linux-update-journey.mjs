@@ -28,6 +28,10 @@ const recoveryAuthorizationRequest =
   process.env.FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_REQUEST;
 const recoveryAuthorizationReady =
   process.env.FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_READY;
+const offlineRecoveryCompleted =
+  process.env.FITFREED_UPDATE_E2E_OFFLINE_RECOVERY_COMPLETED;
+const noticeVerificationReady =
+  process.env.FITFREED_UPDATE_E2E_NOTICE_VERIFICATION_READY;
 const interruptionReady = process.env.FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_READY;
 const interruptionContinue = process.env.FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_CONTINUE;
 
@@ -436,12 +440,16 @@ async function main() {
         : undefined;
   const hasCompleteRecoveryAuthorizationMarkers =
     Boolean(recoveryAuthorizationRequest) && Boolean(recoveryAuthorizationReady);
+  const hasCompleteOfflineRecoveryMarkers =
+    Boolean(offlineRecoveryCompleted) && Boolean(noticeVerificationReady);
   if (
     !expectedScenario
     || expectedOutcome !== expectedScenario.outcome
     || expectedInstalledVersion !== expectedScenario.installedVersion
     || (scenario === "authorization-retry") !== hasCompleteRecoveryAuthorizationMarkers
+    || (scenario === "authorization-retry") !== hasCompleteOfflineRecoveryMarkers
     || Boolean(recoveryAuthorizationRequest) !== Boolean(recoveryAuthorizationReady)
+    || Boolean(offlineRecoveryCompleted) !== Boolean(noticeVerificationReady)
     || (scenario === "restart-resumption") !== Boolean(interruptionReady)
     || Boolean(interruptionReady) !== Boolean(interruptionContinue)
   ) {
@@ -470,6 +478,11 @@ async function main() {
       });
       await waitForTerminalCleanup(recovery);
       assert.equal(installedVersion(), expectedInstalledVersion);
+      fs.writeFileSync(offlineRecoveryCompleted, "complete\n", { mode: 0o600 });
+      await waitForMarker(
+        noticeVerificationReady,
+        "restore update transport after offline recovery",
+      );
     } else if (scenario === "authorization-exhaustion") {
       let fallback;
       ({ browser, fallbackExecutable: fallback } = await replaceWithFallbackSession(

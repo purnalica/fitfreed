@@ -12,6 +12,7 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  coordinateLinuxOfflineRecoveryRetry,
   createLinuxUpdatePolkitRule,
   createLinuxUpdateTransportGate,
   debianPackageVariantArguments,
@@ -22,6 +23,73 @@ import {
   retainLinuxUpdateE2eDebianPackage,
   validateLinuxUpdateEvidence,
 } from "./verify-packaged-linux-update.mjs";
+
+test("keeps transport unavailable only through recovery and restores it before notice verification", async () => {
+  const gate = createLinuxUpdateTransportGate();
+  const events = [];
+
+  await coordinateLinuxOfflineRecoveryRetry({
+    updateTransport: {
+      closeTransport() {
+        events.push("transport-closed");
+        gate.close();
+      },
+      assertOfflineRecoveryUsedNoTransport() {
+        events.push("offline-recovery-verified");
+        gate.assertUnusedWhileClosed();
+      },
+      openTransport() {
+        events.push("transport-opened");
+        gate.open();
+      },
+    },
+    async grantAuthorization() {
+      events.push("authorization-granted");
+    },
+    async waitForRecoveryCompletion() {
+      events.push("recovery-completed");
+    },
+    releaseNoticeVerification() {
+      events.push("notice-verification-released");
+    },
+  });
+
+  assert.deepEqual(events, [
+    "transport-closed",
+    "authorization-granted",
+    "recovery-completed",
+    "offline-recovery-verified",
+    "transport-opened",
+    "notice-verification-released",
+  ]);
+  assert.equal(gate.allowRequest(), true);
+});
+
+test("restores transport and releases cleanup when offline recovery reaches the channel", async () => {
+  const gate = createLinuxUpdateTransportGate();
+  let noticeVerificationReleased = false;
+
+  await assert.rejects(
+    coordinateLinuxOfflineRecoveryRetry({
+      updateTransport: {
+        closeTransport: () => gate.close(),
+        assertOfflineRecoveryUsedNoTransport: () => gate.assertUnusedWhileClosed(),
+        openTransport: () => gate.open(),
+      },
+      async grantAuthorization() {},
+      async waitForRecoveryCompletion() {
+        assert.equal(gate.allowRequest(), false);
+      },
+      releaseNoticeVerification() {
+        noticeVerificationReleased = true;
+      },
+    }),
+    /transport while it was unavailable/,
+  );
+
+  assert.equal(noticeVerificationReleased, true);
+  assert.equal(gate.allowRequest(), true);
+});
 
 test("makes an offline recovery retry fail if it reaches update transport", () => {
   const gate = createLinuxUpdateTransportGate();

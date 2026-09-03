@@ -272,6 +272,9 @@ Every terminal scenario verifies package-manager identity, SQLite integrity, loc
 localized result presentation, and explicit acknowledgement. The authorization scenario permits candidate installation
 but denies predecessor installation, verifies the retained first attempt and runnable fallback, grants only the same
 preserved predecessor boundary, and drives the visible explicit retry to terminal recovery without network access.
+A two-way completion handshake reopens the test channel only after terminal recovery and before the separate
+notice-verification restart, so ordinary discovery after recovery remains outside the offline-recovery assertion
+without weakening it.
 The exhaustion scenario keeps that denial in place, drives the two available UI retries, verifies durable attempt
 counts one through three and the classified authorization failure, then opens the preserved runnable predecessor and
 requires localized manual-reinstall guidance with no retry or ordinary update action. Its evidence must retain the

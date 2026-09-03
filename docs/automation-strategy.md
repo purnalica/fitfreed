@@ -105,8 +105,11 @@ removes the rule and package after every scenario. The campaign covers successfu
 rollback after candidate rejection or a real Debian pre-installation failure, and recovery when predecessor
 authorization is initially unavailable. That last scenario first permits only candidate installation, verifies the
 runnable fallback and visible first-attempt intervention, then grants the predecessor boundary and activates the real
-retry action. A separate authorization-exhaustion scenario preserves the denial through three real package-manager
-attempts and verifies the final manual-reinstall state, retained library, and retained evidence. The restart scenario
+retry action. The loopback transport remains unavailable from that grant through the terminal recovery outcome and
+must receive no request; an explicit completion handshake restores it before the separate application restart that
+verifies the retained user notice and may perform ordinary update discovery. A separate authorization-exhaustion
+scenario preserves the denial through three real package-manager attempts and verifies the final manual-reinstall
+state, retained library, and retained evidence. The restart scenario
 uses an E2E-only synchronization point after durable `replacement-started`, terminates both live actors, and launches
 the installed application normally so production startup reattachment must finish recovery. Completed terminal paths
 check database integrity, locale persistence, package identity, terminal cleanup, localized result presentation, and

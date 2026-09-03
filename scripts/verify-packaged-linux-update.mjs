@@ -109,6 +109,23 @@ export function createLinuxUpdateTransportGate() {
   });
 }
 
+export async function coordinateLinuxOfflineRecoveryRetry({
+  updateTransport,
+  grantAuthorization,
+  waitForRecoveryCompletion,
+  releaseNoticeVerification,
+}) {
+  updateTransport.closeTransport();
+  try {
+    await grantAuthorization();
+    await waitForRecoveryCompletion();
+    updateTransport.assertOfflineRecoveryUsedNoTransport();
+  } finally {
+    updateTransport.openTransport();
+    releaseNoticeVerification();
+  }
+}
+
 export function linuxUpdateScenarioPlan() {
   return [
     {
@@ -626,14 +643,14 @@ function removePolkitRule() {
   run("sudo", ["rm", "--force", polkitRulePath], { allowFailure: true });
 }
 
-async function waitForScenarioMarker(markerPath, signal) {
+async function waitForScenarioMarker(markerPath, description, signal) {
   const deadline = Date.now() + 120_000;
   while (!signal.aborted && Date.now() < deadline) {
     if (existsSync(markerPath)) return;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   if (!signal.aborted) {
-    throw new Error("The Linux update E2E authorization request was not published");
+    throw new Error(`The Linux update E2E did not ${description}`);
   }
 }
 
@@ -641,15 +658,31 @@ async function provideRecoveryAuthorization(
   scenarioRoot,
   requestPath,
   readyPath,
+  recoveryCompletedPath,
+  noticeVerificationReadyPath,
   updateServer,
   signal,
 ) {
-  await waitForScenarioMarker(requestPath, signal);
+  await waitForScenarioMarker(requestPath, "publish the recovery authorization request", signal);
   if (signal.aborted) return;
-  updateServer.closeTransport();
-  installPolkitRule(scenarioRoot);
-  await new Promise((resolve) => setTimeout(resolve, 1_000));
-  writeFileSync(readyPath, "ready\n", { mode: 0o600 });
+  await coordinateLinuxOfflineRecoveryRetry({
+    updateTransport: updateServer,
+    async grantAuthorization() {
+      installPolkitRule(scenarioRoot);
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      writeFileSync(readyPath, "ready\n", { mode: 0o600 });
+    },
+    waitForRecoveryCompletion() {
+      return waitForScenarioMarker(
+        recoveryCompletedPath,
+        "complete recovery while update transport was unavailable",
+        signal,
+      );
+    },
+    releaseNoticeVerification() {
+      writeFileSync(noticeVerificationReadyPath, "ready\n", { mode: 0o600 });
+    },
+  });
 }
 
 async function runScenario(
@@ -665,6 +698,8 @@ async function runScenario(
   const evidencePath = path.join(artifactRoot, "evidence", scenario.name, "result.json");
   const recoveryAuthorizationRequest = path.join(scenarioRoot, "recovery-authorization.request");
   const recoveryAuthorizationReady = path.join(scenarioRoot, "recovery-authorization.ready");
+  const offlineRecoveryCompleted = path.join(scenarioRoot, "offline-recovery.completed");
+  const noticeVerificationReady = path.join(scenarioRoot, "notice-verification.ready");
   const interruptionReady = path.join(scenarioRoot, "restart-interruption.ready");
   const interruptionContinue = path.join(scenarioRoot, "restart-interruption.continue");
   rmSync(scenarioRoot, { recursive: true, force: true });
@@ -692,6 +727,8 @@ async function runScenario(
         scenarioRoot,
         recoveryAuthorizationRequest,
         recoveryAuthorizationReady,
+        offlineRecoveryCompleted,
+        noticeVerificationReady,
         updateServer,
         controller.signal,
       )
@@ -719,6 +756,10 @@ async function runScenario(
                 recoveryAuthorizationRequest,
               FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_READY:
                 recoveryAuthorizationReady,
+              FITFREED_UPDATE_E2E_OFFLINE_RECOVERY_COMPLETED:
+                offlineRecoveryCompleted,
+              FITFREED_UPDATE_E2E_NOTICE_VERIFICATION_READY:
+                noticeVerificationReady,
             }
             : {}),
           ...(scenario.name === "restart-resumption"
@@ -734,9 +775,6 @@ async function runScenario(
         }),
         recoveryAuthorization,
       ]);
-      if (scenario.name === "authorization-retry") {
-        updateServer.assertOfflineRecoveryUsedNoTransport();
-      }
     } finally {
       controller.abort();
     }
