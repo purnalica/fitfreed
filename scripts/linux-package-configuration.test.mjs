@@ -7,6 +7,7 @@ import {
   buildLinuxPackage,
   linuxPackageBuildArguments,
 } from "./build-linux-package.mjs";
+import { validateDevelopmentEnvironmentFacts } from "./check-development-environment.mjs";
 import {
   expectedLinuxDebianArtifactName,
   validateLinuxPackageConfiguration,
@@ -18,10 +19,6 @@ const packageJson = JSON.parse(
 );
 const linuxConfig = JSON.parse(
   readFileSync(path.join(repositoryRoot, "src-tauri/tauri.linux.conf.json"), "utf8"),
-);
-const developmentEnvironmentCheck = readFileSync(
-  path.join(repositoryRoot, "scripts/check-development-environment.sh"),
-  "utf8",
 );
 const desktopTemplate = readFileSync(
   path.join(repositoryRoot, "src-tauri/linux/fitfreed.desktop.hbs"),
@@ -103,7 +100,29 @@ test("exposes a Linux-only production package command", () => {
   }
   assert.throws(() => linuxPackageBuildArguments([], "darwin"), /requires Linux/);
   assert.throws(() => linuxPackageBuildArguments([], "win32"), /requires Linux/);
-  assert.match(developmentEnvironmentCheck, /require_command "dpkg-deb"/);
+  assert.throws(
+    () => validateDevelopmentEnvironmentFacts({
+      architecture: "x64",
+      availableCommands: new Set(["cargo", "node", "npm", "pkg-config", "rustc", "rustup"]),
+      linuxModules: new Set([
+        "gio-2.0",
+        "glib-2.0",
+        "gobject-2.0",
+        "gtk+-3.0",
+        "webkit2gtk-4.1",
+      ]),
+      nodeRange: ">=22.14.0 <25",
+      nodeVersion: "22.14.0",
+      npmRange: ">=10.9.0 <11",
+      npmVersion: "10.9.2",
+      platform: "linux",
+      rustComponents: new Set(["clippy", "rustfmt"]),
+      rustHost: "x86_64-unknown-linux-gnu",
+      rustVersion: "1.97.1",
+      supportedRustVersion: "1.97.1",
+    }),
+    /dpkg-deb is not installed/,
+  );
 });
 
 test("normalizes the external Debian artifact name after a successful build", () => {

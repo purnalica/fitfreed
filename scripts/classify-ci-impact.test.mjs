@@ -244,6 +244,9 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   const packagedLinuxJob = workflow.match(
     /  packaged-linux-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
   )?.groups?.body;
+  const windowsHostJob = workflow.match(
+    /  windows-host:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
+  )?.groups?.body;
 
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /id: impact/);
@@ -270,8 +273,9 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   );
   assert.match(
     workflow,
-    /needs: \[quality, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e\]/,
+    /needs: \[quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e\]/,
   );
+  assert.match(workflow, /needs\.windows-host\.result == 'success'/);
   assert.match(workflow, /needs\.packaged-linux-e2e\.result == 'success'/);
   assert.match(
     workflow,
@@ -305,4 +309,14 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   );
   assert.match(packagedLinuxJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(packagedLinuxJob ?? "", /npm run verify:linux-e2e/);
+  assert.match(windowsHostJob ?? "", /^    needs: quality$/m);
+  assert.match(windowsHostJob ?? "", /^    runs-on: windows-2025$/m);
+  assert.match(
+    windowsHostJob ?? "",
+    /fitfreed-windows-host-v1-\$\{\{ needs\.quality\.outputs\.executable-fingerprint \}\}/,
+  );
+  assert.match(windowsHostJob ?? "", /npm run test:windows-scripts/);
+  assert.match(windowsHostJob ?? "", /npm run test:rust/);
+  assert.match(windowsHostJob ?? "", /npm run lint:rust/);
+  assert.match(windowsHostJob ?? "", /npm run build:windows-host/);
 });

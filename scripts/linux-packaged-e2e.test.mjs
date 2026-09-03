@@ -146,7 +146,7 @@ test("runs installed Linux capability parity only inside complete hosted verific
   assert.match(job, /\.artifacts\/e2e\/evidence/);
   assert.match(
     workflow,
-    /needs: \[quality, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e\]/,
+    /needs: \[quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e\]/,
   );
   assert.match(workflow, /needs\.packaged-linux-e2e\.result == 'success'/);
 });

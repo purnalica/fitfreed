@@ -25,6 +25,7 @@ jobs:
     outputs:
       executable-fingerprint: ${{ steps.impact.outputs.executable-fingerprint }}
       full-verification: ${{ steps.decision.outputs.full-verification }}
+      verification-reason: ${{ steps.decision.outputs.reason }}
 
     steps:
       - name: Check out source
@@ -396,13 +397,193 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  windows-host:
+    name: Windows native host and portable contract verification
+    needs: quality
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Restore exact Windows host evidence when available
+        id: evidence
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .artifacts/windows-host-evidence
+          key: fitfreed-windows-host-v1-${{ needs.quality.outputs.executable-fingerprint }}
+
+      - name: Reopen exact Windows host evidence
+        id: reopened
+        env:
+          FITFREED_EXECUTABLE_FINGERPRINT: ${{ needs.quality.outputs.executable-fingerprint }}
+        run: >-
+          node scripts/windows-verification-evidence.mjs verify
+          .artifacts/windows-host-evidence
+          "$env:FITFREED_EXECUTABLE_FINGERPRINT"
+
+      - name: Resolve required Windows verification
+        id: decision
+        env:
+          FITFREED_CI_CANDIDATE_FULL: ${{ needs.quality.outputs.full-verification }}
+          FITFREED_CI_CLASSIFICATION_REASON: ${{ needs.quality.outputs.verification-reason }}
+          FITFREED_CI_EVIDENCE_AVAILABLE: ${{ steps.reopened.outputs.evidence-valid }}
+        run: node scripts/classify-ci-impact.mjs resolve
+
+      - name: Install locked JavaScript dependencies
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm ci
+
+      - name: Verify the Windows development environment
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run doctor
+
+      - name: Verify architecture boundaries
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:architecture
+
+      - name: Verify pinned updater source and provenance
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:vendored-updater
+
+      - name: Verify data contracts
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:data-contracts
+
+      - name: Verify release contracts
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:release-contracts
+
+      - name: Verify the release upgrade matrix
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:upgrade-matrix
+
+      - name: Verify performance policy
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:performance-policy
+
+      - name: Verify public update configuration
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:public-update-config
+
+      - name: Verify public release-signing configuration
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:public-release-signing-config
+
+      - name: Verify public release policy
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:public-release-policy
+
+      - name: Verify public macOS release workflow
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:public-release-workflow
+
+      - name: Verify public Linux expansion workflow
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:public-linux-expansion-workflow
+
+      - name: Verify Windows host workflow
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:windows-ci-workflow
+
+      - name: Verify Pages workflow
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:pages-workflow
+
+      - name: Verify public product surfaces
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:product-surfaces
+
+      - name: Verify current documentation
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:docs
+
+      - name: Verify product site
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:site
+
+      - name: Verify translation catalogs
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:i18n
+
+      - name: Verify live presentation inventory
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:presentation-inventory
+
+      - name: Verify presentation contracts
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:ui-contracts
+
+      - name: Test portable Windows automation
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run test:windows-scripts
+
+      - name: Test the presentation
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm test
+
+      - name: Build the presentation
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run build
+
+      - name: Verify Rust formatting
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run format:check
+
+      - name: Test the complete Windows desktop host
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run test:rust
+
+      - name: Lint the complete Windows desktop host
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run lint:rust
+
+      - name: Test the updater on Windows
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run test:vendor-updater
+
+      - name: Build the complete Windows desktop host
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run build:windows-host
+
+      - name: Record exact successful Windows host evidence
+        if: steps.decision.outputs.full-verification == 'true'
+        env:
+          FITFREED_EXECUTABLE_FINGERPRINT: ${{ needs.quality.outputs.executable-fingerprint }}
+        run: >-
+          node scripts/windows-verification-evidence.mjs record
+          .artifacts/windows-host-evidence
+          "$env:FITFREED_EXECUTABLE_FINGERPRINT"
+
+      - name: Save successful Windows host evidence
+        if: >-
+          steps.decision.outputs.full-verification == 'true' &&
+          steps.evidence.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .artifacts/windows-host-evidence
+          key: fitfreed-windows-host-v1-${{ needs.quality.outputs.executable-fingerprint }}
+
   verification-evidence:
     name: Record complete verification evidence
-    needs: [quality, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e]
+    needs: [quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e]
     if: >-
       always() &&
       needs.quality.result == 'success' &&
       needs.quality.outputs.full-verification == 'true' &&
+      needs.windows-host.result == 'success' &&
       needs.packaged-macos-e2e.result == 'success' &&
       needs.packaged-linux-e2e.result == 'success' &&
       needs.packaged-linux-update-e2e.result == 'success'

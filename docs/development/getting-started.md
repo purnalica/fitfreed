@@ -2,8 +2,8 @@
 
 ## Supported development baseline
 
-The product foundation is packaged on macOS first and admits the complete desktop host on Linux before Linux package
-work. The repository pins:
+The product foundation is packaged on macOS first and admits the complete desktop host on Linux and Windows before
+platform package work. The repository pins:
 
 - Node.js 22.14.0 in `.nvmrc`;
 - npm 10.9.2 in `package.json`;
@@ -18,15 +18,38 @@ refinement. Debian and Ubuntu contributors running that lane need Tauri's native
 running `npm run doctor`; the doctor checks the required GLib, GIO, GObject, GTK, and WebKitGTK modules before reporting
 a usable Linux environment, and it also requires the standard `dpkg-deb` package inspection command.
 
+The Windows host lane runs on the pinned x86-64 `windows-2025` GitHub-hosted image with the MSVC Rust target. Local
+Windows contributors need the Microsoft C++ Build Tools and Windows SDK supplied by Visual Studio's Desktop development
+with C++ workload, WebView2, Rustup, and the pinned Node.js toolchain. `npm run doctor` verifies the x86-64 MSVC host,
+Rust components, Node.js, and npm without relying on Bash. Windows package, installation, update, and recovery tooling
+is introduced by later Milestone 5 increments and is not implied by host admission.
+
 ## First setup
 
-From the repository root:
+From the repository root on macOS or Linux:
 
 ```sh
 npm run doctor
 npm ci
 npm run test:fast
 ```
+
+On Windows, use PowerShell and run the admitted native-host loop:
+
+```powershell
+npm ci
+npm run doctor
+npm run test:windows-scripts
+npm test
+npm run format:check
+npm run test:rust
+npm run lint:rust
+npm run build:windows-host
+```
+
+The complete `npm run test:fast` composition still contains macOS and Linux workflow-tooling checks. The Windows CI job
+runs every portable product contract as separate diagnosable steps in addition to the native-host loop above; Windows
+packaging commands join the contributor loop in later Milestone 5 increments.
 
 `npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, the live presentation inventory, presentation behavior, GitHub workflow syntax and policy, the updater refinement test, and all FitFreed Rust workspace tests. Its workflow check installs checksum-verified actionlint 1.7.12 and ShellCheck 0.10.0 under ignored `.tools/`; no global installation is required and shell analysis is identical on supported contributor and CI hosts.
 
@@ -57,6 +80,8 @@ npm run test:fast
 | Run project automation tests | `npm run test:scripts` |
 | Run all Rust tests | `npm run test:rust` |
 | Run the pinned updater refinement test | `npm run test:vendor-updater` |
+| Compile the complete desktop host with all targets and features | `npm run build:windows-host` |
+| Verify Windows-portable host automation and its CI contract | `npm run test:windows-scripts && npm run check:windows-ci-workflow` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -227,9 +252,12 @@ update-preservation, workflow, and publication contracts. Such a revision skips 
 the exact Git-tree fingerprint of every executable and release input has evidence that all admitted complete lanes
 previously passed; missing evidence fails closed. Application, shared-dependency, release-candidate, unknown, and
 explicitly requested changes run portable checks plus complete workspace and desktop-host tests and strict linting on
-the pinned Ubuntu 24.04 runner, followed by the mandatory macOS packaged-E2E job. The macOS job verifies full-scale
-import, dense supported-signal import and storage, exact-repeat, detailed-domain, longitudinal read-model, and
-production cold-launch budgets, prepares and installation-tests a normal private production package, and then builds
+the pinned Ubuntu 24.04 runner. They also run the complete desktop-host build, tests, formatting, strict linting, and
+pinned updater refinement on `windows-2025`; the job may reuse only an exact
+`windows-2025-x86_64-host` executable-input fingerprint marker produced after all those checks passed. A missing,
+malformed, stale, or mismatched marker fails closed by running the Windows checks. The mandatory macOS packaged-E2E
+job verifies full-scale import, dense supported-signal import and storage, exact-repeat, detailed-domain, longitudinal
+read-model, and production cold-launch budgets, prepares and installation-tests a normal private production package, and then builds
 separate test variants. It drives the packaged application through validation, progress, cancellation, both locales,
 exact and cumulative reimport, accessibility, a second application process recovering the first process's controlled
 library and preferences, and in-WebView performance budgets for all four detailed Insights areas and their integrated

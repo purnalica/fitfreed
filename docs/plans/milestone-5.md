@@ -2,8 +2,13 @@
 
 ## Status
 
-Planned as of 2026-09-02, with independent portability engineering authorized by ADR 0039. Implementation may begin
-when its stable technical inputs are available; public promotion remains ordered after the accepted public Linux MVP.
+In progress as of 2026-09-03, with independent portability engineering authorized by ADR 0039. Public promotion
+remains ordered after the accepted public Linux MVP.
+
+| Increment | Status | Current evidence boundary |
+|---|---|---|
+| M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host` run for the exact revision. |
+| M5.1–M5.6 | Not started | Their package, recovery, parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
 
