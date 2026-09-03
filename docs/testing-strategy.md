@@ -235,7 +235,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   packaging. Preparation then proves the public-profile native installation and data-preserving removal, atomically
   stages only the exact setup, inventory, and source-bound build evidence, and rejects extra entries, links, identity or
   digest drift, mismatched certificate trust, and changed updater trust. The later compositor independently signs those
-  sealed bytes for the updater.
+  sealed bytes for the updater. Transport tests use the real compressed-tar adapter to prove the closed three-entry
+  set, native line-ending handling, exact digest reopening, atomic visibility, mutation rejection, and cleanup after a
+  certificate mismatch.
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.

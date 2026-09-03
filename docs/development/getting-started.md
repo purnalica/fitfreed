@@ -93,6 +93,8 @@ or CI runner rather than a personal profile.
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
 | Build the Authenticode-signed update-capable Windows input under protected authority | `npm run package:windows-expansion-input` |
 | Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
+| Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
+| Reopen a digest-bound Windows expansion input | `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -188,6 +190,12 @@ source-bound build evidence. Existing output is never replaced. The retained evi
 fingerprint and embedded updater trust identifiers, but excludes certificate selectors, SignTool paths, private keys,
 machine paths, and updater or publication authority. This command prepares a native handoff; it neither creates a
 complete candidate nor authorizes a release.
+
+The paired Windows pack and unpack commands verify the three-file input on both sides of its compressed tar transport.
+The pack result exposes the public archive SHA-256 digest; the unpack command requires that digest together with the
+expected source, schema, and public Authenticode fingerprint. Archive entries, internal digests, package identity,
+certificate trust, and updater trust must all agree before an atomically prepared output becomes visible. These are
+release-automation handoff commands, not routine contributor packaging steps.
 
 `npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same
 Debian package contract but requires active recoverable `stable-v3` configuration and embeds only that channel's public

@@ -75,3 +75,8 @@ The input directory that carries this evidence is closed to the setup, inventory
 is regular, singly linked, digest-verified, and copied atomically. A new artifact, platform, package
 format, installation mode, trust representation, or verification boundary requires a new schema version rather than
 reinterpreting version 1.
+
+The input is carried between protected jobs only through the digest-bound pack and unpack commands documented in the
+[release delivery architecture](../../architecture/release-delivery.md). The archive is transport, not another
+evidence format: its accepted identity is its SHA-256 digest plus the complete verification of these three extracted
+files.

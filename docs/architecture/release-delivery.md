@@ -144,6 +144,17 @@ certificate selector, SignTool path, machine identity, or publication authority.
 singly linked, and named by the versioned contract; any mismatch removes the temporary staging directory without
 replacing an existing input.
 
+`npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>`
+reopens that complete three-file input before creating a temporary compressed tar archive beside its requested
+destination. The portable `ustar` header uses neutral ownership through an explicitly admitted GNU tar or bsdtar
+dialect rather than retaining the native account. An unknown archive implementation fails closed. The
+command admits the archive only when its entry listing is exactly the closed input set, atomically moves the archive
+into place, and exposes its SHA-256 transport digest. The matching
+`npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>`
+validates the digest and listing before extraction, reopens every internal artifact, trust, source, schema, and channel
+binding in a temporary sibling directory, and makes the result visible atomically. Mutation, an unsafe or additional
+entry, existing destination, or verification failure leaves no accepted output.
+
 The pinned Windows engineering lane builds that NSIS package instead of compiling the release host a second time: the
 package build already contains the complete production host. A closed native adapter then runs only on a clean
 current-user profile. It verifies `%LOCALAPPDATA%\FitFreed`, `fitfreed.exe`, `uninstall.exe`, the `HKCU` uninstall
