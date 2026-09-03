@@ -239,6 +239,7 @@ Directories are created with their first real contract; empty specifications are
 - [Public update build configuration version 2](release/public-update-configuration-v2.md)
 - [Public update build configuration version 1](release/public-update-configuration-v1.md) — preceding contract
 - [Public release-signing configuration version 1](release/public-release-signing-configuration-v1.md)
+- [Public release-signing configuration version 2](release/public-release-signing-configuration-v2.md)
 - [Public release policy version 1](release/public-release-policy-v1.md)
 - [Public origin version 1](release/public-origin-v1.md)
 - [Update recovery version 1](release/update-recovery-v1.md)

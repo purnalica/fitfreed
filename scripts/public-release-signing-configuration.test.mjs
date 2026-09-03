@@ -23,9 +23,9 @@ function escapeRegularExpression(value) {
 function activeConfiguration() {
   return {
     format: "org.fitfreed.release-signing-configuration",
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: "active",
-    purpose: "linux-release-checksums",
+    purpose: "public-release-checksums",
     algorithm: "minisign-ed25519",
     keys: [{ id: "linux-release.synthetic-1", publicKey }],
   };
@@ -34,9 +34,9 @@ function activeConfiguration() {
 test("keeps the canonical public release-signing authority inactive", () => {
   assert.deepEqual(loadPublicReleaseSigningConfiguration(repositoryRoot), {
     format: "org.fitfreed.release-signing-configuration",
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: "inactive",
-    purpose: "linux-release-checksums",
+    purpose: "public-release-checksums",
     algorithm: "minisign-ed25519",
     keys: [],
   });
@@ -50,6 +50,14 @@ test("keeps the canonical public release-signing authority inactive", () => {
 test("accepts an active rotatable public release trust set", () => {
   const configuration = activeConfiguration();
   configuration.keys.push({ id: "linux-release.synthetic-2", publicKey });
+
+  assert.equal(validatePublicReleaseSigningConfiguration(configuration), configuration);
+});
+
+test("retains validation for legacy Linux-only release evidence", () => {
+  const configuration = activeConfiguration();
+  configuration.schemaVersion = 1;
+  configuration.purpose = "linux-release-checksums";
 
   assert.equal(validatePublicReleaseSigningConfiguration(configuration), configuration);
 });
@@ -84,6 +92,13 @@ test("documents and indexes the public release-signing contract", () => {
     ),
     "utf8",
   );
+  const version2Document = readFileSync(
+    path.join(
+      repositoryRoot,
+      "docs/data-formats/release/public-release-signing-configuration-v2.md",
+    ),
+    "utf8",
+  );
   const index = readFileSync(
     path.join(repositoryRoot, "docs/data-formats/README.md"),
     "utf8",
@@ -98,4 +113,12 @@ test("documents and indexes the public release-signing contract", () => {
     assert.match(document, new RegExp(escapeRegularExpression(value)));
   }
   assert.match(index, /public-release-signing-configuration-v1\.md/);
+  for (const value of [
+    "org.fitfreed.release-signing-configuration",
+    "public-release-checksums",
+    "minisign-ed25519",
+  ]) {
+    assert.match(version2Document, new RegExp(escapeRegularExpression(value)));
+  }
+  assert.match(index, /public-release-signing-configuration-v2\.md/);
 });

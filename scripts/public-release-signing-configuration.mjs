@@ -4,21 +4,26 @@ import { fileURLToPath } from "node:url";
 
 import Ajv2020 from "ajv/dist/2020.js";
 
-const schema = JSON.parse(
-  readFileSync(
-    new URL(
-      "../schemas/public-release-signing-configuration-v1.schema.json",
-      import.meta.url,
-    ),
-    "utf8",
-  ),
-);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
-const validateSchema = ajv.compile(schema);
+const validators = new Map([1, 2].map((version) => {
+  const schema = JSON.parse(
+    readFileSync(
+      new URL(
+        `../schemas/public-release-signing-configuration-v${version}.schema.json`,
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  return [version, ajv.compile(schema)];
+}));
 
 export function validatePublicReleaseSigningConfiguration(configuration) {
   const errors = [];
-  if (!validateSchema(configuration)) {
+  const validateSchema = validators.get(configuration?.schemaVersion);
+  if (!validateSchema) {
+    errors.push("unsupported public release-signing configuration schema version");
+  } else if (!validateSchema(configuration)) {
     errors.push(
       ...validateSchema.errors.map(
         ({ instancePath, message }) =>

@@ -1,8 +1,8 @@
 {
   "format": "org.fitfreed.release-signing-configuration",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "inactive",
-  "purpose": "linux-release-checksums",
+  "purpose": "public-release-checksums",
   "algorithm": "minisign-ed25519",
   "keys": []
 }
