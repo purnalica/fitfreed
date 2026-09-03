@@ -8,7 +8,7 @@ remains ordered after the accepted public Linux MVP.
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
-| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, clean installation/removal, deterministic package inventory, fail-closed Authenticode signer and inspector, and synthetic authority-cleanup campaign are implemented and locally verified. Native execution awaits the hosted lane; protected public authority and exact Windows 11 trust evidence remain open. |
+| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, and protected public-candidate build boundary are implemented and locally verified. Native execution awaits the hosted lane; protected public authority, composed release evidence, and exact Windows 11 trust remain open. |
 | M5.2–M5.6 | Not started | Their recovery, parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
@@ -96,6 +96,15 @@ short-lived self-signed certificate, trusts it only in the disposable current-us
 a temporary copy without a timestamp, proves the source binary is unchanged, and removes the trust-store copies,
 private key, environment values, and temporary directory before it can emit success. This proves orchestration and
 cleanup, not public publisher identity, timestamping, reputation, Windows 11 desktop behavior, or release authority.
+
+`npm run package:windows-public-candidate` is the separate protected build entry point. It requires both active
+recoverable `stable-v3` updater trust with private updater-signing authority and the public timestamped Authenticode
+profile before removing stale NSIS output. It selects the updater and authority-free Authenticode overlays together,
+builds only NSIS, rejects any output other than the exact setup and its updater signature, and independently reinspects
+the final setup bytes after packaging. The clean installation adapter then supports a public profile that inspects the
+setup and installed executable with full identity checks, inspects the installed uninstaller signature, binds all three
+trust results to their independently hashed bytes, and preserves the same removal and application-data boundary as the
+unsigned profile. This is implemented structure, not evidence that protected authority or a signed candidate exists.
 
 ## Increment M5.2 — Windows-native update recovery
 

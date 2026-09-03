@@ -171,6 +171,13 @@ trust, the admitted leaf certificate, timestamp, unchanged file digest, x86-64 a
 version. Do not pass protected values through contributor-facing command arguments or logs. Public signing remains a
 release-operator boundary and is not a contributor setup step.
 
+`npm run package:windows-public-candidate` is that protected release-operator entry point. It deliberately cannot run
+from the ordinary contributor environment: active `stable-v3` public update trust, private updater-signing authority,
+and the complete public Authenticode process profile must all be present. It selects both reviewed overlays, removes
+stale NSIS output, builds only the exact setup and updater-signature pair, and reinspects the final setup through the
+independent Windows trust adapter. Failure removes the unverified output directory. Do not use this command to create
+an engineering package, and do not retain its protected process values in shell profiles, scripts, logs, or evidence.
+
 `npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same
 Debian package contract but requires active recoverable `stable-v3` configuration and embeds only that channel's public
 endpoint and updater trust in the executable. It receives no private updater key or password and emits no signature;

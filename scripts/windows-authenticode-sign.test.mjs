@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   signWindowsAuthenticode,
+  windowsAuthenticodeAuthority,
   windowsAuthenticodeSigningPlan,
 } from "./windows-authenticode-sign.mjs";
 
@@ -48,6 +49,21 @@ test("creates the exact public SHA-256 RFC 3161 signing plan", () => {
     requireTimestamp: true,
     signToolPath,
     version: "0.1.0",
+  });
+});
+
+test("admits the protected public authority before the bundler creates a binary", () => {
+  assert.deepEqual(windowsAuthenticodeAuthority({
+    environment: publicEnvironment(),
+    isFile: () => true,
+    platform: "win32",
+  }), {
+    certificateSha1,
+    certificateSha256,
+    profile: "public",
+    requireTimestamp: true,
+    signToolPath,
+    timestampUrl: "https://timestamp.example.invalid/rfc3161",
   });
 });
 

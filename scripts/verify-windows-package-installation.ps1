@@ -5,7 +5,11 @@ param(
   [Parameter(Mandatory = $true)][string]$ExpectedPublisher,
   [Parameter(Mandatory = $true)][string]$ExpectedHomepage,
   [Parameter(Mandatory = $true)][string]$ExpectedExecutable,
-  [Parameter(Mandatory = $true)][string]$ExpectedIdentifier
+  [Parameter(Mandatory = $true)][string]$ExpectedIdentifier,
+  [Parameter(Mandatory = $true)][ValidateSet("unsigned-engineering", "public-authenticode")][string]$SignatureProfile,
+  [string]$ExpectedCertificateSha256,
+  [string]$SignToolPath,
+  [string]$TrustScriptPath
 )
 
 Set-StrictMode -Version Latest
@@ -24,6 +28,7 @@ $applicationDataDirectory = Join-Path $env:APPDATA $ExpectedIdentifier
 $sentinelPath = Join-Path $applicationDataDirectory "package-removal-sentinel"
 $sentinel = "package-removal-must-preserve-application-data"
 $installationStarted = $false
+$isPublic = $SignatureProfile -eq "public-authenticode"
 
 function Assert-Equal([object]$Actual, [object]$Expected, [string]$Message) {
   if ($Actual -ne $Expected) { throw $Message }
@@ -35,6 +40,50 @@ function Assert-True([bool]$Condition, [string]$Message) {
 
 function Get-SignatureStatus([string]$Path) {
   return (Get-AuthenticodeSignature -FilePath $Path).Status.ToString()
+}
+
+function Get-SignatureEvidence([string]$Path, [bool]$SignatureOnly) {
+  if (-not $isPublic) {
+    $status = Get-SignatureStatus $Path
+    Assert-Equal $status "NotSigned" "ordinary binary must be unsigned"
+    return [ordered]@{
+      status = $status
+      certificateSha256 = $null
+      timestamped = $false
+      fileSha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+  }
+
+  $trustArguments = @(
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    $TrustScriptPath,
+    "-BinaryPath",
+    $Path,
+    "-SignToolPath",
+    $SignToolPath,
+    "-ExpectedCertificateSha256",
+    $ExpectedCertificateSha256,
+    "-RequireTimestamp"
+  )
+  if ($SignatureOnly) {
+    $trustArguments += "-SignatureOnly"
+  } else {
+    $trustArguments += @("-ExpectedVersion", $ExpectedVersion)
+  }
+  $trustOutput = & powershell.exe @trustArguments 2>$null
+  Assert-Equal $LASTEXITCODE 0 "Authenticode trust inspection failed"
+  $trust = $trustOutput | ConvertFrom-Json
+  return [ordered]@{
+    status = [string]$trust.status
+    certificateSha256 = [string]$trust.certificateSha256
+    timestamped = [bool]$trust.timestamped
+    fileSha256 = [string]$trust.fileSha256
+  }
 }
 
 function Get-ShortcutTarget([string]$Path) {
@@ -74,12 +123,24 @@ function Find-WebView2Version {
 
 try {
   Assert-True (Test-Path -LiteralPath $PackagePath -PathType Leaf) "setup is absent"
+  if ($isPublic) {
+    Assert-True ($ExpectedCertificateSha256 -match "^[0-9a-f]{64}$") "certificate fingerprint is invalid"
+    Assert-True (Test-Path -LiteralPath $SignToolPath -PathType Leaf) "SignTool is absent"
+    Assert-True ([IO.Path]::GetFileName($SignToolPath).ToLowerInvariant() -eq "signtool.exe") "SignTool identity differs"
+    Assert-True (Test-Path -LiteralPath $TrustScriptPath -PathType Leaf) "trust inspector is absent"
+  } else {
+    Assert-True ([string]::IsNullOrEmpty($ExpectedCertificateSha256)) "unsigned inspection received a certificate"
+    Assert-True ([string]::IsNullOrEmpty($SignToolPath)) "unsigned inspection received SignTool"
+    Assert-True ([string]::IsNullOrEmpty($TrustScriptPath)) "unsigned inspection received a trust inspector"
+  }
   Assert-True (-not (Test-Path -LiteralPath $installDirectory)) "installation directory already exists"
   Assert-True (-not (Test-Path -LiteralPath $registryPath)) "registration already exists"
   Assert-True (-not (Test-Path -LiteralPath $applicationDataDirectory)) "application data already exists"
   Assert-True (-not (Test-Path -LiteralPath $startMenuShortcut)) "Start Menu shortcut already exists"
   Assert-True (-not (Test-Path -LiteralPath $desktopShortcut)) "desktop shortcut already exists"
-  Assert-Equal (Get-SignatureStatus $PackagePath) "NotSigned" "ordinary setup must be unsigned"
+
+  $phase = "package-trust"
+  $packageSignature = Get-SignatureEvidence $PackagePath $false
 
   New-Item -ItemType Directory -Path $applicationDataDirectory | Out-Null
   [IO.File]::WriteAllText($sentinelPath, $sentinel, [Text.Encoding]::ASCII)
@@ -112,10 +173,9 @@ try {
   Assert-Equal $executableVersion.FileDescription $ExpectedProductName "executable description differs"
   Assert-Equal $executableVersion.FileVersion $ExpectedVersion "executable file version differs"
   Assert-Equal $executableVersion.ProductVersion $ExpectedVersion "executable product version differs"
-  $executableSignatureStatus = Get-SignatureStatus $executablePath
-  $uninstallerSignatureStatus = Get-SignatureStatus $uninstallerPath
-  Assert-Equal $executableSignatureStatus "NotSigned" "ordinary executable must be unsigned"
-  Assert-Equal $uninstallerSignatureStatus "NotSigned" "ordinary uninstaller must be unsigned"
+  $phase = "installed-trust"
+  $executableSignature = Get-SignatureEvidence $executablePath $false
+  $uninstallerSignature = Get-SignatureEvidence $uninstallerPath $true
   $unsupportedInstalledEntries = @(Get-ChildItem -LiteralPath $installDirectory -Recurse -Force |
     Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
   Assert-Equal $unsupportedInstalledEntries.Count 0 "installed package contains a reparse point"
@@ -153,7 +213,8 @@ try {
   Assert-Equal (Get-Content -LiteralPath $sentinelPath -Raw) $sentinel "application data changed"
 
   $evidence = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
+    signatureProfile = $SignatureProfile
     platform = "windows"
     architecture = "x86_64"
     packageFormat = "nsis"
@@ -164,7 +225,7 @@ try {
       fileDescription = (Get-Item -LiteralPath $PackagePath).VersionInfo.FileDescription
       fileVersion = (Get-Item -LiteralPath $PackagePath).VersionInfo.FileVersion
       productVersion = (Get-Item -LiteralPath $PackagePath).VersionInfo.ProductVersion
-      signatureStatus = Get-SignatureStatus $PackagePath
+      signature = $packageSignature
     }
     installation = [ordered]@{
       applicationDataDirectory = "%APPDATA%\$ExpectedIdentifier"
@@ -176,8 +237,8 @@ try {
       uninstallRegistry = "HKCU\$registryRelativePath"
       startMenuShortcut = "%APPDATA%\Microsoft\Windows\Start Menu\Programs\$ExpectedProductName.lnk"
       desktopShortcut = "%USERPROFILE%\Desktop\$ExpectedProductName.lnk"
-      executableSignatureStatus = $executableSignatureStatus
-      uninstallerSignatureStatus = $uninstallerSignatureStatus
+      executableSignature = $executableSignature
+      uninstallerSignature = $uninstallerSignature
       installedEntries = $installedEntries
       webview2Available = $true
     }

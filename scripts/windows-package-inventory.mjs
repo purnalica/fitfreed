@@ -38,14 +38,11 @@ function byteOrder(left, right) {
   return Buffer.compare(Buffer.from(left), Buffer.from(right));
 }
 
-function unsignedSignature(status) {
-  if (status !== "NotSigned") {
-    throw new Error("ordinary Windows package inventory requires unsigned binaries");
-  }
+function signatureClaim(signature) {
   return {
-    status,
-    certificateSha256: null,
-    timestamped: false,
+    status: signature.status,
+    certificateSha256: signature.certificateSha256,
+    timestamped: signature.timestamped,
   };
 }
 
@@ -101,9 +98,20 @@ export function validateWindowsPackageInventory(inventory) {
   return inventory;
 }
 
-export function createWindowsPackageInventory({ facts, packagePath, version }) {
-  validateWindowsInstallationFacts(facts, version);
+export function createWindowsPackageInventory({
+  certificateSha256,
+  facts,
+  packagePath,
+  signatureProfile = "unsigned-engineering",
+  version,
+}) {
   const metadata = statSync(packagePath);
+  const packageSha256 = digest(readFileSync(packagePath));
+  validateWindowsInstallationFacts(facts, version, {
+    certificateSha256,
+    packageSha256,
+    signatureProfile,
+  });
   const inventory = {
     format: "org.fitfreed.windows-package-inventory",
     schemaVersion: 1,
@@ -116,7 +124,7 @@ export function createWindowsPackageInventory({ facts, packagePath, version }) {
     artifact: {
       path: path.basename(packagePath),
       size: metadata.size,
-      sha256: digest(readFileSync(packagePath)),
+      sha256: packageSha256,
     },
     identity: {
       applicationIdentifier: windowsPackageContract.applicationIdentifier,
@@ -138,10 +146,10 @@ export function createWindowsPackageInventory({ facts, packagePath, version }) {
       webview2Available: facts.installation.webview2Available,
     },
     signatures: {
-      profile: "unsigned-engineering",
-      setup: unsignedSignature(facts.package.signatureStatus),
-      executable: unsignedSignature(facts.installation.executableSignatureStatus),
-      uninstaller: unsignedSignature(facts.installation.uninstallerSignatureStatus),
+      profile: signatureProfile,
+      setup: signatureClaim(facts.package.signature),
+      executable: signatureClaim(facts.installation.executableSignature),
+      uninstaller: signatureClaim(facts.installation.uninstallerSignature),
     },
     entries: facts.installation.installedEntries.map((entry) => ({ ...entry })),
     removal: { ...facts.removal },
@@ -155,8 +163,11 @@ export function windowsPackageInventoryName(version) {
 
 export function generateWindowsPackageInventory({
   architecture = process.arch,
+  certificateSha256,
   platform = process.platform,
   releaseDirectory = path.join(repositoryRoot, "src-tauri", "target", "release", "bundle", "nsis"),
+  signatureProfile = "unsigned-engineering",
+  signToolPath,
   verify = verifyWindowsPackageInstallation,
   version = JSON.parse(readFileSync(path.join(repositoryRoot, "package.json"), "utf8")).version,
 } = {}) {
@@ -168,9 +179,23 @@ export function generateWindowsPackageInventory({
   try {
     const packagePath = findWindowsNsisPackage(releaseDirectory, version);
     phase = "native-installation";
-    const facts = verify({ architecture, packagePath, platform, version });
+    const facts = verify({
+      architecture,
+      certificateSha256,
+      packagePath,
+      platform,
+      signatureProfile,
+      signToolPath,
+      version,
+    });
     phase = "inventory-validation";
-    const inventory = createWindowsPackageInventory({ facts, packagePath, version });
+    const inventory = createWindowsPackageInventory({
+      certificateSha256,
+      facts,
+      packagePath,
+      signatureProfile,
+      version,
+    });
     const bytes = `${JSON.stringify(inventory, null, 2)}\n`;
     const inventoryPath = path.join(releaseDirectory, windowsPackageInventoryName(version));
     temporaryInventoryPath = `${inventoryPath}.tmp-${process.pid}`;

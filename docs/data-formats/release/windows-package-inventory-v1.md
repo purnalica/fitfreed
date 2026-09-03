@@ -79,6 +79,12 @@ trusted chain and RFC 3161 timestamp, matches the admitted certificate fingerpri
 the artifact and installed-file digests recorded here. Certificate subjects, account names, private keys, passwords,
 certificate-store paths, tool paths, and timestamp-service credentials never enter this document.
 
+The setup and installed application executable use full x86-64, product-name, description, and version inspection.
+The installed uninstaller uses signature-only inspection because it is package control code rather than the product
+executable. Its Windows policy, admitted certificate, timestamp, and unchanged digest remain mandatory. Before the
+inventory can be emitted, the setup trust digest must equal `artifact.sha256`, and the executable and uninstaller trust
+digests must equal their respective `entries` digests.
+
 ## Installed file entries
 
 `entries` is derived from the native adapter's complete `installedEntries` observation before removal. It contains

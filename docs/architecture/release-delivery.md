@@ -123,6 +123,14 @@ versioned `tauri.windows.public-signing.conf.json` overlay contains only the rev
 Tauri's `%1` binary placeholder. A future protected candidate build must select it explicitly and provide all authority
 through the protected process boundary; its presence cannot make the ordinary package signed or public.
 
+The distinct `npm run package:windows-public-candidate` entry point requires active recoverable `stable-v3` public
+update trust, private updater-signing authority, and the public timestamped Authenticode profile before it changes the
+NSIS output directory. It composes the updater and Authenticode overlays in a fixed order, accepts only diagnostic
+verbosity, and builds only NSIS. The resulting directory must contain exactly the version-derived setup and its
+non-empty updater signature as regular singly linked files. An independent post-package trust pass binds the final
+setup digest, x86-64 product identity, version, admitted leaf-certificate fingerprint, Windows application policy, and
+timestamp after Tauri has finished writing the package.
+
 The pinned Windows engineering lane builds that NSIS package instead of compiling the release host a second time: the
 package build already contains the complete production host. A closed native adapter then runs only on a clean
 current-user profile. It verifies `%LOCALAPPDATA%\FitFreed`, `fitfreed.exe`, `uninstall.exe`, the `HKCU` uninstall
@@ -138,7 +146,12 @@ the setup digest and native identity to every installed regular file's portable 
 records successful removal of package state and preservation of application data. The inventory distinguishes the
 ordinary unsigned engineering profile from the future public Authenticode profile, but a structural public claim is
 never trust evidence without the independent protected inspector. One CI command performs installation, inspection,
-inventory generation, and removal so the expensive native transition is not repeated for the same package.
+inventory generation, and removal so the expensive native transition is not repeated for the same package. Its public
+profile invokes the independent policy inspector while the installed files still exist. The setup and application
+executable receive complete architecture, identity, version, certificate, timestamp, and digest inspection; the
+uninstaller receives certificate, timestamp, policy, and digest inspection because it is a package control binary, not
+the application executable. The adapter then cross-checks those three observed file digests against the setup artifact
+and complete installed-file inventory before removal.
 
 The public signing adapter accepts only an explicit public or synthetic-test profile, an absolute `signtool.exe`, a
 SHA-1 certificate-store selector, an independently calculated lowercase SHA-256 leaf-certificate fingerprint, and—only

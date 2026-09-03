@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -16,9 +17,29 @@ import {
   validateWindowsPackageInventory,
 } from "./windows-package-inventory.mjs";
 
-function installationFacts() {
+const packageBytes = "synthetic NSIS package bytes";
+const packageSha256 = createHash("sha256").update(packageBytes).digest("hex");
+
+function signature(fileSha256, profile = "unsigned-engineering") {
+  return profile === "public-authenticode"
+    ? {
+      certificateSha256: "c".repeat(64),
+      fileSha256,
+      status: "Valid",
+      timestamped: true,
+    }
+    : {
+      certificateSha256: null,
+      fileSha256,
+      status: "NotSigned",
+      timestamped: false,
+    };
+}
+
+function installationFacts(profile = "unsigned-engineering") {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    signatureProfile: profile,
     platform: "windows",
     architecture: "x86_64",
     packageFormat: "nsis",
@@ -29,7 +50,7 @@ function installationFacts() {
       fileDescription: "FitFreed",
       fileVersion: "0.1.0",
       productVersion: "0.1.0",
-      signatureStatus: "NotSigned",
+      signature: signature(packageSha256, profile),
     },
     installation: {
       applicationDataDirectory: "%APPDATA%\\org.fitfreed.desktop",
@@ -43,8 +64,8 @@ function installationFacts() {
       startMenuShortcut:
         "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\FitFreed.lnk",
       desktopShortcut: "%USERPROFILE%\\Desktop\\FitFreed.lnk",
-      executableSignatureStatus: "NotSigned",
-      uninstallerSignatureStatus: "NotSigned",
+      executableSignature: signature("a".repeat(64), profile),
+      uninstallerSignature: signature("b".repeat(64), profile),
       installedEntries: [
         { path: "fitfreed.exe", size: 8192, sha256: "a".repeat(64) },
         { path: "uninstall.exe", size: 4096, sha256: "b".repeat(64) },
@@ -64,7 +85,7 @@ function fixture(context) {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-windows-inventory-test-"));
   context.after(() => rmSync(root, { force: true, recursive: true }));
   const packagePath = path.join(root, "FitFreed_0.1.0_x64-setup.exe");
-  writeFileSync(packagePath, "synthetic NSIS package bytes");
+  writeFileSync(packagePath, packageBytes);
   return { packagePath, root };
 }
 
@@ -98,30 +119,15 @@ test("creates one exact unsigned Windows package inventory", (context) => {
 test("accepts only complete public Authenticode signature claims", (context) => {
   const { packagePath } = fixture(context);
   const inventory = createWindowsPackageInventory({
-    facts: installationFacts(),
+    certificateSha256: "c".repeat(64),
+    facts: installationFacts("public-authenticode"),
     packagePath,
+    signatureProfile: "public-authenticode",
     version: "0.1.0",
   });
-  inventory.signatures = {
-    profile: "public-authenticode",
-    setup: {
-      status: "Valid",
-      certificateSha256: "c".repeat(64),
-      timestamped: true,
-    },
-    executable: {
-      status: "Valid",
-      certificateSha256: "c".repeat(64),
-      timestamped: true,
-    },
-    uninstaller: {
-      status: "Valid",
-      certificateSha256: "c".repeat(64),
-      timestamped: true,
-    },
-  };
 
   assert.equal(validateWindowsPackageInventory(inventory), inventory);
+  assert.equal(inventory.signatures.setup.certificateSha256, "c".repeat(64));
   inventory.signatures.setup.timestamped = false;
   assert.throws(
     () => validateWindowsPackageInventory(inventory),

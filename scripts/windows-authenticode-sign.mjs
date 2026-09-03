@@ -45,7 +45,6 @@ export function windowsAuthenticodeSigningPlan({
   platform = process.platform,
   version,
 }) {
-  if (platform !== "win32") throw new Error("Windows Authenticode signing requires Windows");
   if (!versionPattern.test(version ?? "")) {
     throw new Error("Windows Authenticode signing requires a package version");
   }
@@ -56,6 +55,39 @@ export function windowsAuthenticodeSigningPlan({
   ) {
     throw new Error("Windows Authenticode signing requires an absolute Windows executable path");
   }
+  const authority = windowsAuthenticodeAuthority({ environment, isFile, platform });
+  if (!isFile(binaryPath)) {
+    throw new Error("Windows Authenticode signing requires regular input files");
+  }
+
+  const arguments_ = [
+    "sign",
+    "/sha1",
+    authority.certificateSha1.toUpperCase(),
+    "/fd",
+    "SHA256",
+  ];
+  if (authority.profile === "public") {
+    arguments_.push("/tr", authority.timestampUrl, "/td", "SHA256");
+  }
+  arguments_.push(binaryPath);
+  return {
+    arguments: arguments_,
+    binaryPath,
+    certificateSha256: authority.certificateSha256,
+    profile: authority.profile,
+    requireTimestamp: authority.requireTimestamp,
+    signToolPath: authority.signToolPath,
+    version,
+  };
+}
+
+export function windowsAuthenticodeAuthority({
+  environment,
+  isFile = regularFile,
+  platform = process.platform,
+}) {
+  if (platform !== "win32") throw new Error("Windows Authenticode signing requires Windows");
   const profile = environment?.FITFREED_WINDOWS_AUTHENTICODE_PROFILE;
   if (!["public", "synthetic-test"].includes(profile)) {
     throw new Error("Windows Authenticode signing requires an explicit supported profile");
@@ -85,29 +117,16 @@ export function windowsAuthenticodeSigningPlan({
   } else if (timestampValue !== undefined) {
     throw new Error("synthetic-test Authenticode signing must not use a timestamp authority");
   }
-  if (!isFile(binaryPath) || !isFile(signToolPath)) {
+  if (!isFile(signToolPath)) {
     throw new Error("Windows Authenticode signing requires regular input files");
   }
-
-  const arguments_ = [
-    "sign",
-    "/sha1",
-    certificateSha1.toUpperCase(),
-    "/fd",
-    "SHA256",
-  ];
-  if (profile === "public") {
-    arguments_.push("/tr", timestampUrl, "/td", "SHA256");
-  }
-  arguments_.push(binaryPath);
   return {
-    arguments: arguments_,
-    binaryPath,
+    certificateSha1,
     certificateSha256,
     profile,
     requireTimestamp: profile === "public",
     signToolPath,
-    version,
+    timestampUrl,
   };
 }
 
