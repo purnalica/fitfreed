@@ -4,17 +4,17 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  assertIndependentPublicSigningKeys,
   loadPublicReleaseSigningConfiguration,
   validatePublicReleaseSigningConfiguration,
 } from "./public-release-signing-configuration.mjs";
+import { createSyntheticMinisignAuthority } from "./test-support/minisign.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const packageJson = JSON.parse(
   readFileSync(path.join(repositoryRoot, "package.json"), "utf8"),
 );
-const publicKey = Buffer.from(
-  "untrusted comment: synthetic public key\nRWQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\n",
-).toString("base64");
+const publicKey = createSyntheticMinisignAuthority().publicKey;
 
 function escapeRegularExpression(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -82,6 +82,40 @@ test("rejects partial, duplicate, or cross-purpose release trust", () => {
     () => validatePublicReleaseSigningConfiguration(wrongPurpose),
     /configuration violation/,
   );
+});
+
+test("compares signing-key identity independently of its public comment", () => {
+  const releaseConfiguration = activeConfiguration();
+  const [, encodedKey] = Buffer.from(publicKey, "base64")
+    .toString("utf8")
+    .trimEnd()
+    .split("\n");
+  const sameKeyWithAnotherComment = Buffer.from([
+    "untrusted comment: another description",
+    encodedKey,
+    "",
+  ].join("\n")).toString("base64");
+  const changedKeyIdentifier = Buffer.from(encodedKey, "base64");
+  changedKeyIdentifier[2] ^= 1;
+  const sameMaterialWithAnotherIdentifier = Buffer.from([
+    "untrusted comment: another description",
+    changedKeyIdentifier.toString("base64"),
+    "",
+  ].join("\n")).toString("base64");
+
+  for (const updatePublicKey of [
+    sameKeyWithAnotherComment,
+    sameMaterialWithAnotherIdentifier,
+  ]) {
+    assert.throws(() => assertIndependentPublicSigningKeys({
+      releaseKeyId: releaseConfiguration.keys[0].id,
+      releaseSigningConfiguration: releaseConfiguration,
+      updateConfiguration: {
+        keys: [{ id: "update.synthetic-1", publicKey: updatePublicKey }],
+      },
+      updateKeyId: "update.synthetic-1",
+    }), /independent public keys/);
+  }
 });
 
 test("documents and indexes the public release-signing contract", () => {

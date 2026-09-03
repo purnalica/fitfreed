@@ -40,6 +40,8 @@ function fixture() {
     FITFREED_APPLE_API_PRIVATE_KEY: privateKey,
     FITFREED_UPDATER_PRIVATE_KEY: "synthetic encrypted updater authority",
     TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "synthetic updater password",
+    FITFREED_RELEASE_PRIVATE_KEY: "synthetic encrypted release authority",
+    FITFREED_RELEASE_PRIVATE_KEY_PASSWORD: "synthetic release password",
   };
   const calls = [];
   const runSecurity = (args) => {
@@ -79,6 +81,7 @@ test("materializes protected inputs only in a private runner directory", () => {
     "developer-id.p12",
     "AuthKey_A1B2C3D4E5.p8",
     "updater.key",
+    "release.key",
     "state.json",
   ]) {
     const materialized = path.join(result.authorityDirectory, filename);
@@ -89,11 +92,14 @@ test("materializes protected inputs only in a private runner directory", () => {
   assert.match(githubEnvironment, new RegExp(`APPLE_SIGNING_IDENTITY=${input.signingIdentity}`));
   assert.match(githubEnvironment, /APPLE_API_KEY_PATH=.*AuthKey_A1B2C3D4E5\.p8/);
   assert.match(githubEnvironment, /TAURI_SIGNING_PRIVATE_KEY_PATH=.*updater\.key/);
+  assert.match(githubEnvironment, /FITFREED_RELEASE_PRIVATE_KEY_PATH=.*release\.key/);
   for (const secret of [
     input.environment.FITFREED_APPLE_CERTIFICATE_PASSWORD,
     input.environment.FITFREED_APPLE_API_PRIVATE_KEY,
     input.environment.FITFREED_UPDATER_PRIVATE_KEY,
     input.environment.TAURI_SIGNING_PRIVATE_KEY_PASSWORD,
+    input.environment.FITFREED_RELEASE_PRIVATE_KEY,
+    input.environment.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD,
   ]) {
     assert.equal(githubEnvironment.includes(secret), false);
   }
@@ -106,6 +112,27 @@ test("materializes protected inputs only in a private runner directory", () => {
   }), { cleaned: true });
   assert.equal(existsSync(result.authorityDirectory), false);
   assert.ok(input.calls.some((args) => args[0] === "delete-keychain"));
+});
+
+test("keeps checksum authority optional for the initial macOS-only release", () => {
+  const input = fixture();
+  delete input.environment.FITFREED_RELEASE_PRIVATE_KEY;
+  delete input.environment.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD;
+
+  const result = installPublicReleaseAuthority(input.environment, {
+    repositoryPath: input.repositoryPath,
+    runSecurity: input.runSecurity,
+    createPassword: () => "e".repeat(64),
+  });
+
+  assert.equal(
+    existsSync(path.join(result.authorityDirectory, "release.key")),
+    false,
+  );
+  assert.doesNotMatch(
+    readFileSync(input.githubEnvironmentPath, "utf8"),
+    /FITFREED_RELEASE_PRIVATE_KEY_PATH/,
+  );
 });
 
 test("fails closed and removes materialized authority when identity inspection fails", () => {
@@ -151,6 +178,7 @@ test("rejects incomplete, malformed, or repository-contained authority inputs", 
     [(input) => { input.environment.FITFREED_APPLE_API_PRIVATE_KEY = "opaque"; }, /private key/],
     [(input) => { input.environment.RUNNER_TEMP = input.repositoryPath; }, /outside the repository/],
     [(input) => { input.environment.APPLE_API_ISSUER = "contains\nnewline"; }, /invalid/],
+    [(input) => { delete input.environment.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD; }, /release checksum authority/],
   ]) {
     const input = fixture();
     mutate(input);

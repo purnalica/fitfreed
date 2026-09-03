@@ -1,4 +1,4 @@
-name: Public macOS release
+name: Public macOS and Linux expansion
 
 on:
   workflow_dispatch:
@@ -11,6 +11,10 @@ on:
         description: Active stable update-signing key identifier
         required: true
         type: string
+      release_key_id:
+        description: Active release-checksum signing key identifier
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -21,7 +25,7 @@ concurrency:
 
 jobs:
   preflight:
-    name: Secret-free public release preflight
+    name: Secret-free platform-expansion preflight
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -30,7 +34,7 @@ jobs:
       pages: read
 
     steps:
-      - name: Check out the selected release tag
+      - name: Check out the selected expansion tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -45,16 +49,102 @@ jobs:
       - name: Install locked JavaScript dependencies
         run: npm ci
 
-      - name: Verify source, channel, hosted checks, Pages, and environment policy
+      - name: Verify source, predecessor, trust, checks, Pages, and environment policy
         env:
           GH_TOKEN: ${{ github.token }}
           FITFREED_VERSION: ${{ inputs.version }}
           FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
-        run: npm run preflight:public-release -- "$FITFREED_VERSION" "$FITFREED_UPDATE_KEY_ID"
+          FITFREED_RELEASE_KEY_ID: ${{ inputs.release_key_id }}
+        run: >-
+          npm run preflight:linux-expansion --
+          "$FITFREED_VERSION"
+          "$FITFREED_UPDATE_KEY_ID"
+          "$FITFREED_RELEASE_KEY_ID"
+
+  build-linux-input:
+    name: Build and seal the native Linux input
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    outputs:
+      linux-input-sha256: ${{ steps.transport.outputs.linux_input_sha256 }}
+      linux-input-revision: ${{ steps.prepare.outputs.linux_input_revision }}
+      linux-input-storage-schema: ${{ steps.prepare.outputs.linux_input_storage_schema }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the authorized expansion tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Linux package build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            pkg-config \
+            wget
+
+      - name: Verify the Linux development environment
+        run: npm run doctor
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Prepare the exact clean-installed Linux input
+        id: prepare
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_LINUX_INPUT: .artifacts/linux-expansion/input
+        run: >-
+          npm run prepare:linux-expansion-input --
+          "$FITFREED_VERSION"
+          "$FITFREED_LINUX_INPUT"
+
+      - name: Seal the exact Linux input for protected composition
+        id: transport
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ steps.prepare.outputs.linux_input_revision }}
+          FITFREED_STORAGE_SCHEMA: ${{ steps.prepare.outputs.linux_input_storage_schema }}
+          FITFREED_LINUX_INPUT: .artifacts/linux-expansion/input
+          FITFREED_LINUX_TRANSPORT: .artifacts/linux-expansion-transport/linux-input.tar.gz
+        run: >-
+          npm run pack:linux-expansion-input --
+          "$FITFREED_LINUX_INPUT"
+          "$FITFREED_LINUX_TRANSPORT"
+          "$FITFREED_VERSION"
+          "$FITFREED_REVISION"
+          "$FITFREED_STORAGE_SCHEMA"
+
+      - name: Retain only the sealed Linux input
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: public-linux-input-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/linux-expansion-transport/linux-input.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
 
   build-candidate:
-    name: Build the protected candidate
-    needs: preflight
+    name: Compose the protected complete-platform candidate
+    needs: [preflight, build-linux-input]
     runs-on: macos-15
     timeout-minutes: 75
     environment: public-macos-release
@@ -66,7 +156,7 @@ jobs:
       pages: read
 
     steps:
-      - name: Check out the authorized release tag
+      - name: Check out the authorized expansion tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -87,19 +177,47 @@ jobs:
       - name: Install the pinned release evidence tools
         run: npm run install:release-tools
 
-      - name: Repeat the secret-free preflight after approval
+      - name: Repeat the secret-free expansion preflight after approval
         env:
           GH_TOKEN: ${{ github.token }}
           FITFREED_VERSION: ${{ inputs.version }}
           FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
-        run: npm run preflight:public-release -- "$FITFREED_VERSION" "$FITFREED_UPDATE_KEY_ID"
+          FITFREED_RELEASE_KEY_ID: ${{ inputs.release_key_id }}
+        run: >-
+          npm run preflight:linux-expansion --
+          "$FITFREED_VERSION"
+          "$FITFREED_UPDATE_KEY_ID"
+          "$FITFREED_RELEASE_KEY_ID"
 
       - name: Require immutable GitHub Releases
         env:
           GH_TOKEN: ${{ secrets.FITFREED_GITHUB_ADMIN_READ_TOKEN }}
         run: npm run check:release-immutability
 
-      - name: Install ephemeral Apple and updater release authority
+      - name: Download only the sealed native Linux input
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-linux-input-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/linux-expansion-transport
+
+      - name: Verify and reopen the exact native Linux input
+        env:
+          FITFREED_LINUX_INPUT_SHA256: ${{ needs.build-linux-input.outputs.linux-input-sha256 }}
+          FITFREED_LINUX_TRANSPORT: .artifacts/linux-expansion-transport/linux-input.tar.gz
+          FITFREED_LINUX_INPUT: .artifacts/accepted-linux-input/${{ inputs.version }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ needs.build-linux-input.outputs.linux-input-revision }}
+          FITFREED_STORAGE_SCHEMA: ${{ needs.build-linux-input.outputs.linux-input-storage-schema }}
+        run: >-
+          npm run unpack:linux-expansion-input --
+          "$FITFREED_LINUX_TRANSPORT"
+          "$FITFREED_LINUX_INPUT_SHA256"
+          "$FITFREED_LINUX_INPUT"
+          "$FITFREED_VERSION"
+          "$FITFREED_REVISION"
+          "$FITFREED_STORAGE_SCHEMA"
+
+      - name: Install ephemeral Apple, updater, and checksum release authority
         env:
           FITFREED_APPLE_CERTIFICATE_BASE64: ${{ secrets.FITFREED_APPLE_CERTIFICATE_BASE64 }}
           FITFREED_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.FITFREED_APPLE_CERTIFICATE_PASSWORD }}
@@ -110,30 +228,37 @@ jobs:
           FITFREED_APPLE_API_PRIVATE_KEY: ${{ secrets.FITFREED_APPLE_API_PRIVATE_KEY }}
           FITFREED_UPDATER_PRIVATE_KEY: ${{ secrets.FITFREED_UPDATER_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FITFREED_RELEASE_PRIVATE_KEY: ${{ secrets.FITFREED_RELEASE_PRIVATE_KEY }}
+          FITFREED_RELEASE_PRIVATE_KEY_PASSWORD: ${{ secrets.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD }}
         run: npm run authority:public-release -- install
 
       - name: Define the stable-channel issuance time
         id: issuance
         run: node -e 'process.stdout.write("issued_at=" + new Date().toISOString() + "\n")' >> "$GITHUB_OUTPUT"
 
-      - name: Build and verify the signed notarized public candidate
+      - name: Build and verify the signed notarized complete-platform candidate
         env:
           FITFREED_VERSION: ${{ inputs.version }}
           FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
+          FITFREED_RELEASE_KEY_ID: ${{ inputs.release_key_id }}
           FITFREED_ISSUED_AT: ${{ steps.issuance.outputs.issued_at }}
+          FITFREED_LINUX_INPUT: .artifacts/accepted-linux-input/${{ inputs.version }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FITFREED_RELEASE_PRIVATE_KEY_PASSWORD: ${{ secrets.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD }}
         run: >-
-          npm run prepare:public-release --
+          npm run prepare:linux-expansion-release --
           "$FITFREED_VERSION"
           "$FITFREED_UPDATE_KEY_ID"
+          "$FITFREED_RELEASE_KEY_ID"
           "$FITFREED_ISSUED_AT"
+          "$FITFREED_LINUX_INPUT"
 
       - name: Reopen the complete local candidate
         env:
           FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
         run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
 
-      - name: Seal the candidate for independent evaluation and promotion
+      - name: Seal the complete candidate for independent evaluation and promotion
         id: transport
         env:
           FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
@@ -143,10 +268,10 @@ jobs:
           "$FITFREED_CANDIDATE"
           "$FITFREED_TRANSPORT"
 
-      - name: Retain the sealed candidate for evaluation
+      - name: Retain the sealed complete-platform candidate for evaluation
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: public-macos-candidate-${{ inputs.version }}-${{ github.sha }}
+          name: public-macos-linux-candidate-${{ inputs.version }}-${{ github.sha }}
           path: .artifacts/public-release-transport/candidate.tar.gz
           if-no-files-found: error
           compression-level: 0
@@ -157,7 +282,7 @@ jobs:
         run: npm run authority:public-release -- cleanup
 
   publish-candidate:
-    name: Promote the independently accepted candidate
+    name: Promote the independently accepted complete-platform candidate
     needs: build-candidate
     runs-on: macos-15
     timeout-minutes: 20
@@ -171,7 +296,7 @@ jobs:
       pages: read
 
     steps:
-      - name: Check out the accepted release tag
+      - name: Check out the accepted expansion tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -186,13 +311,13 @@ jobs:
       - name: Install locked JavaScript dependencies
         run: npm ci
 
-      - name: Download only the sealed candidate from this workflow run
+      - name: Download only the sealed complete candidate from this workflow run
         uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
-          name: public-macos-candidate-${{ inputs.version }}-${{ github.sha }}
+          name: public-macos-linux-candidate-${{ inputs.version }}-${{ github.sha }}
           path: .artifacts/public-release-transport
 
-      - name: Verify and reopen the independently accepted candidate
+      - name: Verify and reopen the independently accepted complete candidate
         env:
           FITFREED_CANDIDATE_SHA256: ${{ needs.build-candidate.outputs.candidate-sha256 }}
           FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
@@ -218,13 +343,18 @@ jobs:
         with:
           subject-path: .artifacts/accepted-public-release/${{ inputs.version }}/release/SHA256SUMS
 
-      - name: Upload the exact Pages deployment artifact
+      - name: Attest the detached checksum signature
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: .artifacts/accepted-public-release/${{ inputs.version }}/release/SHA256SUMS.minisig
+
+      - name: Upload the exact complete-platform Pages deployment artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: .artifacts/accepted-public-release/${{ inputs.version }}/pages
           retention-days: 1
 
-      - name: Publish the immutable GitHub Release
+      - name: Publish the immutable complete-platform GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
@@ -244,12 +374,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Deploy the exact Pages artifact
+      - name: Deploy the exact complete-platform Pages artifact
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
 
   verify-publication:
-    name: Verify public bytes and provenance remotely
+    name: Verify complete public bytes and provenance remotely
     needs: deploy-pages
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -259,7 +389,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Check out the authorized release tag
+      - name: Check out the authorized expansion tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -273,7 +403,7 @@ jobs:
       - name: Install locked JavaScript dependencies
         run: npm ci
 
-      - name: Verify the immutable Release and direct Pages snapshot
+      - name: Verify the immutable complete Release and direct Pages snapshot
         env:
           GH_TOKEN: ${{ github.token }}
           FITFREED_VERSION: ${{ inputs.version }}

@@ -12,7 +12,11 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { composePagesArtifact, relativeFiles } from "./pages-artifact.mjs";
+import {
+  composePagesArtifact,
+  relativeFiles,
+  verifyPagesArtifact,
+} from "./pages-artifact.mjs";
 import { publicUpdateUrl } from "./public-origin.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
@@ -38,6 +42,59 @@ function syntheticUpdateSnapshot(root) {
           sha256: sha256(packageBytes),
         },
       },
+    },
+  }));
+  writeFileSync(path.join(updateDirectory, "stable.json"), `${JSON.stringify({
+    fitfreed: { payloadBase64: payloadBytes.toString("base64") },
+  })}\n`);
+  return updateDirectory;
+}
+
+function syntheticExpandedUpdateSnapshot(root) {
+  const updateDirectory = path.join(root, "expanded-updates-source");
+  const version = "0.2.0";
+  const artifacts = [
+    {
+      bytes: Buffer.from("synthetic macOS updater package"),
+      name: `FitFreed_${version}_aarch64.app.tar.gz`,
+      target: "darwin-aarch64",
+      version,
+    },
+    {
+      bytes: Buffer.from("synthetic Linux updater package"),
+      name: `FitFreed_${version}_amd64.deb`,
+      target: "linux-x86_64-deb",
+      version,
+    },
+    {
+      bytes: Buffer.from("synthetic predecessor Linux package"),
+      name: "FitFreed_0.1.0_amd64.deb",
+      target: "linux-x86_64-deb",
+      version: "0.1.0",
+    },
+  ];
+  for (const artifact of artifacts) {
+    const directory = path.join(updateDirectory, artifact.version);
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(path.join(directory, artifact.name), artifact.bytes);
+  }
+  const current = artifacts.slice(0, 2);
+  const predecessor = artifacts[2];
+  const payloadBytes = Buffer.from(JSON.stringify({
+    release: {
+      version,
+      platforms: Object.fromEntries(current.map((artifact) => [artifact.target, {
+        url: publicUpdateUrl(`${artifact.version}/${artifact.name}`),
+        size: artifact.bytes.length,
+        sha256: sha256(artifact.bytes),
+      }])),
+      recoveryArtifacts: [{
+        version: predecessor.version,
+        target: predecessor.target,
+        url: publicUpdateUrl(`${predecessor.version}/${predecessor.name}`),
+        size: predecessor.bytes.length,
+        sha256: sha256(predecessor.bytes),
+      }],
     },
   }));
   writeFileSync(path.join(updateDirectory, "stable.json"), `${JSON.stringify({
@@ -117,6 +174,47 @@ test("preserves one complete digest-bound update snapshot and rejects partial in
       updateDirectory,
     }),
     /unexpected update snapshot file set/u,
+  );
+
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("preserves every current and recovery package in a platform expansion", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "fitfreed-pages-expansion-"));
+  const updateDirectory = syntheticExpandedUpdateSnapshot(root);
+  const outputDirectory = path.join(root, "pages");
+
+  const result = composePagesArtifact({ repositoryRoot, outputDirectory, updateDirectory });
+
+  assert.equal(result.updateSnapshot, "0.2.0");
+  assert.deepEqual(
+    relativeFiles(outputDirectory).filter((entry) => entry.startsWith(`updates${path.sep}`)),
+    [
+      "updates/0.1.0/FitFreed_0.1.0_amd64.deb",
+      "updates/0.2.0/FitFreed_0.2.0_aarch64.app.tar.gz",
+      "updates/0.2.0/FitFreed_0.2.0_amd64.deb",
+      "updates/stable.json",
+    ],
+  );
+
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("reopens the canonical product site and complete update snapshot", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "fitfreed-pages-reopening-"));
+  const updateDirectory = syntheticExpandedUpdateSnapshot(root);
+  const outputDirectory = path.join(root, "pages");
+  composePagesArtifact({ repositoryRoot, outputDirectory, updateDirectory });
+
+  const verified = verifyPagesArtifact({ repositoryRoot, pagesDirectory: outputDirectory });
+  assert.equal(verified.updateSnapshot, "0.2.0");
+  assert.equal(verified.productFileCount, 9);
+  assert.equal(verified.updateFileCount, 4);
+
+  writeFileSync(path.join(outputDirectory, "index.html"), "mutated product page");
+  assert.throws(
+    () => verifyPagesArtifact({ repositoryRoot, pagesDirectory: outputDirectory }),
+    /product file mismatch/,
   );
 
   rmSync(root, { recursive: true, force: true });

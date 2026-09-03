@@ -4,8 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
+import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
+import { verifySupportedPublicReleaseCandidate } from "./public-release-candidate-verification.mjs";
 import { sha256File } from "./release-evidence.mjs";
-import { verifyPublicReleaseCandidate } from "./verify-public-release.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sha256Pattern = /^[0-9a-f]{64}$/;
@@ -49,12 +50,17 @@ export function packPublicReleaseCandidate({
   candidateDirectory,
   archivePath,
   publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
   runCommand = defaultRun,
 }) {
   const candidate = path.resolve(candidateDirectory);
   const archive = path.resolve(archivePath);
   if (existsSync(archive)) throw new Error("public candidate transport archive already exists");
-  const verified = verifyPublicReleaseCandidate(candidate, publicUpdateConfiguration);
+  const { verified } = verifySupportedPublicReleaseCandidate({
+    candidateDirectory: candidate,
+    publicReleaseSigningConfiguration,
+    publicUpdateConfiguration,
+  });
   mkdirSync(path.dirname(archive), { recursive: true });
   try {
     runCommand("tar", ["-czf", archive, "-C", candidate, "release", "pages"]);
@@ -63,6 +69,7 @@ export function packPublicReleaseCandidate({
     return {
       version: verified.version,
       revision: verified.revision,
+      ...(verified.targets ? { targets: verified.targets } : {}),
       archiveSha256,
     };
   } catch (error) {
@@ -76,6 +83,7 @@ export function unpackPublicReleaseCandidate({
   expectedSha256,
   candidateDirectory,
   publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
   runCommand = defaultRun,
 }) {
   const archive = path.resolve(archivePath);
@@ -91,10 +99,15 @@ export function unpackPublicReleaseCandidate({
   mkdirSync(candidate, { recursive: true });
   try {
     runCommand("tar", ["-xzf", archive, "-C", candidate]);
-    const verified = verifyPublicReleaseCandidate(candidate, publicUpdateConfiguration);
+    const { verified } = verifySupportedPublicReleaseCandidate({
+      candidateDirectory: candidate,
+      publicReleaseSigningConfiguration,
+      publicUpdateConfiguration,
+    });
     return {
       version: verified.version,
       revision: verified.revision,
+      ...(verified.targets ? { targets: verified.targets } : {}),
       archiveSha256: expectedSha256,
     };
   } catch (error) {
@@ -113,11 +126,13 @@ function emitResult(result) {
 function main() {
   const [operation, firstPath, secondValue, thirdPath] = process.argv.slice(2);
   const configuration = loadPublicUpdateConfiguration(repositoryRoot);
+  const releaseSigningConfiguration = loadPublicReleaseSigningConfiguration(repositoryRoot);
   if (operation === "pack" && firstPath && secondValue && !thirdPath) {
     emitResult(packPublicReleaseCandidate({
       candidateDirectory: firstPath,
       archivePath: secondValue,
       publicUpdateConfiguration: configuration,
+      publicReleaseSigningConfiguration: releaseSigningConfiguration,
     }));
     return;
   }
@@ -127,6 +142,7 @@ function main() {
       expectedSha256: secondValue,
       candidateDirectory: thirdPath,
       publicUpdateConfiguration: configuration,
+      publicReleaseSigningConfiguration: releaseSigningConfiguration,
     }));
     return;
   }

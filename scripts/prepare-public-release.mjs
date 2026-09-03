@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
+import { composePagesArtifact } from "./pages-artifact.mjs";
 import {
   assertCleanRevision,
   copyUpgradeMatrix,
@@ -57,7 +58,7 @@ function run(command, args, options = {}) {
   })?.trim();
 }
 
-function outsideRepositoryFile(candidatePath, repositoryPath, label) {
+export function outsideRepositoryFile(candidatePath, repositoryPath, label) {
   if (typeof candidatePath !== "string" || !path.isAbsolute(candidatePath)) {
     throw new Error(`${label} must be an absolute file outside the repository`);
   }
@@ -271,6 +272,7 @@ function preparePublicRelease() {
   const finalDirectory = path.join(outputRoot, version);
   const releaseDirectory = path.join(stagingDirectory, "release");
   const pagesDirectory = path.join(stagingDirectory, "pages");
+  const updateStagingDirectory = path.join(stagingDirectory, "update-staging");
   rmSync(stagingDirectory, { recursive: true, force: true });
   mkdirSync(releaseDirectory, { recursive: true });
 
@@ -299,7 +301,7 @@ function preparePublicRelease() {
     );
 
     stageStableUpdateChannel({
-      outputDirectory: pagesDirectory,
+      outputDirectory: updateStagingDirectory,
       configuration,
       packages: [{
         packagePath: built.paths.updaterArchive,
@@ -318,6 +320,12 @@ function preparePublicRelease() {
       withdrawnVersions: policy.update.withdrawnVersions,
       signPayload: (payloadBytes) => signChannelPayload(payloadBytes, stagingDirectory),
     });
+    composePagesArtifact({
+      repositoryRoot,
+      outputDirectory: pagesDirectory,
+      updateDirectory: path.join(updateStagingDirectory, "updates"),
+    });
+    rmSync(updateStagingDirectory, { force: true, recursive: true });
     copyFileSync(
       path.join(pagesDirectory, "updates", "stable.json"),
       path.join(releaseDirectory, "stable.json"),

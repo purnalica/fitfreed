@@ -6958,41 +6958,58 @@ if (
   throw new Error("public update configuration schemas accepted another contract version");
 }
 
-const publicReleaseSigningConfigurationPath =
-  "docs/data-formats/release/public-release-signing-configuration-v1.md";
-const publicReleaseSigningConfiguration = read(publicReleaseSigningConfigurationPath);
-for (const field of [
-  "org.fitfreed.release-signing-configuration",
-  "schemaVersion",
-  "status",
-  "inactive",
-  "active",
-  "purpose",
-  "linux-release-checksums",
-  "algorithm",
-  "minisign-ed25519",
-  "keys.*.id",
-  "keys.*.publicKey",
-]) {
-  requireMention(
-    publicReleaseSigningConfiguration,
-    field,
-    publicReleaseSigningConfigurationPath,
-  );
-}
-const publicReleaseSigningConfigurationSchemaPath =
-  "schemas/public-release-signing-configuration-v1.schema.json";
-const validatePublicReleaseSigningConfiguration = ajv.compile(
-  JSON.parse(read(publicReleaseSigningConfigurationSchemaPath)),
-);
+const publicReleaseSigningContracts = [
+  {
+    documentationPath:
+      "docs/data-formats/release/public-release-signing-configuration-v1.md",
+    purpose: "linux-release-checksums",
+    schemaPath: "schemas/public-release-signing-configuration-v1.schema.json",
+  },
+  {
+    documentationPath:
+      "docs/data-formats/release/public-release-signing-configuration-v2.md",
+    purpose: "public-release-checksums",
+    schemaPath: "schemas/public-release-signing-configuration-v2.schema.json",
+  },
+];
+const publicReleaseSigningValidators = publicReleaseSigningContracts.map((contract) => {
+  const documentation = read(contract.documentationPath);
+  for (const field of [
+    "org.fitfreed.release-signing-configuration",
+    "schemaVersion",
+    "status",
+    "inactive",
+    "active",
+    "purpose",
+    contract.purpose,
+    "algorithm",
+    "minisign-ed25519",
+    "keys.*.id",
+    "keys.*.publicKey",
+  ]) requireMention(documentation, field, contract.documentationPath);
+  return ajv.compile(JSON.parse(read(contract.schemaPath)));
+});
 const canonicalPublicReleaseSigningConfiguration = JSON.parse(
   read("release/public-release-signing.json"),
 );
-if (!validatePublicReleaseSigningConfiguration(canonicalPublicReleaseSigningConfiguration)) {
+const syntheticLegacyPublicReleaseSigningConfiguration = {
+  ...canonicalPublicReleaseSigningConfiguration,
+  purpose: "linux-release-checksums",
+  schemaVersion: 1,
+};
+if (
+  !publicReleaseSigningValidators[0](syntheticLegacyPublicReleaseSigningConfiguration)
+  || !publicReleaseSigningValidators[1](canonicalPublicReleaseSigningConfiguration)
+) {
   throw new Error(
-    `${publicReleaseSigningConfigurationSchemaPath} rejected its canonical configuration: `
-      + ajv.errorsText(validatePublicReleaseSigningConfiguration.errors),
+    "a public release-signing configuration schema rejected its own contract",
   );
+}
+if (
+  publicReleaseSigningValidators[0](canonicalPublicReleaseSigningConfiguration)
+  || publicReleaseSigningValidators[1](syntheticLegacyPublicReleaseSigningConfiguration)
+) {
+  throw new Error("public release-signing schemas accepted another contract version");
 }
 
 const updateRecoveryPath = "docs/data-formats/release/update-recovery-v1.md";
@@ -10461,7 +10478,7 @@ for (const contractPath of [
   stableUpdateChannelPath,
   recoverableStableUpdateChannelPath,
   publicUpdateConfigurationPath,
-  publicReleaseSigningConfigurationPath,
+  ...publicReleaseSigningContracts.map(({ documentationPath }) => documentationPath),
   updateRecoveryPath,
   reportDefinitionCanonicalPath,
   reportDefinitionPortablePath,
@@ -10701,8 +10718,8 @@ process.stdout.write(
       publicUpdateConfigurationSchemaPath,
       recoverablePublicUpdateConfigurationSchemaPath,
     ],
-    publicReleaseSigningConfigurationSchema:
-      publicReleaseSigningConfigurationSchemaPath,
+    publicReleaseSigningConfigurationSchemas:
+      publicReleaseSigningContracts.map(({ schemaPath }) => schemaPath),
     updateRecoverySchemas: [updateRecoverySchemaPath, linuxUpdateRecoverySchemaPath],
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
     reportSchemas: [

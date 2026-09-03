@@ -64,6 +64,13 @@ mandatory signature for the exact Debian bytes. The wrapper changes the package 
 without changing their contents. An ordinary `package:linux` result remains installation evidence, not a signed public
 candidate.
 
+The first complete-platform expansion separates executable trust from private signing authority.
+`npm run package:linux-expansion-input` uses the same closed Debian boundary and embeds the active public `stable-v3`
+endpoint and updater trust in the executable, but it neither reads a private updater key nor asks Tauri to emit a
+signature. The secret-free Ubuntu job can therefore produce the exact update-capable Debian bytes before any protected
+environment is admitted. The protected composer later signs those unchanged bytes with the selected updater key. An
+ordinary `package:linux` result lacks this public-channel trust and cannot be substituted as an expansion input.
+
 The public stable-channel staging boundary accepts an explicit closed set of target packages. It derives the canonical
 name and direct URL for `darwin-aarch64` and `linux-x86_64-deb`, binds every package's size, digest, and updater
 signature into one signed payload, and mirrors that same complete target set for Tauri. Targets are sorted and unique;
@@ -75,6 +82,16 @@ the versioned public trust set, and cryptographically verifies both the metadata
 signature. It then binds the selected platform entry and Tauri compatibility mirror to the manifest's exact package
 name, bytes, digest, version, schema target, and canonical direct URL. Structural equality without valid signatures is
 not release evidence.
+
+The first platform expansion has two immutable transport boundaries. A publication-authority-free Ubuntu 24.04 job
+produces exactly the Debian package with active public `stable-v3` trust, its package inventory, and source/schema-bound
+build evidence, verifies clean native installation, then seals those three files and exposes their archive digest. The
+protected Apple Silicon
+composer reopens that digest and complete identity before receiving any private key. It builds current-version macOS
+bytes, signs the already verified Linux package, and emits one manifest version 6 set whose Release assets, checksums,
+stable-v3 targets, recovery packages, and Pages paths must be identical. The complete candidate is sealed again before
+the independent promotion approval; promotion has no signing authority and derives its expected GitHub provenance
+workflow from the immutable manifest version.
 
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
 image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
@@ -162,6 +179,6 @@ Secret-free preflight verifies the exact manual version tag and source revision,
 
 Each version has one reviewed [public release policy](../data-formats/release/public-release-policy-v1.md). It owns the monotonic channel sequence, matrix-derived minimum application version, localized update notes, and withdrawals. Issuance time, bounded expiry, and the selected key are supplied only by the protected release execution, so time-sensitive state and key rotation do not turn private credentials into versioned inputs.
 
-Protected preparation repeats preflight, removes stale generated bundle output, builds with path-based updater authority and one complete Apple notarization credential mode, then runs objective trust inspection before assembling evidence. The current ignored atomic candidate directory separates GitHub Release inputs from a minimal update snapshot; the ADR 0020 compositor must combine that verified snapshot with the exact tagged product site before it can become a deployable Pages artifact. Stable metadata is signed over exact payload bytes without placing the updater password on a command line. Checksums, inventories, and manifest digests cover the final signed and notarized bytes; local-path and secret scans run before the directory is promoted. No network publication occurs during preparation.
+Protected preparation repeats preflight, removes stale generated bundle output, builds with path-based updater authority and one complete Apple notarization credential mode, then runs objective trust inspection before assembling evidence. The ignored atomic candidate directory separates GitHub Release inputs from the deployable Pages artifact. The ADR 0020 compositor combines the verified update snapshot with the exact tagged localized product site before candidate verification, so a release cannot replace the site with an update-only tree. Stable metadata is signed over exact payload bytes without placing the updater password on a command line. Checksums, inventories, and manifest digests cover the final signed and notarized bytes; local-path and secret scans run before the directory is promoted. No network publication occurs during preparation.
 
-[ADR 0019](decisions/0019-separate-candidate-build-from-public-promotion.md) closes the hosted authority sequence. Exact-revision CI, repository safety, origin tag, protected-environment, and HTTPS Actions-backed Pages evidence must pass before the GitHub-hosted Apple Silicon runner receives authority. Private inputs are materialized outside the checkout in an ephemeral keychain and private files, and cleanup restores runner state. The build job cannot publish: it seals the verified candidate, records its transport digest, retains it for independent evaluation, and removes authority. A second protected approval admits only those exact reopened bytes to promotion without Apple or updater secrets. Every checksum subject and the checksum inventory receive source-bound GitHub attestations. The still-private Pages artifact is uploaded before the exact draft is published, and the GitHub Release must become immutable before Pages can replace the stable snapshot. Final verification downloads all public Release bytes, validates provenance against the exact workflow, tag, and revision, and accepts the direct no-redirect Pages objects only after both converge to their declared digests.
+[ADR 0019](decisions/0019-separate-candidate-build-from-public-promotion.md) closes the hosted authority sequence. Exact-revision CI, repository safety, origin tag, protected-environment, and HTTPS Actions-backed Pages evidence must pass before the GitHub-hosted Apple Silicon runner receives authority. Private inputs are materialized outside the checkout in an ephemeral keychain and private files, and cleanup restores runner state. The build job cannot publish: it seals the verified candidate, records its transport digest, retains it for independent evaluation, and removes authority. A second protected approval admits only those exact reopened bytes to promotion without Apple or updater secrets. Every checksum subject, the checksum inventory, and the detached platform-expansion checksum signature receive source-bound GitHub attestations. The still-private complete Pages artifact is uploaded before the exact draft is published, and the GitHub Release must become immutable before Pages can replace the stable snapshot. Final verification downloads all public Release bytes, validates provenance against the exact workflow, tag, and revision, and accepts every direct no-redirect product and update object only after the complete remote site converges to the tagged source and declared package digests.

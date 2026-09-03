@@ -97,6 +97,13 @@ export function decodeReleasePublicKey(publicKeyBase64) {
   return text.endsWith("\n") ? text : `${text}\n`;
 }
 
+export function releasePublicKeyFingerprint(publicKeyBase64) {
+  const publicKeyText = decodeReleasePublicKey(publicKeyBase64);
+  return createHash("sha256")
+    .update(publicKeyBytes(publicKeyText).subarray(10))
+    .digest("hex");
+}
+
 export function verifyMinisign({
   payload,
   publicKeyText,

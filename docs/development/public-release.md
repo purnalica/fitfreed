@@ -1,8 +1,8 @@
-# Public macOS Release
+# Public Release Architecture
 
 ## Current boundary
 
-Public release automation is deliberately inactive. The checked-in update configuration contains no production trust key, GitHub Pages and the `public-macos-release` environment are not configured, repository release immutability is disabled, and no Apple or updater signing credential is available. The documented command currently prepares the verified two-file update snapshot; ADR 0020 additionally requires the exact product site to be composed before Pages upload, and that implementation gate remains open. These are release gates, not reasons to weaken or bypass the workflow.
+Public binary release automation is deliberately inactive. The checked-in update and release-checksum configurations contain no production trust keys, the `public-macos-release` environment is not configured, and no Apple, updater, or release-checksum signing credential is available. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the canonical origin for the product site without an application download. These are release gates, not reasons to weaken or bypass either publication workflow.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -38,6 +38,11 @@ The protected environment defines these secrets:
 - `FITFREED_UPDATER_PRIVATE_KEY`; and
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 
+The first platform-expansion release additionally defines the distinct
+`FITFREED_RELEASE_PRIVATE_KEY` and `FITFREED_RELEASE_PRIVATE_KEY_PASSWORD` pair. That authority signs the complete
+platform-neutral `SHA256SUMS` set; it is not the updater key and cannot be supplied to the secret-free Linux build or
+the promotion job.
+
 It defines these non-secret variables:
 
 - `FITFREED_APPLE_SIGNING_IDENTITY_SHA1`;
@@ -62,21 +67,54 @@ Preparation deletes only the generated Tauri bundle directory before building, p
 The command creates one ignored atomic directory at `.artifacts/public-releases/<version>/` with two children:
 
 - `release/` contains the final application, DMG, updater archive and detached signature, stable envelope, CycloneDX inventories, upgrade matrix, reviewed release notes, public manifest version 3, and checksums; and
-- `pages/` contains only `updates/stable.json` and `updates/<version>/<updater-archive>` for a future Pages deployment.
+- `pages/` contains the exact localized product site plus `updates/stable.json` and
+  `updates/<version>/<updater-archive>` as one indivisible future Pages deployment.
 
 The stable envelope is signed over exact payload bytes with the same protected Tauri signing authority used for the updater archive. A seven-day validity window is derived from the explicit issuance time. All digests and checksums are generated from final signed and notarized bytes, then the complete staging tree passes local-path and secret scanning before atomic promotion. Preparation does not upload, attest, tag, release, or deploy anything.
 
-`npm run verify:public-release -- .artifacts/public-releases/<version>` independently reopens the closed manifest, every artifact, the compatibility matrix, checksum set, stable payload and envelope, configured key, updater signature binding, and the exact two-file Pages tree. It compares the Release and Pages copies byte for byte and rejects any missing, additional, renamed, or mutated subject. Preparation invokes this verifier before promotion; publication invokes it again after artifact transport.
+`npm run verify:public-release -- .artifacts/public-releases/<version>` independently selects the immutable manifest
+contract and reopens the closed target set, every artifact, compatibility matrix, checksum set, stable payload and
+envelope, configured trust keys, updater-signature bindings, and exact Pages tree. Manifest version 3 admits only the
+initial macOS set; manifest version 6 admits exactly `darwin-aarch64` plus `linux-x86_64-deb`. It compares Release and
+Pages copies byte for byte and rejects any missing, additional, renamed, cross-version, cross-target, or mutated
+subject. Preparation invokes this verifier before promotion; transport, publication, and remote acceptance invoke it
+again without reinterpreting an older manifest.
+
+## Platform-expansion preparation
+
+The first Linux publication is a new complete-platform release after an immutable public macOS predecessor, never a
+Linux asset appended to that predecessor. Its exact version is assigned only after the preceding Release exists.
+`release/upgrade-matrix.json` must then use the target-aware version 2 contract and identify that real predecessor and
+its `darwin-aarch64` target. The update configuration must activate recoverable `stable-v3`, while the separate
+release-signing configuration must activate the platform-neutral checksum key selected by the dispatch.
+
+`.github/workflows/public-linux-expansion.yml` first runs the same exact-tag, exact-CI, Pages, and protected-environment
+preflight and additionally queries the immutable predecessor Release and both active trust sets. A secret-free
+`ubuntu-24.04` job runs `npm run prepare:linux-expansion-input -- <version> <directory>`, producing only the unsigned
+Debian package, its complete package inventory, and source/schema-bound Linux build evidence after clean-container
+installation and removal. The package executable embeds the active public `stable-v3` endpoint and updater trust, but
+the build neither receives updater private-key material nor generates a signature. `npm run pack:linux-expansion-input`
+verifies those three files, seals them, and exposes the archive digest. No Apple, updater, checksum, environment, or
+publication authority reaches this job.
+
+After the first approval, the Apple Silicon job downloads only that run's named Linux artifact and runs
+`npm run unpack:linux-expansion-input -- <archive> <sha256> <directory> <version> <revision> <schema>`. Digest,
+archive layout, package, inventory, version, source revision, and storage schema must all agree before release
+authority is installed. `npm run prepare:linux-expansion-release` then builds fresh same-version signed and notarized
+macOS artifacts, copies the application with macOS metadata preservation, signs the exact Debian bytes with the
+updater key, signs the complete checksum inventory with the distinct release key, and composes one atomic manifest
+version 6 candidate and one complete stable-v3 Pages snapshot. A target present only in release evidence, Pages, or
+signed metadata is rejected.
 
 ## Sealed evaluation and protected publication
 
-`.github/workflows/public-release.yml` is the only versioned publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. Its concurrency group never cancels an active release.
+`.github/workflows/public-release.yml` is the initial macOS publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. The later `.github/workflows/public-linux-expansion.yml` entry point additionally accepts the public release-checksum key identifier and constructs the complete macOS-plus-Linux set described above. Both share one non-cancelling publication concurrency group.
 
 The first protected job has read-only repository permission. After local verification it seals only `release/` and `pages/` into one transport archive, records its SHA-256 digest, retains it for seven days as a private Actions artifact, and unconditionally removes Apple and updater authority. `npm run pack:public-release -- <candidate> <archive>` and `npm run unpack:public-release -- <archive> <sha256> <candidate>` verify the complete candidate on both sides of this boundary and reject mutation, additional roots, unsafe paths, partial extraction, or evidence drift.
 
 The publication job waits at the same environment for a second approval. While it waits, automation verifies the sealed candidate's functional and distribution behavior, and the product owner follows the bounded [macOS product-experience procedure](../testing/macos-candidate-manual-evaluation.md) on that same artifact. Promotion is rejected when the exact bytes did not pass, a serious finding remains open, or the seven-day signed metadata window expires. The second job receives no Apple or updater secret, downloads only the same run's named artifact, verifies its job-bound digest, and reopens the entire candidate before it can create a public effect.
 
-After that acceptance, GitHub creates provenance attestations for every file in `SHA256SUMS` and for the checksum file itself. The two-file Pages artifact is uploaded but remains private. `npm run publish:public-release -- <candidate>` then creates an exact draft without asset replacement, verifies its names, sizes, digests, notes, source-bound provenance, and tag, publishes it, and requires GitHub to report it as immutable. An existing public release is reusable only when every field and byte already agrees; drift fails rather than overwriting evidence.
+After that acceptance, GitHub creates provenance attestations for every file in `SHA256SUMS`, for the checksum file itself, and, on a platform expansion, for its detached checksum signature. The complete localized product-and-update Pages artifact is uploaded but remains private. `npm run publish:public-release -- <candidate>` then creates an exact draft without asset replacement, verifies its names, sizes, digests, notes, source-bound provenance, and tag, publishes it, and requires GitHub to report it as immutable. An existing public release is reusable only when every field and byte already agrees; drift fails rather than overwriting evidence.
 
 The Pages job runs only after immutable Release publication. This ordering preserves the previous complete application update snapshot when Release publication or Pages artifact upload fails. A subsequent secret-free job runs:
 
@@ -84,7 +122,7 @@ The Pages job runs only after immutable Release publication. This ordering prese
 npm run verify:remote-public-release -- <version> <revision>
 ```
 
-It downloads the exact Release assets, verifies their GitHub-linked attestations against this workflow, tag, and source revision, reopens the distributed manifest, checksums, inventories, matrix, notes, and signed channel, then fetches the direct stable envelope and updater archive with redirects disabled. Bounded polling tolerates Pages propagation only when both objects converge to the exact release sizes and SHA-256 digests. No Apple or updater authority reaches deployment or remote verification.
+It downloads the exact Release assets, verifies their GitHub-linked attestations against this workflow, tag, and source revision, reopens the distributed manifest, checksums, inventories, matrix, notes, and signed channel, then fetches every current and required recovery package plus every public product-site object with redirects disabled. Bounded polling tolerates Pages propagation only when the complete remote site converges to the exact release source, sizes, and SHA-256 digests. No Apple or updater authority reaches deployment or remote verification.
 
 The [operations runbook](public-release-operations.md) defines normal promotion, the exact-candidate handoff, draft cleanup authority, Release-before-Pages recovery, Pages containment, higher-sequence correction, withdrawal, key rotation, compromise, and incident communication. Rebuilding after immutable publication is never used as a substitute for the sealed bytes.
 

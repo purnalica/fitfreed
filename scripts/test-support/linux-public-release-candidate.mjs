@@ -56,7 +56,7 @@ function packageEntry(entryPath, mode = "0644") {
   };
 }
 
-function packageInventory(packageName, packageBytes, version) {
+export function createSyntheticLinuxPackageInventory(packageName, packageBytes, version) {
   return {
     format: "org.fitfreed.linux-package-inventory",
     schemaVersion: 1,
@@ -111,7 +111,7 @@ export function createLinuxPublicReleaseCandidateFixture({ withPredecessor = fal
   const inventoryName = linuxPackageInventoryName(version);
   writeFileSync(
     path.join(releaseDirectory, inventoryName),
-    `${JSON.stringify(packageInventory(linuxPackageName, linuxPackageBytes, version), null, 2)}\n`,
+    `${JSON.stringify(createSyntheticLinuxPackageInventory(linuxPackageName, linuxPackageBytes, version), null, 2)}\n`,
   );
 
   const macosPackageName = `FitFreed_${version}_aarch64.app.tar.gz`;

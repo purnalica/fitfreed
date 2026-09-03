@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { validateExpandingPublicReleaseManifest } from "./expanding-public-release-evidence.mjs";
 import { validateLinuxPackageInventory } from "./linux-package-inventory.mjs";
 import { validateLinuxPublicBuildEvidence } from "./linux-public-build-evidence.mjs";
+import { verifyPagesArtifact } from "./pages-artifact.mjs";
 import { publicUpdateUrl } from "./public-origin.mjs";
 import {
   loadPublicReleaseSigningConfiguration,
@@ -25,6 +26,7 @@ import { inspectArtifact, sha256File } from "./release-evidence.mjs";
 import { validateUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const checksumLine = /^([0-9a-f]{64})  ([^/]+)$/;
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const targetKinds = Object.freeze({
   "darwin-aarch64": {
     packageKind: "macos-updater-archive",
@@ -44,8 +46,9 @@ function onlyArtifact(manifest, kind) {
   return matches[0];
 }
 
-function verifyManifestArtifacts(releaseDirectory, manifest) {
+function verifyManifestArtifacts(releaseDirectory, manifest, includeApplication) {
   for (const expected of manifest.artifacts) {
+    if (!includeApplication && expected.kind === "macos-application-bundle") continue;
     const actual = inspectArtifact(releaseDirectory, expected.path, expected.kind);
     if (actual.size !== expected.size) throw new Error(`size mismatch: ${expected.path}`);
     if (actual.sha256 !== expected.sha256) throw new Error(`digest mismatch: ${expected.path}`);
@@ -132,7 +135,7 @@ function checksumEntries(releaseDirectory) {
   return entries;
 }
 
-function verifyChecksums(releaseDirectory, manifest) {
+function verifyChecksums(releaseDirectory, manifest, includeApplication) {
   const entries = checksumEntries(releaseDirectory);
   const expectedSubjects = [
     ...manifest.artifacts
@@ -150,7 +153,9 @@ function verifyChecksums(releaseDirectory, manifest) {
   }
 
   const expectedEntries = new Set([
-    ...manifest.artifacts.map(({ path: artifactPath }) => artifactPath),
+    ...manifest.artifacts
+      .filter(({ kind }) => includeApplication || kind !== "macos-application-bundle")
+      .map(({ path: artifactPath }) => artifactPath),
     "release-manifest.json",
     "SHA256SUMS",
     "SHA256SUMS.minisig",
@@ -159,8 +164,9 @@ function verifyChecksums(releaseDirectory, manifest) {
   if (
     actualEntries.length !== expectedEntries.size
     || actualEntries.some(({ name }) => !expectedEntries.has(name))
-    || actualEntries.some((entry) =>
-      entry.name === "FitFreed.app" ? !entry.isDirectory() : !entry.isFile())
+    || actualEntries.some((entry) => includeApplication && entry.name === "FitFreed.app"
+      ? !entry.isDirectory()
+      : !entry.isFile())
   ) {
     throw new Error("expanding public release contains an unexpected entry");
   }
@@ -179,20 +185,6 @@ function verifyReleaseSignature(releaseDirectory, manifest, signingConfiguration
     publicKeyText: decodeReleasePublicKey(trustedKey.publicKey),
     signatureText: readFileSync(path.join(releaseDirectory, "SHA256SUMS.minisig"), "utf8"),
   });
-}
-
-function relativeFiles(root) {
-  const files = [];
-  const visit = (directory) => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(entryPath);
-      else if (entry.isFile()) files.push(path.relative(root, entryPath));
-      else throw new Error(`unsupported expanding Pages entry: ${entry.name}`);
-    }
-  };
-  visit(root);
-  return files.sort((left, right) => left.localeCompare(right, "en"));
 }
 
 function verifyPagesSnapshot(
@@ -214,7 +206,6 @@ function verifyPagesSnapshot(
     ({ id }) => id === stable.envelope.fitfreed.keyId,
   );
   const publicKeyText = decodeReleasePublicKey(trustedKey.publicKey);
-  const expectedFiles = [path.join("updates", "stable.json")];
   for (const target of expectedTargets) {
     const evidence = stable.payload.release.platforms[target];
     const { packageKind } = targetKinds[target];
@@ -223,7 +214,6 @@ function verifyPagesSnapshot(
       throw new Error(`expanding Pages update URL is not canonical: ${target}`);
     }
     const relativePath = path.join("updates", manifest.release.version, packageArtifact.path);
-    expectedFiles.push(relativePath);
     const packagePath = path.join(pagesDirectory, relativePath);
     const bytes = readFileSync(packagePath);
     if (
@@ -247,7 +237,6 @@ function verifyPagesSnapshot(
       );
     }
     const relativePath = path.join("updates", evidence.version, filename);
-    expectedFiles.push(relativePath);
     const bytes = readFileSync(path.join(pagesDirectory, relativePath));
     if (bytes.length !== evidence.size || sha256File(path.join(pagesDirectory, relativePath)) !== evidence.sha256) {
       throw new Error(
@@ -260,9 +249,9 @@ function verifyPagesSnapshot(
       signatureText: decodeTauriSignatureText(evidence.tauriSignature),
     });
   }
-  expectedFiles.sort((left, right) => left.localeCompare(right, "en"));
-  if (JSON.stringify(relativeFiles(pagesDirectory)) !== JSON.stringify(expectedFiles)) {
-    throw new Error("expanding Pages staging contains an unexpected public file set");
+  const pages = verifyPagesArtifact({ repositoryRoot, pagesDirectory });
+  if (pages.updateSnapshot !== manifest.release.version) {
+    throw new Error("expanding Pages update version does not match release evidence");
   }
   if (
     sha256File(path.join(releaseDirectory, "stable.json"))
@@ -272,23 +261,22 @@ function verifyPagesSnapshot(
   }
 }
 
-export function verifyExpandingPublicReleaseCandidate(
-  candidateDirectory,
+function verifyExpandingPublicRelease(
+  releaseDirectory,
+  pagesDirectory,
   publicUpdateConfiguration,
   publicReleaseSigningConfiguration,
+  includeApplication,
 ) {
-  const root = path.resolve(candidateDirectory);
-  const releaseDirectory = path.join(root, "release");
-  const pagesDirectory = path.join(root, "pages");
   const updateConfiguration = validatePublicUpdateConfiguration(publicUpdateConfiguration);
   if (updateConfiguration.status !== "active") throw new Error("public update channel is inactive");
   const manifest = validateExpandingPublicReleaseManifest(JSON.parse(
     readFileSync(path.join(releaseDirectory, "release-manifest.json"), "utf8"),
   ));
   verifyLinuxEvidence(releaseDirectory, manifest);
-  verifyManifestArtifacts(releaseDirectory, manifest);
+  verifyManifestArtifacts(releaseDirectory, manifest, includeApplication);
   const upgradeMatrix = verifyUpgradeMatrix(releaseDirectory, manifest);
-  verifyChecksums(releaseDirectory, manifest);
+  verifyChecksums(releaseDirectory, manifest, includeApplication);
   verifyReleaseSignature(releaseDirectory, manifest, publicReleaseSigningConfiguration);
 
   let stable;
@@ -322,6 +310,36 @@ export function verifyExpandingPublicReleaseCandidate(
     updateSequence: manifest.update.sequence,
     version: manifest.release.version,
   };
+}
+
+export function verifyExpandingPublicReleaseCandidate(
+  candidateDirectory,
+  publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
+) {
+  const root = path.resolve(candidateDirectory);
+  return verifyExpandingPublicRelease(
+    path.join(root, "release"),
+    path.join(root, "pages"),
+    publicUpdateConfiguration,
+    publicReleaseSigningConfiguration,
+    true,
+  );
+}
+
+export function verifyExpandingPublicReleaseDistribution(
+  releaseDirectory,
+  pagesDirectory,
+  publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
+) {
+  return verifyExpandingPublicRelease(
+    path.resolve(releaseDirectory),
+    path.resolve(pagesDirectory),
+    publicUpdateConfiguration,
+    publicReleaseSigningConfiguration,
+    false,
+  );
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

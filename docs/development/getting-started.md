@@ -46,7 +46,11 @@ npm run test:fast
 | Verify live presentation, locale, style, test, and script ownership | `npm run check:presentation-inventory` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Verify pinned updater source and provenance | `npm run check:vendored-updater` |
-| Verify GitHub workflow syntax and public-release policy | `npm run check:workflows && npm run check:public-release-workflow` |
+| Verify GitHub workflow syntax and both public-release policies | `npm run check:workflows && npm run check:public-release-workflow && npm run check:public-linux-expansion-workflow` |
+| Build the unsigned update-capable Debian input on x86-64 Linux | `npm run package:linux-expansion-input` |
+| Build the exact secret-free Linux expansion input | `npm run prepare:linux-expansion-input -- <version> <directory>` |
+| Seal an exact Linux expansion input | `npm run pack:linux-expansion-input -- <input> <archive> <version> <revision> <schema>` |
+| Reopen a digest-bound Linux expansion input | `npm run unpack:linux-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema>` |
 | Seal a verified public candidate for protected handoff | `npm run pack:public-release -- <candidate-directory> <archive>` |
 | Reopen an exact digest-bound public candidate | `npm run unpack:public-release -- <archive> <sha256> <candidate-directory>` |
 | Run presentation tests | `npm test` |
@@ -101,6 +105,12 @@ temporary directory and fails unless its artifact name, `fitfreed` Debian contro
 dependencies, executable permissions, `usr/share/applications/fitfreed.desktop` entry and visible name, icons, and
 installed GPL text agree. Neither command constitutes an accepted or public Linux release until the remaining
 Milestone 4 installation, trust, recovery, parity, and exact-candidate gates pass.
+
+`npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same
+Debian package contract but requires active recoverable `stable-v3` configuration and embeds only that channel's public
+endpoint and updater trust in the executable. It receives no private updater key or password and emits no signature;
+the protected composer signs those exact package bytes after the native input has been verified and digest-sealed.
+This distinction prevents a normal engineering package without public-channel trust from entering the expansion.
 
 `npm run inventory:linux-package` reopens the same exact `.deb` and writes
 `FitFreed_<version>_amd64.deb.inventory.json` beside it only after the complete schema, target, control, path, digest,

@@ -1,7 +1,8 @@
-import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { composePagesArtifact } from "../pages-artifact.mjs";
 import { createPublicReleaseManifest } from "../public-release-evidence.mjs";
 import { publicUpdateEndpoint } from "../public-origin.mjs";
 import { stageStableUpdateChannel } from "../public-update-staging.mjs";
@@ -9,6 +10,7 @@ import { inspectArtifact, renderChecksumFile } from "../release-evidence.mjs";
 import { createSyntheticMinisignAuthority } from "./minisign.mjs";
 
 const signingAuthority = createSyntheticMinisignAuthority();
+const repositoryRoot = path.resolve(import.meta.dirname, "../..");
 
 export const publicUpdateConfiguration = {
   format: "org.fitfreed.public-update-configuration",
@@ -28,6 +30,7 @@ export function createPublicReleaseCandidateFixture() {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-public-candidate-"));
   const releaseDirectory = path.join(root, "release");
   const pagesDirectory = path.join(root, "pages");
+  const updateStagingDirectory = path.join(root, "update-staging");
   mkdirSync(path.join(releaseDirectory, "FitFreed.app", "Contents"), { recursive: true });
   writeFileSync(
     path.join(releaseDirectory, "FitFreed.app", "Contents", "synthetic"),
@@ -55,7 +58,7 @@ export function createPublicReleaseCandidateFixture() {
   }
   const updaterPath = path.join(releaseDirectory, "FitFreed_0.1.0_aarch64.app.tar.gz");
   stageStableUpdateChannel({
-    outputDirectory: pagesDirectory,
+    outputDirectory: updateStagingDirectory,
     configuration: publicUpdateConfiguration,
     packages: [{
       packagePath: updaterPath,
@@ -79,6 +82,12 @@ export function createPublicReleaseCandidateFixture() {
     withdrawnVersions: [],
     signPayload: (payload) => signingAuthority.signTauri(payload, "stable-payload.json"),
   });
+  composePagesArtifact({
+    repositoryRoot,
+    outputDirectory: pagesDirectory,
+    updateDirectory: path.join(updateStagingDirectory, "updates"),
+  });
+  rmSync(updateStagingDirectory, { force: true, recursive: true });
   copyFileSync(
     path.join(pagesDirectory, "updates", "stable.json"),
     path.join(releaseDirectory, "stable.json"),

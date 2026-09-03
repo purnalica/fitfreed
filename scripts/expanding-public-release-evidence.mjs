@@ -7,6 +7,7 @@ import addFormats from "ajv-formats";
 import { expectedLinuxDebianArtifactName } from "./linux-package-contract.mjs";
 import { linuxPackageInventoryName } from "./linux-package-inventory.mjs";
 import { publicUpdateEndpoint } from "./public-origin.mjs";
+import { validateReviewedReleaseNotes } from "./release-notes.mjs";
 
 const semanticVersion =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -224,6 +225,27 @@ export function createLinuxExpansionReleaseManifest({
   };
   validateExpandingPublicReleaseManifest(manifest);
   return manifest;
+}
+
+export function renderLinuxExpansionReleaseNotes({
+  revision: sourceRevision,
+  storageSchemaVersion,
+  version,
+}, reviewedNotes) {
+  const validatedNotes = validateReviewedReleaseNotes(reviewedNotes);
+  return `# FitFreed ${version}
+
+Source revision: \`${sourceRevision}\`
+Targets: Apple Silicon macOS and x86-64 Ubuntu Desktop
+Storage schema: ${storageSchemaVersion}
+Compatibility matrix: \`supported-upgrades.json\`
+Update channel: authenticated \`stable-v3\`
+
+The macOS application and disk image are Developer ID signed and Apple notarized. The Linux Debian package has no
+selected platform-native signature. Verify \`SHA256SUMS\`, \`SHA256SUMS.minisig\`, and the GitHub artifact attestations
+before installation. FitFreed is distributed without warranty under the project disclaimer.
+
+${validatedNotes}`;
 }
 
 export function validateExpandingPublicReleaseManifest(manifest) {

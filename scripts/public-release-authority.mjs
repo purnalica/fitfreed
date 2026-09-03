@@ -142,11 +142,21 @@ export function installPublicReleaseAuthority(environment, options = {}) {
   );
   const updaterPrivateKey = requiredValue(environment, "FITFREED_UPDATER_PRIVATE_KEY");
   requiredValue(environment, "TAURI_SIGNING_PRIVATE_KEY_PASSWORD");
+  const releasePrivateKey = environment.FITFREED_RELEASE_PRIVATE_KEY;
+  const releasePrivateKeyPassword = environment.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD;
+  if ((releasePrivateKey === undefined) !== (releasePrivateKeyPassword === undefined)) {
+    throw new Error("release checksum authority and password must be provided together");
+  }
+  if (releasePrivateKey !== undefined) {
+    requiredValue(environment, "FITFREED_RELEASE_PRIVATE_KEY");
+    requiredValue(environment, "FITFREED_RELEASE_PRIVATE_KEY_PASSWORD");
+  }
 
   const authorityDirectory = path.join(runnerTemp, authorityDirectoryName);
   const certificatePath = path.join(authorityDirectory, "developer-id.p12");
   const apiKeyPath = path.join(authorityDirectory, `AuthKey_${apiKey}.p8`);
   const updaterKeyPath = path.join(authorityDirectory, "updater.key");
+  const releaseKeyPath = path.join(authorityDirectory, "release.key");
   const keychainPath = path.join(authorityDirectory, "release.keychain-db");
   const statePath = path.join(authorityDirectory, "state.json");
   const keychainPassword = createPassword();
@@ -169,8 +179,17 @@ export function installPublicReleaseAuthority(environment, options = {}) {
     writeFileSync(certificatePath, certificate, { mode: 0o600 });
     writeFileSync(apiKeyPath, apiPrivateKey, { mode: 0o600 });
     writeFileSync(updaterKeyPath, updaterPrivateKey, { mode: 0o600 });
+    if (releasePrivateKey !== undefined) {
+      writeFileSync(releaseKeyPath, releasePrivateKey, { mode: 0o600 });
+    }
     writeFileSync(statePath, `${JSON.stringify(state)}\n`, { mode: 0o600 });
-    for (const file of [certificatePath, apiKeyPath, updaterKeyPath, statePath]) chmodSync(file, 0o600);
+    for (const file of [
+      certificatePath,
+      apiKeyPath,
+      updaterKeyPath,
+      ...(releasePrivateKey === undefined ? [] : [releaseKeyPath]),
+      statePath,
+    ]) chmodSync(file, 0o600);
 
     runSecurity(["create-keychain", "-p", keychainPassword, keychainPath]);
     runSecurity(["set-keychain-settings", "-lut", "21600", keychainPath]);
@@ -222,6 +241,9 @@ export function installPublicReleaseAuthority(environment, options = {}) {
       ["APPLE_API_KEY", apiKey],
       ["APPLE_API_KEY_PATH", apiKeyPath],
       ["TAURI_SIGNING_PRIVATE_KEY_PATH", updaterKeyPath],
+      ...(releasePrivateKey === undefined
+        ? []
+        : [["FITFREED_RELEASE_PRIVATE_KEY_PATH", releaseKeyPath]]),
     ];
     appendFileSync(
       githubEnvironmentPath,

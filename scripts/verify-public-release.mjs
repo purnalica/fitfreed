@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { verifyPagesArtifact } from "./pages-artifact.mjs";
 import { validatePublicReleaseManifest } from "./public-release-evidence.mjs";
 import {
   loadPublicUpdateConfiguration,
@@ -12,6 +13,7 @@ import { inspectArtifact, sha256File } from "./release-evidence.mjs";
 import { validateUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const checksumLine = /^([0-9a-f]{64})  ([^/]+)$/;
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function verifyManifestArtifacts(releaseDirectory, manifest, errors, requireApplication) {
   for (const expected of manifest.artifacts) {
@@ -115,20 +117,6 @@ function verifyStableUpdate(releaseDirectory, manifest, configuration, errors) {
   }
 }
 
-function relativeFiles(root) {
-  const files = [];
-  const visit = (directory) => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(entryPath);
-      else if (entry.isFile()) files.push(path.relative(root, entryPath));
-      else throw new Error(`unsupported public candidate entry: ${entry.name}`);
-    }
-  };
-  visit(root);
-  return files.sort((left, right) => left.localeCompare(right, "en"));
-}
-
 function verifyPublicReleaseDirectories(
   releaseDirectory,
   pagesDirectory,
@@ -148,14 +136,7 @@ function verifyPublicReleaseDirectories(
   verifyStableUpdate(releaseDirectory, manifest, configuration, errors);
 
   const archive = manifest.artifacts.find(({ kind }) => kind === "macos-updater-archive");
-  const expectedPagesFiles = [
-    path.join("updates", manifest.release.version, archive.path),
-    path.join("updates", "stable.json"),
-  ].sort((left, right) => left.localeCompare(right, "en"));
   try {
-    if (JSON.stringify(relativeFiles(pagesDirectory)) !== JSON.stringify(expectedPagesFiles)) {
-      errors.push("Pages staging contains an unexpected public file set");
-    }
     for (const [releaseName, pagesName] of [
       [archive.path, path.join("updates", manifest.release.version, archive.path)],
       ["stable.json", path.join("updates", "stable.json")],
@@ -163,6 +144,10 @@ function verifyPublicReleaseDirectories(
       const releaseDigest = sha256File(path.join(releaseDirectory, releaseName));
       const pagesDigest = sha256File(path.join(pagesDirectory, pagesName));
       if (releaseDigest !== pagesDigest) errors.push(`Pages byte mismatch: ${pagesName}`);
+    }
+    const pages = verifyPagesArtifact({ repositoryRoot, pagesDirectory });
+    if (pages.updateSnapshot !== manifest.release.version) {
+      errors.push("Pages update version does not match the public release");
     }
   } catch (error) {
     errors.push(`invalid Pages staging: ${error.message}`);
@@ -213,7 +198,6 @@ if (isMain) {
     if (!candidateDirectory) {
       throw new Error("usage: node scripts/verify-public-release.mjs <candidate-directory>");
     }
-    const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
     const configuration = loadPublicUpdateConfiguration(repositoryRoot);
     process.stdout.write(
       `${JSON.stringify(verifyPublicReleaseCandidate(candidateDirectory, configuration))}\n`,

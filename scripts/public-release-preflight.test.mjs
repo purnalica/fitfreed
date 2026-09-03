@@ -219,6 +219,20 @@ test("accepts only one exact manually dispatched tag and trusted update key", ()
   });
 });
 
+test("admits the recoverable contract only when explicitly required by an expansion", () => {
+  const input = invocation();
+  input.expectedUpdateContract = "stable-v3";
+  input.publicUpdateConfiguration.contract = "stable-v3";
+  assert.deepEqual(validatePublicReleaseInvocation(input), {
+    version: "0.1.0",
+    revision: "a".repeat(40),
+    tag: "v0.1.0",
+    updateContract: "stable-v3",
+    updateKeyId: "stable-2026-1",
+    protectedEnvironment: "public-macos-release",
+  });
+});
+
 test("rejects every route that bypasses exact source, active trust, or manual authority", () => {
   for (const [mutate, expected] of [
     [(input) => { input.eventName = "push"; }, /manually dispatched/],

@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-This is the maintainer runbook for the FitFreed public macOS channel. The workflow is implemented but deliberately inactive. It becomes operative only after the [public-release readiness ledger](../testing/public-release-readiness.md) records the production trust roots and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
+This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The workflows are implemented but deliberately inactive. One becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
 
 Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
 
@@ -24,6 +24,9 @@ Apply these boundaries:
 - Export the Developer ID Application identity as the minimum password-protected certificate bundle needed by the runner. Keep the long-lived source copy outside GitHub and test its recovery procedure independently.
 - Scope the App Store Connect API key to notarization work. Never use a personal Apple ID password in the workflow.
 - Generate the updater key independently of the Apple identity. Store its private key and password separately where practical; commit only an explicitly reviewed public key and identifier.
+- Generate the platform-neutral release-checksum key independently of the updater and Apple identities. It first enters
+  the Linux expansion as `FITFREED_RELEASE_PRIVATE_KEY` with
+  `FITFREED_RELEASE_PRIVATE_KEY_PASSWORD`; only its reviewed public key and identifier belong in the repository.
 - Give `FITFREED_GITHUB_ADMIN_READ_TOKEN` only repository Administration read access. The workflow's short-lived `GITHUB_TOKEN` owns publication writes.
 - Never place authority in repository secrets when the protected environment can own it, and never expose a private input to preflight, promotion, Pages, remote verification, caches, or retained artifacts.
 - Review access after a maintainer change, suspected compromise, Apple or GitHub policy change, and every planned key rotation.
@@ -54,7 +57,36 @@ Before creating a release tag:
 5. Run the complete local gates and wait for successful `push` runs of both `ci.yml` and `repository-safety.yml` on the exact source revision.
 6. Create and push the exact `v<version>` tag only with separate authorization and public-safe Git metadata. Do not move or reuse a published release tag.
 
-The workflow must be dispatched while the selected GitHub ref is that tag. Inputs are only the semantic version and active public updater-key identifier.
+The workflow must be dispatched while the selected GitHub ref is that tag. The initial macOS workflow inputs are only
+the semantic version and active public updater-key identifier. A complete-platform expansion additionally supplies the
+active public release-checksum key identifier; private key material is never a dispatch input.
+
+### Complete-platform expansion input
+
+Do not dispatch `.github/workflows/public-linux-expansion.yml` until the preceding macOS GitHub Release is public and
+immutable and the next version has been assigned. The target-aware upgrade matrix must identify that exact baseline
+with `darwin-aarch64`; secret-free preflight queries the corresponding GitHub Release and rejects an absent, draft,
+prerelease, mutable, or differently tagged record. The same preflight requires active recoverable `stable-v3` updater
+trust and active platform-neutral release-checksum trust containing the two selected public key identifiers.
+
+`build-linux-input` runs outside every protected environment on Ubuntu 24.04. It audits dependencies, builds the exact
+Debian package with the active public `stable-v3` endpoint and updater trust embedded, creates its complete inventory
+and source/schema-bound build evidence, verifies clean-container installation and removal, and permits no other output.
+This job receives no updater private key or password and produces no updater signature. It then seals those three files
+into `linux-input.tar.gz`, records the archive SHA-256 as a job output, and uploads only that archive for one day. A
+successful job means “native input available for composition,” not “Linux candidate signed, accepted, or published.”
+
+The first protected approval admits the Apple Silicon composer. Before installing authority, it downloads only the
+same run's named Linux input, verifies the job-bound archive digest, rejects unsafe or additional entries, and reopens
+the package, inventory, version, source revision, and storage schema. It then receives distinct Apple, updater, and
+release-checksum authority, builds fresh same-version macOS artifacts, signs the exact Linux package, and creates one
+manifest version 6 candidate. The complete Release set and the complete stable-v3 Pages set must both contain macOS
+and Linux; no per-platform partial snapshot is promotable.
+
+The resulting `public-macos-linux-candidate-<version>-<revision>` archive follows the same independent second-approval,
+exact reopening, attestation, immutable Release, Release-before-Pages, and remote-acceptance rules as the initial
+macOS candidate. Provenance verification requires the expansion workflow for manifest version 6 and the initial
+workflow for manifest version 3; evidence from one cannot satisfy the other.
 
 ## Build approval and sealed candidate
 
@@ -83,13 +115,13 @@ The second environment approval is the irreversible publication decision for the
 
 Promotion then:
 
-1. creates source-bound GitHub build-provenance attestations for every regular release asset and `SHA256SUMS`;
-2. uploads the two-file Pages snapshot as a still-private deployment artifact;
+1. creates source-bound GitHub build-provenance attestations for every regular release asset, `SHA256SUMS`, and the detached platform-expansion checksum signature;
+2. uploads the complete localized product-and-update Pages snapshot as a still-private deployment artifact;
 3. creates or validates an exact GitHub draft without replacing an asset;
 4. verifies tag, title, notes, names, sizes, digests, provenance, and source identity;
 5. publishes the draft and requires GitHub to report the Release as immutable;
 6. deploys the already uploaded Pages artifact only after immutable Release publication; and
-7. downloads and re-verifies the public Release, release-linked assets, source-bound provenance, direct non-redirecting stable envelope, and exact updater bytes.
+7. downloads and re-verifies the public Release, release-linked assets, source-bound provenance, every exact product-site object, the direct non-redirecting stable envelope, and all required current and recovery updater bytes.
 
 The run is accepted only when `verify-publication` succeeds. Record the immutable workflow URL, version, source revision, Release URL, Pages deployment, product-experience result, and final readiness decision. Never record tokens, private identities, local paths, participant data, or raw notarization credentials.
 

@@ -3,12 +3,14 @@ import {
   copyFileSync,
   cpSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -83,42 +85,60 @@ function validateUpdateSnapshot(updateDirectory) {
     throw new Error("update snapshot payload is not canonical base64");
   }
   const payload = JSON.parse(payloadBytes);
+  const releaseVersion = payload?.release?.version;
   const platforms = Object.values(payload?.release?.platforms ?? {});
-  if (platforms.length !== 1) {
-    throw new Error("update snapshot must describe exactly one platform package");
+  const recoveryArtifacts = payload?.release?.recoveryArtifacts ?? [];
+  if (platforms.length < 1) {
+    throw new Error("update snapshot must describe at least one platform package");
   }
-  const artifact = platforms[0];
-  const artifactUrl = new URL(artifact.url);
-  if (artifactUrl.origin !== pagesOrigin || !artifactUrl.pathname.startsWith(pagesUpdatePrefix)) {
-    throw new Error("update snapshot package URL is outside the canonical Pages origin");
+  if (!Array.isArray(recoveryArtifacts)) {
+    throw new Error("update snapshot recovery packages are invalid");
   }
-  const packagePath = decodeURIComponent(artifactUrl.pathname.slice(pagesUpdatePrefix.length));
-  if (
-    packagePath.length === 0
-    || path.posix.normalize(packagePath) !== packagePath
-    || packagePath.startsWith("../")
-    || path.isAbsolute(packagePath)
-  ) {
-    throw new Error("update snapshot package path is unsafe");
+  const packagePaths = new Set();
+  for (const { artifact, expectedVersion } of [
+    ...platforms.map((artifact) => ({ artifact, expectedVersion: releaseVersion })),
+    ...recoveryArtifacts.map((artifact) => ({ artifact, expectedVersion: artifact.version })),
+  ]) {
+    const artifactUrl = new URL(artifact.url);
+    if (artifactUrl.origin !== pagesOrigin || !artifactUrl.pathname.startsWith(pagesUpdatePrefix)) {
+      throw new Error("update snapshot package URL is outside the canonical Pages origin");
+    }
+    const packagePath = decodeURIComponent(artifactUrl.pathname.slice(pagesUpdatePrefix.length));
+    if (
+      packagePath.length === 0
+      || path.posix.normalize(packagePath) !== packagePath
+      || packagePath.startsWith("../")
+      || path.posix.isAbsolute(packagePath)
+    ) {
+      throw new Error("update snapshot package path is unsafe");
+    }
+    if (
+      typeof expectedVersion !== "string"
+      || expectedVersion.length === 0
+      || packagePath.split("/")[0] !== expectedVersion
+    ) {
+      throw new Error("update snapshot version directory does not match its payload");
+    }
+    if (artifact.url !== publicUpdateUrl(packagePath)) {
+      throw new Error("update snapshot package URL is not canonical");
+    }
+    if (packagePaths.has(packagePath)) {
+      throw new Error("update snapshot package path is duplicated");
+    }
+    packagePaths.add(packagePath);
+    const packageBytes = readFileSync(path.join(updateDirectory, ...packagePath.split("/")));
+    if (
+      packageBytes.length !== artifact.size
+      || sha256(packageBytes) !== artifact.sha256
+    ) {
+      throw new Error("update snapshot package does not match its payload");
+    }
   }
-  const packageBytes = readFileSync(path.join(updateDirectory, ...packagePath.split("/")));
-  if (
-    packageBytes.length !== artifact.size
-    || sha256(packageBytes) !== artifact.sha256
-  ) {
-    throw new Error("update snapshot package does not match its payload");
-  }
-  const expectedFiles = ["stable.json", packagePath].sort();
+  const expectedFiles = ["stable.json", ...packagePaths].sort();
   if (JSON.stringify(relativeFiles(updateDirectory)) !== JSON.stringify(expectedFiles)) {
     throw new Error("unexpected update snapshot file set");
   }
-  if (payload.release.version !== packagePath.split("/")[0]) {
-    throw new Error("update snapshot version directory does not match its payload");
-  }
-  if (artifact.url !== publicUpdateUrl(packagePath)) {
-    throw new Error("update snapshot package URL is not canonical");
-  }
-  return payload.release.version;
+  return releaseVersion;
 }
 
 function assertSafeOutput(outputDirectory) {
@@ -182,6 +202,51 @@ export function composePagesArtifact({
     outputDirectory: resolvedOutput,
     updateSnapshot,
   };
+}
+
+export function verifyPagesArtifact({ repositoryRoot, pagesDirectory }) {
+  const resolvedRoot = path.resolve(repositoryRoot);
+  const resolvedPages = path.resolve(pagesDirectory);
+  const temporaryRoot = mkdtempSync(path.join(tmpdir(), "fitfreed-pages-verification-"));
+  const expectedProductDirectory = path.join(temporaryRoot, "product");
+  try {
+    composePagesArtifact({
+      repositoryRoot: resolvedRoot,
+      outputDirectory: expectedProductDirectory,
+    });
+    const expectedProductFiles = relativeFiles(expectedProductDirectory);
+    const actualFiles = relativeFiles(resolvedPages);
+    const actualProductFiles = actualFiles.filter(
+      (entry) => !entry.startsWith(`updates${path.sep}`),
+    );
+    if (JSON.stringify(actualProductFiles) !== JSON.stringify(expectedProductFiles)) {
+      throw new Error("Pages product file set does not match the canonical site");
+    }
+    for (const filename of expectedProductFiles) {
+      if (!readFileSync(path.join(resolvedPages, filename)).equals(
+        readFileSync(path.join(expectedProductDirectory, filename)),
+      )) {
+        throw new Error(`Pages product file mismatch: ${filename}`);
+      }
+    }
+    const updateDirectory = path.join(resolvedPages, "updates");
+    const updateSnapshot = validateUpdateSnapshot(updateDirectory);
+    const expectedUpdateFiles = relativeFiles(updateDirectory)
+      .map((entry) => path.join("updates", entry));
+    const actualUpdateFiles = actualFiles.filter(
+      (entry) => entry.startsWith(`updates${path.sep}`),
+    );
+    if (JSON.stringify(actualUpdateFiles) !== JSON.stringify(expectedUpdateFiles)) {
+      throw new Error("Pages update file set is incomplete");
+    }
+    return {
+      productFileCount: expectedProductFiles.length,
+      updateFileCount: expectedUpdateFiles.length,
+      updateSnapshot,
+    };
+  } finally {
+    rmSync(temporaryRoot, { force: true, recursive: true });
+  }
 }
 
 function run() {

@@ -33,6 +33,7 @@ export function buildLinuxPackage({
   build = buildProductionPackage,
   normalize = normalizeLinuxDebianArtifactNames,
   platform = process.platform,
+  publicUpdateEnvironment = {},
 } = {}) {
   validateLinuxPackageConfiguration(
     JSON.parse(
@@ -42,7 +43,13 @@ export function buildLinuxPackage({
       ),
     ),
   );
-  build({ arguments_: linuxPackageBuildArguments(arguments_, platform) });
+  const buildOptions = {
+    arguments_: linuxPackageBuildArguments(arguments_, platform),
+  };
+  if (Object.keys(publicUpdateEnvironment).length > 0) {
+    buildOptions.publicUpdateEnvironment = publicUpdateEnvironment;
+  }
+  build(buildOptions);
   normalize({
     directory: packageDirectory,
     signature: "optional",

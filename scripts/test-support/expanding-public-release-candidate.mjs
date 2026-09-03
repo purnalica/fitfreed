@@ -1,6 +1,5 @@
 import {
   copyFileSync,
-  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -12,6 +11,7 @@ import path from "node:path";
 
 import { createLinuxExpansionReleaseManifest } from "../expanding-public-release-evidence.mjs";
 import { createLinuxPublicBuildEvidence } from "../linux-public-build-evidence.mjs";
+import { composePagesArtifact } from "../pages-artifact.mjs";
 import { inspectArtifact, renderChecksumFile } from "../release-evidence.mjs";
 import {
   createLinuxPublicReleaseCandidateFixture,
@@ -20,14 +20,15 @@ import {
 import { createSyntheticMinisignAuthority } from "./minisign.mjs";
 
 const releaseAuthority = createSyntheticMinisignAuthority();
+const repositoryRoot = path.resolve(import.meta.dirname, "../..");
 
 export const expandingPublicUpdateConfiguration = linuxPublicUpdateConfiguration;
 
 export const expandingPublicReleaseSigningConfiguration = {
   format: "org.fitfreed.release-signing-configuration",
-  schemaVersion: 1,
+  schemaVersion: 2,
   status: "active",
-  purpose: "linux-release-checksums",
+  purpose: "public-release-checksums",
   algorithm: "minisign-ed25519",
   keys: [{
     id: "expansion-release.synthetic-1",
@@ -45,7 +46,11 @@ export function createExpandingPublicReleaseCandidateFixture() {
   const releaseDirectory = path.join(root, "release");
   const pagesDirectory = path.join(root, "pages");
   mkdirSync(releaseDirectory);
-  cpSync(linuxCandidate.pagesDirectory, pagesDirectory, { recursive: true });
+  composePagesArtifact({
+    repositoryRoot,
+    outputDirectory: pagesDirectory,
+    updateDirectory: path.join(linuxCandidate.pagesDirectory, "updates"),
+  });
 
   const version = linuxCandidate.manifest.release.version;
   const revision = linuxCandidate.revision;

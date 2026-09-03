@@ -3,15 +3,21 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { validatePublicReleaseManifest } from "./public-release-evidence.mjs";
 import { resolveRemoteTagRevision } from "./public-release-preflight.mjs";
+import {
+  readSupportedPublicReleaseManifest,
+  validateSupportedPublicReleaseManifest,
+  verifySupportedPublicReleaseCandidate,
+} from "./public-release-candidate-verification.mjs";
+import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { sha256File } from "./release-evidence.mjs";
-import { verifyPublicReleaseCandidate } from "./verify-public-release.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryName = "purnalica/fitfreed";
-const signerWorkflow = "purnalica/fitfreed/.github/workflows/public-release.yml";
+const macosSignerWorkflow = "purnalica/fitfreed/.github/workflows/public-release.yml";
+const linuxExpansionSignerWorkflow =
+  "purnalica/fitfreed/.github/workflows/public-linux-expansion.yml";
 
 function defaultRun(command, args, { allowFailure = false } = {}) {
   try {
@@ -38,7 +44,7 @@ export function validateImmutableReleaseSetting(setting) {
 }
 
 export function publicReleaseAssetNames(manifest) {
-  validatePublicReleaseManifest(manifest);
+  validateSupportedPublicReleaseManifest(manifest);
   return [
     ...manifest.artifacts
       .filter(({ kind }) => kind !== "macos-application-bundle")
@@ -65,6 +71,11 @@ export function publicReleaseAssets(releaseDirectory, manifest) {
       sha256: sha256File(artifactPath),
     };
   });
+}
+
+export function publicReleaseSignerWorkflow(manifest) {
+  validateSupportedPublicReleaseManifest(manifest);
+  return manifest.schemaVersion === 6 ? linuxExpansionSignerWorkflow : macosSignerWorkflow;
 }
 
 export function validateGithubRelease(record, expected) {
@@ -119,7 +130,13 @@ function readRelease(runCommand, tag, allowFailure = false) {
   return result.success ? JSON.parse(result.output) : undefined;
 }
 
-export function verifyPublicAssetProvenance(runCommand, tag, revision, assets) {
+export function verifyPublicAssetProvenance(
+  runCommand,
+  tag,
+  revision,
+  assets,
+  signerWorkflow = macosSignerWorkflow,
+) {
   for (const asset of assets) {
     runCommand("gh", [
       "attestation",
@@ -183,12 +200,13 @@ export function publishVerifiedRelease({
   const notes = readFileSync(path.join(releaseDirectory, "RELEASE_NOTES.md"), "utf8");
   const tag = `v${verified.version}`;
   const expected = { version: verified.version, notes, assets };
+  const signerWorkflow = publicReleaseSignerWorkflow(manifest);
   verifyOriginReleaseTag(runCommand, tag, verified.version, verified.revision);
   let release = readRelease(runCommand, tag, true);
 
   if (release && !release.isDraft) {
     const result = validateGithubRelease(release, { ...expected, draft: false });
-    verifyPublicAssetProvenance(runCommand, tag, verified.revision, assets);
+    verifyPublicAssetProvenance(runCommand, tag, verified.revision, assets, signerWorkflow);
     verifyGithubReleaseAssetLinks(runCommand, tag, assets);
     verifyOriginReleaseTag(runCommand, tag, verified.version, verified.revision);
     return { ...result, alreadyPublished: true, revision: verified.revision };
@@ -214,7 +232,7 @@ export function publishVerifiedRelease({
     validateGithubRelease(release, { ...expected, draft: true });
   }
 
-  verifyPublicAssetProvenance(runCommand, tag, verified.revision, assets);
+  verifyPublicAssetProvenance(runCommand, tag, verified.revision, assets, signerWorkflow);
   runCommand("gh", [
     "release",
     "edit",
@@ -234,11 +252,17 @@ export function publishVerifiedRelease({
 
 export function publishPublicRelease(candidateDirectory, runCommand = defaultRun) {
   const configuration = loadPublicUpdateConfiguration(repositoryRoot);
-  const verified = verifyPublicReleaseCandidate(candidateDirectory, configuration);
+  const releaseSigningConfiguration = loadPublicReleaseSigningConfiguration(repositoryRoot);
+  const { manifest, verified } = verifySupportedPublicReleaseCandidate({
+    candidateDirectory,
+    publicReleaseSigningConfiguration: releaseSigningConfiguration,
+    publicUpdateConfiguration: configuration,
+  });
   const releaseDirectory = path.resolve(candidateDirectory, "release");
-  const manifest = validatePublicReleaseManifest(JSON.parse(
-    readFileSync(path.join(releaseDirectory, "release-manifest.json"), "utf8"),
-  ));
+  const reopenedManifest = readSupportedPublicReleaseManifest(releaseDirectory);
+  if (JSON.stringify(reopenedManifest) !== JSON.stringify(manifest)) {
+    throw new Error("verified public release manifest changed before publication");
+  }
   if (manifest.release.version !== verified.version || manifest.release.revision !== verified.revision) {
     throw new Error("verified public release identity changed before publication");
   }

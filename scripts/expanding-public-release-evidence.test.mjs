@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   createLinuxExpansionReleaseManifest,
+  renderLinuxExpansionReleaseNotes,
   validateExpandingPublicReleaseManifest,
 } from "./expanding-public-release-evidence.mjs";
 
@@ -102,6 +103,42 @@ test("creates one exact macOS and Linux public expansion manifest", () => {
     "darwin-aarch64",
     "linux-x86_64-deb",
   ]);
+});
+
+test("renders a truthful complete-platform release preamble", () => {
+  const notes = renderLinuxExpansionReleaseNotes({
+    revision: "a".repeat(40),
+    storageSchemaVersion: 37,
+    version: "0.2.0",
+  }, `## Highlights
+
+Linux joins the existing macOS application.
+
+## Compatibility
+
+The exact support matrix is versioned.
+
+## Privacy and data
+
+The local-first boundary is unchanged.
+
+## Known limitations
+
+Only the documented packages are supported.
+
+## Installation and recovery
+
+Use the platform-specific guide.
+
+## Support
+
+Use the public support routes.
+`);
+
+  assert.match(notes, /Targets: Apple Silicon macOS and x86-64 Ubuntu Desktop/);
+  assert.match(notes, /authenticated `stable-v3`/);
+  assert.match(notes, /`SHA256SUMS.minisig`/);
+  assert.match(notes, /Linux joins the existing macOS application/);
 });
 
 test("rejects a Linux expansion that omits or narrows the macOS target", () => {

@@ -12,7 +12,7 @@ import {
   verifyPublicReleaseDistribution,
 } from "./verify-public-release.mjs";
 
-test("verifies one complete release and byte-identical minimal Pages snapshot", () => {
+test("verifies one complete release and byte-identical complete Pages snapshot", () => {
   const candidate = createPublicReleaseCandidateFixture();
   const result = verifyPublicReleaseCandidate(candidate.root, publicUpdateConfiguration);
 

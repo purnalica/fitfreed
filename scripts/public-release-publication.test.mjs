@@ -7,12 +7,14 @@ import test from "node:test";
 import { createPublicReleaseManifest } from "./public-release-evidence.mjs";
 import {
   assertGithubReleaseImmutability,
+  publicReleaseSignerWorkflow,
   publicReleaseAssets,
   publishVerifiedRelease,
   validateGithubRelease,
   validateImmutableReleaseSetting,
 } from "./public-release-publication.mjs";
 import { inspectArtifact, sha256File } from "./release-evidence.mjs";
+import { createExpandingPublicReleaseCandidateFixture } from "./test-support/expanding-public-release-candidate.mjs";
 
 function fixture() {
   const releaseDirectory = mkdtempSync(path.join(tmpdir(), "fitfreed-publication-"));
@@ -136,8 +138,27 @@ test("requires repository release immutability before protected work", () => {
   });
 });
 
+test("derives every expanding platform asset from its closed manifest", () => {
+  const input = createExpandingPublicReleaseCandidateFixture();
+  const assets = publicReleaseAssets(input.releaseDirectory, input.manifest);
+  const names = assets.map(({ name }) => name);
+
+  assert.ok(names.includes(input.linuxPackageName));
+  assert.ok(names.includes(input.macosUpdaterName));
+  assert.ok(names.includes("SHA256SUMS.minisig"));
+  assert.equal(names.includes("FitFreed.app"), false);
+  assert.equal(
+    publicReleaseSignerWorkflow(input.manifest),
+    "purnalica/fitfreed/.github/workflows/public-linux-expansion.yml",
+  );
+});
+
 test("creates a closed draft, verifies provenance, then publishes an immutable release", () => {
   const input = fixture();
+  assert.equal(
+    publicReleaseSignerWorkflow(input.manifest),
+    "purnalica/fitfreed/.github/workflows/public-release.yml",
+  );
   const runner = publicationRunner(input);
   const result = publishVerifiedRelease({
     releaseDirectory: input.releaseDirectory,

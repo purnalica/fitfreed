@@ -11,18 +11,26 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { validatePublicReleaseManifest } from "./public-release-evidence.mjs";
-import { publicUpdateUrl } from "./public-origin.mjs";
+import { composePagesArtifact, relativeFiles } from "./pages-artifact.mjs";
+import { publicOrigin, publicUpdateUrl } from "./public-origin.mjs";
 import {
   publicReleaseAssetNames,
   publicReleaseAssets,
+  publicReleaseSignerWorkflow,
   validateGithubRelease,
   verifyGithubReleaseAssetLinks,
   verifyOriginReleaseTag,
   verifyPublicAssetProvenance,
 } from "./public-release-publication.mjs";
+import {
+  readSupportedPublicReleaseManifest,
+  verifySupportedPublicReleaseDistribution,
+} from "./public-release-candidate-verification.mjs";
+import {
+  loadPublicReleaseSigningConfiguration,
+} from "./public-release-signing-configuration.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
-import { verifyPublicReleaseDistribution } from "./verify-public-release.mjs";
+import { publicUpdatePackageName } from "./public-update-staging.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryName = "purnalica/fitfreed";
@@ -63,7 +71,12 @@ async function fetchExactBytes(url, expected, fetchImplementation) {
     throw new Error("public Pages response boundary mismatch");
   }
   const contentLength = response.headers.get("content-length");
-  if (contentLength !== null && Number(contentLength) !== expected.size) {
+  const contentEncoding = response.headers.get("content-encoding");
+  if (
+    contentLength !== null
+    && (contentEncoding === null || contentEncoding === "identity")
+    && Number(contentLength) !== expected.size
+  ) {
     throw new Error("public Pages content length mismatch");
   }
   const bytes = Buffer.from(await response.arrayBuffer());
@@ -71,6 +84,29 @@ async function fetchExactBytes(url, expected, fetchImplementation) {
     throw new Error("public Pages content digest mismatch");
   }
   return bytes;
+}
+
+function publicPageUrl(relativePath) {
+  const deployedPath = relativePath.split(path.sep).join("/");
+  if (deployedPath === "index.html") return publicOrigin;
+  if (deployedPath.endsWith("/index.html")) {
+    return new URL(`${path.posix.dirname(deployedPath)}/`, publicOrigin).toString();
+  }
+  return new URL(deployedPath, publicOrigin).toString();
+}
+
+async function verifyProductPages(pagesDirectory, fetchImplementation) {
+  const productFiles = relativeFiles(pagesDirectory).filter(
+    (filename) => filename !== ".nojekyll" && !filename.startsWith(`updates${path.sep}`),
+  );
+  await Promise.all(productFiles.map(async (filename) => {
+    const expectedBytes = readFileSync(path.join(pagesDirectory, filename));
+    await fetchExactBytes(publicPageUrl(filename), {
+      sha256: sha256Bytes(expectedBytes),
+      size: expectedBytes.length,
+    }, fetchImplementation);
+  }));
+  return productFiles.length;
 }
 
 export async function downloadVerifiedPagesSnapshot({
@@ -93,40 +129,84 @@ export async function downloadVerifiedPagesSnapshot({
   }
   rmSync(pagesDirectory, { force: true, recursive: true });
   const stable = manifest.artifacts.find(({ kind }) => kind === "stable-update-envelope");
-  const archive = manifest.artifacts.find(({ kind }) => kind === "macos-updater-archive");
-  const targets = [
-    {
-      url: manifest.update.metadataEndpoint,
-      destination: path.join(pagesDirectory, "updates", "stable.json"),
-      expected: stable,
-    },
-    {
-      url: publicUpdateUrl(`${manifest.release.version}/${archive.path}`),
-      destination: path.join(
-        pagesDirectory,
-        "updates",
-        manifest.release.version,
-        archive.path,
-      ),
-      expected: archive,
-    },
-  ];
+  const currentPackages = manifest.artifacts.filter(({ kind }) =>
+    ["macos-updater-archive", "linux-x86_64-deb"].includes(kind));
+  if (!stable || currentPackages.length < 1) {
+    throw new Error("public Pages manifest evidence is incomplete");
+  }
+  const temporaryRoot = mkdtempSync(path.join(tmpdir(), "fitfreed-remote-pages-"));
+  const updateDirectory = path.join(temporaryRoot, "updates");
 
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      const results = await Promise.all(targets.map(({ url, expected }) =>
-        fetchExactBytes(url, expected, fetchImplementation)));
-      for (const [index, { destination }] of targets.entries()) {
-        mkdirSync(path.dirname(destination), { recursive: true });
-        writeFileSync(destination, results[index]);
+  try {
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        rmSync(updateDirectory, { force: true, recursive: true });
+        mkdirSync(updateDirectory, { recursive: true });
+        const stableBytes = await fetchExactBytes(
+          manifest.update.metadataEndpoint,
+          stable,
+          fetchImplementation,
+        );
+        const envelope = JSON.parse(stableBytes.toString("utf8"));
+        const payload = JSON.parse(
+          Buffer.from(envelope.fitfreed.payloadBase64, "base64").toString("utf8"),
+        );
+        const targets = currentPackages.map((artifact) => ({
+          url: publicUpdateUrl(`${manifest.release.version}/${artifact.path}`),
+          destination: path.join(
+            updateDirectory,
+            manifest.release.version,
+            artifact.path,
+          ),
+          expected: artifact,
+        }));
+        for (const recovery of payload.release.recoveryArtifacts ?? []) {
+          const packageName = publicUpdatePackageName(recovery.version, recovery.target);
+          const url = publicUpdateUrl(`${recovery.version}/${packageName}`);
+          if (recovery.url !== url) throw new Error("public recovery URL is not canonical");
+          targets.push({
+            url,
+            destination: path.join(
+              updateDirectory,
+              recovery.version,
+              packageName,
+            ),
+            expected: recovery,
+          });
+        }
+        const results = await Promise.all(targets.map(({ url, expected }) =>
+          fetchExactBytes(url, expected, fetchImplementation)));
+        const stableDestination = path.join(updateDirectory, "stable.json");
+        mkdirSync(path.dirname(stableDestination), { recursive: true });
+        writeFileSync(stableDestination, stableBytes);
+        for (const [index, { destination }] of targets.entries()) {
+          mkdirSync(path.dirname(destination), { recursive: true });
+          writeFileSync(destination, results[index]);
+        }
+        composePagesArtifact({
+          repositoryRoot,
+          outputDirectory: pagesDirectory,
+          updateDirectory,
+        });
+        const productFileCount = await verifyProductPages(
+          pagesDirectory,
+          fetchImplementation,
+        );
+        return {
+          attempts: attempt,
+          fileCount: productFileCount + targets.length + 1,
+        };
+      } catch {
+        rmSync(pagesDirectory, { force: true, recursive: true });
+        rmSync(updateDirectory, { force: true, recursive: true });
+        if (attempt === attempts) {
+          throw new Error("public Pages did not converge to the expected release snapshot");
+        }
+        await wait(intervalMilliseconds);
       }
-      return { attempts: attempt, fileCount: targets.length };
-    } catch {
-      if (attempt === attempts) {
-        throw new Error("public Pages did not converge to the expected release snapshot");
-      }
-      await wait(intervalMilliseconds);
     }
+  } finally {
+    rmSync(temporaryRoot, { force: true, recursive: true });
   }
   throw new Error("public Pages verification did not execute");
 }
@@ -152,6 +232,7 @@ export async function verifyRemotePublicRelease({
   intervalMilliseconds,
   wait,
   publicUpdateConfiguration = loadPublicUpdateConfiguration(repositoryRoot),
+  publicReleaseSigningConfiguration = loadPublicReleaseSigningConfiguration(repositoryRoot),
 }) {
   if (!semanticVersion.test(version ?? "")) throw new Error("remote release version is invalid");
   if (!revisionPattern.test(revision ?? "")) throw new Error("remote release revision is invalid");
@@ -174,9 +255,7 @@ export async function verifyRemotePublicRelease({
       "--pattern",
       "release-manifest.json",
     ]);
-    const manifest = validatePublicReleaseManifest(JSON.parse(
-      readFileSync(path.join(releaseDirectory, "release-manifest.json"), "utf8"),
-    ));
+    const manifest = readSupportedPublicReleaseManifest(releaseDirectory);
     if (manifest.release.version !== version || manifest.release.revision !== revision) {
       throw new Error("remote release manifest does not identify the authorized source");
     }
@@ -200,7 +279,13 @@ export async function verifyRemotePublicRelease({
       assets,
       draft: false,
     });
-    verifyPublicAssetProvenance(runCommand, tag, revision, assets);
+    verifyPublicAssetProvenance(
+      runCommand,
+      tag,
+      revision,
+      assets,
+      publicReleaseSignerWorkflow(manifest),
+    );
     verifyGithubReleaseAssetLinks(runCommand, tag, assets);
     const pagesEvidence = await downloadVerifiedPagesSnapshot({
       pagesDirectory,
@@ -210,11 +295,12 @@ export async function verifyRemotePublicRelease({
       ...(intervalMilliseconds === undefined ? {} : { intervalMilliseconds }),
       ...(wait === undefined ? {} : { wait }),
     });
-    const distribution = verifyPublicReleaseDistribution(
-      releaseDirectory,
+    const distribution = verifySupportedPublicReleaseDistribution({
       pagesDirectory,
+      publicReleaseSigningConfiguration,
       publicUpdateConfiguration,
-    );
+      releaseDirectory,
+    });
     verifyOriginReleaseTag(runCommand, tag, version, revision);
     return {
       version: distribution.version,

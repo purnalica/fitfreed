@@ -8,7 +8,10 @@ import {
   expandingPublicReleaseSigningConfiguration,
   expandingPublicUpdateConfiguration,
 } from "./test-support/expanding-public-release-candidate.mjs";
-import { verifyExpandingPublicReleaseCandidate } from "./verify-expanding-public-release.mjs";
+import {
+  verifyExpandingPublicReleaseCandidate,
+  verifyExpandingPublicReleaseDistribution,
+} from "./verify-expanding-public-release.mjs";
 
 function verify(candidate) {
   return verifyExpandingPublicReleaseCandidate(
@@ -28,6 +31,24 @@ test("verifies one complete macOS and Linux expansion candidate", () => {
   assert.deepEqual(result.targets, ["darwin-aarch64", "linux-x86_64-deb"]);
   assert.equal(result.releaseKeyId, "expansion-release.synthetic-1");
   assert.equal(result.attestationSubjectCount, 17);
+});
+
+test("reopens the exact distributed asset set without an unpacked application", () => {
+  const candidate = createExpandingPublicReleaseCandidateFixture();
+  rmSync(path.join(candidate.releaseDirectory, "FitFreed.app"), {
+    force: true,
+    recursive: true,
+  });
+
+  const result = verifyExpandingPublicReleaseDistribution(
+    candidate.releaseDirectory,
+    candidate.pagesDirectory,
+    expandingPublicUpdateConfiguration,
+    expandingPublicReleaseSigningConfiguration,
+  );
+
+  assert.equal(result.version, "0.2.0");
+  assert.deepEqual(result.targets, ["darwin-aarch64", "linux-x86_64-deb"]);
 });
 
 test("rejects a target available in Pages but absent from release evidence", () => {

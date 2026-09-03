@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import Ajv2020 from "ajv/dist/2020.js";
 
+import { releasePublicKeyFingerprint } from "./release-signature.mjs";
+
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 const validators = new Map([1, 2].map((version) => {
   const schema = JSON.parse(
@@ -40,6 +42,28 @@ export function validatePublicReleaseSigningConfiguration(configuration) {
   }
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return configuration;
+}
+
+export function assertIndependentPublicSigningKeys({
+  releaseKeyId,
+  releaseSigningConfiguration,
+  updateConfiguration,
+  updateKeyId,
+}) {
+  const releaseKey = releaseSigningConfiguration?.keys?.find(
+    ({ id }) => id === releaseKeyId,
+  );
+  const updateKey = updateConfiguration?.keys?.find(({ id }) => id === updateKeyId);
+  if (!releaseKey || !updateKey) {
+    throw new Error("selected public signing trust is incomplete");
+  }
+  if (
+    releasePublicKeyFingerprint(releaseKey.publicKey)
+    === releasePublicKeyFingerprint(updateKey.publicKey)
+  ) {
+    throw new Error("update and release checksum signing require independent public keys");
+  }
+  return { releaseKeyId, updateKeyId };
 }
 
 export function loadPublicReleaseSigningConfiguration(repositoryRoot) {

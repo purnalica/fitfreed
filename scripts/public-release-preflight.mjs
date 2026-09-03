@@ -134,6 +134,7 @@ export function resolveRemoteTagRevision(output, version) {
 export function validatePublicReleaseInvocation({
   version,
   updateKeyId,
+  expectedUpdateContract = "stable-v2",
   releaseMetadata,
   upgradeMatrix,
   publicUpdateConfiguration,
@@ -152,6 +153,9 @@ export function validatePublicReleaseInvocation({
   workflowEvidence,
 }) {
   const errors = [];
+  if (!["stable-v2", "stable-v3"].includes(expectedUpdateContract)) {
+    errors.push("expected public update contract is invalid");
+  }
   if (eventName !== "workflow_dispatch") errors.push("public release must be manually dispatched");
   if (repository !== repositoryName) errors.push("public release repository is invalid");
   if (repositoryVisibility !== "public") errors.push("public release repository must be public");
@@ -169,8 +173,8 @@ export function validatePublicReleaseInvocation({
     errors.push("public release policy version does not match input");
   }
   if (publicUpdateConfiguration?.status !== "active") errors.push("public update channel is inactive");
-  if (publicUpdateConfiguration?.contract !== "stable-v2") {
-    errors.push("public update channel must use stable-v2");
+  if (publicUpdateConfiguration?.contract !== expectedUpdateContract) {
+    errors.push(`public update channel must use ${expectedUpdateContract}`);
   }
   if (!publicUpdateConfiguration?.keys?.some(({ id }) => id === updateKeyId)) {
     errors.push("selected update signing key is outside the active public trust set");
@@ -204,7 +208,7 @@ export function validatePublicReleaseInvocation({
     version,
     revision: headRevision,
     tag: `v${version}`,
-    updateContract: "stable-v2",
+    updateContract: expectedUpdateContract,
     updateKeyId,
     protectedEnvironment: releaseEnvironmentName,
   };
@@ -261,7 +265,9 @@ function revisionIsOnMain(revision) {
 export function inspectPublicReleasePreflight({
   version,
   updateKeyId,
+  expectedUpdateContract = "stable-v2",
   environment = process.env,
+  inspectWorkflow = inspectPublicReleaseWorkflow,
 }) {
   if (!version || !updateKeyId) {
     throw new Error("usage: npm run preflight:public-release -- <version> <update-key-id>");
@@ -278,11 +284,12 @@ export function inspectPublicReleasePreflight({
   const upgradeMatrix = inspectUpgradeMatrix(repositoryRoot);
   const publicReleasePolicy = loadPublicReleasePolicy(repositoryRoot, version, upgradeMatrix);
   const publicUpdateConfiguration = loadPublicUpdateConfiguration(repositoryRoot);
-  const workflow = inspectPublicReleaseWorkflow(repositoryRoot);
+  const workflow = inspectWorkflow(repositoryRoot);
   const platform = readGithubReleasePlatform(headRevision);
   const result = validatePublicReleaseInvocation({
     version,
     updateKeyId,
+    expectedUpdateContract,
     releaseMetadata,
     upgradeMatrix,
     publicUpdateConfiguration,
