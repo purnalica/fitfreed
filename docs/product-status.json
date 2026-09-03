@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-08-31",
+  "updated": "2026-09-03",
   "statuses": [
     {
       "key": "available",
@@ -44,15 +44,15 @@
     {
       "key": "active",
       "label": "Work in progress",
-      "title": "MVP correction and release preparation",
+      "title": "Cross-platform MVP delivery",
       "items": [
-        { "key": "wholeProductHardening", "text": "Complete changed-tree quality, performance, packaged interaction, update recovery, and production packaging gates pass; exact-source and hosted gates remain" },
-        { "key": "independentAudit", "text": "Repeated current-source audit passes with no unresolved critical or major finding; the earlier native experience rejection remains until a new exact candidate is reviewed" },
-        { "key": "polarSportCatalogue", "text": "Bundled Polar sport identity resolves every supported catalogue identifier and the complete authorized reference without requiring an account connection" }
+        { "key": "macosRelease", "text": "The admitted macOS baseline still requires exact-candidate experience acceptance, production signing and notarization, and explicit publication" },
+        { "key": "linuxParity", "text": "Ubuntu 24.04 and 26.04 x86-64 Debian-package parity engineering is active; no public Linux binary exists" },
+        { "key": "windowsParity", "text": "Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists" }
       ],
       "source": {
-        "label": "Active production migration plan",
-        "path": "docs/plans/mvp-redesign-production-migration.md"
+        "label": "Cross-platform delivery roadmap",
+        "path": "docs/roadmap.md#milestone-map"
       }
     },
     {
@@ -62,7 +62,6 @@
       "items": [
         { "key": "connectedProviders", "text": "Optional connected-provider updates with archive/API reconciliation; architecture confirmed and provider eligibility open" },
         { "key": "additionalProviders", "text": "Additional provider archive importers" },
-        { "key": "desktopPlatforms", "text": "Linux and Windows distribution" },
         { "key": "localMcp", "text": "Local MCP access for authorized agents" },
         { "key": "advancedProtection", "text": "Advanced encryption and extension systems" },
         { "key": "hostedAnalytics", "text": "Collaborative or hosted analytics" },

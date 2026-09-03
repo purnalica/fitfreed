@@ -2,7 +2,13 @@
 
 ## Current project stage
 
-FitFreed is implementing Milestone 3 public macOS readiness on its Tauri 2, Rust, TypeScript, React, and SQLite foundation. No supported release is available, and public contribution workflows use independently constructed synthetic fixtures only. Contributions are currently most useful when they close a documented readiness gate, improve a bounded behavior without widening MVP scope, or strengthen architecture, tests, data contracts, localization, user guidance, and contributor automation together.
+FitFreed is delivering one frozen first-MVP capability baseline across macOS, Linux, and Windows on its Tauri 2, Rust,
+TypeScript, React, and SQLite foundation. Public promotion remains ordered macOS, Linux, then Windows; Linux parity
+engineering is active while the macOS human and trust gates remain open, and Windows follows through its own native
+matrix. No supported release is available, and public contribution workflows use independently constructed synthetic
+fixtures only. Contributions are currently most useful when they close a documented platform-readiness gate, improve
+a bounded behavior without widening MVP scope, or strengthen architecture, tests, data contracts, localization, user
+guidance, and contributor automation together.
 
 Review the [requirements](docs/requirements.md), [roadmap](docs/roadmap.md), [data format documentation](docs/data-formats/README.md), and [repository content policy](docs/repository-content-policy.md) before starting work.
 

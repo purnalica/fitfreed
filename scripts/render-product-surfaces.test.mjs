@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -15,6 +16,11 @@ const model = Object.freeze({
     createStatus("later", "Later", "After evidence", "Deliberately later"),
   ],
 });
+
+const currentModel = JSON.parse(readFileSync(
+  new URL("../docs/product-status.json", import.meta.url),
+  "utf8",
+));
 
 function createStatus(key, label, title, item) {
   return {
@@ -69,4 +75,16 @@ test("rejects missing, reordered, or duplicated status contracts", () => {
     }),
     /duplicate item keys/u,
   );
+});
+
+test("presents frozen cross-platform MVP delivery as active work", () => {
+  const activeKeys = currentModel.statuses
+    .find(({ key }) => key === "active")
+    .items.map(({ key }) => key);
+  const laterKeys = currentModel.statuses
+    .find(({ key }) => key === "later")
+    .items.map(({ key }) => key);
+
+  assert.deepEqual(activeKeys, ["macosRelease", "linuxParity", "windowsParity"]);
+  assert.doesNotMatch(laterKeys.join(" "), /desktopPlatforms/u);
 });

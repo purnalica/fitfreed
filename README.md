@@ -98,13 +98,13 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 </details>
 
 <details data-status="active" open>
-<summary><strong>Work in progress — MVP correction and release preparation</strong></summary>
+<summary><strong>Work in progress — Cross-platform MVP delivery</strong></summary>
 <ul>
-<li>Complete changed-tree quality, performance, packaged interaction, update recovery, and production packaging gates pass; exact-source and hosted gates remain</li>
-<li>Repeated current-source audit passes with no unresolved critical or major finding; the earlier native experience rejection remains until a new exact candidate is reviewed</li>
-<li>Bundled Polar sport identity resolves every supported catalogue identifier and the complete authorized reference without requiring an account connection</li>
+<li>The admitted macOS baseline still requires exact-candidate experience acceptance, production signing and notarization, and explicit publication</li>
+<li>Ubuntu 24.04 and 26.04 x86-64 Debian-package parity engineering is active; no public Linux binary exists</li>
+<li>Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists</li>
 </ul>
-<p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>
+<p><a href="docs/roadmap.md#milestone-map">Cross-platform delivery roadmap →</a></p>
 </details>
 
 <details data-status="later">
@@ -112,7 +112,6 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <ul>
 <li>Optional connected-provider updates with archive/API reconciliation; architecture confirmed and provider eligibility open</li>
 <li>Additional provider archive importers</li>
-<li>Linux and Windows distribution</li>
 <li>Local MCP access for authorized agents</li>
 <li>Advanced encryption and extension systems</li>
 <li>Collaborative or hosted analytics</li>
