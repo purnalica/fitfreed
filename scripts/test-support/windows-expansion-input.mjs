@@ -24,13 +24,14 @@ function signature(certificateSha256, fileSha256) {
 
 export function createWindowsExpansionInputFixture({
   certificateSha256 = "c".repeat(64),
+  revision = "a".repeat(40),
+  updateConfiguration,
+  version = "0.2.0",
 } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-windows-expansion-input-"));
   const buildDirectory = path.join(root, "build");
   const outputDirectory = path.join(root, "input");
   mkdirSync(buildDirectory);
-  const version = "0.2.0";
-  const revision = "a".repeat(40);
   const packageName = `FitFreed_${version}_x64-setup.exe`;
   const packagePath = path.join(buildDirectory, packageName);
   const packageBytes = "exact synthetic Authenticode-signed NSIS package bytes";
@@ -96,7 +97,7 @@ export function createWindowsExpansionInputFixture({
     packagePath,
     revision,
     root,
-    updateConfiguration: {
+    updateConfiguration: updateConfiguration ?? {
       format: "org.fitfreed.public-update-configuration",
       schemaVersion: 2,
       status: "active",

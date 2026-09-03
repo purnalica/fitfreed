@@ -105,6 +105,13 @@ Authenticode certificate fingerprint, Windows support family, and third stable t
 and the release-signing boundary. Stable-channel staging derives the setup name from the Windows package contract and
 accepts Windows only when both existing macOS and Linux targets are present.
 
+Complete-platform reopening validates the closed version 7 shape before trusting any evidence, then independently
+binds the Windows package inventory and native build statement to the manifest's version, revision, storage schema,
+package bytes, certificate fingerprint, and active updater trust. The shared release verifier subsequently authenticates
+all three updater packages, the stable metadata, checksums, release signature, recovery baselines, and exact Pages
+copies. Candidate reopening requires the unpacked macOS application; distribution reopening admits its documented
+absence while retaining every published byte and trust check.
+
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
 image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
 installation must resolve the declared runtime dependencies, leave a completely linked executable and registered

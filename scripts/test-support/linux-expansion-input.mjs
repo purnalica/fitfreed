@@ -9,13 +9,14 @@ import path from "node:path";
 
 import { createLinuxPackageInventory } from "../linux-package-inventory.mjs";
 
-export function createLinuxExpansionInputFixture() {
+export function createLinuxExpansionInputFixture({
+  revision = "a".repeat(40),
+  version = "0.2.0",
+} = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-linux-expansion-input-"));
   const buildDirectory = path.join(root, "build");
   const outputDirectory = path.join(root, "input");
   mkdirSync(buildDirectory);
-  const version = "0.2.0";
-  const revision = "a".repeat(40);
   const packageName = `FitFreed_${version}_amd64.deb`;
   const packagePath = path.join(buildDirectory, packageName);
   writeFileSync(packagePath, "exact unsigned Debian package bytes");

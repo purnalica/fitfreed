@@ -27,7 +27,7 @@ import { validateUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const checksumLine = /^([0-9a-f]{64})  ([^/]+)$/;
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const targetKinds = Object.freeze({
+const expandingTargetKinds = Object.freeze({
   "darwin-aarch64": {
     packageKind: "macos-updater-archive",
     signatureKind: "macos-updater-signature",
@@ -193,6 +193,7 @@ function verifyPagesSnapshot(
   manifest,
   stable,
   publicUpdateConfiguration,
+  targetKinds,
 ) {
   const expectedTargets = manifest.update.targets;
   const actualTargets = Object.keys(stable.payload.release.platforms).sort((left, right) =>
@@ -261,19 +262,26 @@ function verifyPagesSnapshot(
   }
 }
 
-function verifyExpandingPublicRelease(
-  releaseDirectory,
-  pagesDirectory,
-  publicUpdateConfiguration,
-  publicReleaseSigningConfiguration,
+export function verifyExpandedPublicReleaseSet({
+  additionalEvidenceVerifiers = [],
   includeApplication,
-) {
+  pagesDirectory,
+  publicReleaseSigningConfiguration,
+  publicUpdateConfiguration,
+  releaseDirectory,
+  resultProperties = () => ({}),
+  targetKinds,
+  validateManifest,
+}) {
   const updateConfiguration = validatePublicUpdateConfiguration(publicUpdateConfiguration);
   if (updateConfiguration.status !== "active") throw new Error("public update channel is inactive");
-  const manifest = validateExpandingPublicReleaseManifest(JSON.parse(
+  const manifest = validateManifest(JSON.parse(
     readFileSync(path.join(releaseDirectory, "release-manifest.json"), "utf8"),
   ));
   verifyLinuxEvidence(releaseDirectory, manifest);
+  for (const verifyEvidence of additionalEvidenceVerifiers) {
+    verifyEvidence(releaseDirectory, manifest, updateConfiguration);
+  }
   verifyManifestArtifacts(releaseDirectory, manifest, includeApplication);
   const upgradeMatrix = verifyUpgradeMatrix(releaseDirectory, manifest);
   verifyChecksums(releaseDirectory, manifest, includeApplication);
@@ -299,6 +307,7 @@ function verifyExpandingPublicRelease(
     manifest,
     stable,
     updateConfiguration,
+    targetKinds,
   );
   return {
     attestationSubjectCount:
@@ -314,7 +323,26 @@ function verifyExpandingPublicRelease(
     targets: [...manifest.update.targets],
     updateSequence: manifest.update.sequence,
     version: manifest.release.version,
+    ...resultProperties(manifest),
   };
+}
+
+function verifyExpandingPublicRelease(
+  releaseDirectory,
+  pagesDirectory,
+  publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
+  includeApplication,
+) {
+  return verifyExpandedPublicReleaseSet({
+    includeApplication,
+    pagesDirectory,
+    publicReleaseSigningConfiguration,
+    publicUpdateConfiguration,
+    releaseDirectory,
+    targetKinds: expandingTargetKinds,
+    validateManifest: validateExpandingPublicReleaseManifest,
+  });
 }
 
 export function verifyExpandingPublicReleaseCandidate(

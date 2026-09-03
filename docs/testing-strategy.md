@@ -242,6 +242,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   bind the NSIS package, inventory, build evidence, Authenticode declaration, updater signature, checksums, and
   provenance; and reject a narrowed earlier-platform set. Stable-channel tests likewise reject Windows without both
   existing targets and prove its exact version-derived setup URL and bytes in the atomic Pages snapshot.
+  Complete-candidate reopening tests independently construct the release and reject Windows package, inventory, native
+  build, source revision, storage schema, Authenticode certificate, updater signature, checksum, release signature,
+  recovery, file-set, and Pages drift. The same tests preserve version 6 behavior through the shared reopening kernel.
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.
