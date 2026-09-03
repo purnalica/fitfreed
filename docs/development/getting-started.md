@@ -72,6 +72,7 @@ npm run test:fast
 | Install and remove the Debian package in a clean Ubuntu 24.04 container | `npm run verify:linux-installation` |
 | Verify native Debian replacement and automatic recovery | `npm run verify:linux-update-e2e` |
 | Build, install, drive, and remove the isolated Debian capability-test package | `npm run verify:linux-e2e` |
+| Verify Linux disk-exhaustion recovery on an isolated filesystem | `npm run verify:linux-filesystem-reliability` |
 | Verify a complete signed Linux public candidate | `npm run verify:linux-public-release -- <candidate-directory>` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
@@ -158,6 +159,13 @@ prerequisite; macOS does not expose a supported API for automation to move an ar
 Spaces. Use `npm run verify:e2e` for acceptance evidence because it always rebuilds the instrumented application before
 the packaged journeys. A direct WebdriverIO command deliberately reuses the existing package and is suitable only for
 repeating a test against the exact source from which that package was built.
+
+Run `npm run verify:linux-filesystem-reliability` only on Linux with permission to use `sudo mount` and `sudo umount`.
+The command creates its own isolated 32 MiB `tmpfs`, refuses an arbitrary directory or unsuitable capacity, runs only
+the ignored production SQLite disk-exhaustion acceptance test in release mode, and unmounts the filesystem on success
+or failure. It proves committed-history recovery rather than package installation, so it complements rather than
+replaces `verify:linux-installation`, `verify:linux-update-e2e`, or `verify:linux-e2e`. Never point the underlying test
+environment variable at a normal application-data directory.
 
 ## Synthetic fixture workflow
 

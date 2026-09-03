@@ -24,7 +24,44 @@ test("accepts current documentation derived from the release compatibility sourc
       releaseVersion: "0.1.0",
       currentLibrarySchemaVersion: 37,
       supportedLibrarySchemaVersions: Array.from({ length: 37 }, (_, index) => index + 1),
-      checkedDocuments: 11,
+      checkedDocuments: 15,
+    },
+  );
+});
+
+test("rejects undocumented Linux filesystem reliability controls", () => {
+  const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  assert.match(
+    candidate.sources["docs/development/getting-started.md"],
+    /npm run verify:linux-filesystem-reliability/,
+  );
+  candidate.sources["docs/development/getting-started.md"] = candidate.sources[
+    "docs/development/getting-started.md"
+  ].replaceAll("npm run verify:linux-filesystem-reliability", "npm run verify:linux-storage");
+  candidate.sources["docs/automation-strategy.md"] = replaceRequired(
+    candidate.sources["docs/automation-strategy.md"],
+    "isolated 32 MiB `tmpfs`",
+    "temporary storage",
+  );
+  candidate.sources["docs/development/performance-benchmarks.md"] = replaceRequired(
+    candidate.sources["docs/development/performance-benchmarks.md"],
+    "committed history remains byte-for-byte visible",
+    "the test succeeds",
+  );
+  candidate.sources["docs/development/troubleshooting.md"] = replaceRequired(
+    candidate.sources["docs/development/troubleshooting.md"],
+    "Linux disk-exhaustion gate fails",
+    "Storage test fails",
+  );
+
+  assert.throws(
+    () => validateCurrentDocumentation(candidate),
+    (error) => {
+      assert.match(error.message, /contributor setup omits the Linux filesystem reliability command/);
+      assert.match(error.message, /automation strategy omits the isolated Linux filesystem boundary/);
+      assert.match(error.message, /performance guidance omits committed-history recovery/);
+      assert.match(error.message, /troubleshooting omits the Linux disk-exhaustion boundary/);
+      return true;
     },
   );
 });

@@ -5,12 +5,16 @@ import { fileURLToPath } from "node:url";
 function documentationPaths(releaseVersion) {
   return Object.freeze({
     readme: "README.md",
+    automation: "docs/automation-strategy.md",
     storage: "docs/architecture/storage.md",
     releaseDelivery: "docs/architecture/release-delivery.md",
     experienceSpecification: "docs/design/experience-specification.md",
     upgradeMatrix: "docs/data-formats/release/upgrade-matrix-v1.md",
     redesignPlan: "docs/plans/ui-redesign.md",
     roadmap: "docs/roadmap.md",
+    gettingStarted: "docs/development/getting-started.md",
+    performanceBenchmarks: "docs/development/performance-benchmarks.md",
+    troubleshooting: "docs/development/troubleshooting.md",
     developmentPreview: "docs/user/development-preview.md",
     publicGuide: `docs/user/public-macos-${releaseVersion}.md`,
     readiness: "docs/testing/public-release-readiness.md",
@@ -163,6 +167,31 @@ export function validateCurrentDocumentation({
     readme,
     /not presented\s+as already implemented production behavior/i,
     "README still presents the available source experience as a mock product direction",
+  );
+
+  requirePattern(
+    errors,
+    sources[paths.gettingStarted],
+    /npm run verify:linux-filesystem-reliability/,
+    "contributor setup omits the Linux filesystem reliability command",
+  );
+  requirePattern(
+    errors,
+    sources[paths.automation],
+    /isolated 32 MiB `tmpfs`/,
+    "automation strategy omits the isolated Linux filesystem boundary",
+  );
+  requirePattern(
+    errors,
+    sources[paths.performanceBenchmarks],
+    /committed history remains byte-for-byte visible/,
+    "performance guidance omits committed-history recovery",
+  );
+  requirePattern(
+    errors,
+    sources[paths.troubleshooting],
+    /Linux disk-exhaustion gate fails/,
+    "troubleshooting omits the Linux disk-exhaustion boundary",
   );
 
   if (errors.length > 0) throw new Error(errors.join("\n"));

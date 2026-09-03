@@ -212,6 +212,25 @@ unchanged per-interaction budgets still fail stalled or slow behavior. The funct
 user-journey phases, and the performance journey records analytical domains, so an interrupted campaign names
 the last active boundary.
 
+## Linux filesystem reliability
+
+Run this acceptance boundary on x86-64 Linux with permission to mount and unmount a temporary filesystem:
+
+```sh
+npm run verify:linux-filesystem-reliability
+```
+
+The command creates an isolated 32 MiB `tmpfs`, verifies its private sentinel and capacity, and points one exact
+ignored release-mode Rust test at that filesystem. The test commits a baseline synthetic history, consumes the real
+remaining capacity, requires the next import to report disk exhaustion, releases the filler, and reopens the library
+through ordinary startup recovery. The committed history remains byte-for-byte visible, SQLite integrity passes, and
+a subsequent import succeeds. The test also verifies that the failed import never becomes visible.
+
+This gate measures durability and recovery state rather than response time. It is deliberately separate from the
+performance percentile results and cannot be replaced by a mocked write error, a filesystem shared with a user
+library, a reduced SQLite durability mode, or an ignored cleanup failure. The wrapper unmounts its filesystem through
+an unconditional trap; a mount or unmount failure is a failed gate.
+
 ## Automation and evidence handling
 
 `npm run verify:precommit` includes the full-scale import, dense training-history, read-model, and packaged-UI gates
