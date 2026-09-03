@@ -86,14 +86,15 @@ use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
     await_update_recovery_candidate_go, current_update_target, download_verified_update,
     install_bundled_provider_sport_catalogue, install_verified_update, library_schema_version,
-    recover_interrupted_imports, HttpsUpdateChannel, NativeOfficialSourceLinkOpener,
-    PolarFlowSourceAcquisitionGuides, SelfContainedHtmlReportExporter, SqliteActivityLibrary,
-    SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLibraryHome,
-    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
-    SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary, SqliteTrainingSports,
-    SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
-    UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    prepare_private_library_path, recover_interrupted_imports, HttpsUpdateChannel,
+    NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides,
+    SelfContainedHtmlReportExporter, SqliteActivityLibrary, SqliteApplicationPreferences,
+    SqliteImportOutcomeLibrary, SqliteLibraryHome, SqliteLongitudinalLibrary,
+    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError,
+    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryMaintenance,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
 };
 #[cfg(target_os = "linux")]
 use infrastructure::{
@@ -2146,16 +2147,19 @@ fn instrumented_update_channel_from_environment() -> Result<Option<HttpsUpdateCh
 
 fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
     #[cfg(feature = "e2e")]
-    if let Some(path) = std::env::var_os("FITFREED_E2E_DATABASE_PATH") {
-        return Ok(PathBuf::from(path));
-    }
-
-    let directory = app
-        .path()
-        .app_data_dir()
-        .map_err(|error| error.to_string())?;
-    std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-    Ok(directory.join("fitfreed.sqlite"))
+    let path = std::env::var_os("FITFREED_E2E_DATABASE_PATH").map(PathBuf::from);
+    #[cfg(not(feature = "e2e"))]
+    let path: Option<PathBuf> = None;
+    let path = match path {
+        Some(path) => path,
+        None => app
+            .path()
+            .app_data_dir()
+            .map_err(|error| error.to_string())?
+            .join("fitfreed.sqlite"),
+    };
+    prepare_private_library_path(&path).map_err(|error| error.to_string())?;
+    Ok(path)
 }
 
 enum StartupMode {

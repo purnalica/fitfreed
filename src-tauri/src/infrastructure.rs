@@ -145,6 +145,7 @@ use fitfreed_domain::{
 
 mod iso_duration;
 mod local_file;
+mod local_library;
 mod planned_training_export;
 mod planned_training_store;
 mod polar_flow;
@@ -170,6 +171,7 @@ mod update_watchdog;
 mod update_watchdog_linux;
 mod update_watchdog_protocol;
 
+pub(crate) use local_library::prepare_private_library_path;
 pub use planned_training_export::SqlitePlannedTrainingExporter;
 pub use report_html::SelfContainedHtmlReportExporter;
 pub use source_acquisition::{NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides};
