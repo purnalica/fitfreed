@@ -10,12 +10,12 @@ use std::process::Command;
 use semver::Version;
 use thiserror::Error;
 
-const PRODUCT_NAME: &str = "FitFreed";
+pub(super) const PRODUCT_NAME: &str = "FitFreed";
 const PUBLISHER: &str = "FitFreed contributors";
 const HOMEPAGE: &str = "https://fitfreed.org/";
 const APPLICATION_IDENTIFIER: &str = "org.fitfreed.desktop";
-const EXECUTABLE_NAME: &str = "fitfreed.exe";
-const UNINSTALLER_NAME: &str = "uninstall.exe";
+pub(super) const EXECUTABLE_NAME: &str = "fitfreed.exe";
+pub(super) const UNINSTALLER_NAME: &str = "uninstall.exe";
 #[cfg(target_os = "windows")]
 const UNINSTALL_REGISTRY_SUBKEY: &str =
     r"Software\Microsoft\Windows\CurrentVersion\Uninstall\FitFreed";
