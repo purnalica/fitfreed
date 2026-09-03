@@ -15,17 +15,30 @@ export function validatePerformanceBenchmarkHost(
   platform = process.platform,
   architecture = process.arch,
 ) {
-  if (platform === "darwin") return true;
-  if (platform === "linux") {
-    if (architecture !== "x64") {
-      throw new Error(`Linux performance admission requires x64, received ${architecture}`);
+  if (platform === "darwin") {
+    if (!["arm64", "x64"].includes(architecture)) {
+      throw new Error(
+        `macOS performance admission requires arm64 or x64, received ${architecture}`,
+      );
     }
     return true;
   }
-  throw new Error(`the performance benchmark campaign does not support ${platform}`);
+  if (platform === "linux") {
+    if (architecture !== "x64") {
+      throw new Error(
+        `Linux performance admission requires x64, received ${architecture}`,
+      );
+    }
+    return true;
+  }
+  throw new Error(
+    `the performance benchmark campaign does not support ${platform}`,
+  );
 }
 
-export function performanceBenchmarkEnvironment(inheritedEnvironment = process.env) {
+export function performanceBenchmarkEnvironment(
+  inheritedEnvironment = process.env,
+) {
   return {
     ...inheritedEnvironment,
     CARGO_TARGET_DIR: performanceBenchmarkTargetDirectory,
@@ -40,7 +53,10 @@ export function performanceBenchmarkExecutable(example) {
   );
 }
 
-export function performanceBenchmarkBuildPlan(example, inheritedEnvironment = process.env) {
+export function performanceBenchmarkBuildPlan(
+  example,
+  inheritedEnvironment = process.env,
+) {
   return {
     program: "cargo",
     arguments_: [
