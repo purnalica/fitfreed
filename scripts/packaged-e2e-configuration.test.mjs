@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import { e2eBuildArguments, e2eBuildEnvironment } from "./build-e2e.mjs";
+import {
+  e2eBuildArguments,
+  e2eBuildEnvironment,
+  runE2eBuild,
+} from "./build-e2e.mjs";
+import {
+  linuxE2ePackageBuildArguments,
+  validateLinuxE2ePackageConfiguration,
+} from "./build-linux-e2e-package.mjs";
 import { packagedE2eScenarioPlan } from "./packaged-e2e-plan.mjs";
+import { runPackagedE2e } from "./run-packaged-e2e.mjs";
 import {
   e2eApplicationBinaryForPlatform,
   e2eTargetDirectory,
@@ -43,6 +52,18 @@ test("resolves the instrumented executable for each desktop platform", () => {
   assert.throws(
     () => e2eApplicationBinaryForPlatform("freebsd"),
     /unsupported E2E desktop platform/,
+  );
+  assert.equal(
+    e2eApplicationBinaryForPlatform("linux", {
+      FITFREED_E2E_APPLICATION_BINARY: "/usr/bin/fitfreed-e2e",
+    }),
+    "/usr/bin/fitfreed-e2e",
+  );
+  assert.throws(
+    () => e2eApplicationBinaryForPlatform("linux", {
+      FITFREED_E2E_APPLICATION_BINARY: "usr/bin/fitfreed-e2e",
+    }),
+    /absolute/,
   );
 });
 
@@ -122,6 +143,104 @@ test("builds only the instrumented application consumed by each packaged journey
     () => e2eBuildArguments([], "freebsd"),
     /unsupported E2E desktop platform/,
   );
+});
+
+test("builds an isolated instrumented Debian package for installed Linux journeys", () => {
+  assert.deepEqual(linuxE2ePackageBuildArguments([], "linux"), [
+    "build",
+    "--features",
+    "e2e",
+    "--bundles",
+    "deb",
+    "--config",
+    "src-tauri/tauri.e2e.conf.json",
+    "--config",
+    "src-tauri/tauri.linux.conf.json",
+    "--config",
+    "src-tauri/tauri.linux.e2e.conf.json",
+  ]);
+  assert.deepEqual(linuxE2ePackageBuildArguments(["--verbose"], "linux").slice(-1), [
+    "--verbose",
+  ]);
+  assert.throws(
+    () => linuxE2ePackageBuildArguments([], "darwin"),
+    /requires Linux/,
+  );
+  assert.throws(
+    () => linuxE2ePackageBuildArguments(["--debug"], "linux"),
+    /only accepts/,
+  );
+});
+
+test("keeps the installed Linux E2E package distinct from the product package", () => {
+  const configuration = JSON.parse(
+    readFileSync(path.resolve("src-tauri/tauri.linux.e2e.conf.json"), "utf8"),
+  );
+
+  assert.deepEqual(validateLinuxE2ePackageConfiguration(configuration), {
+    identifier: "org.fitfreed.desktop.e2e",
+    mainBinaryName: "fitfreed-e2e",
+    packageName: "fitfreed-e2e",
+    productName: "FitFreed E2E",
+  });
+});
+
+test("runs a source-bound E2E build with an injected platform argument contract", () => {
+  const calls = [];
+  const revision = "b".repeat(40);
+  runE2eBuild({
+    arguments_: ["--verbose"],
+    buildArguments: (arguments_) => ["controlled", ...arguments_],
+    execute: (...arguments_) => calls.push(arguments_),
+    git: (arguments_) => {
+      if (arguments_[0] === "rev-parse") return revision;
+      if (arguments_[0] === "status") return "";
+      throw new Error(`unexpected Git arguments: ${arguments_.join(" ")}`);
+    },
+    inheritedEnvironment: { RETAINED: "yes" },
+  });
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0][1], ["controlled", "--verbose"]);
+  assert.equal(calls[0][2].env.FITFREED_SOURCE_REVISION, revision);
+  assert.equal(calls[0][2].env.RETAINED, "yes");
+});
+
+test("runs every packaged scenario from a controlled nested artifact directory", () => {
+  const runDirectory = path.resolve(
+    `.artifacts/packaged-e2e-configuration-${process.pid}/nested/run`,
+  );
+  const calls = [];
+  rmSync(path.resolve(`.artifacts/packaged-e2e-configuration-${process.pid}`), {
+    recursive: true,
+    force: true,
+  });
+  try {
+    const scenarios = runPackagedE2e({
+      environment: {
+        FITFREED_E2E_APPLICATION_BINARY: "/usr/bin/fitfreed-e2e",
+      },
+      execute: (...arguments_) => {
+        calls.push(arguments_);
+        return { error: undefined, signal: null, status: 0 };
+      },
+      removeCompletedRun: false,
+      runDirectory,
+    });
+
+    assert.equal(scenarios.length, 7);
+    assert.equal(calls.length, scenarios.length);
+    assert.equal(
+      calls[0][2].env.FITFREED_E2E_APPLICATION_BINARY,
+      "/usr/bin/fitfreed-e2e",
+    );
+    assert.equal(existsSync(runDirectory), true);
+  } finally {
+    rmSync(path.resolve(`.artifacts/packaged-e2e-configuration-${process.pid}`), {
+      recursive: true,
+      force: true,
+    });
+  }
 });
 
 test("keeps packaged update fixtures outside both retained application targets", () => {

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "FitFreed E2E",
+  "mainBinaryName": "fitfreed-e2e",
+  "identifier": "org.fitfreed.desktop.e2e"
+}

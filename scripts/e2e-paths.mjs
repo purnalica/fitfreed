@@ -4,9 +4,19 @@ import { fileURLToPath } from "node:url";
 export const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const e2eTargetDirectory = path.join(repositoryRoot, "src-tauri/target/e2e");
 
-export function e2eApplicationBinaryForPlatform(platform = process.platform) {
+export function e2eApplicationBinaryForPlatform(
+  platform = process.platform,
+  environment = process.env,
+) {
   if (!["darwin", "linux", "win32"].includes(platform)) {
     throw new Error(`unsupported E2E desktop platform: ${platform}`);
+  }
+  const configuredApplication = environment.FITFREED_E2E_APPLICATION_BINARY;
+  if (configuredApplication !== undefined) {
+    if (!path.isAbsolute(configuredApplication)) {
+      throw new Error("the configured E2E application binary must be absolute");
+    }
+    return path.normalize(configuredApplication);
   }
   const executable = platform === "win32" ? "fitfreed.exe" : "fitfreed";
   return path.join(e2eTargetDirectory, "release", executable);

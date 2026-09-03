@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-09-02. The frozen first-MVP capability baseline has macOS machine-admission evidence, while its human
+Active as of 2026-09-03. The frozen first-MVP capability baseline has macOS machine-admission evidence, while its human
 acceptance and public-promotion gates remain open. ADR 0039 authorizes independent Linux parity engineering without
 changing either macOS status or public promotion order.
 
@@ -43,7 +43,8 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.0 | Complete | Hosted Ubuntu portability, source compilation, shared tests, input classification, and bounded failure evidence are versioned and enforced. |
 | M4.1 | Engineering complete; candidate gate pending | The Debian identity, exact inventory, clean Ubuntu 24.04 installation, signed public candidate, release manifest, and multiplatform Pages evidence are verified. Exact graphical-candidate evidence and production signing authority remain later gates rather than repository material. |
 | M4.2 | Active | Linux recovery version 2, stable channel version 3, upgrade matrix version 2, recoverable Linux manifest version 5, exact predecessor discovery, Rust authorization, public build mapping, atomic staging, complete candidate/Pages verification, native package identity and fixed candidate/rollback commands, full `/proc` process identity, bounded authenticated predecessor transfer and no-clobber package handoff, exact package preservation, bounded Debian extraction, deterministic runnable-image verification, private atomic version 2 attempt preparation, packaged lifecycle policy, serialized transitions, process-bound launch records, preserved-watchdog context resolution, exact exclusive process leases, candidate-bound target confirmation, quiescent prepared-attempt discard, atomic library restoration, verified native rollback, closed three-attempt failure accounting, shared terminal receipts, exact-pair terminal cleanup, receipt-bound restart resumption, host installation coordination, private watchdog/candidate startup dispatch, verified runnable fallback, active-attempt restart resolution, duplicate-watchdog exclusion, interrupted-phase reattachment, privacy-minimized intervention discovery, and bounded explicit native-recovery retry exist. The native Debian E2E definition covers successful replacement, automatic rollback after either native installer failure or candidate rejection, authorization-unavailable runnable fallback, explicit retry after authorization becomes available, three-attempt exhaustion with manual reinstall guidance, and restart resumption after both live actors are terminated at durable `replacement-started`. Exact hosted Ubuntu evidence for the expanded campaign remains the admission gate. |
-| M4.3–M4.6 | Pending | Begin only through their ordered technical dependencies; protected signing, clean Ubuntu 26.04, human acceptance, and promotion remain explicit gates. |
+| M4.3 | Active | An isolated instrumented Debian package, installed-executable harness, package-removal and library-retention assertions, and mandatory hosted job are implemented. Exact native Ubuntu execution remains the admission gate. |
+| M4.4–M4.6 | Pending | Begin only through their ordered technical dependencies; protected signing, clean Ubuntu 26.04, human acceptance, and promotion remain explicit gates. |
 
 Exact-source verification on 2026-09-02 exposed a timing-dependent false rejection in the dense canvas chart after
 the end boundary had visibly moved. The evidence capture showed the intended range, while the oracle could no longer

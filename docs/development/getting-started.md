@@ -71,6 +71,7 @@ npm run test:fast
 | Generate the deterministic exact Debian package inventory | `npm run inventory:linux-package` |
 | Install and remove the Debian package in a clean Ubuntu 24.04 container | `npm run verify:linux-installation` |
 | Verify native Debian replacement and automatic recovery | `npm run verify:linux-update-e2e` |
+| Build, install, drive, and remove the isolated Debian capability-test package | `npm run verify:linux-e2e` |
 | Verify a complete signed Linux public candidate | `npm run verify:linux-public-release -- <candidate-directory>` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
@@ -135,9 +136,18 @@ production update trust or publishes an artifact. Generated packages, keys, cert
 and privacy-safe failure evidence remain under ignored
 `.artifacts/linux-update-e2e`. This update-specific command does not replace the complete packaged capability journey.
 
-The instrumented executable resolves to `fitfreed` on macOS and Linux and `fitfreed.exe` on Windows. macOS builds an
-isolated application bundle; Linux and Windows host admission builds the isolated executable without an unrelated
-installer. The instrumented macOS application has its own stable bundle identity. To keep local E2E windows away from
+Run `npm run verify:linux-e2e` on an x86-64 Linux desktop or CI host with Xvfb, WebKitWebDriver, the documented Tauri
+build dependencies, and passwordless `sudo` for installation of the isolated test package. It generates the shared
+synthetic fixtures, builds `fitfreed-e2e` under the dedicated E2E target, verifies its Debian metadata, installs only
+`/usr/bin/fitfreed-e2e`, and drives all seven functional, restart, sport-catalogue, adaptive-session, and performance
+scenarios against that installed executable. The command refuses to overwrite an existing test package or executable.
+After the campaign it purges `fitfreed-e2e`, verifies package-owned removal, proves the synthetic libraries remain,
+and then removes successful run data. It neither installs nor replaces the production `fitfreed` package.
+
+The loose instrumented executable resolves to `fitfreed` on macOS and Linux and `fitfreed.exe` on Windows. macOS builds
+an isolated application bundle; Linux capability parity additionally builds and installs the isolated
+`fitfreed-e2e` Debian package, while Windows host admission continues to use the loose executable until Milestone 5
+adds its package boundary. The instrumented macOS application has its own stable bundle identity. To keep local E2E windows away from
 an active Desktop, run `npm run build:e2e`, open the generated
 `src-tauri/target/e2e/release/bundle/macos/FitFreed.app`, then use **Dock → Options → Assign To → This Desktop** once.
 macOS retains that assignment for subsequent E2E rebuilds. This is a local development preference rather than a test

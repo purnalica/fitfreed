@@ -241,6 +241,9 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   const packagedLinuxUpdateJob = workflow.match(
     /  packaged-linux-update-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
   )?.groups?.body;
+  const packagedLinuxJob = workflow.match(
+    /  packaged-linux-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
+  )?.groups?.body;
 
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /id: impact/);
@@ -267,8 +270,9 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   );
   assert.match(
     workflow,
-    /needs: \[quality, packaged-macos-e2e, packaged-linux-update-e2e\]/,
+    /needs: \[quality, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e\]/,
   );
+  assert.match(workflow, /needs\.packaged-linux-e2e\.result == 'success'/);
   assert.match(
     workflow,
     /needs\.packaged-linux-update-e2e\.result == 'success'/,
@@ -294,4 +298,11 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   );
   assert.match(packagedLinuxUpdateJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(packagedLinuxUpdateJob ?? "", /npm run verify:linux-update-e2e/);
+  assert.match(packagedLinuxJob ?? "", /^    needs: quality$/m);
+  assert.match(
+    packagedLinuxJob ?? "",
+    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
+  );
+  assert.match(packagedLinuxJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
+  assert.match(packagedLinuxJob ?? "", /npm run verify:linux-e2e/);
 });
