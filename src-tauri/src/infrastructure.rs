@@ -18332,7 +18332,10 @@ mod tests {
         author_session_report, refresh_report_definition, revise_report, revise_session_report,
         ReportQuestion, REPORT_DEFINITION_VERSION,
     };
+    use rusqlite::ErrorCode;
     use std::io::Write;
+    #[cfg(target_os = "linux")]
+    use std::{env, ffi::CString, fs, mem::MaybeUninit, os::unix::ffi::OsStrExt};
     use tempfile::TempDir;
     use zip::{write::SimpleFileOptions, ZipWriter};
 
@@ -28160,6 +28163,172 @@ mod tests {
             recover_interrupted_imports(&harness.database()).expect("idempotent recovery"),
             0
         );
+    }
+
+    #[test]
+    fn preserves_history_when_another_instance_holds_the_library_write_lock() {
+        let harness = Harness::new();
+        let baseline_archive = harness.archive(
+            "baseline.zip",
+            &[(
+                "activity-2026-03-01-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-03-01","summary":{"stepCount":100}}"#,
+            )],
+        );
+        import_archive(&harness.database(), &baseline_archive, "polar:synthetic")
+            .expect("baseline import");
+
+        let additional_archive = harness.archive(
+            "additional.zip",
+            &[(
+                "activity-2026-03-02-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-03-02","summary":{"stepCount":200}}"#,
+            )],
+        );
+        let lock = Connection::open(harness.database()).expect("competing library connection");
+        lock.execute_batch("BEGIN IMMEDIATE;")
+            .expect("competing write lock");
+
+        let error = import_archive(&harness.database(), &additional_archive, "polar:synthetic")
+            .expect_err("locked-library import rejection");
+        assert!(matches!(
+            error,
+            ImportError::Database(SqliteError::SqliteFailure(ref failure, _))
+                if matches!(failure.code, ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked)
+        ));
+        assert_eq!(
+            query_activity(&harness.database())
+                .expect("history while competing writer is active")
+                .iter()
+                .map(|activity| activity.local_date.as_str())
+                .collect::<Vec<_>>(),
+            vec!["2026-03-01"]
+        );
+
+        lock.execute_batch("ROLLBACK;")
+            .expect("release competing write lock");
+        import_archive(&harness.database(), &additional_archive, "polar:synthetic")
+            .expect("retry after competing instance exits");
+        let connection = Connection::open(harness.database()).expect("reopened library");
+        assert_integrity(&connection);
+        assert_eq!(
+            query_activity(&harness.database())
+                .expect("history after retry")
+                .iter()
+                .map(|activity| activity.local_date.as_str())
+                .collect::<Vec<_>>(),
+            vec!["2026-03-01", "2026-03-02"]
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[ignore = "requires the isolated filesystem mounted by the Linux reliability admission"]
+    fn recovers_from_linux_disk_exhaustion_without_losing_committed_history() {
+        let filesystem_root = PathBuf::from(
+            env::var_os("FITFREED_LINUX_FILESYSTEM_TEST_ROOT")
+                .expect("isolated Linux filesystem root"),
+        );
+        let boundary = fs::symlink_metadata(&filesystem_root).expect("filesystem root metadata");
+        assert!(boundary.is_dir());
+        assert!(!boundary.file_type().is_symlink());
+        assert!(filesystem_root
+            .join(".fitfreed-isolated-filesystem")
+            .is_file());
+        let capacity = linux_filesystem_capacity(&filesystem_root);
+        assert!((16 * 1024 * 1024..=40 * 1024 * 1024).contains(&capacity));
+
+        let database_path = filesystem_root.join("fitfreed.sqlite");
+        prepare_private_library_path(&database_path).expect("private Linux library boundary");
+        let harness = Harness::new();
+        let baseline_archive = harness.archive(
+            "disk-baseline.zip",
+            &[(
+                "activity-2026-03-01-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-03-01","summary":{"stepCount":100}}"#,
+            )],
+        );
+        import_archive(&database_path, &baseline_archive, "polar:synthetic")
+            .expect("baseline import");
+
+        let additional_archive = harness.archive(
+            "disk-additional.zip",
+            &[(
+                "activity-2026-03-02-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-03-02","summary":{"stepCount":200}}"#,
+            )],
+        );
+        let filler_path = filesystem_root.join("filler.bin");
+        fill_linux_filesystem(&filler_path);
+
+        let error = import_archive(&database_path, &additional_archive, "polar:synthetic")
+            .expect_err("disk-full import failure");
+        assert!(is_disk_full_error(&error), "unexpected error: {error:?}");
+        fs::remove_file(&filler_path).expect("release isolated filesystem capacity");
+
+        recover_interrupted_imports(&database_path).expect("disk-full startup recovery");
+        assert_eq!(
+            query_activity(&database_path)
+                .expect("history after disk-full recovery")
+                .iter()
+                .map(|activity| activity.local_date.as_str())
+                .collect::<Vec<_>>(),
+            vec!["2026-03-01"]
+        );
+        import_archive(&database_path, &additional_archive, "polar:synthetic")
+            .expect("retry after capacity is available");
+        let connection = Connection::open(&database_path).expect("reopened recovered library");
+        assert_integrity(&connection);
+        assert_eq!(
+            query_activity(&database_path)
+                .expect("history after disk-full retry")
+                .iter()
+                .map(|activity| activity.local_date.as_str())
+                .collect::<Vec<_>>(),
+            vec!["2026-03-01", "2026-03-02"]
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    fn linux_filesystem_capacity(path: &Path) -> u64 {
+        let path = CString::new(path.as_os_str().as_bytes()).expect("filesystem path without NUL");
+        let mut statistics = MaybeUninit::<libc::statvfs>::zeroed();
+        let result = unsafe { libc::statvfs(path.as_ptr(), statistics.as_mut_ptr()) };
+        assert_eq!(result, 0, "filesystem capacity query");
+        let statistics = unsafe { statistics.assume_init() };
+        statistics.f_blocks * statistics.f_frsize
+    }
+
+    #[cfg(target_os = "linux")]
+    fn fill_linux_filesystem(path: &Path) {
+        let mut filler = File::create(path).expect("filesystem filler");
+        let block = [0_u8; 1024 * 1024];
+        loop {
+            match filler.write(&block) {
+                Ok(0) => panic!("filesystem filler made no progress"),
+                Ok(_) => {}
+                Err(error) if error.raw_os_error() == Some(libc::ENOSPC) => break,
+                Err(error) => panic!("unexpected filesystem filler error: {error}"),
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn is_disk_full_error(error: &ImportError) -> bool {
+        match error {
+            ImportError::Io(error) => error.raw_os_error() == Some(libc::ENOSPC),
+            ImportError::Database(SqliteError::SqliteFailure(failure, _)) => {
+                failure.code == ErrorCode::DiskFull
+            }
+            ImportError::OutcomePersistence {
+                import_error,
+                persistence_error,
+            } => {
+                import_error.contains("database or disk is full")
+                    || persistence_error.contains("database or disk is full")
+            }
+            _ => false,
+        }
     }
 
     #[test]

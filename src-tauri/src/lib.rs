@@ -2707,6 +2707,7 @@ pub fn run() {
 mod tests {
     use std::{
         collections::BTreeMap,
+        fs,
         sync::atomic::{AtomicUsize, Ordering},
     };
 
@@ -3107,6 +3108,22 @@ mod tests {
 
         assert!(!install_bundled_provider_sport_catalogue(&database_path)
             .expect("bundled catalogue already active"));
+    }
+
+    #[test]
+    fn startup_rejects_a_corrupt_library_without_changing_its_bytes() {
+        let directory = TempDir::new().expect("temporary directory");
+        let database_path = directory.path().join("library.sqlite");
+        let corrupt_bytes = b"not a SQLite library";
+        fs::write(&database_path, corrupt_bytes).expect("corrupt library fixture");
+
+        prepare_private_library_path(&database_path).expect("private library boundary");
+        prepare_library_for_startup(&database_path).expect_err("corrupt library rejection");
+
+        assert_eq!(
+            fs::read(&database_path).expect("preserved corrupt library"),
+            corrupt_bytes
+        );
     }
 
     #[test]

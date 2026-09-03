@@ -4,6 +4,8 @@ use std::{
     path::Path,
 };
 
+use super::local_file::sync_directory;
+
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 
@@ -11,21 +13,40 @@ pub(crate) fn prepare_private_library_path(path: &Path) -> io::Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "library path has no parent"))?;
+    let parent_was_missing = !path_exists_without_following_links(parent)?;
     create_application_data_directory(parent)?;
     let parent_metadata = fs::symlink_metadata(parent)?;
     if parent_metadata.file_type().is_symlink() || !parent_metadata.is_dir() {
         return Err(invalid_boundary("library parent is not a real directory"));
     }
     validate_owner(&parent_metadata, "library parent")?;
-    set_private_directory_permissions(parent, &parent_metadata)?;
+    let directory_permissions_changed =
+        set_private_directory_permissions(parent, &parent_metadata)?;
 
-    if let Some(metadata) = existing_library_metadata(path)? {
-        validate_library_metadata(&metadata)?;
+    let existing_library = existing_library_metadata(path)?;
+    if let Some(metadata) = &existing_library {
+        validate_library_metadata(metadata)?;
     }
     let file = open_library_file(path)?;
     let metadata = file.metadata()?;
     validate_library_metadata(&metadata)?;
-    set_private_file_permissions(&file, &metadata)
+    let file_permissions_changed = set_private_file_permissions(&file, &metadata)?;
+    let library_was_created = existing_library.is_none();
+    if library_was_created || file_permissions_changed {
+        file.sync_all()?;
+    }
+    if parent_was_missing || directory_permissions_changed || library_was_created {
+        sync_directory(parent)?;
+    }
+    Ok(())
+}
+
+fn path_exists_without_following_links(path: &Path) -> io::Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error),
+    }
 }
 
 fn create_application_data_directory(path: &Path) -> io::Result<()> {
@@ -87,29 +108,31 @@ fn validate_owner(_metadata: &fs::Metadata, _description: &str) -> io::Result<()
 }
 
 #[cfg(unix)]
-fn set_private_directory_permissions(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
+fn set_private_directory_permissions(path: &Path, metadata: &fs::Metadata) -> io::Result<bool> {
     if metadata.permissions().mode() & 0o777 != 0o700 {
         fs::set_permissions(path, fs::Permissions::from_mode(0o700))?;
+        return Ok(true);
     }
-    Ok(())
+    Ok(false)
 }
 
 #[cfg(not(unix))]
-fn set_private_directory_permissions(_path: &Path, _metadata: &fs::Metadata) -> io::Result<()> {
-    Ok(())
+fn set_private_directory_permissions(_path: &Path, _metadata: &fs::Metadata) -> io::Result<bool> {
+    Ok(false)
 }
 
 #[cfg(unix)]
-fn set_private_file_permissions(file: &File, metadata: &fs::Metadata) -> io::Result<()> {
+fn set_private_file_permissions(file: &File, metadata: &fs::Metadata) -> io::Result<bool> {
     if metadata.permissions().mode() & 0o777 != 0o600 {
         file.set_permissions(fs::Permissions::from_mode(0o600))?;
+        return Ok(true);
     }
-    Ok(())
+    Ok(false)
 }
 
 #[cfg(not(unix))]
-fn set_private_file_permissions(_file: &File, _metadata: &fs::Metadata) -> io::Result<()> {
-    Ok(())
+fn set_private_file_permissions(_file: &File, _metadata: &fs::Metadata) -> io::Result<bool> {
+    Ok(false)
 }
 
 fn invalid_boundary(message: &str) -> io::Error {

@@ -82,6 +82,9 @@ jobs:
           fi
           test ! -e /usr/bin/fitfreed
 
+      - name: Verify Linux filesystem failure recovery
+        run: npm run verify:linux-filesystem-reliability
+
       - name: Verify full-scale import budgets
         run: npm run benchmark:import
 

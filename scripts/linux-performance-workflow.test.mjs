@@ -30,6 +30,10 @@ test("runs every production data benchmark on Ubuntu 24.04", () => {
     workflow,
     /name: Verify Insights read-model performance budgets\n\s+run: npm run benchmark:insights/,
   );
+  assert.match(
+    workflow,
+    /name: Verify Linux filesystem failure recovery\n\s+run: npm run verify:linux-filesystem-reliability/,
+  );
 });
 
 test("builds, verifies, installs, measures, and always removes the production package", () => {
@@ -45,6 +49,14 @@ test("builds, verifies, installs, measures, and always removes the production pa
   assert.match(workflow, /name: Remove the benchmark package\n\s+if: always\(\)/);
   assert.ok(
     workflow.indexOf("name: Verify installed Linux cold-launch budget")
+      < workflow.indexOf("name: Verify full-scale import budgets"),
+  );
+  assert.ok(
+    workflow.indexOf("name: Remove the benchmark package")
+      < workflow.indexOf("name: Verify Linux filesystem failure recovery"),
+  );
+  assert.ok(
+    workflow.indexOf("name: Verify Linux filesystem failure recovery")
       < workflow.indexOf("name: Verify full-scale import budgets"),
   );
 });

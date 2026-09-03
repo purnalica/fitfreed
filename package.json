@@ -96,6 +96,7 @@
     "verify:development-release": "scripts/verify-macos-development-release.sh",
     "verify:update-recovery-preparation": "scripts/verify-update-recovery-preparation.sh",
     "verify:linux-installation": "node scripts/verify-linux-clean-install.mjs",
+    "verify:linux-filesystem-reliability": "scripts/verify-linux-filesystem-reliability.sh",
     "verify:linux-package": "node scripts/verify-linux-debian-package.mjs",
     "verify:linux-public-release": "node scripts/verify-linux-public-release.mjs",
     "verify:linux-update-e2e": "npm run icons && node scripts/verify-packaged-linux-update.mjs",
