@@ -254,8 +254,15 @@ Every terminal scenario verifies package-manager identity, SQLite integrity, loc
 localized result presentation, and explicit acknowledgement. The authorization scenario permits candidate installation
 but denies predecessor installation, verifies the retained first attempt and runnable fallback, grants only the same
 preserved predecessor boundary, and drives the visible explicit retry to terminal recovery without network access.
-The remaining campaign must prove one durable increment per failed attempt and restart resumption, and require manual
-reinstallation after exhaustion while the previous application, library, and recovery evidence remain intact.
+The exhaustion scenario keeps that denial in place, drives the two available UI retries, verifies durable attempt
+counts one through three and the classified authorization failure, then opens the preserved runnable predecessor and
+requires localized manual-reinstall guidance with no retry or ordinary update action. Its evidence must retain the
+active attempt, previous application, valid library, and recovery assets. The restart scenario pauses only an
+instrumented build after durable `replacement-started`, stops both coordinator and watchdog, proves the phase did not
+advance, and launches the installed application through its ordinary entry point. Startup must reattach exactly one
+preserved watchdog, restore the predecessor pair, clean the terminal attempt, present the localized result, and remove
+the receipt only after acknowledgement. The synchronization point is absent from production builds. Native Ubuntu
+execution, not source inspection, is the acceptance evidence for both scenarios.
 
 Recurring discovery is split at its real boundary without waiting a day in CI. Paused-time host tests prove the exact production interval, first and subsequent 24-hour waits, and the absence of catch-up bursts; coordinator tests prove an occupied update operation is skipped. React tests drive the exact typed desktop event and prove that attention states become visible while unconfigured, offline, current, dismissed, and postponed results retain scheduled-policy silence. The architecture check binds both sides to the same event name. The production capability manifest includes Tauri's event listener permission, and the production-bundle gate proves no test capability is required or retained.
 

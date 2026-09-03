@@ -95,10 +95,14 @@ removes the rule and package after every scenario. The campaign covers successfu
 rollback after candidate rejection or a real Debian pre-installation failure, and recovery when predecessor
 authorization is initially unavailable. That last scenario first permits only candidate installation, verifies the
 runnable fallback and visible first-attempt intervention, then grants the predecessor boundary and activates the real
-retry action. Every terminal path checks database integrity, locale persistence, package identity, terminal cleanup,
-localized result presentation, and explicit acknowledgement. Only privacy-safe synthetic diagnostics and the closed
-result are eligible for short-lived failure retention; packages, libraries, recovery identifiers, signing keys, and
-recovery paths remain transient.
+retry action. A separate authorization-exhaustion scenario preserves the denial through three real package-manager
+attempts and verifies the final manual-reinstall state, retained library, and retained evidence. The restart scenario
+uses an E2E-only synchronization point after durable `replacement-started`, terminates both live actors, and launches
+the installed application normally so production startup reattachment must finish recovery. Completed terminal paths
+check database integrity, locale persistence, package identity, terminal cleanup, localized result presentation, and
+explicit acknowledgement; the deliberately unresolved exhaustion path instead requires active evidence retention.
+Only privacy-safe synthetic diagnostics and the closed result are eligible for short-lived failure retention;
+packages, libraries, recovery identifiers, signing keys, and recovery paths remain transient.
 
 ### Maintenance and community
 

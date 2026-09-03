@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -28,6 +28,8 @@ const recoveryAuthorizationRequest =
   process.env.FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_REQUEST;
 const recoveryAuthorizationReady =
   process.env.FITFREED_UPDATE_E2E_RECOVERY_AUTHORIZATION_READY;
+const interruptionReady = process.env.FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_READY;
+const interruptionContinue = process.env.FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_CONTINUE;
 
 function requiredEnvironment(name) {
   const value = process.env[name];
@@ -257,6 +259,23 @@ async function verifyRecoveryIntervention(browser, recoveryId, expectedAttempts)
   return retry;
 }
 
+async function verifyManualRecoveryIntervention(browser, recoveryId) {
+  await openSettingsCategory("updates", browser);
+  const result = await browser.$(".update-result-manual-reinstall-required");
+  await result.waitForDisplayed({ timeout: 15_000 });
+  const resultText = await result.getText();
+  assert.match(resultText, new RegExp(spanish.updates.recovery.intervention.manualHeading));
+  assert.match(resultText, /0\.1\.0/);
+  assert.match(resultText, /0\.2\.0/);
+  assert.match(resultText, /completado 3 de 3/);
+  assert.doesNotMatch(resultText, new RegExp(recoveryId));
+  assert.equal((await browser.$$(".update-panel-heading button")).length, 0);
+  assert.equal(
+    (await browser.$$(`aria/${spanish.updates.recovery.intervention.retry}`)).length,
+    0,
+  );
+}
+
 async function verifyJourney(browser) {
   await openSettingsCategory("updates", browser);
   const heading = await browser.$("#update-heading");
@@ -312,7 +331,17 @@ async function verifyJourney(browser) {
     ),
     ["ok", "es-ES"],
   );
-  if (scenario === "authorization-retry") {
+  if (scenario === "restart-resumption") {
+    await waitForMarker(interruptionReady, "reach the restart interruption point");
+    const interrupted = await waitForRecoveryPhase(
+      recovery.recoveryId,
+      "replacement-started",
+      0,
+    );
+    assert.equal(installedVersion(), "0.1.0");
+    return interrupted;
+  }
+  if (["authorization-exhaustion", "authorization-retry"].includes(scenario)) {
     const unavailable = await waitForRecoveryPhase(
       recovery.recoveryId,
       "native-recovery-unavailable",
@@ -367,18 +396,44 @@ async function cleanupReplacedSession(browser) {
   }
 }
 
+function launchOrdinaryApplication(executablePath) {
+  const child = spawn(executablePath, [], {
+    detached: true,
+    env: process.env,
+    stdio: "ignore",
+  });
+  child.unref();
+}
+
+async function replaceWithFallbackSession(browser, recovery) {
+  const fallbackExecutable = path.join(
+    recovery.attemptDirectory,
+    "previous/runnable/usr/bin/fitfreed",
+  );
+  await waitForApplication(fallbackExecutable);
+  await cleanupReplacedSession(browser);
+  await stopApplication(fallbackExecutable);
+  return {
+    browser: await startSession(fallbackExecutable),
+    fallbackExecutable,
+  };
+}
+
 async function main() {
   if (!Number.isSafeInteger(driverPort) || driverPort < 1_024 || driverPort > 65_535) {
     throw new Error("FITFREED_UPDATE_E2E_DRIVER_PORT must be a non-privileged TCP port");
   }
-  if (!["updated", "recovered"].includes(expectedOutcome)) {
+  if (!["manual-reinstall-required", "recovered", "updated"].includes(expectedOutcome)) {
     throw new Error("FITFREED_UPDATE_E2E_EXPECTED_OUTCOME is invalid");
   }
   const expectedScenario = scenario === "success"
     ? { outcome: "updated", installedVersion: "0.2.0" }
-    : ["authorization-retry", "candidate-failure", "installer-failure"].includes(scenario)
+    : ["authorization-retry", "candidate-failure", "installer-failure", "restart-resumption"]
+      .includes(scenario)
       ? { outcome: "recovered", installedVersion: "0.1.0" }
-      : undefined;
+      : scenario === "authorization-exhaustion"
+        ? { outcome: "manual-reinstall-required", installedVersion: "0.2.0" }
+        : undefined;
   const hasCompleteRecoveryAuthorizationMarkers =
     Boolean(recoveryAuthorizationRequest) && Boolean(recoveryAuthorizationReady);
   if (
@@ -387,6 +442,8 @@ async function main() {
     || expectedInstalledVersion !== expectedScenario.installedVersion
     || (scenario === "authorization-retry") !== hasCompleteRecoveryAuthorizationMarkers
     || Boolean(recoveryAuthorizationRequest) !== Boolean(recoveryAuthorizationReady)
+    || (scenario === "restart-resumption") !== Boolean(interruptionReady)
+    || Boolean(interruptionReady) !== Boolean(interruptionContinue)
   ) {
     throw new Error("The Linux update E2E scenario contract is invalid");
   }
@@ -397,15 +454,7 @@ async function main() {
     browser = await startSession(applicationBinary);
     const recovery = await verifyJourney(browser);
     if (scenario === "authorization-retry") {
-      const fallbackExecutable = path.join(
-        recovery.attemptDirectory,
-        "previous/runnable/usr/bin/fitfreed",
-      );
-      await waitForApplication(fallbackExecutable);
-      await cleanupReplacedSession(browser);
-      browser = undefined;
-      await stopApplication(fallbackExecutable);
-      browser = await startSession(fallbackExecutable);
+      ({ browser } = await replaceWithFallbackSession(browser, recovery));
       const retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 1);
       fs.writeFileSync(recoveryAuthorizationRequest, "request\n", { mode: 0o600 });
       await waitForMarker(recoveryAuthorizationReady, "receive recovery authorization");
@@ -421,12 +470,60 @@ async function main() {
       });
       await waitForTerminalCleanup(recovery);
       assert.equal(installedVersion(), expectedInstalledVersion);
+    } else if (scenario === "authorization-exhaustion") {
+      let fallback;
+      ({ browser, fallbackExecutable: fallback } = await replaceWithFallbackSession(
+        browser,
+        recovery,
+      ));
+      let retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 1);
+      await retry.click();
+      const unavailable = await waitForRecoveryPhase(
+        recovery.recoveryId,
+        "native-recovery-unavailable",
+        2,
+      );
+      assert.equal(unavailable.manifest.nativeRecovery.lastFailure, "authorization-unavailable");
+      ({ browser } = await replaceWithFallbackSession(browser, recovery));
+      retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 2);
+      await retry.click();
+      const failed = await waitForRecoveryPhase(
+        recovery.recoveryId,
+        "recovery-failed",
+        3,
+      );
+      assert.equal(failed.manifest.nativeRecovery.lastFailure, "authorization-unavailable");
+      await cleanupReplacedSession(browser);
+      browser = undefined;
+      await stopApplication(fallback);
+      browser = await startSession(fallback);
+      await verifyManualRecoveryIntervention(browser, recovery.recoveryId);
+      assert.equal(installedVersion(), expectedInstalledVersion);
+    } else if (scenario === "restart-resumption") {
+      const fallbackExecutable = path.join(
+        recovery.attemptDirectory,
+        "previous/runnable/usr/bin/fitfreed",
+      );
+      await stopApplication(applicationBinary);
+      await stopApplication(fallbackExecutable);
+      await cleanupReplacedSession(browser);
+      browser = undefined;
+      const interrupted = activeRecovery();
+      assert.equal(interrupted.manifest.phase, "replacement-started");
+      assert.equal(interrupted.manifest.nativeRecovery.attempts, 0);
+      launchOrdinaryApplication(applicationBinary);
+      const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
+      assert.equal(outcome.outcome, "recovered");
+      await waitForTerminalCleanup(recovery);
+      assert.equal(installedVersion(), expectedInstalledVersion);
     }
-    await stopApplication();
-    await cleanupReplacedSession(browser);
-    browser = undefined;
-    browser = await startSession(applicationBinary);
-    await verifyRecoveryNotice(browser, recovery.recoveryId);
+    if (scenario !== "authorization-exhaustion") {
+      await stopApplication();
+      await cleanupReplacedSession(browser);
+      browser = undefined;
+      browser = await startSession(applicationBinary);
+      await verifyRecoveryNotice(browser, recovery.recoveryId);
+    }
     const evidence = {
       scenario,
       outcome: expectedOutcome,

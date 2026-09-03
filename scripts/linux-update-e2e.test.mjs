@@ -48,7 +48,7 @@ test("builds only an instrumented Debian package from the closed Linux overlays"
   assert.throws(() => linuxUpdateBuildArguments("relative.json"), /absolute/);
 });
 
-test("covers replacement, package failures, and authorization recovery with exact Debian packages", () => {
+test("covers replacement, recovery, exhaustion, and restart with exact Debian packages", () => {
   assert.deepEqual(linuxUpdateScenarioPlan(), [
     {
       name: "success",
@@ -75,6 +75,20 @@ test("covers replacement, package failures, and authorization recovery with exac
       name: "authorization-retry",
       candidateVariant: "ordinary",
       initialAuthorization: "candidate-only",
+      expectedOutcome: "recovered",
+      expectedVersion: "0.1.0",
+    },
+    {
+      name: "authorization-exhaustion",
+      candidateVariant: "ordinary",
+      initialAuthorization: "candidate-only",
+      expectedOutcome: "manual-reinstall-required",
+      expectedVersion: "0.2.0",
+    },
+    {
+      name: "restart-resumption",
+      candidateVariant: "ordinary",
+      initialAuthorization: "candidate-and-predecessor",
       expectedOutcome: "recovered",
       expectedVersion: "0.1.0",
     },
@@ -174,6 +188,23 @@ test("accepts only closed privacy-safe Linux update evidence", () => {
     scenario: "authorization-retry",
   };
   assert.deepEqual(validateLinuxUpdateEvidence(authorizationRetry), authorizationRetry);
+  const authorizationExhaustion = {
+    ...success,
+    scenario: "authorization-exhaustion",
+    outcome: "manual-reinstall-required",
+    installedVersion: "0.2.0",
+    activeRecovery: true,
+    retainedAttempt: true,
+  };
+  assert.deepEqual(
+    validateLinuxUpdateEvidence(authorizationExhaustion),
+    authorizationExhaustion,
+  );
+  const restartResumption = {
+    ...installerFailure,
+    scenario: "restart-resumption",
+  };
+  assert.deepEqual(validateLinuxUpdateEvidence(restartResumption), restartResumption);
 
   assert.throws(
     () => validateLinuxUpdateEvidence({ ...success, installedVersion: "0.1.0" }),

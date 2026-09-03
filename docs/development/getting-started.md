@@ -128,9 +128,11 @@ Run `npm run verify:linux-update-e2e` on an x86-64 Linux desktop or CI host with
 Polkit, and passwordless `sudo` for the isolated package-test setup. The command builds and signs two instrumented
 Debian versions, installs and replaces the native package, and removes both its narrowly scoped temporary Polkit rule
 and package state. It covers successful replacement, candidate and native-installer failure, and authorization that
-becomes available only after the verified runnable predecessor exposes the explicit retry. It never uses production
-update trust or publishes an artifact. Generated packages, keys, certificates, databases, recovery state, and
-privacy-safe failure evidence remain under ignored
+becomes available only after the verified runnable predecessor exposes the explicit retry. It also drives
+authorization through the third failed attempt and requires manual reinstall guidance, then separately interrupts
+both recovery actors before native installation and proves ordinary startup resumes the durable attempt. It never uses
+production update trust or publishes an artifact. Generated packages, keys, certificates, databases, recovery state,
+and privacy-safe failure evidence remain under ignored
 `.artifacts/linux-update-e2e`. This update-specific command does not replace the complete packaged capability journey.
 
 The instrumented executable resolves to `fitfreed` on macOS and Linux and `fitfreed.exe` on Windows. macOS builds an

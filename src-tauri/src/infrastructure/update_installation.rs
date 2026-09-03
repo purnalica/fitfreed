@@ -1,5 +1,11 @@
 use std::path::{Path, PathBuf};
 
+#[cfg(all(target_os = "linux", feature = "e2e"))]
+use std::{
+    env, fs, io, thread,
+    time::{Duration, Instant},
+};
+
 #[cfg(not(target_os = "linux"))]
 use fitfreed_application::{UpdateInstallationAuthorization, UpdateRecoveryPhase};
 use thiserror::Error;
@@ -208,6 +214,15 @@ fn coordinate_prepared_linux_update_installation(
         installation.discard(recovery_root, prepared.recovery_id())?;
         return Err(error.into());
     }
+    #[cfg(feature = "e2e")]
+    if let Err(error) = wait_for_linux_update_e2e_interruption() {
+        installation.transition(
+            recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )?;
+        return Err(error.into());
+    }
     if let Err(error) =
         installation.install_candidate(prepared.attempt_directory(), candidate_version)
     {
@@ -229,6 +244,46 @@ fn coordinate_prepared_linux_update_installation(
             PackagedUpdateRecoveryPhase::Recovering,
         )?;
         return Err(error.into());
+    }
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "e2e"))]
+fn wait_for_linux_update_e2e_interruption() -> Result<(), LinuxUpdateRecoveryError> {
+    const READY: &str = "FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_READY";
+    const CONTINUE: &str = "FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_CONTINUE";
+    const TIMEOUT: Duration = Duration::from_secs(120);
+
+    let ready = env::var_os(READY).map(PathBuf::from);
+    let continue_ = env::var_os(CONTINUE).map(PathBuf::from);
+    let (Some(ready), Some(continue_)) = (ready, continue_) else {
+        if env::var_os(READY).is_some() || env::var_os(CONTINUE).is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Linux update E2E interruption markers are incomplete",
+            )
+            .into());
+        }
+        return Ok(());
+    };
+    if !ready.is_absolute() || !continue_.is_absolute() || ready == continue_ {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Linux update E2E interruption markers are invalid",
+        )
+        .into());
+    }
+    fs::write(&ready, b"ready\n")?;
+    let deadline = Instant::now() + TIMEOUT;
+    while !continue_.is_file() {
+        if Instant::now() >= deadline {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "Linux update E2E interruption was not released",
+            )
+            .into());
+        }
+        thread::sleep(Duration::from_millis(25));
     }
     Ok(())
 }

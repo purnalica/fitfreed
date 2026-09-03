@@ -137,6 +137,20 @@ export function linuxUpdateScenarioPlan() {
       expectedOutcome: "recovered",
       expectedVersion: currentVersion,
     },
+    {
+      name: "authorization-exhaustion",
+      candidateVariant: "ordinary",
+      initialAuthorization: "candidate-only",
+      expectedOutcome: "manual-reinstall-required",
+      expectedVersion: candidateVersion,
+    },
+    {
+      name: "restart-resumption",
+      candidateVariant: "ordinary",
+      initialAuthorization: "candidate-and-predecessor",
+      expectedOutcome: "recovered",
+      expectedVersion: currentVersion,
+    },
   ];
 }
 
@@ -189,6 +203,7 @@ export function createLinuxUpdatePolkitRule({
 
 export function validateLinuxUpdateEvidence(evidence) {
   const expected = linuxUpdateScenarioPlan().find(({ name }) => name === evidence?.scenario);
+  const retainsRecovery = expected?.expectedOutcome === "manual-reinstall-required";
   const allowedFields = [
     "activeRecovery",
     "installedVersion",
@@ -210,8 +225,8 @@ export function validateLinuxUpdateEvidence(evidence) {
     || evidence.installedVersion !== expected.expectedVersion
     || evidence.libraryIntegrity !== "ok"
     || evidence.locale !== "es-ES"
-    || evidence.activeRecovery !== false
-    || evidence.retainedAttempt !== false
+    || evidence.activeRecovery !== retainsRecovery
+    || evidence.retainedAttempt !== retainsRecovery
   ) {
     throw new Error("Linux update E2E evidence is invalid");
   }
@@ -636,6 +651,8 @@ async function runScenario(
   const evidencePath = path.join(artifactRoot, "evidence", scenario.name, "result.json");
   const recoveryAuthorizationRequest = path.join(scenarioRoot, "recovery-authorization.request");
   const recoveryAuthorizationReady = path.join(scenarioRoot, "recovery-authorization.ready");
+  const interruptionReady = path.join(scenarioRoot, "restart-interruption.ready");
+  const interruptionContinue = path.join(scenarioRoot, "restart-interruption.continue");
   rmSync(scenarioRoot, { recursive: true, force: true });
   mkdirSync(path.dirname(databasePath), { recursive: true });
   try {
@@ -690,7 +707,14 @@ async function runScenario(
                 recoveryAuthorizationReady,
             }
             : {}),
-          ...(["authorization-retry", "candidate-failure"].includes(scenario.name)
+          ...(scenario.name === "restart-resumption"
+            ? {
+              FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_READY: interruptionReady,
+              FITFREED_E2E_LINUX_UPDATE_INTERRUPTION_CONTINUE: interruptionContinue,
+            }
+            : {}),
+          ...(["authorization-exhaustion", "authorization-retry", "candidate-failure"]
+            .includes(scenario.name)
             ? { FITFREED_E2E_REJECT_UPDATE_CANDIDATE: "1" }
             : {}),
         }),
