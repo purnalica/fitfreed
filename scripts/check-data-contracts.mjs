@@ -7218,6 +7218,122 @@ for (const invalidRecovery of [
   }
 }
 
+const windowsUpdateRecoveryPath = "docs/data-formats/release/update-recovery-v3.md";
+const windowsUpdateRecovery = read(windowsUpdateRecoveryPath);
+for (const field of [
+  "org.fitfreed.update-recovery",
+  "schemaVersion",
+  "recoveryId",
+  "phase",
+  "platform",
+  "source.nativePackage",
+  "predecessorPackage.*",
+  "runnablePredecessor.*",
+  "targetPackage.*",
+  "replacementProcess.creationTimeFiletime",
+  "replacementProcess.executablePath",
+  "nativeRecovery.attempts",
+  "nativeRecovery.lastFailure",
+  "native-recovery-unavailable",
+  "windows-x86_64-nsis",
+]) {
+  requireMention(windowsUpdateRecovery, field, windowsUpdateRecoveryPath);
+}
+
+const windowsUpdateRecoverySchemaPath = "schemas/update-recovery-v3.schema.json";
+const validateWindowsUpdateRecovery = ajv.compile(
+  JSON.parse(read(windowsUpdateRecoverySchemaPath)),
+);
+const syntheticWindowsInstallDirectory =
+  "C:\\Users\\Synthetic\\AppData\\Local\\FitFreed";
+const syntheticWindowsDataDirectory =
+  "C:\\Users\\Synthetic\\AppData\\Roaming\\org.fitfreed.desktop";
+const syntheticWindowsUpdateRecovery = {
+  format: "org.fitfreed.update-recovery",
+  schemaVersion: 3,
+  recoveryId: "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+  phase: "prepared",
+  preparedAt: "2026-09-04T08:00:00Z",
+  replacementProcess: null,
+  platform: {
+    os: "windows",
+    architecture: "x86_64",
+    packageKind: "nsis",
+    installationScope: "current-user",
+    updateTarget: "windows-x86_64-nsis",
+  },
+  source: {
+    version: "0.1.0",
+    librarySchemaVersion: 37,
+    libraryPath: `${syntheticWindowsDataDirectory}\\fitfreed.sqlite`,
+    nativePackage: {
+      productName: "FitFreed",
+      version: "0.1.0",
+      architecture: "x86_64",
+      installDirectory: syntheticWindowsInstallDirectory,
+      executablePath: `${syntheticWindowsInstallDirectory}\\fitfreed.exe`,
+      uninstallerPath: `${syntheticWindowsInstallDirectory}\\uninstall.exe`,
+      applicationDataDirectory: syntheticWindowsDataDirectory,
+    },
+  },
+  target: {
+    version: "0.2.0",
+    librarySchemaVersion: 38,
+    trustedSequence: 2,
+    trustedPayloadSha256:
+      "23456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+  },
+  predecessorPackage: {
+    relativePath: "previous/package.exe",
+    version: "0.1.0",
+    sourceUrl: "https://fitfreed.org/updates/0.1.0/FitFreed_0.1.0_x64-setup.exe",
+    sizeBytes: 1024,
+    sha256: "3456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012",
+    signingKeyId: "stable.synthetic-1",
+    updaterSignature: "c3ludGhldGljLXVwZGF0ZXItc2lnbmF0dXJl",
+  },
+  runnablePredecessor: {
+    relativePath: "previous/runnable",
+    executableRelativePath: "fitfreed.exe",
+    uninstallerRelativePath: "uninstall.exe",
+    treeSha256: "456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123",
+    sourcePackageSha256:
+      "3456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012",
+  },
+  libraryBackup: {
+    relativePath: "previous/fitfreed.sqlite",
+    sizeBytes: 1048576,
+    sha256: "56789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234",
+  },
+  targetPackage: {
+    relativePath: "candidate/package.exe",
+    version: "0.2.0",
+    sourceUrl: "https://fitfreed.org/updates/0.2.0/FitFreed_0.2.0_x64-setup.exe",
+    sizeBytes: 2048,
+    sha256: "6789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012345",
+    signingKeyId: "stable.synthetic-1",
+    updaterSignature: "c3ludGhldGljLXVwZGF0ZXItc2lnbmF0dXJl",
+  },
+  nativeRecovery: { attempts: 0, lastFailure: null },
+};
+if (!validateWindowsUpdateRecovery(syntheticWindowsUpdateRecovery)) {
+  throw new Error(
+    windowsUpdateRecoverySchemaPath
+      + " rejected its synthetic manifest: "
+      + ajv.errorsText(validateWindowsUpdateRecovery.errors),
+  );
+}
+for (const invalidRecovery of [
+  { ...syntheticWindowsUpdateRecovery, platform: { ...syntheticWindowsUpdateRecovery.platform, os: "linux" } },
+  { ...syntheticWindowsUpdateRecovery, predecessorPackage: { ...syntheticWindowsUpdateRecovery.predecessorPackage, relativePath: "candidate/package.exe" } },
+  { ...syntheticWindowsUpdateRecovery, nativeRecovery: { attempts: 4, lastFailure: null } },
+  { ...syntheticWindowsUpdateRecovery, source: { ...syntheticWindowsUpdateRecovery.source, libraryPath: "relative\\fitfreed.sqlite" } },
+]) {
+  if (validateWindowsUpdateRecovery(invalidRecovery)) {
+    throw new Error(windowsUpdateRecoverySchemaPath + " accepted an invalid manifest");
+  }
+}
+
 const updateRecoveryOutcomeSchemaPath = "schemas/update-recovery-outcome-v1.schema.json";
 const updateRecoveryOutcomeSchema = JSON.parse(read(updateRecoveryOutcomeSchemaPath));
 const validateUpdateRecoveryOutcome = ajv.compile(updateRecoveryOutcomeSchema);
@@ -10720,7 +10836,11 @@ process.stdout.write(
     ],
     publicReleaseSigningConfigurationSchemas:
       publicReleaseSigningContracts.map(({ schemaPath }) => schemaPath),
-    updateRecoverySchemas: [updateRecoverySchemaPath, linuxUpdateRecoverySchemaPath],
+    updateRecoverySchemas: [
+      updateRecoverySchemaPath,
+      linuxUpdateRecoverySchemaPath,
+      windowsUpdateRecoverySchemaPath,
+    ],
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
     reportSchemas: [
       reportDefinitionSchemaPath,

@@ -262,6 +262,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   complete non-reparse runnable tree with safe Windows names, deterministic tree hashing, reopening, mutation
   detection, and removal of only partially created assets. Native Windows execution remains authoritative for version
   resources, installed-directory semantics, file sharing, and reparse attributes.
+- Windows recovery-contract tests validate schema version 3 independently from the closed macOS and Linux formats.
+  They require one current-user x86-64 NSIS identity, canonical package and runnable paths, lossless process creation
+  `FILETIME`, consistent native directories, exact source and target version relationships, credential-free immutable
+  URLs, digest binding, phase-shaped process evidence, bounded native-recovery attempts, and only the documented
+  lifecycle transitions.
 - The Ubuntu 24.04 lane then builds the source-bound Debian package through the same Linux-only command documented for contributors and extracts it for inspection. The gate rejects any drift in the external `FitFreed_<version>_amd64.deb` artifact name, internal `fitfreed` package identity, architecture, version, homepage, section, priority, mandatory GTK and WebKitGTK dependencies, executable permissions, `usr/share/applications/fitfreed.desktop` path, visible `FitFreed` launcher name, icons, or installed GPL text. It also proves that the wrapper changed only Tauri's generated filesystem name rather than reconstructing signed package bytes. It generates a schema-validated, digest-bound, complete extracted-layout inventory from those exact package bytes and proves deterministic ordering, safe relative links, and atomic evidence replacement. It next mounts only the package into a digest-pinned clean Ubuntu 24.04 image that has no development toolchain, installs repository dependencies, verifies dynamic linking and package-manager identity, purges the package, and verifies package-owned removal. The unsigned engineering package and inventory are not uploaded as public workflow artifacts.
 - A separate Ubuntu 24.04 capability job builds an instrumented Debian package with the isolated technical
   `fitfreed-e2e` product and package name, `/usr/bin/fitfreed-e2e` executable, and `org.fitfreed.desktop.e2e`

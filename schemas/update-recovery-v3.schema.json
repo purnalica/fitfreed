@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/update-recovery-v3.schema.json",
+  "title": "FitFreed Windows update recovery manifest version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "recoveryId",
+    "phase",
+    "preparedAt",
+    "replacementProcess",
+    "platform",
+    "source",
+    "target",
+    "predecessorPackage",
+    "runnablePredecessor",
+    "libraryBackup",
+    "targetPackage",
+    "nativeRecovery"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.update-recovery" },
+    "schemaVersion": { "const": 3 },
+    "recoveryId": { "$ref": "#/$defs/sha256" },
+    "phase": {
+      "enum": [
+        "prepared",
+        "replacement-started",
+        "replacement-installed",
+        "launching",
+        "confirmed",
+        "recovering",
+        "native-recovery-unavailable",
+        "recovered",
+        "recovery-failed"
+      ]
+    },
+    "preparedAt": { "$ref": "#/$defs/utcSecond" },
+    "replacementProcess": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/windowsProcess" }
+      ]
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "architecture", "packageKind", "installationScope", "updateTarget"],
+      "properties": {
+        "os": { "const": "windows" },
+        "architecture": { "const": "x86_64" },
+        "packageKind": { "const": "nsis" },
+        "installationScope": { "const": "current-user" },
+        "updateTarget": { "const": "windows-x86_64-nsis" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "librarySchemaVersion", "libraryPath", "nativePackage"],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "librarySchemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "libraryPath": { "$ref": "#/$defs/windowsAbsolutePath" },
+        "nativePackage": { "$ref": "#/$defs/nativePackageIdentity" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "librarySchemaVersion",
+        "trustedSequence",
+        "trustedPayloadSha256"
+      ],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "librarySchemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "trustedSequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "trustedPayloadSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "predecessorPackage": {
+      "allOf": [
+        { "$ref": "#/$defs/preservedPackage" },
+        {
+          "type": "object",
+          "properties": { "relativePath": { "const": "previous/package.exe" } }
+        }
+      ]
+    },
+    "runnablePredecessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relativePath",
+        "executableRelativePath",
+        "uninstallerRelativePath",
+        "treeSha256",
+        "sourcePackageSha256"
+      ],
+      "properties": {
+        "relativePath": { "const": "previous/runnable" },
+        "executableRelativePath": { "const": "fitfreed.exe" },
+        "uninstallerRelativePath": { "const": "uninstall.exe" },
+        "treeSha256": { "$ref": "#/$defs/sha256" },
+        "sourcePackageSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "libraryBackup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relativePath", "sizeBytes", "sha256"],
+      "properties": {
+        "relativePath": { "const": "previous/fitfreed.sqlite" },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1099511627776
+        },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "targetPackage": {
+      "allOf": [
+        { "$ref": "#/$defs/preservedPackage" },
+        {
+          "type": "object",
+          "properties": { "relativePath": { "const": "candidate/package.exe" } }
+        }
+      ]
+    },
+    "nativeRecovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempts", "lastFailure"],
+      "properties": {
+        "attempts": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "lastFailure": {
+          "oneOf": [
+            { "type": "null" },
+            { "enum": ["installer-failed", "installed-state-invalid"] }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "schemaVersion": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+    "semver": {
+      "type": "string",
+      "maxLength": 255,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "keyId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "utcSecond": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "maxLength": 20
+    },
+    "windowsAbsolutePath": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 4096,
+      "pattern": "^(?:[A-Za-z]:\\\\|\\\\\\\\\\?\\\\[A-Za-z]:\\\\)[^\\u0000-\\u001f<>:\"|?*]+$"
+    },
+    "nativePackageIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "productName",
+        "version",
+        "architecture",
+        "installDirectory",
+        "executablePath",
+        "uninstallerPath",
+        "applicationDataDirectory"
+      ],
+      "properties": {
+        "productName": { "const": "FitFreed" },
+        "version": { "$ref": "#/$defs/semver" },
+        "architecture": { "const": "x86_64" },
+        "installDirectory": { "$ref": "#/$defs/windowsAbsolutePath" },
+        "executablePath": { "$ref": "#/$defs/windowsAbsolutePath" },
+        "uninstallerPath": { "$ref": "#/$defs/windowsAbsolutePath" },
+        "applicationDataDirectory": { "$ref": "#/$defs/windowsAbsolutePath" }
+      }
+    },
+    "preservedPackage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relativePath",
+        "version",
+        "sourceUrl",
+        "sizeBytes",
+        "sha256",
+        "signingKeyId",
+        "updaterSignature"
+      ],
+      "properties": {
+        "relativePath": {
+          "enum": ["previous/package.exe", "candidate/package.exe"]
+        },
+        "version": { "$ref": "#/$defs/semver" },
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://",
+          "maxLength": 2048
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967296
+        },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "signingKeyId": { "$ref": "#/$defs/keyId" },
+        "updaterSignature": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16384,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      }
+    },
+    "windowsProcess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "processId",
+        "creationTimeFiletime",
+        "executablePath",
+        "launchNonce",
+        "confirmationDeadline"
+      ],
+      "properties": {
+        "processId": { "type": "integer", "minimum": 2, "maximum": 4294967295 },
+        "creationTimeFiletime": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "maxLength": 20
+        },
+        "executablePath": { "$ref": "#/$defs/windowsAbsolutePath" },
+        "launchNonce": { "$ref": "#/$defs/sha256" },
+        "confirmationDeadline": { "$ref": "#/$defs/utcSecond" }
+      }
+    }
+  }
+}
