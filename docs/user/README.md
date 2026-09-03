@@ -193,7 +193,14 @@ The [private macOS alpha candidate guide](private-alpha-candidate.md) is the ver
 
 The [public macOS 0.1.0 guide](public-macos-0.1.0.md) is the future signed-release download, verification, installation, import, exploration, update, recovery, removal, and support guide. It is conditional and does not announce a binary.
 
-The [public-release readiness ledger](../testing/public-release-readiness.md) records which gates have passed and which still prevent that guide from becoming operative. FitFreed 0.1.0 is not accepted while any applicable gate remains pending, open, awaiting a candidate, or unauthorized.
+The [public Linux 0.1.0 guide](public-linux-0.1.0.md) is the future Ubuntu x86-64 Debian-package download,
+verification, graphical installation, update, recovery, removal, local-data, and support guide. It is conditional and
+does not announce a Linux binary.
+
+The [public macOS readiness ledger](../testing/public-release-readiness.md) and
+[Milestone 4 Linux execution ledger](../plans/milestone-4.md) record which gates have passed and which still prevent
+their respective guides from becoming operative. FitFreed 0.1.0 is not accepted on a platform while any applicable
+gate remains pending, open, awaiting a candidate, or unauthorized.
 
 ## Safety boundary
 

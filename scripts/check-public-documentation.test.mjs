@@ -17,10 +17,27 @@ function bundle() {
 test("accepts the complete version-matched public documentation set", () => {
   assert.deepEqual(validatePublicDocumentationBundle(bundle()), {
     version: "0.1.0",
-    documents: 7,
+    documents: 8,
     locales: ["en-US", "es-ES"],
     catalogGuidanceKeys: 17,
   });
+});
+
+test("rejects Linux guidance that weakens the exact support and package boundary", () => {
+  const candidate = bundle();
+  const guidePath = "docs/user/public-linux-0.1.0.md";
+  candidate.documents[guidePath] = candidate.documents[guidePath]
+    .replace("x86-64 Ubuntu Desktop 24.04 and 26.04 LTS", "Linux desktops")
+    .replaceAll("FitFreed_0.1.0_amd64.deb", "FitFreed.AppImage");
+
+  assert.throws(
+    () => validatePublicDocumentationBundle(candidate),
+    (error) => {
+      assert.match(error.message, /linuxUserGuide does not document supported Linux boundary/);
+      assert.match(error.message, /linuxUserGuide does not document exact Debian package/);
+      return true;
+    },
+  );
 });
 
 test("rejects version drift and an incomplete public operations procedure", () => {
