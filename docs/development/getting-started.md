@@ -45,7 +45,7 @@ npm run format:check
 npm run test:rust
 npm run lint:rust
 npm run package:windows
-npm run verify:windows-installation
+npm run inventory:windows-package
 ```
 
 The complete `npm run test:fast` composition still contains macOS and Linux workflow-tooling checks. The Windows CI job
@@ -87,6 +87,7 @@ or CI runner rather than a personal profile.
 | Verify Windows-portable host automation and its CI contract | `npm run test:windows-scripts && npm run check:windows-ci-workflow` |
 | Build the unsigned x86-64 current-user NSIS package on Windows | `npm run package:windows` |
 | Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
+| Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -144,10 +145,12 @@ option and asks Tauri to produce only `FitFreed_<version>_x64-setup.exe` under
 resources selected from the operating-system locale, and bundles the silent WebView2 offline installer. It may
 reinstall an older version only so the separately authenticated recovery flow can restore an exact predecessor.
 
-This ordinary engineering package is unsigned. It is not a public candidate and does not prove installation,
-registry, Start Menu, Add or Remove Programs, WebView2, Authenticode, update, or recovery behavior. Those boundaries
-enter through subsequent Milestone 5 commands and exact Windows evidence; do not add certificate selection, signer
-commands, timestamps, account identities, or machine-local protected paths to `tauri.windows.conf.json`.
+This ordinary engineering package is unsigned. By itself it is not a public candidate and does not prove installation,
+registry, Start Menu, Add or Remove Programs, WebView2, Authenticode, update, or recovery behavior.
+`npm run inventory:windows-package` performs one real install-inspect-inventory-remove cycle and writes the
+schema-validated digest-bound evidence beside the setup. Authenticode, update, recovery, and exact-candidate boundaries
+remain subsequent Milestone 5 work; do not add certificate selection, signer commands, timestamps, account identities,
+or machine-local protected paths to `tauri.windows.conf.json`.
 
 `npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same
 Debian package contract but requires active recoverable `stable-v3` configuration and embeds only that channel's public

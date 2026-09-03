@@ -64,8 +64,8 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     windows,
-    /npm run verify:windows-installation/,
-    "Windows host must verify native NSIS installation and removal",
+    /npm run inventory:windows-package/,
+    "Windows host must inventory one native NSIS installation and removal",
   );
   for (const command of [
     "npm run doctor",
@@ -129,7 +129,7 @@ export function validateWindowsCiWorkflow(source) {
     "npm run lint:rust",
     "npm run test:vendor-updater",
     "npm run package:windows",
-    "npm run verify:windows-installation",
+    "npm run inventory:windows-package",
   ]) {
     if (windows.indexOf(command) > evidenceRecord) {
       errors.push("Windows evidence must be recorded after every required verification command");

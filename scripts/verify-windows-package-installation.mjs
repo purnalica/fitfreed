@@ -10,6 +10,7 @@ import {
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const versionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const sha256Pattern = /^[0-9a-f]{64}$/;
 const installationScript = path.join(
   repositoryRoot,
   "scripts",
@@ -30,12 +31,29 @@ function unexpectedFields(object, allowed) {
   return Object.keys(object ?? {}).filter((field) => !allowed.includes(field)).sort();
 }
 
+function byteOrder(left, right) {
+  return Buffer.compare(Buffer.from(left), Buffer.from(right));
+}
+
+function safeInstalledPath(candidate) {
+  if (typeof candidate !== "string" || candidate.length === 0 || candidate.length > 4096) {
+    return false;
+  }
+  if (candidate.startsWith("/") || candidate.includes("\\") || candidate.includes("\0")) {
+    return false;
+  }
+  return candidate.split("/").every(
+    (segment) => segment !== "" && segment !== "." && segment !== ".."
+      && !/[<>:"|?*\u0000-\u001f]/.test(segment),
+  );
+}
+
 export function validateWindowsInstallationFacts(facts, expectedVersion) {
   const errors = [];
   for (const [object, allowed, label] of [
     [facts, ["architecture", "installation", "installMode", "package", "packageFormat", "platform", "removal", "schemaVersion"], "top-level"],
     [facts?.package, ["fileDescription", "fileVersion", "productName", "productVersion", "signatureStatus", "version"], "package"],
-    [facts?.installation, ["applicationDataDirectory", "desktopShortcut", "executable", "executableSignatureStatus", "homepage", "installDirectory", "publisher", "startMenuShortcut", "uninstaller", "uninstallerSignatureStatus", "uninstallRegistry", "webview2Available"], "installation"],
+    [facts?.installation, ["applicationDataDirectory", "desktopShortcut", "executable", "executableSignatureStatus", "homepage", "installDirectory", "installedEntries", "publisher", "startMenuShortcut", "uninstaller", "uninstallerSignatureStatus", "uninstallRegistry", "webview2Available"], "installation"],
     [facts?.removal, ["applicationDataPreserved", "packageFilesRemoved", "registrationRemoved", "shortcutsRemoved"], "removal"],
   ]) {
     const fields = unexpectedFields(object, allowed);
@@ -84,6 +102,38 @@ export function validateWindowsInstallationFacts(facts, expectedVersion) {
   }
   if (installation.webview2Available !== true) {
     errors.push("WebView2 must be available after package installation");
+  }
+  const installedEntries = Array.isArray(installation.installedEntries)
+    ? installation.installedEntries
+    : [];
+  const entryPaths = [];
+  for (const entry of installedEntries) {
+    const fields = unexpectedFields(entry, ["path", "sha256", "size"]);
+    if (fields.length > 0) {
+      errors.push(`Windows installation entry has unexpected fields: ${fields.join(", ")}`);
+    }
+    if (!safeInstalledPath(entry?.path)) {
+      errors.push("Windows installation entry path must be safe and relative");
+    } else {
+      entryPaths.push(entry.path);
+    }
+    if (!Number.isSafeInteger(entry?.size) || entry.size < 0) {
+      errors.push("Windows installation entry size must be a non-negative safe integer");
+    }
+    if (!sha256Pattern.test(entry?.sha256 ?? "")) {
+      errors.push("Windows installation entry digest must be lowercase SHA-256");
+    }
+  }
+  const expectedEntryPaths = [...new Set(entryPaths)].sort(byteOrder);
+  if (installedEntries.length === 0
+      || JSON.stringify(entryPaths) !== JSON.stringify(expectedEntryPaths)) {
+    errors.push("Windows installation entries must have unique byte-sorted paths");
+  }
+  const entriesByPath = new Map(installedEntries.map((entry) => [entry?.path, entry]));
+  for (const requiredPath of [windowsPackageContract.executable, windowsPackageContract.uninstaller]) {
+    if (!entriesByPath.has(requiredPath)) {
+      errors.push(`Windows installation entries must contain ${requiredPath}`);
+    }
   }
   const removal = facts?.removal ?? {};
   for (const [field, label] of [

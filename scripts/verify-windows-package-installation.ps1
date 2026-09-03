@@ -116,6 +116,21 @@ try {
   $uninstallerSignatureStatus = Get-SignatureStatus $uninstallerPath
   Assert-Equal $executableSignatureStatus "NotSigned" "ordinary executable must be unsigned"
   Assert-Equal $uninstallerSignatureStatus "NotSigned" "ordinary uninstaller must be unsigned"
+  $unsupportedInstalledEntries = @(Get-ChildItem -LiteralPath $installDirectory -Recurse -Force |
+    Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
+  Assert-Equal $unsupportedInstalledEntries.Count 0 "installed package contains a reparse point"
+  $installedEntries = @(Get-ChildItem -LiteralPath $installDirectory -Recurse -File -Force |
+    ForEach-Object {
+      $relativePath = $_.FullName.Substring($installDirectory.Length + 1).Replace("\", "/")
+      [ordered]@{
+        sortKey = [BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($relativePath)).Replace("-", "")
+        entry = [ordered]@{
+          path = $relativePath
+          size = $_.Length
+          sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+      }
+    } | Sort-Object -Property sortKey | ForEach-Object { $_.entry })
 
   $phase = "shortcuts"
   Assert-True (Test-Path -LiteralPath $startMenuShortcut -PathType Leaf) "Start Menu shortcut is absent"
@@ -163,6 +178,7 @@ try {
       desktopShortcut = "%USERPROFILE%\Desktop\$ExpectedProductName.lnk"
       executableSignatureStatus = $executableSignatureStatus
       uninstallerSignatureStatus = $uninstallerSignatureStatus
+      installedEntries = $installedEntries
       webview2Available = $true
     }
     removal = [ordered]@{

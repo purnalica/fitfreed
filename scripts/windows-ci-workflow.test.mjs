@@ -25,7 +25,7 @@ test("rejects an unpinned, Unix-dependent, incomplete, or reusable-without-proof
       "      - name: Verify the Windows development environment\n        if: steps.decision.outputs.full-verification == 'true'\n        run: bash scripts/check-development-environment.sh",
     ), /Unix-only/],
     [(source) => source.replace("npm run package:windows", "cargo build"), /release-shaped NSIS package/],
-    [(source) => source.replace("npm run verify:windows-installation", "node -e true"), /native NSIS installation/],
+    [(source) => source.replace("npm run inventory:windows-package", "node -e true"), /native NSIS installation/],
     [(source) => source.replaceAll(
       "fitfreed-windows-host-package-v1-${{ needs.quality.outputs.executable-fingerprint }}",
       "fitfreed-windows-host-package-v1-unbound",

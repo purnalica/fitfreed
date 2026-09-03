@@ -130,6 +130,14 @@ authority-free lane. Native removal must remove package-owned state while retain
 `%APPDATA%\org.fitfreed.desktop`; that ordinary unsigned result is engineering evidence and cannot enter a public
 channel.
 
+The same native cycle creates the versioned
+[Windows package inventory](../data-formats/release/windows-package-inventory-v1.md) beside the exact setup. It binds
+the setup digest and native identity to every installed regular file's portable relative path, size, and digest, then
+records successful removal of package state and preservation of application data. The inventory distinguishes the
+ordinary unsigned engineering profile from the future public Authenticode profile, but a structural public claim is
+never trust evidence without the independent protected inspector. One CI command performs installation, inspection,
+inventory generation, and removal so the expensive native transition is not repeated for the same package.
+
 Linux and Windows use the authenticated predecessor recovery architecture in
 [ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and
 stable-channel payloads bind the candidate plus every supported predecessor package needed for offline rollback. A

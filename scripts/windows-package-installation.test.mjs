@@ -39,6 +39,10 @@ const expectedFacts = Object.freeze({
     desktopShortcut: "%USERPROFILE%\\Desktop\\FitFreed.lnk",
     executableSignatureStatus: "NotSigned",
     uninstallerSignatureStatus: "NotSigned",
+    installedEntries: [
+      { path: "fitfreed.exe", size: 8192, sha256: "a".repeat(64) },
+      { path: "uninstall.exe", size: 4096, sha256: "b".repeat(64) },
+    ],
     webview2Available: true,
   },
   removal: {
@@ -58,6 +62,10 @@ test("accepts only the complete unsigned engineering installation outcome", () =
     [(facts) => { facts.installation.publisher = "unknown"; }, /publisher/],
     [(facts) => { facts.installation.installDirectory = "C:\\FitFreed"; }, /install directory/],
     [(facts) => { facts.installation.executableSignatureStatus = "Valid"; }, /unsigned/],
+    [(facts) => { facts.installation.installedEntries.reverse(); }, /byte-sorted/],
+    [(facts) => { facts.installation.installedEntries[0].path = "../fitfreed.exe"; }, /safe and relative/],
+    [(facts) => { facts.installation.installedEntries[0].sha256 = "A".repeat(64); }, /lowercase SHA-256/],
+    [(facts) => { facts.installation.installedEntries.pop(); }, /uninstall\.exe/],
     [(facts) => { facts.installation.webview2Available = false; }, /WebView2/],
     [(facts) => { facts.removal.applicationDataPreserved = false; }, /application data/],
     [(facts) => { facts.unexpected = true; }, /unexpected fields/],

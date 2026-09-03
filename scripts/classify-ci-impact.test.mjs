@@ -319,5 +319,5 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   assert.match(windowsHostJob ?? "", /npm run test:rust/);
   assert.match(windowsHostJob ?? "", /npm run lint:rust/);
   assert.match(windowsHostJob ?? "", /npm run package:windows/);
-  assert.match(windowsHostJob ?? "", /npm run verify:windows-installation/);
+  assert.match(windowsHostJob ?? "", /npm run inventory:windows-package/);
 });

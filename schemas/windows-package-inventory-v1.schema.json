@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json",
+  "title": "FitFreed Windows package inventory version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "target",
+    "artifact",
+    "identity",
+    "installation",
+    "signatures",
+    "entries",
+    "removal"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.windows-package-inventory" },
+    "schemaVersion": { "const": 1 },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "architecture", "packageFormat", "installMode"],
+      "properties": {
+        "platform": { "const": "windows" },
+        "architecture": { "const": "x86_64" },
+        "packageFormat": { "const": "nsis" },
+        "installMode": { "const": "currentUser" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/topLevelPath" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicationIdentifier",
+        "productName",
+        "version",
+        "publisher",
+        "homepage",
+        "installerLanguages"
+      ],
+      "properties": {
+        "applicationIdentifier": { "const": "org.fitfreed.desktop" },
+        "productName": { "const": "FitFreed" },
+        "version": { "$ref": "#/$defs/semver" },
+        "publisher": { "const": "FitFreed contributors" },
+        "homepage": { "const": "https://fitfreed.org/" },
+        "installerLanguages": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "English" },
+            { "const": "Spanish" }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicationDataDirectory",
+        "installDirectory",
+        "executable",
+        "uninstaller",
+        "uninstallRegistry",
+        "startMenuShortcut",
+        "desktopShortcut",
+        "webviewInstallMode",
+        "webview2Available"
+      ],
+      "properties": {
+        "applicationDataDirectory": { "const": "%APPDATA%\\org.fitfreed.desktop" },
+        "installDirectory": { "const": "%LOCALAPPDATA%\\FitFreed" },
+        "executable": { "const": "fitfreed.exe" },
+        "uninstaller": { "const": "uninstall.exe" },
+        "uninstallRegistry": {
+          "const": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FitFreed"
+        },
+        "startMenuShortcut": {
+          "const": "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\FitFreed.lnk"
+        },
+        "desktopShortcut": { "const": "%USERPROFILE%\\Desktop\\FitFreed.lnk" },
+        "webviewInstallMode": { "const": "offlineInstaller" },
+        "webview2Available": { "const": true }
+      }
+    },
+    "signatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "setup", "executable", "uninstaller"],
+      "properties": {
+        "profile": { "enum": ["unsigned-engineering", "public-authenticode"] },
+        "setup": { "$ref": "#/$defs/signature" },
+        "executable": { "$ref": "#/$defs/signature" },
+        "uninstaller": { "$ref": "#/$defs/signature" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "profile": { "const": "unsigned-engineering" } } },
+          "then": {
+            "properties": {
+              "setup": { "$ref": "#/$defs/unsignedSignature" },
+              "executable": { "$ref": "#/$defs/unsignedSignature" },
+              "uninstaller": { "$ref": "#/$defs/unsignedSignature" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "profile": { "const": "public-authenticode" } } },
+          "then": {
+            "properties": {
+              "setup": { "$ref": "#/$defs/publicSignature" },
+              "executable": { "$ref": "#/$defs/publicSignature" },
+              "uninstaller": { "$ref": "#/$defs/publicSignature" }
+            }
+          }
+        }
+      ]
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/fileEntry" }
+    },
+    "removal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packageFilesRemoved",
+        "registrationRemoved",
+        "shortcutsRemoved",
+        "applicationDataPreserved"
+      ],
+      "properties": {
+        "packageFilesRemoved": { "const": true },
+        "registrationRemoved": { "const": true },
+        "shortcutsRemoved": { "const": true },
+        "applicationDataPreserved": { "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "topLevelPath": { "type": "string", "pattern": "^[^/\\\\]+$", "maxLength": 255 },
+    "entryPath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*[\\\\<>:\"|?*\\u0000-\\u001f])[^\\u0000]+$",
+      "maxLength": 4096
+    },
+    "fileEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/entryPath" },
+        "size": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "certificateSha256", "timestamped"],
+      "properties": {
+        "status": { "enum": ["NotSigned", "Valid"] },
+        "certificateSha256": {
+          "oneOf": [
+            { "$ref": "#/$defs/sha256" },
+            { "type": "null" }
+          ]
+        },
+        "timestamped": { "type": "boolean" }
+      }
+    },
+    "unsignedSignature": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "NotSigned" },
+        "certificateSha256": { "type": "null" },
+        "timestamped": { "const": false }
+      }
+    },
+    "publicSignature": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "Valid" },
+        "certificateSha256": { "$ref": "#/$defs/sha256" },
+        "timestamped": { "const": true }
+      }
+    }
+  }
+}

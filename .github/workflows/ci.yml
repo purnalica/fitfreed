@@ -558,9 +558,9 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run package:windows
 
-      - name: Install, inspect, and remove the Windows NSIS package
+      - name: Install, inventory, and remove the Windows NSIS package
         if: steps.decision.outputs.full-verification == 'true'
-        run: npm run verify:windows-installation
+        run: npm run inventory:windows-package
 
       - name: Record exact successful Windows host evidence
         if: steps.decision.outputs.full-verification == 'true'
