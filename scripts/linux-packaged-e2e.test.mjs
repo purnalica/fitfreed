@@ -39,42 +39,83 @@ test("resolves exactly one generated Debian package", () => {
 });
 
 test("accepts only the isolated package metadata and executable", () => {
-  assert.deepEqual(validateLinuxE2eDebianMetadata({
-    architecture: "amd64",
-    fileListing: [
-      "drwxr-xr-x root/root         0 2026-09-03 00:00 ./usr/bin/",
-      "-rwxr-xr-x root/root   1000000 2026-09-03 00:00 ./usr/bin/fitfreed-e2e",
+  for (const fileListing of [
+    [
+      "drwxr-xr-x 0/0               0 2026-09-03 00:00 usr/bin/",
+      "-rwxr-xr-x 0/0         1000000 2026-09-03 00:00 usr/bin/fitfreed-e2e",
     ].join("\n"),
-    packageName: "fitfreed-e2e",
-    version: "0.1.0",
-  }), {
-    architecture: "amd64",
-    executablePath: "/usr/bin/fitfreed-e2e",
-    packageName: "fitfreed-e2e",
-    version: "0.1.0",
-  });
-
-  for (const metadata of [
-    {
-      architecture: "amd64",
-      fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 ./usr/bin/fitfreed-e2e",
-      packageName: "fitfreed",
-      version: "0.1.0",
-    },
-    {
-      architecture: "arm64",
-      fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 ./usr/bin/fitfreed-e2e",
-      packageName: "fitfreed-e2e",
-      version: "0.1.0",
-    },
-    {
-      architecture: "amd64",
-      fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 ./usr/bin/fitfreed",
-      packageName: "fitfreed-e2e",
-      version: "0.1.0",
-    },
+    "-rwxr-xr-x root/root 1000000 2026-09-03 00:00 ./usr/bin/fitfreed-e2e",
   ]) {
-    assert.throws(() => validateLinuxE2eDebianMetadata(metadata), /invalid/);
+    assert.deepEqual(validateLinuxE2eDebianMetadata({
+      architecture: "amd64",
+      fileListing,
+      packageName: "fitfreed-e2e",
+      version: "0.1.0",
+    }), {
+      architecture: "amd64",
+      executablePath: "/usr/bin/fitfreed-e2e",
+      packageName: "fitfreed-e2e",
+      version: "0.1.0",
+    });
+  }
+
+  for (const [expectedError, metadata] of [
+    [
+      /package name/,
+      {
+        architecture: "amd64",
+        fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 ./usr/bin/fitfreed-e2e",
+        packageName: "fitfreed",
+        version: "0.1.0",
+      },
+    ],
+    [
+      /architecture/,
+      {
+        architecture: "arm64",
+        fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 ./usr/bin/fitfreed-e2e",
+        packageName: "fitfreed-e2e",
+        version: "0.1.0",
+      },
+    ],
+    [
+      /version/,
+      {
+        architecture: "amd64",
+        fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 ./usr/bin/fitfreed-e2e",
+        packageName: "fitfreed-e2e",
+        version: "latest",
+      },
+    ],
+    [
+      /executable path/,
+      {
+        architecture: "amd64",
+        fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 ./usr/bin/fitfreed",
+        packageName: "fitfreed-e2e",
+        version: "0.1.0",
+      },
+    ],
+    [
+      /executable path/,
+      {
+        architecture: "amd64",
+        fileListing: "-rwxr-xr-x root/root 1 2026-09-03 00:00 unsafe/usr/bin/fitfreed-e2e",
+        packageName: "fitfreed-e2e",
+        version: "0.1.0",
+      },
+    ],
+    [
+      /executable mode/,
+      {
+        architecture: "amd64",
+        fileListing: "-rw-r--r-- root/root 1 2026-09-03 00:00 usr/bin/fitfreed-e2e",
+        packageName: "fitfreed-e2e",
+        version: "0.1.0",
+      },
+    ],
+  ]) {
+    assert.throws(() => validateLinuxE2eDebianMetadata(metadata), expectedError);
   }
 });
 

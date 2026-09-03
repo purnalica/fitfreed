@@ -226,7 +226,7 @@ test("registers the native Linux update campaign in project automation", () => {
 
   assert.equal(
     packageJson.scripts["verify:linux-update-e2e"],
-    "node scripts/verify-packaged-linux-update.mjs",
+    "npm run icons && node scripts/verify-packaged-linux-update.mjs",
   );
   assert.match(workflow, /packaged-linux-update-e2e:/);
   assert.match(workflow, /runs-on: ubuntu-24\.04/);

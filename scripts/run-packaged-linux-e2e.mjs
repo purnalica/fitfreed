@@ -45,18 +45,31 @@ export function validateLinuxE2eDebianMetadata({
   packageName,
   version,
 }) {
+  const packageExecutablePath = linuxPackagedE2eContract.executablePath.slice(1);
   const executableEntry = fileListing
     .split(/\r?\n/)
     .filter(Boolean)
-    .filter((line) => line.trim().endsWith("./usr/bin/fitfreed-e2e"));
-  if (
-    packageName !== linuxPackagedE2eContract.packageName
-    || architecture !== linuxPackagedE2eContract.architecture
-    || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)
-    || executableEntry.length !== 1
-    || !/^-rwxr-xr-x\s/.test(executableEntry[0].trim())
-  ) {
-    throw new Error("the Linux E2E Debian package metadata is invalid");
+    .filter((line) => {
+      const listedPath = line.trim().split(/\s+/).at(-1)?.replace(/^\.\//, "");
+      return listedPath === packageExecutablePath;
+    });
+  const errors = [];
+  if (packageName !== linuxPackagedE2eContract.packageName) {
+    errors.push(`package name ${JSON.stringify(packageName)} is not ${linuxPackagedE2eContract.packageName}`);
+  }
+  if (architecture !== linuxPackagedE2eContract.architecture) {
+    errors.push(`architecture ${JSON.stringify(architecture)} is not ${linuxPackagedE2eContract.architecture}`);
+  }
+  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+    errors.push(`version ${JSON.stringify(version)} is not a supported semantic version`);
+  }
+  if (executableEntry.length !== 1) {
+    errors.push(`executable path ${linuxPackagedE2eContract.executablePath} occurs ${executableEntry.length} times`);
+  } else if (!/^-rwxr-xr-x\s/.test(executableEntry[0].trim())) {
+    errors.push(`executable mode for ${linuxPackagedE2eContract.executablePath} is not 0755`);
+  }
+  if (errors.length > 0) {
+    throw new Error(`the Linux E2E Debian package metadata is invalid: ${errors.join("; ")}`);
   }
   return {
     architecture,

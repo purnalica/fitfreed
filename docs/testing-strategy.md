@@ -213,7 +213,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   performance scenarios as macOS under Xvfb. Purge must remove the test package and executable without deleting any
   synthetic journey library; successful data is then discarded, while CI may retain only privacy-safe failure logs
   and screenshots. The job is required before an executable fingerprint receives reusable complete-verification
-  evidence and is skipped only when that exact fingerprint already has such evidence.
+  evidence and is skipped only when that exact fingerprint already has such evidence. Package inspection normalizes
+  only the optional leading `./` used by some `dpkg-deb` versions when presenting relative paths; the package name,
+  architecture, version, exact executable path, and executable mode remain independent fail-closed checks whose
+  diagnostics identify the violated contract.
 - A mandatory macOS job prepares the source-bound production package, enforces its process-to-painted-shell cold-launch budget, then qualifies full-scale import, dense supported-signal storage and queries, and longitudinal read models before building the instrumented Tauri application under an isolated target and executing the focused packaged E2E journey with independently generated synthetic fixtures whenever executable or release inputs change and for every explicit manual or release-candidate verification request. The E2E build produces only the `.app` consumed by WebdriverIO; an instrumented DMG adds no behavioral evidence, while the separate production package and installation gates retain complete DMG coverage. The tested WebdriverIO configuration rejects the production executable path. The ordinary functional instrumented application has the stable `org.fitfreed.desktop.e2e` bundle identifier, distinct from the production identifier, so macOS can retain a dedicated Desktop assignment across rebuilds. The synthetic update packages instead obtain the canonical production identifier from `tauri.conf.json`: update recovery deliberately rejects any other application identity, and the update campaign must exercise that production security boundary while retaining its package, library, and process isolation. The packaged journey resizes the real WebView across the accepted desktop and compact boundaries and measures sidebar, workspace, current-location, localization, zoom, and overflow behavior rather than inferring layout from component presence.
 - Acceptance uses `npm run verify:e2e`, which rebuilds the instrumented application before executing its journeys. A
   direct WebdriverIO invocation reuses the existing package and cannot qualify source changed since that package was
@@ -255,10 +258,12 @@ The packaged update journey runs through `npm run verify:update-e2e`. It serves 
 Linux recovery tests protect the application-owned phase and three-attempt policy, active-manifest validation,
 exclusive-watchdog transition, spawn-failure rollback, privacy-minimized host DTO, fail-closed update presentation, and
 the distinction between a recovery-state read failure and an ordinary channel failure. The package-shaped campaign
-runs through `npm run verify:linux-update-e2e` on native x86-64 Ubuntu. Its first scenarios install real signed Debian
-packages and prove successful native replacement plus automatic rollback after either candidate rejection or a Debian
-maintainer-script failure during native installation. The installer-failure package is a root-owned rebuild of the
-ordinary synthetic candidate, is signed as distinct exact bytes, and fails through the real package-manager boundary.
+runs through the self-contained `npm run verify:linux-update-e2e` entry point on native x86-64 Ubuntu. The entry point
+generates Tauri's versioned icon inputs before either isolated package build. Its first scenarios install real signed
+Debian packages and prove successful native replacement plus automatic rollback after either candidate rejection or a
+Debian maintainer-script failure during native installation. The installer-failure package is a root-owned rebuild of
+the ordinary synthetic candidate, is signed as distinct exact bytes, and fails through the real package-manager
+boundary.
 Every terminal scenario verifies package-manager identity, SQLite integrity, locale persistence, terminal cleanup,
 localized result presentation, and explicit acknowledgement. The authorization scenario permits candidate installation
 but denies predecessor installation, verifies the retained first attempt and runnable fallback, grants only the same

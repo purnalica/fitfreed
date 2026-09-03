@@ -91,8 +91,10 @@ reports a bounded privacy-safe failure phase, and verifies installation, dynamic
 purge. Updating the pinned image digest is a reviewed dependency change and must preserve the declared distribution
 and architecture inside the container.
 
-`npm run verify:linux-update-e2e` runs only on x86-64 Linux. It builds signed instrumented 0.1.0 and 0.2.0 Debian
-packages, installs the predecessor, serves a signed recoverable `stable-v3` channel over loopback HTTPS, and drives
+`npm run verify:linux-update-e2e` runs only on x86-64 Linux. Its project entry point first generates the versioned
+application icons required by Tauri, so the campaign remains executable from a clean clone. It then builds signed
+instrumented 0.1.0 and 0.2.0 Debian packages, installs the predecessor, serves a signed recoverable `stable-v3`
+channel over loopback HTTPS, and drives
 the real `pkexec` and `dpkg` replacement boundary under Xvfb. Temporary Polkit rules grant only the current test user
 permission to install exact candidate or predecessor packages retained below one isolated recovery root; cleanup
 removes the rule and package after every scenario. The campaign covers successful replacement, automatic native
