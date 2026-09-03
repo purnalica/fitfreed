@@ -265,7 +265,9 @@ Debian maintainer-script failure during native installation. The installer-failu
 the ordinary synthetic candidate, is signed as distinct exact bytes, and fails through the real package-manager
 boundary. Before either ordinary package is signed, the harness requires Tauri's exact technical
 `fitfreed_<version>_amd64.deb` output and applies the production byte-preserving normalization to the canonical public
-artifact name; a stale display-name assumption or any extra Debian output fails before a scenario can start.
+artifact name. It consumes that output into the isolated scenario package store before building the other version;
+a stale display-name assumption, retained cross-version bundle output, or any extra Debian output fails before a
+scenario can start.
 Every terminal scenario verifies package-manager identity, SQLite integrity, locale persistence, terminal cleanup,
 localized result presentation, and explicit acknowledgement. The authorization scenario permits candidate installation
 but denies predecessor installation, verifies the retained first attempt and runnable fallback, grants only the same

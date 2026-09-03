@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import {
-  copyFileSync,
   createReadStream,
   existsSync,
   lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -25,6 +25,7 @@ import {
   updateTarget,
 } from "./update-e2e-contract.mjs";
 import { normalizeLinuxDebianArtifactNames } from "./linux-debian-artifact-identity.mjs";
+import { expectedLinuxDebianArtifactName } from "./linux-package-contract.mjs";
 import {
   validateStableUpdateV3Envelope,
   validateStableUpdateV3Payload,
@@ -365,6 +366,23 @@ export function normalizeLinuxUpdateE2eDebianPackage(directory, version) {
   return normalizeLinuxDebianArtifactNames({ directory, version }).packagePath;
 }
 
+export function retainLinuxUpdateE2eDebianPackage(
+  bundleDirectory,
+  retainedDirectory,
+  version,
+) {
+  if (path.resolve(bundleDirectory) === path.resolve(retainedDirectory)) {
+    throw new Error("The Linux update E2E bundle and retained package directories must differ");
+  }
+  const retained = path.join(retainedDirectory, expectedLinuxDebianArtifactName(version));
+  if (existsSync(retained)) {
+    throw new Error("The retained Linux update E2E package already exists");
+  }
+  const normalized = normalizeLinuxUpdateE2eDebianPackage(bundleDirectory, version);
+  renameSync(normalized, retained);
+  return retained;
+}
+
 function buildDebianPackage(version, publicKey) {
   const configuration = createUpdateBuildConfiguration({
     version,
@@ -387,12 +405,11 @@ function buildDebianPackage(version, publicKey) {
       },
     },
   );
-  const normalized = normalizeLinuxUpdateE2eDebianPackage(
+  const retained = retainLinuxUpdateE2eDebianPackage(
     path.join(targetDirectory, "release/bundle/deb"),
+    packageDirectory,
     version,
   );
-  const retained = path.join(packageDirectory, path.basename(normalized));
-  copyFileSync(normalized, retained);
   signFile(retained);
   return retained;
 }

@@ -97,7 +97,9 @@ instrumented 0.1.0 and 0.2.0 Debian packages, installs the predecessor, serves a
 channel over loopback HTTPS, and drives the real `pkexec` and `dpkg` replacement boundary under Xvfb. Each Tauri build
 first emits the technical `fitfreed_<version>_amd64.deb` name and then passes those exact bytes through the same
 closed normalizer as the production build before the canonical `FitFreed_<version>_amd64.deb` artifact is signed and
-served. Temporary Polkit rules grant only the current test user
+served. The harness moves each normalized package into its closed scenario package store before reusing the Cargo
+target for another version, so the bundle directory cannot mix candidate and predecessor outputs and the retained
+bytes remain unchanged. Temporary Polkit rules grant only the current test user
 permission to install exact candidate or predecessor packages retained below one isolated recovery root; cleanup
 removes the rule and package after every scenario. The campaign covers successful replacement, automatic native
 rollback after candidate rejection or a real Debian pre-installation failure, and recovery when predecessor

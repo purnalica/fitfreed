@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   mkdtempSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   rmSync,
@@ -18,6 +19,7 @@ import {
   linuxUpdateBuildArguments,
   linuxUpdateScenarioPlan,
   normalizeLinuxUpdateE2eDebianPackage,
+  retainLinuxUpdateE2eDebianPackage,
   validateLinuxUpdateEvidence,
 } from "./verify-packaged-linux-update.mjs";
 
@@ -70,6 +72,42 @@ test("normalizes the technical Tauri package to the public update artifact witho
     assert.deepEqual(readdirSync(directory), ["FitFreed_0.2.0_amd64.deb"]);
   } finally {
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("consumes each normalized package before building another version in the shared bundle directory", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "fitfreed-linux-update-packages-"));
+  const bundleDirectory = path.join(root, "bundle");
+  const retainedDirectory = path.join(root, "retained");
+  const candidateBytes = Buffer.from("synthetic candidate package bytes");
+  const predecessorBytes = Buffer.from("synthetic predecessor package bytes");
+  mkdirSync(bundleDirectory);
+  mkdirSync(retainedDirectory);
+
+  try {
+    writeFileSync(path.join(bundleDirectory, "fitfreed_0.2.0_amd64.deb"), candidateBytes);
+    const candidate = retainLinuxUpdateE2eDebianPackage(
+      bundleDirectory,
+      retainedDirectory,
+      "0.2.0",
+    );
+    assert.deepEqual(readdirSync(bundleDirectory), []);
+    assert.deepEqual(readFileSync(candidate), candidateBytes);
+
+    writeFileSync(path.join(bundleDirectory, "fitfreed_0.1.0_amd64.deb"), predecessorBytes);
+    const predecessor = retainLinuxUpdateE2eDebianPackage(
+      bundleDirectory,
+      retainedDirectory,
+      "0.1.0",
+    );
+    assert.deepEqual(readdirSync(bundleDirectory), []);
+    assert.deepEqual(readFileSync(predecessor), predecessorBytes);
+    assert.deepEqual(readdirSync(retainedDirectory).sort(), [
+      "FitFreed_0.1.0_amd64.deb",
+      "FitFreed_0.2.0_amd64.deb",
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 
