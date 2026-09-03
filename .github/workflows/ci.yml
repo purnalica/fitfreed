@@ -398,7 +398,7 @@ jobs:
           retention-days: 7
 
   windows-host:
-    name: Windows native host and portable contract verification
+    name: Windows native host and NSIS package verification
     needs: quality
     runs-on: windows-2025
     timeout-minutes: 60
@@ -423,7 +423,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .artifacts/windows-host-evidence
-          key: fitfreed-windows-host-v1-${{ needs.quality.outputs.executable-fingerprint }}
+          key: fitfreed-windows-host-package-v1-${{ needs.quality.outputs.executable-fingerprint }}
 
       - name: Reopen exact Windows host evidence
         id: reopened
@@ -554,9 +554,13 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run test:vendor-updater
 
-      - name: Build the complete Windows desktop host
+      - name: Build the release-shaped Windows NSIS package
         if: steps.decision.outputs.full-verification == 'true'
-        run: npm run build:windows-host
+        run: npm run package:windows
+
+      - name: Install, inspect, and remove the Windows NSIS package
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run verify:windows-installation
 
       - name: Record exact successful Windows host evidence
         if: steps.decision.outputs.full-verification == 'true'
@@ -574,7 +578,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .artifacts/windows-host-evidence
-          key: fitfreed-windows-host-v1-${{ needs.quality.outputs.executable-fingerprint }}
+          key: fitfreed-windows-host-package-v1-${{ needs.quality.outputs.executable-fingerprint }}
 
   verification-evidence:
     name: Record complete verification evidence

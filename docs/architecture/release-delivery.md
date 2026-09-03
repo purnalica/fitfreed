@@ -121,6 +121,15 @@ predecessor verification, rather than the package version alone, grant that auth
 no certificate selection, signer command, timestamp service, account identity, or protected path. Public signing is a
 separate generated candidate input and is not implied by an ordinary unsigned package.
 
+The pinned Windows engineering lane builds that NSIS package instead of compiling the release host a second time: the
+package build already contains the complete production host. A closed native adapter then runs only on a clean
+current-user profile. It verifies `%LOCALAPPDATA%\FitFreed`, `fitfreed.exe`, `uninstall.exe`, the `HKCU` uninstall
+registration, canonical Start Menu and silent-install desktop shortcuts, release metadata, publisher and public
+support links, and WebView2 availability. The setup and installed binaries must report `NotSigned` in this
+authority-free lane. Native removal must remove package-owned state while retaining
+`%APPDATA%\org.fitfreed.desktop`; that ordinary unsigned result is engineering evidence and cannot enter a public
+channel.
+
 Linux and Windows use the authenticated predecessor recovery architecture in
 [ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and
 stable-channel payloads bind the candidate plus every supported predecessor package needed for offline rollback. A

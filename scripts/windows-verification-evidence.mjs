@@ -10,7 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const markerName = "windows-host.json";
-const lane = "windows-2025-x86_64-host";
+const lane = "windows-2025-x86_64-host-package";
 const fingerprintPattern = /^[0-9a-f]{64}$/;
 
 function marker(fingerprint) {

@@ -21,7 +21,7 @@ test("records and reopens exact immutable Windows host evidence", () => {
   try {
     assert.deepEqual(recordWindowsVerificationEvidence(root, fingerprint), {
       executableFingerprint: fingerprint,
-      lane: "windows-2025-x86_64-host",
+      lane: "windows-2025-x86_64-host-package",
       schemaVersion: 1,
     });
     assert.equal(verifyWindowsVerificationEvidence(root, fingerprint), true);

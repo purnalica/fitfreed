@@ -34,7 +34,7 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     windows,
-    /fitfreed-windows-host-v1-\$\{\{ needs\.quality\.outputs\.executable-fingerprint \}\}/,
+    /fitfreed-windows-host-package-v1-\$\{\{ needs\.quality\.outputs\.executable-fingerprint \}\}/,
     "Windows evidence cache must bind the executable fingerprint",
   );
   requireMatch(
@@ -58,8 +58,14 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     windows,
-    /npm run build:windows-host/,
-    "Windows host must build the complete Windows desktop host",
+    /npm run package:windows/,
+    "Windows host must build the complete release-shaped NSIS package",
+  );
+  requireMatch(
+    errors,
+    windows,
+    /npm run verify:windows-installation/,
+    "Windows host must verify native NSIS installation and removal",
   );
   for (const command of [
     "npm run doctor",
@@ -122,7 +128,8 @@ export function validateWindowsCiWorkflow(source) {
     "npm run test:rust",
     "npm run lint:rust",
     "npm run test:vendor-updater",
-    "npm run build:windows-host",
+    "npm run package:windows",
+    "npm run verify:windows-installation",
   ]) {
     if (windows.indexOf(command) > evidenceRecord) {
       errors.push("Windows evidence must be recorded after every required verification command");
@@ -157,7 +164,7 @@ export function validateWindowsCiWorkflow(source) {
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return {
-    evidenceLane: "windows-2025-x86_64-host",
+    evidenceLane: "windows-2025-x86_64-host-package",
     executable: "fitfreed.exe",
     runner: "windows-2025",
   };

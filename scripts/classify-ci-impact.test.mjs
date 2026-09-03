@@ -313,10 +313,11 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   assert.match(windowsHostJob ?? "", /^    runs-on: windows-2025$/m);
   assert.match(
     windowsHostJob ?? "",
-    /fitfreed-windows-host-v1-\$\{\{ needs\.quality\.outputs\.executable-fingerprint \}\}/,
+    /fitfreed-windows-host-package-v1-\$\{\{ needs\.quality\.outputs\.executable-fingerprint \}\}/,
   );
   assert.match(windowsHostJob ?? "", /npm run test:windows-scripts/);
   assert.match(windowsHostJob ?? "", /npm run test:rust/);
   assert.match(windowsHostJob ?? "", /npm run lint:rust/);
-  assert.match(windowsHostJob ?? "", /npm run build:windows-host/);
+  assert.match(windowsHostJob ?? "", /npm run package:windows/);
+  assert.match(windowsHostJob ?? "", /npm run verify:windows-installation/);
 });

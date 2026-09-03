@@ -205,18 +205,21 @@ Local and continuous-integration workflows will invoke the same underlying comma
 
 - GitHub Actions runs impact classification, documentation links, public documentation contracts, and repository safety for every pull request and `main` revision. README, canonical product-status, static product-page, and the closed publication-only compositor, verifier, test, and Pages-workflow set run their SSOT, resource, release-state, accessibility, publication, composition, and update-preservation checks without invalidating unchanged application-package evidence. A closed non-application allowlist may reuse evidence only when an immutable marker proves that the exact executable-input Git-tree fingerprint already passed every admitted complete lane; missing evidence and any application, shared dependency, release-candidate, or unknown path run the complete portable checks plus complete Rust workspace and desktop-host tests and strict linting on pinned Ubuntu 24.04.
 - A pinned `windows-2025` x86-64 job independently runs the portable contracts, presentation suite and build, Rust
-  formatting, workspace and pinned-updater tests, strict Clippy, and the complete all-target, all-feature desktop-host
-  build. Only a valid `windows-2025-x86_64-host` marker bound to the current executable-input fingerprint can reuse
+  formatting, workspace and pinned-updater tests, strict Clippy, and the release-shaped unsigned NSIS build. It then
+  performs a real current-user installation, identity inspection, removal, and application-data preservation check.
+  Only a valid `windows-2025-x86_64-host-package` marker bound to the current executable-input fingerprint can reuse
   that evidence; missing or invalid evidence runs the job. Static workflow tests reject Unix-only commands, mutable
   actions, elevated permissions, protected secrets, incomplete completion dependencies, and evidence written before
-  every required Windows check passes. This hosted Windows Server lane is native portability evidence, not Windows 11
-  package, desktop, accessibility, or product-acceptance evidence.
+  every required Windows check passes. This hosted Windows Server lane is native portability and engineering-package
+  evidence, not signed Windows 11, desktop, accessibility, or product-acceptance evidence.
 - The Windows package-configuration contract independently rejects MSI or mixed target sets, Windows on ARM,
   per-machine installation, network-dependent WebView2 acquisition, missing installer locales, generic ZIP file
   association, unreviewed NSIS customization, and signing authority in the versioned overlay. The Windows-only build
-  wrapper accepts only diagnostic verbosity and invokes the shared production build with NSIS as its sole bundle.
-  Static acceptance does not claim that setup bytes exist; the later native package lane must inspect those exact
-  bytes and their installed effects.
+  wrapper accepts only diagnostic verbosity and invokes the shared production build with NSIS as its sole bundle. The
+  native adapter accepts exactly one version-derived setup, refuses non-clean profiles, verifies package and executable
+  metadata, current-user placement, Add or Remove Programs values, canonical shortcuts, WebView2 availability, and
+  deliberately unsigned engineering signatures. Real removal must erase package-owned state while retaining canonical
+  application data. This evidence does not claim public trust.
 - The Ubuntu 24.04 lane then builds the source-bound Debian package through the same Linux-only command documented for contributors and extracts it for inspection. The gate rejects any drift in the external `FitFreed_<version>_amd64.deb` artifact name, internal `fitfreed` package identity, architecture, version, homepage, section, priority, mandatory GTK and WebKitGTK dependencies, executable permissions, `usr/share/applications/fitfreed.desktop` path, visible `FitFreed` launcher name, icons, or installed GPL text. It also proves that the wrapper changed only Tauri's generated filesystem name rather than reconstructing signed package bytes. It generates a schema-validated, digest-bound, complete extracted-layout inventory from those exact package bytes and proves deterministic ordering, safe relative links, and atomic evidence replacement. It next mounts only the package into a digest-pinned clean Ubuntu 24.04 image that has no development toolchain, installs repository dependencies, verifies dynamic linking and package-manager identity, purges the package, and verifies package-owned removal. The unsigned engineering package and inventory are not uploaded as public workflow artifacts.
 - A separate Ubuntu 24.04 capability job builds an instrumented Debian package with the isolated technical
   `fitfreed-e2e` product and package name, `/usr/bin/fitfreed-e2e` executable, and `org.fitfreed.desktop.e2e`

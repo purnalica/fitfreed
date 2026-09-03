@@ -30,6 +30,8 @@ test("keeps the first Windows package identity and dependency boundary closed", 
     webviewInstallMode: "offlineInstaller",
   });
   assert.equal(expectedWindowsNsisArtifactName("0.1.0"), "FitFreed_0.1.0_x64-setup.exe");
+  assert.equal(windowsPackageContract.applicationIdentifier, "org.fitfreed.desktop");
+  assert.equal(windowsPackageContract.executable, "fitfreed.exe");
   assert.deepEqual(windowsPackageContract.installerLanguages, ["English", "Spanish"]);
 
   const invalid = structuredClone(windowsConfig);

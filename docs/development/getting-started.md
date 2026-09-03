@@ -44,13 +44,15 @@ npm test
 npm run format:check
 npm run test:rust
 npm run lint:rust
-npm run build:windows-host
+npm run package:windows
+npm run verify:windows-installation
 ```
 
 The complete `npm run test:fast` composition still contains macOS and Linux workflow-tooling checks. The Windows CI job
 runs every portable product contract as separate diagnosable steps in addition to the native-host loop above. The
-unsigned NSIS source-build command is available now; installation and packaged verification join the contributor loop
-in later Milestone 5 increments.
+package and native installation commands require a clean x86-64 Windows environment. Installation verification
+refuses to run when FitFreed files, registration, or application data already exist, so use a disposable Windows user
+or CI runner rather than a personal profile.
 
 `npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, the live presentation inventory, presentation behavior, GitHub workflow syntax and policy, the updater refinement test, and all FitFreed Rust workspace tests. Its workflow check installs checksum-verified actionlint 1.7.12 and ShellCheck 0.10.0 under ignored `.tools/`; no global installation is required and shell analysis is identical on supported contributor and CI hosts.
 
@@ -84,6 +86,7 @@ in later Milestone 5 increments.
 | Compile the complete desktop host with all targets and features | `npm run build:windows-host` |
 | Verify Windows-portable host automation and its CI contract | `npm run test:windows-scripts && npm run check:windows-ci-workflow` |
 | Build the unsigned x86-64 current-user NSIS package on Windows | `npm run package:windows` |
+| Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -268,7 +271,7 @@ previously passed; missing evidence fails closed. Application, shared-dependency
 explicitly requested changes run portable checks plus complete workspace and desktop-host tests and strict linting on
 the pinned Ubuntu 24.04 runner. They also run the complete desktop-host build, tests, formatting, strict linting, and
 pinned updater refinement on `windows-2025`; the job may reuse only an exact
-`windows-2025-x86_64-host` executable-input fingerprint marker produced after all those checks passed. A missing,
+`windows-2025-x86_64-host-package` executable-input fingerprint marker produced after all those checks passed. A missing,
 malformed, stale, or mismatched marker fails closed by running the Windows checks. The mandatory macOS packaged-E2E
 job verifies full-scale import, dense supported-signal import and storage, exact-repeat, detailed-domain, longitudinal
 read-model, and production cold-launch budgets, prepares and installation-tests a normal private production package, and then builds

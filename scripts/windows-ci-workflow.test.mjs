@@ -11,7 +11,7 @@ const workflow = readFileSync(
 
 test("accepts the pinned impact-aware Windows native-host lane", () => {
   assert.deepEqual(validateWindowsCiWorkflow(workflow), {
-    evidenceLane: "windows-2025-x86_64-host",
+    evidenceLane: "windows-2025-x86_64-host-package",
     executable: "fitfreed.exe",
     runner: "windows-2025",
   });
@@ -24,10 +24,11 @@ test("rejects an unpinned, Unix-dependent, incomplete, or reusable-without-proof
       "      - name: Verify the Windows development environment\n        if: steps.decision.outputs.full-verification == 'true'\n        run: npm run doctor",
       "      - name: Verify the Windows development environment\n        if: steps.decision.outputs.full-verification == 'true'\n        run: bash scripts/check-development-environment.sh",
     ), /Unix-only/],
-    [(source) => source.replace("npm run build:windows-host", "cargo build"), /complete Windows desktop host/],
+    [(source) => source.replace("npm run package:windows", "cargo build"), /release-shaped NSIS package/],
+    [(source) => source.replace("npm run verify:windows-installation", "node -e true"), /native NSIS installation/],
     [(source) => source.replaceAll(
-      "fitfreed-windows-host-v1-${{ needs.quality.outputs.executable-fingerprint }}",
-      "fitfreed-windows-host-v1-unbound",
+      "fitfreed-windows-host-package-v1-${{ needs.quality.outputs.executable-fingerprint }}",
+      "fitfreed-windows-host-package-v1-unbound",
     ), /executable fingerprint/],
     [(source) => source.replaceAll(
       "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",

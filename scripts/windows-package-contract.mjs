@@ -1,8 +1,13 @@
 export const windowsPackageContract = Object.freeze({
+  applicationIdentifier: "org.fitfreed.desktop",
+  applicationDataDirectory: "%APPDATA%\\org.fitfreed.desktop",
   architecture: "x86_64",
   bundleProductName: "FitFreed",
   category: "HealthcareAndFitness",
+  desktopShortcut: "%USERPROFILE%\\Desktop\\FitFreed.lnk",
+  executable: "fitfreed.exe",
   homepage: "https://fitfreed.org/",
+  installDirectory: "%LOCALAPPDATA%\\FitFreed",
   installMode: "currentUser",
   installerLanguages: Object.freeze(["English", "Spanish"]),
   license: "GPL-3.0-or-later",
@@ -11,7 +16,12 @@ export const windowsPackageContract = Object.freeze({
   platform: "win32",
   publisher: "FitFreed contributors",
   shortDescription: "Explore your fitness history on your own computer.",
+  startMenuShortcut:
+    "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\FitFreed.lnk",
   target: "nsis",
+  uninstaller: "uninstall.exe",
+  uninstallRegistry:
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FitFreed",
   webviewInstallMode: "offlineInstaller",
 });
 
