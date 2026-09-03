@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import {
   performanceBenchmarkEnvironment,
   repositoryRoot,
+  validatePerformanceBenchmarkHost,
 } from "./performance-benchmark-profile.mjs";
 
 export function insightsBenchmarkPlan(inheritedEnvironment = process.env) {
@@ -31,6 +32,7 @@ export function runInsightsBenchmark({
   execute = execFileSync,
   inheritedEnvironment = process.env,
 } = {}) {
+  validatePerformanceBenchmarkHost();
   const plan = insightsBenchmarkPlan(inheritedEnvironment);
   execute(plan.program, plan.arguments_, plan.options);
 }

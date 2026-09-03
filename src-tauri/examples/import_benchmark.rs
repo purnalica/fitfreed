@@ -10,6 +10,10 @@ use fitfreed_lib::infrastructure::{
 };
 use serde_json::{json, Value};
 
+mod support;
+
+use support::peak_resident_mib;
+
 fn main() {
     let arguments = env::args().collect::<Vec<_>>();
     let archive = arguments.get(1).expect("archive path argument");
@@ -86,18 +90,4 @@ fn percentile(values: &[Duration], percentile: f64) -> Duration {
 
 fn milliseconds(duration: Duration) -> f64 {
     duration.as_secs_f64() * 1_000.0
-}
-
-#[cfg(target_os = "macos")]
-fn peak_resident_mib() -> f64 {
-    let mut usage = std::mem::MaybeUninit::<libc::rusage>::uninit();
-    let result = unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) };
-    assert_eq!(result, 0, "getrusage must succeed");
-    let usage = unsafe { usage.assume_init() };
-    usage.ru_maxrss as f64 / 1024.0 / 1024.0
-}
-
-#[cfg(not(target_os = "macos"))]
-fn peak_resident_mib() -> f64 {
-    0.0
 }

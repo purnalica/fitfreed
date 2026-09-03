@@ -19,6 +19,10 @@ use fitfreed_lib::infrastructure::{
 use rusqlite::Connection;
 use serde_json::{json, Value};
 
+mod support;
+
+use support::peak_resident_mib;
+
 const EXPECTED_SESSIONS: usize = 520;
 const EXPECTED_SERIES: usize = 2_080;
 const EXPECTED_SAMPLES: usize = 7_490_080;
@@ -328,18 +332,4 @@ fn timings_json(timings: &ImportPhaseTimings) -> Value {
         "transactionControlMilliseconds": timings.transaction_control_milliseconds,
         "totalMilliseconds": timings.total_milliseconds,
     })
-}
-
-#[cfg(target_os = "macos")]
-fn peak_resident_mib() -> f64 {
-    let mut usage = std::mem::MaybeUninit::<libc::rusage>::uninit();
-    let result = unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) };
-    assert_eq!(result, 0, "getrusage must succeed");
-    let usage = unsafe { usage.assume_init() };
-    usage.ru_maxrss as f64 / 1024.0 / 1024.0
-}
-
-#[cfg(not(target_os = "macos"))]
-fn peak_resident_mib() -> f64 {
-    0.0
 }

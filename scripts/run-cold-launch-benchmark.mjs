@@ -1,6 +1,9 @@
 import { spawn } from "node:child_process";
 import { execFileSync } from "node:child_process";
 import {
+  accessSync,
+  constants,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -10,6 +13,12 @@ import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
+
+import { linuxPackageContract } from "./linux-package-contract.mjs";
+import {
+  repositoryRoot,
+  validatePerformanceBenchmarkHost,
+} from "./performance-benchmark-profile.mjs";
 
 const measuredFreshProcesses = 100;
 const p95BudgetMilliseconds = 2_500;
@@ -186,6 +195,65 @@ function hostEvidence(repositoryRoot) {
   };
 }
 
+function inspectExecutable(binary) {
+  const metadata = lstatSync(binary);
+  if (metadata.isSymbolicLink() || !metadata.isFile()) {
+    throw new Error("cold launch requires a regular non-symbolic executable");
+  }
+  accessSync(binary, constants.X_OK);
+}
+
+export function resolveColdLaunchApplication({
+  architecture = process.arch,
+  execute = run,
+  inspectBinary = inspectExecutable,
+  platform = process.platform,
+  root = repositoryRoot,
+} = {}) {
+  validatePerformanceBenchmarkHost(platform, architecture);
+  if (platform === "darwin") {
+    const applicationBundle = path.join(
+      root,
+      "src-tauri/target/release/bundle/macos/FitFreed.app",
+    );
+    const applicationBinary = path.join(applicationBundle, "Contents/MacOS/fitfreed");
+    const informationPlist = path.join(applicationBundle, "Contents/Info.plist");
+    execute("scripts/check-production-bundle.sh", [], root);
+    inspectBinary(applicationBinary);
+    return {
+      applicationBinary,
+      applicationVersion: execute(
+        "plutil",
+        ["-extract", "CFBundleShortVersionString", "raw", "-o", "-", informationPlist],
+        root,
+      ),
+      boundary: "macos-application-bundle",
+    };
+  }
+
+  const applicationBinary = `/${linuxPackageContract.executablePath}`;
+  const status = execute(
+    "/usr/bin/dpkg-query",
+    ["-W", "-f=${Status}", linuxPackageContract.packageName],
+    root,
+  );
+  if (status !== "install ok installed") {
+    throw new Error("the FitFreed Debian package is not installed");
+  }
+  const applicationVersion = execute(
+    "/usr/bin/dpkg-query",
+    ["-W", "-f=${Version}", linuxPackageContract.packageName],
+    root,
+  );
+  if (!applicationVersion) throw new Error("the installed Debian package has no version");
+  inspectBinary(applicationBinary);
+  return {
+    applicationBinary,
+    applicationVersion,
+    boundary: "installed-debian-package",
+  };
+}
+
 function awaitExit(child) {
   return new Promise((resolve) => {
     if (child.exitCode !== null || child.signalCode !== null) {
@@ -200,11 +268,26 @@ function awaitExit(child) {
   });
 }
 
+export function coldLaunchEnvironment(
+  home,
+  inheritedEnvironment = process.env,
+  platform = process.platform,
+) {
+  const environment = { ...inheritedEnvironment, HOME: home };
+  if (platform === "linux") {
+    environment.XDG_CACHE_HOME = path.join(home, ".cache");
+    environment.XDG_CONFIG_HOME = path.join(home, ".config");
+    environment.XDG_DATA_HOME = path.join(home, ".local/share");
+    environment.XDG_STATE_HOME = path.join(home, ".local/state");
+  }
+  return environment;
+}
+
 async function measureFreshProcess(applicationBinary, home, expected) {
   mkdirSync(home, { recursive: true });
   const startedAt = performance.now();
   const child = spawn(applicationBinary, [], {
-    env: { ...process.env, HOME: home },
+    env: coldLaunchEnvironment(home),
     stdio: ["ignore", "pipe", "pipe"],
   });
   let standardOutput = "";
@@ -282,25 +365,13 @@ async function measureFreshProcess(applicationBinary, home, expected) {
 }
 
 async function executeColdLaunchBenchmark() {
-  if (process.platform !== "darwin") throw new Error("cold launch benchmark requires macOS");
-  const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const sourceRevision = run("git", ["rev-parse", "HEAD"], repositoryRoot);
   if (!revisionPattern.test(sourceRevision)) throw new Error("current Git revision is invalid");
   if (run("git", ["status", "--porcelain=v1", "--untracked-files=all"], repositoryRoot)) {
     throw new Error("cold launch benchmark requires a clean Git revision");
   }
-  const applicationBundle = path.join(
-    repositoryRoot,
-    "src-tauri/target/release/bundle/macos/FitFreed.app",
-  );
-  const applicationBinary = path.join(applicationBundle, "Contents/MacOS/fitfreed");
-  const informationPlist = path.join(applicationBundle, "Contents/Info.plist");
-  run("scripts/check-production-bundle.sh", [], repositoryRoot);
-  const applicationVersion = run(
-    "plutil",
-    ["-extract", "CFBundleShortVersionString", "raw", "-o", "-", informationPlist],
-    repositoryRoot,
-  );
+  const { applicationBinary, applicationVersion, boundary } =
+    resolveColdLaunchApplication();
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-"));
   try {
     const runs = [];
@@ -325,6 +396,7 @@ async function executeColdLaunchBenchmark() {
         existingLibrary: false,
       },
       method: {
+        applicationBoundary: boundary,
         boundary: "immediately before process creation through the first painted localized interactive shell",
         signal: "application-owned host command after requestAnimationFrame",
         phaseDiagnostics:

@@ -7,7 +7,7 @@ structured planned-training, sleep, recovery, and integrated longitudinal Insigh
 [quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production
 boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
 
-These gates establish environment-qualified evidence under [ADR 0015](../architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md). Executable changes must pass the complete hosted macOS campaign, and the exact candidate must pass a clean local Apple Silicon production campaign before handoff. The budgets and commands are identical in both environments; a passing result proves that environment rather than promising identical timing on every supported Mac.
+These gates establish environment-qualified evidence under [ADR 0015](../architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md). Executable changes must pass the complete hosted macOS campaign, and the exact macOS candidate must pass a clean local Apple Silicon production campaign before handoff. The cold-launch and production data campaigns also run on x86-64 Linux for Ubuntu admission. The budgets and commands are identical across those environments; a passing result proves that environment rather than promising identical timing on every supported computer.
 
 ## Cold launch benchmark
 
@@ -17,6 +17,15 @@ Build the normal production application from a clean revision and run the macOS 
 npm run package:app
 npm run benchmark:cold-launch
 ```
+
+Linux admission builds and verifies the source-bound production Debian package, installs it through `apt`, and runs
+the same command under Xvfb. The resolver accepts only package-manager state `install ok installed`,
+`/usr/bin/fitfreed` as a regular executable, the installed package version, x86-64 Linux, and the exact clean revision
+reported by the application. The package is purged before any data benchmark continues, including after a failed
+cold-launch gate. This boundary is automated by `.github/workflows/linux-performance.yml`; it is not replaced by a
+loose build-tree executable. Every Linux process receives a distinct `HOME`, `XDG_CACHE_HOME`, `XDG_CONFIG_HOME`,
+`XDG_DATA_HOME`, and `XDG_STATE_HOME` below its temporary root so runner-level XDG settings cannot silently share an
+application library between measurements.
 
 The production build wrapper binds the exact Git revision and clean-tree state into the host. The benchmark rejects a dirty checkout, an application built from another revision, an instrumented package, an unexpected signal field, invalid or unordered timing values, or a build that was not clean. It starts the timer immediately before creating each application process. After locale initialization, React waits for the next animation frame and reports the interactive shell through a one-shot host command. The host emits a closed privacy-safe JSON signal containing the event contract, application version, source revision, clean-tree state, and monotonic durations for host setup, host signal receipt, renderer locale readiness, and renderer signal invocation. These durations contain no wall-clock timestamp, path, host identity, or user data. WebDriver, driver creation, WebView reloads, and timers started after process creation are outside this boundary and cannot satisfy it.
 
@@ -30,11 +39,11 @@ frame. Explicitly choosing one of those destinations remains authoritative and l
 part of the measured production path rather than benchmark-only instrumentation, and locale, navigation, import,
 and preference tests protect the behavior on both sides of the boundary.
 
-Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. The p95 budget is 2.5 seconds. The local output object records application and source identity, clean-tree state, host profile, free storage, scenario, boundary, run policy, median, p95, maximum, budget, result, and aggregate median/p95/maximum for five exhaustive phases: outer process creation plus evidence transport; host startup through setup completion; setup completion through renderer startup plus command transport; renderer startup through locale readiness; and locale readiness through the painted-shell signal. The first and third values deliberately combine intervals that cannot be separated without cross-process absolute timestamps; the labels preserve that limitation instead of implying false precision. The phases sum to the total within each process, but aggregate phase percentiles can belong to different processes and must not be added together. Per-process timings are never emitted as benchmark evidence. The exact host profile and raw output remain local. Versioned evidence retains aggregate measurements and classifies the run only as hosted macOS or local Apple Silicon. Both maintained environments must pass for candidate handoff.
+Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. The p95 budget is 2.5 seconds. The local output object records application and source identity, clean-tree state, host profile, free storage, scenario, boundary, run policy, median, p95, maximum, budget, result, and aggregate median/p95/maximum for five exhaustive phases: outer process creation plus evidence transport; host startup through setup completion; setup completion through renderer startup plus command transport; renderer startup through locale readiness; and locale readiness through the painted-shell signal. The first and third values deliberately combine intervals that cannot be separated without cross-process absolute timestamps; the labels preserve that limitation instead of implying false precision. The phases sum to the total within each process, but aggregate phase percentiles can belong to different processes and must not be added together. Per-process timings are never emitted as benchmark evidence. The exact host profile and raw output remain local. Versioned evidence retains aggregate measurements and classifies the run by its admitted environment. The exact macOS and Linux candidate environments must pass before their respective candidate handoff.
 
 ## Full-scale import benchmark
 
-Run on macOS:
+Run on macOS or x86-64 Linux:
 
 ```sh
 npm run benchmark:import
@@ -51,11 +60,11 @@ The enforced p95 budgets are:
 - representative query: at most 500 ms;
 - peak resident memory: strictly less than 1,536 MiB.
 
-The local output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Exact host details and raw output remain local; versioned evidence retains the synthetic scale, aggregate measurements, result, and only the hosted macOS or local Apple Silicon classification. Temporary ZIP and SQLite files are removed even after failure. The complete hosted campaign and clean local candidate campaign must both pass their unchanged budgets.
+The local output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Peak resident memory uses the native `getrusage` unit: bytes on macOS and kibibytes on Linux, normalized to mebibytes before the shared budget is evaluated. Exact host details and raw output are not retained as product artifacts; versioned evidence retains the synthetic scale, aggregate measurements, result, and execution-environment classification. Temporary ZIP and SQLite files are removed even after failure. Each admitted environment must pass the unchanged budgets.
 
 ## Dense training-history benchmark
 
-Run on macOS:
+Run on macOS or x86-64 Linux:
 
 ```sh
 npm run benchmark:dense-history
@@ -110,6 +119,10 @@ Run:
 ```sh
 npm run benchmark:insights
 ```
+
+The command admits maintained macOS hosts and x86-64 Linux. It rejects other systems or Linux architectures before
+building, and normalizes the platform-specific peak-resident-set unit through the same benchmark support module as
+the import and dense-history campaigns.
 
 The release-mode Rust example creates a temporary current-schema SQLite library through the production migration
 path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one

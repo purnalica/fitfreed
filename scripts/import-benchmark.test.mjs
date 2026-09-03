@@ -75,6 +75,16 @@ test("isolates the import benchmark in the shared performance Cargo profile", ()
   );
 });
 
+test("does not confine the production import benchmark to macOS", () => {
+  const source = readFileSync(
+    new URL("./run-import-benchmark.mjs", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /requires macOS/);
+  assert.match(source, /validatePerformanceBenchmarkHost\(\)/);
+});
+
 test("requires the complete five-GiB, ten-thousand-entry fixture envelope", () => {
   const fixture = {
     entryCount: 10_000,

@@ -37,6 +37,15 @@ test("isolates the application read-model benchmark from other Cargo builds", ()
   assert.equal(plan.options.stdio, "inherit");
 });
 
+test("validates the maintained performance host before running Insights", () => {
+  const source = readFileSync(
+    new URL("./run-insights-benchmark.mjs", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /validatePerformanceBenchmarkHost\(\)/);
+});
+
 test("wires the isolated benchmark into complete local verification", () => {
   const packageMetadata = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),

@@ -14,6 +14,7 @@ import {
   performanceBenchmarkBuildPlan,
   performanceBenchmarkExecutable,
   repositoryRoot,
+  validatePerformanceBenchmarkHost,
 } from "./performance-benchmark-profile.mjs";
 
 const measuredProcesses = 7;
@@ -219,9 +220,7 @@ export function importBenchmarkBuildPlan(inheritedEnvironment = process.env) {
 }
 
 function executeImportBenchmark() {
-  if (process.platform !== "darwin") {
-    throw new Error("the import memory benchmark requires macOS");
-  }
+  validatePerformanceBenchmarkHost();
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-import-benchmark-"));
   try {
     const archivePath = path.join(temporaryDirectory, "large.zip");

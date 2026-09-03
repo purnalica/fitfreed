@@ -7,8 +7,10 @@ import {
   productionBuildIdentity,
 } from "./build-production.mjs";
 import {
+  coldLaunchEnvironment,
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
+  resolveColdLaunchApplication,
   validateInteractiveShellSignal,
 } from "./run-cold-launch-benchmark.mjs";
 
@@ -248,6 +250,87 @@ test("enforces the cold-launch p95 budget across one hundred fresh processes", (
   );
 });
 
+test("resolves an exact installed Debian application without weakening source identity", () => {
+  const calls = [];
+  const inspected = [];
+  const profile = resolveColdLaunchApplication({
+    architecture: "x64",
+    execute(program, arguments_) {
+      calls.push([program, arguments_]);
+      if (arguments_.some((argument) => argument.includes("${Status}"))) {
+        return "install ok installed";
+      }
+      if (arguments_.some((argument) => argument.includes("${Version}"))) return "0.1.0";
+      throw new Error("unexpected package query");
+    },
+    inspectBinary(binary) {
+      inspected.push(binary);
+    },
+    platform: "linux",
+  });
+
+  assert.deepEqual(profile, {
+    applicationBinary: "/usr/bin/fitfreed",
+    applicationVersion: "0.1.0",
+    boundary: "installed-debian-package",
+  });
+  assert.deepEqual(inspected, ["/usr/bin/fitfreed"]);
+  assert.deepEqual(calls, [
+    ["/usr/bin/dpkg-query", ["-W", "-f=${Status}", "fitfreed"]],
+    ["/usr/bin/dpkg-query", ["-W", "-f=${Version}", "fitfreed"]],
+  ]);
+});
+
+test("isolates every Linux application-data convention below the fresh home", () => {
+  assert.deepEqual(
+    coldLaunchEnvironment("/tmp/fresh-home", {
+      DISPLAY: ":99",
+      HOME: "/unrelated",
+      XDG_CACHE_HOME: "/unrelated/cache",
+      XDG_CONFIG_HOME: "/unrelated/config",
+      XDG_DATA_HOME: "/unrelated/data",
+      XDG_STATE_HOME: "/unrelated/state",
+    }, "linux"),
+    {
+      DISPLAY: ":99",
+      HOME: "/tmp/fresh-home",
+      XDG_CACHE_HOME: "/tmp/fresh-home/.cache",
+      XDG_CONFIG_HOME: "/tmp/fresh-home/.config",
+      XDG_DATA_HOME: "/tmp/fresh-home/.local/share",
+      XDG_STATE_HOME: "/tmp/fresh-home/.local/state",
+    },
+  );
+  assert.deepEqual(
+    coldLaunchEnvironment("/tmp/fresh-home", { HOME: "/unrelated" }, "darwin"),
+    { HOME: "/tmp/fresh-home" },
+  );
+});
+
+test("rejects absent, partial, or unsupported Linux cold-launch installations", () => {
+  const options = {
+    architecture: "x64",
+    inspectBinary() {},
+    platform: "linux",
+  };
+  assert.throws(
+    () => resolveColdLaunchApplication({
+      ...options,
+      execute() {
+        return "deinstall ok config-files";
+      },
+    }),
+    /not installed/,
+  );
+  assert.throws(
+    () => resolveColdLaunchApplication({ ...options, architecture: "arm64" }),
+    /Linux performance admission requires x64/,
+  );
+  assert.throws(
+    () => resolveColdLaunchApplication({ ...options, platform: "win32" }),
+    /does not support win32/,
+  );
+});
+
 test("keeps maximum outliers separate from the cold-launch p95 decision", () => {
   const run = (totalMilliseconds) => ({
     totalMilliseconds,
@@ -283,6 +366,10 @@ test("wires production identity and cold launch into local and hosted gates", ()
     new URL("../.github/workflows/ci.yml", import.meta.url),
     "utf8",
   );
+  const linuxWorkflow = readFileSync(
+    new URL("../.github/workflows/linux-performance.yml", import.meta.url),
+    "utf8",
+  );
 
   assert.equal(
     packageMetadata.scripts.package,
@@ -316,5 +403,14 @@ test("wires production identity and cold launch into local and hosted gates", ()
     workflow.indexOf("name: Verify cold-launch budget")
       < workflow.indexOf("name: Verify full-scale import budgets"),
     "cold launch must fail before the long performance campaigns",
+  );
+  assert.match(
+    linuxWorkflow,
+    /name: Verify installed Linux cold-launch budget\n\s+run: xvfb-run -a npm run benchmark:cold-launch/,
+  );
+  assert.ok(
+    linuxWorkflow.indexOf("name: Verify installed Linux cold-launch budget")
+      < linuxWorkflow.indexOf("name: Verify full-scale import budgets"),
+    "Linux cold launch must fail before the long data campaigns",
   );
 });

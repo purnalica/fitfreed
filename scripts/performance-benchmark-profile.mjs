@@ -11,6 +11,20 @@ export const performanceBenchmarkTargetDirectory = path.join(
   "src-tauri/target/performance-benchmarks",
 );
 
+export function validatePerformanceBenchmarkHost(
+  platform = process.platform,
+  architecture = process.arch,
+) {
+  if (platform === "darwin") return true;
+  if (platform === "linux") {
+    if (architecture !== "x64") {
+      throw new Error(`Linux performance admission requires x64, received ${architecture}`);
+    }
+    return true;
+  }
+  throw new Error(`the performance benchmark campaign does not support ${platform}`);
+}
+
 export function performanceBenchmarkEnvironment(inheritedEnvironment = process.env) {
   return {
     ...inheritedEnvironment,

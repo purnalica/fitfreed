@@ -126,6 +126,16 @@ and proves that package removal did not delete the synthetic libraries. Successf
 libraries; failed local runs preserve synthetic diagnostic state outside the upload path, while CI uploads only the
 privacy-safe WebdriverIO diagnostics eligible for short-lived retention.
 
+`.github/workflows/linux-performance.yml` is the explicit Ubuntu 24.04 data-performance admission boundary. It has
+read-only repository permission, accepts only a manual dispatch, and never runs from a push, pull request, or
+schedule. This prevents an unchanged multi-gigabyte campaign from consuming hosted capacity again merely because
+time passed or unrelated documentation changed. The autonomous delivery flow dispatches it for an exact revision
+when Linux performance inputs or the release candidate change. It builds, verifies, installs, and always purges the
+source-bound production Debian package; measures 100 fresh application processes under Xvfb through the same
+`benchmark:cold-launch` command as macOS; then runs the same `benchmark:import`, `benchmark:dense-history`, and
+`benchmark:insights` commands used locally. It retains no package or generated library and relies on the job result
+and privacy-safe machine-readable log as environment-qualified evidence.
+
 ### Maintenance and community
 
 - Dependency-update proposals with compatibility and quality checks.
@@ -162,7 +172,10 @@ revision-isolated review inspection traverse the complete application bundle and
 or Windows user-home or temporary path, or any E2E routing marker. The scanner reports only the affected path class;
 it never echoes the matched local value into logs.
 
-All three Rust performance campaigns share the dedicated `src-tauri/target/performance-benchmarks` Cargo target.
+All three Rust performance campaigns share the dedicated `src-tauri/target/performance-benchmarks` Cargo target and
+one host contract. Maintained macOS hosts and x86-64 Linux are admitted; other systems and Linux architectures fail
+before compilation. The benchmark-only Rust support reads `ru_maxrss` as bytes on macOS and kibibytes on Linux and
+normalizes both to mebibytes before any shared memory budget is evaluated.
 They never build into or reuse the default production target, and temporary comparison sources must use a separate
 target of their own. This keeps benchmark compilation reusable without allowing a deleted comparison checkout or its
 absolute build-script paths to contaminate production or later benchmark builds.

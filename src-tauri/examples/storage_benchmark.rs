@@ -8,6 +8,10 @@ use chrono::{Duration as ChronoDuration, NaiveDate};
 use rusqlite::{params, Connection};
 use serde_json::json;
 
+mod support;
+
+use support::peak_resident_mib;
+
 const SESSION_COUNT: i64 = 1_000;
 const SAMPLES_PER_SESSION: i64 = 5_000;
 const QUERY_RUNS: usize = 15;
@@ -251,17 +255,3 @@ const PERIOD_COMPARISON_QUERY: &str = "SELECT CASE
         OR s.local_date BETWEEN '2024-01-01' AND '2025-12-31'
      GROUP BY period, s.sport_code
      ORDER BY period, s.sport_code";
-
-#[cfg(target_os = "macos")]
-fn peak_resident_mib() -> f64 {
-    let mut usage = std::mem::MaybeUninit::<libc::rusage>::uninit();
-    let result = unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) };
-    assert_eq!(result, 0, "getrusage must succeed");
-    let usage = unsafe { usage.assume_init() };
-    usage.ru_maxrss as f64 / 1024.0 / 1024.0
-}
-
-#[cfg(not(target_os = "macos"))]
-fn peak_resident_mib() -> f64 {
-    0.0
-}

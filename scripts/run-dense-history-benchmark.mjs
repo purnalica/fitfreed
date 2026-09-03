@@ -14,6 +14,7 @@ import {
   performanceBenchmarkBuildPlan,
   performanceBenchmarkExecutable,
   repositoryRoot,
+  validatePerformanceBenchmarkHost,
 } from "./performance-benchmark-profile.mjs";
 
 const measuredProcesses = 3;
@@ -287,9 +288,7 @@ export function denseHistoryBenchmarkBuildPlan(inheritedEnvironment = process.en
 }
 
 function executeDenseHistoryBenchmark() {
-  if (process.platform !== "darwin") {
-    throw new Error("the dense-history benchmark requires macOS");
-  }
+  validatePerformanceBenchmarkHost();
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-dense-history-"));
   try {
     const archivePath = path.join(temporaryDirectory, "dense-history.zip");

@@ -43,6 +43,10 @@ use rusqlite::{params, Connection};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
+mod support;
+
+use support::peak_resident_mib;
+
 const ORIGIN_COUNT: usize = 4;
 const ROUTE_POINTS_PER_ORIGIN: usize = 250_000;
 const SIGNAL_SAMPLES_PER_ORIGIN: usize = 100_000;
@@ -2492,18 +2496,4 @@ where
 #[cfg(not(unix))]
 fn free_storage_bytes(_path: &Path) -> Option<u64> {
     None
-}
-
-#[cfg(target_os = "macos")]
-fn peak_resident_mib() -> f64 {
-    let mut usage = MaybeUninit::<libc::rusage>::uninit();
-    let result = unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) };
-    assert_eq!(result, 0, "getrusage must succeed");
-    let usage = unsafe { usage.assume_init() };
-    usage.ru_maxrss as f64 / 1024.0 / 1024.0
-}
-
-#[cfg(not(target_os = "macos"))]
-fn peak_resident_mib() -> f64 {
-    0.0
 }

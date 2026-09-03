@@ -78,6 +78,16 @@ test("isolates the dense-history benchmark in the shared performance Cargo profi
   );
 });
 
+test("does not confine the dense-history benchmark to macOS", () => {
+  const source = readFileSync(
+    new URL("./run-dense-history-benchmark.mjs", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /requires macOS/);
+  assert.match(source, /validatePerformanceBenchmarkHost\(\)/);
+});
+
 test("defines a long distributed supported-signal history independently of a private export", () => {
   assert.deepEqual(denseHistoryScenario(), {
     firstDate: "2016-01-01",
