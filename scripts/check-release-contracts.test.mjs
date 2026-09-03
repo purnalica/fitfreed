@@ -85,6 +85,16 @@ function validMetadata() {
       },
     },
     recoveryBundleIdentifier: "org.fitfreed.desktop",
+    windowsRecoveryIdentity: {
+      applicationIdentifier: "org.fitfreed.desktop",
+      executable: "fitfreed.exe",
+      homepage: "https://fitfreed.org/",
+      productName: "FitFreed",
+      publisher: "FitFreed contributors",
+      uninstaller: "uninstall.exe",
+      uninstallRegistry:
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FitFreed",
+    },
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"].map((name) => ({
       path: `${name}/Cargo.toml`,
       name,
@@ -126,6 +136,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
   metadata.tauri.version = "0.2.0";
   metadata.tauri.security = { capability: "wdio-webdriver" };
   metadata.recoveryBundleIdentifier = "org.fitfreed.other";
+  metadata.windowsRecoveryIdentity.executable = "another.exe";
   metadata.cargoPackages[1].license = "UNKNOWN";
   metadata.linuxTauri.bundle.targets.push("appimage");
   metadata.windowsTauri.bundle.windows.nsis.installMode = "perMachine";
@@ -137,6 +148,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
       assert.match(error.message, /Tauri version does not match package\.json/);
       assert.match(error.message, /production Tauri configuration contains E2E instrumentation/);
       assert.match(error.message, /update recovery bundle identifier does not match Tauri/);
+      assert.match(error.message, /Windows recovery identity does not match the package contract/);
       assert.match(error.message, /fitfreed-application\/Cargo\.toml license mismatch/);
       assert.match(error.message, /Linux Tauri targets must contain only deb/);
       assert.match(error.message, /Windows NSIS install mode must be currentUser/);

@@ -2,14 +2,15 @@
 
 ## Status
 
-In progress as of 2026-09-03, with independent portability engineering authorized by ADR 0039. Public promotion
+In progress as of 2026-09-04, with independent portability engineering authorized by ADR 0039. Public promotion
 remains ordered after the accepted public Linux MVP.
 
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
 | M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, authority-separated three-file Windows expansion input, digest-bound transport, version 7 three-platform release contract, authority-separated candidate composition, and independent complete-candidate reopening are implemented and locally verified. Native execution awaits the hosted lane; protected public authority and exact Windows 11 trust remain open. |
-| M5.2–M5.6 | Not started | Their recovery, parity, reliability, documentation, candidate, human, and promotion gates remain open. |
+| M5.2 Windows-native update recovery | In progress | The first native adapter derives current-user NSIS identity, invokes only recovery-owned silent installers, and binds process control to creation time plus canonical executable path. Recovery-package preparation, durable state, watchdog orchestration, native Windows execution, and all end-to-end recovery evidence remain open. |
+| M5.3–M5.6 | Not started | Their parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
 

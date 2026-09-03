@@ -165,6 +165,8 @@ mod update_recovery_linux_package;
 #[cfg(any(test, target_os = "linux"))]
 mod update_recovery_linux_state;
 mod update_recovery_outcome;
+#[cfg(any(test, target_os = "windows"))]
+mod update_recovery_windows;
 mod update_state;
 mod update_watchdog;
 #[cfg(any(test, target_os = "linux"))]
@@ -230,6 +232,14 @@ pub use update_recovery_linux_state::{
     LinuxUpdateRecoveryWatchdogLease, PreparedLinuxUpdateRecovery,
 };
 pub use update_recovery_outcome::UpdateRecoveryMaintenance;
+#[cfg(any(test, target_os = "windows"))]
+pub use update_recovery_windows::{
+    install_windows_candidate_package, observe_windows_recovery_process,
+    query_windows_native_package_identity, reinstall_windows_predecessor_package,
+    resolve_windows_update_installation_path, terminate_windows_recovery_process,
+    windows_recovery_process_is_running, WindowsNativePackageIdentity,
+    WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError,
+};
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
     await_update_recovery_candidate_go, run_update_recovery_watchdog,

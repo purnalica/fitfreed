@@ -10,6 +10,7 @@ import { validateLinuxPackageConfiguration } from "./linux-package-contract.mjs"
 import {
   validateWindowsPackageConfiguration,
   validateWindowsPublicSigningOverlay,
+  windowsPackageContract,
 } from "./windows-package-contract.mjs";
 
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -62,6 +63,20 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
   requireValue(
     metadata.recoveryBundleIdentifier === metadata.tauri.identifier,
     "update recovery bundle identifier does not match Tauri",
+  );
+  const expectedWindowsRecoveryIdentity = {
+    applicationIdentifier: windowsPackageContract.applicationIdentifier,
+    executable: windowsPackageContract.executable,
+    homepage: windowsPackageContract.homepage,
+    productName: windowsPackageContract.bundleProductName,
+    publisher: windowsPackageContract.publisher,
+    uninstaller: windowsPackageContract.uninstaller,
+    uninstallRegistry: windowsPackageContract.uninstallRegistry,
+  };
+  requireValue(
+    JSON.stringify(metadata.windowsRecoveryIdentity) ===
+      JSON.stringify(expectedWindowsRecoveryIdentity),
+    "Windows recovery identity does not match the package contract",
   );
   requireValue(metadata.tauri.version === version, "Tauri version does not match package.json");
   requireValue(metadata.tauri.bundle?.active === true, "Tauri bundling must be active");
@@ -160,6 +175,25 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
   const recoveryBundleIdentifier = recoverySource.match(
     /const EXPECTED_BUNDLE_IDENTIFIER: &str = "([^"]+)";/,
   )?.[1];
+  const windowsRecoverySourcePath =
+    "src-tauri/src/infrastructure/update_recovery_windows.rs";
+  const windowsRecoverySource = readFileSync(
+    path.join(repositoryRoot, windowsRecoverySourcePath),
+    "utf8",
+  );
+  const rustStringConstant = (name) =>
+    windowsRecoverySource.match(
+      new RegExp(`const ${name}: &str\\s*=\\s*r?"([^"]+)";`),
+    )?.[1];
+  const windowsRecoveryIdentity = {
+    applicationIdentifier: rustStringConstant("APPLICATION_IDENTIFIER"),
+    executable: rustStringConstant("EXECUTABLE_NAME"),
+    homepage: rustStringConstant("HOMEPAGE"),
+    productName: rustStringConstant("PRODUCT_NAME"),
+    publisher: rustStringConstant("PUBLISHER"),
+    uninstaller: rustStringConstant("UNINSTALLER_NAME"),
+    uninstallRegistry: `HKCU\\${rustStringConstant("UNINSTALL_REGISTRY_SUBKEY")}`,
+  };
   const result = validateReleaseMetadata(
     {
       npm,
@@ -169,6 +203,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
       windowsTauri,
       windowsPublicSigningTauri,
       recoveryBundleIdentifier,
+      windowsRecoveryIdentity,
       cargoPackages: cargoManifestPaths(repositoryRoot).map((manifestPath) =>
         readCargoPackage(repositoryRoot, manifestPath)),
     },
