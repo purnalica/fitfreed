@@ -55,5 +55,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0040: Support Ubuntu LTS with Debian packages](0040-support-ubuntu-lts-with-debian-packages.md) — Accepted on 2026-09-02.
 - [ADR 0041: Support Windows 11 with a per-user NSIS installer](0041-support-windows-11-with-per-user-nsis.md) — Accepted on 2026-09-02.
 - [ADR 0042: Recover packaged updates from authenticated predecessors](0042-recover-packaged-updates-from-authenticated-predecessors.md) — Accepted on 2026-09-02.
+- [ADR 0043: Separate Linux package and display identities](0043-separate-linux-package-and-display-identities.md) — Accepted on 2026-09-03.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

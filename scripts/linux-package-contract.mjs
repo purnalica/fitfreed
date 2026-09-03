@@ -1,7 +1,9 @@
 export const linuxPackageContract = Object.freeze({
   architecture: "amd64",
+  bundleProductName: "fitfreed",
   category: "HealthcareAndFitness",
-  desktopEntryPath: "usr/share/applications/FitFreed.desktop",
+  desktopEntryPath: "usr/share/applications/fitfreed.desktop",
+  desktopTemplate: "linux/fitfreed.desktop.hbs",
   executablePath: "usr/bin/fitfreed",
   homepage: "https://fitfreed.org/",
   license: "GPL-3.0-or-later",
@@ -31,10 +33,13 @@ export function validateLinuxPackageConfiguration(config) {
   const bundle = config.bundle ?? {};
   const deb = bundle.linux?.deb ?? {};
   const unexpectedTopLevelFields = Object.keys(config)
-    .filter((field) => !["$schema", "bundle"].includes(field))
+    .filter((field) => !["$schema", "bundle", "productName"].includes(field))
     .sort();
   if (unexpectedTopLevelFields.length > 0) {
     errors.push(`Linux Tauri configuration contains unexpected top-level fields: ${unexpectedTopLevelFields.join(", ")}`);
+  }
+  if (config.productName !== linuxPackageContract.bundleProductName) {
+    errors.push(`Linux Tauri productName must be ${linuxPackageContract.bundleProductName}`);
   }
   const expectedBundleValues = {
     publisher: linuxPackageContract.publisher,
@@ -68,6 +73,9 @@ export function validateLinuxPackageConfiguration(config) {
   if (deb.priority !== linuxPackageContract.priority) {
     errors.push(`Debian priority must be ${linuxPackageContract.priority}`);
   }
+  if (deb.desktopTemplate !== linuxPackageContract.desktopTemplate) {
+    errors.push(`Debian desktop template must be ${linuxPackageContract.desktopTemplate}`);
+  }
   const unexpectedLinuxFields = Object.keys(bundle.linux ?? {})
     .filter((field) => field !== "deb")
     .sort();
@@ -78,7 +86,7 @@ export function validateLinuxPackageConfiguration(config) {
   if (JSON.stringify(deb.files) !== JSON.stringify(expectedFiles)) {
     errors.push("Debian custom files must contain only the canonical GPL license destination");
   }
-  const allowedDebFields = ["files", "priority", "section"];
+  const allowedDebFields = ["desktopTemplate", "files", "priority", "section"];
   const unexpectedDebFields = Object.keys(deb).filter((field) => !allowedDebFields.includes(field));
   if (unexpectedDebFields.length > 0) {
     errors.push(`Debian configuration contains unexpected fields: ${unexpectedDebFields.join(", ")}`);
@@ -87,6 +95,7 @@ export function validateLinuxPackageConfiguration(config) {
   return {
     architecture: linuxPackageContract.architecture,
     packageName: linuxPackageContract.packageName,
+    productName: linuxPackageContract.bundleProductName,
     target: linuxPackageContract.target,
   };
 }

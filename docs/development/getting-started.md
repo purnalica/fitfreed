@@ -90,14 +90,16 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 
 On Linux, `npm run package:linux` is the production-bound engineering entry point for the single supported package
 family. It rejects another host operating system, requests only Tauri's `deb` target, and merges
-`src-tauri/tauri.linux.conf.json`. That overlay fixes the package homepage, GPL identifier and license file, fitness
-category, descriptions, Debian `utils` section, and `optional` priority. It deliberately claims no generic ZIP file
-association: taking ownership of every ZIP on the desktop would be misleading. A successful build is written below
-`src-tauri/target/release/bundle/deb/`. `npm run verify:linux-package` then extracts that package into an isolated
-temporary directory and fails unless its artifact name, Debian control identity, Ubuntu runtime dependencies,
-executable permissions, desktop entry, icons, and installed GPL text agree. Neither command constitutes an accepted or
-public Linux release until the remaining Milestone 4 installation, trust, recovery, parity, and exact-candidate gates
-pass.
+`src-tauri/tauri.linux.conf.json`. That overlay gives Tauri the technical product identity `fitfreed`, uses a reviewed
+desktop template to retain the visible `FitFreed` name, and fixes the package homepage, GPL identifier and license file,
+fitness category, descriptions, Debian `utils` section, and `optional` priority. It deliberately claims no generic ZIP
+file association: taking ownership of every ZIP on the desktop would be misleading. A successful build is written as
+`src-tauri/target/release/bundle/deb/FitFreed_<version>_amd64.deb`; the wrapper changes only Tauri's generated filename
+and never rewrites the package bytes. `npm run verify:linux-package` then extracts that package into an isolated
+temporary directory and fails unless its artifact name, `fitfreed` Debian control identity, Ubuntu runtime
+dependencies, executable permissions, `usr/share/applications/fitfreed.desktop` entry and visible name, icons, and
+installed GPL text agree. Neither command constitutes an accepted or public Linux release until the remaining
+Milestone 4 installation, trust, recovery, parity, and exact-candidate gates pass.
 
 `npm run inventory:linux-package` reopens the same exact `.deb` and writes
 `FitFreed_<version>_amd64.deb.inventory.json` beside it only after the complete schema, target, control, path, digest,

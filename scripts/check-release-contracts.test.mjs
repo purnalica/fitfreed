@@ -26,6 +26,7 @@ function validMetadata() {
       bundle: { createUpdaterArtifacts: true },
     },
     linuxTauri: {
+      productName: "fitfreed",
       bundle: {
         targets: ["deb"],
         publisher: "FitFreed contributors",
@@ -39,6 +40,7 @@ function validMetadata() {
           "FitFreed imports portable fitness data into a local library for private exploration, reports, and export.",
         linux: {
           deb: {
+            desktopTemplate: "linux/fitfreed.desktop.hbs",
             files: { "/usr/share/doc/fitfreed/copyright": "../LICENSE" },
             section: "utils",
             priority: "optional",
@@ -63,7 +65,12 @@ test("accepts one consistent private development release identity", () => {
     productName: "FitFreed",
     identifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"],
-    linuxPackage: { architecture: "amd64", packageName: "fitfreed", target: "deb" },
+    linuxPackage: {
+      architecture: "amd64",
+      packageName: "fitfreed",
+      productName: "fitfreed",
+      target: "deb",
+    },
   });
 });
 

@@ -62,11 +62,15 @@ Unsigned macOS MVP alpha artifacts remain in restricted evaluation workflows. Pu
 Linux package automation uses `npm run package:linux`, which refuses non-Linux hosts and invokes the shared
 source-bound production wrapper for only Tauri's `deb` target. Platform metadata remains in
 `src-tauri/tauri.linux.conf.json`; hosted jobs and local contributors must use this command rather than reproducing its
-arguments or package metadata independently.
+arguments or package metadata independently. The overlay supplies the technical `fitfreed` product identity and a
+reviewed desktop template with the visible `FitFreed` name. After the source-bound build succeeds, the wrapper admits
+only the exact version-derived Tauri output and changes its filename to `FitFreed_<version>_amd64.deb` without changing
+the package bytes.
 
 `npm run package:linux-public-candidate` applies the same closed Debian boundary plus the public updater overlay. It
-requires an active versioned public-update configuration and external updater signing authority before invoking the
-source-bound build, so ordinary unsigned package work cannot be mistaken for a public candidate.
+requires active recoverable `stable-v3` public-update configuration and external updater signing authority before
+invoking the source-bound build. It then changes the package and updater-signature filenames as one recoverable pair,
+without changing either file's contents, so ordinary unsigned package work cannot be mistaken for a public candidate.
 
 `npm run check:public-release-signing-config` validates the separate versioned Linux checksum-signing trust set on
 every complete quality run. Its canonical inactive state admits no key; activation remains an accountable human gate.

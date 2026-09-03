@@ -15,7 +15,7 @@ const PKEXEC_PATH: &str = "/usr/bin/pkexec";
 const PACKAGE_NAME: &str = "fitfreed";
 const PACKAGE_ARCHITECTURE: &str = "amd64";
 const INSTALLED_EXECUTABLE_PATH: &str = "/usr/bin/fitfreed";
-const INSTALLED_DESKTOP_ENTRY_PATH: &str = "/usr/share/applications/FitFreed.desktop";
+const INSTALLED_DESKTOP_ENTRY_PATH: &str = "/usr/share/applications/fitfreed.desktop";
 const PREDECESSOR_PACKAGE_RELATIVE_PATH: &str = "previous/package.deb";
 const CANDIDATE_PACKAGE_RELATIVE_PATH: &str = "candidate/package.deb";
 const MAX_COMMAND_OUTPUT_BYTES: usize = 64 * 1024;
@@ -431,7 +431,7 @@ fn verify_linux_native_installation_matches_runnable_with(
         return Err(LinuxUpdateRecoveryError::InvalidPackageIdentity);
     }
     let runnable_executable = runnable_root.join("usr/bin/fitfreed");
-    let runnable_desktop_entry = runnable_root.join("usr/share/applications/FitFreed.desktop");
+    let runnable_desktop_entry = runnable_root.join("usr/share/applications/fitfreed.desktop");
     validate_installed_file(&runnable_executable, true)?;
     validate_installed_file(&runnable_desktop_entry, false)?;
     validate_native_installation_files(installed_executable, installed_desktop_entry)?;
@@ -639,7 +639,7 @@ mod tests {
                 executable: PathBuf::from(DPKG_QUERY_PATH),
                 arguments: vec![OsString::from("--listfiles"), OsString::from(PACKAGE_NAME)],
                 output: successful_output(
-                    b"/.\n/usr/bin/fitfreed\n/usr/share/applications/FitFreed.desktop\n".to_vec(),
+                    b"/.\n/usr/bin/fitfreed\n/usr/share/applications/fitfreed.desktop\n".to_vec(),
                 ),
             },
         ]
@@ -658,7 +658,7 @@ mod tests {
         assert_eq!(identity.executable_path(), Path::new("/usr/bin/fitfreed"));
         assert_eq!(
             identity.desktop_entry_path(),
-            Path::new("/usr/share/applications/FitFreed.desktop")
+            Path::new("/usr/share/applications/fitfreed.desktop")
         );
         command.assert_exhausted();
     }
@@ -830,7 +830,7 @@ mod tests {
         let root = directory.path().canonicalize().expect("canonical root");
         let runnable = root.join("runnable");
         let runnable_executable = runnable.join("usr/bin/fitfreed");
-        let runnable_desktop = runnable.join("usr/share/applications/FitFreed.desktop");
+        let runnable_desktop = runnable.join("usr/share/applications/fitfreed.desktop");
         let installed_executable = root.join("installed/fitfreed");
         let installed_desktop = root.join("installed/FitFreed.desktop");
         for path in [

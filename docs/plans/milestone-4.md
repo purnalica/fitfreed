@@ -41,7 +41,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | Increment | State | Current evidence or next gate |
 |---|---|---|
 | M4.0 | Complete | Hosted Ubuntu portability, source compilation, shared tests, input classification, and bounded failure evidence are versioned and enforced. |
-| M4.1 | Engineering complete; candidate gate pending | The Debian identity, exact inventory, clean Ubuntu 24.04 installation, signed public candidate, release manifest, and multiplatform Pages evidence are verified. Exact graphical-candidate evidence and production signing authority remain later gates rather than repository material. |
+| M4.1 | Correction under verification | Hosted exact-package inspection exposed Tauri's unintended `fit-freed` Debian identity. ADR 0043 separates the technical `fitfreed` package, visible `FitFreed` launcher, and byte-preserving public artifact renaming. Local contract evidence passes; a rebuilt hosted package, inventory, and clean installation are the next admission gate. Exact graphical-candidate evidence and production signing authority remain later gates rather than repository material. |
 | M4.2 | Active | Linux recovery version 2, stable channel version 3, upgrade matrix version 2, recoverable Linux manifest version 5, exact predecessor discovery, Rust authorization, public build mapping, atomic staging, complete candidate/Pages verification, native package identity and fixed candidate/rollback commands, full `/proc` process identity, bounded authenticated predecessor transfer and no-clobber package handoff, exact package preservation, bounded Debian extraction, deterministic runnable-image verification, private atomic version 2 attempt preparation, packaged lifecycle policy, serialized transitions, process-bound launch records, preserved-watchdog context resolution, exact exclusive process leases, candidate-bound target confirmation, quiescent prepared-attempt discard, atomic library restoration, verified native rollback, closed three-attempt failure accounting, shared terminal receipts, exact-pair terminal cleanup, receipt-bound restart resumption, host installation coordination, private watchdog/candidate startup dispatch, verified runnable fallback, active-attempt restart resolution, duplicate-watchdog exclusion, interrupted-phase reattachment, privacy-minimized intervention discovery, and bounded explicit native-recovery retry exist. The native Debian E2E definition covers successful replacement, automatic rollback after either native installer failure or candidate rejection, authorization-unavailable runnable fallback, explicit retry after authorization becomes available, three-attempt exhaustion with manual reinstall guidance, and restart resumption after both live actors are terminated at durable `replacement-started`. Exact hosted Ubuntu evidence for the expanded campaign remains the admission gate. |
 | M4.3 | Active | An isolated instrumented Debian package, installed-executable harness, package-removal and library-retention assertions, and mandatory hosted job are implemented. Exact native Ubuntu execution remains the admission gate. |
 | M4.4–M4.6 | Pending | Begin only through their ordered technical dependencies; protected signing, clean Ubuntu 26.04, human acceptance, and promotion remain explicit gates. |
@@ -53,6 +53,13 @@ emphasized handles the same application-theme identity, with a focused option co
 packaged journeys now prove visible movement of both handles and a responsive workspace across the maximum four-lane
 canvas chart. The complete exact-source gate remains required before this correction or the enclosing M4.2 increment
 is admitted.
+
+Hosted Ubuntu package verification on 2026-09-03 exposed that Tauri 2.11.4 derives Debian `Package: fit-freed` from
+the visible `FitFreed` product name. The correction defined by
+[ADR 0043](../architecture/decisions/0043-separate-linux-package-and-display-identities.md) supplies the technical
+identity before packaging, retains the visible launcher name through a reviewed template, and changes only the
+finished package and signature filenames to their existing public contract. Local automation proves byte preservation
+and fail-closed transitions; M4.1 remains open until the hosted real-package and installation gates pass.
 
 ## Increment M4.0 — Native portability admission
 

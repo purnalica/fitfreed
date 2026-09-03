@@ -190,7 +190,7 @@
         "version": { "$ref": "#/$defs/semver" },
         "architecture": { "const": "amd64" },
         "executablePath": { "const": "/usr/bin/fitfreed" },
-        "desktopEntryPath": { "const": "/usr/share/applications/FitFreed.desktop" }
+        "desktopEntryPath": { "const": "/usr/share/applications/fitfreed.desktop" }
       }
     },
     "preservedPackage": {

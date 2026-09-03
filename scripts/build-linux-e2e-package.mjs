@@ -9,7 +9,7 @@ const expectedConfiguration = Object.freeze({
   identifier: "org.fitfreed.desktop.e2e",
   mainBinaryName: "fitfreed-e2e",
   packageName: "fitfreed-e2e",
-  productName: "FitFreed E2E",
+  productName: "fitfreed-e2e",
 });
 const configurationPath = path.join(
   repositoryRoot,

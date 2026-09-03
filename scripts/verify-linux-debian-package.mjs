@@ -94,7 +94,7 @@ export function validateLinuxDebianPackageFacts(facts, expectedVersion) {
     errors.push("production executable must be installed and executable at usr/bin/fitfreed");
   }
   if (!entries.has(linuxPackageContract.desktopEntryPath)) {
-    errors.push("desktop entry must be installed at usr/share/applications/FitFreed.desktop");
+    errors.push(`desktop entry must be installed at ${linuxPackageContract.desktopEntryPath}`);
   }
   const desktop = parseDesktopEntry(facts.desktopEntry);
   for (const [field, expected] of Object.entries({

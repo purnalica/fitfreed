@@ -73,7 +73,7 @@ already local, authenticated, reopened, and bound by the recovery manifest.
 
 The Linux adapter owns the first native recovery primitives. It derives the installed `fitfreed` version and
 `amd64` architecture through fixed `/usr/bin/dpkg-query` invocations, requires the package manager to report an
-installed package that owns `/usr/bin/fitfreed` and `/usr/share/applications/FitFreed.desktop`, and reopens both as
+installed package that owns `/usr/bin/fitfreed` and `/usr/share/applications/fitfreed.desktop`, and reopens both as
 non-symbolic regular files before accepting the identity. Native predecessor restoration derives only
 `previous/package.deb` below the canonical attempt directory, invokes the fixed `/usr/bin/pkexec /usr/bin/dpkg
 --install` boundary, and revalidates the resulting native identity and files. Linux process authority binds the PID to

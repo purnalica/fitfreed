@@ -28,7 +28,7 @@ Description: Explore your fitness history on your own computer.
 `),
     entries: [
       "usr/bin/fitfreed",
-      "usr/share/applications/FitFreed.desktop",
+      "usr/share/applications/fitfreed.desktop",
       "usr/share/doc/fitfreed/copyright",
       "usr/share/icons/hicolor/32x32/apps/fitfreed.png",
       "usr/share/icons/hicolor/128x128/apps/fitfreed.png",

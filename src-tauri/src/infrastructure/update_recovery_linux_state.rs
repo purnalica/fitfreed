@@ -52,7 +52,7 @@ const TARGET_PACKAGE_RELATIVE_PATH: &str = "candidate/package.deb";
 const PACKAGE_NAME: &str = "fitfreed";
 const PACKAGE_ARCHITECTURE: &str = "amd64";
 const INSTALLED_EXECUTABLE_PATH: &str = "/usr/bin/fitfreed";
-const INSTALLED_DESKTOP_ENTRY_PATH: &str = "/usr/share/applications/FitFreed.desktop";
+const INSTALLED_DESKTOP_ENTRY_PATH: &str = "/usr/share/applications/fitfreed.desktop";
 const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 const MAX_PACKAGE_BYTES: u64 = 1_073_741_824;
 const MAX_LIBRARY_BACKUP_BYTES: u64 = 1024 * 1024 * 1024 * 1024;
@@ -2480,7 +2480,7 @@ mod tests {
                 "synthetic executable",
             )?;
             fs::write(
-                attempt_directory.join("previous/runnable/usr/share/applications/FitFreed.desktop"),
+                attempt_directory.join("previous/runnable/usr/share/applications/fitfreed.desktop"),
                 "[Desktop Entry]\nName=FitFreed\n",
             )?;
             assert_eq!(

@@ -35,21 +35,26 @@ contracts. Public Debian bytes require checksums, detached FitFreed release sign
 provenance, exact package inventory, and version-matched documentation.
 
 The versioned Linux Tauri overlay and `npm run package:linux` command form the single source-build entry point for that
-Debian package. The command is Linux-only and requests only `deb`; the overlay binds vendor-neutral application
-metadata, the canonical public origin, GPL licensing, and Debian section and priority. It does not associate FitFreed
-with the generic ZIP MIME type. Tauri derives the native runtime dependency list during package creation; package
-inspection extracts the package into an isolated temporary directory and validates the exact artifact name, Debian
-control identity, mandatory WebKitGTK and GTK dependencies, production executable permissions, desktop entry, icon
-set, and installed GPL text. The same exact artifact generates the versioned
+Debian package. Under [ADR 0043](decisions/0043-separate-linux-package-and-display-identities.md), the overlay gives Tauri
+the technical product identity `fitfreed` so its derived Debian control and installed desktop identities remain
+canonical, while a reviewed desktop template retains the visible name `FitFreed`. The command is Linux-only and
+requests only `deb`; the overlay also binds vendor-neutral application metadata, the canonical public origin, GPL
+licensing, and Debian section and priority. It does not associate FitFreed with the generic ZIP MIME type. After Tauri
+finishes, the wrapper changes only the generated package filename to the versioned public
+`FitFreed_<version>_amd64.deb` name; it never rewrites the package bytes. Tauri derives the native runtime dependency
+list during package creation; package inspection extracts the package into an isolated temporary directory and
+validates the exact artifact name, Debian control identity, mandatory WebKitGTK and GTK dependencies, production
+executable permissions, desktop entry, icon set, visible launcher name, and installed GPL text. The same exact artifact generates the versioned
 [Linux package inventory](../data-formats/release/linux-package-inventory-v1.md): its digest-bound control metadata and
 complete byte-sorted extracted layout are the canonical package-content evidence. The resulting inventory and complete
 dependency field must still enter the release manifest, checksum, signing, and provenance boundaries before the
 artifact can become a candidate.
 
 `npm run package:linux-public-candidate` reuses that package boundary and adds only the public updater overlay. It
-requires active embedded update trust and external updater signing authority, causing Tauri to emit the mandatory
-signature for the exact Debian bytes. An ordinary `package:linux` result remains installation evidence, not a signed
-public candidate.
+requires active recoverable `stable-v3` update trust and external updater signing authority, causing Tauri to emit the
+mandatory signature for the exact Debian bytes. The wrapper changes the package and signature filenames together
+without changing their contents. An ordinary `package:linux` result remains installation evidence, not a signed public
+candidate.
 
 The public stable-channel staging boundary accepts an explicit closed set of target packages. It derives the canonical
 name and direct URL for `darwin-aarch64` and `linux-x86_64-deb`, binds every package's size, digest, and updater

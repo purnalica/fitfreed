@@ -52,8 +52,9 @@ attempt uses no-clobber publication; every error removes the temporary file with
 evidence.
 
 Native identity discovery uses only `/usr/bin/dpkg-query --show` and `--listfiles` for the fixed `fitfreed` package.
-The accepted identity is an installed `amd64` package with a SemVer version that owns the fixed executable and desktop
-entry paths. Both paths must reopen as non-symbolic regular files, and the executable must carry an execute bit. Native
+The accepted identity is an installed `amd64` package with a SemVer version that owns the fixed
+`/usr/bin/fitfreed` executable and `/usr/share/applications/fitfreed.desktop` entry. Both paths must reopen as
+non-symbolic regular files, and the executable must carry an execute bit. Native
 rollback derives `previous/package.deb` from the canonical attempt directory, rejects an absent, empty, non-regular,
 or symbolic package, invokes only `/usr/bin/pkexec /usr/bin/dpkg --install` with that derived path, and repeats the
 native identity and installed-file validation after success.

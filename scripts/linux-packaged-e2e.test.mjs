@@ -21,8 +21,8 @@ test("defines an installed E2E package that cannot replace FitFreed", () => {
 test("resolves exactly one generated Debian package", () => {
   const directory = path.resolve("src-tauri/target/e2e/release/bundle/deb");
   assert.equal(
-    resolveLinuxE2eDebianPackage(directory, ["FitFreed E2E_0.1.0_amd64.deb"]),
-    path.join(directory, "FitFreed E2E_0.1.0_amd64.deb"),
+    resolveLinuxE2eDebianPackage(directory, ["fitfreed-e2e_0.1.0_amd64.deb"]),
+    path.join(directory, "fitfreed-e2e_0.1.0_amd64.deb"),
   );
   assert.throws(
     () => resolveLinuxE2eDebianPackage(directory, []),

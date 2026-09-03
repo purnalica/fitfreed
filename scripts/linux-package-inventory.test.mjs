@@ -32,7 +32,7 @@ function writeExtractedPackageTree(extractedRoot) {
     mode: 0o755,
   });
   writeFileSync(
-    path.join(extractedRoot, "usr/share/applications/FitFreed.desktop"),
+    path.join(extractedRoot, "usr/share/applications/fitfreed.desktop"),
     "[Desktop Entry]\nName=FitFreed\n",
   );
   writeFileSync(

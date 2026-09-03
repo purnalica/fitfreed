@@ -181,7 +181,7 @@ test("keeps the installed Linux E2E package distinct from the product package", 
     identifier: "org.fitfreed.desktop.e2e",
     mainBinaryName: "fitfreed-e2e",
     packageName: "fitfreed-e2e",
-    productName: "FitFreed E2E",
+    productName: "fitfreed-e2e",
   });
 });
 

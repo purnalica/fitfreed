@@ -41,7 +41,7 @@ function manifest() {
         version: "0.1.0",
         architecture: "amd64",
         executablePath: "/usr/bin/fitfreed",
-        desktopEntryPath: "/usr/share/applications/FitFreed.desktop",
+        desktopEntryPath: "/usr/share/applications/fitfreed.desktop",
       },
     },
     target: {
