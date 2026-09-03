@@ -263,7 +263,9 @@ generates Tauri's versioned icon inputs before either isolated package build. It
 Debian packages and prove successful native replacement plus automatic rollback after either candidate rejection or a
 Debian maintainer-script failure during native installation. The installer-failure package is a root-owned rebuild of
 the ordinary synthetic candidate, is signed as distinct exact bytes, and fails through the real package-manager
-boundary.
+boundary. Before either ordinary package is signed, the harness requires Tauri's exact technical
+`fitfreed_<version>_amd64.deb` output and applies the production byte-preserving normalization to the canonical public
+artifact name; a stale display-name assumption or any extra Debian output fails before a scenario can start.
 Every terminal scenario verifies package-manager identity, SQLite integrity, locale persistence, terminal cleanup,
 localized result presentation, and explicit acknowledgement. The authorization scenario permits candidate installation
 but denies predecessor installation, verifies the retained first attempt and runnable fallback, grants only the same

@@ -24,6 +24,7 @@ import {
   createUpdatePayload,
   updateTarget,
 } from "./update-e2e-contract.mjs";
+import { normalizeLinuxDebianArtifactNames } from "./linux-debian-artifact-identity.mjs";
 import {
   validateStableUpdateV3Envelope,
   validateStableUpdateV3Payload,
@@ -360,12 +361,8 @@ function signFile(filePath) {
   return readFileSync(`${filePath}.sig`, "utf8").trim();
 }
 
-function generatedDebianPackage(version) {
-  return path.join(
-    targetDirectory,
-    "release/bundle/deb",
-    `FitFreed_${version}_amd64.deb`,
-  );
+export function normalizeLinuxUpdateE2eDebianPackage(directory, version) {
+  return normalizeLinuxDebianArtifactNames({ directory, version }).packagePath;
 }
 
 function buildDebianPackage(version, publicKey) {
@@ -390,12 +387,12 @@ function buildDebianPackage(version, publicKey) {
       },
     },
   );
-  const generated = generatedDebianPackage(version);
-  if (!existsSync(generated)) {
-    throw new Error(`Tauri did not create the expected Debian package for ${version}`);
-  }
-  const retained = path.join(packageDirectory, path.basename(generated));
-  copyFileSync(generated, retained);
+  const normalized = normalizeLinuxUpdateE2eDebianPackage(
+    path.join(targetDirectory, "release/bundle/deb"),
+    version,
+  );
+  const retained = path.join(packageDirectory, path.basename(normalized));
+  copyFileSync(normalized, retained);
   signFile(retained);
   return retained;
 }

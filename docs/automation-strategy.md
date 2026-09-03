@@ -94,8 +94,10 @@ and architecture inside the container.
 `npm run verify:linux-update-e2e` runs only on x86-64 Linux. Its project entry point first generates the versioned
 application icons required by Tauri, so the campaign remains executable from a clean clone. It then builds signed
 instrumented 0.1.0 and 0.2.0 Debian packages, installs the predecessor, serves a signed recoverable `stable-v3`
-channel over loopback HTTPS, and drives
-the real `pkexec` and `dpkg` replacement boundary under Xvfb. Temporary Polkit rules grant only the current test user
+channel over loopback HTTPS, and drives the real `pkexec` and `dpkg` replacement boundary under Xvfb. Each Tauri build
+first emits the technical `fitfreed_<version>_amd64.deb` name and then passes those exact bytes through the same
+closed normalizer as the production build before the canonical `FitFreed_<version>_amd64.deb` artifact is signed and
+served. Temporary Polkit rules grant only the current test user
 permission to install exact candidate or predecessor packages retained below one isolated recovery root; cleanup
 removes the rule and package after every scenario. The campaign covers successful replacement, automatic native
 rollback after candidate rejection or a real Debian pre-installation failure, and recovery when predecessor

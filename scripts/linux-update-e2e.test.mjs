@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
@@ -10,6 +17,7 @@ import {
   linuxInstallerFailureScript,
   linuxUpdateBuildArguments,
   linuxUpdateScenarioPlan,
+  normalizeLinuxUpdateE2eDebianPackage,
   validateLinuxUpdateEvidence,
 } from "./verify-packaged-linux-update.mjs";
 
@@ -46,6 +54,23 @@ test("builds only an instrumented Debian package from the closed Linux overlays"
     ],
   );
   assert.throws(() => linuxUpdateBuildArguments("relative.json"), /absolute/);
+});
+
+test("normalizes the technical Tauri package to the public update artifact without changing bytes", () => {
+  const directory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-linux-update-package-"));
+  const generatedPackage = path.join(directory, "fitfreed_0.2.0_amd64.deb");
+  const packageBytes = Buffer.from("synthetic signed Debian package bytes");
+  writeFileSync(generatedPackage, packageBytes);
+
+  try {
+    const packagePath = normalizeLinuxUpdateE2eDebianPackage(directory, "0.2.0");
+
+    assert.equal(packagePath, path.join(directory, "FitFreed_0.2.0_amd64.deb"));
+    assert.deepEqual(readFileSync(packagePath), packageBytes);
+    assert.deepEqual(readdirSync(directory), ["FitFreed_0.2.0_amd64.deb"]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("covers replacement, recovery, exhaustion, and restart with exact Debian packages", () => {
