@@ -230,8 +230,12 @@ Local and continuous-integration workflows will invoke the same underlying comma
   protected candidate build. Its adapter accepts authority solely through the process environment, signs with SHA-256,
   suppresses native output, and invokes an independent inspector that requires exact signer fingerprint, public
   timestamp, Windows application-policy trust, unchanged digest, x86-64 architecture, and exact FitFreed identity.
-  The protected public-candidate contract separately requires updater-signing and public Authenticode authority,
-  composes both reviewed overlays, rejects stale or extra NSIS output, and reinspects the final setup after packaging.
+  The protected expansion-input contract requires public Authenticode authority, rejects updater private-key authority,
+  embeds only active public updater trust, rejects stale or extra NSIS output, and reinspects the final setup after
+  packaging. Preparation then proves the public-profile native installation and data-preserving removal, atomically
+  stages only the exact setup, inventory, and source-bound build evidence, and rejects extra entries, links, identity or
+  digest drift, mismatched certificate trust, and changed updater trust. The later compositor independently signs those
+  sealed bytes for the updater.
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.

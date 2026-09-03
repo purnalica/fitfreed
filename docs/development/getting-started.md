@@ -91,6 +91,8 @@ or CI runner rather than a personal profile.
 | Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
 | Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
+| Build the Authenticode-signed update-capable Windows input under protected authority | `npm run package:windows-expansion-input` |
+| Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -171,12 +173,21 @@ trust, the admitted leaf certificate, timestamp, unchanged file digest, x86-64 a
 version. Do not pass protected values through contributor-facing command arguments or logs. Public signing remains a
 release-operator boundary and is not a contributor setup step.
 
-`npm run package:windows-public-candidate` is that protected release-operator entry point. It deliberately cannot run
-from the ordinary contributor environment: active `stable-v3` public update trust, private updater-signing authority,
-and the complete public Authenticode process profile must all be present. It selects both reviewed overlays, removes
-stale NSIS output, builds only the exact setup and updater-signature pair, and reinspects the final setup through the
-independent Windows trust adapter. Failure removes the unverified output directory. Do not use this command to create
-an engineering package, and do not retain its protected process values in shell profiles, scripts, logs, or evidence.
+`npm run package:windows-expansion-input` is that protected native-builder entry point. It deliberately cannot run from
+the ordinary contributor environment: active `stable-v3` public update trust and the complete public Authenticode
+process profile must be present, while every updater private-key input is rejected. It selects the Authenticode overlay,
+embeds only public update trust, removes stale NSIS output, builds the exact setup, and reinspects its final bytes through
+the independent Windows trust adapter. Failure removes the unverified output directory. The later complete-platform
+composer signs the sealed setup for the updater under separate authority. Do not use this command to create an
+engineering package, and do not retain its protected process values in shell profiles, scripts, logs, or evidence.
+
+`npm run prepare:windows-expansion-input -- <version> <directory>` requires the same protected Windows process and a
+clean source revision. It audits dependencies, builds and reinspects the setup, runs the public-profile installation
+and data-preserving removal cycle, and atomically stages exactly three files: the setup, its complete inventory, and
+source-bound build evidence. Existing output is never replaced. The retained evidence includes the public certificate
+fingerprint and embedded updater trust identifiers, but excludes certificate selectors, SignTool paths, private keys,
+machine paths, and updater or publication authority. This command prepares a native handoff; it neither creates a
+complete candidate nor authorizes a release.
 
 `npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same
 Debian package contract but requires active recoverable `stable-v3` configuration and embeds only that channel's public

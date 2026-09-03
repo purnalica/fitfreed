@@ -7,23 +7,20 @@ import {
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { assertUpdaterSigningAuthority } from "./build-public-candidate.mjs";
 import { buildProductionPackage } from "./build-production.mjs";
+import { windowsPackageBuildArguments } from "./build-windows-package.mjs";
 import {
   loadPublicUpdateConfiguration,
   publicUpdateBuildEnvironment,
 } from "./public-update-configuration.mjs";
 import { sha256File } from "./release-evidence.mjs";
-import {
-  windowsAuthenticodeAuthority,
-} from "./windows-authenticode-sign.mjs";
+import { windowsAuthenticodeAuthority } from "./windows-authenticode-sign.mjs";
 import { inspectWindowsAuthenticode } from "./windows-authenticode-trust.mjs";
 import {
   expectedWindowsNsisArtifactName,
   validateWindowsPackageConfiguration,
   validateWindowsPublicSigningOverlay,
 } from "./windows-package-contract.mjs";
-import { windowsPackageBuildArguments } from "./build-windows-package.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const packageVersion = JSON.parse(
@@ -37,22 +34,31 @@ const defaultReleaseDirectory = path.join(
   "bundle",
   "nsis",
 );
+const updaterAuthorityNames = [
+  "TAURI_SIGNING_PRIVATE_KEY",
+  "TAURI_SIGNING_PRIVATE_KEY_PATH",
+  "TAURI_SIGNING_PRIVATE_KEY_PASSWORD",
+];
 
-export function windowsPublicCandidateBuildArguments(
+export function assertWindowsExpansionAuthoritySeparation(environment) {
+  if (updaterAuthorityNames.some((name) => Object.hasOwn(environment, name))) {
+    throw new Error("the Windows expansion builder must not receive updater signing authority");
+  }
+}
+
+export function windowsExpansionInputBuildArguments(
   arguments_ = [],
   platform = process.platform,
   architecture = process.arch,
 ) {
   return [
     "--config",
-    "src-tauri/tauri.public.conf.json",
-    "--config",
     "src-tauri/tauri.windows.public-signing.conf.json",
     ...windowsPackageBuildArguments(arguments_, platform, architecture),
   ];
 }
 
-export function verifyWindowsPublicCandidateOutputs({
+export function verifyWindowsExpansionBuildOutput({
   architecture = process.arch,
   certificateSha256,
   inspect = inspectWindowsAuthenticode,
@@ -62,27 +68,18 @@ export function verifyWindowsPublicCandidateOutputs({
   version = packageVersion,
 }) {
   if (platform !== "win32" || architecture !== "x64") {
-    throw new Error("Windows public candidate verification requires x86-64 Windows");
+    throw new Error("Windows expansion input verification requires x86-64 Windows");
   }
   const setup = expectedWindowsNsisArtifactName(version);
-  const updaterSignature = `${setup}.sig`;
-  const entries = readdirSync(releaseDirectory).sort((left, right) =>
-    left.localeCompare(right, "en"));
-  const expectedEntries = [setup, updaterSignature].sort((left, right) =>
-    left.localeCompare(right, "en"));
-  if (JSON.stringify(entries) !== JSON.stringify(expectedEntries)) {
-    throw new Error("Windows public candidate must contain the closed artifact set");
-  }
-  for (const entry of entries) {
-    const metadata = lstatSync(path.join(releaseDirectory, entry));
-    if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1) {
-      throw new Error("Windows public candidate artifacts must be regular and singly linked");
-    }
-    if (metadata.size < 1) {
-      throw new Error("Windows public candidate artifacts must not be empty");
-    }
+  const entries = readdirSync(releaseDirectory);
+  if (entries.length !== 1 || entries[0] !== setup) {
+    throw new Error("Windows expansion build must contain only the exact setup");
   }
   const setupPath = path.join(releaseDirectory, setup);
+  const metadata = lstatSync(setupPath);
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1 || metadata.size < 1) {
+    throw new Error("Windows expansion setup must be a non-empty regular singly linked file");
+  }
   const setupSha256 = sha256File(setupPath);
   const trust = inspect({
     binaryPath: setupPath,
@@ -94,12 +91,12 @@ export function verifyWindowsPublicCandidateOutputs({
     version,
   });
   if (trust.fileSha256 !== setupSha256) {
-    throw new Error("Windows public candidate trust digest does not bind the final setup bytes");
+    throw new Error("Windows expansion trust digest does not bind the final setup bytes");
   }
-  return { setup, setupSha256, updaterSignature };
+  return { setup, setupSha256 };
 }
 
-export function buildWindowsPublicCandidate({
+export function buildWindowsExpansionInput({
   architecture = process.arch,
   arguments_ = process.argv.slice(2),
   build = buildProductionPackage,
@@ -108,7 +105,7 @@ export function buildWindowsPublicCandidate({
   isFile,
   platform = process.platform,
   releaseDirectory = defaultReleaseDirectory,
-  verifyOutputs = verifyWindowsPublicCandidateOutputs,
+  verifyOutput = verifyWindowsExpansionBuildOutput,
 } = {}) {
   validateWindowsPackageConfiguration(
     JSON.parse(readFileSync(path.join(repositoryRoot, "src-tauri/tauri.windows.conf.json"), "utf8")),
@@ -122,19 +119,19 @@ export function buildWindowsPublicCandidate({
       ),
     ),
   );
+  assertWindowsExpansionAuthoritySeparation(environment);
   const updateConfiguration = configuration
     ?? loadPublicUpdateConfiguration(repositoryRoot);
   const publicUpdateEnvironment = publicUpdateBuildEnvironment(updateConfiguration, true);
-  assertUpdaterSigningAuthority(environment);
   const authority = windowsAuthenticodeAuthority({
     environment,
     ...(isFile ? { isFile } : {}),
     platform,
   });
   if (authority.profile !== "public" || !authority.requireTimestamp) {
-    throw new Error("the Windows public candidate requires public timestamped Authenticode authority");
+    throw new Error("the Windows expansion input requires public timestamped Authenticode authority");
   }
-  const buildArguments = windowsPublicCandidateBuildArguments(
+  const buildArguments = windowsExpansionInputBuildArguments(
     arguments_,
     platform,
     architecture,
@@ -146,7 +143,7 @@ export function buildWindowsPublicCandidate({
       arguments_: buildArguments,
       publicUpdateEnvironment,
     });
-    return verifyOutputs({
+    return verifyOutput({
       architecture,
       certificateSha256: authority.certificateSha256,
       platform,
@@ -163,9 +160,9 @@ export function buildWindowsPublicCandidate({
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   try {
-    process.stdout.write(`${JSON.stringify(buildWindowsPublicCandidate())}\n`);
+    process.stdout.write(`${JSON.stringify(buildWindowsExpansionInput())}\n`);
   } catch (error) {
-    process.stderr.write(`Windows public candidate build failed: ${error.message}\n`);
+    process.stderr.write(`Windows expansion input build failed: ${error.message}\n`);
     process.exitCode = 1;
   }
 }

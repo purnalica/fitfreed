@@ -57,5 +57,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0042: Recover packaged updates from authenticated predecessors](0042-recover-packaged-updates-from-authenticated-predecessors.md) — Accepted on 2026-09-02.
 - [ADR 0043: Separate Linux package and display identities](0043-separate-linux-package-and-display-identities.md) — Accepted on 2026-09-03.
 - [ADR 0044: Publish expanding complete platform sets](0044-publish-expanding-complete-platform-sets.md) — Accepted on 2026-09-03.
+- [ADR 0045: Separate Windows native and updater signing authority](0045-separate-windows-native-and-updater-signing-authority.md) — Accepted on 2026-09-04.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

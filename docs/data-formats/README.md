@@ -232,6 +232,7 @@ Directories are created with their first real contract; empty specifications are
 - [Linux public build evidence version 1](release/linux-public-build-evidence-v1.md)
 - [Linux package inventory version 1](release/linux-package-inventory-v1.md)
 - [Windows package inventory version 1](release/windows-package-inventory-v1.md)
+- [Windows public build evidence version 1](release/windows-public-build-evidence-v1.md)
 - [Upgrade matrix version 2](release/upgrade-matrix-v2.md)
 - [Upgrade matrix version 1](release/upgrade-matrix-v1.md) — preceding contract
 - [Update channel version 1](release/update-channel-v1.md)

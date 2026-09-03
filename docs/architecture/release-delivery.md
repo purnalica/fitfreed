@@ -123,13 +123,26 @@ versioned `tauri.windows.public-signing.conf.json` overlay contains only the rev
 Tauri's `%1` binary placeholder. A future protected candidate build must select it explicitly and provide all authority
 through the protected process boundary; its presence cannot make the ordinary package signed or public.
 
-The distinct `npm run package:windows-public-candidate` entry point requires active recoverable `stable-v3` public
-update trust, private updater-signing authority, and the public timestamped Authenticode profile before it changes the
-NSIS output directory. It composes the updater and Authenticode overlays in a fixed order, accepts only diagnostic
-verbosity, and builds only NSIS. The resulting directory must contain exactly the version-derived setup and its
-non-empty updater signature as regular singly linked files. An independent post-package trust pass binds the final
-setup digest, x86-64 product identity, version, admitted leaf-certificate fingerprint, Windows application policy, and
-timestamp after Tauri has finished writing the package.
+Under [ADR 0045](decisions/0045-separate-windows-native-and-updater-signing-authority.md), the distinct
+`npm run package:windows-expansion-input` entry point requires active recoverable `stable-v3` public
+update trust and the public timestamped Authenticode profile before it changes the NSIS output directory. It rejects
+all updater private-key inputs, selects only the Authenticode overlay, embeds the public channel endpoint and trust set,
+accepts only diagnostic verbosity, and builds only NSIS. The resulting directory must contain exactly the
+version-derived setup as one non-empty regular singly linked file. An independent post-package trust pass binds its
+final digest, x86-64 product identity, version, admitted leaf-certificate fingerprint, Windows application policy, and
+timestamp after Tauri has finished writing the package. The later complete-platform compositor uses separate updater
+authority to sign these sealed bytes and create stable channel metadata.
+
+`npm run prepare:windows-expansion-input -- <version> <directory>` admits one clean source revision and the protected
+public Authenticode authority before running the dependency audit and that build. It then performs the public-profile
+native installation cycle, hashes the complete installed layout, verifies data-preserving removal, and atomically
+stages only the setup, its [Windows package inventory](../data-formats/release/windows-package-inventory-v1.md), and
+the source-bound [Windows public build evidence](../data-formats/release/windows-public-build-evidence-v1.md). The
+closed evidence binds version, revision, storage schema, setup and inventory digests, certificate fingerprint, and the
+ordered public updater trust identifiers embedded by the build. It contains no updater signature, private key,
+certificate selector, SignTool path, machine identity, or publication authority. Every file must be regular, non-empty,
+singly linked, and named by the versioned contract; any mismatch removes the temporary staging directory without
+replacing an existing input.
 
 The pinned Windows engineering lane builds that NSIS package instead of compiling the release host a second time: the
 package build already contains the complete production host. A closed native adapter then runs only on a clean
