@@ -329,6 +329,16 @@ pub fn observe_windows_recovery_process(
     )
 }
 
+pub fn observe_windows_parent_process(
+    expected_executable_path: &Path,
+) -> Result<WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError> {
+    observe_windows_parent_process_with(
+        &SystemWindowsProcess,
+        expected_executable_path,
+        system_current_parent_process_id,
+    )
+}
+
 pub fn windows_recovery_process_is_running(expected: &WindowsRecoveryProcessIdentity) -> bool {
     observe_windows_recovery_process_with(
         &SystemWindowsProcess,
@@ -447,6 +457,16 @@ fn observe_windows_recovery_process_with(
         creation_time_filetime: snapshot.creation_time_filetime,
         executable_path: actual_path,
     })
+}
+
+fn observe_windows_parent_process_with(
+    process: &impl WindowsProcessPort,
+    expected_executable_path: &Path,
+    parent_process_id: impl FnOnce() -> Result<u32, io::Error>,
+) -> Result<WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError> {
+    let process_id =
+        parent_process_id().map_err(|_| WindowsUpdateRecoveryError::InvalidProcessIdentity)?;
+    observe_windows_recovery_process_with(process, process_id, expected_executable_path)
 }
 
 fn terminate_windows_recovery_process_with(
@@ -705,6 +725,61 @@ fn system_observe_process(process_id: u32) -> Result<WindowsProcessSnapshot, io:
     let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id) };
     let handle = OwnedHandle::new(handle)?;
     process_snapshot(handle.raw())
+}
+
+#[cfg(target_os = "windows")]
+fn system_current_parent_process_id() -> Result<u32, io::Error> {
+    use windows_sys::Win32::{
+        Foundation::{GetLastError, ERROR_NO_MORE_FILES, INVALID_HANDLE_VALUE},
+        System::{
+            Diagnostics::ToolHelp::{
+                CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+                TH32CS_SNAPPROCESS,
+            },
+            Threading::GetCurrentProcessId,
+        },
+    };
+
+    let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+    if snapshot == INVALID_HANDLE_VALUE {
+        return Err(io::Error::last_os_error());
+    }
+    let snapshot = OwnedHandle::new(snapshot)?;
+    let current_process_id = unsafe { GetCurrentProcessId() };
+    let mut entry = PROCESSENTRY32W {
+        dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+        ..Default::default()
+    };
+    if unsafe { Process32FirstW(snapshot.raw(), &mut entry) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    loop {
+        if entry.th32ProcessID == current_process_id {
+            if entry.th32ParentProcessID <= 1 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "invalid parent process",
+                ));
+            }
+            return Ok(entry.th32ParentProcessID);
+        }
+        if unsafe { Process32NextW(snapshot.raw(), &mut entry) } == 0 {
+            let error = unsafe { GetLastError() };
+            return if error == ERROR_NO_MORE_FILES {
+                Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "parent process was not found",
+                ))
+            } else {
+                Err(io::Error::from_raw_os_error(error as i32))
+            };
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn system_current_parent_process_id() -> Result<u32, io::Error> {
+    Err(io::Error::new(io::ErrorKind::Unsupported, "Windows only"))
 }
 
 #[cfg(target_os = "windows")]
@@ -1115,6 +1190,30 @@ mod tests {
 
         let identity = observe_windows_recovery_process_with(&process, 42, &executable)
             .expect("Windows process identity");
+
+        assert_eq!(identity.process_id(), 42);
+        assert_eq!(identity.creation_time_filetime(), 132_537_600_000_000_000);
+        assert_eq!(
+            identity.executable_path(),
+            executable.canonicalize().unwrap()
+        );
+    }
+
+    #[test]
+    fn binds_parent_authority_to_more_than_a_parent_process_identifier() {
+        let directory = TempDir::new().expect("temporary directory");
+        let executable = directory.path().join(EXECUTABLE_NAME);
+        fs::write(&executable, b"synthetic executable").expect("executable");
+        let process = SyntheticProcess {
+            snapshots: RefCell::new(VecDeque::from([WindowsProcessSnapshot {
+                creation_time_filetime: 132_537_600_000_000_000,
+                executable_path: executable.clone(),
+            }])),
+            expected_termination: RefCell::new(None),
+        };
+
+        let identity = observe_windows_parent_process_with(&process, &executable, || Ok(42))
+            .expect("parent process identity");
 
         assert_eq!(identity.process_id(), 42);
         assert_eq!(identity.creation_time_filetime(), 132_537_600_000_000_000);

@@ -57,6 +57,12 @@ pub enum UpdateRecoveryWatchdogError {
     #[cfg(any(test, target_os = "linux"))]
     #[error("Linux update recovery watchdog state failure: {0}")]
     LinuxRecovery(#[from] super::LinuxRecoveryStateError),
+    #[cfg(any(test, target_os = "windows"))]
+    #[error("Windows update recovery watchdog state failure: {0}")]
+    WindowsRecovery(#[from] super::WindowsRecoveryStateError),
+    #[cfg(any(test, target_os = "windows"))]
+    #[error("Windows update recovery watchdog native failure: {0}")]
+    WindowsNative(#[from] super::WindowsUpdateRecoveryError),
     #[error("update recovery watchdog readiness failed")]
     Readiness,
     #[error("update recovery watchdog lost ownership of the replacement process")]

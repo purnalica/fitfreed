@@ -145,12 +145,16 @@ lease, and manifest record. A process identifier alone never authorizes control 
 termination, the adapter opens one handle with query, synchronization, and termination rights and repeats the complete
 identity check on that same handle.
 
-The watchdog launches only the fixed candidate installer in silent mode from `candidate/package.exe`, then repeats the
-complete current-user native identity and target-version validation before entering `replacement-installed`. It
-launches the installed candidate behind the same nonce-bound startup gate used by the other platform contracts and
-records native process identity before releasing startup. Confirmation requires the target executable and native
-registration, target library schema and integrity, fixed destinations, complete preserved attempt, exact process
-record, and held candidate lease.
+The coordinator starts the watchdog from `previous/runnable/fitfreed.exe` and receives readiness before publishing
+`replacement-started`. Before readiness, the watchdog binds its direct parent to the fixed installed executable by
+PID, creation `FILETIME`, and canonical path. Only that fresh watchdog may stop the parent and launch the fixed
+candidate installer in silent mode from `candidate/package.exe`; a replacement-started watchdog reconstructed after
+an interruption must recover instead of repeating an installer whose outcome is uncertain. The watchdog then repeats
+the complete current-user native identity and target-version validation before entering `replacement-installed`. It
+launches the installed candidate behind the same nonce-bound startup gate used by the other platform contracts. The
+nonce contains 256 bits from the operating-system random source. Native process identity is recorded before startup is
+released. Confirmation requires the target executable and native registration, target library schema and integrity,
+fixed destinations, complete preserved attempt, exact process record, and held candidate lease.
 
 During recovery, the watchdog first quiesces the exact candidate, restores the verified matching library, and silently
 invokes only `previous/package.exe`. It then verifies the native registration, source version, install directory,
@@ -167,10 +171,12 @@ automatically removed.
 ## Restart, terminal cleanup, and failure behavior
 
 Ordinary startup resolves recovery authority from the active pointer and fully verified version 3 attempt. A watchdog
-restart never extends the original installation or confirmation deadline. It resumes replace, launch, or recovery work
-only after acquiring the watchdog handle and reconciling the persisted phase with the exact native process identity.
-It does not automatically repeat a previously failed native rollback; retry from `native-recovery-unavailable` is an
-explicit application action without caller-supplied identifiers, paths, packages, or commands.
+restart never extends the original installation or confirmation deadline. A reconstructed watchdog treats `prepared`
+as a pre-replacement interruption and `replacement-started` as an uncertain native replacement that must recover; it
+never repeats candidate installation from either phase. It resumes later launch or recovery work only after acquiring
+the watchdog handle and reconciling the persisted phase with the exact native process identity. It does not
+automatically repeat a previously failed native rollback; retry from `native-recovery-unavailable` is an explicit
+application action without caller-supplied identifiers, paths, packages, or commands.
 
 Terminal cleanup requires exclusive watchdog, candidate, state, and outcome handles. For `confirmed`, the installed
 native identity and library must match the target. For `recovered`, they must match the source and preserved critical

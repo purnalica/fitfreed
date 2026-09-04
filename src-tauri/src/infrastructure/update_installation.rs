@@ -6,7 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 use fitfreed_application::{UpdateInstallationAuthorization, UpdateRecoveryPhase};
 use thiserror::Error;
 
@@ -18,17 +18,27 @@ use super::{
     LinuxUpdateRecoveryPreparation, PreparedLinuxUpdateRecovery,
     StartedLinuxUpdateRecoveryWatchdog,
 };
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 use super::{
     discard_prepared_update_recovery, prepare_update_recovery, start_update_recovery_watchdog,
     transition_active_update_recovery, ApplicationCopyPort, PlatformApplicationCopier,
     PreparedUpdateRecovery, StartedUpdateRecoveryWatchdog, UpdateRecoveryPreparation,
 };
+#[cfg(target_os = "windows")]
+use super::{
+    discard_prepared_windows_update_recovery, prepare_windows_update_recovery,
+    start_windows_update_recovery_watchdog, transition_active_windows_update_recovery,
+    WindowsUpdateRecoveryPreparation,
+};
+#[cfg(any(test, target_os = "windows"))]
+use super::{
+    PreparedWindowsUpdateRecovery, StartedWindowsUpdateRecoveryWatchdog, WindowsRecoveryStateError,
+};
 use super::{
     UpdatePackageError, UpdateRecoveryError, UpdateRecoveryWatchdogError,
     VerifiedPredecessorPackage, VerifiedUpdatePackage,
 };
-#[cfg(target_os = "linux")]
+#[cfg(any(test, target_os = "linux", target_os = "windows"))]
 use fitfreed_application::PackagedUpdateRecoveryPhase;
 
 #[derive(Debug, Error)]
@@ -45,6 +55,9 @@ pub enum UpdateInstallationError {
     #[cfg(target_os = "linux")]
     #[error("the Linux native package operation failed: {0}")]
     LinuxNative(#[from] LinuxUpdateRecoveryError),
+    #[cfg(any(test, target_os = "windows"))]
+    #[error("the Windows update recovery transition failed: {0}")]
+    WindowsRecovery(#[from] WindowsRecoveryStateError),
 }
 
 pub struct UpdateInstallationRequest {
@@ -70,7 +83,17 @@ pub fn install_verified_update(
         )
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        coordinate_windows_update_installation(
+            &WindowsPlatformInstallationPort,
+            package,
+            predecessor.ok_or(UpdatePackageError::InvalidAuthorization)?,
+            request,
+        )
+    }
+
+    #[cfg(target_os = "macos")]
     {
         let _ = predecessor;
         coordinate_update_installation(
@@ -496,13 +519,280 @@ mod linux_tests {
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(any(test, target_os = "windows"))]
+trait WindowsWatchdogHandle {
+    fn stop(self) -> Result<(), UpdateRecoveryWatchdogError>;
+}
+
+#[cfg(any(test, target_os = "windows"))]
+impl WindowsWatchdogHandle for StartedWindowsUpdateRecoveryWatchdog {
+    fn stop(self) -> Result<(), UpdateRecoveryWatchdogError> {
+        StartedWindowsUpdateRecoveryWatchdog::stop(self)
+    }
+}
+
+#[cfg(any(test, target_os = "windows"))]
+trait WindowsInstallationPort {
+    type Handle: WindowsWatchdogHandle;
+
+    fn start_watchdog(
+        &self,
+        prepared: &PreparedWindowsUpdateRecovery,
+        installed_executable_path: &Path,
+    ) -> Result<Self::Handle, UpdateRecoveryWatchdogError>;
+
+    fn transition(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+        phase: PackagedUpdateRecoveryPhase,
+    ) -> Result<(), WindowsRecoveryStateError>;
+
+    fn discard(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+    ) -> Result<(), WindowsRecoveryStateError>;
+}
+
+#[cfg(target_os = "windows")]
+struct WindowsPlatformInstallationPort;
+
+#[cfg(target_os = "windows")]
+impl WindowsInstallationPort for WindowsPlatformInstallationPort {
+    type Handle = StartedWindowsUpdateRecoveryWatchdog;
+
+    fn start_watchdog(
+        &self,
+        prepared: &PreparedWindowsUpdateRecovery,
+        installed_executable_path: &Path,
+    ) -> Result<Self::Handle, UpdateRecoveryWatchdogError> {
+        start_windows_update_recovery_watchdog(prepared, installed_executable_path)
+    }
+
+    fn transition(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+        phase: PackagedUpdateRecoveryPhase,
+    ) -> Result<(), WindowsRecoveryStateError> {
+        transition_active_windows_update_recovery(recovery_root, recovery_id, phase)
+    }
+
+    fn discard(
+        &self,
+        recovery_root: &Path,
+        recovery_id: &str,
+    ) -> Result<(), WindowsRecoveryStateError> {
+        discard_prepared_windows_update_recovery(recovery_root, recovery_id)
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn coordinate_windows_update_installation(
+    installation: &impl WindowsInstallationPort,
+    package: &VerifiedUpdatePackage,
+    predecessor: &VerifiedPredecessorPackage,
+    request: UpdateInstallationRequest,
+) -> Result<(), UpdateInstallationError> {
+    let prepared = prepare_windows_update_recovery(WindowsUpdateRecoveryPreparation {
+        recovery_root: &request.recovery_root,
+        library_path: &request.library_path,
+        installed_version: &request.installed_version,
+        prepared_at: &request.prepared_at,
+        authorization: package.authorization(),
+        predecessor_package_path: predecessor.path(),
+        candidate_package_bytes: package.bytes(),
+    })?;
+    coordinate_prepared_windows_update_installation(
+        installation,
+        &prepared,
+        &request.recovery_root,
+        &request.current_application_path,
+    )
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn coordinate_prepared_windows_update_installation(
+    installation: &impl WindowsInstallationPort,
+    prepared: &PreparedWindowsUpdateRecovery,
+    recovery_root: &Path,
+    current_application_path: &Path,
+) -> Result<(), UpdateInstallationError> {
+    let watchdog = match installation.start_watchdog(prepared, current_application_path) {
+        Ok(watchdog) => watchdog,
+        Err(error) => {
+            installation.discard(recovery_root, prepared.recovery_id())?;
+            return Err(error.into());
+        }
+    };
+    if let Err(error) = installation.transition(
+        recovery_root,
+        prepared.recovery_id(),
+        PackagedUpdateRecoveryPhase::ReplacementStarted,
+    ) {
+        watchdog.stop()?;
+        installation.discard(recovery_root, prepared.recovery_id())?;
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod windows_tests {
+    use std::{cell::RefCell, rc::Rc};
+
+    use tempfile::TempDir;
+
+    use super::*;
+
+    #[derive(Clone, Copy)]
+    enum Failure {
+        None,
+        Watchdog,
+        ReplacementStarted,
+    }
+
+    struct SyntheticWindowsWatchdog {
+        events: Rc<RefCell<Vec<String>>>,
+    }
+
+    impl WindowsWatchdogHandle for SyntheticWindowsWatchdog {
+        fn stop(self) -> Result<(), UpdateRecoveryWatchdogError> {
+            self.events.borrow_mut().push("stop-watchdog".to_owned());
+            Ok(())
+        }
+    }
+
+    struct SyntheticWindowsInstallation {
+        failure: Failure,
+        events: Rc<RefCell<Vec<String>>>,
+    }
+
+    impl SyntheticWindowsInstallation {
+        fn new(failure: Failure) -> Self {
+            Self {
+                failure,
+                events: Rc::new(RefCell::new(Vec::new())),
+            }
+        }
+
+        fn events(&self) -> Vec<String> {
+            self.events.borrow().clone()
+        }
+    }
+
+    impl WindowsInstallationPort for SyntheticWindowsInstallation {
+        type Handle = SyntheticWindowsWatchdog;
+
+        fn start_watchdog(
+            &self,
+            _prepared: &PreparedWindowsUpdateRecovery,
+            _installed_executable_path: &Path,
+        ) -> Result<Self::Handle, UpdateRecoveryWatchdogError> {
+            self.events.borrow_mut().push("start-watchdog".to_owned());
+            if matches!(self.failure, Failure::Watchdog) {
+                return Err(UpdateRecoveryWatchdogError::Readiness);
+            }
+            Ok(SyntheticWindowsWatchdog {
+                events: Rc::clone(&self.events),
+            })
+        }
+
+        fn transition(
+            &self,
+            _recovery_root: &Path,
+            _recovery_id: &str,
+            phase: PackagedUpdateRecoveryPhase,
+        ) -> Result<(), WindowsRecoveryStateError> {
+            self.events
+                .borrow_mut()
+                .push(format!("transition-{phase:?}"));
+            if matches!(self.failure, Failure::ReplacementStarted) {
+                return Err(WindowsRecoveryStateError::InvalidTransition);
+            }
+            Ok(())
+        }
+
+        fn discard(
+            &self,
+            _recovery_root: &Path,
+            _recovery_id: &str,
+        ) -> Result<(), WindowsRecoveryStateError> {
+            self.events.borrow_mut().push("discard".to_owned());
+            Ok(())
+        }
+    }
+
+    fn prepared(directory: &TempDir) -> PreparedWindowsUpdateRecovery {
+        PreparedWindowsUpdateRecovery::for_test("a".repeat(64), directory.path().join("attempt"))
+    }
+
+    fn coordinate(
+        installation: &SyntheticWindowsInstallation,
+        prepared: &PreparedWindowsUpdateRecovery,
+    ) -> Result<(), UpdateInstallationError> {
+        coordinate_prepared_windows_update_installation(
+            installation,
+            prepared,
+            Path::new("C:\\Users\\person\\AppData\\Roaming\\org.fitfreed.desktop\\update-recovery"),
+            Path::new("C:\\Users\\person\\AppData\\Local\\FitFreed\\fitfreed.exe"),
+        )
+    }
+
+    #[test]
+    fn hands_windows_installation_to_a_ready_watchdog() {
+        let directory = TempDir::new().expect("temporary directory");
+        let installation = SyntheticWindowsInstallation::new(Failure::None);
+
+        coordinate(&installation, &prepared(&directory)).expect("coordinated installation");
+
+        assert_eq!(
+            installation.events(),
+            ["start-watchdog", "transition-ReplacementStarted"]
+        );
+    }
+
+    #[test]
+    fn discards_windows_recovery_when_the_watchdog_never_becomes_ready() {
+        let directory = TempDir::new().expect("temporary directory");
+        let installation = SyntheticWindowsInstallation::new(Failure::Watchdog);
+
+        assert!(matches!(
+            coordinate(&installation, &prepared(&directory)),
+            Err(UpdateInstallationError::Watchdog(_))
+        ));
+        assert_eq!(installation.events(), ["start-watchdog", "discard"]);
+    }
+
+    #[test]
+    fn stops_the_windows_watchdog_before_discarding_a_failed_handoff() {
+        let directory = TempDir::new().expect("temporary directory");
+        let installation = SyntheticWindowsInstallation::new(Failure::ReplacementStarted);
+
+        assert!(matches!(
+            coordinate(&installation, &prepared(&directory)),
+            Err(UpdateInstallationError::WindowsRecovery(_))
+        ));
+        assert_eq!(
+            installation.events(),
+            [
+                "start-watchdog",
+                "transition-ReplacementStarted",
+                "stop-watchdog",
+                "discard",
+            ]
+        );
+    }
+}
+
+#[cfg(target_os = "macos")]
 trait NativeUpdatePackage {
     fn authorization(&self) -> &UpdateInstallationAuthorization;
     fn install(&self) -> Result<(), UpdatePackageError>;
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 impl NativeUpdatePackage for VerifiedUpdatePackage {
     fn authorization(&self) -> &UpdateInstallationAuthorization {
         VerifiedUpdatePackage::authorization(self)
@@ -513,19 +803,19 @@ impl NativeUpdatePackage for VerifiedUpdatePackage {
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 trait WatchdogHandle {
     fn stop(self) -> Result<(), UpdateRecoveryWatchdogError>;
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 impl WatchdogHandle for StartedUpdateRecoveryWatchdog {
     fn stop(self) -> Result<(), UpdateRecoveryWatchdogError> {
         StartedUpdateRecoveryWatchdog::stop(self)
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 trait WatchdogLauncher {
     type Handle: WatchdogHandle;
 
@@ -536,10 +826,10 @@ trait WatchdogLauncher {
     ) -> Result<Self::Handle, UpdateRecoveryWatchdogError>;
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 struct PlatformWatchdogLauncher;
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 impl WatchdogLauncher for PlatformWatchdogLauncher {
     type Handle = StartedUpdateRecoveryWatchdog;
 
@@ -552,7 +842,7 @@ impl WatchdogLauncher for PlatformWatchdogLauncher {
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 fn coordinate_update_installation<C, W, P>(
     copier: &C,
     watchdog_launcher: &W,

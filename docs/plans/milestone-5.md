@@ -9,7 +9,7 @@ remains ordered after the accepted public Linux MVP.
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
 | M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, authority-separated three-file Windows expansion input, digest-bound transport, version 7 three-platform release contract, authority-separated candidate composition, and independent complete-candidate reopening are implemented and locally verified. Native execution awaits the hosted lane; protected public authority and exact Windows 11 trust remain open. |
-| M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, distinguish installer failure from an invalid resulting native identity, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, confirmation requires the exact leased target installation and library, restoration atomically recovers the verified source pair with a closed three-attempt failure policy, and terminal maintenance validates the complete pair before durable receipt and cleanup. Watchdog orchestration, native Windows execution, and all end-to-end recovery evidence remain open. |
+| M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, distinguish installer failure from an invalid resulting native identity, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, confirmation requires the exact leased target installation and library, restoration atomically recovers the verified source pair with a closed three-attempt failure policy, and terminal maintenance validates the complete pair before durable receipt and cleanup. The installation coordinator and Windows host now route fresh, resumed, candidate, retry, and terminal work through the preserved watchdog. Native Windows execution and all release-shaped end-to-end recovery evidence remain open. |
 | M5.3–M5.6 | Not started | Their parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
@@ -179,7 +179,19 @@ application/library pair, writes the platform-neutral receipt before removing ac
 no-sharing handles before exact attempt deletion. Candidate ownership defers cleanup, while a restart can resume only
 the receipt-bound attempt after active-pointer removal. A watchdog transferred into maintenance remains exclusively
 owned across a busy candidate or rejected terminal state and is consumed only after the durable terminal mutation
-commits. Full watchdog orchestration and release-shaped evidence still remain before this is a recoverable update path.
+commits. The Windows installation coordinator now prepares the authenticated predecessor, candidate, runnable image,
+and library before starting the preserved watchdog; it publishes `replacement-started` only after readiness and stops
+and discards a still-quiescent attempt if that handoff fails. The watchdog binds the initiating installed process by
+PID, creation `FILETIME`, and canonical executable before readiness. A fresh watchdog alone stops that process and
+invokes the candidate NSIS package, while a resumed `replacement-started` watchdog recovers rather than rerunning an
+installer with an uncertain result. It launches the validated installed candidate with an operating-system-random
+nonce, records exact process evidence before releasing startup, observes confirmation or exit, restores or exposes the
+runnable predecessor when required, and retains terminal ownership through receipt-bound cleanup. The desktop host now
+routes Windows private startup, candidate leasing and confirmation, ordinary-startup reattachment, intervention,
+explicit retry, native installation-target resolution, and terminal maintenance to that platform lifecycle. Portable
+tests cover the handoff, restart decisions, nonce protocol, process identity, and failure ownership; an isolated
+Windows-target source build covers the native adapter and coordinator branches. Native Windows execution and
+release-shaped recovery evidence still remain before this is an admitted recoverable update path.
 
 ## Increment M5.3 — Packaged capability parity
 

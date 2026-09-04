@@ -167,7 +167,16 @@ requires the exact persisted PID, creation `FILETIME`, executable, nonce, and ta
 Both process-lifetime leases use the same exclusive-handle boundary without reopening their held lock on Windows.
 Candidate confirmation holds its lease, derives the fixed library beside the recovery root, and requires the active
 manifest, launch nonce, target native identity, running version, target schema, and SQLite integrity before the
-specialized transition can enter `confirmed`; the generic transition API cannot claim that state. Restoration holds
+specialized transition can enter `confirmed`; the generic transition API cannot claim that state. The installation
+coordinator now obtains the authenticated predecessor before preparation, starts the watchdog from the preserved
+predecessor executable, and waits for its readiness before publishing `replacement-started`. The watchdog binds its
+direct parent to the installed executable by PID, creation `FILETIME`, and canonical path before declaring readiness.
+Only a fresh watchdog may stop that exact parent and invoke `candidate/package.exe`; a watchdog resumed from a durable
+`replacement-started` phase treats the uncertain installer boundary as an interruption and enters recovery instead of
+repeating NSIS. A successful installation enters `replacement-installed`, launches the fixed installed executable
+behind an operating-system-random nonce gate, records its complete process identity before releasing startup, and
+waits for candidate confirmation. Ordinary Windows startup reattaches the preserved watchdog only when the verified
+active phase requires it and an existing watchdog does not already own the attempt. Restoration holds
 the watchdog, candidate, and state ownership boundaries together, reopens the complete attempt, atomically restores
 the fixed library from its verified backup, and invokes only the preserved predecessor package. It enters `recovered`
 only after the exact source registration and preserved critical files agree. Failed NSIS execution and an invalid
@@ -186,8 +195,9 @@ including the watchdog lease transferred at terminal handoff, before deleting th
 candidate or rejected terminal state leaves that lease with the watchdog so no second watchdog can enter while the
 first retries maintenance; ownership is consumed only after the outcome receipt and active-pointer mutation commit. A
 restart with no active pointer can resume only the attempt named by that receipt; busy process ownership defers
-maintenance and invalid destinations retain all evidence. Watchdog orchestration, native Windows execution, and
-release-shaped recovery evidence remain required before Windows recovery is operational.
+maintenance and invalid destinations retain all evidence. The coordinator, private startup routing, reattachment,
+candidate confirmation, explicit retry, and terminal maintenance now share this Windows lifecycle. Native Windows
+execution and release-shaped recovery evidence remain required before the path is operationally admitted.
 
 The current presentation always offers an explicit check. A ready startup performs an immediate scheduled-policy evaluation. The desktop host then owns a process-lifetime 24-hour schedule, skips missed ticks and ticks that coincide with another update operation, and emits only the existing closed outcome DTO. Scheduled launch and recurring outcomes remain quiet when they are unconfigured, offline, current, dismissed, or postponed; available releases, withdrawal guidance, manual-recovery requirements, and rejected trust are announced. A manual check reveals every outcome. The update surface marks itself busy, keeps check, installation, candidate dismissal, and postponement action names stable, and announces the exact localized operation without replacing the trusted outcome. One asynchronous host coordinator serializes launch, manual, dismissal, postponement, and installation operations so channel access and persisted policy state cannot race. Install, dismiss, and 24-hour postpone actions are offered only for an ordinary available release. Installation sends only the exact displayed version, announces that application and library preservation precede replacement, exposes a distinct busy state, and disables update, import, archive-selection, and locale mutations while the command owns the workflow. An active import disables installation. A native success closes the original process; a failure returns a fixed localized code, restores the controls, and retains the authenticated release for retry. On the next ready startup, the host returns only `updated` or `recovered` and the source and target versions from the durable receipt. React presents the localized result until explicit acknowledgement succeeds; its stable dismissal action and separate busy announcement preserve the result throughout that write. Neither the private recovery identifier nor a filesystem locator enters the DTO or failure message. Dismiss and postpone revalidate the same exact candidate against persisted trusted state. None of these actions is offered for a withdrawn installed version. The ordinary development build has no channel or trust key, performs no network request, and therefore exposes no installable candidate. The public build wrapper strips inherited public-update values and adds them only from a complete active versioned configuration. E2E transport accepts one explicitly named synthetic contract and cannot coexist with compiled public trust.
 

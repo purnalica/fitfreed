@@ -117,7 +117,7 @@ impl VerifiedUpdatePackage {
         &self.authorization
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     pub(crate) fn bytes(&self) -> &[u8] {
         &self.bytes
     }

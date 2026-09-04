@@ -1,12 +1,9 @@
 use std::{
-    fs::File,
     io::{self, BufRead, BufReader, Read, Write},
     sync::mpsc,
     thread,
     time::Duration,
 };
-
-use sha2::{Digest, Sha256};
 
 pub const UPDATE_RECOVERY_WATCHDOG_ARGUMENT: &str = "--fitfreed-update-recovery-watchdog";
 pub const UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT: &str =
@@ -66,14 +63,8 @@ pub(super) fn write_candidate_go(
 
 pub(super) fn generate_launch_nonce() -> io::Result<String> {
     let mut entropy = [0_u8; 32];
-    File::open("/dev/urandom")?.read_exact(&mut entropy)?;
-    let mut digest = Sha256::new();
-    digest.update(entropy);
-    Ok(digest
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect())
+    getrandom::fill(&mut entropy).map_err(|error| io::Error::other(error.to_string()))?;
+    Ok(entropy.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
 #[derive(Debug)]

@@ -176,6 +176,8 @@ mod update_watchdog;
 #[cfg(any(test, target_os = "linux"))]
 mod update_watchdog_linux;
 mod update_watchdog_protocol;
+#[cfg(any(test, target_os = "windows"))]
+mod update_watchdog_windows;
 
 pub(crate) use local_library::prepare_private_library_path;
 pub use planned_training_export::SqlitePlannedTrainingExporter;
@@ -238,11 +240,11 @@ pub use update_recovery_linux_state::{
 pub use update_recovery_outcome::UpdateRecoveryMaintenance;
 #[cfg(any(test, target_os = "windows"))]
 pub use update_recovery_windows::{
-    install_windows_candidate_package, observe_windows_recovery_process,
-    query_windows_native_package_identity, reinstall_windows_predecessor_package,
-    resolve_windows_update_installation_path, terminate_windows_recovery_process,
-    windows_recovery_process_is_running, WindowsNativePackageIdentity,
-    WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError,
+    install_windows_candidate_package, observe_windows_parent_process,
+    observe_windows_recovery_process, query_windows_native_package_identity,
+    reinstall_windows_predecessor_package, resolve_windows_update_installation_path,
+    terminate_windows_recovery_process, windows_recovery_process_is_running,
+    WindowsNativePackageIdentity, WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError,
 };
 #[cfg(any(test, target_os = "windows"))]
 pub use update_recovery_windows_package::{
@@ -283,6 +285,12 @@ pub use update_watchdog_linux::{
 pub use update_watchdog_protocol::{
     UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
     UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+};
+#[cfg(any(test, target_os = "windows"))]
+pub use update_watchdog_windows::{
+    reattach_windows_update_recovery_watchdog, retry_windows_update_recovery,
+    run_windows_update_recovery_watchdog, start_windows_update_recovery_watchdog,
+    StartedWindowsUpdateRecoveryWatchdog,
 };
 
 use iso_duration::parse_iso_duration_milliseconds;

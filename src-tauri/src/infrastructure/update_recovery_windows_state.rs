@@ -140,6 +140,16 @@ impl PreparedWindowsUpdateRecovery {
     pub fn source_library_schema_version(&self) -> u32 {
         self.source_library_schema_version
     }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(recovery_id: String, attempt_directory: PathBuf) -> Self {
+        Self {
+            recovery_id,
+            attempt_directory,
+            source_library_schema_version: u32::try_from(SCHEMA_VERSION)
+                .expect("schema version fits u32"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -165,6 +175,21 @@ impl WindowsUpdateRecoveryReplacementProcess {
 
     pub fn confirmation_deadline(&self) -> &str {
         &self.confirmation_deadline
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        process_id: u32,
+        creation_time_filetime: u64,
+        launch_nonce: String,
+        confirmation_deadline: String,
+    ) -> Self {
+        Self {
+            process_id,
+            creation_time_filetime,
+            launch_nonce,
+            confirmation_deadline,
+        }
     }
 }
 
@@ -196,6 +221,12 @@ impl WindowsUpdateRecoveryWatchdogContext {
 
     pub fn recovery_id(&self) -> &str {
         &self.recovery_id
+    }
+
+    pub fn attempt_directory(&self) -> PathBuf {
+        self.recovery_root
+            .join(ATTEMPTS_DIRECTORY_NAME)
+            .join(&self.recovery_id)
     }
 
     pub fn installed_executable_path(&self) -> &Path {

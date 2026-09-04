@@ -104,11 +104,19 @@ use infrastructure::{
     resolve_linux_update_installation_path, retry_linux_update_recovery,
     run_linux_update_recovery_watchdog, LinuxUpdateRecoveryCandidateLease,
 };
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 use infrastructure::{
     acquire_update_recovery_candidate_lease, confirm_active_update_recovery,
     maintain_update_recovery, resolve_update_application_path, run_update_recovery_watchdog,
     UpdateRecoveryCandidateLease,
+};
+#[cfg(target_os = "windows")]
+use infrastructure::{
+    acquire_windows_update_recovery_candidate_lease, confirm_active_windows_update_recovery,
+    download_verified_predecessor, maintain_windows_update_recovery,
+    query_windows_update_recovery_intervention, reattach_windows_update_recovery_watchdog,
+    resolve_windows_update_installation_path, retry_windows_update_recovery,
+    run_windows_update_recovery_watchdog, WindowsUpdateRecoveryCandidateLease,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto,
@@ -1785,7 +1793,7 @@ async fn install_available_update(
     })
     .await
     .map_err(|_| CommandErrorDto::new("desktop-task-failed"))??;
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     let predecessor = {
         let predecessor_channel = Arc::clone(&channel);
         let predecessor_authorization = authorization.clone();
@@ -1806,7 +1814,7 @@ async fn install_available_update(
             .map_err(map_update_package_error)?,
         )
     };
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
     let predecessor = None;
     let package = download_verified_update(&app, channel.as_ref(), authorization)
         .await
@@ -1892,6 +1900,10 @@ fn map_update_installation_error(error: UpdateInstallationError) -> CommandError
         #[cfg(target_os = "linux")]
         UpdateInstallationError::LinuxNative(_) => {
             CommandErrorDto::new("update-native-installer-failed")
+        }
+        #[cfg(any(test, target_os = "windows"))]
+        UpdateInstallationError::WindowsRecovery(_) => {
+            CommandErrorDto::new("update-recovery-failed")
         }
     }
 }
@@ -2184,7 +2196,7 @@ fn startup_mode(arguments: &[OsString]) -> StartupMode {
             _ => StartupMode::InvalidPrivateMode,
         },
         Some(UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT) => {
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
             {
                 match arguments {
                     [_, _, installed_application]
@@ -2198,7 +2210,7 @@ fn startup_mode(arguments: &[OsString]) -> StartupMode {
                     _ => StartupMode::InvalidPrivateMode,
                 }
             }
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(target_os = "macos")]
             {
                 StartupMode::InvalidPrivateMode
             }
@@ -2228,7 +2240,9 @@ fn valid_recovery_id(value: &str) -> bool {
 
 #[cfg(target_os = "linux")]
 type PlatformUpdateRecoveryCandidateLease = LinuxUpdateRecoveryCandidateLease;
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "windows")]
+type PlatformUpdateRecoveryCandidateLease = WindowsUpdateRecoveryCandidateLease;
+#[cfg(target_os = "macos")]
 type PlatformUpdateRecoveryCandidateLease = UpdateRecoveryCandidateLease;
 
 #[derive(Default)]
@@ -2335,7 +2349,18 @@ fn run_platform_update_recovery_watchdog(
         .is_ok()
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        run_windows_update_recovery_watchdog(
+            watchdog_executable,
+            installed_target,
+            resumed_after_interruption,
+            readiness,
+        )
+        .is_ok()
+    }
+
+    #[cfg(target_os = "macos")]
     {
         let _ = resumed_after_interruption;
         run_update_recovery_watchdog(watchdog_executable, installed_target, readiness).is_ok()
@@ -2358,7 +2383,18 @@ fn acquire_platform_update_recovery_candidate_lease(
         .map_err(|_| ())
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        let _ = executable;
+        acquire_windows_update_recovery_candidate_lease(
+            recovery_root,
+            &candidate.recovery_id,
+            &candidate.launch_nonce,
+        )
+        .map_err(|_| ())
+    }
+
+    #[cfg(target_os = "macos")]
     {
         acquire_update_recovery_candidate_lease(
             recovery_root,
@@ -2391,7 +2427,20 @@ fn confirm_platform_update_recovery(
         .map_err(|_| ())
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        let _ = (candidate, executable);
+        confirm_active_windows_update_recovery(
+            lease,
+            recovery_root,
+            library_path,
+            application_version,
+            library_schema_version(),
+        )
+        .map_err(|_| ())
+    }
+
+    #[cfg(target_os = "macos")]
     {
         let _ = lease;
         confirm_active_update_recovery(
@@ -2414,7 +2463,12 @@ fn installed_update_recovery_target(executable: &Path) -> Result<PathBuf, ()> {
         Ok(PathBuf::from("/usr/bin/fitfreed"))
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        resolve_windows_update_installation_path(executable).map_err(|_| ())
+    }
+
+    #[cfg(target_os = "macos")]
     {
         resolve_update_application_path(executable).map_err(|_| ())
     }
@@ -2427,7 +2481,7 @@ fn packaged_update_recovery_target(executable: &Path) -> PathBuf {
         PathBuf::from("/usr/bin/fitfreed")
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     {
         executable.to_owned()
     }
@@ -2439,7 +2493,12 @@ fn resolve_platform_update_installation_target(executable: &Path) -> Result<Path
         resolve_linux_update_installation_path(executable).map_err(|_| ())
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        resolve_windows_update_installation_path(executable).map_err(|_| ())
+    }
+
+    #[cfg(target_os = "macos")]
     {
         resolve_update_application_path(executable).map_err(|_| ())
     }
@@ -2456,7 +2515,13 @@ fn maintain_platform_update_recovery(
         maintain_linux_update_recovery(recovery_root, library_path).map_err(|_| ())
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        let _ = installed_target;
+        maintain_windows_update_recovery(recovery_root, library_path).map_err(|_| ())
+    }
+
+    #[cfg(target_os = "macos")]
     {
         maintain_update_recovery(recovery_root, installed_target, library_path).map_err(|_| ())
     }
@@ -2471,7 +2536,12 @@ fn query_platform_update_recovery_intervention(
         query_linux_update_recovery_intervention(recovery_root, installed_target).map_err(|_| ())
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        query_windows_update_recovery_intervention(recovery_root, installed_target).map_err(|_| ())
+    }
+
+    #[cfg(target_os = "macos")]
     {
         let _ = (recovery_root, installed_target);
         Ok(None)
@@ -2486,7 +2556,14 @@ fn retry_platform_update_recovery(recovery_root: &Path, installed_target: &Path)
             .map_err(|_| ())
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        retry_windows_update_recovery(recovery_root, installed_target)
+            .map(|_| ())
+            .map_err(|_| ())
+    }
+
+    #[cfg(target_os = "macos")]
     {
         let _ = (recovery_root, installed_target);
         Err(())
@@ -2601,6 +2678,20 @@ pub fn run() {
                 reattach_linux_update_recovery_watchdog(&recovery_root, &installed_executable)
                     .map_err(|_| std::io::Error::other("Linux update recovery could not resume"))?;
             }
+            #[cfg(target_os = "windows")]
+            {
+                let recovery_root = library_path
+                    .parent()
+                    .ok_or_else(|| std::io::Error::other("Windows recovery path is invalid"))?
+                    .join("update-recovery");
+                let executable = env::current_exe()?;
+                let installed_executable = installed_update_recovery_target(&executable)
+                    .map_err(|_| std::io::Error::other("Windows installation path is invalid"))?;
+                reattach_windows_update_recovery_watchdog(&recovery_root, &installed_executable)
+                    .map_err(|_| {
+                        std::io::Error::other("Windows update recovery could not resume")
+                    })?;
+            }
             start_library_recovery(library_path, Arc::clone(&startup_recovery));
             start_periodic_update_checks(
                 app.handle().clone(),
@@ -2711,7 +2802,7 @@ mod tests {
         sync::atomic::{AtomicUsize, Ordering},
     };
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
     use std::fs::File;
 
     use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
@@ -3152,7 +3243,7 @@ mod tests {
                 ..
             }
         ));
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(target_os = "macos")]
         assert!(matches!(
             startup_mode(&[executable.clone(), resume_argument, installed]),
             StartupMode::InvalidPrivateMode
@@ -3171,7 +3262,7 @@ mod tests {
         ));
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
     #[test]
     fn packaged_recovery_query_does_not_require_a_packaged_application_on_other_platforms() {
         let directory = TempDir::new().expect("temporary directory");
@@ -3327,7 +3418,7 @@ mod tests {
         assert_eq!(pending.take(), Ok(Some(candidate)));
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
     #[test]
     fn releases_only_the_candidate_lease_bound_to_the_confirmed_claim() {
         let directory = TempDir::new().expect("temporary directory");
