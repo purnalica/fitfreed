@@ -256,10 +256,12 @@ pub use update_recovery_windows_state::{
     acquire_windows_update_recovery_watchdog_lease, active_windows_update_recovery_phase,
     confirm_active_windows_update_recovery, prepare_windows_update_recovery,
     record_active_windows_update_recovery_replacement_launch,
-    resolve_windows_update_recovery_watchdog_context, transition_active_windows_update_recovery,
-    verify_windows_update_recovery, PreparedWindowsUpdateRecovery, WindowsRecoveryStateError,
+    resolve_windows_update_recovery_watchdog_context, restore_active_windows_update_recovery,
+    transition_active_windows_update_recovery, verify_windows_update_recovery,
+    PreparedWindowsUpdateRecovery, WindowsNativeRecoveryFailure, WindowsRecoveryStateError,
     WindowsUpdateRecoveryCandidateLease, WindowsUpdateRecoveryPreparation,
     WindowsUpdateRecoveryReplacementLaunch, WindowsUpdateRecoveryReplacementProcess,
+    WindowsUpdateRecoveryRestoration, WindowsUpdateRecoveryRestorationOutcome,
     WindowsUpdateRecoveryWatchdogContext, WindowsUpdateRecoveryWatchdogLease,
 };
 pub use update_state::SqliteUpdateState;
