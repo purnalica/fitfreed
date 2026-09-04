@@ -116,8 +116,9 @@ The platform-neutral transport, publication, and remote-acceptance boundaries di
 to their exact verifier without translating one contract into another. Version 7 transport returns all three ordered
 targets, publication derives every Release asset and the Windows expansion provenance workflow from that manifest, and
 remote acceptance downloads the three current packages plus every declared Linux or Windows recovery package before
-reconstructing the exact localized Pages tree. The Windows workflow remains a separate inactive delivery boundary
-until its versioned definition and native admission matrix exist.
+reconstructing the exact localized Pages tree. The versioned Windows expansion workflow and exact native admission
+matrix now exist as an inactive delivery boundary. They grant no authority until their protected environments,
+disposable Windows 11 x86-64 runners, production trust, predecessor release, and accountable approvals exist.
 
 Complete-platform composition accepts the closed Linux and Windows native inputs only when both state the candidate's
 exact version, revision, and storage schema. Windows must additionally state the selected Authenticode certificate and
@@ -164,7 +165,7 @@ recovery requires the NSIS installer to permit a deliberate older-version reinst
 predecessor verification, rather than the package version alone, grant that authority. The ordinary overlay contains
 no certificate selection, signer command, timestamp service, account identity, or protected path. The separate
 versioned `tauri.windows.public-signing.conf.json` overlay contains only the reviewed Node.js signing adapter and
-Tauri's `%1` binary placeholder. A future protected candidate build must select it explicitly and provide all authority
+Tauri's `%1` binary placeholder. The protected Windows builder selects it explicitly and provides all authority
 through the protected process boundary; its presence cannot make the ordinary package signed or public.
 
 Under [ADR 0045](decisions/0045-separate-windows-native-and-updater-signing-authority.md), the distinct

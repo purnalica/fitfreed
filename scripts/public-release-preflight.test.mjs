@@ -84,6 +84,17 @@ test("accepts a reviewer-protected environment limited to version tags", () => {
       tagPolicy: "v*",
     },
   );
+
+  const windowsEnvironment = protectedEnvironment();
+  windowsEnvironment.name = "public-windows-release";
+  assert.equal(
+    validateProtectedReleaseEnvironment(
+      windowsEnvironment,
+      { branch_policies: [{ name: "v*", type: "tag" }] },
+      "public-windows-release",
+    ).environment,
+    "public-windows-release",
+  );
 });
 
 test("rejects an implicit, bypassable, unreviewed, or branch-open environment", () => {

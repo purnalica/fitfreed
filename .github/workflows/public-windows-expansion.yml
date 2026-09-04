@@ -1,0 +1,764 @@
+name: Public macOS, Linux, and Windows expansion
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact semantic version already prepared in the tagged source
+        required: true
+        type: string
+      update_key_id:
+        description: Active stable update-signing key identifier
+        required: true
+        type: string
+      release_key_id:
+        description: Active release-checksum signing key identifier
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fitfreed-pages-publication
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Secret-free Windows expansion preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pages: read
+
+    steps:
+      - name: Check out the selected expansion tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify source, predecessor, trust, checks, Pages, and environment policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
+          FITFREED_RELEASE_KEY_ID: ${{ inputs.release_key_id }}
+        run: >-
+          npm run preflight:windows-expansion --
+          "$FITFREED_VERSION"
+          "$FITFREED_UPDATE_KEY_ID"
+          "$FITFREED_RELEASE_KEY_ID"
+
+  build-linux-input:
+    name: Build and seal the native Linux input
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    outputs:
+      linux-input-sha256: ${{ steps.transport.outputs.linux_input_sha256 }}
+      linux-input-revision: ${{ steps.prepare.outputs.linux_input_revision }}
+      linux-input-storage-schema: ${{ steps.prepare.outputs.linux_input_storage_schema }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the authorized expansion tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Linux package build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            pkg-config \
+            wget
+
+      - name: Verify the Linux development environment
+        run: npm run doctor
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Prepare the exact clean-installed Linux input
+        id: prepare
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_LINUX_INPUT: .artifacts/windows-expansion/linux-input
+        run: >-
+          npm run prepare:linux-expansion-input --
+          "$FITFREED_VERSION"
+          "$FITFREED_LINUX_INPUT"
+
+      - name: Seal the exact Linux input for protected composition
+        id: transport
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ steps.prepare.outputs.linux_input_revision }}
+          FITFREED_STORAGE_SCHEMA: ${{ steps.prepare.outputs.linux_input_storage_schema }}
+          FITFREED_LINUX_INPUT: .artifacts/windows-expansion/linux-input
+          FITFREED_LINUX_TRANSPORT: .artifacts/windows-expansion-transport/linux-input.tar.gz
+        run: >-
+          npm run pack:linux-expansion-input --
+          "$FITFREED_LINUX_INPUT"
+          "$FITFREED_LINUX_TRANSPORT"
+          "$FITFREED_VERSION"
+          "$FITFREED_REVISION"
+          "$FITFREED_STORAGE_SCHEMA"
+
+      - name: Retain only the sealed Linux input
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: public-windows-linux-input-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/windows-expansion-transport/linux-input.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  build-windows-input:
+    name: Build and seal the native signed Windows input
+    needs: preflight
+    runs-on: [self-hosted, Windows, X64, fitfreed-windows-11-builder]
+    timeout-minutes: 75
+    environment: public-windows-release
+    outputs:
+      windows-input-sha256: ${{ steps.transport.outputs.windows_input_sha256 }}
+      windows-input-revision: ${{ steps.prepare.outputs.windows_input_revision }}
+      windows-input-storage-schema: ${{ steps.prepare.outputs.windows_input_storage_schema }}
+      windows-input-certificate-sha256: ${{ steps.prepare.outputs.windows_input_authenticode_certificate_sha256 }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the authorized expansion tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify the Windows development environment
+        run: npm run doctor
+
+      - name: Install ephemeral Windows Authenticode authority
+        env:
+          FITFREED_WINDOWS_CERTIFICATE_BASE64: ${{ secrets.FITFREED_WINDOWS_CERTIFICATE_BASE64 }}
+          FITFREED_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.FITFREED_WINDOWS_CERTIFICATE_PASSWORD }}
+          FITFREED_WINDOWS_CERTIFICATE_SHA256: ${{ vars.FITFREED_WINDOWS_CERTIFICATE_SHA256 }}
+          FITFREED_WINDOWS_TIMESTAMP_URL: ${{ vars.FITFREED_WINDOWS_TIMESTAMP_URL }}
+        run: npm run authority:windows-public-release -- install
+
+      - name: Prepare the exact signed Windows input
+        id: prepare
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_WINDOWS_INPUT: .artifacts/windows-expansion/windows-input
+        run: >-
+          npm run prepare:windows-expansion-input --
+          "$env:FITFREED_VERSION"
+          "$env:FITFREED_WINDOWS_INPUT"
+
+      - name: Seal the exact Windows input for protected composition
+        id: transport
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ steps.prepare.outputs.windows_input_revision }}
+          FITFREED_STORAGE_SCHEMA: ${{ steps.prepare.outputs.windows_input_storage_schema }}
+          FITFREED_CERTIFICATE_SHA256: ${{ steps.prepare.outputs.windows_input_authenticode_certificate_sha256 }}
+          FITFREED_WINDOWS_INPUT: .artifacts/windows-expansion/windows-input
+          FITFREED_WINDOWS_TRANSPORT: .artifacts/windows-expansion-transport/windows-input.tar.gz
+        run: >-
+          npm run pack:windows-expansion-input --
+          "$env:FITFREED_WINDOWS_INPUT"
+          "$env:FITFREED_WINDOWS_TRANSPORT"
+          "$env:FITFREED_VERSION"
+          "$env:FITFREED_REVISION"
+          "$env:FITFREED_STORAGE_SCHEMA"
+          "$env:FITFREED_CERTIFICATE_SHA256"
+
+      - name: Retain only the sealed Windows input
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: public-windows-input-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/windows-expansion-transport/windows-input.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+      - name: Remove ephemeral Windows Authenticode authority
+        if: always()
+        run: npm run authority:windows-public-release -- cleanup
+
+  build-candidate:
+    name: Compose the protected complete-platform candidate
+    needs: [preflight, build-linux-input, build-windows-input]
+    runs-on: macos-15
+    timeout-minutes: 90
+    environment: public-macos-release
+    outputs:
+      candidate-sha256: ${{ steps.transport.outputs.candidate_sha256 }}
+      issued-at: ${{ steps.issuance.outputs.issued_at }}
+      windows-certificate-sha256: ${{ needs.build-windows-input.outputs.windows-input-certificate-sha256 }}
+    permissions:
+      actions: read
+      contents: read
+      pages: read
+
+    steps:
+      - name: Check out the authorized expansion tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify the release build environment
+        run: npm run doctor
+
+      - name: Install the pinned release evidence tools
+        run: npm run install:release-tools
+
+      - name: Repeat the secret-free Windows expansion preflight after approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
+          FITFREED_RELEASE_KEY_ID: ${{ inputs.release_key_id }}
+        run: >-
+          npm run preflight:windows-expansion --
+          "$FITFREED_VERSION"
+          "$FITFREED_UPDATE_KEY_ID"
+          "$FITFREED_RELEASE_KEY_ID"
+
+      - name: Require immutable GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.FITFREED_GITHUB_ADMIN_READ_TOKEN }}
+        run: npm run check:release-immutability
+
+      - name: Download the authenticated predecessor release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_PREDECESSOR_EVIDENCE: .artifacts/windows-expansion/predecessors
+        run: >-
+          npm run download:complete-platform-predecessors --
+          "$FITFREED_PREDECESSOR_EVIDENCE"
+
+      - name: Download only the sealed native Linux input
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-windows-linux-input-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/windows-expansion-transport/linux
+
+      - name: Verify and reopen the exact native Linux input
+        env:
+          FITFREED_LINUX_INPUT_SHA256: ${{ needs.build-linux-input.outputs.linux-input-sha256 }}
+          FITFREED_LINUX_TRANSPORT: .artifacts/windows-expansion-transport/linux/linux-input.tar.gz
+          FITFREED_LINUX_INPUT: .artifacts/windows-expansion/accepted-linux-input
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ needs.build-linux-input.outputs.linux-input-revision }}
+          FITFREED_STORAGE_SCHEMA: ${{ needs.build-linux-input.outputs.linux-input-storage-schema }}
+        run: >-
+          npm run unpack:linux-expansion-input --
+          "$FITFREED_LINUX_TRANSPORT"
+          "$FITFREED_LINUX_INPUT_SHA256"
+          "$FITFREED_LINUX_INPUT"
+          "$FITFREED_VERSION"
+          "$FITFREED_REVISION"
+          "$FITFREED_STORAGE_SCHEMA"
+
+      - name: Download only the sealed native Windows input
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-windows-input-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/windows-expansion-transport/windows
+
+      - name: Verify and reopen the exact native Windows input
+        env:
+          FITFREED_WINDOWS_INPUT_SHA256: ${{ needs.build-windows-input.outputs.windows-input-sha256 }}
+          FITFREED_WINDOWS_TRANSPORT: .artifacts/windows-expansion-transport/windows/windows-input.tar.gz
+          FITFREED_WINDOWS_INPUT: .artifacts/windows-expansion/accepted-windows-input
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ needs.build-windows-input.outputs.windows-input-revision }}
+          FITFREED_STORAGE_SCHEMA: ${{ needs.build-windows-input.outputs.windows-input-storage-schema }}
+          FITFREED_CERTIFICATE_SHA256: ${{ needs.build-windows-input.outputs.windows-input-certificate-sha256 }}
+        run: >-
+          npm run unpack:windows-expansion-input --
+          "$FITFREED_WINDOWS_TRANSPORT"
+          "$FITFREED_WINDOWS_INPUT_SHA256"
+          "$FITFREED_WINDOWS_INPUT"
+          "$FITFREED_VERSION"
+          "$FITFREED_REVISION"
+          "$FITFREED_STORAGE_SCHEMA"
+          "$FITFREED_CERTIFICATE_SHA256"
+
+      - name: Install ephemeral Apple, updater, and checksum release authority
+        env:
+          FITFREED_APPLE_CERTIFICATE_BASE64: ${{ secrets.FITFREED_APPLE_CERTIFICATE_BASE64 }}
+          FITFREED_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.FITFREED_APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ vars.FITFREED_APPLE_SIGNING_IDENTITY_SHA1 }}
+          FITFREED_EXPECTED_APPLE_TEAM_ID: ${{ vars.FITFREED_APPLE_TEAM_ID }}
+          APPLE_API_ISSUER: ${{ vars.FITFREED_APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ vars.FITFREED_APPLE_API_KEY_ID }}
+          FITFREED_APPLE_API_PRIVATE_KEY: ${{ secrets.FITFREED_APPLE_API_PRIVATE_KEY }}
+          FITFREED_UPDATER_PRIVATE_KEY: ${{ secrets.FITFREED_UPDATER_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FITFREED_RELEASE_PRIVATE_KEY: ${{ secrets.FITFREED_RELEASE_PRIVATE_KEY }}
+          FITFREED_RELEASE_PRIVATE_KEY_PASSWORD: ${{ secrets.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD }}
+        run: npm run authority:public-release -- install
+
+      - name: Define the stable-channel issuance time
+        id: issuance
+        run: node -e 'process.stdout.write("issued_at=" + new Date().toISOString() + "\n")' >> "$GITHUB_OUTPUT"
+
+      - name: Build and verify the signed complete-platform candidate
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
+          FITFREED_RELEASE_KEY_ID: ${{ inputs.release_key_id }}
+          FITFREED_ISSUED_AT: ${{ steps.issuance.outputs.issued_at }}
+          FITFREED_LINUX_INPUT: .artifacts/windows-expansion/accepted-linux-input
+          FITFREED_WINDOWS_INPUT: .artifacts/windows-expansion/accepted-windows-input
+          FITFREED_WINDOWS_CERTIFICATE_SHA256: ${{ needs.build-windows-input.outputs.windows-input-certificate-sha256 }}
+          FITFREED_PREDECESSOR_EVIDENCE: .artifacts/windows-expansion/predecessors
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FITFREED_RELEASE_PRIVATE_KEY_PASSWORD: ${{ secrets.FITFREED_RELEASE_PRIVATE_KEY_PASSWORD }}
+        run: >-
+          npm run prepare:complete-platform-release --
+          "$FITFREED_VERSION"
+          "$FITFREED_UPDATE_KEY_ID"
+          "$FITFREED_RELEASE_KEY_ID"
+          "$FITFREED_ISSUED_AT"
+          "$FITFREED_LINUX_INPUT"
+          "$FITFREED_WINDOWS_INPUT"
+          "$FITFREED_WINDOWS_CERTIFICATE_SHA256"
+          "$FITFREED_PREDECESSOR_EVIDENCE"
+
+      - name: Reopen the complete local candidate
+        env:
+          FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
+        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
+
+      - name: Seal the complete candidate for independent evaluation and promotion
+        id: transport
+        env:
+          FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
+          FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
+        run: >-
+          npm run pack:public-release --
+          "$FITFREED_CANDIDATE"
+          "$FITFREED_TRANSPORT"
+
+      - name: Retain the sealed complete-platform candidate for evaluation
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: public-complete-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/public-release-transport/candidate.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Remove ephemeral release authority
+        if: always()
+        run: npm run authority:public-release -- cleanup
+
+  admit-linux-candidate:
+    name: Admit the complete candidate on Ubuntu ${{ matrix.ubuntu-version }}
+    needs: build-candidate
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu-version:
+          - "24.04"
+          - "26.04"
+    runs-on: ubuntu-${{ matrix.ubuntu-version }}
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Check out the candidate source tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Install candidate-admission runtime tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends sqlite3 xauth xvfb
+
+      - name: Download only the sealed complete candidate from this workflow run
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-complete-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/public-release-transport
+
+      - name: Verify and reopen the exact complete candidate
+        env:
+          FITFREED_CANDIDATE_SHA256: ${{ needs.build-candidate.outputs.candidate-sha256 }}
+          FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
+          FITFREED_CANDIDATE: .artifacts/linux-candidate/${{ inputs.version }}
+        run: >-
+          npm run unpack:public-release --
+          "$FITFREED_TRANSPORT"
+          "$FITFREED_CANDIDATE_SHA256"
+          "$FITFREED_CANDIDATE"
+
+      - name: Reopen the complete candidate before native installation
+        env:
+          FITFREED_CANDIDATE: .artifacts/linux-candidate/${{ inputs.version }}
+        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
+
+      - name: Install and launch the exact Debian candidate
+        env:
+          FITFREED_CANDIDATE: .artifacts/linux-candidate/${{ inputs.version }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UBUNTU_VERSION: ${{ matrix.ubuntu-version }}
+        run: >-
+          xvfb-run -a npm run verify:linux-candidate-installation --
+          install
+          "$FITFREED_CANDIDATE"
+          "$FITFREED_VERSION"
+          "$FITFREED_UBUNTU_VERSION"
+
+      - name: Verify the installed exact-candidate cold-launch budget
+        run: xvfb-run -a npm run benchmark:cold-launch
+
+      - name: Remove the exact candidate and retain its local library
+        env:
+          FITFREED_CANDIDATE: .artifacts/linux-candidate/${{ inputs.version }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UBUNTU_VERSION: ${{ matrix.ubuntu-version }}
+        run: >-
+          npm run verify:linux-candidate-installation --
+          remove
+          "$FITFREED_CANDIDATE"
+          "$FITFREED_VERSION"
+          "$FITFREED_UBUNTU_VERSION"
+
+      - name: Remove residual candidate package after admission
+        if: always()
+        run: |
+          if dpkg-query -W fitfreed >/dev/null 2>&1; then
+            sudo apt-get purge --yes fitfreed
+          fi
+          test ! -e /usr/bin/fitfreed
+          test ! -e /usr/share/applications/fitfreed.desktop
+
+  admit-windows-candidate:
+    name: Admit the exact candidate on clean supported Windows 11
+    needs: build-candidate
+    runs-on: [self-hosted, Windows, X64, fitfreed-windows-11-admission]
+    timeout-minutes: 180
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Check out the candidate source tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify the Windows development environment
+        run: npm run doctor
+
+      - name: Download only the sealed complete candidate from this workflow run
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-complete-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/public-release-transport
+
+      - name: Verify and reopen the exact complete candidate
+        env:
+          FITFREED_CANDIDATE_SHA256: ${{ needs.build-candidate.outputs.candidate-sha256 }}
+          FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
+          FITFREED_CANDIDATE: .artifacts/windows-candidate/${{ inputs.version }}
+        run: >-
+          npm run unpack:public-release --
+          "$env:FITFREED_TRANSPORT"
+          "$env:FITFREED_CANDIDATE_SHA256"
+          "$env:FITFREED_CANDIDATE"
+
+      - name: Reopen the complete candidate before native admission
+        env:
+          FITFREED_CANDIDATE: .artifacts/windows-candidate/${{ inputs.version }}
+        run: npm run verify:public-release -- "$env:FITFREED_CANDIDATE"
+
+      - name: Verify exact Windows candidate installation and cold launch
+        env:
+          FITFREED_CANDIDATE: .artifacts/windows-candidate/${{ inputs.version }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_ISSUED_AT: ${{ needs.build-candidate.outputs.issued-at }}
+          FITFREED_WINDOWS_CERTIFICATE_SHA256: ${{ needs.build-candidate.outputs.windows-certificate-sha256 }}
+        run: >-
+          npm run verify:windows-candidate-admission --
+          "$env:FITFREED_CANDIDATE"
+          "$env:FITFREED_VERSION"
+          "$env:FITFREED_ISSUED_AT"
+          "$env:FITFREED_WINDOWS_CERTIFICATE_SHA256"
+
+      - name: Verify packaged Windows capability and accessibility
+        run: npm run verify:windows-e2e
+
+      - name: Verify native Windows update recovery
+        run: npm run verify:windows-update-e2e
+
+      - name: Verify Windows filesystem recovery
+        run: npm run verify:windows-filesystem-reliability
+
+      - name: Verify Windows data performance budgets
+        run: |
+          npm run benchmark:import
+          npm run benchmark:dense-history
+          npm run benchmark:insights
+
+      - name: Remove residual Windows candidate state after admission
+        if: always()
+        run: >-
+          powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass
+          -File scripts/run-installed-windows-package.ps1
+          -Action remove
+
+  accept-product-experience:
+    name: Record bounded product-owner acceptance of the admitted candidate
+    needs: [build-candidate, admit-linux-candidate, admit-windows-candidate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: public-windows-product-acceptance
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Check out the accepted candidate source tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Download only the technically admitted complete candidate
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-complete-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/public-release-transport
+
+      - name: Reopen the exact candidate accepted by the product owner
+        env:
+          FITFREED_CANDIDATE_SHA256: ${{ needs.build-candidate.outputs.candidate-sha256 }}
+          FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
+          FITFREED_CANDIDATE: .artifacts/product-owner-accepted/${{ inputs.version }}
+        run: >-
+          npm run unpack:public-release --
+          "$FITFREED_TRANSPORT"
+          "$FITFREED_CANDIDATE_SHA256"
+          "$FITFREED_CANDIDATE"
+
+      - name: Verify the exact product-owner-accepted candidate
+        env:
+          FITFREED_CANDIDATE: .artifacts/product-owner-accepted/${{ inputs.version }}
+        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
+
+  publish-candidate:
+    name: Promote the technically and human-accepted complete candidate
+    needs: [build-candidate, accept-product-experience]
+    runs-on: macos-15
+    timeout-minutes: 20
+    environment: public-macos-release
+    permissions:
+      actions: read
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
+      pages: read
+
+    steps:
+      - name: Check out the accepted expansion tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Download only the accepted sealed complete candidate
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-complete-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/public-release-transport
+
+      - name: Verify and reopen the independently accepted complete candidate
+        env:
+          FITFREED_CANDIDATE_SHA256: ${{ needs.build-candidate.outputs.candidate-sha256 }}
+          FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
+          FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
+        run: >-
+          npm run unpack:public-release --
+          "$FITFREED_TRANSPORT"
+          "$FITFREED_CANDIDATE_SHA256"
+          "$FITFREED_CANDIDATE"
+
+      - name: Reopen the complete accepted candidate
+        env:
+          FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
+        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
+
+      - name: Attest every checksum-bound public asset
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-checksums: .artifacts/accepted-public-release/${{ inputs.version }}/release/SHA256SUMS
+
+      - name: Attest the final checksum inventory
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: .artifacts/accepted-public-release/${{ inputs.version }}/release/SHA256SUMS
+
+      - name: Attest the detached checksum signature
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: .artifacts/accepted-public-release/${{ inputs.version }}/release/SHA256SUMS.minisig
+
+      - name: Upload the exact complete-platform Pages deployment artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .artifacts/accepted-public-release/${{ inputs.version }}/pages
+          retention-days: 1
+
+      - name: Publish the immutable complete-platform GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
+        run: npm run publish:public-release -- "$FITFREED_CANDIDATE"
+
+  deploy-pages:
+    name: Deploy the complete product and update snapshot
+    needs: publish-candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy the exact complete-platform Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+  verify-publication:
+    name: Verify complete public bytes and provenance remotely
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      artifact-metadata: read
+      attestations: read
+      contents: read
+
+    steps:
+      - name: Check out the authorized expansion tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify the immutable complete Release and direct Pages snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ github.sha }}
+        run: >-
+          npm run verify:remote-public-release --
+          "$FITFREED_VERSION"
+          "$FITFREED_REVISION"

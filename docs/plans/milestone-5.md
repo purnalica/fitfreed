@@ -12,8 +12,8 @@ remains ordered after the accepted public Linux MVP.
 | M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, distinguish installer failure from an invalid resulting native identity, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, confirmation requires the exact leased target installation and library, restoration atomically recovers the verified source pair with a closed three-attempt failure policy, and terminal maintenance validates the complete pair before durable receipt and cleanup. A production-identity NSIS campaign now covers successful replacement, native installer failure, candidate rejection, restart resumption after an instrumented watchdog interruption, runnable fallback, offline retry, and terminal exhaustion; its contracts pass locally, while the native hosted run remains open. |
 | M5.3 Packaged capability parity | In progress | The isolated instrumented NSIS identity, build/install/removal orchestration, native Windows process-restart evidence, and impact-aware hosted capability lane are implemented and locally contract-tested. Native execution of the seven shared packaged scenarios and the remaining Windows-visible paths remain open. |
 | M5.4 Windows performance and reliability admission | In progress | The manual hosted performance workflow, production NSIS cold-launch lifecycle, portable Windows benchmark paths, native peak-memory measurement, isolated NTFS disk-exhaustion recovery, and version 2 private-library filesystem boundary are implemented and locally contract-tested. Native execution and exact Windows 11 evidence remain open. |
-| M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the complete user lifecycle. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, destructive isolated gates, protected Authenticode input, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime. One protected Apple Silicon command now authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages now derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. Native packaged execution and the public Windows workflow remain open. |
-| M5.6 Exact candidate and promotion | In progress | Generic candidate transport, exact Release asset derivation, Windows-workflow provenance binding, and complete remote reconstruction now dispatch manifest version 7 without weakening versions 3 or 6. The public Windows workflow, native candidate admission, predecessor, human, and promotion gates remain open. |
+| M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the complete user lifecycle. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, destructive isolated gates, protected Authenticode input, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime. One protected Apple Silicon command now authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. Native packaged execution remains open. |
+| M5.6 Exact candidate and promotion | In progress | The inactive manual Windows workflow, protected builder, complete-predecessor downloader, version 7 composition, exact Ubuntu and Windows 11 admission topology, distinct product-acceptance gate, independent promotion, immutable publication, and remote reconstruction are implemented and locally contract-tested. Production authorities and environments, disposable native runners, an immutable macOS-plus-Linux predecessor, exact candidate execution, human acceptance, and publication remain open. |
 
 ## Objective
 
@@ -349,12 +349,25 @@ only after Linux publication.
 setup, installed signatures, GitHub Release, product site, update channel, release notes, provenance, and documentation
 all name and deliver that same candidate.
 
-The first M5.6 slice extends the shared authority-free boundaries rather than creating a workflow. The generic verifier
-dispatches manifest version 7 to complete-platform candidate or distribution reopening; transport retains all three
-ordered targets; publication derives every exact asset and the future Windows workflow provenance identity; and remote
-acceptance downloads the current macOS, Linux, and Windows packages plus every declared native recovery package before
-reconstructing Pages. Synthetic end-to-end tests cover the full remote distribution. No Windows publication entry
-point exists yet.
+The first M5.6 slice extended the shared authority-free boundaries. The generic verifier dispatches manifest version 7
+to complete-platform candidate or distribution reopening; transport retains all three ordered targets; publication
+derives every exact asset and the Windows workflow provenance identity; and remote acceptance downloads the current
+macOS, Linux, and Windows packages plus every declared native recovery package before reconstructing Pages. Synthetic
+end-to-end tests cover the full remote distribution.
+
+The second M5.6 slice adds the manual-only, inactive Windows expansion workflow and its exact host-admission boundary.
+Secret-free preflight verifies the immutable predecessor, independent trust, and all protected environments. A
+protected disposable Windows 11 x86-64 builder seals the Authenticode-signed native input; the Apple Silicon composer
+downloads and reopens every complete predecessor Release before creating manifest version 7. Separate Ubuntu and
+secret-free Windows 11 jobs reopen the exact candidate. The native host must match the versioned reviewed edition,
+display-version, build, architecture, and lifecycle policy. Exact-package trust, install, removal, and cold launch stay
+separate from the source-matched instrumented capability campaign. A distinct protected product-experience verdict
+precedes the independent publication approval.
+
+The workflow, policy schema, static topology checks, predecessor downloader, and portable admission contracts pass
+locally. Production Authenticode and release authority, repository-scoped disposable Windows 11 runners, the immutable
+macOS-plus-Linux predecessor, exact native execution, bounded human product acceptance, tag creation, and publication
+remain open external gates. No public Windows candidate or release exists.
 
 ## Human intervention boundary
 

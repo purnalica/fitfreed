@@ -23,8 +23,9 @@ Windows contributors need the Microsoft C++ Build Tools and Windows SDK supplied
 with C++ workload, WebView2, Rustup, and the pinned Node.js toolchain. `npm run doctor` verifies the x86-64 MSVC host,
 Rust components, Node.js, and npm without relying on Bash. Windows package, installation, update, and recovery tooling
 does not follow from host admission: package, installation, inventory, synthetic signing, packaged capability, update
-recovery, cold launch, and filesystem reliability are separate explicit gates. Their source contracts pass locally;
-native hosted execution and exact Windows 11 candidate evidence remain open Milestone 5 work.
+recovery, cold launch, and filesystem reliability are separate explicit gates. Their portable and Windows Server
+engineering evidence exists; production-authority execution and exact Windows 11 candidate evidence remain open
+Milestone 5 gates.
 
 ## First setup
 
@@ -125,7 +126,7 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Verify live presentation, locale, style, test, and script ownership | `npm run check:presentation-inventory` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Verify pinned updater source and provenance | `npm run check:vendored-updater` |
-| Verify GitHub workflow syntax and both public-release policies | `npm run check:workflows && npm run check:public-release-workflow && npm run check:public-linux-expansion-workflow` |
+| Verify GitHub workflow syntax and all public-release policies | `npm run check:workflows && npm run check:public-release-workflow && npm run check:public-linux-expansion-workflow && npm run check:public-windows-expansion-workflow` |
 | Build the unsigned update-capable Debian input on x86-64 Linux | `npm run package:linux-expansion-input` |
 | Build the exact secret-free Linux expansion input | `npm run prepare:linux-expansion-input -- <version> <directory>` |
 | Seal an exact Linux expansion input | `npm run pack:linux-expansion-input -- <input> <archive> <version> <revision> <schema>` |
@@ -151,6 +152,8 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
 | Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
 | Reopen a digest-bound Windows expansion input | `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>` |
+| Download and reopen every immutable predecessor required by a complete-platform candidate | `npm run download:complete-platform-predecessors -- <destination>` |
+| Verify the reviewed Windows 11 host and exact candidate | `npm run verify:windows-candidate-admission -- <candidate> <version> <issued-at> <certificate-sha256>` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -213,8 +216,9 @@ registry, Start Menu, Add or Remove Programs, WebView2, Authenticode, update, or
 `npm run inventory:windows-package` performs one real install-inspect-inventory-remove cycle and writes the
 schema-validated digest-bound evidence beside the setup. The synthetic Authenticode, packaged capability, update,
 recovery, cold-launch, and filesystem-reliability gates are separate commands because each proves a different native
-boundary. Protected public Authenticode authority, the public Windows workflow, and exact-candidate acceptance remain
-open Milestone 5 work. Do not add certificate selection, signer commands, timestamps, account identities, or
+boundary. The inactive public Windows workflow is implemented; protected public Authenticode authority and
+exact-candidate acceptance remain open Milestone 5 gates. Do not add certificate selection, signer commands,
+timestamps, account identities, or
 machine-local protected paths to `tauri.windows.conf.json`.
 
 After `npm run package:windows`, `npm run verify:windows-authenticode-smoke` signs only a temporary copy of the unsigned
@@ -224,7 +228,8 @@ private key, trust entries, process values, and temporary directory before succe
 user or CI runner. Its untimestamped synthetic result is automation evidence, never a distributable or publicly trusted
 binary.
 
-`tauri.windows.public-signing.conf.json` is a reviewed authority-free overlay for a future protected candidate build.
+`tauri.windows.public-signing.conf.json` is the reviewed authority-free overlay selected by the protected candidate
+builder.
 It contains only the signing command and Tauri binary placeholder. Production certificate selection, its independent
 SHA-256 fingerprint, the Windows SDK SignTool path, and the credential-free HTTPS RFC 3161 service enter only as
 protected process values; they must not be added to source, retained evidence, or ordinary CI. The signer

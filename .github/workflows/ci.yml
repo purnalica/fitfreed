@@ -131,6 +131,8 @@ jobs:
         run: |
           npm run check:workflows
           npm run check:public-release-workflow
+          npm run check:public-linux-expansion-workflow
+          npm run check:public-windows-expansion-workflow
 
       - name: Verify pinned updater source and provenance
         if: steps.decision.outputs.full-verification == 'true'
@@ -537,6 +539,10 @@ jobs:
       - name: Verify public Linux expansion workflow
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:public-linux-expansion-workflow
+
+      - name: Verify public Windows expansion workflow
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:public-windows-expansion-workflow
 
       - name: Verify Windows host workflow
         if: steps.decision.outputs.full-verification == 'true'

@@ -29,10 +29,17 @@ function run(command, args) {
   }
 }
 
-export function validateProtectedReleaseEnvironment(environment, branchPolicies) {
+export function validateProtectedReleaseEnvironment(
+  environment,
+  branchPolicies,
+  environmentName = releaseEnvironmentName,
+) {
   const errors = [];
-  if (environment?.name !== releaseEnvironmentName) {
-    errors.push(`protected environment must be named ${releaseEnvironmentName}`);
+  if (!/^[a-z0-9][a-z0-9-]{0,254}$/.test(environmentName)) {
+    errors.push("protected environment name is invalid");
+  }
+  if (environment?.name !== environmentName) {
+    errors.push(`protected environment must be named ${environmentName}`);
   }
   const reviewerRule = environment?.protection_rules?.find(
     ({ type }) => type === "required_reviewers",
@@ -63,12 +70,28 @@ export function validateProtectedReleaseEnvironment(environment, branchPolicies)
   }
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return {
-    environment: releaseEnvironmentName,
+    environment: environmentName,
     requiredReviewerCount: reviewerRule.reviewers.length,
     selfReview: false,
     administratorBypass: false,
     tagPolicy: "v*",
   };
+}
+
+export function readProtectedReleaseEnvironment(environmentName) {
+  if (!/^[a-z0-9][a-z0-9-]{0,254}$/.test(environmentName ?? "")) {
+    throw new Error("protected environment name is invalid");
+  }
+  const base = `repos/${repositoryName}/environments/${environmentName}`;
+  try {
+    return validateProtectedReleaseEnvironment(
+      JSON.parse(run("gh", ["api", base])),
+      JSON.parse(run("gh", ["api", `${base}/deployment-branch-policies`])),
+      environmentName,
+    );
+  } catch {
+    throw new Error(`protected environment ${environmentName} is unavailable or invalid`);
+  }
 }
 
 export function validatePublicPagesConfiguration(pages) {
@@ -215,14 +238,9 @@ export function validatePublicReleaseInvocation({
 }
 
 function readGithubReleasePlatform(sourceRevision) {
-  const base = `repos/${repositoryName}/environments/${releaseEnvironmentName}`;
-  let environment;
-  let policies;
   let pages;
   const runsByWorkflow = {};
   try {
-    environment = JSON.parse(run("gh", ["api", base]));
-    policies = JSON.parse(run("gh", ["api", `${base}/deployment-branch-policies`]));
     pages = JSON.parse(run("gh", ["api", `repos/${repositoryName}/pages`]));
     for (const workflow of requiredWorkflows) {
       runsByWorkflow[workflow] = JSON.parse(run("gh", [
@@ -244,7 +262,7 @@ function readGithubReleasePlatform(sourceRevision) {
     throw new Error("public release platform prerequisites are unavailable");
   }
   return {
-    protectedEnvironment: validateProtectedReleaseEnvironment(environment, policies),
+    protectedEnvironment: readProtectedReleaseEnvironment(releaseEnvironmentName),
     publicPages: validatePublicPagesConfiguration(pages),
     workflowEvidence: validateRequiredWorkflowRuns(runsByWorkflow, sourceRevision),
   };

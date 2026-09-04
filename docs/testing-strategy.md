@@ -350,6 +350,14 @@ Local and continuous-integration workflows will invoke the same underlying comma
   exact ignored version directory, and removes incomplete candidates. Independent manifest version 7 composition and
   reopening tests then bind all three current packages, recovery packages, signatures, inventories, checksums, SBOMs,
   notes, provenance subjects, and Pages bytes before local promotion.
+- The manual Windows-expansion workflow preserves three independent evidence boundaries. Static tests reject trigger,
+  permission, action-pin, runner-label, protected-environment, secret, cleanup, digest, admission, product-acceptance,
+  or publication-order drift. The disposable protected builder produces the exact Authenticode-signed input; the
+  separate secret-free admission runner must match a schema-validated, source-cited Windows 11 x86-64 lifecycle row
+  reviewed within 45 days of candidate issuance. That host verifies exact-candidate trust, current-user installation,
+  data-preserving removal, and cold launch. The source-matched isolated instrumented package retains responsibility for
+  exhaustive behavior because production packages contain no WebDriver instrumentation. Neither evidence class can
+  substitute for the other, and the distinct bounded product-owner verdict precedes publication approval.
 - Product-site release tests keep the ordinary source and product-only artifact inactive, then derive exact installer
   sets from synthetic manifest versions 3, 6, and 7. English and Spanish surfaces must expose only the manifest's
   macOS, Linux, and Windows targets, use immutable versioned GitHub Release URLs, remove stale pre-release claims, and
@@ -506,8 +514,6 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 
 ## Pending decisions
 
-- Hosted Windows Server automation remains diagnostic rather than sufficient Windows 11 desktop evidence; select the
-  reproducible clean Windows 11 candidate environment before the first Windows promotion.
 - Reassess the hosted Ubuntu 26.04 public-preview runner before each exact candidate. If its image is unavailable or no
   longer representative of Ubuntu Desktop 26.04, use a documented clean virtualized candidate environment before
   claiming support; never silently drop that matrix row.

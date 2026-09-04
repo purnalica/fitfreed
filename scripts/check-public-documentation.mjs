@@ -147,7 +147,7 @@ const documentContracts = Object.freeze({
       [/FITFREED_WINDOWS_AUTHENTICODE_PROFILE/, "Windows Authenticode authority profile"],
       [/complete-platform manifest version 7/i, "complete Windows candidate contract"],
       [/Windows Authenticode certificate rotation/i, "Windows certificate rotation procedure"],
-      [/public Windows expansion workflow is not yet implemented/i, "inactive Windows workflow boundary"],
+      [/versioned workflow is\s+implemented but inactive/i, "inactive Windows workflow boundary"],
     ],
   },
   releaseArchitecture: {
@@ -166,7 +166,7 @@ const documentContracts = Object.freeze({
     evidence: () => [
       [/manifest version 7/i, "complete Windows manifest"],
       [/Windows Authenticode authority/i, "separate Windows signing authority"],
-      [/public Windows expansion workflow is not yet implemented/i, "inactive Windows workflow boundary"],
+      [/Windows-expansion workflows exist but remain inactive/i, "inactive Windows workflow boundary"],
       [/never\s+rebuilt as a substitute for the sealed bytes/i, "exact Windows candidate preservation"],
     ],
   },
@@ -196,6 +196,20 @@ const documentContracts = Object.freeze({
       [/Find or create one relevant report[\s\S]*editor by default/, "report experience review"],
       [/prompts for experience judgment, not proof/, "experience-only task boundary"],
       [/Do not ask for a completed control checklist/, "bounded product-owner evidence"],
+    ],
+  },
+  windowsManualEvaluation: {
+    path: () => "docs/testing/windows-candidate-manual-evaluation.md",
+    title: () => "Windows Product-Owner Experience Supplement",
+    headings: ["Status and boundary", "Windows entry conditions", "Product-owner handoff"],
+    evidence: () => [
+      [/canonical\s+\[product-owner experience evaluation\]/, "canonical experience authority"],
+      [/product owner is not a manual QA operator/, "product-owner scope boundary"],
+      [/exact sealed complete-platform candidate/, "exact candidate boundary"],
+      [/matches the reviewed Windows 11 x86-64 policy/, "native host boundary"],
+      [/production package\s+intentionally contains no WebDriver instrumentation/, "separate behavior evidence"],
+      [/public-windows-product-acceptance/, "distinct product-acceptance gate"],
+      [/public-macos-release/, "independent publication approval"],
     ],
   },
   readiness: {

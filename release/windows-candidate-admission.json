@@ -1,0 +1,104 @@
+{
+  "format": "org.fitfreed.windows-candidate-admission-policy",
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-04",
+  "sources": [
+    "https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-windows-edition-servicing-command-line-options",
+    "https://learn.microsoft.com/en-us/windows/release-health/supported-versions-windows-client",
+    "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+  ],
+  "releases": [
+    {
+      "displayVersion": "23H2",
+      "build": 22631,
+      "supportEndsOn": "2026-11-10",
+      "editionIds": [
+        "Education",
+        "EducationN",
+        "Enterprise",
+        "EnterpriseN"
+      ]
+    },
+    {
+      "displayVersion": "24H2",
+      "build": 26100,
+      "supportEndsOn": "2026-10-13",
+      "editionIds": [
+        "Core",
+        "CoreN",
+        "CoreSingleLanguage",
+        "Professional",
+        "ProfessionalEducation",
+        "ProfessionalEducationN",
+        "ProfessionalN",
+        "ProfessionalWorkstation",
+        "ProfessionalWorkstationN"
+      ]
+    },
+    {
+      "displayVersion": "24H2",
+      "build": 26100,
+      "supportEndsOn": "2027-10-12",
+      "editionIds": [
+        "Education",
+        "EducationN",
+        "Enterprise",
+        "EnterpriseN"
+      ]
+    },
+    {
+      "displayVersion": "25H2",
+      "build": 26200,
+      "supportEndsOn": "2027-10-12",
+      "editionIds": [
+        "Core",
+        "CoreN",
+        "CoreSingleLanguage",
+        "Professional",
+        "ProfessionalEducation",
+        "ProfessionalEducationN",
+        "ProfessionalN",
+        "ProfessionalWorkstation",
+        "ProfessionalWorkstationN"
+      ]
+    },
+    {
+      "displayVersion": "25H2",
+      "build": 26200,
+      "supportEndsOn": "2028-10-10",
+      "editionIds": [
+        "Education",
+        "EducationN",
+        "Enterprise",
+        "EnterpriseN"
+      ]
+    },
+    {
+      "displayVersion": "26H1",
+      "build": 28000,
+      "supportEndsOn": "2028-03-14",
+      "editionIds": [
+        "Core",
+        "CoreN",
+        "CoreSingleLanguage",
+        "Professional",
+        "ProfessionalEducation",
+        "ProfessionalEducationN",
+        "ProfessionalN",
+        "ProfessionalWorkstation",
+        "ProfessionalWorkstationN"
+      ]
+    },
+    {
+      "displayVersion": "26H1",
+      "build": 28000,
+      "supportEndsOn": "2029-03-13",
+      "editionIds": [
+        "Education",
+        "EducationN",
+        "Enterprise",
+        "EnterpriseN"
+      ]
+    }
+  ]
+}

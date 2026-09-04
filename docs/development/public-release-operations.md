@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The initial macOS and first Linux-expansion workflows are implemented but deliberately inactive. The public Windows expansion workflow is not yet implemented; its native input, authenticated-predecessor discovery, protected preparation, composition, and reopening commands are implemented but cannot publish. A workflow becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
+This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The macOS, Linux-expansion, and Windows-expansion workflows are implemented but deliberately inactive. A workflow becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
 
 Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
 
@@ -64,6 +64,19 @@ An accountable maintainer configures these prerequisites before the first releas
 5. Add the exact protected secrets and non-secret variables documented in [public release preparation](public-release.md).
 6. Confirm private vulnerability reporting, Issues, and the documented support routes are available.
 
+Before Windows expansion, create two additional environments with the same required-reviewer, self-review,
+administrator-bypass, and `v*` tag restrictions:
+
+- `public-windows-release` owns only the ephemeral Authenticode builder authority and its reviewed public fingerprint;
+- `public-windows-product-acceptance` records the distinct bounded product-experience verdict and owns no signing or
+  publication authority.
+
+Provision separate disposable repository-scoped self-hosted Windows 11 x86-64 runners with only the
+`fitfreed-windows-11-builder` or `fitfreed-windows-11-admission` custom label. Never attach either role to a personal
+workstation or reuse one machine for both roles in a release run. Register each runner immediately before the bounded
+job, remove its repository registration and credentials after the job, and destroy the execution environment. The
+builder is protected by `public-windows-release`; the admission runner is secret-free and has no environment.
+
 Do not infer successful configuration from a workflow file or environment name. The secret-free preflight reads the GitHub APIs and rejects a missing or weaker control before the first protected job starts.
 
 ## Prepare the versioned source
@@ -118,11 +131,17 @@ check keeps promotion blocked even when cleanup succeeds.
 
 ### Windows expansion input and authority
 
-Do not attempt public Windows preparation until an immutable macOS-plus-Linux predecessor exists, the next semantic
-version and target-aware upgrade matrix name that exact predecessor, the Windows readiness ledger admits the native
-host, and the future public workflow and protected environment have been reviewed. The public Windows expansion
-workflow is not yet implemented. Running an individual script manually does not create a candidate and must not be
-used to bypass that gate.
+Do not dispatch `.github/workflows/public-windows-expansion.yml` until an immutable macOS-plus-Linux predecessor
+exists, the next semantic version and target-aware upgrade matrix name that exact predecessor, the Windows readiness
+ledger admits the native hosts, and all three protected environments have been reviewed. The versioned workflow is
+implemented but inactive. Running an individual script manually does not create a candidate and must not be used to
+bypass those gates.
+
+Review `release/windows-candidate-admission.json` against its cited official lifecycle sources no more than 45 days
+before candidate issuance. Update the policy and its tests when supported editions, display versions, builds, or dates
+change; do not admit a host by weakening the exact match. The workflow dispatch accepts only the semantic version,
+public updater-key identifier, and public release-checksum-key identifier. The Authenticode fingerprint comes from the
+protected `FITFREED_WINDOWS_CERTIFICATE_SHA256` variable, never from the dispatcher.
 
 The protected native job must use native x86-64 Windows PowerShell on a disposable supported Windows 11 builder. Its
 ephemeral authority setup imports only the selected Authenticode identity into the current-user certificate store,
@@ -136,14 +155,29 @@ certificate, private key, protected process values, and temporary paths with
 `npm run authority:windows-public-release -- cleanup` after success or failure; incomplete cleanup blocks the run and
 retains only the state required for another cleanup attempt.
 
-An authority-free transfer job reopens the archive with
+The protected job publishes only that closed archive and its digest. The Apple Silicon composer reopens it with
 `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>`.
-The future protected composer must receive both the already admitted Linux input and this Windows input, while
-receiving no Windows Authenticode authority. It adds platform-specific updater signatures to the unchanged native
-packages and creates the complete-platform manifest version 7 candidate. Before promotion becomes reachable, the
-sealed candidate must pass its independent version 7 reopening, native supported-Windows-11 installation and trust
-admission, packaged capability, update recovery, filesystem reliability, performance, localization, accessibility,
-and bounded product-experience gates. A successful native input build means only “input available for composition.”
+Before receiving private composition authority, it runs
+`npm run download:complete-platform-predecessors -- <destination>` to download, stage, and independently
+reopen every upgrade-matrix predecessor as its complete immutable Release evidence. It receives both native inputs but
+no Windows Authenticode authority, adds platform-specific updater signatures to the unchanged native packages, and
+creates the complete-platform manifest version 7 candidate. A successful native input build means only “input
+available for composition.”
+
+The exact sealed candidate next passes the supported Ubuntu matrix and the distinct secret-free
+`fitfreed-windows-11-admission` runner. The admission job runs
+`npm run verify:windows-candidate-admission -- <candidate> <version> <issued-at> <certificate-sha256>` and
+requires the host to match the reviewed edition identifier, display version, build, x86-64 architecture, and active
+support date. It verifies the exact signed setup's Authenticode trust, current-user install, data-preserving removal,
+and cold launch. The same source then builds an isolated instrumented package for exhaustive capability,
+localization, accessibility, update, recovery, filesystem, and performance behavior because the production package
+intentionally contains no WebDriver instrumentation. That instrumented package is evidence for the same source, not a
+replacement for the exact candidate.
+
+Only after every technical admission job passes may the `public-windows-product-acceptance` environment record the
+bounded product-owner verdict defined by the [Windows supplement](../testing/windows-candidate-manual-evaluation.md).
+The later `public-macos-release` approval is the independent irreversible publication decision. A rejected or expired
+candidate is never rebuilt inside a downstream job; correct the cause and create a new source and candidate.
 
 On Apple Silicon, `npm run prepare:complete-platform-release -- <version> <update-key-id> <release-key-id>
 <issued-at> <linux-input-directory> <windows-input-directory> <windows-certificate-sha256>
@@ -161,8 +195,8 @@ Release as immutable and then deploys the exact candidate Pages artifact.
 The generic candidate transport, Release asset inventory, publication verifier, and remote verifier accept manifest
 version 7. They preserve the ordered three-target identity, require provenance from the Windows expansion workflow,
 download every current and declared recovery package, and reopen the distributed candidate without its unpacked
-application. This is supporting machinery rather than an operator entry point: do not invoke Windows promotion until
-the versioned Windows workflow and every documented admission gate exist.
+application. This machinery is reachable only through the inactive versioned workflow. Do not invoke Windows
+promotion until every documented admission and authority gate is objectively satisfied.
 
 PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,
 storage schema, package digest, public certificate SHA-256 fingerprint, and Boolean phase results. They must not

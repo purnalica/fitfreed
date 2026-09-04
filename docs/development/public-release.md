@@ -2,7 +2,7 @@
 
 ## Current boundary
 
-Public binary release automation is deliberately inactive. The checked-in update and release-checksum configurations contain no production trust keys, the `public-macos-release` environment is not configured, and no Apple, updater, release-checksum, or Windows Authenticode authority is available. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the canonical origin for the product site without an application download. The initial macOS and first Linux-expansion workflows exist but remain inactive; the public Windows expansion workflow is not yet implemented. These are release gates, not reasons to weaken or bypass an implemented or planned publication workflow.
+Public binary release automation is deliberately inactive. The checked-in update and release-checksum configurations contain no production trust keys, the release environments are not configured, and no Apple, updater, release-checksum, or Windows Authenticode authority is available. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the canonical origin for the product site without an application download. The initial macOS, first Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are release gates, not reasons to weaken or bypass an implemented publication workflow.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -43,7 +43,7 @@ The first platform-expansion release additionally defines the distinct
 platform-neutral `SHA256SUMS` set; it is not the updater key and cannot be supplied to the secret-free Linux build or
 the promotion job.
 
-The future protected Windows native-builder environment additionally defines
+The protected Windows native-builder environment additionally defines
 `FITFREED_WINDOWS_CERTIFICATE_BASE64` and `FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as secrets, plus
 `FITFREED_WINDOWS_CERTIFICATE_SHA256` and `FITFREED_WINDOWS_TIMESTAMP_URL` as non-secret protected variables. The
 authority installer derives the certificate-store selector and absolute Windows SDK SignTool path at runtime, exports
@@ -147,8 +147,7 @@ The shared `pack:public-release`, `unpack:public-release`, `publish:public-relea
 `verify:remote-public-release` boundaries now accept that closed version 7 contract directly. Transport preserves its
 ordered three-target result. Publication derives the exact asset set and attributes provenance to
 `.github/workflows/public-windows-expansion.yml`; remote acceptance downloads every current and recovery package,
-reconstructs the manifest-derived localized Pages snapshot, and reopens the distributed evidence. The named workflow
-does not yet exist, so these generic mechanics do not make Windows publication runnable.
+reconstructs the manifest-derived localized Pages snapshot, and reopens the distributed evidence.
 
 The protected Apple Silicon composition entry point is:
 
@@ -179,25 +178,41 @@ or deploy anything. Reopen the result independently with:
 npm run verify:complete-platform-release -- .artifacts/public-releases/<version>
 ```
 
-The public Windows expansion workflow is not yet implemented, so this production preparation command and the generic
-version 7 publication mechanics are not a runnable public release path and no existing workflow may be represented as
-one.
+`.github/workflows/public-windows-expansion.yml` implements that production path but remains manually dispatched and
+inactive until every external gate is configured. Its secret-free preflight requires the immutable macOS-plus-Linux
+predecessor, active independent updater and checksum trust, all three protected environments, exact successful source
+checks, Pages, and the workflow policy. The certificate fingerprint comes only from the protected
+`public-windows-release` environment; a dispatcher cannot select it.
 
-A future Windows workflow must preserve the native-builder/composer separation, add exact supported-Windows-11
-candidate admission, and reuse the second-approval publication boundary. A native input or complete candidate is never
-rebuilt as a substitute for the sealed bytes after a downstream failure; recovery reopens the retained transport and
-repeats only the failed authority-free admission or publication work.
+The protected `fitfreed-windows-11-builder` job creates and seals the native input, after which the Apple Silicon
+composer downloads and independently reopens every immutable predecessor Release through
+`npm run download:complete-platform-predecessors -- <directory>`. The downloader stages each complete `release/` tree,
+rejects non-files and partial downloads, reopens every matrix-required recovery package through authenticated release
+evidence, and exposes the destination only after the entire set passes.
+
+The complete sealed candidate then passes both Ubuntu admission rows and the separate secret-free
+`fitfreed-windows-11-admission` runner. That Windows 11 x86-64 host is admitted through the reviewed
+[Windows candidate policy](../data-formats/release/windows-candidate-admission-policy-v1.md), then verifies the exact
+public setup's Authenticode trust, current-user installation, data-preserving removal, and cold launch. The same clean
+revision builds an isolated instrumented package for exhaustive automated capability, localization, accessibility,
+update, recovery, filesystem, and performance behavior; it is not substituted for the exact signed candidate.
+
+Only after those technical jobs pass can `public-windows-product-acceptance` record the bounded human product verdict.
+A later, separate `public-macos-release` approval reopens and promotes the exact candidate. A native input or complete
+candidate is never rebuilt as a substitute for the sealed bytes after a downstream failure; recovery reopens the
+retained transport and repeats only the failed authority-free admission or publication work.
 
 ## Sealed evaluation and protected publication
 
-`.github/workflows/public-release.yml` is the initial macOS publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. The later `.github/workflows/public-linux-expansion.yml` entry point additionally accepts the public release-checksum key identifier and constructs the complete macOS-plus-Linux set described above. Both share one non-cancelling publication concurrency group.
+`.github/workflows/public-release.yml` is the initial macOS publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. The later `.github/workflows/public-linux-expansion.yml` entry point additionally accepts the public release-checksum key identifier and constructs the complete macOS-plus-Linux set described above. `.github/workflows/public-windows-expansion.yml` accepts those same three public selectors and constructs the complete macOS-plus-Linux-plus-Windows set; protected configuration, not dispatch, selects every private authority and the public Windows certificate fingerprint. All three share one non-cancelling publication concurrency group.
 
 The first protected job has read-only repository permission. After local verification it seals only `release/` and `pages/` into one transport archive, records its SHA-256 digest, retains it for seven days as a private Actions artifact, and unconditionally removes Apple and updater authority. `npm run pack:public-release -- <candidate> <archive>` and `npm run unpack:public-release -- <archive> <sha256> <candidate>` verify the complete candidate on both sides of this boundary and reject mutation, additional roots, unsafe paths, partial extraction, or evidence drift.
 
-Both exact Linux candidate matrix rows must pass before the publication job can wait at the same environment for a
-second approval. While it waits, automation verifies the sealed candidate's functional and distribution behavior, and
-the product owner follows the bounded [macOS product-experience procedure](../testing/macos-candidate-manual-evaluation.md)
-on that same artifact. Promotion is rejected when the exact bytes did not pass, a serious finding remains open, or the
+Every platform-specific exact-candidate job must pass before the publication job can wait for its product and
+promotion approvals. While it waits, automation verifies the sealed candidate's functional and distribution behavior.
+The product owner follows the bounded [canonical product-experience procedure](../testing/macos-candidate-manual-evaluation.md)
+and, for the complete-platform candidate, its [Windows entry supplement](../testing/windows-candidate-manual-evaluation.md)
+against the same sealed artifact. Promotion is rejected when the exact bytes did not pass, a serious finding remains open, or the
 seven-day signed metadata window expires. The second job receives no Apple or updater secret, downloads only the same
 run's named artifact, verifies its job-bound digest, and reopens the entire candidate before it can create a public
 effect.
@@ -222,7 +237,11 @@ Before the first dispatch, maintainers must explicitly:
 2. enable immutable releases for future releases;
 3. configure GitHub Pages to deploy through Actions with HTTPS;
 4. create `public-macos-release`, require at least one reviewer, prevent self-review, disable administrator bypass, and admit only `v*` tags;
-5. install the protected variables and secrets listed above; and
-6. create and push the reviewed exact version tag only after its CI and repository-safety runs pass.
+5. install the protected variables and secrets listed above;
+6. before Windows expansion, create separately protected `public-windows-release` and
+   `public-windows-product-acceptance` environments with the same version-tag, reviewer, self-review, and administrator
+   bypass restrictions; provision separately labeled disposable Windows 11 x86-64 builder and admission runners under
+   [ADR 0046](../architecture/decisions/0046-separate-windows-candidate-build-and-admission-hosts.md); and
+7. create and push the reviewed exact version tag only after its CI and repository-safety runs pass.
 
 These are accountable setting, credential, trust-root, tag, and publication actions. They are not performed by normal CI or inferred from the existence of the workflow.

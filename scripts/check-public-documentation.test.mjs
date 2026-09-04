@@ -17,7 +17,7 @@ function bundle() {
 test("accepts the complete version-matched public documentation set", () => {
   assert.deepEqual(validatePublicDocumentationBundle(bundle()), {
     version: "0.1.0",
-    documents: 10,
+    documents: 11,
     locales: ["en-US", "es-ES"],
     catalogGuidanceKeys: 36,
   });
@@ -32,16 +32,13 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
     .replaceAll("FITFREED_WINDOWS_AUTHENTICODE_PROFILE", "WINDOWS_SIGNING_PROFILE")
     .replaceAll("complete-platform manifest version 7", "the release manifest")
     .replaceAll("Windows Authenticode certificate rotation", "certificate maintenance")
-    .replaceAll(
-      "public Windows expansion workflow is not yet implemented",
-      "public Windows expansion is available",
-    );
+    .replace(/versioned workflow is\s+implemented but inactive/gi, "versioned workflow is active");
   candidate.documents[architecturePath] = candidate.documents[architecturePath]
     .replaceAll("manifest version 7", "the complete manifest")
     .replaceAll("Windows Authenticode authority", "Windows build authority")
     .replaceAll(
-      "public Windows expansion workflow is not yet implemented",
-      "public Windows expansion is available",
+      "Windows-expansion workflows exist but remain inactive",
+      "Windows-expansion workflow is active",
     )
     .replace(
       /never\s+rebuilt as a substitute for the sealed bytes/i,
@@ -203,6 +200,7 @@ test("rejects public guidance or evaluation that drops implemented MVP journeys"
 test("rejects a candidate procedure that transfers deterministic verification to the product owner", () => {
   const candidate = bundle();
   const evaluationPath = "docs/testing/macos-candidate-manual-evaluation.md";
+  const windowsEvaluationPath = "docs/testing/windows-candidate-manual-evaluation.md";
   candidate.documents[evaluationPath] = candidate.documents[evaluationPath]
     .replace(
       "not asked to execute a control matrix",
@@ -212,12 +210,17 @@ test("rejects a candidate procedure that transfers deterministic verification to
       "Functional correctness belongs to automated unit, integration, contract, packaged end-to-end (E2E)",
       "Functional correctness may be checked manually after unit, integration, contract, and packaged E2E",
     );
+  candidate.documents[windowsEvaluationPath] = candidate.documents[windowsEvaluationPath]
+    .replace("product owner is not a manual QA operator", "product owner is the manual QA operator")
+    .replace("exact sealed complete-platform candidate", "similar complete-platform candidate");
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
     (error) => {
       assert.match(error.message, /manualEvaluation does not document product-owner scope boundary/);
       assert.match(error.message, /manualEvaluation does not document automated functional responsibility/);
+      assert.match(error.message, /windowsManualEvaluation does not document product-owner scope boundary/);
+      assert.match(error.message, /windowsManualEvaluation does not document exact candidate boundary/);
       return true;
     },
   );

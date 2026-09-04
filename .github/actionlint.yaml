@@ -1,0 +1,4 @@
+self-hosted-runner:
+  labels:
+    - fitfreed-windows-11-admission
+    - fitfreed-windows-11-builder
