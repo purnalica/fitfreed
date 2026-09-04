@@ -254,7 +254,8 @@ pub use update_recovery_windows_package::{
 pub use update_recovery_windows_state::{
     acquire_windows_update_recovery_candidate_lease,
     acquire_windows_update_recovery_watchdog_lease, active_windows_update_recovery_phase,
-    prepare_windows_update_recovery, record_active_windows_update_recovery_replacement_launch,
+    confirm_active_windows_update_recovery, prepare_windows_update_recovery,
+    record_active_windows_update_recovery_replacement_launch,
     resolve_windows_update_recovery_watchdog_context, transition_active_windows_update_recovery,
     verify_windows_update_recovery, PreparedWindowsUpdateRecovery, WindowsRecoveryStateError,
     WindowsUpdateRecoveryCandidateLease, WindowsUpdateRecoveryPreparation,

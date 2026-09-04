@@ -9,7 +9,7 @@ remains ordered after the accepted public Linux MVP.
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
 | M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, authority-separated three-file Windows expansion input, digest-bound transport, version 7 three-platform release contract, authority-separated candidate composition, and independent complete-candidate reopening are implemented and locally verified. Native execution awaits the hosted lane; protected public authority and exact Windows 11 trust remain open. |
-| M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities. Watchdog orchestration, native restoration and terminal validation, native Windows execution, and all end-to-end recovery evidence remain open. |
+| M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, and confirmation requires the exact leased target installation and library. Watchdog orchestration, native restoration and terminal validation, native Windows execution, and all end-to-end recovery evidence remain open. |
 | M5.3–M5.6 | Not started | Their parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
@@ -166,8 +166,10 @@ and reparse-aware branches. Watchdog context resolution derives authority only f
 active layout. Exclusive watchdog and candidate leases then revalidate the attempt, while candidate authority also
 requires the persisted PID, creation `FILETIME`, executable, nonce, and target native identity. The held-lock verifier
 does not attempt an impossible second open of a Windows no-sharing handle. The hosted native lane remains the execution
-authority for those operating-system APIs. This is preparation, lifecycle, and lease evidence, not yet a recoverable
-update path.
+authority for those operating-system APIs. Candidate confirmation additionally requires the held lease, active launch
+nonce, target native identity, fixed library, running version, target schema, and SQLite integrity; rejection leaves
+the durable phase at `launching`. This is preparation, lifecycle, lease, and confirmation evidence, not yet a
+recoverable update path.
 
 ## Increment M5.3 — Packaged capability parity
 
