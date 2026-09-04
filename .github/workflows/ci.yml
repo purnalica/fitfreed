@@ -397,6 +397,45 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  packaged-windows-e2e:
+    name: Packaged Windows capability E2E
+    needs: quality
+    if: needs.quality.outputs.full-verification == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Verify the Windows development environment
+        run: npm run doctor
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Build, install, and test packaged Windows capability parity
+        run: npm run verify:windows-e2e
+
+      - name: Retain privacy-safe Windows capability failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packaged-windows-e2e-failure
+          path: .artifacts/e2e/evidence
+          if-no-files-found: warn
+          retention-days: 7
+
   windows-host:
     name: Windows native host and NSIS package verification
     needs: quality
@@ -586,7 +625,7 @@ jobs:
 
   verification-evidence:
     name: Record complete verification evidence
-    needs: [quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e]
+    needs: [quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e, packaged-windows-e2e]
     if: >-
       always() &&
       needs.quality.result == 'success' &&
@@ -594,7 +633,8 @@ jobs:
       needs.windows-host.result == 'success' &&
       needs.packaged-macos-e2e.result == 'success' &&
       needs.packaged-linux-e2e.result == 'success' &&
-      needs.packaged-linux-update-e2e.result == 'success'
+      needs.packaged-linux-update-e2e.result == 'success' &&
+      needs.packaged-windows-e2e.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

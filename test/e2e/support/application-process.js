@@ -1,6 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
+const windowsProcessQuery = [
+  "$target = [IO.Path]::GetFullPath($env:FITFREED_E2E_PROCESS_EXECUTABLE)",
+  "$comparer = [StringComparer]::OrdinalIgnoreCase",
+  "Get-CimInstance Win32_Process | Where-Object { $null -ne $_.ExecutablePath -and $comparer.Equals([IO.Path]::GetFullPath($_.ExecutablePath), $target) } | ForEach-Object { '{0} {1}' -f $_.ProcessId, $target }",
+].join("; ");
+
 export function parseExactApplicationProcessIds(processTable, applicationBinary) {
   return processTable
     .split("\n")
@@ -11,10 +17,31 @@ export function parseExactApplicationProcessIds(processTable, applicationBinary)
     });
 }
 
-export function exactApplicationProcessId(applicationBinary) {
-  const processTable = execFileSync("ps", ["-axo", "pid=,command="], {
-    encoding: "utf8",
-  });
+export function applicationProcessTable(applicationBinary, {
+  execute = execFileSync,
+  platform = process.platform,
+} = {}) {
+  if (platform === "darwin" || platform === "linux") {
+    return execute("ps", ["-axo", "pid=,command="], { encoding: "utf8" });
+  }
+  if (platform === "win32") {
+    return execute(
+      "powershell.exe",
+      ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", windowsProcessQuery],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          FITFREED_E2E_PROCESS_EXECUTABLE: applicationBinary,
+        },
+      },
+    );
+  }
+  throw new Error(`unsupported packaged E2E process platform: ${platform}`);
+}
+
+export function exactApplicationProcessId(applicationBinary, options = {}) {
+  const processTable = applicationProcessTable(applicationBinary, options);
   const processIds = parseExactApplicationProcessIds(processTable, applicationBinary);
   if (processIds.length !== 1) {
     throw new Error(`expected one packaged application process; found ${processIds.length}`);

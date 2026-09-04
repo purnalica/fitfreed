@@ -314,6 +314,17 @@ Local and continuous-integration workflows will invoke the same underlying comma
   only the optional leading `./` used by some `dpkg-deb` versions when presenting relative paths; the package name,
   architecture, version, exact executable path, and executable mode remain independent fail-closed checks whose
   diagnostics identify the violated contract.
+- A separate read-only `windows-2025` capability job builds an instrumented current-user NSIS package with the isolated
+  `fitfreed-e2e` product and executable names and `org.fitfreed.desktop.e2e` application identity. Its PowerShell
+  boundary refuses any pre-existing installation, registration, shortcut, or application data for that identity;
+  silently installs the exact generated setup; verifies registration, executable metadata, and unsigned engineering
+  trust; and then drives the same seven WebdriverIO functional, restart, adaptive-session, sport-catalogue, and
+  performance scenarios against the installed executable. Real-process restart evidence uses an exact executable-path
+  `Win32_Process` query rather than a process-name match. Silent removal must preserve all synthetic libraries and the
+  sentinel application data before the harness removes only its exact isolated data roots. Success discards generated
+  run state; CI may retain only privacy-safe WebdriverIO diagnostics after failure. This job runs only for complete
+  verification and must succeed before its executable fingerprint receives reusable evidence. Hosted Windows Server
+  execution is native capability evidence but does not replace the later exact Windows 11 desktop gate.
 - The manual complete-platform publication workflow independently admits the already sealed manifest version 6
   candidate on hosted x86-64 Ubuntu 24.04 and 26.04 before promotion can reach its second approval. Each secret-free
   row verifies the transport digest and complete candidate, installs only the manifest-declared Debian artifact,

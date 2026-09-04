@@ -60,3 +60,20 @@ test("rejects an unpinned, Unix-dependent, incomplete, or reusable-without-proof
     );
   }
 });
+
+test("requires isolated packaged Windows capability evidence", () => {
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      "npm run verify:windows-e2e",
+      "npm run build:e2e",
+    )),
+    /packaged Windows capability/,
+  );
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      "needs.packaged-windows-e2e.result == 'success'",
+      "needs.packaged-windows-e2e.result == 'skipped'",
+    )),
+    /complete verification evidence/,
+  );
+});

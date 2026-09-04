@@ -10,7 +10,8 @@ remains ordered after the accepted public Linux MVP.
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
 | M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, authority-separated three-file Windows expansion input, digest-bound transport, version 7 three-platform release contract, authority-separated candidate composition, and independent complete-candidate reopening are implemented and locally verified. Native execution awaits the hosted lane; protected public authority and exact Windows 11 trust remain open. |
 | M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, distinguish installer failure from an invalid resulting native identity, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, confirmation requires the exact leased target installation and library, restoration atomically recovers the verified source pair with a closed three-attempt failure policy, and terminal maintenance validates the complete pair before durable receipt and cleanup. The installation coordinator and Windows host now route fresh, resumed, candidate, retry, and terminal work through the preserved watchdog. Native Windows execution and all release-shaped end-to-end recovery evidence remain open. |
-| M5.3–M5.6 | Not started | Their parity, reliability, documentation, candidate, human, and promotion gates remain open. |
+| M5.3 Packaged capability parity | In progress | The isolated instrumented NSIS identity, build/install/removal orchestration, native Windows process-restart evidence, and impact-aware hosted capability lane are implemented and locally contract-tested. Native execution of the seven shared packaged scenarios and the remaining Windows-visible paths remain open. |
+| M5.4–M5.6 | Not started | Their reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
 
@@ -210,6 +211,19 @@ release-shaped recovery evidence still remain before this is an admitted recover
 
 **Acceptance evidence:** packaged Windows E2E passes without retries, disabled assertions, development servers, or
 mocked business behavior. The exact Windows 11 candidate later repeats all platform-visible paths in a clean desktop.
+
+The first implemented parity slice builds an NSIS package whose `fitfreed-e2e` product, executable, current-user
+installation, uninstall registration, application-data roots, and `org.fitfreed.desktop.e2e` identifier cannot replace
+the production application. A bounded PowerShell adapter refuses pre-existing test state, verifies the silent
+installation and executable identity, runs the same seven functional, restart, sport-catalogue, adaptive-session, and
+performance scenarios against the installed executable, then requires silent package removal to preserve every
+synthetic library before removing only the isolated test application data it created. Restart evidence uses `ps` on
+macOS and Linux and an exact executable-path `Win32_Process` query on Windows; a process name or reused identifier is
+not accepted. The separate read-only `windows-2025` capability job runs only when complete verification is required,
+retains only privacy-safe failure diagnostics, and is required before the executable fingerprint can receive complete
+reusable evidence. Local contract tests validate this topology; the hosted job has not yet supplied native execution
+evidence, and this slice does not close Windows file-dialog, external-link, display-scaling, update, or exact Windows 11
+acceptance.
 
 ## Increment M5.4 — Windows performance and reliability admission
 

@@ -91,6 +91,7 @@ or CI runner rather than a personal profile.
 | Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
 | Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
+| Build, install, drive, and remove the isolated NSIS capability-test package | `npm run verify:windows-e2e` |
 | Build the Authenticode-signed update-capable Windows input under protected authority | `npm run package:windows-expansion-input` |
 | Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
 | Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
@@ -256,8 +257,10 @@ and then removes successful run data. It neither installs nor replaces the produ
 
 The loose instrumented executable resolves to `fitfreed` on macOS and Linux and `fitfreed.exe` on Windows. macOS builds
 an isolated application bundle; Linux capability parity additionally builds and installs the isolated
-`fitfreed-e2e` Debian package, while Windows host admission continues to use the loose executable until Milestone 5
-adds its package boundary. The instrumented macOS application has its own stable bundle identity. To keep local E2E windows away from
+`fitfreed-e2e` Debian package. Windows capability parity builds and installs the isolated `fitfreed-e2e` current-user
+NSIS package through `npm run verify:windows-e2e`; run it only from native x86-64 Windows PowerShell. The command refuses
+pre-existing test identity, drives the same seven packaged scenarios, silently removes the package, and verifies that
+removal preserves the synthetic libraries. The instrumented macOS application has its own stable bundle identity. To keep local E2E windows away from
 an active Desktop, run `npm run build:e2e`, open the generated
 `src-tauri/target/e2e/release/bundle/macos/FitFreed.app`, then use **Dock → Options → Assign To → This Desktop** once.
 macOS retains that assignment for subsequent E2E rebuilds. This is a local development preference rather than a test

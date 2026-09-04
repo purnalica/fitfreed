@@ -244,6 +244,9 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   const packagedLinuxJob = workflow.match(
     /  packaged-linux-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
   )?.groups?.body;
+  const packagedWindowsJob = workflow.match(
+    /  packaged-windows-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
+  )?.groups?.body;
   const windowsHostJob = workflow.match(
     /  windows-host:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
   )?.groups?.body;
@@ -273,7 +276,7 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   );
   assert.match(
     workflow,
-    /needs: \[quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e\]/,
+    /needs: \[quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e, packaged-windows-e2e\]/,
   );
   assert.match(workflow, /needs\.windows-host\.result == 'success'/);
   assert.match(workflow, /needs\.packaged-linux-e2e\.result == 'success'/);
@@ -281,6 +284,7 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
     workflow,
     /needs\.packaged-linux-update-e2e\.result == 'success'/,
   );
+  assert.match(workflow, /needs\.packaged-windows-e2e\.result == 'success'/);
   assert.match(workflow, /uses: actions\/cache\/save@[0-9a-f]{40}/);
   assert.match(qualityJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(qualityJob ?? "", /npm run test:rust/);
@@ -309,6 +313,13 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   );
   assert.match(packagedLinuxJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(packagedLinuxJob ?? "", /npm run verify:linux-e2e/);
+  assert.match(packagedWindowsJob ?? "", /^    needs: quality$/m);
+  assert.match(
+    packagedWindowsJob ?? "",
+    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
+  );
+  assert.match(packagedWindowsJob ?? "", /^    runs-on: windows-2025$/m);
+  assert.match(packagedWindowsJob ?? "", /npm run verify:windows-e2e/);
   assert.match(windowsHostJob ?? "", /^    needs: quality$/m);
   assert.match(windowsHostJob ?? "", /^    runs-on: windows-2025$/m);
   assert.match(

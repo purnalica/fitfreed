@@ -21,6 +21,7 @@ function requireMatch(errors, source, pattern, message) {
 export function validateWindowsCiWorkflow(source) {
   const errors = [];
   const windows = jobSection(source, "windows-host");
+  const packagedCapability = jobSection(source, "packaged-windows-e2e");
   const completeEvidence = jobSection(source, "verification-evidence");
 
   requireMatch(errors, windows, /^    runs-on: windows-2025$/m, "Windows host must use windows-2025");
@@ -103,7 +104,7 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     completeEvidence,
-    /needs: \[quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e\]/,
+    /needs: \[quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e, packaged-windows-e2e\]/,
     "complete verification evidence must depend on Windows host verification",
   );
   requireMatch(
@@ -111,6 +112,48 @@ export function validateWindowsCiWorkflow(source) {
     completeEvidence,
     /needs\.windows-host\.result == 'success'/,
     "complete verification evidence must require a successful Windows host",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /^    runs-on: windows-2025$/m,
+    "packaged Windows capability must use windows-2025",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /^    needs: quality$/m,
+    "packaged Windows capability must follow impact classification",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
+    "packaged Windows capability must run only for complete verification",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /permissions:\n      contents: read/,
+    "packaged Windows capability permissions must remain read-only",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /npm run verify:windows-e2e/,
+    "packaged Windows capability must build, install, and exercise the isolated NSIS package",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /path: \.artifacts\/e2e\/evidence/,
+    "packaged Windows capability must retain privacy-safe failure evidence",
+  );
+  requireMatch(
+    errors,
+    completeEvidence,
+    /needs\.packaged-windows-e2e\.result == 'success'/,
+    "complete verification evidence must require packaged Windows capability evidence",
   );
 
   const evidenceVerification = windows.indexOf(
@@ -160,12 +203,26 @@ export function validateWindowsCiWorkflow(source) {
     "\\bCARGO_TARGET_DIR=",
   ].join("|"));
   if (unixOnly.test(windows)) errors.push("Windows host contains a Unix-only command");
+  if (unixOnly.test(packagedCapability)) {
+    errors.push("packaged Windows capability contains a Unix-only command");
+  }
   if (/\$\{\{\s*(?:secrets|vars)\./.test(windows) || /^    environment:/m.test(windows)) {
     errors.push("Windows host cannot receive protected authority");
   }
-  for (const match of windows.matchAll(/^\s+uses:\s+([^\s#]+)/gm)) {
-    if (!/@[0-9a-f]{40}$/.test(match[1])) {
-      errors.push(`Windows host action is not pinned: ${match[1]}`);
+  if (
+    /\$\{\{\s*(?:secrets|vars)\./.test(packagedCapability)
+    || /^    environment:/m.test(packagedCapability)
+  ) {
+    errors.push("packaged Windows capability cannot receive protected authority");
+  }
+  for (const [job, label] of [
+    [windows, "Windows host"],
+    [packagedCapability, "packaged Windows capability"],
+  ]) {
+    for (const match of job.matchAll(/^\s+uses:\s+([^\s#]+)/gm)) {
+      if (!/@[0-9a-f]{40}$/.test(match[1])) {
+        errors.push(`${label} action is not pinned: ${match[1]}`);
+      }
     }
   }
 

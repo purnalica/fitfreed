@@ -12,6 +12,10 @@ import {
   linuxE2ePackageBuildArguments,
   validateLinuxE2ePackageConfiguration,
 } from "./build-linux-e2e-package.mjs";
+import {
+  validateWindowsE2ePackageConfiguration,
+  windowsE2ePackageBuildArguments,
+} from "./build-windows-e2e-package.mjs";
 import { packagedE2eScenarioPlan } from "./packaged-e2e-plan.mjs";
 import { runPackagedE2e } from "./run-packaged-e2e.mjs";
 import {
@@ -25,7 +29,10 @@ import {
   waitForElementCount,
   waitForNotice,
 } from "../test/e2e/support/application-actions.js";
-import { parseExactApplicationProcessIds } from "../test/e2e/support/application-process.js";
+import {
+  applicationProcessTable,
+  parseExactApplicationProcessIds,
+} from "../test/e2e/support/application-process.js";
 
 test("keeps the instrumented executable outside the production target", () => {
   const application = defaultConfig.capabilities[0]["tauri:options"].application;
@@ -178,6 +185,51 @@ test("keeps the installed Linux E2E package distinct from the product package", 
   );
 
   assert.deepEqual(validateLinuxE2ePackageConfiguration(configuration), {
+    identifier: "org.fitfreed.desktop.e2e",
+    mainBinaryName: "fitfreed-e2e",
+    packageName: "fitfreed-e2e",
+    productName: "fitfreed-e2e",
+  });
+});
+
+test("builds an isolated instrumented NSIS package for installed Windows journeys", () => {
+  assert.deepEqual(windowsE2ePackageBuildArguments([], "win32", "x64"), [
+    "build",
+    "--features",
+    "e2e",
+    "--bundles",
+    "nsis",
+    "--config",
+    "src-tauri/tauri.e2e.conf.json",
+    "--config",
+    "src-tauri/tauri.windows.conf.json",
+    "--config",
+    "src-tauri/tauri.windows.e2e.conf.json",
+  ]);
+  assert.deepEqual(
+    windowsE2ePackageBuildArguments(["--verbose"], "win32", "x64").slice(-1),
+    ["--verbose"],
+  );
+  assert.throws(
+    () => windowsE2ePackageBuildArguments([], "darwin", "x64"),
+    /requires Windows/,
+  );
+  assert.throws(
+    () => windowsE2ePackageBuildArguments([], "win32", "arm64"),
+    /requires x86-64/,
+  );
+  assert.throws(
+    () => windowsE2ePackageBuildArguments(["--debug"], "win32", "x64"),
+    /only accepts/,
+  );
+});
+
+test("keeps the installed Windows E2E package distinct from the product package", () => {
+  const configuration = JSON.parse(
+    readFileSync(path.resolve("src-tauri/tauri.windows.e2e.conf.json"), "utf8"),
+  );
+
+  assert.deepEqual(validateWindowsE2ePackageConfiguration(configuration), {
     identifier: "org.fitfreed.desktop.e2e",
     mainBinaryName: "fitfreed-e2e",
     packageName: "fitfreed-e2e",
@@ -402,6 +454,40 @@ test("identifies only the exact packaged application command", () => {
   assert.deepEqual(
     parseExactApplicationProcessIds(processTable, application),
     [101],
+  );
+});
+
+test("reads exact packaged process identity through native platform tools", () => {
+  const calls = [];
+  const execute = (...arguments_) => {
+    calls.push(arguments_);
+    return "  101 C:\\Program Files\\fitfreed-e2e\\fitfreed-e2e.exe\r\n";
+  };
+  const application = "C:\\Program Files\\fitfreed-e2e\\fitfreed-e2e.exe";
+
+  assert.equal(applicationProcessTable(application, {
+    execute,
+    platform: "win32",
+  }), `  101 ${application}\r\n`);
+  assert.equal(calls[0][0], "powershell.exe");
+  assert.deepEqual(calls[0][1].slice(0, 4), [
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+  ]);
+  assert.equal(calls[0][2].env.FITFREED_E2E_PROCESS_EXECUTABLE, application);
+
+  calls.length = 0;
+  applicationProcessTable("/usr/bin/fitfreed-e2e", {
+    execute,
+    platform: "linux",
+  });
+  assert.equal(calls[0][0], "ps");
+  assert.deepEqual(calls[0][1], ["-axo", "pid=,command="]);
+  assert.throws(
+    () => applicationProcessTable(application, { execute, platform: "freebsd" }),
+    /unsupported packaged E2E process platform/,
   );
 });
 
