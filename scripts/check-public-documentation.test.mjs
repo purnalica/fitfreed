@@ -17,7 +17,7 @@ function bundle() {
 test("accepts the complete version-matched public documentation set", () => {
   assert.deepEqual(validatePublicDocumentationBundle(bundle()), {
     version: "0.1.0",
-    documents: 8,
+    documents: 9,
     locales: ["en-US", "es-ES"],
     catalogGuidanceKeys: 17,
   });
@@ -37,6 +37,40 @@ test("rejects Linux guidance that weakens the exact support and package boundary
       assert.match(error.message, /linuxUserGuide does not document exact Debian package/);
       return true;
     },
+  );
+});
+
+test("rejects Windows guidance that weakens trust, installation, and support boundaries", () => {
+  const candidate = bundle();
+  const guidePath = "docs/user/public-windows-0.1.0.md";
+  candidate.documents[guidePath] = candidate.documents[guidePath]
+    .replace("x86-64 editions of Windows 11", "Windows computers")
+    .replaceAll("FitFreed_0.1.0_x64-setup.exe", "FitFreed.msi")
+    .replace("current-user installation", "system-wide installation")
+    .replace("A SmartScreen reputation warning is not a trust result", "Choose Run anyway");
+
+  assert.throws(
+    () => validatePublicDocumentationBundle(candidate),
+    (error) => {
+      assert.match(error.message, /windowsUserGuide does not document supported Windows boundary/);
+      assert.match(error.message, /windowsUserGuide does not document exact NSIS setup/);
+      assert.match(error.message, /windowsUserGuide does not document current-user installation/);
+      assert.match(error.message, /windowsUserGuide does not document SmartScreen interpretation/);
+      return true;
+    },
+  );
+});
+
+test("rejects a support entry point that hides the Windows guide", () => {
+  const candidate = bundle();
+  candidate.documents["SUPPORT.md"] = candidate.documents["SUPPORT.md"].replace(
+    "docs/user/public-windows-0.1.0.md",
+    "docs/user/README.md",
+  );
+
+  assert.throws(
+    () => validatePublicDocumentationBundle(candidate),
+    /SUPPORT\.md is missing required public guidance.*public-windows/,
   );
 });
 

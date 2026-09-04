@@ -12,7 +12,8 @@ remains ordered after the accepted public Linux MVP.
 | M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, distinguish installer failure from an invalid resulting native identity, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, confirmation requires the exact leased target installation and library, restoration atomically recovers the verified source pair with a closed three-attempt failure policy, and terminal maintenance validates the complete pair before durable receipt and cleanup. A production-identity NSIS campaign now covers successful replacement, native installer failure, candidate rejection, restart resumption after an instrumented watchdog interruption, runnable fallback, offline retry, and terminal exhaustion; its contracts pass locally, while the native hosted run remains open. |
 | M5.3 Packaged capability parity | In progress | The isolated instrumented NSIS identity, build/install/removal orchestration, native Windows process-restart evidence, and impact-aware hosted capability lane are implemented and locally contract-tested. Native execution of the seven shared packaged scenarios and the remaining Windows-visible paths remain open. |
 | M5.4 Windows performance and reliability admission | In progress | The manual hosted performance workflow, production NSIS cold-launch lifecycle, portable Windows benchmark paths, native peak-memory measurement, isolated NTFS disk-exhaustion recovery, and version 2 private-library filesystem boundary are implemented and locally contract-tested. Native execution and exact Windows 11 evidence remain open. |
-| M5.5–M5.6 | Not started | Their documentation, candidate, human, and promotion gates remain open. |
+| M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide and its fail-closed documentation contract now cover exact download verification, Authenticode, SmartScreen interpretation, current-user installation, offline first launch, localized application behavior, update recovery, uninstall, separate data deletion, unsupported environments, and privacy-safe support. Contributor, release-operation, exact-candidate, and site integration remain open. |
+| M5.6 Exact candidate and promotion | Not started | Candidate, clean Windows 11, human, predecessor, and promotion gates remain open. |
 
 ## Objective
 
@@ -297,6 +298,12 @@ without private knowledge.
 
 **Acceptance evidence:** documentation, PowerShell clean-room setup, localized content, installed help, artifact
 reopening, and support-link checks pass for the exact candidate.
+
+The first documentation slice adds the inactive version-matched Windows guide and indexes it from user and support
+entry points without activating a download. Its automated contract rejects drift in the exact NSIS name, supported
+Windows family, current-user mode, Authenticode verification, SmartScreen interpretation, offline dependency,
+localized application behavior, local-data lifecycle, unsupported deployment modes, and private reporting boundary.
+Contributor operations, exact-candidate generation, and public-site activation remain separate later slices.
 
 ## Increment M5.6 — Exact candidate and promotion
 

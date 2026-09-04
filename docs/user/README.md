@@ -197,8 +197,13 @@ The [public Linux 0.1.0 guide](public-linux-0.1.0.md) is the future Ubuntu x86-6
 verification, graphical installation, update, recovery, removal, local-data, and support guide. It is conditional and
 does not announce a Linux binary.
 
-The [public macOS readiness ledger](../testing/public-release-readiness.md) and
-[Milestone 4 Linux execution ledger](../plans/milestone-4.md) record which gates have passed and which still prevent
+The [public Windows 0.1.0 guide](public-windows-0.1.0.md) is the future Windows 11 x86-64 current-user NSIS download,
+verification, Authenticode and SmartScreen interpretation, installation, update, recovery, removal, local-data, and
+support guide. It is conditional and does not announce a Windows binary.
+
+The [public macOS readiness ledger](../testing/public-release-readiness.md),
+[Milestone 4 Linux execution ledger](../plans/milestone-4.md), and
+[Milestone 5 Windows execution ledger](../plans/milestone-5.md) record which gates have passed and which still prevent
 their respective guides from becoming operative. FitFreed 0.1.0 is not accepted on a platform while any applicable
 gate remains pending, open, awaiting a candidate, or unauthorized.
 
