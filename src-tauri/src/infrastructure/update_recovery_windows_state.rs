@@ -1137,25 +1137,26 @@ pub fn maintain_windows_update_recovery(
     recovery_root: &Path,
     expected_library_path: &Path,
 ) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
+    let mut watchdog_lease = None;
     maintain_windows_update_recovery_with(
         &SystemRecoveryPackages,
         &SystemWindowsInstalledState,
         recovery_root,
         expected_library_path,
-        None,
+        &mut watchdog_lease,
     )
 }
 
 pub fn maintain_windows_update_recovery_with_watchdog_lease(
     context: &WindowsUpdateRecoveryWatchdogContext,
-    watchdog_lease: WindowsUpdateRecoveryWatchdogLease,
+    watchdog_lease: &mut Option<WindowsUpdateRecoveryWatchdogLease>,
 ) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
     maintain_windows_update_recovery_with(
         &SystemRecoveryPackages,
         &SystemWindowsInstalledState,
         context.recovery_root(),
         context.library_path(),
-        Some(watchdog_lease),
+        watchdog_lease,
     )
 }
 
@@ -1164,7 +1165,7 @@ fn maintain_windows_update_recovery_with(
     installed_state: &impl WindowsInstalledStatePort,
     recovery_root: &Path,
     expected_library_path: &Path,
-    watchdog_lease: Option<WindowsUpdateRecoveryWatchdogLease>,
+    watchdog_lease: &mut Option<WindowsUpdateRecoveryWatchdogLease>,
 ) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
     if !path_entry_exists(recovery_root)? {
         return Ok(UpdateRecoveryMaintenance::NoTerminalOutcome);
@@ -1220,7 +1221,7 @@ fn finalize_terminal_windows_update_recovery(
     active_expected: bool,
     retained_outcome: Option<&UpdateRecoveryOutcome>,
     expected_library_path: &Path,
-    watchdog_lease: Option<WindowsUpdateRecoveryWatchdogLease>,
+    watchdog_lease: &mut Option<WindowsUpdateRecoveryWatchdogLease>,
 ) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
     let attempts_directory =
         canonical_private_directory(&recovery_root.join(ATTEMPTS_DIRECTORY_NAME))?;
@@ -1346,7 +1347,7 @@ fn finalize_terminal_windows_update_recovery(
     drop(state_lock);
     drop(candidate_lock);
     drop(watchdog_lock);
-    drop(watchdog_lease);
+    drop(watchdog_lease.take());
     fs::remove_dir_all(&attempt_directory)?;
     sync_directory(&attempts_directory)?;
     Ok(UpdateRecoveryMaintenance::OutcomeRetained(outcome))
@@ -4053,6 +4054,20 @@ mod tests {
         let packages = SyntheticPackages::available();
         let (prepared, candidate) = prepare_confirmed_candidate(&harness, &packages);
         let installed = SyntheticInstalledState::new(&harness, "0.2.0", true);
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_windows_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            &harness.identity.executable_path,
+        )
+        .expect("watchdog context");
+        let mut watchdog_lease = Some(
+            acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
+                .expect("watchdog lease"),
+        );
 
         assert_eq!(
             maintain_windows_update_recovery_with(
@@ -4060,11 +4075,12 @@ mod tests {
                 &installed,
                 &harness.recovery_root,
                 &harness.library_path,
-                None,
+                &mut watchdog_lease,
             )
             .expect("busy maintenance"),
             UpdateRecoveryMaintenance::Deferred
         );
+        assert!(watchdog_lease.is_some());
         drop(candidate);
 
         let expected = UpdateRecoveryOutcome {
@@ -4079,11 +4095,12 @@ mod tests {
                 &installed,
                 &harness.recovery_root,
                 &harness.library_path,
-                None,
+                &mut watchdog_lease,
             )
             .expect("terminal maintenance"),
             UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
         );
+        assert!(watchdog_lease.is_none());
         assert!(!prepared.attempt_directory().exists());
         assert!(!harness.recovery_root.join(ACTIVE_FILE_NAME).exists());
         assert_eq!(
@@ -4096,7 +4113,7 @@ mod tests {
                 &installed,
                 &harness.recovery_root,
                 &harness.library_path,
-                None,
+                &mut None,
             )
             .expect("resumed maintenance"),
             UpdateRecoveryMaintenance::OutcomeRetained(expected)
@@ -4107,7 +4124,7 @@ mod tests {
     fn retains_a_recovered_windows_outcome_only_after_revalidating_the_native_pair() {
         let harness = Harness::new();
         let packages = SyntheticPackages::available();
-        let (prepared, context, watchdog) = prepare_with_watchdog(&harness, &packages);
+        let (prepared, _context, watchdog) = prepare_with_watchdog(&harness, &packages);
         transition_active_windows_update_recovery(
             &harness.recovery_root,
             prepared.recovery_id(),
@@ -4131,6 +4148,7 @@ mod tests {
             },
         )
         .expect("recovered pair");
+        let mut watchdog_lease = Some(watchdog);
 
         assert!(matches!(
             maintain_windows_update_recovery_with(
@@ -4138,18 +4156,17 @@ mod tests {
                 &SyntheticInstalledState::new(&harness, "0.1.0", false),
                 &harness.recovery_root,
                 &harness.library_path,
-                Some(watchdog),
+                &mut watchdog_lease,
             ),
             Err(WindowsRecoveryStateError::InvalidState)
         ));
+        assert!(watchdog_lease.is_some());
         assert!(prepared.attempt_directory().exists());
         assert_eq!(
             read_update_recovery_outcome(&harness.recovery_root).expect("no premature outcome"),
             None
         );
 
-        let watchdog = acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
-            .expect("replacement watchdog lease");
         let expected = UpdateRecoveryOutcome {
             recovery_id: prepared.recovery_id().to_owned(),
             kind: UpdateRecoveryOutcomeKind::Recovered,
@@ -4162,11 +4179,12 @@ mod tests {
                 &SyntheticInstalledState::new(&harness, "0.1.0", true),
                 &harness.recovery_root,
                 &harness.library_path,
-                Some(watchdog),
+                &mut watchdog_lease,
             )
             .expect("terminal maintenance"),
             UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
         );
+        assert!(watchdog_lease.is_none());
         assert_eq!(
             read_update_recovery_outcome(&harness.recovery_root).expect("recovered outcome"),
             Some(expected)
@@ -4201,7 +4219,7 @@ mod tests {
                 &SyntheticInstalledState::new(&harness, "0.2.0", true),
                 &harness.recovery_root,
                 &harness.library_path,
-                None,
+                &mut None,
             ),
             Err(WindowsRecoveryStateError::InvalidState)
         ));
@@ -4215,7 +4233,7 @@ mod tests {
                 &SyntheticInstalledState::new(&harness, "0.2.0", true),
                 &harness.recovery_root,
                 &harness.library_path,
-                None,
+                &mut None,
             )
             .expect("resumed cleanup"),
             UpdateRecoveryMaintenance::OutcomeRetained(expected)
