@@ -40,6 +40,9 @@ jobs:
       - name: Verify installed Windows cold-launch budget
         run: npm run verify:windows-cold-launch
 
+      - name: Verify Windows filesystem failure recovery
+        run: npm run verify:windows-filesystem-reliability
+
       - name: Verify full-scale import budgets
         run: npm run benchmark:import
 

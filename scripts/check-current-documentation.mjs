@@ -217,6 +217,30 @@ export function validateCurrentDocumentation({
     /Installed Windows cold launch or a Windows data budget fails/,
     "troubleshooting omits the Windows performance boundary",
   );
+  requirePattern(
+    errors,
+    sources[paths.gettingStarted],
+    /npm run verify:windows-filesystem-reliability/,
+    "contributor setup omits the Windows filesystem reliability command",
+  );
+  requirePattern(
+    errors,
+    sources[paths.automation],
+    /isolated 64 MiB NTFS VHD/,
+    "automation strategy omits the isolated Windows filesystem boundary",
+  );
+  requirePattern(
+    errors,
+    sources[paths.performanceBenchmarks],
+    /actual Windows disk-full failure/,
+    "performance guidance omits the Windows disk-full boundary",
+  );
+  requirePattern(
+    errors,
+    sources[paths.troubleshooting],
+    /Windows disk-exhaustion gate fails/,
+    "troubleshooting omits the Windows disk-exhaustion boundary",
+  );
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return {

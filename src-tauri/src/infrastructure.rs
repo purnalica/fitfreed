@@ -18382,6 +18382,8 @@ mod tests {
     use std::io::Write;
     #[cfg(target_os = "linux")]
     use std::{env, ffi::CString, fs, mem::MaybeUninit, os::unix::ffi::OsStrExt};
+    #[cfg(target_os = "windows")]
+    use std::{env, fs};
     use tempfile::TempDir;
     use zip::{write::SimpleFileOptions, ZipWriter};
 
@@ -28333,6 +28335,146 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["2026-03-01", "2026-03-02"]
         );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    #[ignore = "requires the isolated NTFS volume mounted by the Windows reliability admission"]
+    fn recovers_from_windows_disk_exhaustion_without_losing_committed_history() {
+        use std::os::windows::fs::MetadataExt;
+
+        use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+
+        let filesystem_root = PathBuf::from(
+            env::var_os("FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT")
+                .expect("isolated Windows filesystem root"),
+        );
+        let boundary = fs::symlink_metadata(&filesystem_root).expect("filesystem root metadata");
+        assert!(boundary.is_dir());
+        assert_eq!(boundary.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT, 0);
+        assert!(filesystem_root
+            .join(".fitfreed-isolated-filesystem")
+            .is_file());
+        let capacity = windows_filesystem_capacity(&filesystem_root);
+        assert!((48 * 1024 * 1024..=80 * 1024 * 1024).contains(&capacity));
+
+        let database_path = filesystem_root.join("fitfreed.sqlite");
+        prepare_private_library_path(&database_path).expect("private Windows library boundary");
+        let harness = Harness::new();
+        let baseline_archive = harness.archive(
+            "disk-baseline.zip",
+            &[(
+                "activity-2026-03-01-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-03-01","summary":{"stepCount":100}}"#,
+            )],
+        );
+        import_archive(&database_path, &baseline_archive, "polar:synthetic")
+            .expect("baseline import");
+
+        let additional_archive = harness.archive(
+            "disk-additional.zip",
+            &[(
+                "activity-2026-03-02-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-03-02","summary":{"stepCount":200}}"#,
+            )],
+        );
+        let filler_path = filesystem_root.join("filler.bin");
+        fill_windows_filesystem(&filler_path);
+
+        let error = import_archive(&database_path, &additional_archive, "polar:synthetic")
+            .expect_err("disk-full import failure");
+        assert!(
+            is_windows_disk_full_error(&error),
+            "unexpected error: {error:?}"
+        );
+        fs::remove_file(&filler_path).expect("release isolated filesystem capacity");
+
+        recover_interrupted_imports(&database_path).expect("disk-full startup recovery");
+        assert_eq!(
+            query_activity(&database_path)
+                .expect("history after disk-full recovery")
+                .iter()
+                .map(|activity| activity.local_date.as_str())
+                .collect::<Vec<_>>(),
+            vec!["2026-03-01"]
+        );
+        import_archive(&database_path, &additional_archive, "polar:synthetic")
+            .expect("retry after capacity is available");
+        let connection = Connection::open(&database_path).expect("reopened recovered library");
+        assert_integrity(&connection);
+        assert_eq!(
+            query_activity(&database_path)
+                .expect("history after disk-full retry")
+                .iter()
+                .map(|activity| activity.local_date.as_str())
+                .collect::<Vec<_>>(),
+            vec!["2026-03-01", "2026-03-02"]
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    fn windows_filesystem_capacity(path: &Path) -> u64 {
+        use std::os::windows::ffi::OsStrExt;
+
+        use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+
+        let path = path
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>();
+        let mut total_bytes = 0_u64;
+        let result = unsafe {
+            GetDiskFreeSpaceExW(
+                path.as_ptr(),
+                std::ptr::null_mut(),
+                &mut total_bytes,
+                std::ptr::null_mut(),
+            )
+        };
+        assert_ne!(result, 0, "filesystem capacity query");
+        total_bytes
+    }
+
+    #[cfg(target_os = "windows")]
+    fn fill_windows_filesystem(path: &Path) {
+        let mut filler = File::create(path).expect("filesystem filler");
+        let block = [0_u8; 1024 * 1024];
+        loop {
+            match filler.write(&block) {
+                Ok(0) => panic!("filesystem filler made no progress"),
+                Ok(_) => match filler.sync_data() {
+                    Ok(()) => {}
+                    Err(error) if is_windows_disk_full_io_error(&error) => break,
+                    Err(error) => panic!("unexpected filesystem filler sync error: {error}"),
+                },
+                Err(error) if is_windows_disk_full_io_error(&error) => break,
+                Err(error) => panic!("unexpected filesystem filler error: {error}"),
+            }
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn is_windows_disk_full_io_error(error: &io::Error) -> bool {
+        matches!(error.raw_os_error(), Some(39) | Some(112))
+    }
+
+    #[cfg(target_os = "windows")]
+    fn is_windows_disk_full_error(error: &ImportError) -> bool {
+        match error {
+            ImportError::Io(error) => is_windows_disk_full_io_error(error),
+            ImportError::Database(SqliteError::SqliteFailure(failure, _)) => {
+                failure.code == ErrorCode::DiskFull
+            }
+            ImportError::OutcomePersistence {
+                import_error,
+                persistence_error,
+            } => {
+                import_error.contains("database or disk is full")
+                    || persistence_error.contains("database or disk is full")
+            }
+            _ => false,
+        }
     }
 
     #[cfg(target_os = "linux")]

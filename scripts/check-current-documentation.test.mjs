@@ -103,6 +103,39 @@ test("rejects undocumented Windows performance admission controls", () => {
   );
 });
 
+test("rejects undocumented Windows filesystem reliability controls", () => {
+  const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  candidate.sources["docs/development/getting-started.md"] = candidate.sources[
+    "docs/development/getting-started.md"
+  ].replaceAll("npm run verify:windows-filesystem-reliability", "run the Windows storage gate");
+  candidate.sources["docs/automation-strategy.md"] = replaceRequired(
+    candidate.sources["docs/automation-strategy.md"],
+    "isolated 64 MiB NTFS VHD",
+    "temporary Windows storage",
+  );
+  candidate.sources["docs/development/performance-benchmarks.md"] = replaceRequired(
+    candidate.sources["docs/development/performance-benchmarks.md"],
+    "actual Windows disk-full failure",
+    "simulated storage failure",
+  );
+  candidate.sources["docs/development/troubleshooting.md"] = replaceRequired(
+    candidate.sources["docs/development/troubleshooting.md"],
+    "Windows disk-exhaustion gate fails",
+    "Windows storage test fails",
+  );
+
+  assert.throws(
+    () => validateCurrentDocumentation(candidate),
+    (error) => {
+      assert.match(error.message, /contributor setup omits the Windows filesystem reliability command/);
+      assert.match(error.message, /automation strategy omits the isolated Windows filesystem boundary/);
+      assert.match(error.message, /performance guidance omits the Windows disk-full boundary/);
+      assert.match(error.message, /troubleshooting omits the Windows disk-exhaustion boundary/);
+      return true;
+    },
+  );
+});
+
 test("rejects pre-migration status across current experience documents", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/design/experience-specification.md"] = replaceRequired(

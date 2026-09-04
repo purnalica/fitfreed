@@ -48,6 +48,21 @@ test("builds, installs, measures, and always removes the production package", ()
   );
 });
 
+test("runs the isolated NTFS disk-exhaustion recovery gate before data benchmarks", () => {
+  assert.match(
+    workflow,
+    /name: Verify Windows filesystem failure recovery\n\s+run: npm run verify:windows-filesystem-reliability/,
+  );
+  assert.ok(
+    workflow.indexOf("name: Verify installed Windows cold-launch budget")
+      < workflow.indexOf("name: Verify Windows filesystem failure recovery"),
+  );
+  assert.ok(
+    workflow.indexOf("name: Verify Windows filesystem failure recovery")
+      < workflow.indexOf("name: Verify full-scale import budgets"),
+  );
+});
+
 test("uses immutable actions and the repository toolchain contract", () => {
   assert.match(workflow, /actions\/checkout@[0-9a-f]{40}/);
   assert.match(workflow, /actions\/setup-node@[0-9a-f]{40}/);

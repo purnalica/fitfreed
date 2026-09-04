@@ -258,6 +258,26 @@ performance percentile results and cannot be replaced by a mocked write error, a
 library, a reduced SQLite durability mode, or an ignored cleanup failure. The wrapper unmounts its filesystem through
 an unconditional trap; a mount or unmount failure is a failed gate.
 
+## Windows filesystem reliability
+
+Run this acceptance boundary from an elevated disposable x86-64 Windows environment:
+
+```powershell
+npm run verify:windows-filesystem-reliability
+```
+
+The command creates and mounts one isolated 64 MiB NTFS VHD on an unused drive letter, verifies its filesystem,
+capacity, and sentinel, and points one exact ignored release-mode Rust test at it. That test commits a baseline
+synthetic history, consumes the volume through actual Windows disk-full failure, requires the next import to fail
+without exposing new history, restores capacity, and enters the ordinary startup-recovery path. SQLite integrity and
+the baseline history must remain intact before the same additional import succeeds on retry.
+
+The wrapper requires administrative access only to manage its private VHD. Its working directory must be a direct,
+non-reparse child of the system temporary directory. An unconditional finalizer detaches the exact VHD, verifies that
+its drive disappeared, and removes only that working directory. The gate must not be pointed at an installed or user
+library, replaced with an injected write error, or accepted after cleanup fails. Hosted Windows Server evidence does
+not replace the clean Windows 11 candidate row.
+
 ## Automation and evidence handling
 
 `npm run verify:precommit` includes the full-scale import, dense training-history, read-model, and packaged-UI gates

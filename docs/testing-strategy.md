@@ -358,6 +358,14 @@ Local and continuous-integration workflows will invoke the same underlying comma
   set is normalized to mebibytes before entering the unchanged shared memory budget. No push, pull-request, schedule,
   secret, or uploaded artifact can trigger or survive this campaign. Hosted Server 2025 evidence remains distinct
   from clean supported Windows 11 candidate evidence.
+- The same Windows workflow creates one 64 MiB VHD under a validated non-reparse child of the system temporary
+  directory, assigns an unused drive letter, formats only that new virtual disk as NTFS, and admits the resulting
+  filesystem and capacity before exposing it to one exact ignored release-mode test. The test commits a synthetic
+  baseline, fills the real filesystem until Windows reports disk exhaustion, requires the next import to remain
+  invisible, restores capacity, runs normal startup recovery, verifies SQLite integrity and the baseline history, and
+  retries successfully. The wrapper unconditionally detaches the selected VHD, verifies that the drive disappears,
+  and removes only its private working directory; native failure, detachment failure, or cleanup failure rejects the
+  gate.
 - Unix host tests create and reopen the local library boundary with exact `0700` directory and `0600` file modes,
   repair broader owner-controlled modes without changing library bytes, and reject symbolic directory boundaries,
   symbolic library files, and multiply linked libraries without changing their external targets. They also prove

@@ -201,7 +201,10 @@ cannot repeat the multi-gigabyte campaign. It builds the source-bound production
 application state, installs the exact setup, and measures 100 processes after revalidating the package identity and
 removing only the non-reparse `org.fitfreed.desktop` roots returned by the current user's native Windows known-folder
 APIs before every process. That reset occurs before measurement begins. A finalizer removes the owned package and
-data. The workflow then runs the unchanged full-scale import, dense-history, and Insights
+data. The same workflow creates an isolated 64 MiB NTFS VHD on its elevated disposable runner, admits only the
+expected filesystem and capacity, drives the exact release-mode SQLite recovery test through real disk exhaustion,
+and unconditionally detaches and removes the VHD before continuing. The workflow then runs the unchanged full-scale
+import, dense-history, and Insights
 commands. Rust benchmark executables use the native `.exe` suffix and obtain peak resident memory from the Windows
 process peak working set. A successful hosted run is Windows Server environment-qualified evidence, not the clean
 supported Windows 11 exact-candidate result.
