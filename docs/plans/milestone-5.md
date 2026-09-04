@@ -9,7 +9,7 @@ remains ordered after the accepted public Linux MVP.
 |---|---|---|
 | M5.0 Native portability admission | In progress | Portable commands and the pinned hosted job are implemented and locally verified; acceptance awaits a successful immutable `windows-2025-x86_64-host-package` run for the exact revision. |
 | M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, authority-separated three-file Windows expansion input, digest-bound transport, version 7 three-platform release contract, authority-separated candidate composition, and independent complete-candidate reopening are implemented and locally verified. Native execution awaits the hosted lane; protected public authority and exact Windows 11 trust remain open. |
-| M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, bind process control to creation time plus canonical executable path, and preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree. The closed version 3 state contract and Rust preparation now atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Lifecycle mutation, process leases, watchdog orchestration, native restoration and terminal validation, native Windows execution, and all end-to-end recovery evidence remain open. |
+| M5.2 Windows-native update recovery | In progress | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, bind process control to creation time plus canonical executable path, and preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation now admits only legal transitions and binds `launching` to exact Windows process evidence. Process leases, watchdog orchestration, native restoration and terminal validation, native Windows execution, and all end-to-end recovery evidence remain open. |
 | M5.3–M5.6 | Not started | Their parity, reliability, documentation, candidate, human, and promotion gates remain open. |
 
 ## Objective
@@ -159,9 +159,11 @@ outcome boundary. It preserves and reopens the authenticated package pair, compl
 SQLite backup before publishing a no-clobber active pointer. Portable Rust tests reject changed authority before state
 creation, clean an interrupted private staging attempt, preserve the first active attempt, detect package, runnable,
 library, and manifest mutation, reject redirected filesystem objects, and prove that the verified active phase is
-`prepared`. A Windows-target source compilation covers the native no-sharing and reparse-aware branches; the hosted
-native lane remains the execution authority for those operating-system APIs. This is preparation evidence, not yet a
-recoverable update path.
+`prepared`. State-lock-serialized mutation rejects illegal phase changes and persists `launching` only when the PID,
+creation `FILETIME`, canonical executable, nonce, and deadline describe the expected replacement. Changed process
+evidence leaves the previous durable phase intact. A Windows-target source compilation covers the native no-sharing
+and reparse-aware branches; the hosted native lane remains the execution authority for those operating-system APIs.
+This is preparation and lifecycle evidence, not yet a recoverable update path.
 
 ## Increment M5.3 — Packaged capability parity
 

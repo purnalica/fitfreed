@@ -271,9 +271,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   require both authenticated package expectations, the complete runnable predecessor, a verified online SQLite
   backup, the closed version 3 manifest, private lock files, and the no-clobber active pointer to reopen as one attempt.
   They reject authorization drift before filesystem mutation, concurrent outcome ownership, redirected roots or lock
-  files, a second active attempt, and later package, runnable, library, or manifest mutation. An isolated Windows-target
-  source build checks the no-sharing handle and reparse-aware compilation path; only the pinned native Windows job can
-  prove the corresponding operating-system behavior.
+  files, a second active attempt, and later package, runnable, library, or manifest mutation. State-transition tests
+  require serialized legal phase changes, prohibit generic entry into `launching`, bind that phase to the exact PID,
+  creation `FILETIME`, canonical installed executable, nonce, and deadline, and prove rejected process evidence does
+  not mutate the durable phase. An isolated Windows-target source build checks the no-sharing handle and reparse-aware
+  compilation path; only the pinned native Windows job can prove the corresponding operating-system behavior.
 - The Ubuntu 24.04 lane then builds the source-bound Debian package through the same Linux-only command documented for contributors and extracts it for inspection. The gate rejects any drift in the external `FitFreed_<version>_amd64.deb` artifact name, internal `fitfreed` package identity, architecture, version, homepage, section, priority, mandatory GTK and WebKitGTK dependencies, executable permissions, `usr/share/applications/fitfreed.desktop` path, visible `FitFreed` launcher name, icons, or installed GPL text. It also proves that the wrapper changed only Tauri's generated filesystem name rather than reconstructing signed package bytes. It generates a schema-validated, digest-bound, complete extracted-layout inventory from those exact package bytes and proves deterministic ordering, safe relative links, and atomic evidence replacement. It next mounts only the package into a digest-pinned clean Ubuntu 24.04 image that has no development toolchain, installs repository dependencies, verifies dynamic linking and package-manager identity, purges the package, and verifies package-owned removal. The unsigned engineering package and inventory are not uploaded as public workflow artifacts.
 - A separate Ubuntu 24.04 capability job builds an instrumented Debian package with the isolated technical
   `fitfreed-e2e` product and package name, `/usr/bin/fitfreed-e2e` executable, and `org.fitfreed.desktop.e2e`
