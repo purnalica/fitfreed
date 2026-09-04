@@ -3,6 +3,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import {
+  packagedWebviewRuntime,
+  platformHostCommands,
+} from "./performance-environment.js";
+
 const applicationVersion = JSON.parse(
   fs.readFileSync(new URL("../../../package.json", import.meta.url), "utf8"),
 ).version;
@@ -100,16 +105,27 @@ function safeCommand(program, arguments_) {
 
 function evidence(measurements) {
   const storage = fs.statfsSync(".");
+  const platform = os.platform();
+  const hostCommands = platformHostCommands(platform);
+  const operatingSystemVersion = hostCommands.operatingSystemVersion === null
+    ? os.release()
+    : safeCommand(
+      hostCommands.operatingSystemVersion.program,
+      hostCommands.operatingSystemVersion.arguments,
+    ) ?? os.release();
+  const deviceModel = hostCommands.deviceModel === null
+    ? null
+    : safeCommand(hostCommands.deviceModel.program, hostCommands.deviceModel.arguments);
   return {
     schemaVersion: 1,
-    runtime: "packaged-macos-webview",
+    runtime: packagedWebviewRuntime(platform),
     applicationVersion,
     sourceRevision: safeCommand("git", ["rev-parse", "HEAD"]),
     host: {
-      operatingSystem: os.platform(),
-      operatingSystemVersion: safeCommand("sw_vers", ["-productVersion"]) ?? os.release(),
+      operatingSystem: platform,
+      operatingSystemVersion,
       architecture: os.arch(),
-      deviceModel: safeCommand("sysctl", ["-n", "hw.model"]),
+      deviceModel,
       processor: os.cpus()[0]?.model ?? null,
       totalMemoryBytes: os.totalmem(),
       freeStorageBytes: Number(storage.bavail) * Number(storage.bsize),
