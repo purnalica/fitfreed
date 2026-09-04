@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The workflows are implemented but deliberately inactive. One becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
+This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The initial macOS and first Linux-expansion workflows are implemented but deliberately inactive. The public Windows expansion workflow is not yet implemented; its native input and complete-candidate kernels are implemented but cannot publish. A workflow becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
 
 Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
 
@@ -30,6 +30,15 @@ Apply these boundaries:
 - Give `FITFREED_GITHUB_ADMIN_READ_TOKEN` only repository Administration read access. The workflow's short-lived `GITHUB_TOKEN` owns publication writes.
 - Never place authority in repository secrets when the protected environment can own it, and never expose a private input to preflight, promotion, Pages, remote verification, caches, or retained artifacts.
 - Review access after a maintainer change, suspected compromise, Apple or GitHub policy change, and every planned key rotation.
+
+The Windows platform adds a fourth independent authority. The protected native builder selects one trusted code-signing
+certificate from the current-user certificate store and uses the Windows SDK SignTool plus a credential-free HTTPS
+RFC 3161 timestamp service. The protected process supplies `FITFREED_WINDOWS_AUTHENTICODE_PROFILE=public`, an absolute
+`FITFREED_WINDOWS_SIGNTOOL_PATH`, the certificate-store selector in `FITFREED_WINDOWS_CERTIFICATE_SHA1`, the
+independently derived lowercase public fingerprint in `FITFREED_WINDOWS_CERTIFICATE_SHA256`, and
+`FITFREED_WINDOWS_TIMESTAMP_URL`. These values are not workflow-dispatch inputs, source configuration, retained
+artifacts, or diagnostic output. The native builder never receives the updater or release-checksum private keys; the
+later composer never receives the Windows certificate or its store selector.
 
 The ephemeral authority installer writes private material only under the hosted runner's temporary directory with private permissions, imports the exact certificate fingerprint into a temporary keychain, and restores the prior keychain state in an unconditional cleanup step. A cleanup failure blocks acceptance and requires inspection of the affected ephemeral runner execution; it never justifies printing a secret.
 
@@ -95,6 +104,41 @@ dynamic linking, graphical first launch into an isolated private library, the pr
 purge, and retained-library integrity. Neither row receives a protected environment, secret, signing key, nor
 publication permission. The unconditional package finalizer is cleanup, not acceptance evidence; a failed preceding
 check keeps promotion blocked even when cleanup succeeds.
+
+### Windows expansion input and authority
+
+Do not attempt public Windows preparation until an immutable macOS-plus-Linux predecessor exists, the next semantic
+version and target-aware upgrade matrix name that exact predecessor, the Windows readiness ledger admits the native
+host, and the future public workflow and protected environment have been reviewed. The public Windows expansion
+workflow is not yet implemented. Running an individual script manually does not create a candidate and must not be
+used to bypass that gate.
+
+The protected native job must use native x86-64 Windows PowerShell on a disposable supported Windows 11 builder. Its
+ephemeral authority setup imports only the selected Authenticode identity into the current-user certificate store,
+provides the five protected process values above, and records the independently established SHA-256 public
+fingerprint without retaining the selector or private key. From the exact clean tagged source it runs
+`npm run prepare:windows-expansion-input -- <version> <directory>`, then
+`npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>`.
+The output is only the digest-bound three-file native input and its archive digest. A `finally` boundary removes the
+certificate, private key, trust-store additions, protected process values, and temporary paths after success or
+failure; incomplete cleanup blocks the run.
+
+An authority-free transfer job reopens the archive with
+`npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>`.
+The future protected composer must receive both the already admitted Linux input and this Windows input, while
+receiving no Windows Authenticode authority. It adds platform-specific updater signatures to the unchanged native
+packages and creates the complete-platform manifest version 7 candidate. Before promotion becomes reachable, the
+sealed candidate must pass its independent version 7 reopening, native supported-Windows-11 installation and trust
+admission, packaged capability, update recovery, filesystem reliability, performance, localization, accessibility,
+and bounded product-experience gates. A successful native input build means only “input available for composition.”
+
+PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,
+storage schema, package digest, public certificate SHA-256 fingerprint, and Boolean phase results. They must not
+contain a certificate private key, store selector, protected environment value, local account name, machine path,
+personal export, library, route, health value, or other user data. Reproduction of an ordinary unsigned engineering
+package uses `npm ci`, `npm run doctor`, `npm run package:windows`, and `npm run inventory:windows-package` on the exact
+revision. A timestamped public setup is not reproduced by rebuilding it: downstream diagnosis reopens the retained
+digest-bound input or candidate, because a new timestamp can produce different bytes from unchanged source.
 
 ## Build approval and sealed candidate
 
@@ -176,9 +220,23 @@ A withdrawn candidate is never offered for installation. An already installed wi
 
 Routine updater-key rotation overlaps trust: release at least one accepted application embedding both old and new public keys before signing a later channel statement with only the new key. Remove the old public key only after every supported upgrade baseline can authenticate the new authority.
 
+Windows Authenticode certificate rotation is independent of updater-key rotation. Before an expiry-driven change,
+admit the replacement chain and publisher identity, replace the protected current-user certificate import, selector,
+and independently derived SHA-256 fingerprint, then create a fresh timestamped Windows input and complete-platform
+candidate. The manifest, inventory, and build evidence must all name only the certificate that signed those exact
+bytes. Preserve the prior immutable Release and its timestamped signatures; do not re-sign or replace them. Treat
+publisher-name drift, an unavailable trusted timestamp, or a certificate that fails Windows application policy as a
+new-candidate blocker, not as a reason to weaken inspection.
+
 If an updater private key may be compromised, stop protected runs, revoke its environment access, preserve audit evidence, and determine which application baselines trust only that key. Clients without a previously embedded recovery key cannot authenticate an automatic trust-root replacement; publish a Developer ID-signed corrective application through the verified download channel with explicit manual-install guidance.
 
 For a Developer ID or App Store Connect compromise, revoke or rotate the affected Apple authority, review notarization history, remove its GitHub access, and create a fresh candidate under the replacement identity. Apple trust rotation does not replace updater-key rotation, and updater trust does not compensate for invalid Apple code signing.
+
+For a Windows code-signing certificate compromise, stop Windows native builds, revoke the certificate through its
+issuer, remove it and its selector from the protected environment, audit every input and candidate signed by it, and
+block publication. A replacement certificate requires the complete rotation and exact-candidate path above. Updater
+signatures, checksums, prior reputation, or an unchanged source revision cannot compensate for invalid Authenticode
+trust.
 
 For a GitHub token or environment compromise, revoke access immediately, audit deployments, releases, attestations, environment reviews, and tag state, and keep publication blocked until repository controls are re-established. Immutable evidence that cannot be reconciled with the incident remains unaccepted even if its bytes appear functional.
 

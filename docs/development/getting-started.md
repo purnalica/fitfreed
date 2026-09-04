@@ -22,9 +22,9 @@ The Windows host lane runs on the pinned x86-64 `windows-2025` GitHub-hosted ima
 Windows contributors need the Microsoft C++ Build Tools and Windows SDK supplied by Visual Studio's Desktop development
 with C++ workload, WebView2, Rustup, and the pinned Node.js toolchain. `npm run doctor` verifies the x86-64 MSVC host,
 Rust components, Node.js, and npm without relying on Bash. Windows package, installation, update, and recovery tooling
-does not follow from host admission: package, installation, inventory, synthetic signing, packaged capability, and
-initial update-recovery controls are now explicit. Exact Windows 11 candidate evidence remains a later Milestone 5
-increment.
+does not follow from host admission: package, installation, inventory, synthetic signing, packaged capability, update
+recovery, cold launch, and filesystem reliability are separate explicit gates. Their source contracts pass locally;
+native hosted execution and exact Windows 11 candidate evidence remain open Milestone 5 work.
 
 ## First setup
 
@@ -56,6 +56,56 @@ runs every portable product contract as separate diagnosable steps in addition t
 package and native installation commands require a clean x86-64 Windows environment. Installation verification
 refuses to run when FitFreed files, registration, or application data already exist, so use a disposable Windows user
 or CI runner rather than a personal profile.
+
+### Windows clean-room scopes
+
+Use native PowerShell, not Git Bash, WSL, MSYS2, or a POSIX compatibility shell, for every Windows-native command. A
+fresh ordinary source and package check uses the first-setup sequence above. `npm run inventory:windows-package`
+already performs one installation, inspection, inventory, removal, and retained-data check against the package; do not
+repeat the same native transition merely to obtain another copy of the same evidence.
+
+Packaged capability and update-recovery campaigns mutate current-user installation state and therefore use a
+disposable x86-64 Windows account with no existing FitFreed or `fitfreed-e2e` package, registration, shortcut, or
+application-data root:
+
+```powershell
+npm run verify:windows-e2e
+npm run verify:windows-update-e2e
+```
+
+The production cold-launch gate reuses the clean-revision engineering setup and removes its own installation after the
+measurement:
+
+```powershell
+npm run package:windows
+npm run verify:windows-cold-launch
+```
+
+The filesystem-reliability gate creates and formats an isolated bounded VHD. Run only that command from an elevated
+PowerShell session on a disposable host; never redirect it to a user library or ordinary drive:
+
+```powershell
+npm run verify:windows-filesystem-reliability
+```
+
+The manual `.github/workflows/windows-performance.yml` workflow owns hosted Windows Server performance evidence. Exact
+Windows 11 candidate acceptance later repeats every platform-visible boundary on the sealed Authenticode-signed setup;
+neither the hosted Server run nor an unsigned engineering package is that evidence.
+
+For a privacy-safe environment report, record only the first failing command and root-cause message plus these public
+tool and operating-system facts:
+
+```powershell
+Get-ComputerInfo -Property WindowsProductName,WindowsVersion,OsBuildNumber,OsArchitecture
+node --version
+npm --version
+rustc --version
+cargo --version
+```
+
+Do not attach a PowerShell transcript, personal export, local library, route, account name, home path, certificate
+selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
+[troubleshooting](troubleshooting.md) identify each privacy-safe evidence directory and the boundary to diagnose.
 
 `npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, the live presentation inventory, presentation behavior, GitHub workflow syntax and policy, the updater refinement test, and all FitFreed Rust workspace tests. Its workflow check installs checksum-verified actionlint 1.7.12 and ShellCheck 0.10.0 under ignored `.tools/`; no global installation is required and shell analysis is identical on supported contributor and CI hosts.
 
@@ -160,9 +210,11 @@ reinstall an older version only so the separately authenticated recovery flow ca
 This ordinary engineering package is unsigned. By itself it is not a public candidate and does not prove installation,
 registry, Start Menu, Add or Remove Programs, WebView2, Authenticode, update, or recovery behavior.
 `npm run inventory:windows-package` performs one real install-inspect-inventory-remove cycle and writes the
-schema-validated digest-bound evidence beside the setup. Authenticode, update, recovery, and exact-candidate boundaries
-remain subsequent Milestone 5 work; do not add certificate selection, signer commands, timestamps, account identities,
-or machine-local protected paths to `tauri.windows.conf.json`.
+schema-validated digest-bound evidence beside the setup. The synthetic Authenticode, packaged capability, update,
+recovery, cold-launch, and filesystem-reliability gates are separate commands because each proves a different native
+boundary. Protected public Authenticode authority, the public Windows workflow, and exact-candidate acceptance remain
+open Milestone 5 work. Do not add certificate selection, signer commands, timestamps, account identities, or
+machine-local protected paths to `tauri.windows.conf.json`.
 
 After `npm run package:windows`, `npm run verify:windows-authenticode-smoke` signs only a temporary copy of the unsigned
 release executable. It creates a non-exportable self-signed certificate in the current-user store, verifies the copy

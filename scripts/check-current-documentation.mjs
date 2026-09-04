@@ -299,6 +299,30 @@ export function validateCurrentDocumentation({
     /Installed Windows library protection fails/,
     "troubleshooting omits the installed Windows library boundary",
   );
+  requirePattern(
+    errors,
+    sources[paths.gettingStarted],
+    /native PowerShell, not Git Bash, WSL, MSYS2/,
+    "contributor setup omits the native Windows PowerShell boundary",
+  );
+  requirePattern(
+    errors,
+    sources[paths.gettingStarted],
+    /### Windows clean-room scopes[\s\S]*?npm run verify:windows-e2e[\s\S]*?\n## Primary commands/,
+    "contributor setup omits packaged Windows capability verification",
+  );
+  requirePattern(
+    errors,
+    sources[paths.gettingStarted],
+    /### Windows clean-room scopes[\s\S]*?npm run verify:windows-update-e2e[\s\S]*?\n## Primary commands/,
+    "contributor setup omits packaged Windows update recovery",
+  );
+  requirePattern(
+    errors,
+    sources[paths.gettingStarted],
+    /Get-ComputerInfo -Property WindowsProductName,WindowsVersion,OsBuildNumber,OsArchitecture/,
+    "contributor setup omits privacy-safe Windows diagnostics",
+  );
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return {

@@ -176,6 +176,28 @@ test("rejects undocumented Windows local-library protection", () => {
   );
 });
 
+test("rejects incomplete Windows clean-room contributor guidance", () => {
+  const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  candidate.sources["docs/development/getting-started.md"] = candidate.sources[
+    "docs/development/getting-started.md"
+  ]
+    .replace("native PowerShell, not Git Bash, WSL, MSYS2", "a Windows shell")
+    .replace("npm run verify:windows-e2e", "run the packaged application")
+    .replace("npm run verify:windows-update-e2e", "run the update test")
+    .replace("Get-ComputerInfo -Property", "systeminfo");
+
+  assert.throws(
+    () => validateCurrentDocumentation(candidate),
+    (error) => {
+      assert.match(error.message, /contributor setup omits the native Windows PowerShell boundary/);
+      assert.match(error.message, /contributor setup omits packaged Windows capability verification/);
+      assert.match(error.message, /contributor setup omits packaged Windows update recovery/);
+      assert.match(error.message, /contributor setup omits privacy-safe Windows diagnostics/);
+      return true;
+    },
+  );
+});
+
 test("rejects pre-migration status across current experience documents", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/design/experience-specification.md"] = replaceRequired(

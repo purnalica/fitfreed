@@ -2,7 +2,7 @@
 
 ## Current boundary
 
-Public binary release automation is deliberately inactive. The checked-in update and release-checksum configurations contain no production trust keys, the `public-macos-release` environment is not configured, and no Apple, updater, or release-checksum signing credential is available. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the canonical origin for the product site without an application download. These are release gates, not reasons to weaken or bypass either publication workflow.
+Public binary release automation is deliberately inactive. The checked-in update and release-checksum configurations contain no production trust keys, the `public-macos-release` environment is not configured, and no Apple, updater, release-checksum, or Windows Authenticode authority is available. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the canonical origin for the product site without an application download. The initial macOS and first Linux-expansion workflows exist but remain inactive; the public Windows expansion workflow is not yet implemented. These are release gates, not reasons to weaken or bypass an implemented or planned publication workflow.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -75,10 +75,11 @@ The stable envelope is signed over exact payload bytes with the same protected T
 `npm run verify:public-release -- .artifacts/public-releases/<version>` independently selects the immutable manifest
 contract and reopens the closed target set, every artifact, compatibility matrix, checksum set, stable payload and
 envelope, configured trust keys, updater-signature bindings, and exact Pages tree. Manifest version 3 admits only the
-initial macOS set; manifest version 6 admits exactly `darwin-aarch64` plus `linux-x86_64-deb`. It compares Release and
-Pages copies byte for byte and rejects any missing, additional, renamed, cross-version, cross-target, or mutated
-subject. Preparation invokes this verifier before promotion; transport, publication, and remote acceptance invoke it
-again without reinterpreting an older manifest.
+initial macOS set; manifest version 6 admits exactly `darwin-aarch64` plus `linux-x86_64-deb`; manifest version 7
+admits exactly those two targets plus `windows-x86_64-nsis`. It compares Release and Pages copies byte for byte and
+rejects any missing, additional, renamed, cross-version, cross-target, or mutated subject. Preparation invokes this
+verifier before promotion; transport, publication, and remote acceptance invoke it again without reinterpreting an
+older manifest.
 
 ## Platform-expansion preparation
 
@@ -113,6 +114,26 @@ row verifies installed identity, executable and resource paths, dynamic linking,
 isolated private library, the production cold-launch budget, native purge, and retained-library integrity. A finalizer
 removes residual package state after any result. `publish-candidate` cannot enter its second protected approval until
 both rows pass; rebuilding or substituting a package is not an admission path.
+
+The later Windows publication is another new complete-platform release after an immutable macOS-plus-Linux
+predecessor. It does not append a Windows file to that Release. The implemented Windows native input boundary runs
+from native x86-64 Windows under separate protected Windows Authenticode authority. It builds and independently
+inspects the timestamped current-user NSIS setup, performs its installation and data-preserving removal cycle, and
+seals exactly that setup, its package inventory, and source-bound build evidence. It rejects updater private-key and
+release-checksum authority.
+
+The implemented complete-platform composition kernel reopens the digest-bound Linux and Windows inputs for one
+version, revision, and storage schema. Under separate Apple, updater, and release-checksum authority, it builds fresh
+macOS artifacts, adds updater signatures to the unchanged Linux and Windows packages, and creates one complete-platform
+manifest version 7 candidate plus one complete stable-v3 Pages snapshot. Its independent verifier binds the Windows
+package, Authenticode fingerprint, native inventory, build evidence, updater signature, checksums, release signature,
+recovery set, and Pages bytes. The public Windows expansion workflow is not yet implemented, so these kernels are not
+a runnable public release path and no existing workflow may be represented as one.
+
+A future Windows workflow must preserve the native-builder/composer separation, add exact supported-Windows-11
+candidate admission, and reuse the second-approval publication boundary. A native input or complete candidate is never
+rebuilt as a substitute for the sealed bytes after a downstream failure; recovery reopens the retained transport and
+repeats only the failed authority-free admission or publication work.
 
 ## Sealed evaluation and protected publication
 
