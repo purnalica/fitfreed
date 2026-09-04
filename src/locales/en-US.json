@@ -2457,7 +2457,36 @@
     "workspaceNavigation": "Settings categories",
     "workspaces": {
       "appearance": "Appearance & language",
-      "updates": "Updates"
+      "updates": "Updates",
+      "help": "Windows help"
+    },
+    "windowsHelp": {
+      "heading": "Using FitFreed on Windows",
+      "intro": "Keep these instructions available offline for installation, recovery, and removal decisions.",
+      "supportedLabel": "Supported installation",
+      "supported": "A supported edition of Windows 11 on an x86-64 computer, installed for the current user with the official FitFreed setup.",
+      "install": {
+        "summary": "Install and verify FitFreed",
+        "verify": "Download the setup from the immutable FitFreed Release and verify that its version, digest, and publisher agree with that Release before opening it.",
+        "smartScreen": "Microsoft Defender SmartScreen can report that an application is not yet commonly downloaded. That message proves neither safety nor danger: continue only when the verified publisher and file evidence match. Never bypass a mismatch.",
+        "firstLaunch": "The setup installs FitFreed only for the current user. After first launch, open Settings → Updates and confirm the installed version before importing a personal archive."
+      },
+      "update": {
+        "summary": "Update or recover FitFreed",
+        "ordinary": "Open Settings → Updates to see the installed version, check for a trusted update, and review its notes before choosing to install it.",
+        "recovery": "If replacement is interrupted, leave FitFreed's recovery files unchanged and follow the recovery message shown after restart. The verified previous application and matching library remain on this computer while recovery is possible.",
+        "offline": "Import and exploration remain available without a network connection. An unavailable update service does not block the local library."
+      },
+      "removal": {
+        "summary": "Remove FitFreed or delete your library",
+        "application": "Remove FitFreed through Windows Settings → Apps → Installed apps. Removal deletes the application but deliberately keeps the separate local library.",
+        "library": "Deleting the library is a separate, irreversible choice. Close FitFreed, preserve any backup you need, and then delete the complete directory shown above. Treat every file in it as sensitive personal data."
+      },
+      "unsupported": {
+        "summary": "Unsupported Windows setups",
+        "body": "The first Windows release does not support Windows 10, ARM64, Windows 11 editions outside Microsoft support, MSI deployment, installation for every user, or managed per-machine installation. Do not convert or repackage the setup as a workaround."
+      },
+      "privacy": "Never attach a real export, library, route, screenshot, log, crash report, or diagnostic containing personal history to a public issue."
     },
     "appearanceTitle": "Appearance and language",
     "appearanceIntro": "Preview language, appearance, and content size. Nothing is stored until you save.",

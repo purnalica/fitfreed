@@ -2408,8 +2408,21 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 .settings-heading h1 { max-width: 18ch; font-size: clamp(2rem, 3.2vw, 3rem); }
 .settings-heading > p:last-child { max-width: var(--measure-reading); color: var(--muted); }
 .settings-layout { display: grid; grid-template-columns: minmax(500px, 1.18fr) minmax(320px, .82fr); gap: 24px; align-items: start; }
-.settings-updates-workspace { max-width: 980px; }
+.settings-updates-workspace, .settings-help-workspace { max-width: 980px; }
 .settings-updates-workspace .update-panel { margin: 0; padding: 26px; border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
+.installed-help { padding: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
+.installed-help-heading h2 { margin: 0; }
+.installed-help-heading p { max-width: var(--measure-reading); margin: 7px 0 0; color: var(--muted); line-height: 1.5; }
+.installed-help-boundary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; margin: 22px 0; padding: 15px 17px; color: var(--ink-soft); background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 11px; line-height: 1.45; }
+.installed-help-boundary strong { color: var(--accent-deep); }
+.installed-help-topics { display: grid; gap: 10px; }
+.installed-help-topics details { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.installed-help-topics summary { min-height: 48px; padding: 13px 16px; color: var(--ink); font-weight: 750; cursor: pointer; }
+.installed-help-topics details[open] summary { border-bottom: 1px solid var(--line); }
+.installed-help-topics details > div { display: grid; gap: 11px; padding: 16px; }
+.installed-help-topics p { max-width: none; margin: 0; color: var(--ink-soft); line-height: 1.5; }
+.installed-help-topics code { display: inline-block; max-width: 100%; padding: 5px 8px; overflow-wrap: anywhere; color: var(--ink); background: var(--surface-soft); border-radius: 6px; }
+.installed-help-privacy { margin: 18px 0 0; padding: 14px 16px; color: var(--ink-soft); background: var(--warning-soft); border-left: 4px solid var(--warning); border-radius: 10px; line-height: 1.45; }
 .settings-form, .settings-preview { border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
 .settings-form { display: grid; gap: 0; padding: 26px; }
 .settings-section-heading { padding-bottom: 22px; }
@@ -2470,6 +2483,7 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .shell-active-operation button { width: 100%; }
   .library-home-empty-possibilities ul { grid-template-columns: 1fr; }
   .settings-layout { grid-template-columns: 1fr; }
+  .installed-help-boundary { grid-template-columns: 1fr; }
   .settings-preview { position: static; }
   .appearance-options > div { grid-template-columns: 1fr; }
   .settings-actions { align-items: stretch; flex-direction: column; }

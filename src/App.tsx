@@ -10,6 +10,7 @@ import {
 import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
+import { currentDesktopPlatform } from "./infrastructure/desktop-platform";
 import {
   openOfficialSourceLink,
   type OpenOfficialSourceLinkRequest,
@@ -94,6 +95,11 @@ const ActivityComparisonPanel = lazy(() =>
 const SettingsPanel = lazy(() =>
   import("./presentation/SettingsPanel").then((module) => ({
     default: module.SettingsPanel,
+  }))
+);
+const WindowsInstalledHelpPanel = lazy(() =>
+  import("./presentation/WindowsInstalledHelpPanel").then((module) => ({
+    default: module.WindowsInstalledHelpPanel,
   }))
 );
 const SourcesPanel = lazy(() =>
@@ -202,6 +208,7 @@ function applicationScroller() {
 }
 
 function App() {
+  const desktopPlatform = useMemo(currentDesktopPlatform, []);
   const [locale, setLocale] = useState<Locale>(systemLocale);
   const [messages, setMessages] = useState<RuntimeCatalog>(defaultCatalog);
   const [localeReady, setLocaleReady] = useState(false);
@@ -1344,6 +1351,11 @@ function App() {
                       installationBlocked={busy}
                       onInstallationStateChange={setUpdateInstalling}
                     />
+                  </Suspense>
+                )}
+                helpPanel={desktopPlatform === "windows" && (
+                  <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
+                    <WindowsInstalledHelpPanel messages={messages.settings.windowsHelp} />
                   </Suspense>
                 )}
               />

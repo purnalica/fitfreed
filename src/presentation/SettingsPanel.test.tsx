@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { catalogs } from "../locales/catalogs";
 import type { ApplicationPreferences } from "./application-preferences";
-import { SettingsPanel } from "./SettingsPanel";
+import { SettingsPanel, type SettingsWorkspace } from "./SettingsPanel";
 
 const savedPreferences: ApplicationPreferences = {
   version: 1,
@@ -21,7 +21,7 @@ describe("SettingsPanel", () => {
     const user = userEvent.setup();
 
     function SettingsHarness() {
-      const [workspace, setWorkspace] = useState<"appearance" | "updates">("appearance");
+      const [workspace, setWorkspace] = useState<SettingsWorkspace>("appearance");
       return (
         <SettingsPanel
           savedPreferences={savedPreferences}
@@ -34,6 +34,7 @@ describe("SettingsPanel", () => {
           onPreview={vi.fn()}
           onSave={vi.fn()}
           updatePanel={<section aria-label="Update maintenance">Update controls</section>}
+          helpPanel={<section aria-label="Installed Windows help">Local help</section>}
         />
       );
     }
@@ -61,11 +62,36 @@ describe("SettingsPanel", () => {
     expect(screen.getByRole("region", { name: "Application settings" }))
       .toContainElement(screen.getByRole("region", { name: "Update maintenance" }));
 
+    await user.click(within(navigation).getByRole("button", { name: "Windows help" }));
+    expect(within(navigation).getByRole("button", { name: "Windows help" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("region", { name: "Installed Windows help" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Update maintenance" }))
+      .not.toBeInTheDocument();
+
     await user.click(within(navigation).getByRole("button", { name: "Appearance & language" }));
     expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
     expect(screen.getByLabelText("Default content zoom")).toHaveValue("175");
     expect(screen.queryByRole("region", { name: "Update maintenance" }))
       .not.toBeInTheDocument();
+  });
+
+  it("does not advertise Windows help when the installed platform does not provide it", () => {
+    render(
+      <SettingsPanel
+        savedPreferences={savedPreferences}
+        defaultPreferences={savedPreferences}
+        messages={catalogs["en-US"].settings}
+        workspace="appearance"
+        disabled={false}
+        savedNotice={false}
+        onWorkspaceChange={vi.fn()}
+        onPreview={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Windows help" })).not.toBeInTheDocument();
   });
 
   it("uses a concrete interface example and lets the complete draft be cancelled", async () => {

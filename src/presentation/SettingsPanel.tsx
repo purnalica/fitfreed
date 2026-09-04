@@ -31,9 +31,10 @@ interface SettingsPanelProps {
     onDiscardAndContinue: () => void;
   };
   updatePanel?: ReactNode;
+  helpPanel?: ReactNode;
 }
 
-export type SettingsWorkspace = "appearance" | "updates";
+export type SettingsWorkspace = "appearance" | "updates" | "help";
 
 const zoomOptions = [100, 125, 150, 175, 200];
 
@@ -52,6 +53,7 @@ export function SettingsPanel({
   onDirtyChange,
   navigationGuard,
   updatePanel,
+  helpPanel,
 }: SettingsPanelProps) {
   const [draft, setDraft] = useState(savedPreferences);
   const cancelChangesButton = useRef<HTMLButtonElement>(null);
@@ -116,6 +118,9 @@ export function SettingsPanel({
         options={[
           { workspace: "appearance", label: messages.workspaces.appearance },
           { workspace: "updates", label: messages.workspaces.updates },
+          ...(helpPanel
+            ? [{ workspace: "help" as const, label: messages.workspaces.help }]
+            : []),
         ]}
         onSelect={onWorkspaceChange}
       />
@@ -309,6 +314,12 @@ export function SettingsPanel({
       <div className="settings-updates-workspace" hidden={workspace !== "updates"}>
         {updatePanel}
       </div>
+
+      {helpPanel && (
+        <div className="settings-help-workspace" hidden={workspace !== "help"}>
+          {helpPanel}
+        </div>
+      )}
     </section>
   );
 }

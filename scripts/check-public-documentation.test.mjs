@@ -19,7 +19,7 @@ test("accepts the complete version-matched public documentation set", () => {
     version: "0.1.0",
     documents: 10,
     locales: ["en-US", "es-ES"],
-    catalogGuidanceKeys: 17,
+    catalogGuidanceKeys: 36,
   });
 });
 
@@ -138,6 +138,7 @@ test("rejects missing locale guidance and distribution state in reviewed notes",
   const candidate = bundle();
   delete candidate.catalogs["es-ES"].updates.recovery;
   delete candidate.catalogs["es-ES"].settings.localeSpanish;
+  delete candidate.catalogs["es-ES"].settings.windowsHelp.update.recovery;
   delete candidate.policy.update.releaseNotes["es-ES"];
   candidate.reviewedReleaseNotes = candidate.reviewedReleaseNotes.replace(
     "FitFreed 0.1.0 supports Apple Silicon",
@@ -150,6 +151,10 @@ test("rejects missing locale guidance and distribution state in reviewed notes",
       assert.match(error.message, /policy locales must be exactly: en-US, es-ES/);
       assert.match(error.message, /es-ES catalog is missing public guidance: updates\.recovery\.updated/);
       assert.match(error.message, /es-ES catalog is missing public guidance: settings\.localeSpanish/);
+      assert.match(
+        error.message,
+        /es-ES catalog is missing public guidance: settings\.windowsHelp\.update\.recovery/,
+      );
       assert.match(error.message, /generated public-release state/);
       return true;
     },

@@ -1020,9 +1020,21 @@ for (const boundary of [
   '{ workspace: "updates", label: messages.workspaces.updates }',
   'hidden={workspace !== "updates"}',
   "{updatePanel}",
+  'workspace: "help" as const',
+  'hidden={workspace !== "help"}',
+  "{helpPanel}",
 ]) {
   if (!settingsPanel.includes(boundary)) {
     throw new Error(`Settings must preserve category orientation: ${boundary}`);
+  }
+}
+for (const boundary of [
+  ".installed-help-topics details",
+  ".installed-help-topics summary",
+  ".installed-help-boundary",
+]) {
+  if (!stylesheet.includes(boundary)) {
+    throw new Error(`installed Windows help must preserve progressive disclosure: ${boundary}`);
   }
 }
 if (!application.includes('className="settings-home" hidden={activeHome !== "settings"}')) {

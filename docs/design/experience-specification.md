@@ -328,6 +328,14 @@ or launch check is not repeated when the person switches categories, always iden
 version once update state is available, and never compete visually with the preference form. Current-task
 controls and data-library operations do not migrate into Settings merely because they are configurable.
 
+The supported Windows package adds one platform-conditional **Windows help** category. It is bundled with the
+application, localized in `en-US` and `es-ES`, and remains usable without a network connection. One concise support
+boundary is visible first; installation and trust, update and recovery, removal and separate library deletion, and
+unsupported deployment modes use task-named progressive disclosures. The first installation disclosure starts open;
+the other details remain available on request. This guidance offers no destructive action and no network-dependent
+link. It appears only when the installed runtime identifies Windows, so platform-specific instructions do not create
+noise or misleading actions on macOS and Linux.
+
 Invalid or obsolete saved values recover to a documented safe default while preserving valid
 preferences. Recovery is announced without blocking the application. Locale changes translate the
 interface but never rewrite user-authored sport labels, criterion names, report titles, or report

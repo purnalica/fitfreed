@@ -870,6 +870,9 @@ The canonical product roadmap is maintained in [`roadmap.md`](roadmap.md).
 At minimum, it will cover:
 
 - Supported platforms, installation, updates, and removal.
+- Bundled, offline, localized lifecycle help for any supported platform whose installation or trust model requires
+  in-application guidance; the Windows release covers Authenticode and SmartScreen interpretation, current-user setup,
+  updates, recovery, offline use, application removal, separate library deletion, and unsupported deployment modes.
 - Update notifications, postponement, release notes, migration behavior, and recovery from a failed update.
 - First run and import of a Polar Flow ZIP archive.
 - Reimports, cumulative imports, and the meaning of their outcomes.

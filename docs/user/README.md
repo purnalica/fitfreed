@@ -51,6 +51,11 @@ every 24 hours while the application remains open; exact-candidate installation;
 outcomes stay quiet unless they require attention. The ordinary build has no endpoint or production trust
 key and therefore performs no update request or installation.
 
+On Windows, Settings also exposes a platform-conditional **Windows help** category. Its `en-US` and `es-ES` content is
+bundled for offline use and keeps installation and trust, update and recovery, application removal versus library
+deletion, and unsupported deployment guidance behind task-focused disclosures. It does not appear on macOS or Linux,
+does not delete anything, and does not depend on a browser or live support site.
+
 On a supported Debian installation, an interrupted update that could open only the preserved previous application
 appears in **Settings → Updates** before FitFreed checks for another release. The page identifies the version being
 restored, shows how many protected recovery attempts have completed, and offers one explicit **Retry recovery and

@@ -2245,6 +2245,22 @@ describe("packaged FitFreed import journey", () => {
     )).toBe(true);
     await expect($("aria/Check now")).toBeEnabled();
     await expect($(".settings-layout")).not.toBeDisplayed();
+    if (process.platform === "win32") {
+      await openSettingsCategory("help");
+      await expect($("#windows-installed-help-heading")).toHaveText(
+        english.settings.windowsHelp.heading,
+      );
+      await expect($(".installed-help-boundary")).toHaveText(
+        expect.stringContaining(english.settings.windowsHelp.supported),
+      );
+      await expect($(".installed-help-topics")).toHaveText(
+        expect.stringContaining(english.settings.windowsHelp.removal.summary),
+      );
+      const helpAccessibility = await new AxeBuilder({ client: browser })
+        .setLegacyMode()
+        .analyze();
+      expect(helpAccessibility.violations).toEqual([]);
+    }
     await openSettingsCategory("appearance");
     await expect($(".settings-layout")).toBeDisplayed();
 
@@ -2263,6 +2279,16 @@ describe("packaged FitFreed import journey", () => {
       "https://support.polar.com/es/how-to-download-all-your-data-from-polar-flow",
     );
     await expect($(".source-link-accepted")).toHaveText(spanish.sources.openAccepted);
+    if (process.platform === "win32") {
+      await openSettingsCategory("help");
+      await expect($("#windows-installed-help-heading")).toHaveText(
+        spanish.settings.windowsHelp.heading,
+      );
+      await expect($(".installed-help-topics")).toHaveText(
+        expect.stringContaining(spanish.settings.windowsHelp.update.summary),
+      );
+      await goToHome("sources");
+    }
     await selectLocale("en-US", "home");
     await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
 

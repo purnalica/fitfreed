@@ -106,6 +106,8 @@ gh release verify-asset v0.1.0 FitFreed_0.1.0_x64-setup.exe --repo purnalica/fit
    install FitFreed for other users.
 4. Open FitFreed from the Start menu shortcut.
 5. Confirm **Settings → Updates** identifies version 0.1.0 before importing anything.
+6. Open **Settings → Windows help** to confirm the localized offline installation, recovery, removal, and data-lifecycle
+   guidance is available from the installed application.
 
 The setup installs FitFreed beneath `%LOCALAPPDATA%\FitFreed` and registers it for the current user in Windows **Apps
 → Installed apps**. It contains the bundled WebView2 offline installer, so clean setup and first launch do not depend
@@ -136,8 +138,9 @@ changes presentation only; it never rewrites imported facts.
 
 The installer selects an English or Spanish interface from the operating-system locale without introducing a second
 package identity. The installed application contains localized import, coverage, exploration, update, failure, and
-recovery guidance for both supported locales. Canonical web and engineering documentation remains English so that it
-has one source of truth.
+recovery guidance for both supported locales. Its Windows-only Settings category also explains installation trust,
+offline behavior, application removal, separate library deletion, and unsupported deployment modes without requiring
+a browser. Canonical web and engineering documentation remains English so that it has one source of truth.
 
 ## Import, reimport, and exploration
 

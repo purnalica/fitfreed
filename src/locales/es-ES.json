@@ -2457,7 +2457,36 @@
     "workspaceNavigation": "Categorías de ajustes",
     "workspaces": {
       "appearance": "Apariencia e idioma",
-      "updates": "Actualizaciones"
+      "updates": "Actualizaciones",
+      "help": "Ayuda de Windows"
+    },
+    "windowsHelp": {
+      "heading": "Uso de FitFreed en Windows",
+      "intro": "Estas instrucciones están disponibles sin conexión para tomar decisiones sobre instalación, recuperación y desinstalación.",
+      "supportedLabel": "Instalación compatible",
+      "supported": "Una edición con soporte de Windows 11 en un equipo x86-64, instalada para el usuario actual con el instalador oficial de FitFreed.",
+      "install": {
+        "summary": "Instalar y verificar FitFreed",
+        "verify": "Descarga el instalador desde la versión inmutable de FitFreed y comprueba que su versión, resumen criptográfico y editor coinciden con esa versión antes de abrirlo.",
+        "smartScreen": "Microsoft Defender SmartScreen puede indicar que una aplicación todavía no se descarga habitualmente. Ese mensaje no demuestra que sea segura ni peligrosa: continúa solo si coinciden el editor verificado y las pruebas del archivo. Nunca ignores una discrepancia.",
+        "firstLaunch": "El instalador instala FitFreed únicamente para el usuario actual. Tras el primer inicio, abre Ajustes → Actualizaciones y confirma la versión instalada antes de importar un archivo personal."
+      },
+      "update": {
+        "summary": "Actualizar o recuperar FitFreed",
+        "ordinary": "Abre Ajustes → Actualizaciones para consultar la versión instalada, buscar una actualización de confianza y leer sus notas antes de instalarla.",
+        "recovery": "Si se interrumpe la sustitución, no modifiques los archivos de recuperación de FitFreed y sigue el mensaje que aparecerá tras reiniciar. La aplicación anterior verificada y su biblioteca correspondiente permanecen en este equipo mientras sea posible recuperarlas.",
+        "offline": "La importación y la exploración siguen disponibles sin conexión de red. La falta de acceso al servicio de actualizaciones no bloquea la biblioteca local."
+      },
+      "removal": {
+        "summary": "Desinstalar FitFreed o eliminar tu biblioteca",
+        "application": "Desinstala FitFreed desde Configuración de Windows → Aplicaciones → Aplicaciones instaladas. La desinstalación elimina la aplicación, pero conserva deliberadamente la biblioteca local independiente.",
+        "library": "Eliminar la biblioteca es una decisión independiente e irreversible. Cierra FitFreed, conserva la copia de seguridad que necesites y elimina después el directorio completo mostrado arriba. Trata todos sus archivos como datos personales sensibles."
+      },
+      "unsupported": {
+        "summary": "Configuraciones de Windows no compatibles",
+        "body": "La primera versión para Windows no es compatible con Windows 10, ARM64, ediciones de Windows 11 sin soporte de Microsoft, despliegues MSI, instalaciones para todos los usuarios ni instalaciones administradas por equipo. No conviertas ni reempaquetes el instalador como solución alternativa."
+      },
+      "privacy": "Nunca adjuntes a una incidencia pública una exportación real, una biblioteca, una ruta, una captura, un registro, un informe de fallo ni un diagnóstico que contenga un historial personal."
     },
     "appearanceTitle": "Apariencia e idioma",
     "appearanceIntro": "Previsualiza el idioma, la apariencia y el tamaño del contenido. No se almacena nada hasta que guardes.",

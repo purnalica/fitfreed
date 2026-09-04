@@ -2414,6 +2414,38 @@ describe("FitFreed import interface", () => {
       .not.toBeInTheDocument();
   });
 
+  it("offers the localized installed lifecycle help only from a Windows runtime", async () => {
+    vi.spyOn(window.navigator, "platform", "get").mockReturnValue("Win32");
+    vi.spyOn(window.navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    );
+    emptyLibrary();
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Settings" }));
+    const navigation = screen.getByRole("navigation", { name: "Settings categories" });
+    await user.click(within(navigation).getByRole("button", { name: "Windows help" }));
+
+    expect(await screen.findByRole("heading", { name: "Using FitFreed on Windows" }))
+      .toBeVisible();
+    expect(screen.getByText("Install and verify FitFreed")).toBeVisible();
+    expect(screen.getByText("Remove FitFreed or delete your library")).toBeVisible();
+
+    await user.click(within(navigation).getByRole("button", {
+      name: "Appearance & language",
+    }));
+    await user.selectOptions(screen.getByLabelText("Interface language"), "es-ES");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await user.click(within(
+      screen.getByRole("navigation", { name: "Categorías de ajustes" }),
+    ).getByRole("button", { name: "Ayuda de Windows" }));
+
+    expect(await screen.findByRole("heading", { name: "Uso de FitFreed en Windows" }))
+      .toBeVisible();
+    expect(screen.getByText("Actualizar o recuperar FitFreed")).toBeVisible();
+  });
+
   it("loads Reports only when opened and remounts it after leaving", async () => {
     emptyLibrary();
     let resolveLibraryHome: (home: ReturnType<typeof emptyLibraryHome>) => void = () => undefined;
