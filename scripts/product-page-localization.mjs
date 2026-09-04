@@ -12,6 +12,13 @@ function normalizedText(value) {
   return value.trim().replaceAll(/\s+/gu, " ");
 }
 
+function formatMessage(message, parameters = {}) {
+  return message.replaceAll(/\{([a-z][A-Za-z0-9]*)\}/gu, (_match, name) => {
+    assert.ok(Object.hasOwn(parameters, name), `missing product-page message parameter: ${name}`);
+    return parameters[name];
+  });
+}
+
 function markerFor(attribute) {
   return `data-i18n-${attribute}`;
 }
@@ -40,6 +47,17 @@ export function loadProductPageLocalization(repositoryRoot) {
   const config = JSON.parse(readFileSync(configPath, "utf8"));
   validateConfig(config);
   const source = readFileSync(path.join(repositoryRoot, "site", "index.html"), "utf8");
+  const releaseSource = JSON.parse(readFileSync(
+    path.join(repositoryRoot, "site", "release-downloads.json"),
+    "utf8",
+  ));
+  assert.equal(releaseSource?.schemaVersion, 1, "unsupported release-download copy schema");
+  assert.ok(
+    releaseSource.messages
+      && typeof releaseSource.messages === "object"
+      && !Array.isArray(releaseSource.messages),
+    "release-download source messages must be an object",
+  );
   const catalogs = {};
   for (const locale of config.locales) {
     if (!locale.catalog) continue;
@@ -49,12 +67,12 @@ export function loadProductPageLocalization(repositoryRoot) {
     assert.ok(catalog.messages && typeof catalog.messages === "object" && !Array.isArray(catalog.messages), `${locale.id} messages must be an object`);
     catalogs[locale.id] = catalog;
   }
-  const localization = { catalogs, config, source };
+  const localization = { catalogs, config, releaseSource, source };
   validateProductPageTranslationContract({ localization, source });
   return localization;
 }
 
-function collectTranslationContract(source) {
+function collectTranslationContract(source, releaseSource) {
   const document = new JSDOM(source).window.document;
   const keys = [];
   const record = (key, description) => {
@@ -95,11 +113,16 @@ function collectTranslationContract(source) {
       assert.fail(`${element.tagName.toLowerCase()} ${attribute} lacks a translation contract`);
     }
   }
+
+  for (const [key, message] of Object.entries(releaseSource.messages)) {
+    assert.match(message, /\S/u, `empty English generated message: ${key}`);
+    record(key, "release-download source");
+  }
   return keys.sort();
 }
 
 export function validateProductPageTranslationContract({ localization, source }) {
-  const keys = collectTranslationContract(source);
+  const keys = collectTranslationContract(source, localization.releaseSource);
   for (const [locale, catalog] of Object.entries(localization.catalogs)) {
     const catalogKeys = Object.keys(catalog.messages).sort();
     const missing = keys.filter((key) => !catalogKeys.includes(key));
@@ -180,11 +203,129 @@ function applyMessages(document, messages) {
   }
 }
 
-function renderLocalizedProductPage(localization, locale) {
+function appendTextElement(document, parent, elementName, text, className) {
+  const element = document.createElement(elementName);
+  if (className) element.className = className;
+  element.textContent = text;
+  parent.append(element);
+  return element;
+}
+
+function releaseMessages(localization, locale) {
+  const sourceMessages = localization.releaseSource.messages;
+  if (locale.id === localization.config.sourceLocale) return sourceMessages;
+  const catalog = localization.catalogs[locale.id].messages;
+  return Object.fromEntries(
+    Object.keys(sourceMessages).map((key) => [key, catalog[key]]),
+  );
+}
+
+function renderReleaseDownloads(document, release, messages) {
+  const parameters = { version: release.version };
+  const message = (key) => formatMessage(messages[key], parameters);
+  const slot = document.querySelector("[data-release-slot]");
+  assert.ok(slot, "product page release-download slot is missing");
+
+  const section = document.createElement("section");
+  section.className = "release-downloads";
+  section.dataset.releaseVersion = release.version;
+  section.setAttribute("aria-labelledby", "release-downloads-title");
+  const introduction = document.createElement("div");
+  introduction.className = "release-download-introduction";
+  appendTextElement(document, introduction, "p", message("release.eyebrow"), "eyebrow");
+  const title = appendTextElement(
+    document,
+    introduction,
+    "strong",
+    message("release.title"),
+  );
+  title.id = "release-downloads-title";
+  appendTextElement(document, introduction, "p", message("release.body"));
+  section.append(introduction);
+
+  const grid = document.createElement("div");
+  grid.className = "release-download-grid";
+  for (const platform of release.platforms) {
+    const link = document.createElement("a");
+    link.className = "release-download-card";
+    link.dataset.releaseDownload = platform.target;
+    link.href = platform.url;
+    appendTextElement(
+      document,
+      link,
+      "strong",
+      message(`release.platform.${platform.key}.action`),
+    );
+    appendTextElement(
+      document,
+      link,
+      "span",
+      message(`release.platform.${platform.key}.detail`),
+    );
+    grid.append(link);
+  }
+  section.append(grid);
+
+  const evidence = document.createElement("div");
+  evidence.className = "release-download-evidence";
+  const evidenceLink = document.createElement("a");
+  evidenceLink.href = release.releaseUrl;
+  evidenceLink.textContent = message("release.evidence");
+  evidence.append(evidenceLink);
+  appendTextElement(document, evidence, "span", message("release.trust"));
+  section.append(evidence);
+  slot.replaceChildren(section);
+
+  document.querySelector('[data-i18n="hero.demonstrationLabel"]').textContent =
+    message("release.demonstration.label");
+  document.querySelector('[data-i18n="hero.demonstrationStatus"]').textContent =
+    message("release.demonstration.status");
+  document.querySelector('[data-i18n="product.intro"]').textContent =
+    message("release.product.intro");
+  for (const state of document.querySelectorAll(".product-stories .story-state")) {
+    state.textContent = message(
+      state.classList.contains("alpha")
+        ? "release.product.stateAlpha"
+        : "release.product.state",
+    );
+  }
+  document.querySelector("#status-heading").textContent = message("release.status.heading");
+  document.querySelector('[data-i18n="status.disclaimer"]').textContent =
+    message("release.status.disclaimer");
+  document.querySelector('[data-i18n="status.footnote"]').textContent =
+    message("release.status.footnote");
+  const releaseStatus = document.querySelector('details[data-status="active"]');
+  const availableStatus = document.querySelector('details[data-status="available"]');
+  availableStatus.querySelector("summary span").textContent =
+    message("release.status.availableLabel");
+  availableStatus.querySelector("summary h3").textContent =
+    message("release.status.availableTitle");
+  releaseStatus.querySelector("summary span").textContent = message("release.status.label");
+  releaseStatus.querySelector("summary h3").textContent = message("release.status.title");
+  const items = releaseStatus.querySelector("ul");
+  items.replaceChildren(...release.platforms.map((platform) => {
+    const item = document.createElement("li");
+    item.textContent = message(`release.status.item.${platform.key}`);
+    return item;
+  }));
+  const source = releaseStatus.querySelector("a");
+  source.href = release.releaseUrl;
+  source.textContent = message("release.status.source");
+  const readiness = document.querySelector('[data-i18n="status.readiness"]');
+  readiness.href = release.releaseUrl;
+  readiness.textContent = message("release.evidence");
+}
+
+function renderLocalizedProductPage(localization, locale, release) {
   const dom = new JSDOM(localization.source);
   const { document } = dom.window;
   const messages = localization.catalogs[locale.id]?.messages;
   applyMessages(document, messages);
+  if (release) renderReleaseDownloads(
+    document,
+    release,
+    releaseMessages(localization, locale),
+  );
   document.documentElement.lang = locale.id;
   document.documentElement.dataset.productLocale = locale.id;
   document.documentElement.dataset.productLocaleRoot = String(locale.route === "/");
@@ -225,11 +366,11 @@ function renderLocalizedProductPage(localization, locale) {
   return dom.serialize();
 }
 
-export function renderLocalizedProductPages(localization) {
+export function renderLocalizedProductPages(localization, { release } = {}) {
   validateProductPageTranslationContract({ localization, source: localization.source });
   return Object.fromEntries(localization.config.locales.map((locale) => [
     locale.output,
-    renderLocalizedProductPage(localization, locale),
+    renderLocalizedProductPage(localization, locale, release),
   ]));
 }
 

@@ -9,6 +9,7 @@ import {
   loadProductPageLocalization,
   renderLocalizedProductPages,
 } from "./product-page-localization.mjs";
+import { createProductReleaseDownloads } from "./product-release-downloads.mjs";
 import { publicOrigin } from "./public-origin.mjs";
 
 const repositoryRoot = resolve(new URL("..", import.meta.url).pathname);
@@ -159,6 +160,55 @@ await validateLocalizedPage(pages["es/index.html"], {
   locale: "es-ES",
 });
 
+const completeRelease = createProductReleaseDownloads({
+  schemaVersion: 7,
+  release: { channel: "public-stable", version: "0.3.0" },
+  update: {
+    targets: [
+      "darwin-aarch64",
+      "linux-x86_64-deb",
+      "windows-x86_64-nsis",
+    ],
+  },
+  artifacts: [
+    { kind: "macos-disk-image", path: "FitFreed_0.3.0_aarch64.dmg" },
+    { kind: "linux-x86_64-deb", path: "FitFreed_0.3.0_amd64.deb" },
+    { kind: "windows-x86_64-nsis", path: "FitFreed_0.3.0_x64-setup.exe" },
+  ],
+});
+const releasePages = renderLocalizedProductPages(localization, { release: completeRelease });
+for (const [outputFile, expected] of [
+  ["index.html", /Download FitFreed 0\.3\.0/u],
+  ["es/index.html", /Descarga FitFreed 0\.3\.0/u],
+]) {
+  const dom = new JSDOM(releasePages[outputFile], {
+    runScripts: "outside-only",
+    url: new URL(outputFile, publicOrigin),
+  });
+  const { document } = dom.window;
+  assert.match(document.querySelector(".release-downloads").textContent, expected);
+  assert.equal(document.querySelectorAll("[data-release-download]").length, 3);
+  assert.equal(
+    document.querySelector('[data-release-download="windows-x86_64-nsis"]')?.href,
+    "https://github.com/purnalica/fitfreed/releases/download/v0.3.0/FitFreed_0.3.0_x64-setup.exe",
+  );
+  assert.doesNotMatch(
+    document.body.textContent,
+    /No supported download yet|no public Windows binary|before release-candidate acceptance|Todavía no hay una descarga con soporte|no existe ningún binario público para Windows/u,
+  );
+  assert.match(document.querySelector('details[data-status="active"]').textContent, /FitFreed 0\.3\.0/u);
+
+  dom.window.eval(axe.source);
+  const result = await dom.window.axe.run(document, {
+    rules: { "color-contrast": { enabled: false } },
+  });
+  assert.equal(
+    result.violations.length,
+    0,
+    `${outputFile} release surface: ${JSON.stringify(result.violations, null, 2)}`,
+  );
+}
+
 assert.doesNotMatch(source, /download (fitfreed|for macos)|get fitfreed/iu);
 assert.match(source, /No supported download yet/u);
 assert.match(sourceDocument.querySelector("#status .section-heading").textContent, /There is no supported public download yet/u);
@@ -168,5 +218,6 @@ assert.doesNotMatch(styles, /url\(\s*["']?https?:/u, "product-page styles must n
 assert.doesNotMatch(styles, /font-size:\s*(?:[0-9]|10|11)px/u, "product-page text must not use sub-12px fixed sizes");
 assert.match(styles, /\.product-shell-navigation[\s\S]*grid-template-columns:\s*repeat\(5,/u);
 assert.match(styles, /\.route-evidence-map[\s\S]*min-height:\s*clamp\(/u);
+assert.match(styles, /\.release-download-grid[\s\S]*grid-template-columns:\s*repeat\(auto-fit,/u);
 
 console.log("Localized product page contracts passed");

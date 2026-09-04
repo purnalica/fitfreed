@@ -199,11 +199,6 @@ export function createCompletePlatformReleaseCandidateFixture() {
     version,
     withdrawnVersions: [],
   });
-  composePagesArtifact({
-    repositoryRoot,
-    outputDirectory: pagesDirectory,
-    updateDirectory: path.join(updateDirectory, "updates"),
-  });
   copyFileSync(
     path.join(updateDirectory, "updates", "stable.json"),
     path.join(releaseDirectory, "stable.json"),
@@ -368,6 +363,12 @@ export function createCompletePlatformReleaseCandidateFixture() {
     path.join(releaseDirectory, "SHA256SUMS.minisig"),
     releaseAuthority.signRelease(readFileSync(checksumPath)),
   );
+  composePagesArtifact({
+    repositoryRoot,
+    outputDirectory: pagesDirectory,
+    releaseManifest: manifest,
+    updateDirectory: path.join(updateDirectory, "updates"),
+  });
 
   rmSync(linux.root, { force: true, recursive: true });
   rmSync(windows.root, { force: true, recursive: true });

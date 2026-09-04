@@ -145,9 +145,16 @@ function verifyPublicReleaseDirectories(
       const pagesDigest = sha256File(path.join(pagesDirectory, pagesName));
       if (releaseDigest !== pagesDigest) errors.push(`Pages byte mismatch: ${pagesName}`);
     }
-    const pages = verifyPagesArtifact({ repositoryRoot, pagesDirectory });
+    const pages = verifyPagesArtifact({
+      repositoryRoot,
+      pagesDirectory,
+      releaseManifest: manifest,
+    });
     if (pages.updateSnapshot !== manifest.release.version) {
       errors.push("Pages update version does not match the public release");
+    }
+    if (pages.releaseVersion !== manifest.release.version) {
+      errors.push("Pages download version does not match the public release");
     }
   } catch (error) {
     errors.push(`invalid Pages staging: ${error.message}`);

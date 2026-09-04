@@ -313,14 +313,8 @@ export function composeCompletePlatformCandidate({
       version,
       withdrawnVersions: policy.withdrawnVersions,
     });
-    composePagesArtifact({
-      repositoryRoot: path.resolve(import.meta.dirname, ".."),
-      outputDirectory: pagesDirectory,
-      updateDirectory: path.join(updateStagingDirectory, "updates"),
-    });
-    rmSync(updateStagingDirectory, { force: true, recursive: true });
     copyFileSync(
-      path.join(pagesDirectory, "updates", "stable.json"),
+      path.join(updateStagingDirectory, "updates", "stable.json"),
       path.join(releaseDirectory, "stable.json"),
     );
 
@@ -433,6 +427,13 @@ export function composeCompletePlatformCandidate({
       path.join(releaseDirectory, "SHA256SUMS.minisig"),
       `${releaseSignature.trim()}\n`,
     );
+    composePagesArtifact({
+      repositoryRoot: path.resolve(import.meta.dirname, ".."),
+      outputDirectory: pagesDirectory,
+      releaseManifest: manifest,
+      updateDirectory: path.join(updateStagingDirectory, "updates"),
+    });
+    rmSync(updateStagingDirectory, { force: true, recursive: true });
     const verified = verifyCompletePlatformReleaseCandidate(
       staging,
       updateConfiguration,

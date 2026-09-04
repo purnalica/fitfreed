@@ -320,14 +320,8 @@ function preparePublicRelease() {
       withdrawnVersions: policy.update.withdrawnVersions,
       signPayload: (payloadBytes) => signChannelPayload(payloadBytes, stagingDirectory),
     });
-    composePagesArtifact({
-      repositoryRoot,
-      outputDirectory: pagesDirectory,
-      updateDirectory: path.join(updateStagingDirectory, "updates"),
-    });
-    rmSync(updateStagingDirectory, { force: true, recursive: true });
     copyFileSync(
-      path.join(pagesDirectory, "updates", "stable.json"),
+      path.join(updateStagingDirectory, "updates", "stable.json"),
       path.join(releaseDirectory, "stable.json"),
     );
 
@@ -370,6 +364,13 @@ function preparePublicRelease() {
       path.join(releaseDirectory, "SHA256SUMS"),
       renderChecksumFile(releaseDirectory, checksumSubjects),
     );
+    composePagesArtifact({
+      repositoryRoot,
+      outputDirectory: pagesDirectory,
+      releaseManifest: manifest,
+      updateDirectory: path.join(updateStagingDirectory, "updates"),
+    });
+    rmSync(updateStagingDirectory, { force: true, recursive: true });
     if (textualEvidenceHasLocalReference(releaseDirectory, [
       built.names.updaterSignature,
       "stable.json",

@@ -342,6 +342,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   exact ignored version directory, and removes incomplete candidates. Independent manifest version 7 composition and
   reopening tests then bind all three current packages, recovery packages, signatures, inventories, checksums, SBOMs,
   notes, provenance subjects, and Pages bytes before local promotion.
+- Product-site release tests keep the ordinary source and product-only artifact inactive, then derive exact installer
+  sets from synthetic manifest versions 3, 6, and 7. English and Spanish surfaces must expose only the manifest's
+  macOS, Linux, and Windows targets, use immutable versioned GitHub Release URLs, remove stale pre-release claims, and
+  retain accessible names and structure. Candidate, distribution, and remote verifiers reconstruct the same bytes and
+  reject missing, additional, renamed, cross-version, or cross-target links rather than trusting rendered HTML.
 - The explicit Linux performance admission workflow builds and verifies the source-bound production Debian package,
   installs it, measures 100 fresh interactive-shell processes under Xvfb, and always purges it before running the
   production full-scale import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights,

@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
@@ -11,7 +10,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { composePagesArtifact } from "./pages-artifact.mjs";
 import {
   publicOrigin,
   publicUpdateEndpoint,
@@ -33,62 +31,22 @@ import {
   expandingPublicUpdateConfiguration,
 } from "./test-support/expanding-public-release-candidate.mjs";
 
-function sha256(bytes) {
-  return createHash("sha256").update(bytes).digest("hex");
-}
-
 function fixture() {
-  const archiveBytes = Buffer.from("current updater archive");
-  const version = "0.1.0";
-  const archiveName = "FitFreed_0.1.0_aarch64.app.tar.gz";
-  const stableBytes = Buffer.from(JSON.stringify({
-    fitfreed: {
-      payloadBase64: Buffer.from(JSON.stringify({
-        release: {
-          version,
-          recoveryArtifacts: [],
-          platforms: {
-            "darwin-aarch64": {
-              url: publicUpdateUrl(`${version}/${archiveName}`),
-              size: archiveBytes.length,
-              sha256: sha256(archiveBytes),
-            },
-          },
-        },
-      })).toString("base64"),
-    },
-  }));
-  const root = mkdtempSync(path.join(tmpdir(), "fitfreed-pages-verification-"));
-  const productPagesDirectory = path.join(root, "product-pages");
-  composePagesArtifact({
-    repositoryRoot: path.resolve(import.meta.dirname, ".."),
-    outputDirectory: productPagesDirectory,
-  });
+  const candidate = createPublicReleaseCandidateFixture();
+  const { manifest, pagesDirectory: productPagesDirectory, releaseDirectory, root } = candidate;
+  const version = manifest.release.version;
+  const archive = manifest.artifacts.find(({ kind }) => kind === "macos-updater-archive");
+  const stable = manifest.artifacts.find(({ kind }) => kind === "stable-update-envelope");
+  const archiveBytes = readFileSync(path.join(releaseDirectory, archive.path));
+  const stableBytes = readFileSync(path.join(releaseDirectory, stable.path));
   return {
     archiveBytes,
-    archiveUrl: publicUpdateUrl(`${version}/${archiveName}`),
+    archiveUrl: publicUpdateUrl(`${version}/${archive.path}`),
     pagesDirectory: path.join(root, "downloaded-pages"),
     productPagesDirectory,
     stableBytes,
     stableUrl: publicUpdateEndpoint,
-    manifest: {
-      release: { version },
-      update: { metadataEndpoint: publicUpdateEndpoint },
-      artifacts: [
-        {
-          kind: "stable-update-envelope",
-          path: "stable.json",
-          size: stableBytes.length,
-          sha256: sha256(stableBytes),
-        },
-        {
-          kind: "macos-updater-archive",
-          path: archiveName,
-          size: archiveBytes.length,
-          sha256: sha256(archiveBytes),
-        },
-      ],
-    },
+    manifest,
   };
 }
 

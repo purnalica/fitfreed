@@ -81,6 +81,12 @@ rejects any missing, additional, renamed, cross-version, cross-target, or mutate
 verifier before promotion; transport, publication, and remote acceptance invoke it again without reinterpreting an
 older manifest.
 
+Those same target sets drive the localized product-page download surface. Version 3 exposes only the DMG, version 6
+adds the Debian package, and version 7 adds the NSIS setup. These are direct human installer links to immutable,
+versioned GitHub Release assets; updater archives and signatures remain confined to the authenticated `/updates/`
+contract. Ordinary `npm run build:pages` output remains inactive. Candidate verification reconstructs both locale
+surfaces from the manifest, so hand-edited, stale, missing, or additional release links fail before promotion.
+
 ## Platform-expansion preparation
 
 The first Linux publication is a new complete-platform release after an immutable public macOS predecessor, never a
@@ -127,7 +133,7 @@ version, revision, and storage schema. Under separate Apple, updater, and releas
 macOS artifacts, adds updater signatures to the unchanged Linux and Windows packages, and creates one complete-platform
 manifest version 7 candidate plus one complete stable-v3 Pages snapshot. Its independent verifier binds the Windows
 package, Authenticode fingerprint, native inventory, build evidence, updater signature, checksums, release signature,
-recovery set, and Pages bytes.
+recovery set, and manifest-derived localized download links in the Pages bytes.
 
 The protected Apple Silicon composition entry point is:
 

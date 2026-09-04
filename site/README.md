@@ -2,10 +2,11 @@
 
 ## Status
 
-Reviewable static source for the canonical product site at <https://fitfreed.org/>. The source
-contains no release download action. Its
-statements derive from the product thesis, current capability boundary, active experience plan, and
-roadmap; those documents remain authoritative.
+Reviewable static source for the canonical product site at <https://fitfreed.org/>. The ordinary
+source and product-only build contain no release download action. A sealed release candidate derives
+its download surface from that candidate's closed manifest; it does not add hand-maintained version,
+platform, or asset URLs to this directory. Product statements derive from the product thesis, current
+capability boundary, active experience plan, and roadmap; those documents remain authoritative.
 
 The available, active, and later capability block is generated from
 [`docs/product-status.json`](../docs/product-status.json). Change that source and run
@@ -18,6 +19,10 @@ because inserting a capability would silently associate existing translations wi
 Translatable text and accessible labels use stable `data-i18n` keys. The complete Spanish catalog is
 [`site/locales/es-ES.json`](locales/es-ES.json); its flat `messages` object can be exchanged with
 collaborative translation tools without giving translators generated HTML to maintain.
+[`site/release-downloads.json`](release-downloads.json) contains the canonical English messages used
+only when a release candidate renders its manifest-derived download surface. The locale catalog owns
+the matching translations. These generated messages support named `{version}` parameters so word
+order remains under translator control.
 
 When changing product copy:
 
@@ -62,12 +67,19 @@ navigation, and automated accessibility analysis before any deployment. Serving 
 artifact is mandatory because localized routes and the preference runtime do not exist in the source
 directory.
 
-`npm run build:pages` creates the ignored, deployable `.artifacts/pages/` tree. The compositor copies
-only the required product assets, converts repository-document links to canonical GitHub links, and
-can carry one complete digest-bound `/updates/` snapshot without changing its bytes. The product
-workflow runs the source checks, compositor, update-preservation preflight, atomic Pages deployment,
-and exact remote-byte verification. It fails before deployment if a product-only artifact would
-erase an active update channel.
+`npm run build:pages` creates the ignored, deployable `.artifacts/pages/` tree in the inactive state:
+it has no download links. The compositor copies only the required product assets, converts
+repository-document links to canonical GitHub links, and can carry one complete digest-bound
+`/updates/` snapshot without changing its bytes. The product workflow runs the source checks,
+compositor, update-preservation preflight, atomic Pages deployment, and exact remote-byte
+verification. It fails before deployment if a product-only artifact would erase an active update
+channel.
+
+Release-candidate composition is the only mode that supplies a release manifest to the compositor.
+Manifest versions 3, 6, and 7 produce the exact supported macOS, macOS-plus-Linux, or
+macOS-plus-Linux-plus-Windows installer links respectively. Candidate verification reconstructs the
+localized pages from the signed manifest and rejects a stale, missing, additional, renamed, or
+cross-version download before promotion.
 
 The English root is the deterministic fallback. On its first visit, the local locale runtime follows
 the browser's ordered language preferences and selects Spanish only when it is the first supported

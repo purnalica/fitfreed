@@ -46,11 +46,6 @@ export function createExpandingPublicReleaseCandidateFixture() {
   const releaseDirectory = path.join(root, "release");
   const pagesDirectory = path.join(root, "pages");
   mkdirSync(releaseDirectory);
-  composePagesArtifact({
-    repositoryRoot,
-    outputDirectory: pagesDirectory,
-    updateDirectory: path.join(linuxCandidate.pagesDirectory, "updates"),
-  });
 
   const version = linuxCandidate.manifest.release.version;
   const revision = linuxCandidate.revision;
@@ -72,7 +67,7 @@ export function createExpandingPublicReleaseCandidateFixture() {
 
   const macosUpdaterName = `FitFreed_${version}_aarch64.app.tar.gz`;
   copyFileSync(
-    path.join(pagesDirectory, "updates", version, macosUpdaterName),
+    path.join(linuxCandidate.pagesDirectory, "updates", version, macosUpdaterName),
     path.join(releaseDirectory, macosUpdaterName),
   );
   const envelope = JSON.parse(readFileSync(path.join(releaseDirectory, "stable.json"), "utf8"));
@@ -247,6 +242,12 @@ export function createExpandingPublicReleaseCandidateFixture() {
     path.join(releaseDirectory, "SHA256SUMS.minisig"),
     releaseAuthority.signRelease(readFileSync(checksumPath)),
   );
+  composePagesArtifact({
+    repositoryRoot,
+    outputDirectory: pagesDirectory,
+    releaseManifest: manifest,
+    updateDirectory: path.join(linuxCandidate.pagesDirectory, "updates"),
+  });
   rmSync(linuxCandidate.root, { recursive: true });
   return {
     linuxBuildEvidenceName,

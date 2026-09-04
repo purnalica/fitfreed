@@ -103,6 +103,62 @@ function syntheticExpandedUpdateSnapshot(root) {
   return updateDirectory;
 }
 
+function completeReleaseManifest() {
+  return {
+    schemaVersion: 7,
+    release: { channel: "public-stable", version: "0.3.0" },
+    update: {
+      targets: [
+        "darwin-aarch64",
+        "linux-x86_64-deb",
+        "windows-x86_64-nsis",
+      ],
+    },
+    artifacts: [
+      { kind: "macos-disk-image", path: "FitFreed_0.3.0_aarch64.dmg" },
+      { kind: "linux-x86_64-deb", path: "FitFreed_0.3.0_amd64.deb" },
+      { kind: "windows-x86_64-nsis", path: "FitFreed_0.3.0_x64-setup.exe" },
+    ],
+  };
+}
+
+function syntheticCompleteUpdateSnapshot(root) {
+  const updateDirectory = path.join(root, "complete-updates-source");
+  const manifest = completeReleaseManifest();
+  const artifacts = manifest.update.targets.map((target) => {
+    const names = {
+      "darwin-aarch64": "FitFreed_0.3.0_aarch64.app.tar.gz",
+      "linux-x86_64-deb": "FitFreed_0.3.0_amd64.deb",
+      "windows-x86_64-nsis": "FitFreed_0.3.0_x64-setup.exe",
+    };
+    return {
+      bytes: Buffer.from(`synthetic ${target} updater package`),
+      name: names[target],
+      target,
+    };
+  });
+  const packageDirectory = path.join(updateDirectory, manifest.release.version);
+  mkdirSync(packageDirectory, { recursive: true });
+  for (const artifact of artifacts) {
+    writeFileSync(path.join(packageDirectory, artifact.name), artifact.bytes);
+  }
+  const payloadBytes = Buffer.from(JSON.stringify({
+    release: {
+      version: manifest.release.version,
+      platforms: Object.fromEntries(artifacts.map((artifact) => [artifact.target, {
+        url: publicUpdateUrl(`${manifest.release.version}/${artifact.name}`),
+        size: artifact.bytes.length,
+        sha256: sha256(artifact.bytes),
+      }])),
+      recoveryArtifacts: [],
+    },
+  }));
+  writeFileSync(path.join(updateDirectory, "stable.json"), `${JSON.stringify({
+    fitfreed: { payloadBase64: payloadBytes.toString("base64") },
+  })}\n`);
+  return updateDirectory;
+}
+
 test("composes the canonical product root without an unsupported update channel", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "fitfreed-pages-"));
   const outputDirectory = path.join(root, "pages");
@@ -215,6 +271,68 @@ test("reopens the canonical product site and complete update snapshot", () => {
   assert.throws(
     () => verifyPagesArtifact({ repositoryRoot, pagesDirectory: outputDirectory }),
     /product file mismatch/,
+  );
+
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("renders release downloads only when a closed public manifest is provided", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "fitfreed-pages-downloads-"));
+  const outputDirectory = path.join(root, "pages");
+  const releaseManifest = completeReleaseManifest();
+  const updateDirectory = syntheticCompleteUpdateSnapshot(root);
+
+  composePagesArtifact({
+    repositoryRoot,
+    outputDirectory,
+    releaseManifest,
+    updateDirectory,
+  });
+
+  const english = readFileSync(path.join(outputDirectory, "index.html"), "utf8");
+  const spanish = readFileSync(path.join(outputDirectory, "es", "index.html"), "utf8");
+  for (const [source, title] of [
+    [english, "Download FitFreed 0.3.0"],
+    [spanish, "Descarga FitFreed 0.3.0"],
+  ]) {
+    assert.match(source, new RegExp(title));
+    assert.equal((source.match(/data-release-download=/gu) ?? []).length, 3);
+    assert.doesNotMatch(source, /No supported download yet|Todavía no hay una descarga con soporte/u);
+  }
+  assert.match(
+    english,
+    /href="https:\/\/github\.com\/purnalica\/fitfreed\/releases\/download\/v0\.3\.0\/FitFreed_0\.3\.0_x64-setup\.exe"/u,
+  );
+  assert.match(english, /Windows 11 · x86-64 · per-user installer/u);
+  assert.match(spanish, /Windows 11 · x86-64 · instalador por usuario/u);
+  assert.doesNotMatch(
+    readFileSync(path.join(repositoryRoot, "site", "index.html"), "utf8"),
+    /data-release-download=/u,
+  );
+
+  assert.equal(
+    verifyPagesArtifact({ repositoryRoot, pagesDirectory: outputDirectory, releaseManifest })
+      .releaseVersion,
+    "0.3.0",
+  );
+  assert.throws(
+    () => verifyPagesArtifact({ repositoryRoot, pagesDirectory: outputDirectory }),
+    /product file mismatch/u,
+  );
+
+  const mismatchedManifest = completeReleaseManifest();
+  mismatchedManifest.release.version = "0.3.1";
+  for (const artifact of mismatchedManifest.artifacts) {
+    artifact.path = artifact.path.replace("0.3.0", "0.3.1");
+  }
+  assert.throws(
+    () => composePagesArtifact({
+      repositoryRoot,
+      outputDirectory: path.join(root, "mismatched"),
+      releaseManifest: mismatchedManifest,
+      updateDirectory,
+    }),
+    /release manifest and update snapshot versions differ/u,
   );
 
   rmSync(root, { recursive: true, force: true });

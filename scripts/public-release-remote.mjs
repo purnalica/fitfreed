@@ -186,6 +186,7 @@ export async function downloadVerifiedPagesSnapshot({
         composePagesArtifact({
           repositoryRoot,
           outputDirectory: pagesDirectory,
+          releaseManifest: manifest,
           updateDirectory,
         });
         const productFileCount = await verifyProductPages(

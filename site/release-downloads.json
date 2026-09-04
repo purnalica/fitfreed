@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "messages": {
+    "release.eyebrow": "Supported public release",
+    "release.title": "Download FitFreed {version}",
+    "release.body": "Choose the installer for this device. Each link opens the exact asset in the immutable GitHub Release.",
+    "release.platform.macos.action": "Download for macOS",
+    "release.platform.macos.detail": "Apple Silicon · macOS 15 or later",
+    "release.platform.linux.action": "Download for Ubuntu",
+    "release.platform.linux.detail": "Ubuntu Desktop 24.04 or 26.04 LTS · x86-64 Debian package",
+    "release.platform.windows.action": "Download for Windows",
+    "release.platform.windows.detail": "Windows 11 · x86-64 · per-user installer",
+    "release.evidence": "Release notes and verification files",
+    "release.trust": "Installation, verification, update, recovery, and removal guidance is included with the release.",
+    "release.demonstration.label": "FitFreed {version} experience — illustrative data, not a screenshot",
+    "release.demonstration.status": "The map-led workbench, exact route points, and separate signal inspection are included in FitFreed {version}.",
+    "release.product.intro": "These tasks are implemented in FitFreed {version}. Release evidence and known limitations remain available for inspection.",
+    "release.product.state": "Included in FitFreed {version}",
+    "release.product.stateAlpha": "Included in FitFreed {version} · Alpha interaction",
+    "release.status.availableLabel": "Included in this release",
+    "release.status.availableTitle": "Current capability",
+    "release.status.heading": "Current capability, supported release, and later scope.",
+    "release.status.disclaimer": "The current source capabilities and the supported packages in FitFreed {version} are stated separately from later ideas.",
+    "release.status.label": "Supported release",
+    "release.status.title": "FitFreed {version}",
+    "release.status.item.macos": "Apple Silicon on macOS 15 or later",
+    "release.status.item.linux": "Ubuntu Desktop 24.04 and 26.04 LTS on x86-64",
+    "release.status.item.windows": "Windows 11 on x86-64 with a per-user installer",
+    "release.status.source": "Release notes and verification files →",
+    "release.status.footnote": "FitFreed {version} is the current supported public release. Its installers, checksums, signatures, evidence, and limitations are published together in one immutable GitHub Release."
+  }
+}

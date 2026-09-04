@@ -82,14 +82,8 @@ export function createPublicReleaseCandidateFixture() {
     withdrawnVersions: [],
     signPayload: (payload) => signingAuthority.signTauri(payload, "stable-payload.json"),
   });
-  composePagesArtifact({
-    repositoryRoot,
-    outputDirectory: pagesDirectory,
-    updateDirectory: path.join(updateStagingDirectory, "updates"),
-  });
-  rmSync(updateStagingDirectory, { force: true, recursive: true });
   copyFileSync(
-    path.join(pagesDirectory, "updates", "stable.json"),
+    path.join(updateStagingDirectory, "updates", "stable.json"),
     path.join(releaseDirectory, "stable.json"),
   );
 
@@ -137,5 +131,12 @@ export function createPublicReleaseCandidateFixture() {
       "release-manifest.json",
     ]),
   );
+  composePagesArtifact({
+    repositoryRoot,
+    outputDirectory: pagesDirectory,
+    releaseManifest: manifest,
+    updateDirectory: path.join(updateStagingDirectory, "updates"),
+  });
+  rmSync(updateStagingDirectory, { force: true, recursive: true });
   return { artifacts, manifest, pagesDirectory, releaseDirectory, revision, root };
 }

@@ -256,6 +256,84 @@ textarea {
   color: var(--warm);
 }
 
+.release-downloads {
+  display: grid;
+  max-width: 1050px;
+  gap: 18px;
+  margin-top: 24px;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 14px 45px rgb(23 32 25 / 8%);
+}
+
+.release-download-introduction {
+  display: grid;
+  gap: 8px;
+}
+
+.release-download-introduction strong {
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+  letter-spacing: -0.025em;
+}
+
+.release-download-introduction p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.release-download-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+}
+
+.release-download-card {
+  display: grid;
+  min-height: 94px;
+  align-content: center;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 52%, var(--line));
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.release-download-card:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 72%, var(--surface));
+}
+
+.release-download-card strong {
+  font-size: 1rem;
+}
+
+.release-download-card span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.release-download-evidence {
+  display: flex;
+  align-items: baseline;
+  gap: 12px 18px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.release-download-evidence a {
+  flex: 0 0 auto;
+  color: var(--accent-strong);
+  font-weight: 760;
+}
+
 .product-demonstration {
   margin-top: 52px;
 }
@@ -1135,6 +1213,7 @@ footer small {
   }
 
   .availability-note,
+  .release-download-evidence,
   .product-demonstration-heading,
   .session-identity,
   .route-evidence-heading {

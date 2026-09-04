@@ -20,6 +20,7 @@ import {
   renderLocaleRuntime,
   renderLocalizedProductPages,
 } from "./product-page-localization.mjs";
+import { createProductReleaseDownloads } from "./product-release-downloads.mjs";
 import { publicOrigin, publicUpdateUrl } from "./public-origin.mjs";
 
 const repositoryUrl = "https://github.com/purnalica/fitfreed/blob/main/";
@@ -152,6 +153,7 @@ function assertSafeOutput(outputDirectory) {
 export function composePagesArtifact({
   repositoryRoot,
   outputDirectory,
+  releaseManifest,
   updateDirectory,
 }) {
   const resolvedRoot = path.resolve(repositoryRoot);
@@ -161,12 +163,18 @@ export function composePagesArtifact({
   const updateSnapshot = updateDirectory
     ? validateUpdateSnapshot(path.resolve(updateDirectory))
     : null;
+  const release = releaseManifest
+    ? createProductReleaseDownloads(releaseManifest)
+    : undefined;
+  if (release && updateDirectory && updateSnapshot !== release.version) {
+    throw new Error("release manifest and update snapshot versions differ");
+  }
 
   rmSync(stagingDirectory, { recursive: true, force: true });
   mkdirSync(path.join(stagingDirectory, "assets", "brand"), { recursive: true });
   try {
     const localization = loadProductPageLocalization(resolvedRoot);
-    const localizedPages = renderLocalizedProductPages(localization);
+    const localizedPages = renderLocalizedProductPages(localization, { release });
     for (const [outputFile, page] of Object.entries(localizedPages)) {
       const outputPath = path.join(stagingDirectory, ...outputFile.split("/"));
       mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -200,11 +208,12 @@ export function composePagesArtifact({
   return {
     files: relativeFiles(resolvedOutput),
     outputDirectory: resolvedOutput,
+    releaseVersion: releaseManifest?.release?.version ?? null,
     updateSnapshot,
   };
 }
 
-export function verifyPagesArtifact({ repositoryRoot, pagesDirectory }) {
+export function verifyPagesArtifact({ repositoryRoot, pagesDirectory, releaseManifest }) {
   const resolvedRoot = path.resolve(repositoryRoot);
   const resolvedPages = path.resolve(pagesDirectory);
   const temporaryRoot = mkdtempSync(path.join(tmpdir(), "fitfreed-pages-verification-"));
@@ -213,6 +222,7 @@ export function verifyPagesArtifact({ repositoryRoot, pagesDirectory }) {
     composePagesArtifact({
       repositoryRoot: resolvedRoot,
       outputDirectory: expectedProductDirectory,
+      releaseManifest,
     });
     const expectedProductFiles = relativeFiles(expectedProductDirectory);
     const actualFiles = relativeFiles(resolvedPages);
@@ -241,6 +251,7 @@ export function verifyPagesArtifact({ repositoryRoot, pagesDirectory }) {
     }
     return {
       productFileCount: expectedProductFiles.length,
+      releaseVersion: releaseManifest?.release?.version ?? null,
       updateFileCount: expectedUpdateFiles.length,
       updateSnapshot,
     };

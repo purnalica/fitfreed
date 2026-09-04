@@ -250,9 +250,16 @@ function verifyPagesSnapshot(
       signatureText: decodeTauriSignatureText(evidence.tauriSignature),
     });
   }
-  const pages = verifyPagesArtifact({ repositoryRoot, pagesDirectory });
+  const pages = verifyPagesArtifact({
+    repositoryRoot,
+    pagesDirectory,
+    releaseManifest: manifest,
+  });
   if (pages.updateSnapshot !== manifest.release.version) {
     throw new Error("expanding Pages update version does not match release evidence");
+  }
+  if (pages.releaseVersion !== manifest.release.version) {
+    throw new Error("expanding Pages download version does not match release evidence");
   }
   if (
     sha256File(path.join(releaseDirectory, "stable.json"))

@@ -140,6 +140,11 @@ It then builds fresh macOS bytes, signs the unchanged Linux and Windows packages
 one atomic candidate. `npm run verify:complete-platform-release -- <candidate-directory>` repeats the complete local
 reopening. Neither command grants promotion authority.
 
+The candidate's private Pages tree already contains the localized direct installer links derived from its exact
+manifest: macOS for version 3, macOS and Linux for version 6, and all three supported platforms for version 7. Do not
+edit or activate those links independently. They become reachable only when promotion publishes the matching GitHub
+Release as immutable and then deploys the exact candidate Pages artifact.
+
 PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,
 storage schema, package digest, public certificate SHA-256 fingerprint, and Boolean phase results. They must not
 contain a certificate private key, store selector, protected environment value, local account name, machine path,
