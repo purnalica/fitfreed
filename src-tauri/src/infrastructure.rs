@@ -256,6 +256,7 @@ pub use update_recovery_windows_state::{
     acquire_windows_update_recovery_watchdog_lease, active_windows_update_recovery_phase,
     begin_windows_update_recovery_retry, cancel_windows_update_recovery_retry,
     confirm_active_windows_update_recovery, discard_prepared_windows_update_recovery,
+    maintain_windows_update_recovery, maintain_windows_update_recovery_with_watchdog_lease,
     prepare_windows_update_recovery, query_windows_update_recovery_intervention,
     record_active_windows_update_recovery_replacement_launch,
     resolve_active_windows_update_recovery_watchdog_context,

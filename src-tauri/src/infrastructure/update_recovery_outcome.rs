@@ -157,9 +157,20 @@ fn read_bounded_file(path: &Path) -> Result<Vec<u8>, UpdateRecoveryOutcomeStoreE
 
         options.custom_flags(libc::O_NOFOLLOW);
     }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+
+        options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
+    }
     let file = options.open(path)?;
     let metadata = file.metadata()?;
-    if !metadata.file_type().is_file() || metadata.len() == 0 || metadata.len() > MAX_OUTCOME_BYTES
+    if !metadata.file_type().is_file()
+        || is_reparse_point(&metadata)
+        || metadata.len() == 0
+        || metadata.len() > MAX_OUTCOME_BYTES
     {
         return Err(UpdateRecoveryOutcomeStoreError::InvalidState);
     }
@@ -172,6 +183,20 @@ fn read_bounded_file(path: &Path) -> Result<Vec<u8>, UpdateRecoveryOutcomeStoreE
         return Err(UpdateRecoveryOutcomeStoreError::InvalidState);
     }
     Ok(bytes)
+}
+
+#[cfg(windows)]
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+
+    use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+
+    metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+}
+
+#[cfg(not(windows))]
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    metadata.file_type().is_symlink()
 }
 
 fn path_entry_exists(path: &Path) -> Result<bool, UpdateRecoveryOutcomeStoreError> {
@@ -259,5 +284,20 @@ mod tests {
             read_update_recovery_outcome(directory.path()),
             Err(UpdateRecoveryOutcomeStoreError::Manifest(_))
         ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_a_redirected_outcome_file() {
+        use std::os::unix::fs::symlink;
+
+        let directory = TempDir::new().expect("temporary directory");
+        let outside = TempDir::new().expect("outside directory");
+        let outside_outcome = outside.path().join("outcome.json");
+        fs::write(&outside_outcome, "redirected").expect("outside outcome");
+        symlink(outside_outcome, directory.path().join(OUTCOME_FILE_NAME))
+            .expect("redirected outcome");
+
+        assert!(read_update_recovery_outcome(directory.path()).is_err());
     }
 }

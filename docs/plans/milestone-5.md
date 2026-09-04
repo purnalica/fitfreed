@@ -174,7 +174,10 @@ identity and critical installed files match the runnable image. The two closed n
 one and two for explicit retry and make attempt three terminal. Restart lookup derives its context from the active
 attempt, exposes only the privacy-minimized intervention, and starts a retry only after proving watchdog availability.
 A prepared attempt can be discarded only under every ownership boundary; replacement-started evidence cannot be
-discarded. Terminal validation, receipt-bound cleanup, full watchdog orchestration, and release-shaped evidence still
+discarded. Terminal maintenance accepts only `confirmed` and `recovered`, revalidates the corresponding native
+application/library pair, writes the platform-neutral receipt before removing active authority, and closes all Windows
+no-sharing handles before exact attempt deletion. Candidate ownership defers cleanup, while a restart can resume only
+the receipt-bound attempt after active-pointer removal. Full watchdog orchestration and release-shaped evidence still
 remain before this is a recoverable update path.
 
 ## Increment M5.3 — Packaged capability parity

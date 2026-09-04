@@ -12,6 +12,7 @@ use fitfreed_application::{
     authorize_packaged_update_recovery_retry, describe_packaged_update_recovery_intervention,
     validate_packaged_update_recovery_transition, PackagedUpdateRecoveryIntervention,
     PackagedUpdateRecoveryPhase, UpdateArtifact, UpdateInstallationAuthorization,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
 };
 use minisign_verify::Signature;
 use semver::Version;
@@ -20,13 +21,16 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 use url::Url;
 
+use super::update_recovery_outcome::{
+    read_update_recovery_outcome, write_update_recovery_outcome, UpdateRecoveryOutcomeStoreError,
+};
 use super::update_recovery_windows::verify_windows_native_installation_matches_runnable;
 use super::{
     backup_database,
     local_file::{sync_directory, PrivateStagingFile},
     observe_windows_recovery_process, prepare_windows_recovery_packages_from_path,
     query_windows_native_package_identity, reinstall_windows_predecessor_package,
-    verify_library_file, verify_windows_recovery_packages, ImportError,
+    verify_library_file, verify_windows_recovery_packages, ImportError, UpdateRecoveryMaintenance,
     WindowsNativePackageIdentity, WindowsRecoveryPackageError, WindowsRecoveryPackageExpectation,
     WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError, SCHEMA_VERSION,
 };
@@ -76,6 +80,16 @@ pub enum WindowsRecoveryStateError {
     Io(#[from] io::Error),
     #[error("Windows recovery manifest failure: {0}")]
     Manifest(#[from] serde_json::Error),
+}
+
+impl From<UpdateRecoveryOutcomeStoreError> for WindowsRecoveryStateError {
+    fn from(value: UpdateRecoveryOutcomeStoreError) -> Self {
+        match value {
+            UpdateRecoveryOutcomeStoreError::InvalidState => Self::InvalidState,
+            UpdateRecoveryOutcomeStoreError::Io(error) => Self::Io(error),
+            UpdateRecoveryOutcomeStoreError::Manifest(error) => Self::Manifest(error),
+        }
+    }
 }
 
 pub struct WindowsUpdateRecoveryPreparation<'a> {
@@ -278,7 +292,17 @@ trait WindowsNativeRecoveryPort {
     ) -> Result<(), WindowsUpdateRecoveryError>;
 }
 
+trait WindowsInstalledStatePort {
+    fn identity(&self) -> Result<InstalledIdentity, WindowsRecoveryStateError>;
+
+    fn verify_matches_runnable(
+        &self,
+        attempt_directory: &Path,
+    ) -> Result<InstalledIdentity, WindowsRecoveryStateError>;
+}
+
 struct SystemWindowsNativeRecovery;
+struct SystemWindowsInstalledState;
 
 impl RecoveryPackagePort for SystemRecoveryPackages {
     fn prepare(
@@ -331,6 +355,25 @@ impl WindowsNativeRecoveryPort for SystemWindowsNativeRecovery {
             return Err(WindowsUpdateRecoveryError::InvalidPackageIdentity);
         }
         verify_windows_native_installation_matches_runnable(attempt_directory, &native_identity)
+    }
+}
+
+impl WindowsInstalledStatePort for SystemWindowsInstalledState {
+    fn identity(&self) -> Result<InstalledIdentity, WindowsRecoveryStateError> {
+        let identity = query_windows_native_package_identity()
+            .map_err(|_| WindowsRecoveryStateError::InvalidState)?;
+        InstalledIdentity::from_native(&identity)
+    }
+
+    fn verify_matches_runnable(
+        &self,
+        attempt_directory: &Path,
+    ) -> Result<InstalledIdentity, WindowsRecoveryStateError> {
+        let identity = query_windows_native_package_identity()
+            .map_err(|_| WindowsRecoveryStateError::InvalidState)?;
+        verify_windows_native_installation_matches_runnable(attempt_directory, &identity)
+            .map_err(|_| WindowsRecoveryStateError::InvalidState)?;
+        InstalledIdentity::from_native(&identity)
     }
 }
 
@@ -1088,6 +1131,240 @@ fn discard_prepared_windows_update_recovery_with(
     fs::remove_dir_all(attempt_directory)?;
     sync_directory(&attempts_directory)?;
     Ok(())
+}
+
+pub fn maintain_windows_update_recovery(
+    recovery_root: &Path,
+    expected_library_path: &Path,
+) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
+    maintain_windows_update_recovery_with(
+        &SystemRecoveryPackages,
+        &SystemWindowsInstalledState,
+        recovery_root,
+        expected_library_path,
+        None,
+    )
+}
+
+pub fn maintain_windows_update_recovery_with_watchdog_lease(
+    context: &WindowsUpdateRecoveryWatchdogContext,
+    watchdog_lease: WindowsUpdateRecoveryWatchdogLease,
+) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
+    maintain_windows_update_recovery_with(
+        &SystemRecoveryPackages,
+        &SystemWindowsInstalledState,
+        context.recovery_root(),
+        context.library_path(),
+        Some(watchdog_lease),
+    )
+}
+
+fn maintain_windows_update_recovery_with(
+    packages: &impl RecoveryPackagePort,
+    installed_state: &impl WindowsInstalledStatePort,
+    recovery_root: &Path,
+    expected_library_path: &Path,
+    watchdog_lease: Option<WindowsUpdateRecoveryWatchdogLease>,
+) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
+    if !path_entry_exists(recovery_root)? {
+        return Ok(UpdateRecoveryMaintenance::NoTerminalOutcome);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let Some(_outcome_lock) = try_acquire_exclusive_lock(open_private_lock_file(
+        &recovery_root,
+        OUTCOME_LOCK_FILE_NAME,
+        false,
+    ))?
+    else {
+        return Ok(UpdateRecoveryMaintenance::Deferred);
+    };
+    let retained_outcome = read_update_recovery_outcome(&recovery_root)?;
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    let active_recovery_id = if path_entry_exists(&active_path)? {
+        Some(read_active_recovery_id(&active_path)?)
+    } else {
+        None
+    };
+    let (recovery_id, active_expected) = match (active_recovery_id, &retained_outcome) {
+        (Some(recovery_id), _) => (recovery_id, true),
+        (None, Some(outcome)) => {
+            let attempt_directory = recovery_root
+                .join(ATTEMPTS_DIRECTORY_NAME)
+                .join(&outcome.recovery_id);
+            if !path_entry_exists(&attempt_directory)? {
+                return Ok(UpdateRecoveryMaintenance::OutcomeRetained(outcome.clone()));
+            }
+            (outcome.recovery_id.clone(), false)
+        }
+        (None, None) => return Ok(UpdateRecoveryMaintenance::NoTerminalOutcome),
+    };
+
+    finalize_terminal_windows_update_recovery(
+        packages,
+        installed_state,
+        &recovery_root,
+        &recovery_id,
+        active_expected,
+        retained_outcome.as_ref(),
+        expected_library_path,
+        watchdog_lease,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finalize_terminal_windows_update_recovery(
+    packages: &impl RecoveryPackagePort,
+    installed_state: &impl WindowsInstalledStatePort,
+    recovery_root: &Path,
+    recovery_id: &str,
+    active_expected: bool,
+    retained_outcome: Option<&UpdateRecoveryOutcome>,
+    expected_library_path: &Path,
+    watchdog_lease: Option<WindowsUpdateRecoveryWatchdogLease>,
+) -> Result<UpdateRecoveryMaintenance, WindowsRecoveryStateError> {
+    let attempts_directory =
+        canonical_private_directory(&recovery_root.join(ATTEMPTS_DIRECTORY_NAME))?;
+    let attempt_directory = canonical_recovery_attempt(recovery_root, recovery_id)?;
+    if watchdog_lease
+        .as_ref()
+        .is_some_and(|lease| lease.recovery_id() != recovery_id)
+    {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    let watchdog_lock = if watchdog_lease.is_some() {
+        None
+    } else {
+        let Some(lock) = try_acquire_exclusive_lock(open_private_lock_file(
+            &attempt_directory,
+            WATCHDOG_LOCK_FILE_NAME,
+            false,
+        ))?
+        else {
+            return Ok(UpdateRecoveryMaintenance::Deferred);
+        };
+        Some(lock)
+    };
+    let Some(candidate_lock) = try_acquire_exclusive_lock(open_private_lock_file(
+        &attempt_directory,
+        CANDIDATE_LOCK_FILE_NAME,
+        false,
+    ))?
+    else {
+        return Ok(UpdateRecoveryMaintenance::Deferred);
+    };
+    let state_lock = StateLock::acquire(&attempt_directory)?;
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    if active_expected {
+        if read_active_recovery_id(&active_path)? != recovery_id {
+            return Err(WindowsRecoveryStateError::InvalidState);
+        }
+    } else if path_entry_exists(&active_path)? {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+
+    let manifest = verify_windows_update_recovery_with_held_locks(
+        packages,
+        recovery_root,
+        recovery_id,
+        &[
+            WATCHDOG_LOCK_FILE_NAME,
+            CANDIDATE_LOCK_FILE_NAME,
+            STATE_LOCK_FILE_NAME,
+        ],
+    )?;
+    let kind = match manifest.phase {
+        WindowsRecoveryPhaseWire::Confirmed => UpdateRecoveryOutcomeKind::Updated,
+        WindowsRecoveryPhaseWire::Recovered => UpdateRecoveryOutcomeKind::Recovered,
+        WindowsRecoveryPhaseWire::Prepared
+        | WindowsRecoveryPhaseWire::ReplacementStarted
+        | WindowsRecoveryPhaseWire::ReplacementInstalled
+        | WindowsRecoveryPhaseWire::Launching
+        | WindowsRecoveryPhaseWire::Recovering
+        | WindowsRecoveryPhaseWire::NativeRecoveryUnavailable
+        | WindowsRecoveryPhaseWire::RecoveryFailed => {
+            if active_expected {
+                return Ok(UpdateRecoveryMaintenance::NoTerminalOutcome);
+            }
+            return Err(WindowsRecoveryStateError::InvalidState);
+        }
+    };
+    let outcome = UpdateRecoveryOutcome {
+        recovery_id: recovery_id.to_owned(),
+        kind,
+        source_version: manifest.source.version.clone(),
+        target_version: manifest.target.version.clone(),
+    };
+    if !active_expected && retained_outcome != Some(&outcome) {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    let expected_library_path =
+        canonical_windows_library_path(recovery_root, expected_library_path)?;
+    if !paths_equal(
+        &manifest.source.library_path,
+        &path_text(&expected_library_path)?,
+    ) {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    match kind {
+        UpdateRecoveryOutcomeKind::Updated => {
+            let installed_identity = installed_state.identity()?;
+            if !native_identity_matches(
+                &installed_identity,
+                &manifest.target.version,
+                &manifest.source.native_package,
+            ) {
+                return Err(WindowsRecoveryStateError::InvalidState);
+            }
+            verify_library_file(
+                &expected_library_path,
+                i64::from(manifest.target.library_schema_version),
+            )?;
+        }
+        UpdateRecoveryOutcomeKind::Recovered => {
+            let installed_identity = installed_state.verify_matches_runnable(&attempt_directory)?;
+            if !native_identity_matches(
+                &installed_identity,
+                &manifest.source.version,
+                &manifest.source.native_package,
+            ) || !windows_library_matches(
+                &expected_library_path,
+                &manifest.library_backup,
+                manifest.source.library_schema_version,
+            ) {
+                return Err(WindowsRecoveryStateError::InvalidState);
+            }
+        }
+    }
+
+    if retained_outcome != Some(&outcome) {
+        write_update_recovery_outcome(recovery_root, &outcome)?;
+    }
+    if active_expected {
+        fs::remove_file(&active_path)?;
+        sync_directory(recovery_root)?;
+    }
+    drop(state_lock);
+    drop(candidate_lock);
+    drop(watchdog_lock);
+    drop(watchdog_lease);
+    fs::remove_dir_all(&attempt_directory)?;
+    sync_directory(&attempts_directory)?;
+    Ok(UpdateRecoveryMaintenance::OutcomeRetained(outcome))
+}
+
+fn try_acquire_exclusive_lock(
+    file: Result<File, WindowsRecoveryStateError>,
+) -> Result<Option<ExclusiveFileLock>, WindowsRecoveryStateError> {
+    let file = match file.map_err(map_lock_contention) {
+        Ok(file) => file,
+        Err(WindowsRecoveryStateError::ActiveAttemptExists) => return Ok(None),
+        Err(error) => return Err(error),
+    };
+    match ExclusiveFileLock::acquire(file) {
+        Ok(lock) => Ok(Some(lock)),
+        Err(WindowsRecoveryStateError::ActiveAttemptExists) => Ok(None),
+        Err(error) => Err(error),
+    }
 }
 
 pub fn restore_active_windows_update_recovery(
@@ -2649,6 +2926,39 @@ mod tests {
         observed_attempts: RefCell<Vec<(PathBuf, String)>>,
     }
 
+    struct SyntheticInstalledState {
+        identity: InstalledIdentity,
+        runnable_match: bool,
+    }
+
+    impl SyntheticInstalledState {
+        fn new(harness: &Harness, version: &str, runnable_match: bool) -> Self {
+            let mut identity = harness.identity.clone();
+            identity.version = version.to_owned();
+            Self {
+                identity,
+                runnable_match,
+            }
+        }
+    }
+
+    impl WindowsInstalledStatePort for SyntheticInstalledState {
+        fn identity(&self) -> Result<InstalledIdentity, WindowsRecoveryStateError> {
+            Ok(self.identity.clone())
+        }
+
+        fn verify_matches_runnable(
+            &self,
+            _attempt_directory: &Path,
+        ) -> Result<InstalledIdentity, WindowsRecoveryStateError> {
+            if self.runnable_match {
+                Ok(self.identity.clone())
+            } else {
+                Err(WindowsRecoveryStateError::InvalidState)
+            }
+        }
+    }
+
     impl SyntheticNativeRecovery {
         fn new(outcomes: Vec<Result<(), WindowsUpdateRecoveryError>>) -> Self {
             Self {
@@ -2792,6 +3102,71 @@ mod tests {
         let watchdog = acquire_windows_update_recovery_watchdog_lease_with(packages, &context)
             .expect("watchdog lease");
         (prepared, context, watchdog)
+    }
+
+    fn prepare_confirmed_candidate(
+        harness: &Harness,
+        packages: &SyntheticPackages,
+    ) -> (
+        PreparedWindowsUpdateRecovery,
+        WindowsUpdateRecoveryCandidateLease,
+    ) {
+        let prepared = prepare_windows_update_recovery_with(
+            packages,
+            &harness.identity,
+            harness.preparation(),
+        )
+        .expect("prepared recovery");
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementInstalled,
+        )
+        .expect("replacement installed");
+        let process = WindowsRecoveryProcessIdentity::for_test(
+            42,
+            133_713_371_337,
+            &harness.identity.executable_path,
+        );
+        let launch_nonce = "7".repeat(64);
+        record_active_windows_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            WindowsUpdateRecoveryReplacementLaunch {
+                process: &process,
+                launch_nonce: &launch_nonce,
+                confirmation_deadline: "2026-09-04T08:05:00Z",
+            },
+        )
+        .expect("recorded replacement launch");
+        let mut candidate_identity = harness.identity.clone();
+        candidate_identity.version = "0.2.0".to_owned();
+        let candidate = acquire_windows_update_recovery_candidate_lease_with(
+            packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &launch_nonce,
+            &process,
+            &candidate_identity,
+        )
+        .expect("candidate lease");
+        confirm_active_windows_update_recovery_with(
+            packages,
+            &candidate_identity,
+            &candidate,
+            &harness.recovery_root,
+            &harness.library_path,
+            "0.2.0",
+            u32::try_from(SCHEMA_VERSION).expect("schema version"),
+        )
+        .expect("confirmed candidate");
+        (prepared, candidate)
     }
 
     #[test]
@@ -3670,6 +4045,182 @@ mod tests {
                 .map(|(_, phase)| phase),
             Some(PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable)
         );
+    }
+
+    #[test]
+    fn retains_and_resumes_one_confirmed_windows_outcome_after_processes_release_it() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let (prepared, candidate) = prepare_confirmed_candidate(&harness, &packages);
+        let installed = SyntheticInstalledState::new(&harness, "0.2.0", true);
+
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &installed,
+                &harness.recovery_root,
+                &harness.library_path,
+                None,
+            )
+            .expect("busy maintenance"),
+            UpdateRecoveryMaintenance::Deferred
+        );
+        drop(candidate);
+
+        let expected = UpdateRecoveryOutcome {
+            recovery_id: prepared.recovery_id().to_owned(),
+            kind: UpdateRecoveryOutcomeKind::Updated,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &installed,
+                &harness.recovery_root,
+                &harness.library_path,
+                None,
+            )
+            .expect("terminal maintenance"),
+            UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
+        );
+        assert!(!prepared.attempt_directory().exists());
+        assert!(!harness.recovery_root.join(ACTIVE_FILE_NAME).exists());
+        assert_eq!(
+            read_update_recovery_outcome(&harness.recovery_root).expect("durable outcome"),
+            Some(expected.clone())
+        );
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &installed,
+                &harness.recovery_root,
+                &harness.library_path,
+                None,
+            )
+            .expect("resumed maintenance"),
+            UpdateRecoveryMaintenance::OutcomeRetained(expected)
+        );
+    }
+
+    #[test]
+    fn retains_a_recovered_windows_outcome_only_after_revalidating_the_native_pair() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let (prepared, context, watchdog) = prepare_with_watchdog(&harness, &packages);
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering");
+        restore_active_windows_update_recovery_with(
+            &packages,
+            &SyntheticNativeRecovery::new(vec![Ok(())]),
+            &watchdog,
+            WindowsUpdateRecoveryRestoration {
+                recovery_root: &harness.recovery_root,
+                recovery_id: prepared.recovery_id(),
+                expected_library_path: &harness.library_path,
+            },
+        )
+        .expect("recovered pair");
+
+        assert!(matches!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &SyntheticInstalledState::new(&harness, "0.1.0", false),
+                &harness.recovery_root,
+                &harness.library_path,
+                Some(watchdog),
+            ),
+            Err(WindowsRecoveryStateError::InvalidState)
+        ));
+        assert!(prepared.attempt_directory().exists());
+        assert_eq!(
+            read_update_recovery_outcome(&harness.recovery_root).expect("no premature outcome"),
+            None
+        );
+
+        let watchdog = acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("replacement watchdog lease");
+        let expected = UpdateRecoveryOutcome {
+            recovery_id: prepared.recovery_id().to_owned(),
+            kind: UpdateRecoveryOutcomeKind::Recovered,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &SyntheticInstalledState::new(&harness, "0.1.0", true),
+                &harness.recovery_root,
+                &harness.library_path,
+                Some(watchdog),
+            )
+            .expect("terminal maintenance"),
+            UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
+        );
+        assert_eq!(
+            read_update_recovery_outcome(&harness.recovery_root).expect("recovered outcome"),
+            Some(expected)
+        );
+        assert!(!prepared.attempt_directory().exists());
+    }
+
+    #[test]
+    fn resumes_windows_cleanup_only_from_the_exact_durable_receipt() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let (prepared, candidate) = prepare_confirmed_candidate(&harness, &packages);
+        drop(candidate);
+        let expected = UpdateRecoveryOutcome {
+            recovery_id: prepared.recovery_id().to_owned(),
+            kind: UpdateRecoveryOutcomeKind::Updated,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        let changed = UpdateRecoveryOutcome {
+            target_version: "0.3.0".to_owned(),
+            ..expected.clone()
+        };
+        write_update_recovery_outcome(&harness.recovery_root, &changed).expect("changed receipt");
+        fs::remove_file(harness.recovery_root.join(ACTIVE_FILE_NAME))
+            .expect("interrupted active removal");
+        sync_directory(&harness.recovery_root).expect("synchronized recovery root");
+
+        assert!(matches!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &SyntheticInstalledState::new(&harness, "0.2.0", true),
+                &harness.recovery_root,
+                &harness.library_path,
+                None,
+            ),
+            Err(WindowsRecoveryStateError::InvalidState)
+        ));
+        assert!(prepared.attempt_directory().exists());
+
+        write_update_recovery_outcome(&harness.recovery_root, &expected).expect("durable receipt");
+
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &SyntheticInstalledState::new(&harness, "0.2.0", true),
+                &harness.recovery_root,
+                &harness.library_path,
+                None,
+            )
+            .expect("resumed cleanup"),
+            UpdateRecoveryMaintenance::OutcomeRetained(expected)
+        );
+        assert!(!prepared.attempt_directory().exists());
     }
 
     #[test]
