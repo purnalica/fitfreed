@@ -32,6 +32,14 @@ const driverPort = Number(requiredEnvironment("FITFREED_UPDATE_E2E_DRIVER_PORT")
 const evidenceDirectory = path.dirname(evidencePath);
 const interruptionReady = process.env.FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_READY;
 const interruptionContinue = process.env.FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_CONTINUE;
+const predecessorInstallReady =
+  process.env.FITFREED_E2E_WINDOWS_PREDECESSOR_INSTALL_READY;
+const recoveryRetryRequest = process.env.FITFREED_UPDATE_E2E_RECOVERY_RETRY_REQUEST;
+const recoveryRetryReady = process.env.FITFREED_UPDATE_E2E_RECOVERY_RETRY_READY;
+const offlineRecoveryCompleted =
+  process.env.FITFREED_UPDATE_E2E_OFFLINE_RECOVERY_COMPLETED;
+const noticeVerificationReady =
+  process.env.FITFREED_UPDATE_E2E_NOTICE_VERIFICATION_READY;
 
 function requiredEnvironment(name) {
   const value = process.env[name];
@@ -80,6 +88,26 @@ async function waitForRecoveryOutcome(recoveryId) {
     await delay(100);
   }
   throw new Error(`Windows update recovery did not retain the ${expectedOutcome} outcome`);
+}
+
+async function waitForRecoveryPhase(recoveryId, phase, attempts) {
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    try {
+      const recovery = activeRecovery();
+      if (
+        recovery.recoveryId === recoveryId
+        && recovery.manifest.phase === phase
+        && recovery.manifest.nativeRecovery.attempts === attempts
+      ) {
+        return recovery;
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    }
+    await delay(100);
+  }
+  throw new Error(`Windows update recovery did not reach ${phase} after ${attempts} attempts`);
 }
 
 async function waitForTerminalCleanup(recovery) {
@@ -209,6 +237,39 @@ async function verifyRecoveryNotice(browser, recoveryId) {
   );
 }
 
+async function verifyRecoveryIntervention(browser, recoveryId, expectedAttempts) {
+  await openSettingsCategory("updates", browser);
+  const result = await browser.$(".update-result-native-recovery-retry-available");
+  await result.waitForDisplayed({ timeout: 15_000 });
+  const resultText = await result.getText();
+  assert.match(resultText, new RegExp(spanish.updates.recovery.intervention.retryHeading));
+  assert.match(resultText, /0\.1\.0/);
+  assert.match(resultText, /0\.2\.0/);
+  assert.match(resultText, new RegExp(`completado ${expectedAttempts} de 3`));
+  assert.doesNotMatch(resultText, new RegExp(recoveryId));
+  assert.equal((await browser.$$(".update-panel-heading button")).length, 0);
+  const retry = await browser.$(`aria/${spanish.updates.recovery.intervention.retry}`);
+  await retry.waitForEnabled({ timeout: 15_000 });
+  return retry;
+}
+
+async function verifyManualRecoveryIntervention(browser, recoveryId) {
+  await openSettingsCategory("updates", browser);
+  const result = await browser.$(".update-result-manual-reinstall-required");
+  await result.waitForDisplayed({ timeout: 15_000 });
+  const resultText = await result.getText();
+  assert.match(resultText, new RegExp(spanish.updates.recovery.intervention.manualHeading));
+  assert.match(resultText, /0\.1\.0/);
+  assert.match(resultText, /0\.2\.0/);
+  assert.match(resultText, /completado 3 de 3/);
+  assert.doesNotMatch(resultText, new RegExp(recoveryId));
+  assert.equal((await browser.$$(".update-panel-heading button")).length, 0);
+  assert.equal(
+    (await browser.$$(`aria/${spanish.updates.recovery.intervention.retry}`)).length,
+    0,
+  );
+}
+
 function capabilitiesFor(executablePath) {
   const capabilities = createTauriCapabilities(executablePath, {
     driverProvider: "embedded",
@@ -250,6 +311,29 @@ function launchOrdinaryApplication(executablePath) {
     stdio: "ignore",
   });
   child.unref();
+}
+
+async function waitForApplication(executablePath) {
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    if (applicationProcessIds(executablePath).length === 1) return;
+    await delay(100);
+  }
+  throw new Error("the exact Windows fallback application did not start");
+}
+
+async function replaceWithFallbackSession(browser, recovery) {
+  const fallbackExecutable = path.join(
+    recovery.attemptDirectory,
+    "previous/runnable/fitfreed.exe",
+  );
+  await waitForApplication(fallbackExecutable);
+  await cleanupReplacedSession(browser);
+  await stopApplication(fallbackExecutable);
+  return {
+    browser: await startSession(fallbackExecutable),
+    fallbackExecutable,
+  };
 }
 
 async function verifyJourney(browser) {
@@ -320,17 +404,30 @@ async function main() {
   if (!Number.isSafeInteger(driverPort) || driverPort < 1_024 || driverPort > 65_535) {
     throw new Error("FITFREED_UPDATE_E2E_DRIVER_PORT must be a non-privileged TCP port");
   }
-  const expectedScenario = scenario === "success"
-    ? { outcome: "updated", installedVersion: "0.2.0" }
-    : ["candidate-failure", "installer-failure"].includes(scenario)
-      ? { outcome: "recovered", installedVersion: "0.1.0" }
-      : scenario === "restart-resumption"
-        ? { outcome: "updated", installedVersion: "0.2.0" }
-        : undefined;
+  const expectedScenario = new Map([
+    ["success", { outcome: "updated", installedVersion: "0.2.0" }],
+    ["installer-failure", { outcome: "recovered", installedVersion: "0.1.0" }],
+    ["candidate-failure", { outcome: "recovered", installedVersion: "0.1.0" }],
+    ["recovery-retry", { outcome: "recovered", installedVersion: "0.1.0" }],
+    [
+      "recovery-exhaustion",
+      { outcome: "manual-reinstall-required", installedVersion: "0.2.0" },
+    ],
+    ["restart-resumption", { outcome: "updated", installedVersion: "0.2.0" }],
+  ]).get(scenario);
+  const retryMarkerCount = [
+    recoveryRetryRequest,
+    recoveryRetryReady,
+    offlineRecoveryCompleted,
+    noticeVerificationReady,
+  ].filter(Boolean).length;
+  const gatedScenario = ["recovery-exhaustion", "recovery-retry"].includes(scenario);
   if (
     !expectedScenario
     || expectedOutcome !== expectedScenario.outcome
     || expectedInstalledVersion !== expectedScenario.installedVersion
+    || gatedScenario !== Boolean(predecessorInstallReady)
+    || retryMarkerCount !== (scenario === "recovery-retry" ? 4 : 0)
     || (scenario === "restart-resumption") !== Boolean(interruptionReady)
     || Boolean(interruptionReady) !== Boolean(interruptionContinue)
   ) {
@@ -342,28 +439,89 @@ async function main() {
   try {
     browser = await startSession(applicationBinary);
     const recovery = await verifyJourney(browser);
-    if (scenario === "restart-resumption") {
-      await interruptAndResume(recovery, browser);
-      browser = undefined;
+    if (gatedScenario) {
+      const unavailable = await waitForRecoveryPhase(
+        recovery.recoveryId,
+        "native-recovery-unavailable",
+        1,
+      );
+      assert.equal(unavailable.manifest.nativeRecovery.lastFailure, "installer-failed");
     }
-    const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
-    assert.deepEqual(outcome, {
-      format: "org.fitfreed.update-recovery-outcome",
-      schemaVersion: 1,
-      recoveryId: recovery.recoveryId,
-      outcome: expectedOutcome,
-      sourceVersion: "0.1.0",
-      targetVersion: "0.2.0",
-    });
-    await waitForTerminalCleanup(recovery);
-    assert.equal(installedVersion(), expectedInstalledVersion);
-    if (browser) {
+    if (scenario === "recovery-retry") {
+      ({ browser } = await replaceWithFallbackSession(browser, recovery));
+      const retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 1);
+      fs.writeFileSync(recoveryRetryRequest, "request\n", { flag: "wx", mode: 0o600 });
+      await waitForMarker(recoveryRetryReady, "receive recovery retry authorization");
+      await retry.click();
+      const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
+      assert.deepEqual(outcome, {
+        format: "org.fitfreed.update-recovery-outcome",
+        schemaVersion: 1,
+        recoveryId: recovery.recoveryId,
+        outcome: "recovered",
+        sourceVersion: "0.1.0",
+        targetVersion: "0.2.0",
+      });
+      await waitForTerminalCleanup(recovery);
+      assert.equal(installedVersion(), "0.1.0");
+      fs.writeFileSync(offlineRecoveryCompleted, "complete\n", {
+        flag: "wx",
+        mode: 0o600,
+      });
+      await waitForMarker(
+        noticeVerificationReady,
+        "restore update transport after offline recovery",
+      );
+    } else if (scenario === "recovery-exhaustion") {
+      let fallbackExecutable;
+      ({ browser, fallbackExecutable } = await replaceWithFallbackSession(browser, recovery));
+      let retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 1);
+      await retry.click();
+      let unavailable = await waitForRecoveryPhase(
+        recovery.recoveryId,
+        "native-recovery-unavailable",
+        2,
+      );
+      assert.equal(unavailable.manifest.nativeRecovery.lastFailure, "installer-failed");
+      ({ browser } = await replaceWithFallbackSession(browser, recovery));
+      retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 2);
+      await retry.click();
+      unavailable = await waitForRecoveryPhase(
+        recovery.recoveryId,
+        "recovery-failed",
+        3,
+      );
+      assert.equal(unavailable.manifest.nativeRecovery.lastFailure, "installer-failed");
       await cleanupReplacedSession(browser);
       browser = undefined;
+      await stopApplication(fallbackExecutable);
+      browser = await startSession(fallbackExecutable);
+      await verifyManualRecoveryIntervention(browser, recovery.recoveryId);
+      assert.equal(installedVersion(), "0.2.0");
+    } else {
+      if (scenario === "restart-resumption") {
+        await interruptAndResume(recovery, browser);
+        browser = undefined;
+      }
+      const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
+      assert.deepEqual(outcome, {
+        format: "org.fitfreed.update-recovery-outcome",
+        schemaVersion: 1,
+        recoveryId: recovery.recoveryId,
+        outcome: expectedOutcome,
+        sourceVersion: "0.1.0",
+        targetVersion: "0.2.0",
+      });
+      await waitForTerminalCleanup(recovery);
+      assert.equal(installedVersion(), expectedInstalledVersion);
     }
-    await stopApplication(applicationBinary);
-    browser = await startSession(applicationBinary);
-    await verifyRecoveryNotice(browser, recovery.recoveryId);
+    if (scenario !== "recovery-exhaustion") {
+      if (browser) await cleanupReplacedSession(browser);
+      browser = undefined;
+      await stopApplication(applicationBinary);
+      browser = await startSession(applicationBinary);
+      await verifyRecoveryNotice(browser, recovery.recoveryId);
+    }
     const locale = await readLocale(browser);
     assert.equal(locale, "es-ES");
     const evidence = {

@@ -224,6 +224,17 @@ the test-only synchronization point to remove both live recovery actors before a
 the preserved watchdog and restores the predecessor pair. The exact native Ubuntu result remains an M4.2 admission
 gate rather than a source-level claim.
 
+The native Windows E2E campaign uses the same production-identity recovery contract through current-user NSIS
+packages. Its synthetic predecessor package contains a pre-install hook that is inert unless the E2E process supplies
+one absolute marker path. With that marker configured but absent, only recovery-time predecessor installation fails;
+the ordinary initial installation remains a real successful NSIS operation. This proves the retained runnable
+predecessor and privacy-minimized retry intervention after one failed restoration. One scenario closes the loopback
+update transport before making the marker available and requires an explicit retry to restore the already preserved
+package and library without another request. A second scenario keeps the marker absent through all three attempts,
+requires each durable failure count, and opens the retained runnable predecessor to verify terminal manual-reinstall
+guidance without an update or retry action. The gate and its marker are generated only for instrumented packages; no
+production build, update endpoint, signing authority, or application code receives that behavior.
+
 ## Verification pipeline
 
 An update check uses this fail-closed order:

@@ -4,9 +4,12 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  coordinateWindowsOfflineRecoveryRetry,
+  createWindowsUpdateTransportGate,
   expectedWindowsUpdatePackageName,
   validateWindowsUpdateEvidence,
   windowsInstallerFailureHook,
+  windowsPredecessorGateHook,
   windowsUpdateBuildArguments,
   windowsUpdatePackageActionCommand,
   windowsUpdateScenarioPlan,
@@ -37,6 +40,24 @@ test("defines initial release-shaped Windows recovery journeys", () => {
       interruptWatchdog: false,
       expectedOutcome: "recovered",
       expectedVersion: "0.1.0",
+    },
+    {
+      name: "recovery-retry",
+      candidateVariant: "ordinary",
+      gatePredecessor: true,
+      rejectCandidate: true,
+      interruptWatchdog: false,
+      expectedOutcome: "recovered",
+      expectedVersion: "0.1.0",
+    },
+    {
+      name: "recovery-exhaustion",
+      candidateVariant: "ordinary",
+      gatePredecessor: true,
+      rejectCandidate: true,
+      interruptWatchdog: false,
+      expectedOutcome: "manual-reinstall-required",
+      expectedVersion: "0.2.0",
     },
     {
       name: "restart-resumption",
@@ -83,6 +104,80 @@ test("builds only instrumented production-identity NSIS packages", () => {
   );
 });
 
+test("coordinates a local Windows recovery retry while update transport is unavailable", async () => {
+  const events = [];
+  const transport = createWindowsUpdateTransportGate();
+  transport.allowRequest();
+  await coordinateWindowsOfflineRecoveryRetry({
+    updateTransport: {
+      closeTransport() {
+        events.push("transport-closed");
+        transport.close();
+      },
+      openTransport() {
+        events.push("transport-opened");
+        transport.open();
+      },
+      assertOfflineRecoveryUsedNoTransport() {
+        events.push("transport-unused");
+        transport.assertUnusedWhileClosed();
+      },
+    },
+    async grantRecovery() {
+      events.push("recovery-granted");
+    },
+    async waitForRecoveryCompletion() {
+      events.push("recovery-complete");
+    },
+    releaseNoticeVerification() {
+      events.push("notice-released");
+    },
+  });
+  assert.deepEqual(events, [
+    "transport-closed",
+    "recovery-granted",
+    "recovery-complete",
+    "transport-unused",
+    "transport-opened",
+    "notice-released",
+  ]);
+
+  transport.close();
+  assert.equal(transport.allowRequest(), false);
+  assert.throws(
+    () => transport.assertUnusedWhileClosed(),
+    /reached update transport/,
+  );
+});
+
+test("gates only recovery-time predecessor installation in the synthetic NSIS package", () => {
+  assert.equal(
+    windowsPredecessorGateHook(),
+    [
+      "!macro NSIS_HOOK_PREINSTALL",
+      '  ReadEnvStr $0 "FITFREED_E2E_WINDOWS_PREDECESSOR_INSTALL_READY"',
+      "  StrCmp $0 \"\" fitfreed_predecessor_install_allowed",
+      '  IfFileExists "$0" fitfreed_predecessor_install_allowed',
+      "  SetErrorLevel 5",
+      "  Quit",
+      "fitfreed_predecessor_install_allowed:",
+      "!macroend",
+      "",
+    ].join("\n"),
+  );
+  const verifier = readFileSync(
+    path.resolve("scripts/verify-packaged-windows-update.mjs"),
+    "utf8",
+  );
+  assert.match(verifier, /installerHooks: predecessorGateHookPath/);
+  assert.match(
+    verifier,
+    /buildNsisPackage\(currentVersion, publicKey, "predecessor-gated"\)/,
+  );
+  assert.match(verifier, /updateTransport\.closeTransport\(\)/);
+  assert.match(verifier, /updateTransport\.assertOfflineRecoveryUsedNoTransport\(\)/);
+});
+
 test("builds installer failure as a signed NSIS preinstall variant", () => {
   assert.equal(
     windowsInstallerFailureHook(),
@@ -115,6 +210,20 @@ test("accepts only privacy-safe evidence matching the declared scenario", () => 
     scenario: "candidate-failure",
   };
   assert.deepEqual(validateWindowsUpdateEvidence(evidence), evidence);
+  const recoveryRetry = {
+    ...evidence,
+    scenario: "recovery-retry",
+  };
+  assert.deepEqual(validateWindowsUpdateEvidence(recoveryRetry), recoveryRetry);
+  const exhaustion = {
+    ...evidence,
+    activeRecovery: true,
+    installedVersion: "0.2.0",
+    outcome: "manual-reinstall-required",
+    retainedAttempt: true,
+    scenario: "recovery-exhaustion",
+  };
+  assert.deepEqual(validateWindowsUpdateEvidence(exhaustion), exhaustion);
   assert.throws(
     () => validateWindowsUpdateEvidence({ ...evidence, installedVersion: "0.2.0" }),
     /invalid/,

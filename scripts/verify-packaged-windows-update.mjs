@@ -42,6 +42,7 @@ const certificatePath = path.join(tlsDirectory, "ca.crt");
 const serverCertificatePath = path.join(tlsDirectory, "server.crt");
 const serverKeyPath = path.join(tlsDirectory, "server.key");
 const installerFailureHookPath = path.join(artifactRoot, "installer-failure.nsh");
+const predecessorGateHookPath = path.join(artifactRoot, "predecessor-gate.nsh");
 const packageActionScript = path.join(repositoryRoot, "scripts/run-packaged-windows-update.ps1");
 const keyId = "synthetic-windows-e2e-key";
 const currentVersion = "0.1.0";
@@ -77,6 +78,24 @@ export function windowsUpdateScenarioPlan() {
       expectedVersion: currentVersion,
     },
     {
+      name: "recovery-retry",
+      candidateVariant: "ordinary",
+      gatePredecessor: true,
+      rejectCandidate: true,
+      interruptWatchdog: false,
+      expectedOutcome: "recovered",
+      expectedVersion: currentVersion,
+    },
+    {
+      name: "recovery-exhaustion",
+      candidateVariant: "ordinary",
+      gatePredecessor: true,
+      rejectCandidate: true,
+      interruptWatchdog: false,
+      expectedOutcome: "manual-reinstall-required",
+      expectedVersion: candidateVersion,
+    },
+    {
       name: "restart-resumption",
       candidateVariant: "ordinary",
       rejectCandidate: false,
@@ -95,6 +114,61 @@ export function windowsInstallerFailureHook() {
     "!macroend",
     "",
   ].join("\n");
+}
+
+export function windowsPredecessorGateHook() {
+  return [
+    "!macro NSIS_HOOK_PREINSTALL",
+    '  ReadEnvStr $0 "FITFREED_E2E_WINDOWS_PREDECESSOR_INSTALL_READY"',
+    '  StrCmp $0 "" fitfreed_predecessor_install_allowed',
+    '  IfFileExists "$0" fitfreed_predecessor_install_allowed',
+    "  SetErrorLevel 5",
+    "  Quit",
+    "fitfreed_predecessor_install_allowed:",
+    "!macroend",
+    "",
+  ].join("\n");
+}
+
+export function createWindowsUpdateTransportGate() {
+  let open = true;
+  let requestsWhileClosed = 0;
+  return Object.freeze({
+    allowRequest() {
+      if (open) return true;
+      requestsWhileClosed += 1;
+      return false;
+    },
+    close() {
+      open = false;
+      requestsWhileClosed = 0;
+    },
+    open() {
+      open = true;
+    },
+    assertUnusedWhileClosed() {
+      if (requestsWhileClosed !== 0) {
+        throw new Error("Windows recovery reached update transport while it was unavailable");
+      }
+    },
+  });
+}
+
+export async function coordinateWindowsOfflineRecoveryRetry({
+  updateTransport,
+  grantRecovery,
+  waitForRecoveryCompletion,
+  releaseNoticeVerification,
+}) {
+  updateTransport.closeTransport();
+  try {
+    await grantRecovery();
+    await waitForRecoveryCompletion();
+    updateTransport.assertOfflineRecoveryUsedNoTransport();
+  } finally {
+    updateTransport.openTransport();
+    releaseNoticeVerification();
+  }
 }
 
 export function windowsUpdateBuildArguments(
@@ -171,6 +245,7 @@ export function windowsUpdatePackageActionCommand({
 
 export function validateWindowsUpdateEvidence(evidence) {
   const expected = windowsUpdateScenarioPlan().find(({ name }) => name === evidence?.scenario);
+  const retainsRecovery = expected?.expectedOutcome === "manual-reinstall-required";
   const allowedFields = [
     "activeRecovery",
     "installedVersion",
@@ -192,8 +267,8 @@ export function validateWindowsUpdateEvidence(evidence) {
     || evidence.installedVersion !== expected.expectedVersion
     || evidence.libraryState !== "locale-preserved"
     || evidence.locale !== "es-ES"
-    || evidence.activeRecovery !== false
-    || evidence.retainedAttempt !== false
+    || evidence.activeRecovery !== retainsRecovery
+    || evidence.retainedAttempt !== retainsRecovery
   ) {
     throw new Error("Windows update E2E evidence is invalid");
   }
@@ -246,6 +321,7 @@ function runPackageAction(action, options = {}) {
   return run(command.file, command.arguments, {
     allowFailure: options.allowFailure,
     capture: options.capture,
+    env: options.env,
   });
 }
 
@@ -359,9 +435,9 @@ function retainBuiltPackage(version, retainedName) {
   return retained;
 }
 
-function buildNsisPackage(version, publicKey, candidateVariant = "ordinary") {
-  if (!new Set(["ordinary", "installer-failure"]).has(candidateVariant)) {
-    throw new Error("The Windows update candidate variant is unsupported");
+function buildNsisPackage(version, publicKey, packageVariant = "ordinary") {
+  if (!new Set(["ordinary", "installer-failure", "predecessor-gated"]).has(packageVariant)) {
+    throw new Error("The Windows update package variant is unsupported");
   }
   let configuration = createUpdateBuildConfiguration({
     version,
@@ -370,7 +446,7 @@ function buildNsisPackage(version, publicKey, candidateVariant = "ordinary") {
     productionIdentifier,
     bundleTarget: "nsis",
   });
-  if (candidateVariant === "installer-failure") {
+  if (packageVariant === "installer-failure") {
     writeFileSync(installerFailureHookPath, windowsInstallerFailureHook(), { mode: 0o600 });
     configuration = {
       ...configuration,
@@ -379,6 +455,19 @@ function buildNsisPackage(version, publicKey, candidateVariant = "ordinary") {
         windows: {
           nsis: {
             installerHooks: installerFailureHookPath,
+          },
+        },
+      },
+    };
+  } else if (packageVariant === "predecessor-gated") {
+    writeFileSync(predecessorGateHookPath, windowsPredecessorGateHook(), { mode: 0o600 });
+    configuration = {
+      ...configuration,
+      bundle: {
+        ...configuration.bundle,
+        windows: {
+          nsis: {
+            installerHooks: predecessorGateHookPath,
           },
         },
       },
@@ -400,7 +489,7 @@ function buildNsisPackage(version, publicKey, candidateVariant = "ordinary") {
   );
   const retained = retainBuiltPackage(
     version,
-    candidateVariant === "ordinary"
+    packageVariant !== "installer-failure"
       ? expectedWindowsNsisArtifactName(version)
       : "candidate-installer-failure.exe",
   );
@@ -410,6 +499,7 @@ function buildNsisPackage(version, publicKey, candidateVariant = "ordinary") {
 
 async function startUpdateServer(candidatePackages, predecessorPackage) {
   let envelopeBytes;
+  const transportGate = createWindowsUpdateTransportGate();
   const routes = new Map([["/predecessor.exe", predecessorPackage]]);
   for (const [variant, candidatePackage] of candidatePackages) {
     routes.set(`/candidate-${variant}.exe`, candidatePackage);
@@ -418,6 +508,11 @@ async function startUpdateServer(candidatePackages, predecessorPackage) {
     key: readFileSync(serverKeyPath),
     cert: readFileSync(serverCertificatePath),
   }, (request, response) => {
+    if (!transportGate.allowRequest()) {
+      response.writeHead(503, { "content-length": "0" });
+      response.end();
+      return;
+    }
     if (request.method !== "GET") {
       response.writeHead(405, { "content-length": "0" });
       response.end();
@@ -454,6 +549,15 @@ async function startUpdateServer(candidatePackages, predecessorPackage) {
     port: server.address().port,
     publish(bytes) {
       envelopeBytes = bytes;
+    },
+    closeTransport() {
+      transportGate.close();
+    },
+    openTransport() {
+      transportGate.open();
+    },
+    assertOfflineRecoveryUsedNoTransport() {
+      transportGate.assertUnusedWhileClosed();
     },
   };
 }
@@ -535,7 +639,58 @@ async function closeServer(server) {
   });
 }
 
-async function runScenario(scenario, endpoint, publicKey, predecessorPackage) {
+async function waitForScenarioMarker(markerPath, description, signal) {
+  const deadline = Date.now() + 120_000;
+  while (!signal.aborted && Date.now() < deadline) {
+    if (existsSync(markerPath)) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  if (!signal.aborted) {
+    throw new Error(`The Windows update E2E did not ${description}`);
+  }
+}
+
+async function provideOfflineRecoveryRetry({
+  authorizationReady,
+  authorizationRequest,
+  installReady,
+  noticeVerificationReady,
+  recoveryCompleted,
+  signal,
+  updateServer,
+}) {
+  await waitForScenarioMarker(
+    authorizationRequest,
+    "publish the recovery retry request",
+    signal,
+  );
+  if (signal.aborted) return;
+  await coordinateWindowsOfflineRecoveryRetry({
+    updateTransport: updateServer,
+    async grantRecovery() {
+      writeFileSync(installReady, "ready\n", { flag: "wx", mode: 0o600 });
+      writeFileSync(authorizationReady, "ready\n", { flag: "wx", mode: 0o600 });
+    },
+    waitForRecoveryCompletion() {
+      return waitForScenarioMarker(
+        recoveryCompleted,
+        "complete recovery while update transport was unavailable",
+        signal,
+      );
+    },
+    releaseNoticeVerification() {
+      writeFileSync(noticeVerificationReady, "ready\n", { flag: "wx", mode: 0o600 });
+    },
+  });
+}
+
+async function runScenario(
+  scenario,
+  endpoint,
+  publicKey,
+  predecessorPackage,
+  updateServer,
+) {
   const scenarioRoot = path.join(artifactRoot, "scenarios", scenario.name);
   const applicationData = path.join(process.env.APPDATA, productionIdentifier);
   const databasePath = path.join(applicationData, "fitfreed.sqlite");
@@ -543,6 +698,11 @@ async function runScenario(scenario, endpoint, publicKey, predecessorPackage) {
   const evidencePath = path.join(artifactRoot, "evidence", scenario.name, "result.json");
   const interruptionReady = path.join(scenarioRoot, "watchdog-interruption.ready");
   const interruptionContinue = path.join(scenarioRoot, "watchdog-interruption.continue");
+  const predecessorInstallReady = path.join(scenarioRoot, "predecessor-install.ready");
+  const recoveryRetryRequest = path.join(scenarioRoot, "recovery-retry.request");
+  const recoveryRetryReady = path.join(scenarioRoot, "recovery-retry.ready");
+  const offlineRecoveryCompleted = path.join(scenarioRoot, "offline-recovery.completed");
+  const noticeVerificationReady = path.join(scenarioRoot, "notice-verification.ready");
   rmSync(scenarioRoot, { recursive: true, force: true });
   mkdirSync(scenarioRoot, { recursive: true });
   runPackageAction("preflight");
@@ -552,36 +712,70 @@ async function runScenario(scenario, endpoint, publicKey, predecessorPackage) {
     runPackageAction("install", {
       packagePath: predecessorPackage,
       version: currentVersion,
+      env: { FITFREED_E2E_WINDOWS_PREDECESSOR_INSTALL_READY: "" },
     });
-    await runAsync("node", ["test/update-e2e/windows-update-journey.mjs"], {
-      FITFREED_UPDATE_E2E_APPLICATION:
-        path.join(process.env.LOCALAPPDATA, "FitFreed", "fitfreed.exe"),
-      FITFREED_UPDATE_E2E_SCENARIO: scenario.name,
-      FITFREED_UPDATE_E2E_EXPECTED_OUTCOME: scenario.expectedOutcome,
-      FITFREED_UPDATE_E2E_EXPECTED_VERSION: scenario.expectedVersion,
-      FITFREED_UPDATE_E2E_DRIVER_PORT: String(await availableTcpPort()),
-      FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
-      FITFREED_UPDATE_E2E_EVIDENCE_PATH: evidencePath,
-      FITFREED_UPDATE_E2E_PACKAGE_SCRIPT: packageActionScript,
-      FITFREED_E2E_DATABASE_PATH: databasePath,
-      FITFREED_E2E_UPDATE_CONTRACT: "stable-v3",
-      FITFREED_E2E_UPDATE_ENDPOINT: endpoint,
-      FITFREED_E2E_UPDATE_KEY_ID: keyId,
-      FITFREED_E2E_UPDATE_PUBLIC_KEY: publicKey,
-      FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH: certificatePath,
-      WDIO_LOG_LEVEL: "warn",
-      ...(scenario.rejectCandidate
-        ? { FITFREED_E2E_REJECT_UPDATE_CANDIDATE: "1" }
-        : {}),
-      ...(scenario.interruptWatchdog
-        ? {
-          FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_READY: interruptionReady,
-          FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_CONTINUE: interruptionContinue,
-        }
-        : {}),
-    });
+    const controller = new AbortController();
+    const offlineRecovery = scenario.name === "recovery-retry"
+      ? provideOfflineRecoveryRetry({
+        authorizationReady: recoveryRetryReady,
+        authorizationRequest: recoveryRetryRequest,
+        installReady: predecessorInstallReady,
+        noticeVerificationReady,
+        recoveryCompleted: offlineRecoveryCompleted,
+        signal: controller.signal,
+        updateServer,
+      })
+      : Promise.resolve();
+    try {
+      await Promise.all([
+        runAsync("node", ["test/update-e2e/windows-update-journey.mjs"], {
+          FITFREED_UPDATE_E2E_APPLICATION:
+            path.join(process.env.LOCALAPPDATA, "FitFreed", "fitfreed.exe"),
+          FITFREED_UPDATE_E2E_SCENARIO: scenario.name,
+          FITFREED_UPDATE_E2E_EXPECTED_OUTCOME: scenario.expectedOutcome,
+          FITFREED_UPDATE_E2E_EXPECTED_VERSION: scenario.expectedVersion,
+          FITFREED_UPDATE_E2E_DRIVER_PORT: String(await availableTcpPort()),
+          FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
+          FITFREED_UPDATE_E2E_EVIDENCE_PATH: evidencePath,
+          FITFREED_UPDATE_E2E_PACKAGE_SCRIPT: packageActionScript,
+          FITFREED_E2E_DATABASE_PATH: databasePath,
+          FITFREED_E2E_UPDATE_CONTRACT: "stable-v3",
+          FITFREED_E2E_UPDATE_ENDPOINT: endpoint,
+          FITFREED_E2E_UPDATE_KEY_ID: keyId,
+          FITFREED_E2E_UPDATE_PUBLIC_KEY: publicKey,
+          FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH: certificatePath,
+          WDIO_LOG_LEVEL: "warn",
+          ...(scenario.gatePredecessor
+            ? {
+              FITFREED_E2E_WINDOWS_PREDECESSOR_INSTALL_READY: predecessorInstallReady,
+            }
+            : {}),
+          ...(scenario.name === "recovery-retry"
+            ? {
+              FITFREED_UPDATE_E2E_RECOVERY_RETRY_REQUEST: recoveryRetryRequest,
+              FITFREED_UPDATE_E2E_RECOVERY_RETRY_READY: recoveryRetryReady,
+              FITFREED_UPDATE_E2E_OFFLINE_RECOVERY_COMPLETED: offlineRecoveryCompleted,
+              FITFREED_UPDATE_E2E_NOTICE_VERIFICATION_READY: noticeVerificationReady,
+            }
+            : {}),
+          ...(scenario.rejectCandidate
+            ? { FITFREED_E2E_REJECT_UPDATE_CANDIDATE: "1" }
+            : {}),
+          ...(scenario.interruptWatchdog
+            ? {
+              FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_READY: interruptionReady,
+              FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_CONTINUE: interruptionContinue,
+            }
+            : {}),
+        }),
+        offlineRecovery,
+      ]);
+    } finally {
+      controller.abort();
+    }
     validateWindowsUpdateEvidence(JSON.parse(readFileSync(evidencePath, "utf8")));
   } finally {
+    updateServer.openTransport();
     if (installationOwned) runPackageAction("remove");
   }
 }
@@ -605,7 +799,7 @@ async function main() {
       buildNsisPackage(candidateVersion, publicKey, "installer-failure"),
     ],
   ]);
-  const predecessorPackage = buildNsisPackage(currentVersion, publicKey);
+  const predecessorPackage = buildNsisPackage(currentVersion, publicKey, "predecessor-gated");
   const updateServer = await startUpdateServer(candidatePackages, predecessorPackage);
   try {
     const endpoint = `https://127.0.0.1:${updateServer.port}/stable.json`;
@@ -621,7 +815,7 @@ async function main() {
         port: updateServer.port,
         publicKey,
       }));
-      await runScenario(scenario, endpoint, publicKey, predecessorPackage);
+      await runScenario(scenario, endpoint, publicKey, predecessorPackage, updateServer);
     }
   } finally {
     await closeServer(updateServer.server);

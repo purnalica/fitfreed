@@ -169,9 +169,11 @@ production `FitFreed` package and provides no public-signing or Windows 11 deskt
 instrumented 0.1.0 and 0.2.0 NSIS packages with the canonical production identity, creates ephemeral updater and local
 TLS authority, and serves signed `stable-v3` metadata only over loopback HTTPS. It runs successful replacement,
 native installer failure, candidate rejection with automatic predecessor restoration, and ordinary-startup resumption
-after an exact post-install watchdog interruption. Each scenario starts only after production installation, registration, shortcut,
-and application-data preflight proves the disposable user has no existing FitFreed state. Cleanup is then limited to
-the exact package identity and the application-data roots created by that scenario, after rejecting reparse points.
+after an exact post-install watchdog interruption. It also drives retained runnable-predecessor fallback, offline retry,
+and terminal exhaustion through a recovery-time-only NSIS gate. Each scenario starts only after production
+installation, registration, shortcut, and application-data preflight proves the disposable user has no existing
+FitFreed state. Cleanup is then limited to the exact package identity and the application-data roots created by that
+scenario, after rejecting reparse points.
 The command is therefore CI-oriented and must not run on a contributor account that contains a real FitFreed library.
 Its synthetic signing authority is not Authenticode authority, and hosted Windows Server evidence does not satisfy the
 exact Windows 11 candidate gate.

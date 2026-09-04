@@ -397,14 +397,18 @@ registration, shortcut, or application-data root. Ephemeral updater and TLS auth
 channel; no production key or external endpoint enters the campaign. The initial scenarios require successful
 0.1.0-to-0.2.0 replacement, automatic 0.1.0 package-and-library restoration after a signed NSIS candidate terminates
 from its preinstall hook, the same restoration after candidate rejection, and restart resumption after the exact
-preserved watchdog is terminated at the durable `replacement-installed` boundary. Every path revalidates the recovery
-manifest and preserved assets, exact installed version, library and locale persistence,
-terminal receipt and cleanup, localized notice, and acknowledgement. The interruption hook is compiled only into
-instrumented Windows builds, requires two distinct absolute marker paths, creates the ready marker without clobbering,
-and is absent from production builds. The campaign retains only privacy-safe evidence on failure and always removes
-only the package and non-reparse application-data roots it created. Native hosted success remains Windows Server
-engineering evidence, not exact Windows 11 candidate acceptance; offline rollback, fallback, retry, and exhaustion
-still require their planned release-shaped scenarios.
+preserved watchdog is terminated at the durable `replacement-installed` boundary. A signed predecessor test package
+contains an E2E-only NSIS gate that is inert during initial installation. The retry path activates that gate, requires
+one failed native restoration and the retained runnable predecessor, closes the update transport, releases the gate,
+and completes an explicit retry without another transport request. The exhaustion path keeps the gate closed through
+three durable failures, reopens the runnable predecessor after each available retry, and requires terminal manual
+guidance with no retry or ordinary update action. Every path revalidates the recovery manifest and preserved assets,
+exact installed version, library and locale persistence, applicable terminal receipt and cleanup, localized outcome,
+and acknowledgement. The interruption hook is compiled only into instrumented Windows builds, requires two distinct
+absolute marker paths, creates the ready marker without clobbering, and is absent from production builds. The NSIS
+gate exists only in the generated synthetic predecessor package. The campaign retains only privacy-safe evidence on
+failure and always removes only the package and non-reparse application-data roots it created. Native hosted success
+remains Windows Server engineering evidence, not exact Windows 11 candidate acceptance.
 
 Linux recovery tests protect the application-owned phase and three-attempt policy, active-manifest validation,
 exclusive-watchdog transition, spawn-failure rollback, privacy-minimized host DTO, fail-closed update presentation, and
