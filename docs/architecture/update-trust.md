@@ -132,6 +132,8 @@ canonical recovery attempt, invoke that package with the closed NSIS silent argu
 native version and installation identity. Process authority opens the native process, records its Windows creation
 `FILETIME`, resolves its canonical executable, and compares both with the PID. Termination reopens one handle with
 query, synchronization, and terminate rights and repeats those identity checks on that same handle before acting.
+Post-recovery validation reopens the installed application and uninstaller without following reparse points and
+requires both byte streams to equal their fixed counterparts in the preserved runnable predecessor.
 
 Windows package preparation validates the authenticated predecessor and candidate byte lengths and SHA-256 digests,
 requires their x86-64 PE product, description, file version, and product version to match the expected FitFreed

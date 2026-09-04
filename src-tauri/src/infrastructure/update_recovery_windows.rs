@@ -1,6 +1,7 @@
 use std::{
     ffi::OsString,
-    fs, io,
+    fs::{self, File, OpenOptions},
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 
@@ -294,6 +295,29 @@ pub fn resolve_windows_update_installation_path(
     Ok(identity.executable_path().to_owned())
 }
 
+pub(crate) fn verify_windows_native_installation_matches_runnable(
+    attempt_directory: &Path,
+    identity: &WindowsNativePackageIdentity,
+) -> Result<(), WindowsUpdateRecoveryError> {
+    let attempt_directory = canonical_directory(attempt_directory)?;
+    let runnable_directory = canonical_directory(&attempt_directory.join("previous/runnable"))?;
+    let runnable_executable = canonical_regular_file(&runnable_directory.join(EXECUTABLE_NAME))?;
+    let runnable_uninstaller = canonical_regular_file(&runnable_directory.join(UNINSTALLER_NAME))?;
+    let installed_executable = canonical_regular_file(identity.executable_path())?;
+    let installed_uninstaller = canonical_regular_file(identity.uninstaller_path())?;
+    if runnable_directory != attempt_directory.join("previous/runnable")
+        || runnable_executable != runnable_directory.join(EXECUTABLE_NAME)
+        || runnable_uninstaller != runnable_directory.join(UNINSTALLER_NAME)
+        || installed_executable != identity.executable_path()
+        || installed_uninstaller != identity.uninstaller_path()
+        || !files_are_equal(&runnable_executable, &installed_executable)?
+        || !files_are_equal(&runnable_uninstaller, &installed_uninstaller)?
+    {
+        return Err(WindowsUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    Ok(())
+}
+
 pub fn observe_windows_recovery_process(
     process_id: u32,
     expected_executable_path: &Path,
@@ -461,6 +485,51 @@ fn canonical_regular_file(path: &Path) -> Result<PathBuf, WindowsUpdateRecoveryE
     }
     path.canonicalize()
         .map_err(|_| WindowsUpdateRecoveryError::InvalidPackageIdentity)
+}
+
+fn files_are_equal(left: &Path, right: &Path) -> Result<bool, WindowsUpdateRecoveryError> {
+    let mut left = open_regular_file_no_follow(left)?;
+    let mut right = open_regular_file_no_follow(right)?;
+    if left.metadata()?.len() != right.metadata()?.len() {
+        return Ok(false);
+    }
+    let mut left_buffer = [0_u8; 64 * 1024];
+    let mut right_buffer = [0_u8; 64 * 1024];
+    loop {
+        let left_read = left.read(&mut left_buffer)?;
+        let right_read = right.read(&mut right_buffer)?;
+        if left_read != right_read || left_buffer[..left_read] != right_buffer[..right_read] {
+            return Ok(false);
+        }
+        if left_read == 0 {
+            return Ok(true);
+        }
+    }
+}
+
+fn open_regular_file_no_follow(path: &Path) -> Result<File, WindowsUpdateRecoveryError> {
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+
+        options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
+    }
+    let file = options.open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.file_type().is_file() || is_reparse_point(&metadata) {
+        return Err(WindowsUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    Ok(file)
 }
 
 #[cfg(target_os = "windows")]
@@ -939,6 +1008,40 @@ mod tests {
 
         assert_eq!(identity.version(), "0.1.0");
         assert!(installation.installers.borrow().is_empty());
+    }
+
+    #[test]
+    fn requires_installed_critical_files_to_match_the_preserved_windows_image() {
+        let directory = TempDir::new().expect("temporary directory");
+        let installation = synthetic_installation(directory.path(), "0.1.0");
+        let identity = query_windows_native_package_identity_with(&installation)
+            .expect("Windows package identity");
+        let attempt_directory = directory.path().join("attempt");
+        let runnable_directory = attempt_directory.join("previous/runnable");
+        fs::create_dir_all(&runnable_directory).expect("runnable predecessor");
+        fs::copy(
+            identity.executable_path(),
+            runnable_directory.join(EXECUTABLE_NAME),
+        )
+        .expect("preserved executable");
+        fs::copy(
+            identity.uninstaller_path(),
+            runnable_directory.join(UNINSTALLER_NAME),
+        )
+        .expect("preserved uninstaller");
+
+        verify_windows_native_installation_matches_runnable(&attempt_directory, &identity)
+            .expect("matching runnable image");
+
+        for path in [identity.executable_path(), identity.uninstaller_path()] {
+            let original = fs::read(path).expect("installed critical file");
+            fs::write(path, b"changed installed file").expect("changed critical file");
+            assert!(matches!(
+                verify_windows_native_installation_matches_runnable(&attempt_directory, &identity,),
+                Err(WindowsUpdateRecoveryError::InvalidPackageIdentity)
+            ));
+            fs::write(path, original).expect("restored critical file");
+        }
     }
 
     #[test]

@@ -254,7 +254,8 @@ Local and continuous-integration workflows will invoke the same underlying comma
 - Windows recovery-adapter unit tests run on the portable Rust test path with synthetic native ports. They require the
   fixed current-user NSIS registration and critical-file identity, fixed recovery-owned candidate and predecessor
   package paths, silent installer invocation, post-install version validation, process creation-time and canonical-path
-  binding, and refusal to terminate a reused PID. The pinned native Windows lane remains authoritative for the real
+  binding, refusal to terminate a reused PID, and byte equality between the recovered installed application and
+  uninstaller and the preserved runnable image. The pinned native Windows lane remains authoritative for the real
   known-folder, Registry, reparse-point, process-handle, wait, and termination APIs; non-Windows source tests cannot
   substitute for that execution evidence.
 - Windows recovery-package unit tests require strictly ordered semantic versions, exact package size and SHA-256,
