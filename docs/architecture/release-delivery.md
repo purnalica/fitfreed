@@ -229,6 +229,17 @@ RFC 3161 timestamp for public evidence, compares the SHA-256 fingerprint from th
 that inspection did not change the file digest, and closes product-binary evidence to x86-64 plus the expected name and
 version. Certificate subjects, store paths, account identity, and timestamp-service details are not evidence fields.
 
+The protected Windows authority installer admits one password-protected PFX only from a protected process on x86-64
+Windows. It decodes that private input outside the checkout, imports exactly one currently valid code-signing
+certificate into the current user's personal store without making its private key exportable, refuses to replace or
+later remove a matching identity that already existed in that store, verifies the
+independently configured SHA-256 fingerprint, discovers the x86-64 Windows SDK SignTool, and deletes the PFX
+immediately. Only the public signing profile, store selector, public fingerprint, SignTool path, and credential-free
+timestamp endpoint enter the subsequent process contract. The authority state remains in the runner's private
+temporary directory solely so an unconditional cleanup can remove the exact certificate and private key. A
+post-import failure invokes that cleanup immediately; a cleanup failure clears the signing process contract but
+retains the minimum state needed to retry and blocks acceptance.
+
 The pinned hosted lane exercises this machinery with a fresh non-exportable self-signed certificate and a temporary
 copy of the unsigned release executable. It removes the certificate from the current user's personal, Root, and
 TrustedPublisher stores, deletes its private key and all temporary files, restores the process environment, and proves

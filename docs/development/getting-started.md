@@ -142,6 +142,7 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
 | Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
+| Install or remove the temporary Authenticode identity on a protected Windows release builder | `npm run authority:windows-public-release -- install` or `npm run authority:windows-public-release -- cleanup` |
 | Build, install, drive, and remove the isolated NSIS capability-test package | `npm run verify:windows-e2e` |
 | Verify production-identity NSIS replacement, candidate rollback, and restart resumption | `npm run verify:windows-update-e2e` |
 | Measure the installed production NSIS cold-launch boundary and remove it | `npm run verify:windows-cold-launch` |

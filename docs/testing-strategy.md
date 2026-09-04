@@ -251,6 +251,14 @@ Local and continuous-integration workflows will invoke the same underlying comma
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.
+  Protected-authority contract tests require strict base64 and fingerprint inputs, a credential-free HTTPS timestamp
+  endpoint, an x86-64 Windows host, private temporary storage outside the checkout, exactly one non-exportable
+  code-signing certificate, refusal to reuse a pre-existing store identity, no private input in the exported process
+  contract, immediate PFX deletion, and exact
+  certificate-plus-private-key removal. They also prove immediate removal after a post-import validation failure and
+  require a failed cleanup to clear signing values while preserving the minimum state needed for an unconditional retry.
+  Native PowerShell execution in the future protected workflow remains authoritative for the certificate-store and
+  private-key deletion result; portable contract tests cannot claim that operating-system outcome.
 - Windows recovery-adapter unit tests run on the portable Rust test path with synthetic native ports. They require the
   fixed current-user NSIS registration and critical-file identity, fixed recovery-owned candidate and predecessor
   package paths, silent installer invocation, and distinct failures for an installer that fails and an installer that

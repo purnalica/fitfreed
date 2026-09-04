@@ -43,6 +43,14 @@ The first platform-expansion release additionally defines the distinct
 platform-neutral `SHA256SUMS` set; it is not the updater key and cannot be supplied to the secret-free Linux build or
 the promotion job.
 
+The future protected Windows native-builder environment additionally defines
+`FITFREED_WINDOWS_CERTIFICATE_BASE64` and `FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as secrets, plus
+`FITFREED_WINDOWS_CERTIFICATE_SHA256` and `FITFREED_WINDOWS_TIMESTAMP_URL` as non-secret protected variables. The
+authority installer derives the certificate-store selector and absolute Windows SDK SignTool path at runtime, exports
+only the five signing-adapter values, and removes the PFX immediately. Its unconditional cleanup removes the exact
+current-user certificate and private key and clears those values. Neither the native input nor any retained evidence
+contains the certificate bundle, password, selector, or machine-local SignTool path.
+
 It defines these non-secret variables:
 
 - `FITFREED_APPLE_SIGNING_IDENTITY_SHA1`;

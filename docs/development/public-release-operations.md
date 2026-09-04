@@ -40,7 +40,18 @@ independently derived lowercase public fingerprint in `FITFREED_WINDOWS_CERTIFIC
 artifacts, or diagnostic output. The native builder never receives the updater or release-checksum private keys; the
 later composer never receives the Windows certificate or its store selector.
 
-The ephemeral authority installer writes private material only under the hosted runner's temporary directory with private permissions, imports the exact certificate fingerprint into a temporary keychain, and restores the prior keychain state in an unconditional cleanup step. A cleanup failure blocks acceptance and requires inspection of the affected ephemeral runner execution; it never justifies printing a secret.
+The macOS ephemeral authority installer writes private material only under the hosted runner's temporary directory with
+private permissions, imports the exact certificate fingerprint into a temporary keychain, and restores the prior
+keychain state in an unconditional cleanup step.
+
+The Windows native-builder environment defines `FITFREED_WINDOWS_CERTIFICATE_BASE64` and
+`FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as protected secrets. It defines the independently derived lowercase
+`FITFREED_WINDOWS_CERTIFICATE_SHA256` fingerprint and credential-free HTTPS
+`FITFREED_WINDOWS_TIMESTAMP_URL` as protected non-secret variables. The installer discovers the Windows SDK SignTool
+and certificate-store SHA-1 selector after importing the admitted PFX, so neither value is a long-lived GitHub input.
+It deletes the PFX immediately and leaves only minimal retry state in the runner's temporary directory until cleanup.
+A cleanup failure blocks acceptance and requires inspection of the affected ephemeral runner execution; it never
+justifies printing a secret or deleting the retry state.
 
 ## One-time GitHub configuration
 
@@ -117,11 +128,13 @@ The protected native job must use native x86-64 Windows PowerShell on a disposab
 ephemeral authority setup imports only the selected Authenticode identity into the current-user certificate store,
 provides the five protected process values above, and records the independently established SHA-256 public
 fingerprint without retaining the selector or private key. From the exact clean tagged source it runs
+`npm run authority:windows-public-release -- install`, then
 `npm run prepare:windows-expansion-input -- <version> <directory>`, then
 `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>`.
 The output is only the digest-bound three-file native input and its archive digest. A `finally` boundary removes the
-certificate, private key, trust-store additions, protected process values, and temporary paths after success or
-failure; incomplete cleanup blocks the run.
+certificate, private key, protected process values, and temporary paths with
+`npm run authority:windows-public-release -- cleanup` after success or failure; incomplete cleanup blocks the run and
+retains only the state required for another cleanup attempt.
 
 An authority-free transfer job reopens the archive with
 `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>`.
