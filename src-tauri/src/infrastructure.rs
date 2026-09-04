@@ -169,6 +169,8 @@ mod update_recovery_outcome;
 mod update_recovery_windows;
 #[cfg(any(test, target_os = "windows"))]
 mod update_recovery_windows_package;
+#[cfg(any(test, target_os = "windows"))]
+mod update_recovery_windows_state;
 mod update_state;
 mod update_watchdog;
 #[cfg(any(test, target_os = "linux"))]
@@ -247,6 +249,12 @@ pub use update_recovery_windows_package::{
     prepare_windows_recovery_packages_from_path, verify_windows_recovery_packages,
     PreparedWindowsRecoveryPackages, WindowsRecoveryPackageError,
     WindowsRecoveryPackageExpectation,
+};
+#[cfg(any(test, target_os = "windows"))]
+pub use update_recovery_windows_state::{
+    active_windows_update_recovery_phase, prepare_windows_update_recovery,
+    verify_windows_update_recovery, PreparedWindowsUpdateRecovery, WindowsRecoveryStateError,
+    WindowsUpdateRecoveryPreparation,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{

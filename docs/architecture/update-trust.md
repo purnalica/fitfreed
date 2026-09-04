@@ -139,15 +139,23 @@ identity, and requires the current native installation to be the same predecesso
 installed directory into a no-clobber staging tree, rejecting reparse points, special files, unsafe Windows names,
 excessive paths, entry counts, or expanded size. The preserved tree must contain the exact application and uninstaller;
 its deterministic digest and both packages are reopened after no-clobber promotion. Failed preparation removes only
-the directories it created. The Windows recovery manifest and leases, watchdog orchestration, and terminal native
-state validation remain later parts of Milestone 5.2; these primitives alone do not make Windows updates recoverable.
+the directories it created.
 
 The Windows-local [recovery contract version 3](../data-formats/release/update-recovery-v3.md) fixes that attempt to
 one x86-64 current-user NSIS identity. It binds the two authenticated installers, complete runnable predecessor,
 matching library, exact known-folder-derived native paths, native retry state, and lossless process creation `FILETIME`
 without reinterpreting the closed macOS or Linux schemas. Its lock files use Windows no-sharing handles rather than
-Unix advisory locks. The normative contract is defined; Rust persistence, watchdog orchestration, and native terminal
-validation remain required before Windows recovery is operational.
+Unix advisory locks. Rust preparation now derives and canonicalizes the native installation and application-data
+identity, rejects changed authorization before creating state, acquires the outcome boundary, prepares both packages
+and the complete runnable predecessor, creates and integrity-checks the matching SQLite backup, and writes the closed
+manifest through private no-clobber staging. It publishes the active pointer only after reopening and verifying every
+asset, fixed relationship, lock file, digest, package expectation, schema, and lifecycle invariant. Interrupted
+preparation removes only its owned staging attempt; an existing active attempt, redirected path, substituted lock,
+or mutated package, runnable image, library, or manifest fails closed. Windows uses a no-sharing file handle for the
+production outcome lease, while portable tests exercise the equivalent non-blocking exclusive ownership boundary.
+Lifecycle mutation, candidate and watchdog leases, watchdog orchestration, native restoration, terminal validation,
+receipt-bound cleanup, native Windows execution, and release-shaped recovery evidence remain required before Windows
+recovery is operational.
 
 The current presentation always offers an explicit check. A ready startup performs an immediate scheduled-policy evaluation. The desktop host then owns a process-lifetime 24-hour schedule, skips missed ticks and ticks that coincide with another update operation, and emits only the existing closed outcome DTO. Scheduled launch and recurring outcomes remain quiet when they are unconfigured, offline, current, dismissed, or postponed; available releases, withdrawal guidance, manual-recovery requirements, and rejected trust are announced. A manual check reveals every outcome. The update surface marks itself busy, keeps check, installation, candidate dismissal, and postponement action names stable, and announces the exact localized operation without replacing the trusted outcome. One asynchronous host coordinator serializes launch, manual, dismissal, postponement, and installation operations so channel access and persisted policy state cannot race. Install, dismiss, and 24-hour postpone actions are offered only for an ordinary available release. Installation sends only the exact displayed version, announces that application and library preservation precede replacement, exposes a distinct busy state, and disables update, import, archive-selection, and locale mutations while the command owns the workflow. An active import disables installation. A native success closes the original process; a failure returns a fixed localized code, restores the controls, and retains the authenticated release for retry. On the next ready startup, the host returns only `updated` or `recovered` and the source and target versions from the durable receipt. React presents the localized result until explicit acknowledgement succeeds; its stable dismissal action and separate busy announcement preserve the result throughout that write. Neither the private recovery identifier nor a filesystem locator enters the DTO or failure message. Dismiss and postpone revalidate the same exact candidate against persisted trusted state. None of these actions is offered for a withdrawn installed version. The ordinary development build has no channel or trust key, performs no network request, and therefore exposes no installable candidate. The public build wrapper strips inherited public-update values and adds them only from a complete active versioned configuration. E2E transport accepts one explicitly named synthetic contract and cannot coexist with compiled public trust.
 
