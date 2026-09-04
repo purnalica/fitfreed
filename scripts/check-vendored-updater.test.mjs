@@ -1,9 +1,36 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import { validateVendorEvidence } from "./check-vendored-updater.mjs";
 
 const trustedHash = "1".repeat(64);
+
+test("keeps every checksum-governed updater file byte-stable across Git checkouts", () => {
+  const repositoryRoot = path.resolve(import.meta.dirname, "..");
+  const provenance = JSON.parse(readFileSync(
+    path.join(repositoryRoot, "src-tauri/vendor/tauri-plugin-updater/provenance.json"),
+    "utf8",
+  ));
+  const governedPaths = [
+    "src-tauri/vendor/tauri-plugin-updater/provenance.json",
+    ...provenance.sourceFiles.map(
+      ({ path: sourcePath }) => `src-tauri/vendor/tauri-plugin-updater/${sourcePath}`,
+    ),
+  ];
+  const attributes = execFileSync("git", ["check-attr", "--stdin", "eol"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+    input: `${governedPaths.join("\n")}\n`,
+  }).trim().split("\n");
+
+  assert.equal(attributes.length, governedPaths.length);
+  for (const [index, sourcePath] of governedPaths.entries()) {
+    assert.equal(attributes[index], `${sourcePath}: eol: lf`);
+  }
+});
 
 function validEvidence() {
   return {

@@ -16,6 +16,7 @@ import { composeCompletePlatformCandidate } from "./complete-platform-release-co
 import { renderCompletePlatformReleaseNotes } from "./complete-platform-release-evidence.mjs";
 import { discoverCompletePlatformRecoveryPackages } from "./complete-platform-recovery-discovery.mjs";
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 import {
   assertCleanRevision,
   copyUpgradeMatrix,
@@ -73,7 +74,8 @@ function signWithTauri(bytes, filename, keyPath, password) {
   const signaturePath = `${payloadPath}.sig`;
   try {
     writeFileSync(payloadPath, bytes, { mode: 0o600 });
-    run(path.join(repositoryRoot, "node_modules/.bin/tauri"), [
+    run(process.execPath, [
+      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
       "signer",
       "sign",
       payloadPath,

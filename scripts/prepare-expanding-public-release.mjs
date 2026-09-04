@@ -41,6 +41,7 @@ import {
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { decodeTauriSignatureText } from "./release-signature.mjs";
 import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 
@@ -107,7 +108,8 @@ function signWithTauri(bytes, filename, keyPath, password) {
   const signaturePath = `${payloadPath}.sig`;
   try {
     writeFileSync(payloadPath, bytes, { mode: 0o600 });
-    run(path.join(repositoryRoot, "node_modules/.bin/tauri"), [
+    run(process.execPath, [
+      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
       "signer",
       "sign",
       payloadPath,

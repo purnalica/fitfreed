@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { nodePackageScriptPath } from "./node-package-script.mjs";
+
 const revisionPattern = /^[0-9a-f]{40,64}$/;
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const encodedRustFlagSeparator = "\u001f";
@@ -117,8 +119,8 @@ export function buildProductionPackage({
   const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
   const identity = productionBuildIdentity(revision, status);
   execFileSync(
-    path.join(repositoryRoot, "node_modules/.bin/tauri"),
-    ["build", ...arguments_],
+    process.execPath,
+    [nodePackageScriptPath("@tauri-apps/cli", "tauri"), "build", ...arguments_],
     {
       cwd: repositoryRoot,
       env: productionBuildEnvironment(process.env, identity, publicUpdateEnvironment),

@@ -26,6 +26,7 @@ import {
 } from "./update-e2e-contract.mjs";
 import { normalizeLinuxDebianArtifactNames } from "./linux-debian-artifact-identity.mjs";
 import { expectedLinuxDebianArtifactName } from "./linux-package-contract.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 import {
   validateStableUpdateV3Envelope,
   validateStableUpdateV3Payload,
@@ -410,8 +411,11 @@ function buildDebianPackage(version, publicKey) {
   });
   writeFileSync(generatedConfiguration, `${JSON.stringify(configuration, null, 2)}\n`);
   run(
-    path.join(repositoryRoot, "node_modules/.bin/tauri"),
-    linuxUpdateBuildArguments(generatedConfiguration),
+    process.execPath,
+    [
+      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
+      ...linuxUpdateBuildArguments(generatedConfiguration),
+    ],
     {
       env: {
         CI: "true",

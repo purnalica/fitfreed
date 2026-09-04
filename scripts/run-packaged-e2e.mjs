@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 
 import { packagedE2eScenarioPlan } from "./packaged-e2e-plan.mjs";
 import { repositoryRoot } from "./e2e-paths.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 
 const runsDirectory = path.resolve(".artifacts/e2e/runs");
-const wdio = path.resolve("node_modules/.bin/wdio");
 
 function controlledRunDirectory(runDirectory) {
   const artifactRoot = path.join(repositoryRoot, ".artifacts");
@@ -40,8 +40,14 @@ export function runPackagedE2e({
   try {
     for (const scenario of scenarios) {
       const result = execute(
-        wdio,
-        ["run", scenario.configuration, "--spec", scenario.spec],
+        process.execPath,
+        [
+          nodePackageScriptPath("@wdio/cli", "wdio"),
+          "run",
+          scenario.configuration,
+          "--spec",
+          scenario.spec,
+        ],
         {
           env: {
             ...environment,

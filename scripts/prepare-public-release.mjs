@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 import { composePagesArtifact } from "./pages-artifact.mjs";
 import {
   assertCleanRevision,
@@ -220,7 +221,8 @@ function signChannelPayload(payloadBytes, temporaryDirectory) {
   const signaturePath = `${payloadPath}.sig`;
   try {
     writeFileSync(payloadPath, payloadBytes, { mode: 0o600 });
-    run(path.join(repositoryRoot, "node_modules", ".bin", "tauri"), [
+    run(process.execPath, [
+      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
       "signer",
       "sign",
       payloadPath,

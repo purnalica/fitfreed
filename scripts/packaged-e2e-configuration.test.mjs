@@ -253,7 +253,12 @@ test("runs a source-bound E2E build with an injected platform argument contract"
   });
 
   assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0][1], ["controlled", "--verbose"]);
+  assert.equal(calls[0][0], process.execPath);
+  assert.match(
+    calls[0][1][0],
+    /node_modules[/\\]@tauri-apps[/\\]cli[/\\]tauri\.js$/,
+  );
+  assert.deepEqual(calls[0][1].slice(1), ["controlled", "--verbose"]);
   assert.equal(calls[0][2].env.FITFREED_SOURCE_REVISION, revision);
   assert.equal(calls[0][2].env.RETAINED, "yes");
 });
@@ -282,6 +287,12 @@ test("runs every packaged scenario from a controlled nested artifact directory",
 
     assert.equal(scenarios.length, 7);
     assert.equal(calls.length, scenarios.length);
+    assert.equal(calls[0][0], process.execPath);
+    assert.match(
+      calls[0][1][0],
+      /node_modules[/\\]@wdio[/\\]cli[/\\]bin[/\\]wdio\.js$/,
+    );
+    assert.equal(calls[0][1][1], "run");
     assert.equal(
       calls[0][2].env.FITFREED_E2E_APPLICATION_BINARY,
       "/usr/bin/fitfreed-e2e",

@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
 import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 import {
   createReleaseManifest,
   inspectArtifact,
@@ -138,8 +139,9 @@ function copyProductionArtifacts(stagingDirectory, version, tauriArchitecture) {
 export function createNpmSbom(stagingDirectory, repositoryPath) {
   const outputPath = path.join(stagingDirectory, "npm.cdx.json");
   run(
-    path.join(repositoryRoot, "node_modules/.bin/cyclonedx-npm"),
+    process.execPath,
     [
+      nodePackageScriptPath("@cyclonedx/cyclonedx-npm", "cyclonedx-npm"),
       "--omit",
       "dev",
       "--package-lock-only",

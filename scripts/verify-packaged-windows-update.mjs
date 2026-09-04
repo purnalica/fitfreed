@@ -27,6 +27,7 @@ import {
   validateStableUpdateV3Envelope,
   validateStableUpdateV3Payload,
 } from "./update-channel-v3.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 import { expectedWindowsNsisArtifactName } from "./windows-package-contract.mjs";
 import { windowsInstalledPackageActionCommand } from "./windows-installed-package.mjs";
 
@@ -450,8 +451,11 @@ function buildNsisPackage(version, publicKey, packageVariant = "ordinary") {
   }
   writeFileSync(generatedConfiguration, `${JSON.stringify(configuration, null, 2)}\n`);
   run(
-    path.join(repositoryRoot, "node_modules/.bin/tauri"),
-    windowsUpdateBuildArguments(generatedConfiguration),
+    process.execPath,
+    [
+      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
+      ...windowsUpdateBuildArguments(generatedConfiguration),
+    ],
     {
       env: {
         CI: "true",

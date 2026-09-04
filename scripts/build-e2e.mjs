@@ -7,6 +7,7 @@ import {
   productionBuildIdentity,
 } from "./build-production.mjs";
 import { e2eTargetDirectory, repositoryRoot } from "./e2e-paths.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 
 function runGit(arguments_) {
   return execFileSync("git", arguments_, {
@@ -52,8 +53,8 @@ export function runE2eBuild({
   const revision = git(["rev-parse", "HEAD"]);
   const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
   execute(
-    path.join(repositoryRoot, "node_modules/.bin/tauri"),
-    buildArguments(arguments_),
+    process.execPath,
+    [nodePackageScriptPath("@tauri-apps/cli", "tauri"), ...buildArguments(arguments_)],
     {
       cwd: repositoryRoot,
       env: e2eBuildEnvironment(inheritedEnvironment, revision, status),

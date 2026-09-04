@@ -6,6 +6,7 @@ import {
   productionBuildEnvironment,
   productionBuildIdentity,
 } from "./build-production.mjs";
+import { nodePackageScriptPath } from "./node-package-script.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const productName = "FitFreed X6 Review";
@@ -96,8 +97,8 @@ export function buildX6ReviewPackage({
   const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
   const plan = x6ReviewBuildPlan({ revision, status, inheritedEnvironment });
   execute(
-    path.join(repositoryRoot, "node_modules/.bin/tauri"),
-    plan.arguments_,
+    process.execPath,
+    [nodePackageScriptPath("@tauri-apps/cli", "tauri"), ...plan.arguments_],
     {
       cwd: repositoryRoot,
       env: plan.environment,
