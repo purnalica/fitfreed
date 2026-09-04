@@ -417,10 +417,9 @@ fn install_windows_package_with(
     if !success {
         return Err(role.operation_error());
     }
-    let identity = query_windows_native_package_identity_with(installation)
-        .map_err(|_| role.operation_error())?;
+    let identity = query_windows_native_package_identity_with(installation)?;
     if identity.version() != expected_version {
-        return Err(role.operation_error());
+        return Err(WindowsUpdateRecoveryError::InvalidPackageIdentity);
     }
     Ok(identity)
 }
@@ -1097,7 +1096,7 @@ mod tests {
                 "0.2.0",
                 RecoveryPackageRole::Candidate,
             ),
-            Err(WindowsUpdateRecoveryError::NativeInstallationFailed)
+            Err(WindowsUpdateRecoveryError::InvalidPackageIdentity)
         ));
     }
 

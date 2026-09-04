@@ -134,6 +134,9 @@ native version and installation identity. Process authority opens the native pro
 query, synchronization, and terminate rights and repeats those identity checks on that same handle before acting.
 Post-recovery validation reopens the installed application and uninstaller without following reparse points and
 requires both byte streams to equal their fixed counterparts in the preserved runnable predecessor.
+The NSIS adapter reports a failed installer invocation separately from an installer that returns success but leaves
+an unreadable registration, an unexpected version, or another invalid native identity. Recovery state can therefore
+persist `installer-failed` and `installed-state-invalid` without inferring the cause from an incomplete installation.
 
 Windows package preparation validates the authenticated predecessor and candidate byte lengths and SHA-256 digests,
 requires their x86-64 PE product, description, file version, and product version to match the expected FitFreed

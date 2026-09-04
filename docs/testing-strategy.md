@@ -253,11 +253,12 @@ Local and continuous-integration workflows will invoke the same underlying comma
   recorded package or installed-file digests before a verified data-preserving removal.
 - Windows recovery-adapter unit tests run on the portable Rust test path with synthetic native ports. They require the
   fixed current-user NSIS registration and critical-file identity, fixed recovery-owned candidate and predecessor
-  package paths, silent installer invocation, post-install version validation, process creation-time and canonical-path
-  binding, refusal to terminate a reused PID, and byte equality between the recovered installed application and
-  uninstaller and the preserved runnable image. The pinned native Windows lane remains authoritative for the real
-  known-folder, Registry, reparse-point, process-handle, wait, and termination APIs; non-Windows source tests cannot
-  substitute for that execution evidence.
+  package paths, silent installer invocation, and distinct failures for an installer that fails and an installer that
+  succeeds but leaves an unreadable or wrong-version identity. They also require process creation-time and
+  canonical-path binding, refusal to terminate a reused PID, and byte equality between the recovered installed
+  application and uninstaller and the preserved runnable image. The pinned native Windows lane remains authoritative
+  for the real known-folder, Registry, reparse-point, process-handle, wait, and termination APIs; non-Windows source
+  tests cannot substitute for that execution evidence.
 - Windows recovery-package unit tests require strictly ordered semantic versions, exact package size and SHA-256,
   x86-64 PE product and version identity, agreement with the installed predecessor, no-clobber preservation, a bounded
   complete non-reparse runnable tree with safe Windows names, deterministic tree hashing, reopening, mutation
