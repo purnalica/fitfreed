@@ -13,6 +13,11 @@ import {
   publicUpdateConfiguration,
 } from "./test-support/public-release-candidate.mjs";
 import {
+  completePlatformReleaseSigningConfiguration,
+  completePlatformUpdateConfiguration,
+  createCompletePlatformReleaseCandidateFixture,
+} from "./test-support/complete-platform-release-candidate.mjs";
+import {
   createExpandingPublicReleaseCandidateFixture,
   expandingPublicReleaseSigningConfiguration,
   expandingPublicUpdateConfiguration,
@@ -65,6 +70,35 @@ test("moves one complete expanding platform set across the approval boundary", (
 
   assert.deepEqual(unpacked, packed);
   assert.deepEqual(unpacked.targets, ["darwin-aarch64", "linux-x86_64-deb"]);
+});
+
+test("moves one complete three-platform set across the approval boundary", () => {
+  const input = createCompletePlatformReleaseCandidateFixture();
+  const archivePath = path.join(input.root, "complete-candidate.tar.gz");
+  const acceptedDirectory = path.join(input.root, "accepted");
+  const trust = {
+    publicReleaseSigningConfiguration: completePlatformReleaseSigningConfiguration,
+    publicUpdateConfiguration: completePlatformUpdateConfiguration,
+  };
+
+  const packed = packPublicReleaseCandidate({
+    archivePath,
+    candidateDirectory: input.root,
+    ...trust,
+  });
+  const unpacked = unpackPublicReleaseCandidate({
+    archivePath,
+    candidateDirectory: acceptedDirectory,
+    expectedSha256: packed.archiveSha256,
+    ...trust,
+  });
+
+  assert.deepEqual(unpacked, packed);
+  assert.deepEqual(unpacked.targets, [
+    "darwin-aarch64",
+    "linux-x86_64-deb",
+    "windows-x86_64-nsis",
+  ]);
 });
 
 test("rejects mutated transport bytes without creating an accepted candidate", () => {

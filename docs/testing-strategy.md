@@ -347,6 +347,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   macOS, Linux, and Windows targets, use immutable versioned GitHub Release URLs, remove stale pre-release claims, and
   retain accessible names and structure. Candidate, distribution, and remote verifiers reconstruct the same bytes and
   reject missing, additional, renamed, cross-version, or cross-target links rather than trusting rendered HTML.
+- Generic release transport tests seal and reopen candidate manifests 3, 6, and 7 without losing their ordered target
+  sets. Publication tests derive the complete version 7 asset inventory and its exact Windows workflow provenance
+  identity. Remote tests download all three current packages and every declared Linux or Windows predecessor, compare
+  every product-site byte, reopen the distributed version 7 evidence without an unpacked application, and reject any
+  unsupported manifest instead of falling back to an earlier platform verifier.
 - The explicit Linux performance admission workflow builds and verifies the source-bound production Debian package,
   installs it, measures 100 fresh interactive-shell processes under Xvfb, and always purges it before running the
   production full-scale import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights,

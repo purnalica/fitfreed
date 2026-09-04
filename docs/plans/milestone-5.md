@@ -13,7 +13,7 @@ remains ordered after the accepted public Linux MVP.
 | M5.3 Packaged capability parity | In progress | The isolated instrumented NSIS identity, build/install/removal orchestration, native Windows process-restart evidence, and impact-aware hosted capability lane are implemented and locally contract-tested. Native execution of the seven shared packaged scenarios and the remaining Windows-visible paths remain open. |
 | M5.4 Windows performance and reliability admission | In progress | The manual hosted performance workflow, production NSIS cold-launch lifecycle, portable Windows benchmark paths, native peak-memory measurement, isolated NTFS disk-exhaustion recovery, and version 2 private-library filesystem boundary are implemented and locally contract-tested. Native execution and exact Windows 11 evidence remain open. |
 | M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the complete user lifecycle. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, destructive isolated gates, protected Authenticode input, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime. One protected Apple Silicon command now authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages now derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. Native packaged execution and the public Windows workflow remain open. |
-| M5.6 Exact candidate and promotion | Not started | Candidate, clean Windows 11, human, predecessor, and promotion gates remain open. |
+| M5.6 Exact candidate and promotion | In progress | Generic candidate transport, exact Release asset derivation, Windows-workflow provenance binding, and complete remote reconstruction now dispatch manifest version 7 without weakening versions 3 or 6. The public Windows workflow, native candidate admission, predecessor, human, and promotion gates remain open. |
 
 ## Objective
 
@@ -340,6 +340,13 @@ only after Linux publication.
 **Acceptance evidence:** every Windows readiness row passes for one revision and the complete target-set digests;
 setup, installed signatures, GitHub Release, product site, update channel, release notes, provenance, and documentation
 all name and deliver that same candidate.
+
+The first M5.6 slice extends the shared authority-free boundaries rather than creating a workflow. The generic verifier
+dispatches manifest version 7 to complete-platform candidate or distribution reopening; transport retains all three
+ordered targets; publication derives every exact asset and the future Windows workflow provenance identity; and remote
+acceptance downloads the current macOS, Linux, and Windows packages plus every declared native recovery package before
+reconstructing Pages. Synthetic end-to-end tests cover the full remote distribution. No Windows publication entry
+point exists yet.
 
 ## Human intervention boundary
 

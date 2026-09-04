@@ -26,6 +26,11 @@ import {
   publicUpdateConfiguration,
 } from "./test-support/public-release-candidate.mjs";
 import {
+  completePlatformReleaseSigningConfiguration,
+  completePlatformUpdateConfiguration,
+  createCompletePlatformReleaseCandidateFixture,
+} from "./test-support/complete-platform-release-candidate.mjs";
+import {
   createExpandingPublicReleaseCandidateFixture,
   expandingPublicReleaseSigningConfiguration,
   expandingPublicUpdateConfiguration,
@@ -68,6 +73,55 @@ function response(url, bytes, overrides = {}) {
     headers: new Headers({ "content-length": String(bytes.length) }),
     arrayBuffer: async () => bytes,
     ...overrides,
+  };
+}
+
+function remoteReleaseHarness(input, publishedAt) {
+  const version = input.manifest.release.version;
+  const tag = `v${version}`;
+  const sourceAssets = publicReleaseAssets(input.releaseDirectory, input.manifest);
+  const calls = [];
+  const release = {
+    tagName: tag,
+    name: `FitFreed ${version}`,
+    body: readFileSync(path.join(input.releaseDirectory, "RELEASE_NOTES.md"), "utf8"),
+    isDraft: false,
+    isPrerelease: false,
+    isImmutable: true,
+    publishedAt,
+    assets: sourceAssets.map(({ name, path: assetPath }) => ({
+      name,
+      size: statSync(assetPath).size,
+      digest: `sha256:${sha256File(assetPath)}`,
+      state: "uploaded",
+    })),
+  };
+  return {
+    calls,
+    sourceAssets,
+    runCommand(command, args) {
+      calls.push([command, ...args]);
+      if (command === "git" && args[0] === "ls-remote") {
+        return { success: true, output: `${input.revision}\trefs/tags/${tag}` };
+      }
+      if (command === "gh" && args[0] === "release" && args[1] === "download") {
+        const destination = args[args.indexOf("--dir") + 1];
+        const patterns = args
+          .map((value, index) => args[index - 1] === "--pattern" ? value : undefined)
+          .filter(Boolean);
+        for (const filename of patterns) {
+          copyFileSync(
+            path.join(input.releaseDirectory, filename),
+            path.join(destination, filename),
+          );
+        }
+        return { success: true, output: "" };
+      }
+      if (command === "gh" && args[0] === "release" && args[1] === "view") {
+        return { success: true, output: JSON.stringify(release) };
+      }
+      return { success: true, output: "" };
+    },
   };
 }
 
@@ -220,6 +274,47 @@ test("downloads every current platform in an expanding Pages snapshot", async ()
   )));
 });
 
+test("downloads every current and recovery platform in a complete Pages snapshot", async () => {
+  const input = createCompletePlatformReleaseCandidateFixture();
+  const pagesDirectory = mkdtempSync(path.join(tmpdir(), "fitfreed-complete-pages-"));
+  const result = await downloadVerifiedPagesSnapshot({
+    attempts: 1,
+    fetchImplementation: async (url) => response(
+      url,
+      readFileSync(remotePagesFile(input.pagesDirectory, url)),
+    ),
+    manifest: input.manifest,
+    pagesDirectory,
+    wait: async () => {},
+  });
+
+  assert.deepEqual(result, { attempts: 1, fileCount: 14 });
+  for (const artifact of [
+    `FitFreed_${input.version}_aarch64.app.tar.gz`,
+    input.linuxPackageName,
+    input.windowsPackageName,
+  ]) {
+    assert.ok(existsSync(path.join(
+      pagesDirectory,
+      "updates",
+      input.version,
+      artifact,
+    )));
+  }
+  assert.ok(existsSync(path.join(
+    pagesDirectory,
+    "updates",
+    "0.2.0",
+    "FitFreed_0.2.0_amd64.deb",
+  )));
+  assert.ok(existsSync(path.join(
+    pagesDirectory,
+    "updates",
+    "0.2.0",
+    "FitFreed_0.2.0_x64-setup.exe",
+  )));
+});
+
 test("verifies one immutable public distribution from its remote boundaries", async () => {
   const input = createPublicReleaseCandidateFixture();
   const sourceAssets = publicReleaseAssets(input.releaseDirectory, input.manifest);
@@ -368,4 +463,33 @@ test("verifies a complete macOS and Linux distribution through its expansion wor
   assert.ok(provenanceCalls.every((args) =>
     args[args.indexOf("--signer-workflow") + 1]
       === "purnalica/fitfreed/.github/workflows/public-linux-expansion.yml"));
+});
+
+test("verifies a complete three-platform distribution through its Windows workflow", async () => {
+  const input = createCompletePlatformReleaseCandidateFixture();
+  const harness = remoteReleaseHarness(input, "2026-09-04T08:00:00Z");
+
+  const result = await verifyRemotePublicRelease({
+    attempts: 1,
+    fetchImplementation: async (url) => response(
+      url,
+      readFileSync(remotePagesFile(input.pagesDirectory, url)),
+    ),
+    publicReleaseSigningConfiguration: completePlatformReleaseSigningConfiguration,
+    publicUpdateConfiguration: completePlatformUpdateConfiguration,
+    revision: input.revision,
+    runCommand: harness.runCommand,
+    version: input.version,
+    wait: async () => {},
+  });
+
+  assert.equal(result.version, input.version);
+  assert.equal(result.pagesFileCount, 14);
+  assert.equal(result.attestedAssetCount, harness.sourceAssets.length);
+  const provenanceCalls = harness.calls.filter(([, first, second]) =>
+    first === "attestation" && second === "verify");
+  assert.equal(provenanceCalls.length, harness.sourceAssets.length);
+  assert.ok(provenanceCalls.every((args) =>
+    args[args.indexOf("--signer-workflow") + 1]
+      === "purnalica/fitfreed/.github/workflows/public-windows-expansion.yml"));
 });

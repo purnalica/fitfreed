@@ -135,6 +135,13 @@ manifest version 7 candidate plus one complete stable-v3 Pages snapshot. Its ind
 package, Authenticode fingerprint, native inventory, build evidence, updater signature, checksums, release signature,
 recovery set, and manifest-derived localized download links in the Pages bytes.
 
+The shared `pack:public-release`, `unpack:public-release`, `publish:public-release`, and
+`verify:remote-public-release` boundaries now accept that closed version 7 contract directly. Transport preserves its
+ordered three-target result. Publication derives the exact asset set and attributes provenance to
+`.github/workflows/public-windows-expansion.yml`; remote acceptance downloads every current and recovery package,
+reconstructs the manifest-derived localized Pages snapshot, and reopens the distributed evidence. The named workflow
+does not yet exist, so these generic mechanics do not make Windows publication runnable.
+
 The protected Apple Silicon composition entry point is:
 
 ```bash
@@ -164,8 +171,9 @@ or deploy anything. Reopen the result independently with:
 npm run verify:complete-platform-release -- .artifacts/public-releases/<version>
 ```
 
-The public Windows expansion workflow is not yet implemented, so this production preparation command is not a
-runnable public release path and no existing workflow may be represented as one.
+The public Windows expansion workflow is not yet implemented, so this production preparation command and the generic
+version 7 publication mechanics are not a runnable public release path and no existing workflow may be represented as
+one.
 
 A future Windows workflow must preserve the native-builder/composer separation, add exact supported-Windows-11
 candidate admission, and reuse the second-approval publication boundary. A native input or complete candidate is never

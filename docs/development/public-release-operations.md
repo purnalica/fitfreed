@@ -145,6 +145,12 @@ manifest: macOS for version 3, macOS and Linux for version 6, and all three supp
 edit or activate those links independently. They become reachable only when promotion publishes the matching GitHub
 Release as immutable and then deploys the exact candidate Pages artifact.
 
+The generic candidate transport, Release asset inventory, publication verifier, and remote verifier accept manifest
+version 7. They preserve the ordered three-target identity, require provenance from the Windows expansion workflow,
+download every current and declared recovery package, and reopen the distributed candidate without its unpacked
+application. This is supporting machinery rather than an operator entry point: do not invoke Windows promotion until
+the versioned Windows workflow and every documented admission gate exist.
+
 PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,
 storage schema, package digest, public certificate SHA-256 fingerprint, and Boolean phase results. They must not
 contain a certificate private key, store selector, protected environment value, local account name, machine path,

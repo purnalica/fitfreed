@@ -112,6 +112,13 @@ all three updater packages, the stable metadata, checksums, release signature, r
 copies. Candidate reopening requires the unpacked macOS application; distribution reopening admits its documented
 absence while retaining every published byte and trust check.
 
+The platform-neutral transport, publication, and remote-acceptance boundaries dispatch manifest versions 3, 6, and 7
+to their exact verifier without translating one contract into another. Version 7 transport returns all three ordered
+targets, publication derives every Release asset and the Windows expansion provenance workflow from that manifest, and
+remote acceptance downloads the three current packages plus every declared Linux or Windows recovery package before
+reconstructing the exact localized Pages tree. The Windows workflow remains a separate inactive delivery boundary
+until its versioned definition and native admission matrix exist.
+
 Complete-platform composition accepts the closed Linux and Windows native inputs only when both state the candidate's
 exact version, revision, and storage schema. Windows must additionally state the selected Authenticode certificate and
 the compositor's active updater trust. The compositor copies the already Authenticode-signed setup without mutation,

@@ -2,6 +2,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { validateCompletePlatformReleaseManifest } from "./complete-platform-release-evidence.mjs";
+import {
+  verifyCompletePlatformReleaseCandidate,
+  verifyCompletePlatformReleaseDistribution,
+} from "./verify-complete-platform-release.mjs";
 import { validateExpandingPublicReleaseManifest } from "./expanding-public-release-evidence.mjs";
 import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
 import { validatePublicReleaseManifest } from "./public-release-evidence.mjs";
@@ -18,6 +23,7 @@ import {
 export function validateSupportedPublicReleaseManifest(manifest) {
   if (manifest?.schemaVersion === 3) return validatePublicReleaseManifest(manifest);
   if (manifest?.schemaVersion === 6) return validateExpandingPublicReleaseManifest(manifest);
+  if (manifest?.schemaVersion === 7) return validateCompletePlatformReleaseManifest(manifest);
   throw new Error("unsupported public release manifest schema version");
 }
 
@@ -36,7 +42,15 @@ export function verifySupportedPublicReleaseDistribution({
     );
   }
   if (!publicReleaseSigningConfiguration) {
-    throw new Error("expanding release-signing trust is unavailable");
+    throw new Error("platform-expansion release-signing trust is unavailable");
+  }
+  if (manifest.schemaVersion === 7) {
+    return verifyCompletePlatformReleaseDistribution(
+      releaseDirectory,
+      pagesDirectory,
+      publicUpdateConfiguration,
+      publicReleaseSigningConfiguration,
+    );
   }
   return verifyExpandingPublicReleaseDistribution(
     releaseDirectory,
@@ -69,7 +83,17 @@ export function verifySupportedPublicReleaseCandidate({
     };
   }
   if (!publicReleaseSigningConfiguration) {
-    throw new Error("expanding release-signing trust is unavailable");
+    throw new Error("platform-expansion release-signing trust is unavailable");
+  }
+  if (manifest.schemaVersion === 7) {
+    return {
+      manifest,
+      verified: verifyCompletePlatformReleaseCandidate(
+        candidateDirectory,
+        publicUpdateConfiguration,
+        publicReleaseSigningConfiguration,
+      ),
+    };
   }
   return {
     manifest,

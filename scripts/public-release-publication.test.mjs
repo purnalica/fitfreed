@@ -14,6 +14,7 @@ import {
   validateImmutableReleaseSetting,
 } from "./public-release-publication.mjs";
 import { inspectArtifact, sha256File } from "./release-evidence.mjs";
+import { createCompletePlatformReleaseCandidateFixture } from "./test-support/complete-platform-release-candidate.mjs";
 import { createExpandingPublicReleaseCandidateFixture } from "./test-support/expanding-public-release-candidate.mjs";
 
 function fixture() {
@@ -150,6 +151,22 @@ test("derives every expanding platform asset from its closed manifest", () => {
   assert.equal(
     publicReleaseSignerWorkflow(input.manifest),
     "purnalica/fitfreed/.github/workflows/public-linux-expansion.yml",
+  );
+});
+
+test("derives every complete-platform asset and its Windows signer workflow", () => {
+  const input = createCompletePlatformReleaseCandidateFixture();
+  const names = publicReleaseAssets(input.releaseDirectory, input.manifest)
+    .map(({ name }) => name);
+
+  assert.ok(names.includes(input.linuxPackageName));
+  assert.ok(names.includes(input.windowsPackageName));
+  assert.ok(names.includes(input.windowsInventoryName));
+  assert.ok(names.includes(input.windowsBuildEvidenceName));
+  assert.equal(names.includes("FitFreed.app"), false);
+  assert.equal(
+    publicReleaseSignerWorkflow(input.manifest),
+    "purnalica/fitfreed/.github/workflows/public-windows-expansion.yml",
   );
 });
 

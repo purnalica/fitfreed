@@ -130,7 +130,7 @@ export async function downloadVerifiedPagesSnapshot({
   rmSync(pagesDirectory, { force: true, recursive: true });
   const stable = manifest.artifacts.find(({ kind }) => kind === "stable-update-envelope");
   const currentPackages = manifest.artifacts.filter(({ kind }) =>
-    ["macos-updater-archive", "linux-x86_64-deb"].includes(kind));
+    ["macos-updater-archive", "linux-x86_64-deb", "windows-x86_64-nsis"].includes(kind));
   if (!stable || currentPackages.length < 1) {
     throw new Error("public Pages manifest evidence is incomplete");
   }

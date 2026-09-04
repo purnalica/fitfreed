@@ -18,6 +18,8 @@ const repositoryName = "purnalica/fitfreed";
 const macosSignerWorkflow = "purnalica/fitfreed/.github/workflows/public-release.yml";
 const linuxExpansionSignerWorkflow =
   "purnalica/fitfreed/.github/workflows/public-linux-expansion.yml";
+const windowsExpansionSignerWorkflow =
+  "purnalica/fitfreed/.github/workflows/public-windows-expansion.yml";
 
 function defaultRun(command, args, { allowFailure = false } = {}) {
   try {
@@ -75,7 +77,9 @@ export function publicReleaseAssets(releaseDirectory, manifest) {
 
 export function publicReleaseSignerWorkflow(manifest) {
   validateSupportedPublicReleaseManifest(manifest);
-  return manifest.schemaVersion === 6 ? linuxExpansionSignerWorkflow : macosSignerWorkflow;
+  if (manifest.schemaVersion === 7) return windowsExpansionSignerWorkflow;
+  if (manifest.schemaVersion === 6) return linuxExpansionSignerWorkflow;
+  return macosSignerWorkflow;
 }
 
 export function validateGithubRelease(record, expected) {
