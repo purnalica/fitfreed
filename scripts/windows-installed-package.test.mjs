@@ -42,6 +42,14 @@ test("exposes one fixed production-package lifecycle boundary", () => {
     }).arguments.slice(-2),
     ["-Action", "reset-data"],
   );
+  assert.deepEqual(
+    windowsInstalledPackageActionCommand({
+      action: "verify-data",
+      architecture: "x64",
+      platform: "win32",
+    }).arguments.slice(-2),
+    ["-Action", "verify-data"],
+  );
   assert.throws(
     () => windowsInstalledPackageActionCommand({
       action: "delete",
@@ -82,6 +90,14 @@ test("protects cleanup with exact identity, process-path, and reparse checks", (
   assert.match(
     source,
     /if \(\$Action -eq "reset-data"\)[\s\S]*Get-InstalledVersion[\s\S]*Stop-OwnedProcesses[\s\S]*Remove-OwnedData \$roamingDataDirectory[\s\S]*Remove-OwnedData \$localDataDirectory[\s\S]*exit 0/,
+  );
+  assert.match(
+    source,
+    /function Assert-PrivateAcl[\s\S]*AreAccessRulesProtected[\s\S]*GetAccessRules/,
+  );
+  assert.match(
+    source,
+    /if \(\$Action -eq "verify-data"\)[\s\S]*fitfreed\.sqlite[\s\S]*Assert-PrivateAcl \$roamingDataDirectory \$true[\s\S]*Assert-PrivateAcl \$library \$false/,
   );
   assert.doesNotMatch(source, /Remove-Item\s+-Path\s+\$env:/);
 });

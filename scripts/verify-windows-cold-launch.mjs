@@ -58,6 +58,7 @@ export function verifyWindowsColdLaunch({
       stdio: "inherit",
     });
     requireSuccessfulProcess(benchmark, "Windows cold-launch benchmark");
+    runAction("verify-data");
   } finally {
     if (installationOwned) runAction("remove");
   }

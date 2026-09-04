@@ -212,7 +212,8 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 25](persistence/sqlite-v25.md)
 - [SQLite schema version 26](persistence/sqlite-v26.md)
 - [SQLite schema version 27](persistence/sqlite-v27.md)
-- [Local library filesystem contract version 1](persistence/local-library-filesystem-v1.md)
+- [Local library filesystem contract version 2](persistence/local-library-filesystem-v2.md)
+- [Local library filesystem contract version 1](persistence/local-library-filesystem-v1.md) — preceding contract
 - [SQLite schema version 37](persistence/sqlite-v37.md)
 - [SQLite schema version 36](persistence/sqlite-v36.md) — preceding schema
 - [SQLite schema version 35](persistence/sqlite-v35.md) — preceding schema

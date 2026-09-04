@@ -358,20 +358,25 @@ Local and continuous-integration workflows will invoke the same underlying comma
   set is normalized to mebibytes before entering the unchanged shared memory budget. No push, pull-request, schedule,
   secret, or uploaded artifact can trigger or survive this campaign. Hosted Server 2025 evidence remains distinct
   from clean supported Windows 11 candidate evidence.
-- The same Windows workflow creates one 64 MiB VHD under a validated non-reparse child of the system temporary
+- The same Windows workflow verifies the installed non-empty `%APPDATA%` library and exact protected ACL before
+  removing the production package. It then creates one 64 MiB VHD under a validated non-reparse child of the system temporary
   directory, assigns an unused drive letter, formats only that new virtual disk as NTFS, and admits the resulting
   filesystem and capacity before exposing it to one exact ignored release-mode test. The test commits a synthetic
   baseline, fills the real filesystem until Windows reports disk exhaustion, requires the next import to remain
   invisible, restores capacity, runs normal startup recovery, verifies SQLite integrity and the baseline history, and
   retries successfully. The wrapper unconditionally detaches the selected VHD, verifies that the drive disappears,
   and removes only its private working directory; native failure, detachment failure, or cleanup failure rejects the
-  gate.
+  gate. A real NTFS junction, symbolic library, multiple hard link, bounded transient sharing denial, and long Unicode
+  path exercise the native version 2 local-library contract without modifying redirected targets.
 - Unix host tests create and reopen the local library boundary with exact `0700` directory and `0600` file modes,
   repair broader owner-controlled modes without changing library bytes, and reject symbolic directory boundaries,
   symbolic library files, and multiply linked libraries without changing their external targets. They also prove
   corrupt SQLite bytes survive rejected startup unchanged and that a competing writer cannot alter committed history,
   after which the same import succeeds on retry. Every packaged E2E database path traverses this same adapter rather
-  than a test-only filesystem shortcut.
+  than a test-only filesystem shortcut. Windows host tests enforce the same semantic boundary with reparse-aware
+  handles, SQLite-compatible read/write sharing, current-user ownership, exactly one hard link, and protected ACLs
+  limited to the current user, LocalSystem, and Builtin Administrators. Validation must remain available beside an
+  existing SQLite connection so concurrent import and navigation do not become a filesystem-boundary failure.
 - A mandatory macOS job prepares the source-bound production package, enforces its process-to-painted-shell cold-launch budget, then qualifies full-scale import, dense supported-signal storage and queries, and longitudinal read models before building the instrumented Tauri application under an isolated target and executing the focused packaged E2E journey with independently generated synthetic fixtures whenever executable or release inputs change and for every explicit manual or release-candidate verification request. The E2E build produces only the `.app` consumed by WebdriverIO; an instrumented DMG adds no behavioral evidence, while the separate production package and installation gates retain complete DMG coverage. The tested WebdriverIO configuration rejects the production executable path. The ordinary functional instrumented application has the stable `org.fitfreed.desktop.e2e` bundle identifier, distinct from the production identifier, so macOS can retain a dedicated Desktop assignment across rebuilds. The synthetic update packages instead obtain the canonical production identifier from `tauri.conf.json`: update recovery deliberately rejects any other application identity, and the update campaign must exercise that production security boundary while retaining its package, library, and process isolation. The packaged journey resizes the real WebView across the accepted desktop and compact boundaries and measures sidebar, workspace, current-location, localization, zoom, and overflow behavior rather than inferring layout from component presence.
 - Acceptance uses `npm run verify:e2e`, which rebuilds the instrumented application before executing its journeys. A
   direct WebdriverIO invocation reuses the existing package and cannot qualify source changed since that package was

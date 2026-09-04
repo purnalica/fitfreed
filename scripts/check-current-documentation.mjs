@@ -15,6 +15,9 @@ function documentationPaths(releaseVersion) {
     gettingStarted: "docs/development/getting-started.md",
     performanceBenchmarks: "docs/development/performance-benchmarks.md",
     troubleshooting: "docs/development/troubleshooting.md",
+    dataFormatsIndex: "docs/data-formats/README.md",
+    localLibraryFilesystem:
+      "docs/data-formats/persistence/local-library-filesystem-v2.md",
     developmentPreview: "docs/user/development-preview.md",
     publicGuide: `docs/user/public-macos-${releaseVersion}.md`,
     readiness: "docs/testing/public-release-readiness.md",
@@ -240,6 +243,61 @@ export function validateCurrentDocumentation({
     sources[paths.troubleshooting],
     /Windows disk-exhaustion gate fails/,
     "troubleshooting omits the Windows disk-exhaustion boundary",
+  );
+  requirePattern(
+    errors,
+    sources[paths.dataFormatsIndex],
+    /\[Local library filesystem contract version 2\]\(persistence\/local-library-filesystem-v2\.md\)/,
+    "data-format index omits the current local-library filesystem contract",
+  );
+  requirePattern(
+    errors,
+    sources[paths.dataFormatsIndex],
+    /\[Local library filesystem contract version 1\]\(persistence\/local-library-filesystem-v1\.md\) — preceding contract/,
+    "data-format index does not retain the preceding local-library filesystem contract",
+  );
+  const localLibraryFilesystem = sources[paths.localLibraryFilesystem];
+  requirePattern(
+    errors,
+    localLibraryFilesystem,
+    /protected DACL[^.]*current user[^.]*LocalSystem[^.]*Builtin Administrators/is,
+    "local-library contract omits the exact private Windows ACL",
+  );
+  requirePattern(
+    errors,
+    localLibraryFilesystem,
+    /Windows reparse point/i,
+    "local-library contract omits Windows reparse-point rejection",
+  );
+  requirePattern(
+    errors,
+    localLibraryFilesystem,
+    /exactly one hard link/i,
+    "local-library contract omits Windows hard-link rejection",
+  );
+  requirePattern(
+    errors,
+    localLibraryFilesystem,
+    /10, 20, 40, and 80 milliseconds[^.]*150 milliseconds/is,
+    "local-library contract omits the bounded Windows denial retry policy",
+  );
+  requirePattern(
+    errors,
+    sources[paths.performanceBenchmarks],
+    /installed `%APPDATA%` library/i,
+    "performance guidance omits installed Windows library protection",
+  );
+  requirePattern(
+    errors,
+    sources[paths.performanceBenchmarks],
+    /exact protected private ACL/i,
+    "performance guidance omits installed Windows library ACL verification",
+  );
+  requirePattern(
+    errors,
+    sources[paths.troubleshooting],
+    /Installed Windows library protection fails/,
+    "troubleshooting omits the installed Windows library boundary",
   );
 
   if (errors.length > 0) throw new Error(errors.join("\n"));

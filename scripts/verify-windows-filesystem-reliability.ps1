@@ -46,6 +46,22 @@ function Wait-ForDrive([bool]$Present) {
   throw "isolated NTFS drive did not reach the expected state"
 }
 
+function Invoke-RustTests([string]$Name, [bool]$Ignored, [bool]$Exact) {
+  $arguments = @(
+    "test",
+    "--manifest-path",
+    (Join-Path $repositoryRoot "src-tauri/Cargo.toml"),
+    "--release",
+    "--lib",
+    $Name,
+    "--"
+  )
+  if ($Ignored) { $arguments += "--ignored" }
+  if ($Exact) { $arguments += "--exact" }
+  & cargo.exe @arguments
+  if ($LASTEXITCODE -ne 0) { throw "Windows filesystem reliability test failed" }
+}
+
 New-Item -ItemType Directory -Path $workingDirectory | Out-Null
 Assert-OwnedWorkingDirectory
 
@@ -73,20 +89,25 @@ try {
     throw "isolated NTFS volume is outside the admitted capacity boundary"
   }
   New-Item -ItemType File -Path (Join-Path $driveRoot ".fitfreed-isolated-filesystem") | Out-Null
+  $junctionTarget = Join-Path $driveRoot "junction-target"
+  $junctionPath = Join-Path $driveRoot "application-data-junction"
+  New-Item -ItemType Directory -Path $junctionTarget | Out-Null
+  [IO.File]::WriteAllText(
+    (Join-Path $junctionTarget "sentinel"),
+    "target must remain unchanged",
+    [Text.Encoding]::ASCII
+  )
+  New-Item -ItemType Junction -Path $junctionPath -Target $junctionTarget | Out-Null
 
   $env:FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT = $driveRoot
+  $env:FITFREED_WINDOWS_JUNCTION_TEST_PATH = $junctionPath
   if ([String]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) { $env:CARGO_BUILD_JOBS = "8" }
-  & cargo.exe test `
-    --manifest-path (Join-Path $repositoryRoot "src-tauri/Cargo.toml") `
-    --release `
-    --lib `
-    infrastructure::tests::recovers_from_windows_disk_exhaustion_without_losing_committed_history `
-    -- `
-    --ignored `
-    --exact
-  if ($LASTEXITCODE -ne 0) { throw "Windows disk-exhaustion recovery test failed" }
+  Invoke-RustTests "infrastructure::local_library::windows_tests::" $false $false
+  Invoke-RustTests "infrastructure::tests::recovers_from_windows_disk_exhaustion_without_losing_committed_history" $true $true
+  Invoke-RustTests "infrastructure::local_library::windows_tests::validates_windows_library_filesystem_boundaries" $true $true
 } finally {
   Remove-Item Env:FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT -ErrorAction SilentlyContinue
+  Remove-Item Env:FITFREED_WINDOWS_JUNCTION_TEST_PATH -ErrorAction SilentlyContinue
   if ($null -ne $driveRoot -and (Test-Path -LiteralPath $vhdPath)) {
     Invoke-Diskpart @(
       "select vdisk file=`"$vhdPath`"",

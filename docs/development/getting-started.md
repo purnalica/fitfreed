@@ -95,7 +95,7 @@ or CI runner rather than a personal profile.
 | Build, install, drive, and remove the isolated NSIS capability-test package | `npm run verify:windows-e2e` |
 | Verify production-identity NSIS replacement, candidate rollback, and restart resumption | `npm run verify:windows-update-e2e` |
 | Measure the installed production NSIS cold-launch boundary and remove it | `npm run verify:windows-cold-launch` |
-| Verify Windows disk-exhaustion recovery on an isolated NTFS volume | `npm run verify:windows-filesystem-reliability` |
+| Verify Windows library protection and disk-exhaustion recovery on an isolated NTFS volume | `npm run verify:windows-filesystem-reliability` |
 | Build the Authenticode-signed update-capable Windows input under protected authority | `npm run package:windows-expansion-input` |
 | Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
 | Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |

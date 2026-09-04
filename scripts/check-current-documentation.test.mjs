@@ -24,7 +24,7 @@ test("accepts current documentation derived from the release compatibility sourc
       releaseVersion: "0.1.0",
       currentLibrarySchemaVersion: 37,
       supportedLibrarySchemaVersions: Array.from({ length: 37 }, (_, index) => index + 1),
-      checkedDocuments: 15,
+      checkedDocuments: 17,
     },
   );
 });
@@ -131,6 +131,46 @@ test("rejects undocumented Windows filesystem reliability controls", () => {
       assert.match(error.message, /automation strategy omits the isolated Windows filesystem boundary/);
       assert.match(error.message, /performance guidance omits the Windows disk-full boundary/);
       assert.match(error.message, /troubleshooting omits the Windows disk-exhaustion boundary/);
+      return true;
+    },
+  );
+});
+
+test("rejects undocumented Windows local-library protection", () => {
+  const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  candidate.sources["docs/data-formats/README.md"] = replaceRequired(
+    candidate.sources["docs/data-formats/README.md"],
+    "Local library filesystem contract version 2",
+    "Local library filesystem contract",
+  );
+  candidate.sources["docs/data-formats/persistence/local-library-filesystem-v2.md"] =
+    candidate.sources["docs/data-formats/persistence/local-library-filesystem-v2.md"]
+      .replaceAll("protected DACL", "restricted permissions")
+      .replaceAll("Windows reparse point", "redirected Windows path")
+      .replaceAll("exactly one hard link", "a supported link count")
+      .replace("10, 20, 40, and 80 milliseconds", "bounded delays");
+  candidate.sources["docs/development/performance-benchmarks.md"] = replaceRequired(
+    candidate.sources["docs/development/performance-benchmarks.md"],
+    "installed `%APPDATA%` library",
+    "installed library",
+  ).replace("exact protected private ACL", "private permissions");
+  candidate.sources["docs/development/troubleshooting.md"] = replaceRequired(
+    candidate.sources["docs/development/troubleshooting.md"],
+    "Installed Windows library protection fails",
+    "Windows library check fails",
+  );
+
+  assert.throws(
+    () => validateCurrentDocumentation(candidate),
+    (error) => {
+      assert.match(error.message, /data-format index omits the current local-library filesystem contract/);
+      assert.match(error.message, /local-library contract omits the exact private Windows ACL/);
+      assert.match(error.message, /local-library contract omits Windows reparse-point rejection/);
+      assert.match(error.message, /local-library contract omits Windows hard-link rejection/);
+      assert.match(error.message, /local-library contract omits the bounded Windows denial retry policy/);
+      assert.match(error.message, /performance guidance omits installed Windows library protection/);
+      assert.match(error.message, /performance guidance omits installed Windows library ACL verification/);
+      assert.match(error.message, /troubleshooting omits the installed Windows library boundary/);
       return true;
     },
   );

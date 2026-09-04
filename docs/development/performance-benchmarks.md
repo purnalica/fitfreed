@@ -266,11 +266,19 @@ Run this acceptance boundary from an elevated disposable x86-64 Windows environm
 npm run verify:windows-filesystem-reliability
 ```
 
-The command creates and mounts one isolated 64 MiB NTFS VHD on an unused drive letter, verifies its filesystem,
-capacity, and sentinel, and points one exact ignored release-mode Rust test at it. That test commits a baseline
+The installed cold-launch lifecycle also verifies its installed `%APPDATA%` library after the measured process has
+created it. The library must be non-empty and its directory tree must contain no reparse points. The directory and
+database must retain the exact protected private ACL for the current user, LocalSystem, and Builtin Administrators.
+Failure rejects the performance admission before owned installation cleanup.
+
+The filesystem command creates and mounts one isolated 64 MiB NTFS VHD on an unused drive letter, verifies its
+filesystem, capacity, and sentinel, and points exact ignored release-mode Rust tests at it. The recovery test commits a baseline
 synthetic history, consumes the volume through actual Windows disk-full failure, requires the next import to fail
 without exposing new history, restores capacity, and enters the ordinary startup-recovery path. SQLite integrity and
-the baseline history must remain intact before the same additional import succeeds on retry.
+the baseline history must remain intact before the same additional import succeeds on retry. The boundary test creates
+a real junction, proves its target remains unchanged, and exercises symbolic-file rejection. Ordinary native tests in
+the same workflow cover exact ACL repair, multiple-hard-link rejection, bounded transient sharing denial, and long
+Unicode paths.
 
 The wrapper requires administrative access only to manage its private VHD. Its working directory must be a direct,
 non-reparse child of the system temporary directory. An unconditional finalizer detaches the exact VHD, verifies that

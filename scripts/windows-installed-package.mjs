@@ -12,6 +12,7 @@ const supportedActions = new Set([
   "query",
   "remove",
   "reset-data",
+  "verify-data",
 ]);
 
 export function windowsInstalledPackageActionCommand({

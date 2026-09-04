@@ -30,11 +30,14 @@ The current physical modules and compile-time boundaries are documented in the [
 
 The initial desktop distribution uses one Tauri application process and its managed task runtime. Import use cases execute on blocking workers rather than the UI event path. Every synchronous Tauri command that opens the SQLite library is declared as an asynchronous command so Tauri dispatches it away from the main-thread invoke path; the Rust body remains a thin inbound adapter over the same application use case. This follows Tauri's documented [asynchronous-command boundary](https://v2.tauri.app/develop/calling-rust/#async-commands) and prevents ordinary Home, History, report, and preference work from blocking the WebView event loop while import owns a separate transaction. Application coordination permits one active import; adapter tests prove atomic visibility and cancellation rollback. Packaged timing, shutdown, restart recovery, and active-reconciliation navigation remain mandatory hosted-E2E gates.
 
-Before any SQLite access on Unix, the host prepares the exact application data directory and library through the
-[local library filesystem contract](../data-formats/persistence/local-library-filesystem-v1.md). The adapter creates
-or repairs the owner-controlled directory and file to user-only access, opens the file without following a symbolic
-link, and rejects foreign ownership, non-regular objects, and multiple hard links. A rejected boundary never selects
-an alternate library or exposes its path to React. Creation and repaired permissions are synchronized before SQLite
+Before any SQLite access, the host prepares the exact application data directory and library through the
+[local library filesystem contract version 2](../data-formats/persistence/local-library-filesystem-v2.md). The adapter
+creates or repairs the owner-controlled directory and file to user-only access, opens without following Unix links or
+Windows reparse points, and rejects foreign ownership, non-regular objects, and multiple hard links. Unix uses exact
+`0700` and `0600` modes. Windows uses protected current-user, LocalSystem, and Builtin Administrators ACLs, keeps file
+validation compatible with concurrent SQLite readers and writers, and applies a bounded retry for native transient
+access, sharing, and lock denials. A rejected boundary never selects an alternate
+library or exposes its path to React. Creation and repaired permissions are synchronized where supported before SQLite
 access. Corrupt bytes, storage exhaustion, and a competing writer fail without replacing committed history; startup
 recovery and an explicit retry resume only after the underlying boundary is supported again.
 

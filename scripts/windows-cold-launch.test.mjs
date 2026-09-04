@@ -34,7 +34,7 @@ test("installs, measures, and removes the exact production package", (context) =
     }),
     { package: "FitFreed_0.1.0_x64-setup.exe", result: "passed" },
   );
-  assert.deepEqual(events, ["preflight", "install", "benchmark", "remove"]);
+  assert.deepEqual(events, ["preflight", "install", "benchmark", "verify-data", "remove"]);
 });
 
 test("removes an owned installation after the benchmark fails", (context) => {

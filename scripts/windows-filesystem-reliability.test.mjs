@@ -9,6 +9,10 @@ const powershell = readFileSync(
   new URL("./verify-windows-filesystem-reliability.ps1", import.meta.url),
   "utf8",
 );
+const localLibrary = readFileSync(
+  new URL("../src-tauri/src/infrastructure/local_library.rs", import.meta.url),
+  "utf8",
+);
 
 test("runs only the native Windows NTFS admission adapter", () => {
   const calls = [];
@@ -77,7 +81,8 @@ test("creates one bounded isolated NTFS VHD and detaches it unconditionally", ()
 
 test("runs only the exact ignored Windows disk-exhaustion recovery test", () => {
   assert.match(powershell, /FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT/);
-  assert.match(powershell, /cargo(?:\.exe)?"?\s+test/);
+  assert.match(powershell, /"test",/);
+  assert.match(powershell, /& cargo\.exe @arguments/);
   assert.match(powershell, /--release/);
   assert.match(powershell, /--lib/);
   assert.match(
@@ -86,4 +91,32 @@ test("runs only the exact ignored Windows disk-exhaustion recovery test", () => 
   );
   assert.match(powershell, /--ignored/);
   assert.match(powershell, /--exact/);
+});
+
+test("protects the Windows library with no-follow, SQLite-compatible sharing, link, and ACL checks", () => {
+  assert.match(localLibrary, /FILE_FLAG_OPEN_REPARSE_POINT/);
+  assert.match(localLibrary, /FILE_ATTRIBUTE_REPARSE_POINT/);
+  assert.match(
+    localLibrary,
+    /share_mode\(FILE_SHARE_READ \| FILE_SHARE_WRITE\)/,
+  );
+  assert.match(localLibrary, /GetFileInformationByHandle/);
+  assert.match(localLibrary, /nNumberOfLinks/);
+  assert.match(localLibrary, /PROTECTED_DACL_SECURITY_INFORMATION/);
+  assert.match(localLibrary, /SetSecurityInfo/);
+  assert.match(localLibrary, /recovers_from_transient_windows_file_denial/);
+  assert.match(localLibrary, /admits_validation_while_sqlite_has_the_library_open/);
+});
+
+test("exercises a real Windows junction and the native path matrix", () => {
+  assert.match(powershell, /New-Item\s+-ItemType Junction/);
+  assert.match(powershell, /FITFREED_WINDOWS_JUNCTION_TEST_PATH/);
+  assert.match(
+    powershell,
+    /Invoke-RustTests "infrastructure::local_library::windows_tests::" \$false \$false/,
+  );
+  assert.match(
+    powershell,
+    /local_library::windows_tests::validates_windows_library_filesystem_boundaries/,
+  );
 });

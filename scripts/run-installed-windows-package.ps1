@@ -1,5 +1,5 @@
 param(
-  [Parameter(Mandatory = $true)][ValidateSet("preflight", "install", "query", "remove", "reset-data")][string]$Action,
+  [Parameter(Mandatory = $true)][ValidateSet("preflight", "install", "query", "remove", "reset-data", "verify-data")][string]$Action,
   [string]$PackagePath = "",
   [string]$ExpectedVersion = ""
 )
@@ -117,6 +117,53 @@ function Remove-OwnedData([string]$Directory) {
   Assert-True (-not (Test-Path -LiteralPath $Directory)) "application data remains after cleanup"
 }
 
+function Assert-PrivateAcl([string]$Path, [bool]$Directory) {
+  $item = Get-Item -LiteralPath $Path -Force
+  Assert-True (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) "private data is a reparse point"
+  $acl = Get-Acl -LiteralPath $Path
+  $currentSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  $ownerSid = (([Security.Principal.NTAccount]$acl.Owner).Translate(
+      [Security.Principal.SecurityIdentifier]
+    )).Value
+  Assert-Equal $ownerSid $currentSid "private data owner differs"
+  Assert-True $acl.AreAccessRulesProtected "private data ACL inherits external entries"
+  $rules = @($acl.GetAccessRules(
+    $true,
+    $false,
+    [Security.Principal.SecurityIdentifier]
+  ))
+  Assert-Equal $rules.Count 3 "private data ACL entry count differs"
+  $expectedSids = @(
+    $currentSid,
+    ([Security.Principal.SecurityIdentifier]::new(
+        [Security.Principal.WellKnownSidType]::LocalSystemSid,
+        $null
+      )).Value,
+    ([Security.Principal.SecurityIdentifier]::new(
+        [Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid,
+        $null
+      )).Value
+  )
+  $seen = @{}
+  foreach ($rule in $rules) {
+    Assert-Equal $rule.AccessControlType ([Security.AccessControl.AccessControlType]::Allow) "private data ACL contains a deny entry"
+    Assert-Equal ([int]$rule.FileSystemRights) ([int][Security.AccessControl.FileSystemRights]::FullControl) "private data ACL is not full control"
+    Assert-True ($expectedSids -contains $rule.IdentityReference.Value) "private data ACL contains an unexpected identity"
+    Assert-True (-not $seen.ContainsKey($rule.IdentityReference.Value)) "private data ACL contains a duplicate identity"
+    $seen[$rule.IdentityReference.Value] = $true
+    if ($Directory) {
+      $expectedInheritance = [Security.AccessControl.InheritanceFlags](
+        [int][Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
+        [int][Security.AccessControl.InheritanceFlags]::ObjectInherit
+      )
+      Assert-Equal $rule.InheritanceFlags $expectedInheritance "private directory ACL inheritance differs"
+    } else {
+      Assert-Equal $rule.InheritanceFlags ([Security.AccessControl.InheritanceFlags]::None) "private file ACL inheritance differs"
+    }
+    Assert-Equal $rule.PropagationFlags ([Security.AccessControl.PropagationFlags]::None) "private data ACL propagation differs"
+  }
+}
+
 if ($Action -eq "preflight") {
   Assert-ProductionStateAbsent
   exit 0
@@ -135,6 +182,21 @@ if ($Action -eq "install") {
 
 if ($Action -eq "query") {
   [Console]::Out.WriteLine((Get-InstalledVersion))
+  exit 0
+}
+
+if ($Action -eq "verify-data") {
+  Get-InstalledVersion | Out-Null
+  Stop-OwnedProcesses
+  $library = Join-Path $roamingDataDirectory "fitfreed.sqlite"
+  Assert-True (Test-Path -LiteralPath $roamingDataDirectory -PathType Container) "roaming application data is absent"
+  Assert-True (Test-Path -LiteralPath $library -PathType Leaf) "installed application library is absent"
+  Assert-True ((Get-Item -LiteralPath $library).Length -gt 0) "installed application library is empty"
+  $reparsePoints = @(Get-ChildItem -LiteralPath $roamingDataDirectory -Recurse -Force |
+    Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
+  Assert-Equal $reparsePoints.Count 0 "roaming application data contains a reparse point"
+  Assert-PrivateAcl $roamingDataDirectory $true
+  Assert-PrivateAcl $library $false
   exit 0
 }
 
