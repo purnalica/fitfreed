@@ -254,8 +254,11 @@ pub use update_recovery_windows_package::{
 pub use update_recovery_windows_state::{
     acquire_windows_update_recovery_candidate_lease,
     acquire_windows_update_recovery_watchdog_lease, active_windows_update_recovery_phase,
-    confirm_active_windows_update_recovery, prepare_windows_update_recovery,
+    begin_windows_update_recovery_retry, cancel_windows_update_recovery_retry,
+    confirm_active_windows_update_recovery, discard_prepared_windows_update_recovery,
+    prepare_windows_update_recovery, query_windows_update_recovery_intervention,
     record_active_windows_update_recovery_replacement_launch,
+    resolve_active_windows_update_recovery_watchdog_context,
     resolve_windows_update_recovery_watchdog_context, restore_active_windows_update_recovery,
     transition_active_windows_update_recovery, verify_windows_update_recovery,
     PreparedWindowsUpdateRecovery, WindowsNativeRecoveryFailure, WindowsRecoveryStateError,

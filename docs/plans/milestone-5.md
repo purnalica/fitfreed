@@ -168,8 +168,14 @@ requires the persisted PID, creation `FILETIME`, executable, nonce, and target n
 does not attempt an impossible second open of a Windows no-sharing handle. The hosted native lane remains the execution
 authority for those operating-system APIs. Candidate confirmation additionally requires the held lease, active launch
 nonce, target native identity, fixed library, running version, target schema, and SQLite integrity; rejection leaves
-the durable phase at `launching`. This is preparation, lifecycle, lease, and confirmation evidence, not yet a
-recoverable update path.
+the durable phase at `launching`. Recovery restores the exact verified SQLite predecessor whether the destination is
+present or absent, invokes only the preserved predecessor package, and enters `recovered` only after native source
+identity and critical installed files match the runnable image. The two closed native failure reasons retain attempts
+one and two for explicit retry and make attempt three terminal. Restart lookup derives its context from the active
+attempt, exposes only the privacy-minimized intervention, and starts a retry only after proving watchdog availability.
+A prepared attempt can be discarded only under every ownership boundary; replacement-started evidence cannot be
+discarded. Terminal validation, receipt-bound cleanup, full watchdog orchestration, and release-shaped evidence still
+remain before this is a recoverable update path.
 
 ## Increment M5.3 — Packaged capability parity
 

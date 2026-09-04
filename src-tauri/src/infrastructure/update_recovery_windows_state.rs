@@ -9,8 +9,9 @@ use std::{
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, SecondsFormat, Utc};
 use fitfreed_application::{
-    validate_packaged_update_recovery_transition, PackagedUpdateRecoveryPhase, UpdateArtifact,
-    UpdateInstallationAuthorization,
+    authorize_packaged_update_recovery_retry, describe_packaged_update_recovery_intervention,
+    validate_packaged_update_recovery_transition, PackagedUpdateRecoveryIntervention,
+    PackagedUpdateRecoveryPhase, UpdateArtifact, UpdateInstallationAuthorization,
 };
 use minisign_verify::Signature;
 use semver::Version;
@@ -633,6 +634,133 @@ pub fn resolve_windows_update_recovery_watchdog_context(
     )
 }
 
+pub fn resolve_active_windows_update_recovery_watchdog_context(
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<
+    Option<(
+        WindowsUpdateRecoveryWatchdogContext,
+        PackagedUpdateRecoveryPhase,
+    )>,
+    WindowsRecoveryStateError,
+> {
+    resolve_active_windows_update_recovery_watchdog_context_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        expected_installed_executable,
+    )
+}
+
+pub fn query_windows_update_recovery_intervention(
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<Option<PackagedUpdateRecoveryIntervention>, WindowsRecoveryStateError> {
+    query_windows_update_recovery_intervention_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        expected_installed_executable,
+    )
+}
+
+pub fn begin_windows_update_recovery_retry(
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<WindowsUpdateRecoveryWatchdogContext, WindowsRecoveryStateError> {
+    begin_windows_update_recovery_retry_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        expected_installed_executable,
+    )
+}
+
+fn begin_windows_update_recovery_retry_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<WindowsUpdateRecoveryWatchdogContext, WindowsRecoveryStateError> {
+    let (context, phase) = resolve_active_windows_update_recovery_watchdog_context_with(
+        packages,
+        recovery_root,
+        expected_installed_executable,
+    )?
+    .ok_or(WindowsRecoveryStateError::InvalidTransition)?;
+    authorize_packaged_update_recovery_retry(phase, context.native_recovery_attempts())
+        .map_err(|_| WindowsRecoveryStateError::InvalidTransition)?;
+    drop(acquire_windows_update_recovery_watchdog_lease_with(
+        packages, &context,
+    )?);
+    transition_active_windows_update_recovery(
+        context.recovery_root(),
+        context.recovery_id(),
+        PackagedUpdateRecoveryPhase::Recovering,
+    )?;
+    Ok(context)
+}
+
+pub fn cancel_windows_update_recovery_retry(
+    context: &WindowsUpdateRecoveryWatchdogContext,
+    watchdog_lease: &WindowsUpdateRecoveryWatchdogLease,
+) -> Result<(), WindowsRecoveryStateError> {
+    if context.recovery_id() != watchdog_lease.recovery_id() {
+        return Err(WindowsRecoveryStateError::InvalidInput);
+    }
+    transition_active_windows_update_recovery(
+        context.recovery_root(),
+        context.recovery_id(),
+        PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable,
+    )
+}
+
+fn query_windows_update_recovery_intervention_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<Option<PackagedUpdateRecoveryIntervention>, WindowsRecoveryStateError> {
+    let Some((context, phase)) = resolve_active_windows_update_recovery_watchdog_context_with(
+        packages,
+        recovery_root,
+        expected_installed_executable,
+    )?
+    else {
+        return Ok(None);
+    };
+    Ok(describe_packaged_update_recovery_intervention(
+        phase,
+        context.source_version(),
+        context.target_version(),
+        context.native_recovery_attempts(),
+    ))
+}
+
+fn resolve_active_windows_update_recovery_watchdog_context_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    expected_installed_executable: &Path,
+) -> Result<
+    Option<(
+        WindowsUpdateRecoveryWatchdogContext,
+        PackagedUpdateRecoveryPhase,
+    )>,
+    WindowsRecoveryStateError,
+> {
+    let Some((recovery_id, phase)) =
+        active_windows_update_recovery_phase_with(packages, recovery_root)?
+    else {
+        return Ok(None);
+    };
+    let watchdog_executable = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(recovery_id)
+        .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+        .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+    resolve_windows_update_recovery_watchdog_context_with(
+        packages,
+        &watchdog_executable,
+        expected_installed_executable,
+    )
+    .map(|context| Some((context, phase)))
+}
+
 fn resolve_windows_update_recovery_watchdog_context_with(
     packages: &impl RecoveryPackagePort,
     watchdog_executable: &Path,
@@ -898,6 +1026,68 @@ fn confirm_active_windows_update_recovery_with(
     manifest.phase = WindowsRecoveryPhaseWire::Confirmed;
     validate_manifest(&manifest)?;
     write_manifest(&manifest_path, &manifest)
+}
+
+pub fn discard_prepared_windows_update_recovery(
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<(), WindowsRecoveryStateError> {
+    discard_prepared_windows_update_recovery_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        recovery_id,
+    )
+}
+
+fn discard_prepared_windows_update_recovery_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<(), WindowsRecoveryStateError> {
+    if !valid_sha256(recovery_id) {
+        return Err(WindowsRecoveryStateError::InvalidInput);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let outcome_file = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, false)
+        .map_err(map_lock_contention)?;
+    let _outcome_lock = ExclusiveFileLock::acquire(outcome_file)?;
+    let attempts_directory =
+        canonical_private_directory(&recovery_root.join(ATTEMPTS_DIRECTORY_NAME))?;
+    let attempt_directory = canonical_recovery_attempt(&recovery_root, recovery_id)?;
+    let watchdog_file = open_private_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, false)
+        .map_err(map_lock_contention)?;
+    let watchdog_lock = ExclusiveFileLock::acquire(watchdog_file)?;
+    let candidate_file =
+        open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)
+            .map_err(map_lock_contention)?;
+    let candidate_lock = ExclusiveFileLock::acquire(candidate_file)?;
+    let state_lock = StateLock::acquire(&attempt_directory)?;
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    if read_active_recovery_id(&active_path)? != recovery_id {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    let manifest = verify_windows_update_recovery_with_held_locks(
+        packages,
+        &recovery_root,
+        recovery_id,
+        &[
+            WATCHDOG_LOCK_FILE_NAME,
+            CANDIDATE_LOCK_FILE_NAME,
+            STATE_LOCK_FILE_NAME,
+        ],
+    )?;
+    if manifest.phase != WindowsRecoveryPhaseWire::Prepared || manifest.recovery_id != recovery_id {
+        return Err(WindowsRecoveryStateError::InvalidTransition);
+    }
+
+    fs::remove_file(active_path)?;
+    sync_directory(&recovery_root)?;
+    drop(state_lock);
+    drop(candidate_lock);
+    drop(watchdog_lock);
+    fs::remove_dir_all(attempt_directory)?;
+    sync_directory(&attempts_directory)?;
+    Ok(())
 }
 
 pub fn restore_active_windows_update_recovery(
@@ -2575,6 +2765,35 @@ mod tests {
         }
     }
 
+    fn prepare_with_watchdog(
+        harness: &Harness,
+        packages: &SyntheticPackages,
+    ) -> (
+        PreparedWindowsUpdateRecovery,
+        WindowsUpdateRecoveryWatchdogContext,
+        WindowsUpdateRecoveryWatchdogLease,
+    ) {
+        let prepared = prepare_windows_update_recovery_with(
+            packages,
+            &harness.identity,
+            harness.preparation(),
+        )
+        .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_windows_update_recovery_watchdog_context_with(
+            packages,
+            &watchdog_executable,
+            &harness.identity.executable_path,
+        )
+        .expect("watchdog context");
+        let watchdog = acquire_windows_update_recovery_watchdog_lease_with(packages, &context)
+            .expect("watchdog lease");
+        (prepared, context, watchdog)
+    }
+
     #[test]
     fn prepares_publishes_and_reopens_one_complete_version_three_attempt() {
         let harness = Harness::new();
@@ -3311,6 +3530,145 @@ mod tests {
                 .expect("unchanged phase")
                 .map(|(_, phase)| phase),
             Some(PackagedUpdateRecoveryPhase::Launching)
+        );
+    }
+
+    #[test]
+    fn resolves_active_windows_restart_authority_and_discard_boundaries() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared = prepare_windows_update_recovery_with(
+            &packages,
+            &harness.identity,
+            harness.preparation(),
+        )
+        .expect("prepared recovery");
+
+        let (context, phase) = resolve_active_windows_update_recovery_watchdog_context_with(
+            &packages,
+            &harness.recovery_root,
+            &harness.identity.executable_path,
+        )
+        .expect("active recovery lookup")
+        .expect("active recovery");
+        assert_eq!(context.recovery_id(), prepared.recovery_id());
+        assert_eq!(phase, PackagedUpdateRecoveryPhase::Prepared);
+
+        let watchdog = acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("watchdog lease");
+        assert!(matches!(
+            discard_prepared_windows_update_recovery_with(
+                &packages,
+                &harness.recovery_root,
+                prepared.recovery_id(),
+            ),
+            Err(WindowsRecoveryStateError::ActiveAttemptExists)
+        ));
+        assert!(prepared.attempt_directory().exists());
+        drop(watchdog);
+
+        discard_prepared_windows_update_recovery_with(
+            &packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+        )
+        .expect("discarded prepared recovery");
+        assert!(!prepared.attempt_directory().exists());
+        assert!(
+            resolve_active_windows_update_recovery_watchdog_context_with(
+                &packages,
+                &harness.recovery_root,
+                &harness.identity.executable_path,
+            )
+            .expect("inactive recovery lookup")
+            .is_none()
+        );
+
+        let second = Harness::new();
+        let second_packages = SyntheticPackages::available();
+        let second_prepared = prepare_windows_update_recovery_with(
+            &second_packages,
+            &second.identity,
+            second.preparation(),
+        )
+        .expect("second prepared recovery");
+        transition_active_windows_update_recovery(
+            &second.recovery_root,
+            second_prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        assert!(discard_prepared_windows_update_recovery_with(
+            &second_packages,
+            &second.recovery_root,
+            second_prepared.recovery_id(),
+        )
+        .is_err());
+        assert!(second_prepared.attempt_directory().exists());
+    }
+
+    #[test]
+    fn begins_and_cancels_only_an_available_windows_native_recovery_retry() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let (prepared, _context, watchdog) = prepare_with_watchdog(&harness, &packages);
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering");
+        restore_active_windows_update_recovery_with(
+            &packages,
+            &SyntheticNativeRecovery::new(vec![Err(
+                WindowsUpdateRecoveryError::NativeRollbackFailed,
+            )]),
+            &watchdog,
+            WindowsUpdateRecoveryRestoration {
+                recovery_root: &harness.recovery_root,
+                recovery_id: prepared.recovery_id(),
+                expected_library_path: &harness.library_path,
+            },
+        )
+        .expect("failed native restoration");
+        drop(watchdog);
+
+        assert_eq!(
+            query_windows_update_recovery_intervention_with(
+                &packages,
+                &harness.recovery_root,
+                &harness.identity.executable_path,
+            )
+            .expect("retry intervention")
+            .map(|intervention| intervention.attempts_completed),
+            Some(1)
+        );
+        let context = begin_windows_update_recovery_retry_with(
+            &packages,
+            &harness.recovery_root,
+            &harness.identity.executable_path,
+        )
+        .expect("began retry");
+        assert_eq!(
+            active_windows_update_recovery_phase_with(&packages, &harness.recovery_root)
+                .expect("recovering phase")
+                .map(|(_, phase)| phase),
+            Some(PackagedUpdateRecoveryPhase::Recovering)
+        );
+        let watchdog = acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("retry watchdog lease");
+        cancel_windows_update_recovery_retry(&context, &watchdog).expect("cancelled retry");
+        assert_eq!(
+            active_windows_update_recovery_phase_with(&packages, &harness.recovery_root)
+                .expect("retry available again")
+                .map(|(_, phase)| phase),
+            Some(PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable)
         );
     }
 
