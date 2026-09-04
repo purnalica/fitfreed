@@ -252,11 +252,14 @@ pub use update_recovery_windows_package::{
 };
 #[cfg(any(test, target_os = "windows"))]
 pub use update_recovery_windows_state::{
-    active_windows_update_recovery_phase, prepare_windows_update_recovery,
-    record_active_windows_update_recovery_replacement_launch,
-    transition_active_windows_update_recovery, verify_windows_update_recovery,
-    PreparedWindowsUpdateRecovery, WindowsRecoveryStateError, WindowsUpdateRecoveryPreparation,
+    acquire_windows_update_recovery_candidate_lease,
+    acquire_windows_update_recovery_watchdog_lease, active_windows_update_recovery_phase,
+    prepare_windows_update_recovery, record_active_windows_update_recovery_replacement_launch,
+    resolve_windows_update_recovery_watchdog_context, transition_active_windows_update_recovery,
+    verify_windows_update_recovery, PreparedWindowsUpdateRecovery, WindowsRecoveryStateError,
+    WindowsUpdateRecoveryCandidateLease, WindowsUpdateRecoveryPreparation,
     WindowsUpdateRecoveryReplacementLaunch, WindowsUpdateRecoveryReplacementProcess,
+    WindowsUpdateRecoveryWatchdogContext, WindowsUpdateRecoveryWatchdogLease,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
