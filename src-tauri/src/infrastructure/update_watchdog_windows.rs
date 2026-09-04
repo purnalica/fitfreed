@@ -8,6 +8,12 @@ use std::{
     time::Instant,
 };
 
+#[cfg(any(test, all(target_os = "windows", feature = "e2e")))]
+use std::path::PathBuf;
+
+#[cfg(all(target_os = "windows", feature = "e2e"))]
+use std::io::Write as _;
+
 use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
     decide_packaged_update_recovery_startup_action,
@@ -206,6 +212,10 @@ pub fn run_windows_update_recovery_watchdog(
                 context.recovery_id(),
                 next,
             )?;
+            #[cfg(all(target_os = "windows", feature = "e2e"))]
+            if installation.is_ok() && !resumed_after_interruption {
+                wait_for_windows_update_e2e_interruption()?;
+            }
             continue;
         }
         let event = watchdog_event(
@@ -309,6 +319,59 @@ pub fn run_windows_update_recovery_watchdog(
             }
         }
     }
+}
+
+#[cfg(any(test, all(target_os = "windows", feature = "e2e")))]
+fn windows_update_e2e_interruption_paths(
+    ready: Option<OsString>,
+    continue_: Option<OsString>,
+) -> Result<Option<(PathBuf, PathBuf)>, std::io::Error> {
+    let (ready, continue_) = match (ready, continue_) {
+        (None, None) => return Ok(None),
+        (Some(ready), Some(continue_)) => (PathBuf::from(ready), PathBuf::from(continue_)),
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Windows update E2E interruption markers are incomplete",
+            ))
+        }
+    };
+    if !ready.is_absolute() || !continue_.is_absolute() || ready == continue_ {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Windows update E2E interruption markers are invalid",
+        ));
+    }
+    Ok(Some((ready, continue_)))
+}
+
+#[cfg(all(target_os = "windows", feature = "e2e"))]
+fn wait_for_windows_update_e2e_interruption() -> Result<(), UpdateRecoveryWatchdogError> {
+    const READY: &str = "FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_READY";
+    const CONTINUE: &str = "FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_CONTINUE";
+    let Some((ready, continue_)) =
+        windows_update_e2e_interruption_paths(std::env::var_os(READY), std::env::var_os(CONTINUE))?
+    else {
+        return Ok(());
+    };
+    let mut ready_marker = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(ready)?;
+    ready_marker.write_all(b"ready\n")?;
+    ready_marker.sync_all()?;
+    let deadline = Instant::now() + std::time::Duration::from_secs(120);
+    while !continue_.is_file() {
+        if Instant::now() >= deadline {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "Windows update E2E interruption was not released",
+            )
+            .into());
+        }
+        thread::sleep(POLL_INTERVAL);
+    }
+    Ok(())
 }
 
 fn should_install_candidate(
@@ -599,9 +662,33 @@ fn stop_exact_process(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{ffi::OsString, path::PathBuf};
 
     use super::*;
+
+    #[test]
+    fn accepts_only_complete_absolute_windows_update_interruption_markers() {
+        let root = std::env::current_dir().expect("current directory");
+        let ready = root.join("e2e-ready").into_os_string();
+        let continue_ = root.join("e2e-continue").into_os_string();
+        let same = root.join("e2e-same").into_os_string();
+        assert_eq!(
+            windows_update_e2e_interruption_paths(None, None).expect("disabled markers"),
+            None
+        );
+        assert!(windows_update_e2e_interruption_paths(
+            Some(ready.clone()),
+            Some(continue_.clone()),
+        )
+        .is_ok());
+        assert!(windows_update_e2e_interruption_paths(
+            Some(OsString::from("relative-ready")),
+            Some(continue_),
+        )
+        .is_err());
+        assert!(windows_update_e2e_interruption_paths(Some(same.clone()), Some(same),).is_err());
+        assert!(windows_update_e2e_interruption_paths(Some(ready), None,).is_err());
+    }
 
     #[test]
     fn builds_only_the_exact_private_candidate_arguments() {

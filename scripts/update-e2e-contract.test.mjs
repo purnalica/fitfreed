@@ -24,8 +24,9 @@ test("maps the supported package-shaped E2E hosts to update-channel targets", ()
   assert.equal(updateTarget("darwin", "arm64"), "darwin-aarch64");
   assert.equal(updateTarget("darwin", "x64"), "darwin-x86_64");
   assert.equal(updateTarget("linux", "x64"), "linux-x86_64-deb");
+  assert.equal(updateTarget("win32", "x64"), "windows-x86_64-nsis");
   assert.throws(() => updateTarget("linux", "arm64"), /architecture/);
-  assert.throws(() => updateTarget("win32", "x64"), /platform/);
+  assert.throws(() => updateTarget("win32", "arm64"), /architecture/);
   assert.throws(() => updateTarget("darwin", "ia32"), /architecture/);
 });
 
@@ -43,6 +44,29 @@ test("builds synthetic updates with the canonical production application identit
       bundle: {
         targets: ["app"],
         createUpdaterArtifacts: true,
+      },
+      plugins: {
+        updater: {
+          pubkey: "synthetic-public-key",
+          endpoints: [],
+        },
+      },
+    },
+  );
+  assert.deepEqual(
+    createUpdateBuildConfiguration({
+      version: "0.2.0",
+      createUpdaterArtifacts: false,
+      publicKey: "synthetic-public-key",
+      productionIdentifier: "org.fitfreed.desktop",
+      bundleTarget: "nsis",
+    }),
+    {
+      identifier: "org.fitfreed.desktop",
+      version: "0.2.0",
+      bundle: {
+        targets: ["nsis"],
+        createUpdaterArtifacts: false,
       },
       plugins: {
         updater: {

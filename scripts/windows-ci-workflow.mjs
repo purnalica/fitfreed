@@ -146,8 +146,20 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
-    /path: \.artifacts\/e2e\/evidence/,
+    /npm run verify:windows-update-e2e/,
+    "packaged Windows capability must exercise native NSIS update recovery",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /\.artifacts\/e2e\/evidence/,
     "packaged Windows capability must retain privacy-safe failure evidence",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
+    /\.artifacts\/windows-update-e2e\/evidence/,
+    "packaged Windows update recovery must retain privacy-safe failure evidence",
   );
   requireMatch(
     errors,

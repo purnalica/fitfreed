@@ -76,4 +76,11 @@ test("requires isolated packaged Windows capability evidence", () => {
     )),
     /complete verification evidence/,
   );
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      "npm run verify:windows-update-e2e",
+      "npm run verify:windows-e2e",
+    )),
+    /native NSIS update recovery/,
+  );
 });

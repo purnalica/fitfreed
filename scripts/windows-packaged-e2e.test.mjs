@@ -118,6 +118,7 @@ test("runs installed Windows capability parity only inside complete hosted verif
   assert.match(job, /^    runs-on: windows-2025$/m);
   assert.match(job, /npm run verify:windows-e2e/);
   assert.match(job, /\.artifacts\/e2e\/evidence/);
+  assert.match(job, /npm run verify:windows-update-e2e/);
   assert.match(
     workflow,
     /needs: \[quality, windows-host, packaged-macos-e2e, packaged-linux-e2e, packaged-linux-update-e2e, packaged-windows-e2e\]/,

@@ -20,6 +20,10 @@ export function updateTarget(platform, architecture) {
     if (architecture === "x64") return "linux-x86_64-deb";
     throw new Error(`Unsupported Linux architecture: ${architecture}`);
   }
+  if (platform === "win32") {
+    if (architecture === "x64") return "windows-x86_64-nsis";
+    throw new Error(`Unsupported Windows architecture: ${architecture}`);
+  }
   throw new Error(`Unsupported packaged update E2E platform: ${platform}`);
 }
 
@@ -33,7 +37,7 @@ export function createUpdateBuildConfiguration({
   if (typeof productionIdentifier !== "string" || productionIdentifier.trim() === "") {
     throw new Error("The production application identifier is required");
   }
-  if (!["app", "deb"].includes(bundleTarget)) {
+  if (!["app", "deb", "nsis"].includes(bundleTarget)) {
     throw new Error("The packaged update E2E bundle target is unsupported");
   }
   return {

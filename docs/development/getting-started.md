@@ -22,8 +22,9 @@ The Windows host lane runs on the pinned x86-64 `windows-2025` GitHub-hosted ima
 Windows contributors need the Microsoft C++ Build Tools and Windows SDK supplied by Visual Studio's Desktop development
 with C++ workload, WebView2, Rustup, and the pinned Node.js toolchain. `npm run doctor` verifies the x86-64 MSVC host,
 Rust components, Node.js, and npm without relying on Bash. Windows package, installation, update, and recovery tooling
-does not follow from host admission: package, installation, inventory, and synthetic signing controls are now explicit,
-while native update recovery and packaged capability parity remain later Milestone 5 increments.
+does not follow from host admission: package, installation, inventory, synthetic signing, packaged capability, and
+initial update-recovery controls are now explicit. Exact Windows 11 candidate evidence remains a later Milestone 5
+increment.
 
 ## First setup
 
@@ -92,6 +93,7 @@ or CI runner rather than a personal profile.
 | Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
 | Build, install, drive, and remove the isolated NSIS capability-test package | `npm run verify:windows-e2e` |
+| Verify production-identity NSIS replacement, candidate rollback, and restart resumption | `npm run verify:windows-update-e2e` |
 | Build the Authenticode-signed update-capable Windows input under protected authority | `npm run package:windows-expansion-input` |
 | Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
 | Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
@@ -268,6 +270,14 @@ prerequisite; macOS does not expose a supported API for automation to move an ar
 Spaces. Use `npm run verify:e2e` for acceptance evidence because it always rebuilds the instrumented application before
 the packaged journeys. A direct WebdriverIO command deliberately reuses the existing package and is suitable only for
 repeating a test against the exact source from which that package was built.
+
+Run `npm run verify:windows-update-e2e` only from native x86-64 Windows PowerShell in a disposable user account. Unlike
+the isolated capability package, this campaign must use the canonical production identity to exercise Windows native
+recovery. It refuses to start if any FitFreed installation, registration, shortcut, or application-data root already
+exists. It then builds and installs synthetic 0.1.0 and 0.2.0 NSIS packages, serves signed update metadata over local
+HTTPS, and verifies successful replacement, candidate rejection with rollback, and restart resumption after a bounded
+watchdog interruption. It removes only state created after its successful preflight. Do not run it on an account that
+contains a real FitFreed library; hosted success remains engineering evidence rather than exact Windows 11 acceptance.
 
 Run `npm run verify:linux-filesystem-reliability` only on Linux with permission to use `sudo mount` and `sudo umount`.
 The command creates its own isolated 32 MiB `tmpfs`, refuses an arbitrary directory or unsuitable capacity, runs only
