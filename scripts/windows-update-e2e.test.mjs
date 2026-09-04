@@ -6,22 +6,33 @@ import test from "node:test";
 import {
   expectedWindowsUpdatePackageName,
   validateWindowsUpdateEvidence,
+  windowsInstallerFailureHook,
   windowsUpdateBuildArguments,
   windowsUpdatePackageActionCommand,
   windowsUpdateScenarioPlan,
 } from "./verify-packaged-windows-update.mjs";
 
-test("defines success, candidate rejection, and interrupted-watchdog recovery journeys", () => {
+test("defines initial release-shaped Windows recovery journeys", () => {
   assert.deepEqual(windowsUpdateScenarioPlan(), [
     {
       name: "success",
+      candidateVariant: "ordinary",
       rejectCandidate: false,
       interruptWatchdog: false,
       expectedOutcome: "updated",
       expectedVersion: "0.2.0",
     },
     {
+      name: "installer-failure",
+      candidateVariant: "installer-failure",
+      rejectCandidate: false,
+      interruptWatchdog: false,
+      expectedOutcome: "recovered",
+      expectedVersion: "0.1.0",
+    },
+    {
       name: "candidate-failure",
+      candidateVariant: "ordinary",
       rejectCandidate: true,
       interruptWatchdog: false,
       expectedOutcome: "recovered",
@@ -29,6 +40,7 @@ test("defines success, candidate rejection, and interrupted-watchdog recovery jo
     },
     {
       name: "restart-resumption",
+      candidateVariant: "ordinary",
       rejectCandidate: false,
       interruptWatchdog: true,
       expectedOutcome: "updated",
@@ -69,6 +81,27 @@ test("builds only instrumented production-identity NSIS packages", () => {
     expectedWindowsUpdatePackageName("0.1.0"),
     "FitFreed_0.1.0_x64-setup.exe",
   );
+});
+
+test("builds installer failure as a signed NSIS preinstall variant", () => {
+  assert.equal(
+    windowsInstallerFailureHook(),
+    [
+      "!macro NSIS_HOOK_PREINSTALL",
+      "  SetErrorLevel 1",
+      "  Quit",
+      "!macroend",
+      "",
+    ].join("\n"),
+  );
+  const verifier = readFileSync(
+    path.resolve("scripts/verify-packaged-windows-update.mjs"),
+    "utf8",
+  );
+  assert.match(verifier, /installerHooks: installerFailureHookPath/);
+  assert.match(verifier, /candidate-installer-failure\.exe/);
+  assert.match(verifier, /signFile\(retained\)/);
+  assert.match(verifier, /candidatePackages\.get\(scenario\.candidateVariant\)/);
 });
 
 test("accepts only privacy-safe evidence matching the declared scenario", () => {

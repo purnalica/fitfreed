@@ -41,6 +41,7 @@ const tlsDirectory = path.join(artifactRoot, "tls");
 const certificatePath = path.join(tlsDirectory, "ca.crt");
 const serverCertificatePath = path.join(tlsDirectory, "server.crt");
 const serverKeyPath = path.join(tlsDirectory, "server.key");
+const installerFailureHookPath = path.join(artifactRoot, "installer-failure.nsh");
 const packageActionScript = path.join(repositoryRoot, "scripts/run-packaged-windows-update.ps1");
 const keyId = "synthetic-windows-e2e-key";
 const currentVersion = "0.1.0";
@@ -53,13 +54,23 @@ export function windowsUpdateScenarioPlan() {
   return [
     {
       name: "success",
+      candidateVariant: "ordinary",
       rejectCandidate: false,
       interruptWatchdog: false,
       expectedOutcome: "updated",
       expectedVersion: candidateVersion,
     },
     {
+      name: "installer-failure",
+      candidateVariant: "installer-failure",
+      rejectCandidate: false,
+      interruptWatchdog: false,
+      expectedOutcome: "recovered",
+      expectedVersion: currentVersion,
+    },
+    {
       name: "candidate-failure",
+      candidateVariant: "ordinary",
       rejectCandidate: true,
       interruptWatchdog: false,
       expectedOutcome: "recovered",
@@ -67,12 +78,23 @@ export function windowsUpdateScenarioPlan() {
     },
     {
       name: "restart-resumption",
+      candidateVariant: "ordinary",
       rejectCandidate: false,
       interruptWatchdog: true,
       expectedOutcome: "updated",
       expectedVersion: candidateVersion,
     },
   ];
+}
+
+export function windowsInstallerFailureHook() {
+  return [
+    "!macro NSIS_HOOK_PREINSTALL",
+    "  SetErrorLevel 1",
+    "  Quit",
+    "!macroend",
+    "",
+  ].join("\n");
 }
 
 export function windowsUpdateBuildArguments(
@@ -320,7 +342,7 @@ function signFile(filePath) {
   return readFileSync(`${filePath}.sig`, "utf8").trim();
 }
 
-function retainBuiltPackage(version) {
+function retainBuiltPackage(version, retainedName) {
   const bundleDirectory = path.join(targetDirectory, "release/bundle/nsis");
   const expectedName = expectedWindowsNsisArtifactName(version);
   const executableArtifacts = readdirSync(bundleDirectory)
@@ -329,7 +351,7 @@ function retainBuiltPackage(version) {
     throw new Error(`The Windows update build must produce exactly ${expectedName}`);
   }
   const source = path.join(bundleDirectory, expectedName);
-  const retained = path.join(packageDirectory, expectedName);
+  const retained = path.join(packageDirectory, retainedName);
   if (!statSync(source).isFile() || existsSync(retained)) {
     throw new Error("The Windows update package retention boundary is invalid");
   }
@@ -337,14 +359,31 @@ function retainBuiltPackage(version) {
   return retained;
 }
 
-function buildNsisPackage(version, publicKey) {
-  const configuration = createUpdateBuildConfiguration({
+function buildNsisPackage(version, publicKey, candidateVariant = "ordinary") {
+  if (!new Set(["ordinary", "installer-failure"]).has(candidateVariant)) {
+    throw new Error("The Windows update candidate variant is unsupported");
+  }
+  let configuration = createUpdateBuildConfiguration({
     version,
     createUpdaterArtifacts: false,
     publicKey,
     productionIdentifier,
     bundleTarget: "nsis",
   });
+  if (candidateVariant === "installer-failure") {
+    writeFileSync(installerFailureHookPath, windowsInstallerFailureHook(), { mode: 0o600 });
+    configuration = {
+      ...configuration,
+      bundle: {
+        ...configuration.bundle,
+        windows: {
+          nsis: {
+            installerHooks: installerFailureHookPath,
+          },
+        },
+      },
+    };
+  }
   writeFileSync(generatedConfiguration, `${JSON.stringify(configuration, null, 2)}\n`);
   run(
     path.join(repositoryRoot, "node_modules/.bin/tauri"),
@@ -359,17 +398,22 @@ function buildNsisPackage(version, publicKey) {
       },
     },
   );
-  const retained = retainBuiltPackage(version);
+  const retained = retainBuiltPackage(
+    version,
+    candidateVariant === "ordinary"
+      ? expectedWindowsNsisArtifactName(version)
+      : "candidate-installer-failure.exe",
+  );
   signFile(retained);
   return retained;
 }
 
-async function startUpdateServer(candidatePackage, predecessorPackage) {
+async function startUpdateServer(candidatePackages, predecessorPackage) {
   let envelopeBytes;
-  const routes = new Map([
-    ["/candidate.exe", candidatePackage],
-    ["/predecessor.exe", predecessorPackage],
-  ]);
+  const routes = new Map([["/predecessor.exe", predecessorPackage]]);
+  for (const [variant, candidatePackage] of candidatePackages) {
+    routes.set(`/candidate-${variant}.exe`, candidatePackage);
+  }
   const server = https.createServer({
     key: readFileSync(serverKeyPath),
     cert: readFileSync(serverCertificatePath),
@@ -416,6 +460,7 @@ async function startUpdateServer(candidatePackage, predecessorPackage) {
 
 function createChannelDocuments({
   candidatePackage,
+  candidateVariant,
   predecessorPackage,
   port,
   publicKey,
@@ -430,7 +475,7 @@ function createChannelDocuments({
     sequence: 1,
     releaseVersion: candidateVersion,
     target,
-    packageUrl: `https://127.0.0.1:${port}/candidate.exe`,
+    packageUrl: `https://127.0.0.1:${port}/candidate-${candidateVariant}.exe`,
     packageSize: statSync(candidatePackage).size,
     packageSha256: sha256(candidatePackage),
     packageSignature: readFileSync(`${candidatePackage}.sig`, "utf8").trim(),
@@ -553,18 +598,29 @@ async function main() {
   mkdirSync(packageDirectory, { recursive: true });
   createTlsAuthority();
   const publicKey = generateSigningKey();
-  const candidatePackage = buildNsisPackage(candidateVersion, publicKey);
+  const candidatePackages = new Map([
+    ["ordinary", buildNsisPackage(candidateVersion, publicKey)],
+    [
+      "installer-failure",
+      buildNsisPackage(candidateVersion, publicKey, "installer-failure"),
+    ],
+  ]);
   const predecessorPackage = buildNsisPackage(currentVersion, publicKey);
-  const updateServer = await startUpdateServer(candidatePackage, predecessorPackage);
+  const updateServer = await startUpdateServer(candidatePackages, predecessorPackage);
   try {
-    updateServer.publish(createChannelDocuments({
-      candidatePackage,
-      predecessorPackage,
-      port: updateServer.port,
-      publicKey,
-    }));
     const endpoint = `https://127.0.0.1:${updateServer.port}/stable.json`;
     for (const scenario of windowsUpdateScenarioPlan()) {
+      const candidatePackage = candidatePackages.get(scenario.candidateVariant);
+      if (!candidatePackage) {
+        throw new Error(`The ${scenario.name} candidate package is unavailable`);
+      }
+      updateServer.publish(createChannelDocuments({
+        candidatePackage,
+        candidateVariant: scenario.candidateVariant,
+        predecessorPackage,
+        port: updateServer.port,
+        publicKey,
+      }));
       await runScenario(scenario, endpoint, publicKey, predecessorPackage);
     }
   } finally {

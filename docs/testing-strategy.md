@@ -394,16 +394,17 @@ The native Windows counterpart runs through `npm run verify:windows-update-e2e` 
 uses real current-user NSIS installation and the canonical production identity because the Windows recovery adapter
 rejects an isolated substitute. Preflight therefore requires a disposable account with no production installation,
 registration, shortcut, or application-data root. Ephemeral updater and TLS authority protect a loopback `stable-v3`
-channel; no production key or external endpoint enters the campaign. The three initial scenarios require successful
-0.1.0-to-0.2.0 replacement, automatic 0.1.0 package-and-library restoration after candidate rejection, and restart
-resumption after the exact preserved watchdog is terminated at the durable `replacement-installed` boundary. Every
-path revalidates the recovery manifest and preserved assets, exact installed version, library and locale persistence,
+channel; no production key or external endpoint enters the campaign. The initial scenarios require successful
+0.1.0-to-0.2.0 replacement, automatic 0.1.0 package-and-library restoration after a signed NSIS candidate terminates
+from its preinstall hook, the same restoration after candidate rejection, and restart resumption after the exact
+preserved watchdog is terminated at the durable `replacement-installed` boundary. Every path revalidates the recovery
+manifest and preserved assets, exact installed version, library and locale persistence,
 terminal receipt and cleanup, localized notice, and acknowledgement. The interruption hook is compiled only into
 instrumented Windows builds, requires two distinct absolute marker paths, creates the ready marker without clobbering,
 and is absent from production builds. The campaign retains only privacy-safe evidence on failure and always removes
 only the package and non-reparse application-data roots it created. Native hosted success remains Windows Server
-engineering evidence, not exact Windows 11 candidate acceptance; installer failure, offline rollback, fallback,
-retry, and exhaustion still require their planned release-shaped scenarios.
+engineering evidence, not exact Windows 11 candidate acceptance; offline rollback, fallback, retry, and exhaustion
+still require their planned release-shaped scenarios.
 
 Linux recovery tests protect the application-owned phase and three-attempt policy, active-manifest validation,
 exclusive-watchdog transition, spawn-failure rollback, privacy-minimized host DTO, fail-closed update presentation, and
