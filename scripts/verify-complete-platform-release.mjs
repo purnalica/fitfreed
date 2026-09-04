@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { validateCompletePlatformReleaseManifest } from "./complete-platform-release-evidence.mjs";
 import {
+  verifyExpandedPublicReleaseEvidence,
   verifyExpandedPublicReleaseSet,
 } from "./verify-expanding-public-release.mjs";
 import {
@@ -180,6 +181,34 @@ export function verifyCompletePlatformReleaseDistribution(
     publicReleaseSigningConfiguration,
     false,
   );
+}
+
+export function verifyCompletePlatformReleaseEvidenceDirectory(
+  releaseDirectory,
+  publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
+) {
+  const resolvedReleaseDirectory = path.resolve(releaseDirectory);
+  return verifyExpandedPublicReleaseEvidence({
+    additionalEvidenceVerifiers: [verifyWindowsEvidence],
+    includeApplication: false,
+    publicReleaseSigningConfiguration,
+    publicUpdateConfiguration,
+    releaseDirectory: resolvedReleaseDirectory,
+    resultProperties(manifest) {
+      const windowsArtifact = onlyArtifact(manifest, "windows-x86_64-nsis");
+      const windowsPlatform = manifest.platforms.find(
+        ({ target }) => target === "windows-x86_64-nsis",
+      );
+      return {
+        windowsCertificateSha256:
+          windowsPlatform.trust.authenticode.certificateSha256,
+        windowsPackage: path.join(resolvedReleaseDirectory, windowsArtifact.path),
+      };
+    },
+    targetKinds: completeTargetKinds,
+    validateManifest: validateCompletePlatformReleaseManifest,
+  }).result;
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

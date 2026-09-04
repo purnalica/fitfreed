@@ -262,10 +262,9 @@ function verifyPagesSnapshot(
   }
 }
 
-export function verifyExpandedPublicReleaseSet({
+export function verifyExpandedPublicReleaseEvidence({
   additionalEvidenceVerifiers = [],
   includeApplication,
-  pagesDirectory,
   publicReleaseSigningConfiguration,
   publicUpdateConfiguration,
   releaseDirectory,
@@ -301,30 +300,40 @@ export function verifyExpandedPublicReleaseSet({
     });
     stable ??= verified;
   }
-  verifyPagesSnapshot(
-    releaseDirectory,
-    pagesDirectory,
+  return {
     manifest,
     stable,
     updateConfiguration,
-    targetKinds,
-  );
-  return {
-    attestationSubjectCount:
-      manifest.provenanceRequirements.digestBoundSubjects.length
-      + manifest.provenanceRequirements.generatedSubjects.length,
-    debianPackage: path.join(
-      releaseDirectory,
-      onlyArtifact(manifest, "linux-x86_64-deb").path,
-    ),
-    releaseKeyId: manifest.trust.releaseSignature.keyId,
-    revision: manifest.release.revision,
-    storageSchemaVersion: manifest.application.storageSchemaVersion,
-    targets: [...manifest.update.targets],
-    updateSequence: manifest.update.sequence,
-    version: manifest.release.version,
-    ...resultProperties(manifest),
+    result: {
+      attestationSubjectCount:
+        manifest.provenanceRequirements.digestBoundSubjects.length
+        + manifest.provenanceRequirements.generatedSubjects.length,
+      debianPackage: path.join(
+        releaseDirectory,
+        onlyArtifact(manifest, "linux-x86_64-deb").path,
+      ),
+      releaseKeyId: manifest.trust.releaseSignature.keyId,
+      revision: manifest.release.revision,
+      storageSchemaVersion: manifest.application.storageSchemaVersion,
+      targets: [...manifest.update.targets],
+      updateSequence: manifest.update.sequence,
+      version: manifest.release.version,
+      ...resultProperties(manifest),
+    },
   };
+}
+
+export function verifyExpandedPublicReleaseSet(input) {
+  const verified = verifyExpandedPublicReleaseEvidence(input);
+  verifyPagesSnapshot(
+    input.releaseDirectory,
+    input.pagesDirectory,
+    verified.manifest,
+    verified.stable,
+    verified.updateConfiguration,
+    input.targetKinds,
+  );
+  return verified.result;
 }
 
 function verifyExpandingPublicRelease(
@@ -373,6 +382,21 @@ export function verifyExpandingPublicReleaseDistribution(
     publicReleaseSigningConfiguration,
     false,
   );
+}
+
+export function verifyExpandingPublicReleaseEvidenceDirectory(
+  releaseDirectory,
+  publicUpdateConfiguration,
+  publicReleaseSigningConfiguration,
+) {
+  return verifyExpandedPublicReleaseEvidence({
+    includeApplication: false,
+    publicReleaseSigningConfiguration,
+    publicUpdateConfiguration,
+    releaseDirectory: path.resolve(releaseDirectory),
+    targetKinds: expandingTargetKinds,
+    validateManifest: validateExpandingPublicReleaseManifest,
+  }).result;
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

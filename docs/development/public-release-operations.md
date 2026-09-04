@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The initial macOS and first Linux-expansion workflows are implemented but deliberately inactive. The public Windows expansion workflow is not yet implemented; its native input and complete-candidate kernels are implemented but cannot publish. A workflow becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
+This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The initial macOS and first Linux-expansion workflows are implemented but deliberately inactive. The public Windows expansion workflow is not yet implemented; its native input, authenticated-predecessor discovery, protected preparation, composition, and reopening commands are implemented but cannot publish. A workflow becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
 
 Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
 
@@ -131,6 +131,14 @@ packages and creates the complete-platform manifest version 7 candidate. Before 
 sealed candidate must pass its independent version 7 reopening, native supported-Windows-11 installation and trust
 admission, packaged capability, update recovery, filesystem reliability, performance, localization, accessibility,
 and bounded product-experience gates. A successful native input build means only “input available for composition.”
+
+On Apple Silicon, `npm run prepare:complete-platform-release -- <version> <update-key-id> <release-key-id>
+<issued-at> <linux-input-directory> <windows-input-directory> <windows-certificate-sha256>
+<predecessor-evidence-directory>` is the sole production composition entry point. Before protected work, it checks
+both native inputs and reopens every required predecessor as complete signed manifest version 6 or 7 Release evidence.
+It then builds fresh macOS bytes, signs the unchanged Linux and Windows packages for updates, and emits
+one atomic candidate. `npm run verify:complete-platform-release -- <candidate-directory>` repeats the complete local
+reopening. Neither command grants promotion authority.
 
 PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,
 storage schema, package digest, public certificate SHA-256 fingerprint, and Boolean phase results. They must not

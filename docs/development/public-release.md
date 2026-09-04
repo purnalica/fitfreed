@@ -127,8 +127,39 @@ version, revision, and storage schema. Under separate Apple, updater, and releas
 macOS artifacts, adds updater signatures to the unchanged Linux and Windows packages, and creates one complete-platform
 manifest version 7 candidate plus one complete stable-v3 Pages snapshot. Its independent verifier binds the Windows
 package, Authenticode fingerprint, native inventory, build evidence, updater signature, checksums, release signature,
-recovery set, and Pages bytes. The public Windows expansion workflow is not yet implemented, so these kernels are not
-a runnable public release path and no existing workflow may be represented as one.
+recovery set, and Pages bytes.
+
+The protected Apple Silicon composition entry point is:
+
+```bash
+npm run prepare:complete-platform-release -- \
+  <version> <update-key-id> <release-key-id> <issued-at> \
+  <linux-input-directory> <windows-input-directory> \
+  <windows-certificate-sha256> <predecessor-evidence-directory>
+```
+
+Both native input directories must already have passed their digest-bound transport reopening. The final public
+Windows certificate SHA-256 fingerprint is a public lowercase value and must match the sealed Windows input; no
+certificate selector or Authenticode private authority reaches this process. The predecessor evidence root contains
+exactly one directory for every package-bearing application baseline declared by the upgrade matrix. Each version
+directory contains its immutable distributed `release/` tree. Preparation reopens the complete signed manifest
+version 6 or manifest version 7 Release evidence before admitting any Linux or Windows recovery package from it. The
+mutable product-site presentation is deliberately not an authority for predecessor bytes; the release checksum,
+detached checksum signature, updater signatures, stable envelope, and immutable manifest provide that authority.
+Loose package paths, stale versions, changed bytes, partial evidence, and unsupported predecessor contracts fail before
+the dependency audit or macOS build.
+
+The command requires the same protected Apple, updater, and independent release-checksum environment as the Linux
+composer. It produces only `.artifacts/public-releases/<version>/{release,pages}`, invokes the independent complete
+verifier before atomic promotion, removes incomplete output after failure, and does not publish, attest, tag, upload,
+or deploy anything. Reopen the result independently with:
+
+```bash
+npm run verify:complete-platform-release -- .artifacts/public-releases/<version>
+```
+
+The public Windows expansion workflow is not yet implemented, so this production preparation command is not a
+runnable public release path and no existing workflow may be represented as one.
 
 A future Windows workflow must preserve the native-builder/composer separation, add exact supported-Windows-11
 candidate admission, and reuse the second-approval publication boundary. A native input or complete candidate is never

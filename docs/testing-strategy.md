@@ -325,7 +325,7 @@ Local and continuous-integration workflows will invoke the same underlying comma
   run state; CI may retain only privacy-safe WebdriverIO diagnostics after failure. This job runs only for complete
   verification and must succeed before its executable fingerprint receives reusable evidence. Hosted Windows Server
   execution is native capability evidence but does not replace the later exact Windows 11 desktop gate.
-- The manual complete-platform publication workflow independently admits the already sealed manifest version 6
+- The manual Linux-expansion publication workflow independently admits the already sealed manifest version 6
   candidate on hosted x86-64 Ubuntu 24.04 and 26.04 before promotion can reach its second approval. Each secret-free
   row verifies the transport digest and complete candidate, installs only the manifest-declared Debian artifact,
   verifies package identity, executable and resource paths, dynamic linking, graphical first launch into an isolated
@@ -334,6 +334,14 @@ Local and continuous-integration workflows will invoke the same underlying comma
   failures but cannot convert a failed row into acceptance. These exact-candidate checks complement, rather than
   replace, the same-revision instrumented
   capability, update/recovery, accessibility, localization, and data-performance evidence.
+- Complete-platform preparation tests require both sealed native inputs and every package-bearing predecessor to be
+  authenticated before dependency audit, macOS build, or composition. Predecessor discovery reopens the complete
+  immutable manifest version 6 or 7 Release evidence, accepts only matrix-declared versions and Linux or Windows
+  package/signature pairs, and rejects changed bytes, stale directories, partial evidence, or unsupported contracts.
+  The preparation boundary is Apple-Silicon-only, requires distinct updater and checksum trust, confines output to the
+  exact ignored version directory, and removes incomplete candidates. Independent manifest version 7 composition and
+  reopening tests then bind all three current packages, recovery packages, signatures, inventories, checksums, SBOMs,
+  notes, provenance subjects, and Pages bytes before local promotion.
 - The explicit Linux performance admission workflow builds and verifies the source-bound production Debian package,
   installs it, measures 100 fresh interactive-shell processes under Xvfb, and always purges it before running the
   production full-scale import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights,

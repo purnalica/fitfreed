@@ -119,6 +119,15 @@ adds its detached updater signature, composes the three-target stable channel an
 checksums, and release signature, then invokes independent reopening before one atomic destination promotion. Any
 failure removes the private staging tree and leaves an existing destination untouched.
 
+The production preparation boundary authenticates recovery inputs before protected composition. It derives the exact
+Linux and Windows predecessor requirements from the target-aware upgrade matrix and admits each package only after
+reopening that version's complete immutable `release/` evidence under manifest version 6 or 7. Product-site bytes are
+mutable presentation and therefore do not grant predecessor authority.
+It rejects loose packages, partial platform evidence, stale versions, and changed signatures. One Apple Silicon entry
+point then combines those authenticated predecessors with both sealed native inputs, a fresh macOS build, SBOMs,
+reviewed notes, updater authority, and independent checksum authority. Its output is an ignored, exact-version local
+candidate; generation itself has no publication effect.
+
 The same exact package is mounted read-only, without the repository, into a digest-pinned x86-64 Ubuntu 24.04 base
 image. That image must contain no Node.js, npm, Cargo, Rustc, Git, or C compiler before installation. Native package
 installation must resolve the declared runtime dependencies, leave a completely linked executable and registered
