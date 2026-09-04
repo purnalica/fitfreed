@@ -94,6 +94,7 @@ or CI runner rather than a personal profile.
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
 | Build, install, drive, and remove the isolated NSIS capability-test package | `npm run verify:windows-e2e` |
 | Verify production-identity NSIS replacement, candidate rollback, and restart resumption | `npm run verify:windows-update-e2e` |
+| Measure the installed production NSIS cold-launch boundary and remove it | `npm run verify:windows-cold-launch` |
 | Build the Authenticode-signed update-capable Windows input under protected authority | `npm run package:windows-expansion-input` |
 | Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
 | Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
@@ -280,6 +281,16 @@ resumption after a bounded watchdog interruption. It also verifies runnable fall
 retry, and manual guidance after three failed recovery attempts. It removes only state created after its successful
 preflight. Do not run it on an account that contains a real FitFreed library; hosted success remains engineering
 evidence rather than exact Windows 11 acceptance.
+
+Run `npm run verify:windows-cold-launch` only after `npm run package:windows`, from native x86-64 Windows PowerShell in
+a disposable user account with no existing FitFreed package, registration, shortcut, roaming data, or local data. It
+installs the production identity and measures 100 processes. Before each process, it revalidates that installation,
+stops only its exact executable if necessary, rejects reparse points, and removes only the fixed
+`org.fitfreed.desktop` roaming and local roots returned by native Windows known-folder APIs. The reset is outside the
+measured interval. It uninstalls and removes only state it owns even after a failed measurement. The command
+deliberately refuses pre-existing state; never clear that state to make the gate pass on a user account that contains
+a real library. The manual Windows performance workflow runs this gate before the shared import, dense-history, and
+Insights campaigns.
 
 Run `npm run verify:linux-filesystem-reliability` only on Linux with permission to use `sudo mount` and `sudo umount`.
 The command creates its own isolated 32 MiB `tmpfs`, refuses an arbitrary directory or unsuitable capacity, runs only

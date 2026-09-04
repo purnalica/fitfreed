@@ -346,6 +346,18 @@ Local and continuous-integration workflows will invoke the same underlying comma
   runs normal startup recovery, verifies SQLite integrity and unchanged committed history, and retries successfully.
   A shell trap always unmounts the isolated filesystem; the test refuses a symbolic boundary, a missing admission
   marker, or a filesystem outside the narrow capacity range before writing its bounded filler.
+- The explicit Windows performance admission workflow is a separate read-only, manual-only `windows-2025` campaign.
+  It builds the source-bound production NSIS package, refuses any pre-existing production installation or application
+  data in its disposable current-user boundary, installs the exact setup, and measures 100 fresh interactive-shell
+  processes. Before every process, it revalidates the fixed installed identity and removes only its two non-reparse
+  application-data roots resolved through native Windows known-folder APIs; changing `APPDATA` or `LOCALAPPDATA`
+  does not constitute isolation. The reset completes before timing begins. The campaign unconditionally removes the
+  package and the state it created, then runs the same full-scale
+  import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights, report-resolution, and export
+  read-model campaigns. Windows benchmark binaries use the native `.exe` suffix, and the Rust process peak working
+  set is normalized to mebibytes before entering the unchanged shared memory budget. No push, pull-request, schedule,
+  secret, or uploaded artifact can trigger or survive this campaign. Hosted Server 2025 evidence remains distinct
+  from clean supported Windows 11 candidate evidence.
 - Unix host tests create and reopen the local library boundary with exact `0700` directory and `0600` file modes,
   repair broader owner-controlled modes without changing library bytes, and reject symbolic directory boundaries,
   symbolic library files, and multiply linked libraries without changing their external targets. They also prove

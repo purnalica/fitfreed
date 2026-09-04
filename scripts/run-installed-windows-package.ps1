@@ -1,5 +1,5 @@
 param(
-  [Parameter(Mandatory = $true)][ValidateSet("preflight", "install", "query", "remove")][string]$Action,
+  [Parameter(Mandatory = $true)][ValidateSet("preflight", "install", "query", "remove", "reset-data")][string]$Action,
   [string]$PackagePath = "",
   [string]$ExpectedVersion = ""
 )
@@ -13,14 +13,18 @@ $publisher = "FitFreed contributors"
 $homepage = "https://fitfreed.org/"
 $executableName = "fitfreed.exe"
 $identifier = "org.fitfreed.desktop"
-$installDirectory = Join-Path $env:LOCALAPPDATA $productName
+$roamingRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
+$localRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+if ([String]::IsNullOrWhiteSpace($roamingRoot)) { throw "current-user roaming data root is unavailable" }
+if ([String]::IsNullOrWhiteSpace($localRoot)) { throw "current-user local data root is unavailable" }
+$installDirectory = Join-Path $localRoot $productName
 $executablePath = Join-Path $installDirectory $executableName
 $uninstallerPath = Join-Path $installDirectory "uninstall.exe"
 $registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\FitFreed"
-$startMenuShortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\FitFreed.lnk"
+$startMenuShortcut = Join-Path $roamingRoot "Microsoft\Windows\Start Menu\Programs\FitFreed.lnk"
 $desktopShortcut = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)) "FitFreed.lnk"
-$roamingDataDirectory = Join-Path $env:APPDATA $identifier
-$localDataDirectory = Join-Path $env:LOCALAPPDATA $identifier
+$roamingDataDirectory = Join-Path $roamingRoot $identifier
+$localDataDirectory = Join-Path $localRoot $identifier
 
 function Assert-Equal([object]$Actual, [object]$Expected, [string]$Message) {
   if ($Actual -ne $Expected) { throw $Message }
@@ -120,17 +124,25 @@ if ($Action -eq "preflight") {
 
 if ($Action -eq "install") {
   Assert-True ($ExpectedVersion -match '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') "expected version is invalid"
-  Assert-True (Test-Path -LiteralPath $PackagePath -PathType Leaf) "predecessor setup is absent"
-  Assert-Equal (Split-Path -Leaf $PackagePath) "FitFreed_${ExpectedVersion}_x64-setup.exe" "predecessor setup name differs"
+  Assert-True (Test-Path -LiteralPath $PackagePath -PathType Leaf) "setup is absent"
+  Assert-Equal (Split-Path -Leaf $PackagePath) "FitFreed_${ExpectedVersion}_x64-setup.exe" "setup name differs"
   Assert-ProductionStateAbsent
   $installer = Start-Process -FilePath $PackagePath -ArgumentList "/S" -Wait -PassThru
-  Assert-Equal $installer.ExitCode 0 "predecessor setup returned a failure"
-  Assert-Equal (Get-InstalledVersion) $ExpectedVersion "installed predecessor version differs"
+  Assert-Equal $installer.ExitCode 0 "setup returned a failure"
+  Assert-Equal (Get-InstalledVersion) $ExpectedVersion "installed version differs"
   exit 0
 }
 
 if ($Action -eq "query") {
   [Console]::Out.WriteLine((Get-InstalledVersion))
+  exit 0
+}
+
+if ($Action -eq "reset-data") {
+  Get-InstalledVersion | Out-Null
+  Stop-OwnedProcesses
+  Remove-OwnedData $roamingDataDirectory
+  Remove-OwnedData $localDataDirectory
   exit 0
 }
 

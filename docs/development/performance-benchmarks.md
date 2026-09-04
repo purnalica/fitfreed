@@ -7,7 +7,7 @@ structured planned-training, sleep, recovery, and integrated longitudinal Insigh
 [quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production
 boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
 
-These gates establish environment-qualified evidence under [ADR 0015](../architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md). Executable changes must pass the complete hosted macOS campaign, and the exact macOS candidate must pass a clean local Apple Silicon production campaign before handoff. The cold-launch and production data campaigns also run on x86-64 Linux for Ubuntu admission. The budgets and commands are identical across those environments; a passing result proves that environment rather than promising identical timing on every supported computer.
+These gates establish environment-qualified evidence under [ADR 0015](../architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md). Executable changes must pass the complete hosted macOS campaign, and the exact macOS candidate must pass a clean local Apple Silicon production campaign before handoff. The cold-launch and production data campaigns also run on x86-64 Linux and Windows for their platform admissions. The budgets and commands are identical across those environments; a passing result proves that environment rather than promising identical timing on every supported computer.
 
 ## Cold launch benchmark
 
@@ -27,9 +27,36 @@ loose build-tree executable. Every Linux process receives a distinct `HOME`, `XD
 `XDG_DATA_HOME`, and `XDG_STATE_HOME` below its temporary root so runner-level XDG settings cannot silently share an
 application library between measurements.
 
+Windows engineering admission builds the source-bound production NSIS package and runs
+`npm run verify:windows-cold-launch` from a disposable x86-64 Windows user. The command refuses any pre-existing
+FitFreed installation, registration, shortcut, roaming data, or local data; silently installs the exact
+version-derived package; and resolves the executable only through its complete current-user registration and fixed
+`%LOCALAPPDATA%\FitFreed\fitfreed.exe` identity. Windows known-folder APIs, rather than process environment overrides,
+define the actual roaming and local application-data roots used by Tauri. Before every measured process, the command
+revalidates the installed package, stops only the exact installed executable or its verified recovery predecessor,
+rejects a root or descendant reparse point, and removes only `org.fitfreed.desktop` below those two native roots. The
+package and only the application-data roots created by the campaign are removed in an unconditional finalizer. This
+destructive production-identity cleanup boundary is intended only for a disposable hosted user and must never run
+alongside a real FitFreed library. The explicit
+`.github/workflows/windows-performance.yml` workflow owns the hosted Windows Server 2025 run; it does not replace the
+exact Windows 11 candidate gate.
+
 The production build wrapper binds the exact Git revision and clean-tree state into the host. The benchmark rejects a dirty checkout, an application built from another revision, an instrumented package, an unexpected signal field, invalid or unordered timing values, or a build that was not clean. It starts the timer immediately before creating each application process. After locale initialization, React waits for the next animation frame and reports the interactive shell through a one-shot host command. The host emits a closed privacy-safe JSON signal containing the event contract, application version, source revision, clean-tree state, and monotonic durations for host setup, host signal receipt, renderer locale readiness, and renderer signal invocation. These durations contain no wall-clock timestamp, path, host identity, or user data. WebDriver, driver creation, WebView reloads, and timers started after process creation are outside this boundary and cannot satisfy it.
 
-The campaign runs exactly 100 fresh production processes with no warm-up and a distinct empty temporary home for each process. One hundred measurements prevent the p95 estimator from collapsing to the single maximum observation while retaining a distinct reported maximum and enough observations above the selected percentile to expose the tail. Every duration includes process creation, Tauri and WebView startup, storage initialization and interrupted-import recovery, locale resolution, React rendering, one painted localized shell frame, and the signal round trip. Analytical reads, source guidance, update discovery, update-recovery confirmation, and their separately loaded presentation modules start only after the signal command is dispatched. They never await diagnostic settlement and therefore cannot be blocked by its output consumer. A one-second no-frame fallback cancels the diagnostic attempt and continues the product without emitting evidence; the benchmark fails closed when the signal is absent. Deferred work is deliberately outside the first-interaction boundary and remains covered by its own behavioral, recovery, and performance gates. The process is terminated only after the signal, and all temporary application data is removed. Output and diagnostics are bounded; their raw content is never included in evidence.
+The campaign runs exactly 100 fresh production processes with no warm-up. macOS and Linux give each process a
+distinct empty temporary home; Windows clears the exact fixed native application-data roots before starting each
+process because changing environment variables does not redirect Tauri's Windows known-folder resolution. That
+preparation completes before the timer starts. One hundred measurements prevent the p95 estimator from collapsing
+to the single maximum observation while retaining a distinct reported maximum and enough observations above the
+selected percentile to expose the tail. Every duration includes process creation, Tauri and WebView startup, storage
+initialization and interrupted-import recovery, locale resolution, React rendering, one painted localized shell
+frame, and the signal round trip. Analytical reads, source guidance, update discovery, update-recovery confirmation,
+and their separately loaded presentation modules start only after the signal command is dispatched. They never await
+diagnostic settlement and therefore cannot be blocked by its output consumer. A one-second no-frame fallback cancels
+the diagnostic attempt and continues the product without emitting evidence; the benchmark fails closed when the
+signal is absent. Deferred work is deliberately outside the first-interaction boundary and remains covered by its own
+behavioral, recovery, and performance gates. The process is terminated only after the signal, and all temporary
+application data is removed. Output and diagnostics are bounded; their raw content is never included in evidence.
 
 The initial renderer graph contains the complete canonical English catalog as its deterministic fallback. A
 persisted non-default catalog is fetched as a separate production module and must finish loading before the
@@ -39,11 +66,11 @@ frame. Explicitly choosing one of those destinations remains authoritative and l
 part of the measured production path rather than benchmark-only instrumentation, and locale, navigation, import,
 and preference tests protect the behavior on both sides of the boundary.
 
-Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. The p95 budget is 2.5 seconds. The local output object records application and source identity, clean-tree state, host profile, free storage, scenario, boundary, run policy, median, p95, maximum, budget, result, and aggregate median/p95/maximum for five exhaustive phases: outer process creation plus evidence transport; host startup through setup completion; setup completion through renderer startup plus command transport; renderer startup through locale readiness; and locale readiness through the painted-shell signal. The first and third values deliberately combine intervals that cannot be separated without cross-process absolute timestamps; the labels preserve that limitation instead of implying false precision. The phases sum to the total within each process, but aggregate phase percentiles can belong to different processes and must not be added together. Per-process timings are never emitted as benchmark evidence. The exact host profile and raw output remain local. Versioned evidence retains aggregate measurements and classifies the run by its admitted environment. The exact macOS and Linux candidate environments must pass before their respective candidate handoff.
+Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. The p95 budget is 2.5 seconds. The local output object records application and source identity, clean-tree state, host profile, free storage, scenario, boundary, run policy, median, p95, maximum, budget, result, and aggregate median/p95/maximum for five exhaustive phases: outer process creation plus evidence transport; host startup through setup completion; setup completion through renderer startup plus command transport; renderer startup through locale readiness; and locale readiness through the painted-shell signal. The first and third values deliberately combine intervals that cannot be separated without cross-process absolute timestamps; the labels preserve that limitation instead of implying false precision. The phases sum to the total within each process, but aggregate phase percentiles can belong to different processes and must not be added together. Per-process timings are never emitted as benchmark evidence. The exact host profile and raw output remain local. Versioned evidence retains aggregate measurements and classifies the run by its admitted environment. The exact macOS, Linux, and Windows candidate environments must pass before their respective candidate handoff.
 
 ## Full-scale import benchmark
 
-Run on macOS or x86-64 Linux:
+Run on macOS, x86-64 Linux, or x86-64 Windows:
 
 ```sh
 npm run benchmark:import
@@ -60,11 +87,11 @@ The enforced p95 budgets are:
 - representative query: at most 500 ms;
 - peak resident memory: strictly less than 1,536 MiB.
 
-The local output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Peak resident memory uses the native `getrusage` unit: bytes on macOS and kibibytes on Linux, normalized to mebibytes before the shared budget is evaluated. Exact host details and raw output are not retained as product artifacts; versioned evidence retains the synthetic scale, aggregate measurements, result, and execution-environment classification. Temporary ZIP and SQLite files are removed even after failure. Each admitted environment must pass the unchanged budgets.
+The local output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Peak resident memory uses `getrusage` bytes on macOS, `getrusage` kibibytes on Linux, and the native process peak working set on Windows; each is normalized to mebibytes before the shared budget is evaluated. Exact host details and raw output are not retained as product artifacts; versioned evidence retains the synthetic scale, aggregate measurements, result, and execution-environment classification. Temporary ZIP and SQLite files are removed even after failure. Each admitted environment must pass the unchanged budgets.
 
 ## Dense training-history benchmark
 
-Run on macOS or x86-64 Linux:
+Run on macOS, x86-64 Linux, or x86-64 Windows:
 
 ```sh
 npm run benchmark:dense-history
@@ -110,7 +137,7 @@ Database size is `page_count * page_size` after the WAL checkpoint. The limit qu
 not every possible library. Output records source identity, clean-tree state, host and free-storage context,
 scenario, run policy, import phase timings, aggregate measurements, budgets, and result. Exact local host
 details and raw output remain local. Every generated ZIP and database is removed after success or failure.
-Both maintained performance environments must pass the same command before PX-03 can close.
+Every maintained performance environment must pass the same command before PX-03 can close.
 
 ## Application read-model benchmark
 
@@ -120,7 +147,7 @@ Run:
 npm run benchmark:insights
 ```
 
-The command admits maintained macOS hosts and x86-64 Linux. It rejects other systems or Linux architectures before
+The command admits maintained macOS hosts plus x86-64 Linux and Windows. It rejects other systems or unsupported architectures before
 building, and normalizes the platform-specific peak-resident-set unit through the same benchmark support module as
 the import and dense-history campaigns.
 

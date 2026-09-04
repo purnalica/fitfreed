@@ -28,6 +28,7 @@ import {
   validateStableUpdateV3Payload,
 } from "./update-channel-v3.mjs";
 import { expectedWindowsNsisArtifactName } from "./windows-package-contract.mjs";
+import { windowsInstalledPackageActionCommand } from "./windows-installed-package.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const artifactRoot = path.join(repositoryRoot, ".artifacts/windows-update-e2e");
@@ -43,7 +44,6 @@ const serverCertificatePath = path.join(tlsDirectory, "server.crt");
 const serverKeyPath = path.join(tlsDirectory, "server.key");
 const installerFailureHookPath = path.join(artifactRoot, "installer-failure.nsh");
 const predecessorGateHookPath = path.join(artifactRoot, "predecessor-gate.nsh");
-const packageActionScript = path.join(repositoryRoot, "scripts/run-packaged-windows-update.ps1");
 const keyId = "synthetic-windows-e2e-key";
 const currentVersion = "0.1.0";
 const candidateVersion = "0.2.0";
@@ -209,38 +209,13 @@ export function windowsUpdatePackageActionCommand({
   platform = process.platform,
   version,
 }) {
-  if (!new Set(["install", "preflight", "query", "remove"]).has(action)) {
-    throw new Error("unsupported Windows update E2E package action");
-  }
-  if (platform !== "win32" || architecture !== "x64") {
-    throw new Error("Packaged update E2E requires x86-64 Windows");
-  }
-  const arguments_ = [
-    "-NoLogo",
-    "-NoProfile",
-    "-NonInteractive",
-    "-ExecutionPolicy",
-    "Bypass",
-    "-File",
-    packageActionScript,
-    "-Action",
+  return windowsInstalledPackageActionCommand({
     action,
-  ];
-  if (action === "install") {
-    if (!path.isAbsolute(packagePath ?? "")) {
-      throw new Error("The predecessor package path must be absolute");
-    }
-    if (path.basename(packagePath) !== expectedWindowsNsisArtifactName(version ?? "")) {
-      throw new Error("The predecessor package name is invalid");
-    }
-    arguments_.push(
-      "-PackagePath",
-      packagePath,
-      "-ExpectedVersion",
-      version,
-    );
-  }
-  return { file: "powershell.exe", arguments: arguments_ };
+    architecture,
+    packagePath,
+    platform,
+    version,
+  });
 }
 
 export function validateWindowsUpdateEvidence(evidence) {

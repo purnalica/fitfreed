@@ -31,6 +31,14 @@ export function validatePerformanceBenchmarkHost(
     }
     return true;
   }
+  if (platform === "win32") {
+    if (architecture !== "x64") {
+      throw new Error(
+        `Windows performance admission requires x64, received ${architecture}`,
+      );
+    }
+    return true;
+  }
   throw new Error(
     `the performance benchmark campaign does not support ${platform}`,
   );
@@ -45,11 +53,11 @@ export function performanceBenchmarkEnvironment(
   };
 }
 
-export function performanceBenchmarkExecutable(example) {
+export function performanceBenchmarkExecutable(example, platform = process.platform) {
   return path.join(
     performanceBenchmarkTargetDirectory,
     "release/examples",
-    example,
+    platform === "win32" ? `${example}.exe` : example,
   );
 }
 

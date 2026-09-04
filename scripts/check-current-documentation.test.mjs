@@ -66,6 +66,43 @@ test("rejects undocumented Linux filesystem reliability controls", () => {
   );
 });
 
+test("rejects undocumented Windows performance admission controls", () => {
+  const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  assert.match(
+    candidate.sources["docs/development/getting-started.md"],
+    /npm run verify:windows-cold-launch/,
+  );
+  candidate.sources["docs/development/getting-started.md"] = candidate.sources[
+    "docs/development/getting-started.md"
+  ].replaceAll("npm run verify:windows-cold-launch", "run the Windows benchmark");
+  candidate.sources["docs/automation-strategy.md"] = replaceRequired(
+    candidate.sources["docs/automation-strategy.md"],
+    ".github/workflows/windows-performance.yml",
+    "the Windows workflow",
+  );
+  candidate.sources["docs/development/performance-benchmarks.md"] = replaceRequired(
+    candidate.sources["docs/development/performance-benchmarks.md"],
+    "%LOCALAPPDATA%\\FitFreed\\fitfreed.exe",
+    "the installed executable",
+  );
+  candidate.sources["docs/development/troubleshooting.md"] = replaceRequired(
+    candidate.sources["docs/development/troubleshooting.md"],
+    "Installed Windows cold launch or a Windows data budget fails",
+    "Windows benchmark fails",
+  );
+
+  assert.throws(
+    () => validateCurrentDocumentation(candidate),
+    (error) => {
+      assert.match(error.message, /contributor setup omits the Windows cold-launch command/);
+      assert.match(error.message, /automation strategy omits the explicit Windows performance workflow/);
+      assert.match(error.message, /performance guidance omits the fixed installed Windows executable/);
+      assert.match(error.message, /troubleshooting omits the Windows performance boundary/);
+      return true;
+    },
+  );
+});
+
 test("rejects pre-migration status across current experience documents", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/design/experience-specification.md"] = replaceRequired(

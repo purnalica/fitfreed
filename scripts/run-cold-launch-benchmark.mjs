@@ -19,6 +19,9 @@ import {
   repositoryRoot,
   validatePerformanceBenchmarkHost,
 } from "./performance-benchmark-profile.mjs";
+import { windowsInstalledPackageActionCommand } from "./windows-installed-package.mjs";
+import { windowsNativeToolEnvironment } from "./windows-native-environment.mjs";
+import { windowsPackageContract } from "./windows-package-contract.mjs";
 
 const measuredFreshProcesses = 100;
 const p95BudgetMilliseconds = 2_500;
@@ -205,6 +208,7 @@ function inspectExecutable(binary) {
 
 export function resolveColdLaunchApplication({
   architecture = process.arch,
+  environment = process.env,
   execute = run,
   inspectBinary = inspectExecutable,
   platform = process.platform,
@@ -228,6 +232,67 @@ export function resolveColdLaunchApplication({
         root,
       ),
       boundary: "macos-application-bundle",
+    };
+  }
+
+  if (platform === "win32") {
+    if (typeof environment.LOCALAPPDATA !== "string" || environment.LOCALAPPDATA.length === 0) {
+      throw new Error("LOCALAPPDATA is unavailable for the installed Windows package");
+    }
+    const installDirectory = path.win32.join(
+      environment.LOCALAPPDATA,
+      windowsPackageContract.bundleProductName,
+    );
+    const applicationBinary = path.win32.join(
+      installDirectory,
+      windowsPackageContract.executable,
+    );
+    const registryPath = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FitFreed";
+    const query = `$registration = Get-ItemProperty -LiteralPath '${registryPath}'; `
+      + "[ordered]@{ "
+      + "displayName = [string]$registration.DisplayName; "
+      + "displayVersion = [string]$registration.DisplayVersion; "
+      + "installLocation = [string]$registration.InstallLocation; "
+      + "mainBinaryName = [string]$registration.MainBinaryName "
+      + "} | ConvertTo-Json -Compress";
+    let registration;
+    try {
+      registration = JSON.parse(execute(
+        "powershell.exe",
+        [
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          query,
+        ],
+        root,
+      ));
+    } catch {
+      throw new Error("the current-user FitFreed NSIS registration is unavailable");
+    }
+    const fields = Object.keys(registration ?? {}).sort();
+    const expectedFields = [
+      "displayName",
+      "displayVersion",
+      "installLocation",
+      "mainBinaryName",
+    ];
+    const registeredDirectory = registration?.installLocation?.replace(/^"|"$/g, "");
+    if (
+      JSON.stringify(fields) !== JSON.stringify(expectedFields)
+      || registration.displayName !== windowsPackageContract.bundleProductName
+      || registration.mainBinaryName !== windowsPackageContract.executable
+      || registeredDirectory?.toLowerCase() !== installDirectory.toLowerCase()
+      || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(registration.displayVersion ?? "")
+    ) {
+      throw new Error("the current-user FitFreed NSIS registration has an invalid identity");
+    }
+    inspectBinary(applicationBinary);
+    return {
+      applicationBinary,
+      applicationVersion: registration.displayVersion,
+      boundary: "installed-current-user-nsis-package",
     };
   }
 
@@ -273,21 +338,58 @@ export function coldLaunchEnvironment(
   inheritedEnvironment = process.env,
   platform = process.platform,
 ) {
+  if (platform === "win32") {
+    return windowsNativeToolEnvironment(inheritedEnvironment);
+  }
   const environment = { ...inheritedEnvironment, HOME: home };
   if (platform === "linux") {
-    environment.XDG_CACHE_HOME = path.join(home, ".cache");
-    environment.XDG_CONFIG_HOME = path.join(home, ".config");
-    environment.XDG_DATA_HOME = path.join(home, ".local/share");
-    environment.XDG_STATE_HOME = path.join(home, ".local/state");
+    environment.XDG_CACHE_HOME = path.posix.join(home, ".cache");
+    environment.XDG_CONFIG_HOME = path.posix.join(home, ".config");
+    environment.XDG_DATA_HOME = path.posix.join(home, ".local/share");
+    environment.XDG_STATE_HOME = path.posix.join(home, ".local/state");
   }
   return environment;
 }
 
-export async function measureFreshProcess(applicationBinary, home, expected) {
-  mkdirSync(home, { recursive: true });
+export function resetInstalledWindowsApplicationData({
+  architecture = process.arch,
+  environment = process.env,
+  execute = execFileSync,
+  platform = process.platform,
+  root = repositoryRoot,
+} = {}) {
+  const command = windowsInstalledPackageActionCommand({
+    action: "reset-data",
+    architecture,
+    platform,
+  });
+  execute(command.file, command.arguments, {
+    cwd: root,
+    env: windowsNativeToolEnvironment(environment),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+export async function measureFreshProcess(
+  applicationBinary,
+  home,
+  expected,
+  {
+    architecture = process.arch,
+    inheritedEnvironment = process.env,
+    platform = process.platform,
+    prepareApplicationData = resetInstalledWindowsApplicationData,
+  } = {},
+) {
+  if (platform !== "win32") mkdirSync(home, { recursive: true });
+  const environment = coldLaunchEnvironment(home, inheritedEnvironment, platform);
+  if (platform === "win32") {
+    prepareApplicationData({ architecture, environment, platform });
+  }
   const startedAt = performance.now();
   const child = spawn(applicationBinary, [], {
-    env: coldLaunchEnvironment(home),
+    env: environment,
     stdio: ["ignore", "pipe", "pipe"],
   });
   let standardOutput = "";

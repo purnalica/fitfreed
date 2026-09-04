@@ -255,7 +255,7 @@ test("delegates lifecycle operations to a fixed-identity non-interactive Windows
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        path.resolve("scripts/run-packaged-windows-update.ps1"),
+        path.resolve("scripts/run-installed-windows-package.ps1"),
         "-Action",
         "install",
         "-PackagePath",
@@ -282,7 +282,7 @@ test("delegates lifecycle operations to a fixed-identity non-interactive Windows
     ["-Action", "preflight"],
   );
 
-  const source = readFileSync(path.resolve("scripts/run-packaged-windows-update.ps1"), "utf8");
+  const source = readFileSync(path.resolve("scripts/run-installed-windows-package.ps1"), "utf8");
   assert.match(source, /org\.fitfreed\.desktop/);
   assert.match(source, /Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FitFreed/);
   assert.match(source, /Get-CimInstance Win32_Process/);

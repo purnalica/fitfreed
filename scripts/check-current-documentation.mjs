@@ -193,6 +193,30 @@ export function validateCurrentDocumentation({
     /Linux disk-exhaustion gate fails/,
     "troubleshooting omits the Linux disk-exhaustion boundary",
   );
+  requirePattern(
+    errors,
+    sources[paths.gettingStarted],
+    /npm run verify:windows-cold-launch/,
+    "contributor setup omits the Windows cold-launch command",
+  );
+  requirePattern(
+    errors,
+    sources[paths.automation],
+    /\.github\/workflows\/windows-performance\.yml/,
+    "automation strategy omits the explicit Windows performance workflow",
+  );
+  requirePattern(
+    errors,
+    sources[paths.performanceBenchmarks],
+    /%LOCALAPPDATA%\\FitFreed\\fitfreed\.exe/,
+    "performance guidance omits the fixed installed Windows executable",
+  );
+  requirePattern(
+    errors,
+    sources[paths.troubleshooting],
+    /Installed Windows cold launch or a Windows data budget fails/,
+    "troubleshooting omits the Windows performance boundary",
+  );
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return {

@@ -1,0 +1,50 @@
+name: Windows performance admission
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-performance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  data-performance:
+    name: Production data performance on Windows Server 2025
+    runs-on: windows-2025
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Verify the Windows development environment
+        run: npm run doctor
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Build the source-bound Windows package
+        run: npm run package:windows
+
+      - name: Verify installed Windows cold-launch budget
+        run: npm run verify:windows-cold-launch
+
+      - name: Verify full-scale import budgets
+        run: npm run benchmark:import
+
+      - name: Verify dense training-history budgets
+        run: npm run benchmark:dense-history
+
+      - name: Verify Insights read-model performance budgets
+        run: npm run benchmark:insights

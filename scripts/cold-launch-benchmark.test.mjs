@@ -10,6 +10,8 @@ import {
   coldLaunchEnvironment,
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
+  measureFreshProcess,
+  resetInstalledWindowsApplicationData,
   resolveColdLaunchApplication,
   validateInteractiveShellSignal,
 } from "./run-cold-launch-benchmark.mjs";
@@ -281,7 +283,40 @@ test("resolves an exact installed Debian application without weakening source id
   ]);
 });
 
-test("isolates every Linux application-data convention below the fresh home", () => {
+test("resolves the exact current-user Windows installation", () => {
+  const calls = [];
+  const inspected = [];
+  const localApplicationData = "C:\\Users\\runner\\AppData\\Local";
+  const profile = resolveColdLaunchApplication({
+    architecture: "x64",
+    environment: { LOCALAPPDATA: localApplicationData },
+    execute(program, arguments_) {
+      calls.push([program, arguments_]);
+      return JSON.stringify({
+        displayName: "FitFreed",
+        displayVersion: "0.1.0",
+        installLocation: `${localApplicationData}\\FitFreed`,
+        mainBinaryName: "fitfreed.exe",
+      });
+    },
+    inspectBinary(binary) {
+      inspected.push(binary);
+    },
+    platform: "win32",
+  });
+
+  assert.deepEqual(profile, {
+    applicationBinary: `${localApplicationData}\\FitFreed\\fitfreed.exe`,
+    applicationVersion: "0.1.0",
+    boundary: "installed-current-user-nsis-package",
+  });
+  assert.deepEqual(inspected, [`${localApplicationData}\\FitFreed\\fitfreed.exe`]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], "powershell.exe");
+  assert.match(calls[0][1].join(" "), /CurrentVersion\\Uninstall\\FitFreed/);
+});
+
+test("isolates Unix application data and preserves the native Windows known-folder boundary", () => {
   assert.deepEqual(
     coldLaunchEnvironment("/tmp/fresh-home", {
       DISPLAY: ":99",
@@ -304,9 +339,72 @@ test("isolates every Linux application-data convention below the fresh home", ()
     coldLaunchEnvironment("/tmp/fresh-home", { HOME: "/unrelated" }, "darwin"),
     { HOME: "/tmp/fresh-home" },
   );
+  assert.deepEqual(
+    coldLaunchEnvironment("C:\\fresh-home", {
+      APPDATA: "C:\\unrelated\\roaming",
+      FITFREED_WINDOWS_CERTIFICATE_SHA1: "protected",
+      HOME: "C:\\unrelated",
+      LOCALAPPDATA: "C:\\unrelated\\local",
+      PATH: "C:\\Windows\\System32",
+      USERPROFILE: "C:\\unrelated",
+    }, "win32"),
+    {
+      APPDATA: "C:\\unrelated\\roaming",
+      LOCALAPPDATA: "C:\\unrelated\\local",
+      PATH: "C:\\Windows\\System32",
+      USERPROFILE: "C:\\unrelated",
+    },
+  );
 });
 
-test("rejects absent, partial, or unsupported Linux cold-launch installations", () => {
+test("resets only the installed Windows application-data identity before measurement", () => {
+  const calls = [];
+  resetInstalledWindowsApplicationData({
+    architecture: "x64",
+    environment: {
+      APPDATA: "C:\\Users\\runner\\AppData\\Roaming",
+      FITFREED_WINDOWS_CERTIFICATE_SHA1: "protected",
+      LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+      PATH: "C:\\Windows\\System32",
+      USERPROFILE: "C:\\Users\\runner",
+    },
+    execute(file, arguments_, options) {
+      calls.push({ file, arguments_, options });
+    },
+    platform: "win32",
+    root: "C:\\fitfreed",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].file, "powershell.exe");
+  assert.deepEqual(
+    calls[0].arguments_.slice(-2),
+    ["-Action", "reset-data"],
+  );
+  assert.equal(calls[0].options.cwd, "C:\\fitfreed");
+  assert.equal(calls[0].options.env.FITFREED_WINDOWS_CERTIFICATE_SHA1, undefined);
+  assert.equal(calls[0].options.env.APPDATA, "C:\\Users\\runner\\AppData\\Roaming");
+});
+
+test("does not create a process when fresh application-data preparation fails", async () => {
+  await assert.rejects(
+    measureFreshProcess(
+      "C:\\missing\\fitfreed.exe",
+      "C:\\unused-fake-home",
+      { applicationVersion: "0.1.0", sourceRevision: revision },
+      {
+        inheritedEnvironment: {},
+        platform: "win32",
+        prepareApplicationData() {
+          throw new Error("synthetic reset failure");
+        },
+      },
+    ),
+    /synthetic reset failure/,
+  );
+});
+
+test("rejects absent, partial, or unsupported cold-launch installations", () => {
   const options = {
     architecture: "x64",
     inspectBinary() {},
@@ -326,8 +424,16 @@ test("rejects absent, partial, or unsupported Linux cold-launch installations", 
     /Linux performance admission requires x64/,
   );
   assert.throws(
-    () => resolveColdLaunchApplication({ ...options, platform: "win32" }),
-    /does not support win32/,
+    () => resolveColdLaunchApplication({
+      ...options,
+      environment: {},
+      platform: "win32",
+    }),
+    /LOCALAPPDATA/,
+  );
+  assert.throws(
+    () => resolveColdLaunchApplication({ ...options, platform: "freebsd" }),
+    /does not support freebsd/,
   );
 });
 
@@ -368,6 +474,10 @@ test("wires production identity and cold launch into local and hosted gates", ()
   );
   const linuxWorkflow = readFileSync(
     new URL("../.github/workflows/linux-performance.yml", import.meta.url),
+    "utf8",
+  );
+  const windowsWorkflow = readFileSync(
+    new URL("../.github/workflows/windows-performance.yml", import.meta.url),
     "utf8",
   );
 
@@ -412,5 +522,14 @@ test("wires production identity and cold launch into local and hosted gates", ()
     linuxWorkflow.indexOf("name: Verify installed Linux cold-launch budget")
       < linuxWorkflow.indexOf("name: Verify full-scale import budgets"),
     "Linux cold launch must fail before the long data campaigns",
+  );
+  assert.match(
+    windowsWorkflow,
+    /name: Verify installed Windows cold-launch budget\n\s+run: npm run verify:windows-cold-launch/,
+  );
+  assert.ok(
+    windowsWorkflow.indexOf("name: Verify installed Windows cold-launch budget")
+      < windowsWorkflow.indexOf("name: Verify full-scale import budgets"),
+    "Windows cold launch must fail before the long data campaigns",
   );
 });

@@ -24,7 +24,29 @@ pub fn peak_resident_mib() -> f64 {
     platform_resident_value_to_mib(usage.ru_maxrss as u64)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+#[cfg(target_os = "windows")]
+pub fn peak_resident_mib() -> f64 {
+    use std::mem::{size_of, MaybeUninit};
+
+    use windows_sys::Win32::System::{
+        ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS},
+        Threading::GetCurrentProcess,
+    };
+
+    let mut counters = MaybeUninit::<PROCESS_MEMORY_COUNTERS>::zeroed();
+    let result = unsafe {
+        GetProcessMemoryInfo(
+            GetCurrentProcess(),
+            counters.as_mut_ptr(),
+            size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
+        )
+    };
+    assert_ne!(result, 0, "GetProcessMemoryInfo must succeed");
+    let counters = unsafe { counters.assume_init() };
+    resident_value_to_mib(counters.PeakWorkingSetSize as u64, 1_024.0 * 1_024.0)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 pub const fn peak_resident_mib() -> f64 {
     0.0
 }
@@ -34,12 +56,12 @@ mod tests {
     use super::{peak_resident_mib, resident_value_to_mib};
 
     #[test]
-    fn converts_each_supported_getrusage_unit_to_mebibytes() {
+    fn converts_each_supported_resident_memory_unit_to_mebibytes() {
         assert_eq!(resident_value_to_mib(1_048_576, 1_024.0 * 1_024.0), 1.0);
         assert_eq!(resident_value_to_mib(1_024, 1_024.0), 1.0);
     }
 
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn reads_peak_resident_memory_on_supported_hosts() {
         assert!(peak_resident_mib() > 0.0);
