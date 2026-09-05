@@ -20,31 +20,52 @@ pub(crate) fn prepare_private_library_path(path: &Path) -> io::Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "library path has no parent"))?;
-    let parent_was_missing = !path_exists_without_following_links(parent)?;
-    create_application_data_directory(parent)?;
-    let parent_metadata = fs::symlink_metadata(parent)?;
+    let parent_was_missing = !path_exists_without_following_links(parent)
+        .map_err(|error| library_boundary_stage("inspect library parent", error))?;
+    create_application_data_directory(parent)
+        .map_err(|error| library_boundary_stage("create library parent", error))?;
+    let parent_metadata = fs::symlink_metadata(parent)
+        .map_err(|error| library_boundary_stage("inspect library parent", error))?;
     if is_reparse_point(&parent_metadata) || !parent_metadata.is_dir() {
-        return Err(invalid_boundary("library parent is not a real directory"));
+        return Err(library_boundary_stage(
+            "protect library parent",
+            invalid_boundary("library parent is not a real directory"),
+        ));
     }
-    let directory_permissions_changed = prepare_private_directory(parent, &parent_metadata)?;
+    let directory_permissions_changed = prepare_private_directory(parent, &parent_metadata)
+        .map_err(|error| library_boundary_stage("protect library parent", error))?;
 
-    let existing_library = existing_library_metadata(path)?;
+    let existing_library = existing_library_metadata(path)
+        .map_err(|error| library_boundary_stage("inspect library file", error))?;
     if let Some(metadata) = &existing_library {
-        validate_library_metadata(metadata)?;
+        validate_library_metadata(metadata)
+            .map_err(|error| library_boundary_stage("validate library file", error))?;
     }
-    let file = open_library_file(path)?;
-    let metadata = file.metadata()?;
-    validate_library_metadata(&metadata)?;
-    validate_library_handle(&file)?;
-    let file_permissions_changed = set_private_file_permissions(&file, &metadata)?;
+    let file = open_library_file(path)
+        .map_err(|error| library_boundary_stage("open library file", error))?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| library_boundary_stage("inspect opened library file", error))?;
+    validate_library_metadata(&metadata)
+        .map_err(|error| library_boundary_stage("validate opened library file", error))?;
+    validate_library_handle(&file)
+        .map_err(|error| library_boundary_stage("validate library handle", error))?;
+    let file_permissions_changed = set_private_file_permissions(&file, &metadata)
+        .map_err(|error| library_boundary_stage("protect library file", error))?;
     let library_was_created = existing_library.is_none();
     if library_was_created || file_permissions_changed {
-        file.sync_all()?;
+        file.sync_all()
+            .map_err(|error| library_boundary_stage("synchronize library file", error))?;
     }
     if parent_was_missing || directory_permissions_changed || library_was_created {
-        sync_directory(parent)?;
+        sync_directory(parent)
+            .map_err(|error| library_boundary_stage("synchronize library parent", error))?;
     }
     Ok(())
+}
+
+fn library_boundary_stage(stage: &str, error: io::Error) -> io::Error {
+    io::Error::new(error.kind(), format!("{stage}: {error}"))
 }
 
 fn path_exists_without_following_links(path: &Path) -> io::Result<bool> {
@@ -773,9 +794,12 @@ mod tests {
         symlink(&real_application_data, &linked_application_data)
             .expect("symbolic application data directory");
 
-        assert!(
-            prepare_private_library_path(&linked_application_data.join("fitfreed.sqlite")).is_err()
-        );
+        let directory_error =
+            prepare_private_library_path(&linked_application_data.join("fitfreed.sqlite"))
+                .expect_err("symbolic application data directory rejection");
+        assert!(directory_error
+            .to_string()
+            .contains("protect library parent"));
         assert_eq!(
             fs::metadata(&real_application_data)
                 .expect("unmodified directory metadata")
@@ -794,10 +818,10 @@ mod tests {
         symlink(&outside, private_application_data.join("fitfreed.sqlite"))
             .expect("symbolic library file");
 
-        assert!(
+        let library_error =
             prepare_private_library_path(&private_application_data.join("fitfreed.sqlite"))
-                .is_err()
-        );
+                .expect_err("symbolic library rejection");
+        assert!(library_error.to_string().contains("inspect library file"));
         assert_eq!(
             fs::read(&outside).expect("outside content"),
             b"outside bytes"

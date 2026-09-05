@@ -24,6 +24,14 @@ the isolated E2E target, and an installed override must be absolute. The correct
 basenames instead of fixed POSIX spellings and pass both the complete Windows automation set and the complete portable
 script suite locally.
 
+The same run built and installed the isolated Windows NSIS package, then the first packaged process failed during the
+local-library setup hook with native access denial before WebDriver became ready. The existing error erased which
+filesystem-contract stage failed. The changed tree retains the fail-closed result and adds stage-specific internal
+context around parent creation, parent protection, file inspection, file opening, ACL protection, validation, and
+synchronization. It neither exposes the path to the renderer nor relaxes ownership, ACL, link, reparse-point, sharing,
+or retry rules. The next native host execution must first run the complete Windows local-library test matrix and then
+identify or clear the installed-package failure; M5.3 and M5.4 remain open until that evidence passes.
+
 ## Objective
 
 Deliver the unchanged first-MVP capability baseline on supported x86-64 Windows 11 editions through one current-user
