@@ -52,10 +52,12 @@ Only that complete success writes the marker. The hosted Windows Server result p
 portability, engineering package behavior, and Authenticode orchestration; it does not replace timestamped public
 signatures, signed Windows 11 exact-candidate evidence, or human evidence.
 
-Checksum-governed vendored source is pinned to LF at the Git boundary. Node.js automation resolves each locked
-package's declared JavaScript binary and invokes it through the current Node.js executable; it never executes the
-platform-specific shim under `node_modules/.bin`. This keeps the same package entry point on Windows, macOS, and Linux
-without shell-dependent command resolution.
+Every project-authored text file is pinned to LF at the Git boundary while binary detection preserves binary bytes.
+This keeps source parsers, generated hashes, shell entry points, and deterministic artifacts independent of a
+contributor's or runner's `core.autocrlf` setting. Checksum-governed vendored source retains an explicit matching rule.
+Node.js automation resolves each locked package's declared JavaScript binary and invokes it through the current Node.js
+executable; it never executes the platform-specific shim under `node_modules/.bin`. This keeps the same package entry
+point on Windows, macOS, and Linux without shell-dependent command resolution.
 
 - Change-scope detection without skipping required dependency checks.
 - Unit, integration, E2E, migration, performance, packaging, and platform matrices.
