@@ -624,6 +624,8 @@ test("locates analytical zoom handles from the active appearance palette", () =>
   assert.match(geometryInspection, /getPropertyValue\("--accent-deep"\)/);
   assert.match(geometryInspection, /resolvedAccentChannels/);
   assert.match(geometryInspection, /matchesAccent/);
+  assert.match(geometryInspection, /canvas\.height \* 0\.70/);
+  assert.match(geometryInspection, /slider handles were not identified/);
   assert.doesNotMatch(geometryInspection, /green < 150/);
   assert.doesNotMatch(geometryInspection, /#1f583f/);
 });

@@ -3736,6 +3736,17 @@ showed the complete, visible preview with its expected content. History confirms
 visible exact evidence and the correct accessible region name. The journey now waits on the stable preview element and
 independently asserts its `aria-label`; neither visibility nor accessibility coverage is removed.
 
+**Cross-platform exact-source verification checkpoint — 2026-09-05:** after every host test, release-mode data
+benchmark, and the preceding packaged journeys passed, the clean macOS gate stopped while locating the range handles
+in the maximum four-lane canvas chart. The automatic failure screenshot and immediately preceding evidence screenshot
+both retained the complete rendered chart and its controls. The E2E oracle had inspected only the bottom 14 percent of
+the canvas, even though adding lanes legitimately moves ECharts' slider into the larger lower control band. The oracle
+now inspects that complete band, preserves active-palette matching and minimum vertical-handle geometry, and reports
+the observed canvas geometry when it cannot identify both controls. The focused packaged two-year Insights journey
+passes the exact four-lane interaction, both handle movements, every subsequent domain path, and all performance
+budgets. The complete clean gate must still repeat on the committed correction; focused evidence alone is not final
+admission.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,

@@ -640,7 +640,7 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
     }
     const context = canvas.getContext("2d");
     if (!context) return null;
-    const scanTop = Math.floor(canvas.height * 0.86);
+    const scanTop = Math.floor(canvas.height * 0.70);
     const pixels = context.getImageData(
       0,
       scanTop,
@@ -683,7 +683,16 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
         });
       }
     }
-    if (clusters.length < 2) return null;
+    if (clusters.length < 2) return {
+      diagnostic: "slider handles were not identified",
+      inspectedShapes: {
+        canvasHeight: canvas.height,
+        canvasWidth: canvas.width,
+        expectedAccent: resolvedAccent,
+        qualifyingClusters: clusters,
+        scanTop,
+      },
+    };
     const startHandle = clusters[0];
     const endHandle = clusters.at(-1);
     const canvasScaleX = bounds.width / canvas.width;
