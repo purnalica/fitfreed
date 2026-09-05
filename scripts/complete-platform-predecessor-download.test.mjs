@@ -40,10 +40,10 @@ test("downloads each required immutable predecessor into its closed evidence bou
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].version, "0.2.0");
-  assert.match(
-    calls[0].releaseDirectory,
-    new RegExp(`^\\.evidence\\.tmp-[^${path.sep}]+${path.sep}0\\.2\\.0${path.sep}release$`),
-  );
+  const releaseComponents = calls[0].releaseDirectory.split(path.sep);
+  assert.equal(releaseComponents.length, 3);
+  assert.match(releaseComponents[0], /^\.evidence\.tmp-.+$/);
+  assert.deepEqual(releaseComponents.slice(1), ["0.2.0", "release"]);
   assert.equal(
     readFileSync(path.join(outputDirectory, "0.2.0/release/release-manifest.json"), "utf8"),
     "synthetic",

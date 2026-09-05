@@ -15,6 +15,15 @@ remains ordered after the accepted public Linux MVP.
 | M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the complete user lifecycle. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, destructive isolated gates, protected Authenticode input, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime. One protected Apple Silicon command now authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. Native packaged execution remains open. |
 | M5.6 Exact candidate and promotion | In progress | The inactive manual Windows workflow, protected builder, complete-predecessor downloader, version 7 composition, exact Ubuntu and Windows 11 admission topology, distinct product-acceptance gate, independent promotion, immutable publication, and remote reconstruction are implemented and locally contract-tested. Production authorities and environments, disposable native runners, an immutable macOS-plus-Linux predecessor, exact candidate execution, human acceptance, and publication remain open. |
 
+Exact descendant `8e0e67b` passes repository safety, product-site publication, the portable quality lane, and the
+complete Linux host in run [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902). The Windows
+host stopped in portable JavaScript tests before compilation because three assertions encoded the executing host's
+separator or extension while simulating another platform. Their protected contracts remain unchanged: the temporary
+predecessor path has a closed three-component boundary, every platform resolves the native executable basename under
+the isolated E2E target, and an installed override must be absolute. The corrected tests compare native components and
+basenames instead of fixed POSIX spellings and pass both the complete Windows automation set and the complete portable
+script suite locally.
+
 ## Objective
 
 Deliver the unchanged first-MVP capability baseline on supported x86-64 Windows 11 editions through one current-user

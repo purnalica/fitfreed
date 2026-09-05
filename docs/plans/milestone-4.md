@@ -52,6 +52,15 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
 | M4.6 | In progress | The manual expansion workflow now places secret-free exact-candidate admission between protected composition and promotion. Its hosted x86-64 Ubuntu 24.04 and 26.04 matrix reopens the digest-bound manifest version 6 candidate, installs and graphically launches only its declared Debian artifact, enforces native identity, resource, dynamic-linking, private-library, cold-launch, purge, and retained-library checks, and performs unconditional residual package cleanup. Contract tests reject a missing distribution, unsealed candidate, privileged admission job, skipped matrix dependency, or optional cleanup. Protected production authority, a version assigned after the immutable macOS release, exact hosted execution, the bounded human verdict, and explicit promotion remain gates. |
 
+Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
+[`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,
+restart, adaptive-session, and sport-catalogue scenario passed. The performance journey then attempted to enter
+History while the healthy synthetic import was still publishing terminal coverage. Its generic ten-second navigation
+wait expired at 867 of 1,435 checked ZIP members; the retained screenshot showed advancing import state rather than a
+stalled application. The corrected journey synchronizes on all four existing terminal coverage assertions before
+requesting History. This preserves the product rule that analytical navigation remains unavailable until first import
+completion and does not widen either the import or navigation budget. Exact hosted rerun remains required.
+
 Exact-source verification on 2026-09-02 exposed a timing-dependent false rejection in the dense canvas chart after
 the end boundary had visibly moved. The evidence capture showed the intended range, while the oracle could no longer
 identify the pointer-emphasized handle because ECharts had changed its palette color. The adapter now gives normal and

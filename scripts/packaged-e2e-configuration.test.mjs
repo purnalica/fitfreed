@@ -19,8 +19,10 @@ import {
 import { packagedE2eScenarioPlan } from "./packaged-e2e-plan.mjs";
 import { runPackagedE2e } from "./run-packaged-e2e.mjs";
 import {
+  e2eApplicationBinary,
   e2eApplicationBinaryForPlatform,
   e2eTargetDirectory,
+  repositoryRoot,
   updateE2eTargetDirectory,
 } from "./e2e-paths.mjs";
 import { config as defaultConfig } from "../wdio.conf.js";
@@ -38,36 +40,47 @@ test("keeps the instrumented executable outside the production target", () => {
   const application = defaultConfig.capabilities[0]["tauri:options"].application;
   const serviceApplication = defaultConfig.services[0][1].appBinaryPath;
 
-  assert.equal(application, path.resolve("src-tauri/target/e2e/release/fitfreed"));
+  assert.equal(application, e2eApplicationBinary);
   assert.equal(serviceApplication, application);
-  assert.notEqual(application, path.resolve("src-tauri/target/release/fitfreed"));
+  assert.equal(path.dirname(application), path.join(e2eTargetDirectory, "release"));
+  assert.equal(
+    path.relative(path.join(repositoryRoot, "src-tauri/target"), application).split(path.sep)[0],
+    "e2e",
+  );
 });
 
 test("resolves the instrumented executable for each desktop platform", () => {
   assert.equal(
-    e2eApplicationBinaryForPlatform("darwin"),
-    path.resolve("src-tauri/target/e2e/release/fitfreed"),
+    path.basename(e2eApplicationBinaryForPlatform("darwin")),
+    "fitfreed",
   );
   assert.equal(
-    e2eApplicationBinaryForPlatform("linux"),
-    path.resolve("src-tauri/target/e2e/release/fitfreed"),
+    path.basename(e2eApplicationBinaryForPlatform("linux")),
+    "fitfreed",
   );
   assert.equal(
-    e2eApplicationBinaryForPlatform("win32"),
-    path.resolve("src-tauri/target/e2e/release/fitfreed.exe"),
+    path.basename(e2eApplicationBinaryForPlatform("win32")),
+    "fitfreed.exe",
   );
+  for (const platform of ["darwin", "linux", "win32"]) {
+    assert.equal(
+      path.dirname(e2eApplicationBinaryForPlatform(platform)),
+      path.join(e2eTargetDirectory, "release"),
+    );
+  }
   assert.throws(
     () => e2eApplicationBinaryForPlatform("freebsd"),
     /unsupported E2E desktop platform/,
   );
+  const configuredApplication = path.resolve("synthetic-installed", "fitfreed-e2e");
   assert.equal(
-    e2eApplicationBinaryForPlatform("linux", {
-      FITFREED_E2E_APPLICATION_BINARY: "/usr/bin/fitfreed-e2e",
+    e2eApplicationBinaryForPlatform(process.platform, {
+      FITFREED_E2E_APPLICATION_BINARY: configuredApplication,
     }),
-    "/usr/bin/fitfreed-e2e",
+    path.normalize(configuredApplication),
   );
   assert.throws(
-    () => e2eApplicationBinaryForPlatform("linux", {
+    () => e2eApplicationBinaryForPlatform(process.platform, {
       FITFREED_E2E_APPLICATION_BINARY: "usr/bin/fitfreed-e2e",
     }),
     /absolute/,
@@ -521,6 +534,33 @@ test("keeps packaged layout timing independent of animation-frame visibility", (
   assert.match(comparison, /exactValues\.open = true/);
   assert.match(comparison, /setTimeout\(\(\) => \{/);
   assert.match(comparison, /querySelector\("table"\)\.getBoundingClientRect\(\)/);
+});
+
+test("waits for terminal import coverage before opening analytical history", () => {
+  const performanceJourney = readFileSync(
+    path.resolve("test/e2e/support/insights-performance.js"),
+    "utf8",
+  );
+  const journeyStart = performanceJourney.indexOf(
+    "export async function runInsightsPerformanceJourney",
+  );
+  assert.ok(journeyStart >= 0);
+  const journey = performanceJourney.slice(journeyStart);
+  const importStart = journey.indexOf(
+    'await $("aria/Import selected package").click()',
+  );
+  const dailyCoverage = journey.indexOf("await waitForDailyActivityCoverage()", importStart);
+  const trainingCoverage = journey.indexOf("await waitForTrainingCoverage()", importStart);
+  const sleepCoverage = journey.indexOf("await waitForSleepCoverage()", importStart);
+  const recoveryCoverage = journey.indexOf("await waitForRecoveryCoverage()", importStart);
+  const historyNavigation = journey.indexOf('await goToHome("explore")', importStart);
+
+  assert.ok(importStart >= 0);
+  assert.ok(dailyCoverage > importStart);
+  assert.ok(trainingCoverage > dailyCoverage);
+  assert.ok(sleepCoverage > trainingCoverage);
+  assert.ok(recoveryCoverage > sleepCoverage);
+  assert.ok(historyNavigation > recoveryCoverage);
 });
 
 test("observes exact signal rendering without background-throttled polling timers", () => {

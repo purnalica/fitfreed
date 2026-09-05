@@ -1807,11 +1807,11 @@ export async function runInsightsPerformanceJourney({
   const dialogMock = await browser.tauri.mock("plugin:dialog|open");
   await selectArchive(dialogMock, archivePath, chooseArchiveLabel);
   await $("aria/Import selected package").click();
-  await goToHome("explore");
   await waitForDailyActivityCoverage();
   await waitForTrainingCoverage();
   await waitForSleepCoverage();
   await waitForRecoveryCoverage();
+  await goToHome("explore");
   reportPhase("activity");
   await openHomeQuestion("review-activity-steps", "#activity-heading");
   await $("#activity-comparison-heading").waitForDisplayed({ timeout: 10_000 });

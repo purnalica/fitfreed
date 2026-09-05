@@ -216,7 +216,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   actions, elevated permissions, protected secrets, incomplete completion dependencies, and evidence written before
   every required Windows check passes. Portable script tests also decode synthetic POSIX and Windows drive-letter
   module URLs into native repository roots, protecting every product-site and Pages caller from duplicated drive
-  prefixes. This hosted Windows Server lane is native portability, engineering-package,
+  prefixes. Cross-platform path tests compare repository-relative components and each target's native executable
+  basename; they do not embed the executing host's separator or extension while simulating another target. This
+  hosted Windows Server lane is native portability, engineering-package,
   and synthetic Authenticode-orchestration evidence, not public timestamped signing, signed Windows 11, desktop,
   accessibility, or product-acceptance evidence.
 - The Windows package-configuration contract independently rejects MSI or mixed target sets, Windows on ARM,
@@ -439,6 +441,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   while retaining the real coordinator, cancellation token, report resolution, output adapter, and cleanup path.
   Production builds contain neither the hold nor the WebDriver capability.
 - The functional journey and its restart-verification continuation run as two separate packaged application processes against the same uniquely generated SQLite library. The first process records its exact identity only after durable state is ready; the second must have a different identity and recover that state through the normal startup path. Evidence-adaptive session composition runs in a third process with its own generated library and archive. The full-scale Insights campaign runs in a fourth process with another distinct generated library. A WebDriver session replacement or an environment-variable change inside an active process is neither restart nor isolation evidence.
+- The full-scale Insights process accepts first-import completion only after the retained outcome reports terminal
+  supported coverage for daily activity, training, sleep, and recovery. It requests analytical History only after
+  those assertions pass. Waiting for a disabled navigation control is not an import-completion oracle, and widening a
+  generic navigation timeout cannot make a slow or stalled import pass.
 - The exhaustive functional journey has a ten-minute aggregate watchdog and emits elapsed-time phase records from first shell through durable restart preparation. This allowance contains the complete bilingual, accessible, visual-evidence campaign and is independent from the narrower WebDriver command, operation, and product-performance budgets. Extending the journey cannot make a stalled operation or a slow product interaction pass.
 - Component coverage drives native keyboard activation through contextual-create and saved-edit cancellation
   and checks focus return to the exact source or restored result. The packaged journey crosses cancellation,
