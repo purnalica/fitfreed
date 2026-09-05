@@ -115,8 +115,9 @@ use infrastructure::{
     acquire_windows_update_recovery_candidate_lease, confirm_active_windows_update_recovery,
     download_verified_predecessor, maintain_windows_update_recovery,
     query_windows_update_recovery_intervention, reattach_windows_update_recovery_watchdog,
-    resolve_windows_update_installation_path, retry_windows_update_recovery,
-    run_windows_update_recovery_watchdog, WindowsUpdateRecoveryCandidateLease,
+    resolve_windows_runtime_installation_path, resolve_windows_update_installation_path,
+    retry_windows_update_recovery, run_windows_update_recovery_watchdog,
+    WindowsUpdateRecoveryCandidateLease,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto,
@@ -2645,15 +2646,15 @@ pub fn run() {
         .manage(Arc::clone(&update_channel))
         .manage(Arc::clone(&update_coordinator))
         .setup(move |app| {
-            let library_path = database_path(app.handle()).map_err(std::io::Error::other)?;
+            let library_path = database_path(app.handle()).map_err(io::Error::other)?;
             let pending = app.state::<PendingUpdateRecoveryConfirmation>();
             if let Some(candidate) = pending
                 .candidate()
-                .map_err(|_| std::io::Error::other("candidate recovery state is unavailable"))?
+                .map_err(|_| io::Error::other("candidate recovery state is unavailable"))?
             {
                 let recovery_root = library_path
                     .parent()
-                    .ok_or_else(|| std::io::Error::other("candidate library path is invalid"))?
+                    .ok_or_else(|| io::Error::other("candidate library path is invalid"))?
                     .join("update-recovery");
                 let executable = env::current_exe()?;
                 let lease = acquire_platform_update_recovery_candidate_lease(
@@ -2661,36 +2662,43 @@ pub fn run() {
                     &candidate,
                     &executable,
                 )
-                .map_err(|_| std::io::Error::other("candidate recovery validation failed"))?;
-                pending.hold_lease(lease).map_err(|_| {
-                    std::io::Error::other("candidate recovery state is unavailable")
-                })?;
+                .map_err(|_| io::Error::other("candidate recovery validation failed"))?;
+                pending
+                    .hold_lease(lease)
+                    .map_err(|_| io::Error::other("candidate recovery state is unavailable"))?;
             }
             #[cfg(target_os = "linux")]
             {
                 let recovery_root = library_path
                     .parent()
-                    .ok_or_else(|| std::io::Error::other("Linux recovery path is invalid"))?
+                    .ok_or_else(|| io::Error::other("Linux recovery path is invalid"))?
                     .join("update-recovery");
                 let executable = env::current_exe()?;
                 let installed_executable = installed_update_recovery_target(&executable)
-                    .map_err(|_| std::io::Error::other("Linux installation path is invalid"))?;
+                    .map_err(|_| io::Error::other("Linux installation path is invalid"))?;
                 reattach_linux_update_recovery_watchdog(&recovery_root, &installed_executable)
-                    .map_err(|_| std::io::Error::other("Linux update recovery could not resume"))?;
+                    .map_err(|_| io::Error::other("Linux update recovery could not resume"))?;
             }
             #[cfg(target_os = "windows")]
             {
                 let recovery_root = library_path
                     .parent()
-                    .ok_or_else(|| std::io::Error::other("Windows recovery path is invalid"))?
+                    .ok_or_else(|| io::Error::other("Windows recovery path is invalid"))?
                     .join("update-recovery");
                 let executable = env::current_exe()?;
-                let installed_executable = installed_update_recovery_target(&executable)
-                    .map_err(|_| std::io::Error::other("Windows installation path is invalid"))?;
+                let configured_product_name = app
+                    .config()
+                    .product_name
+                    .as_deref()
+                    .ok_or_else(|| io::Error::other("Windows product name is unavailable"))?;
+                let installed_executable = resolve_windows_runtime_installation_path(
+                    &executable,
+                    configured_product_name,
+                    &app.config().identifier,
+                )
+                .map_err(|_| io::Error::other("Windows installation path is invalid"))?;
                 reattach_windows_update_recovery_watchdog(&recovery_root, &installed_executable)
-                    .map_err(|_| {
-                        std::io::Error::other("Windows update recovery could not resume")
-                    })?;
+                    .map_err(|_| io::Error::other("Windows update recovery could not resume"))?;
             }
             start_library_recovery(library_path, Arc::clone(&startup_recovery));
             start_periodic_update_checks(

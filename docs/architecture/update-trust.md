@@ -129,9 +129,14 @@ and application-data roots from Windows known folders, accepts only the fixed pe
 and requires its registered version, product, publisher, homepage, main binary, install location, uninstaller, and
 non-reparse critical files to agree. Candidate and predecessor installation derive only the fixed package below a
 canonical recovery attempt, invoke that package with the closed NSIS silent argument, and revalidate the resulting
-native version and installation identity. Process authority opens the native process, records its Windows creation
-`FILETIME`, resolves its canonical executable, and compares both with the PID. Termination reopens one handle with
-query, synchronization, and terminate rights and repeats those identity checks on that same handle before acting.
+native version and installation identity. Ordinary startup reattachment instead derives the product name and
+application identifier from the compiled Tauri configuration and the binary name from the exact running executable.
+It rejects unsafe identity components before accessing known folders or the registry, then applies the same complete
+native identity validation. This admits an explicitly isolated instrumented package under only its own compiled
+identity while the update and recovery authorities remain fixed to the production identity. Process authority opens
+the native process, records its Windows creation `FILETIME`, resolves its canonical executable, and compares both with
+the PID. Termination reopens one handle with query, synchronization, and terminate rights and repeats those identity
+checks on that same handle before acting.
 Post-recovery validation reopens the installed application and uninstaller without following reparse points and
 requires both byte streams to equal their fixed counterparts in the preserved runnable predecessor.
 The NSIS adapter reports a failed installer invocation separately from an installer that returns success but leaves

@@ -134,6 +134,19 @@ export function runWindowsPackageAction({
   }
 }
 
+export function combineWindowsE2eFailures(journeyFailure, cleanupFailure) {
+  const journeyMessage = journeyFailure instanceof Error
+    ? journeyFailure.message
+    : String(journeyFailure);
+  const cleanupMessage = cleanupFailure instanceof Error
+    ? cleanupFailure.message
+    : String(cleanupFailure);
+  return new AggregateError(
+    [journeyFailure, cleanupFailure],
+    `Windows E2E journey failed: ${journeyMessage}; cleanup also failed: ${cleanupMessage}`,
+  );
+}
+
 export function runPackagedWindowsE2e({
   architecture = process.arch,
   environment = process.env,
@@ -162,6 +175,7 @@ export function runPackagedWindowsE2e({
   let installationAttempted = false;
   let scenarios = [];
   let completed = false;
+  let journeyFailure;
 
   rmSync(runRoot, { recursive: true, force: true });
   runWindowsPackageAction({ action: "preflight", environment, packagePath });
@@ -187,11 +201,21 @@ export function runPackagedWindowsE2e({
       }
     }
     completed = true;
+  } catch (error) {
+    journeyFailure = error;
   } finally {
     if (installationAttempted) {
-      runWindowsPackageAction({ action: "remove", environment, packagePath });
+      try {
+        runWindowsPackageAction({ action: "remove", environment, packagePath });
+      } catch (cleanupError) {
+        if (journeyFailure) {
+          throw combineWindowsE2eFailures(journeyFailure, cleanupError);
+        }
+        throw cleanupError;
+      }
     }
   }
+  if (journeyFailure) throw journeyFailure;
 
   if (existsSync(installedExecutable)) {
     throw new Error("NSIS removal left the isolated test application installed");

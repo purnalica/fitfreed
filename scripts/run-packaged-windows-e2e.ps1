@@ -58,12 +58,18 @@ function Wait-UntilRemoved {
 }
 
 function Remove-IsolatedApplicationData([string]$Directory) {
-  if (-not (Test-Path -LiteralPath $Directory)) { return }
-  $reparsePoints = @(Get-ChildItem -LiteralPath $Directory -Recurse -Force |
-    Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
-  Assert-Equal $reparsePoints.Count 0 "isolated application data contains a reparse point"
-  Remove-Item -LiteralPath $Directory -Recurse -Force
-  Assert-True (-not (Test-Path -LiteralPath $Directory)) "isolated application data remains after cleanup"
+  for ($attempt = 0; $attempt -lt 300; $attempt += 1) {
+    if (-not (Test-Path -LiteralPath $Directory)) { return }
+    $reparsePoints = @(Get-ChildItem -LiteralPath $Directory -Recurse -Force -ErrorAction Stop |
+      Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
+    Assert-Equal $reparsePoints.Count 0 "isolated application data contains a reparse point"
+    try {
+      Remove-Item -LiteralPath $Directory -Recurse -Force -ErrorAction Stop
+    } catch {
+      if ($attempt -lt 299) { Start-Sleep -Milliseconds 100 }
+    }
+  }
+  throw "isolated application data remains after bounded cleanup"
 }
 
 if ($Action -eq "preflight") {

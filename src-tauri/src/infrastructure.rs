@@ -242,9 +242,10 @@ pub use update_recovery_outcome::UpdateRecoveryMaintenance;
 pub use update_recovery_windows::{
     install_windows_candidate_package, observe_windows_parent_process,
     observe_windows_recovery_process, query_windows_native_package_identity,
-    reinstall_windows_predecessor_package, resolve_windows_update_installation_path,
-    terminate_windows_recovery_process, windows_recovery_process_is_running,
-    WindowsNativePackageIdentity, WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError,
+    reinstall_windows_predecessor_package, resolve_windows_runtime_installation_path,
+    resolve_windows_update_installation_path, terminate_windows_recovery_process,
+    windows_recovery_process_is_running, WindowsNativePackageIdentity,
+    WindowsRecoveryProcessIdentity, WindowsUpdateRecoveryError,
 };
 #[cfg(any(test, target_os = "windows"))]
 pub use update_recovery_windows_package::{

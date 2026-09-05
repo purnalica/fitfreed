@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  combineWindowsE2eFailures,
   expectedWindowsE2eNsisArtifactName,
   resolveWindowsE2eNsisPackage,
   runWindowsPackageAction,
@@ -125,6 +126,35 @@ test("isolates Windows PowerShell modules from a PowerShell 7 parent", () => {
     LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
     PATH: "C:\\Windows\\System32",
   });
+});
+
+test("bounds isolated application-data cleanup while WebView descendants become quiescent", () => {
+  const source = readFileSync(
+    path.resolve("scripts/run-packaged-windows-e2e.ps1"),
+    "utf8",
+  );
+  const cleanup = source.match(
+    /function Remove-IsolatedApplicationData[\s\S]*?(?=\n}\n\nif \(\$Action -eq "preflight"\))/,
+  )?.[0] ?? "";
+
+  assert.match(cleanup, /for \(\$attempt = 0; \$attempt -lt 300; \$attempt \+= 1\)/);
+  assert.match(cleanup, /Get-ChildItem -LiteralPath \$Directory -Recurse -Force/);
+  assert.match(cleanup, /Remove-Item -LiteralPath \$Directory -Recurse -Force -ErrorAction Stop/);
+  assert.match(cleanup, /Start-Sleep -Milliseconds 100/);
+  assert.match(cleanup, /throw "isolated application data remains after bounded cleanup"/);
+});
+
+test("preserves the packaged journey failure when isolated cleanup also fails", () => {
+  const journeyFailure = new Error("journey failed");
+  const cleanupFailure = new Error("cleanup failed");
+  const combined = combineWindowsE2eFailures(journeyFailure, cleanupFailure);
+
+  assert.equal(combined instanceof AggregateError, true);
+  assert.deepEqual(combined.errors, [journeyFailure, cleanupFailure]);
+  assert.equal(
+    combined.message,
+    "Windows E2E journey failed: journey failed; cleanup also failed: cleanup failed",
+  );
 });
 
 test("runs installed Windows capability parity only inside complete hosted verification", () => {

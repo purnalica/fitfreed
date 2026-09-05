@@ -18,12 +18,28 @@ const APPLICATION_IDENTIFIER: &str = "org.fitfreed.desktop";
 pub(super) const EXECUTABLE_NAME: &str = "fitfreed.exe";
 pub(super) const UNINSTALLER_NAME: &str = "uninstall.exe";
 #[cfg(target_os = "windows")]
+const UNINSTALL_REGISTRY_PREFIX: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall";
+#[cfg(target_os = "windows")]
 const UNINSTALL_REGISTRY_SUBKEY: &str =
     r"Software\Microsoft\Windows\CurrentVersion\Uninstall\FitFreed";
 const PREDECESSOR_PACKAGE_RELATIVE_PATH: &str = "previous/package.exe";
 const CANDIDATE_PACKAGE_RELATIVE_PATH: &str = "candidate/package.exe";
 const INSTALLER_SILENT_ARGUMENT: &str = "/S";
 const PROCESS_STOP_TIMEOUT_MILLISECONDS: u32 = 5_000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct WindowsPackageIdentityContract<'a> {
+    product_name: &'a str,
+    application_identifier: &'a str,
+    executable_name: &'a str,
+}
+
+const PRODUCTION_PACKAGE_IDENTITY: WindowsPackageIdentityContract<'static> =
+    WindowsPackageIdentityContract {
+        product_name: PRODUCT_NAME,
+        application_identifier: APPLICATION_IDENTIFIER,
+        executable_name: EXECUTABLE_NAME,
+    };
 
 #[derive(Debug, Error)]
 pub enum WindowsUpdateRecoveryError {
@@ -165,8 +181,14 @@ impl RecoveryPackageRole {
 }
 
 trait WindowsInstallationPort {
-    fn paths(&self) -> Result<WindowsInstallationPaths, io::Error>;
-    fn registration(&self) -> Result<WindowsRegistration, io::Error>;
+    fn paths(
+        &self,
+        contract: &WindowsPackageIdentityContract<'_>,
+    ) -> Result<WindowsInstallationPaths, io::Error>;
+    fn registration(
+        &self,
+        contract: &WindowsPackageIdentityContract<'_>,
+    ) -> Result<WindowsRegistration, io::Error>;
     fn run_installer(&self, package_path: &Path, arguments: &[OsString])
         -> Result<bool, io::Error>;
 }
@@ -185,12 +207,18 @@ struct SystemWindowsProcess;
 
 #[cfg(target_os = "windows")]
 impl WindowsInstallationPort for SystemWindowsInstallation {
-    fn paths(&self) -> Result<WindowsInstallationPaths, io::Error> {
-        system_installation_paths()
+    fn paths(
+        &self,
+        contract: &WindowsPackageIdentityContract<'_>,
+    ) -> Result<WindowsInstallationPaths, io::Error> {
+        system_installation_paths(contract)
     }
 
-    fn registration(&self) -> Result<WindowsRegistration, io::Error> {
-        system_registration()
+    fn registration(
+        &self,
+        contract: &WindowsPackageIdentityContract<'_>,
+    ) -> Result<WindowsRegistration, io::Error> {
+        system_registration(contract)
     }
 
     fn run_installer(
@@ -207,11 +235,17 @@ impl WindowsInstallationPort for SystemWindowsInstallation {
 
 #[cfg(not(target_os = "windows"))]
 impl WindowsInstallationPort for SystemWindowsInstallation {
-    fn paths(&self) -> Result<WindowsInstallationPaths, io::Error> {
+    fn paths(
+        &self,
+        _contract: &WindowsPackageIdentityContract<'_>,
+    ) -> Result<WindowsInstallationPaths, io::Error> {
         Err(io::Error::new(io::ErrorKind::Unsupported, "Windows only"))
     }
 
-    fn registration(&self) -> Result<WindowsRegistration, io::Error> {
+    fn registration(
+        &self,
+        _contract: &WindowsPackageIdentityContract<'_>,
+    ) -> Result<WindowsRegistration, io::Error> {
         Err(io::Error::new(io::ErrorKind::Unsupported, "Windows only"))
     }
 
@@ -286,7 +320,40 @@ pub fn install_windows_candidate_package(
 pub fn resolve_windows_update_installation_path(
     executable_path: &Path,
 ) -> Result<PathBuf, WindowsUpdateRecoveryError> {
-    let identity = query_windows_native_package_identity()?;
+    resolve_windows_installation_path_with_contract(
+        &SystemWindowsInstallation,
+        executable_path,
+        &PRODUCTION_PACKAGE_IDENTITY,
+    )
+}
+
+pub fn resolve_windows_runtime_installation_path(
+    executable_path: &Path,
+    product_name: &str,
+    application_identifier: &str,
+) -> Result<PathBuf, WindowsUpdateRecoveryError> {
+    let executable_name = executable_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or(WindowsUpdateRecoveryError::InvalidPackageIdentity)?;
+    let contract = WindowsPackageIdentityContract {
+        product_name,
+        application_identifier,
+        executable_name,
+    };
+    resolve_windows_installation_path_with_contract(
+        &SystemWindowsInstallation,
+        executable_path,
+        &contract,
+    )
+}
+
+fn resolve_windows_installation_path_with_contract(
+    installation: &impl WindowsInstallationPort,
+    executable_path: &Path,
+    contract: &WindowsPackageIdentityContract<'_>,
+) -> Result<PathBuf, WindowsUpdateRecoveryError> {
+    let identity = query_windows_native_package_identity_with_contract(installation, contract)?;
     if canonical_regular_file(executable_path)?
         != canonical_regular_file(identity.executable_path())?
     {
@@ -357,23 +424,32 @@ pub fn terminate_windows_recovery_process(
 fn query_windows_native_package_identity_with(
     installation: &impl WindowsInstallationPort,
 ) -> Result<WindowsNativePackageIdentity, WindowsUpdateRecoveryError> {
+    query_windows_native_package_identity_with_contract(installation, &PRODUCTION_PACKAGE_IDENTITY)
+}
+
+fn query_windows_native_package_identity_with_contract(
+    installation: &impl WindowsInstallationPort,
+    contract: &WindowsPackageIdentityContract<'_>,
+) -> Result<WindowsNativePackageIdentity, WindowsUpdateRecoveryError> {
+    validate_windows_package_identity_contract(contract)?;
     let paths = installation
-        .paths()
+        .paths(contract)
         .map_err(|_| WindowsUpdateRecoveryError::InvalidPackageIdentity)?;
     let registration = installation
-        .registration()
+        .registration(contract)
         .map_err(|_| WindowsUpdateRecoveryError::InvalidPackageIdentity)?;
-    validate_windows_native_identity(&paths, &registration)
+    validate_windows_native_identity(&paths, &registration, contract)
 }
 
 fn validate_windows_native_identity(
     paths: &WindowsInstallationPaths,
     registration: &WindowsRegistration,
+    contract: &WindowsPackageIdentityContract<'_>,
 ) -> Result<WindowsNativePackageIdentity, WindowsUpdateRecoveryError> {
-    if registration.display_name != PRODUCT_NAME
+    if registration.display_name != contract.product_name
         || registration.publisher != PUBLISHER
         || registration.homepage != HOMEPAGE
-        || registration.main_binary_name != EXECUTABLE_NAME
+        || registration.main_binary_name != contract.executable_name
         || Version::parse(&registration.display_version).is_err()
     {
         return Err(WindowsUpdateRecoveryError::InvalidPackageIdentity);
@@ -384,7 +460,8 @@ fn validate_windows_native_identity(
     let uninstaller_path = canonical_regular_file(&paths.uninstaller_path)?;
     let registered_uninstaller = canonical_regular_file(&registration.uninstall_command)?;
     if install_directory != registered_install_directory
-        || executable_path != canonical_regular_file(&install_directory.join(EXECUTABLE_NAME))?
+        || executable_path
+            != canonical_regular_file(&install_directory.join(contract.executable_name))?
         || uninstaller_path != canonical_regular_file(&install_directory.join(UNINSTALLER_NAME))?
         || uninstaller_path != registered_uninstaller
         || !paths.application_data_directory.is_absolute()
@@ -398,6 +475,34 @@ fn validate_windows_native_identity(
         uninstaller_path,
         application_data_directory: paths.application_data_directory.clone(),
     })
+}
+
+fn validate_windows_package_identity_contract(
+    contract: &WindowsPackageIdentityContract<'_>,
+) -> Result<(), WindowsUpdateRecoveryError> {
+    fn valid_path_component(value: &str) -> bool {
+        !value.is_empty()
+            && value != "."
+            && value != ".."
+            && !value.chars().any(|character| {
+                matches!(
+                    character,
+                    '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'
+                )
+            })
+    }
+
+    if !valid_path_component(contract.product_name)
+        || !valid_path_component(contract.application_identifier)
+        || !valid_path_component(contract.executable_name)
+        || !contract
+            .executable_name
+            .to_ascii_lowercase()
+            .ends_with(".exe")
+    {
+        return Err(WindowsUpdateRecoveryError::InvalidPackageIdentity);
+    }
+    Ok(())
 }
 
 fn install_windows_package_with(
@@ -566,15 +671,17 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn system_installation_paths() -> Result<WindowsInstallationPaths, io::Error> {
+fn system_installation_paths(
+    contract: &WindowsPackageIdentityContract<'_>,
+) -> Result<WindowsInstallationPaths, io::Error> {
     use windows_sys::Win32::UI::Shell::{FOLDERID_LocalAppData, FOLDERID_RoamingAppData};
 
-    let install_directory = known_folder_path(&FOLDERID_LocalAppData)?.join(PRODUCT_NAME);
+    let install_directory = known_folder_path(&FOLDERID_LocalAppData)?.join(contract.product_name);
     Ok(WindowsInstallationPaths {
-        executable_path: install_directory.join(EXECUTABLE_NAME),
+        executable_path: install_directory.join(contract.executable_name),
         uninstaller_path: install_directory.join(UNINSTALLER_NAME),
         application_data_directory: known_folder_path(&FOLDERID_RoamingAppData)?
-            .join(APPLICATION_IDENTIFIER),
+            .join(contract.application_identifier),
         install_directory,
     })
 }
@@ -605,31 +712,38 @@ fn known_folder_path(folder: *const windows_sys::core::GUID) -> Result<PathBuf, 
 }
 
 #[cfg(target_os = "windows")]
-fn system_registration() -> Result<WindowsRegistration, io::Error> {
-    let install_location = read_registry_path("InstallLocation")?;
-    let uninstall_command = read_registry_path("UninstallString")?;
+fn system_registration(
+    contract: &WindowsPackageIdentityContract<'_>,
+) -> Result<WindowsRegistration, io::Error> {
+    let registry_subkey = if *contract == PRODUCTION_PACKAGE_IDENTITY {
+        UNINSTALL_REGISTRY_SUBKEY.to_owned()
+    } else {
+        format!(r"{}\{}", UNINSTALL_REGISTRY_PREFIX, contract.product_name)
+    };
+    let install_location = read_registry_path(&registry_subkey, "InstallLocation")?;
+    let uninstall_command = read_registry_path(&registry_subkey, "UninstallString")?;
     Ok(WindowsRegistration {
-        display_name: read_registry_string("DisplayName")?,
-        display_version: read_registry_string("DisplayVersion")?,
-        publisher: read_registry_string("Publisher")?,
-        homepage: read_registry_string("URLInfoAbout")?,
-        main_binary_name: read_registry_string("MainBinaryName")?,
+        display_name: read_registry_string(&registry_subkey, "DisplayName")?,
+        display_version: read_registry_string(&registry_subkey, "DisplayVersion")?,
+        publisher: read_registry_string(&registry_subkey, "Publisher")?,
+        homepage: read_registry_string(&registry_subkey, "URLInfoAbout")?,
+        main_binary_name: read_registry_string(&registry_subkey, "MainBinaryName")?,
         install_location,
         uninstall_command,
     })
 }
 
 #[cfg(target_os = "windows")]
-fn read_registry_string(value_name: &str) -> Result<String, io::Error> {
-    String::from_utf16(&read_registry_utf16(value_name)?)
+fn read_registry_string(subkey: &str, value_name: &str) -> Result<String, io::Error> {
+    String::from_utf16(&read_registry_utf16(subkey, value_name)?)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid registry text"))
 }
 
 #[cfg(target_os = "windows")]
-fn read_registry_path(value_name: &str) -> Result<PathBuf, io::Error> {
+fn read_registry_path(subkey: &str, value_name: &str) -> Result<PathBuf, io::Error> {
     use std::os::windows::ffi::OsStringExt;
 
-    let mut value = read_registry_utf16(value_name)?;
+    let mut value = read_registry_utf16(subkey, value_name)?;
     if value.first() == Some(&(b'"' as u16)) || value.last() == Some(&(b'"' as u16)) {
         if value.len() < 2
             || value.first() != Some(&(b'"' as u16))
@@ -653,13 +767,13 @@ fn read_registry_path(value_name: &str) -> Result<PathBuf, io::Error> {
 }
 
 #[cfg(target_os = "windows")]
-fn read_registry_utf16(value_name: &str) -> Result<Vec<u16>, io::Error> {
+fn read_registry_utf16(subkey: &str, value_name: &str) -> Result<Vec<u16>, io::Error> {
     use windows_sys::Win32::{
         Foundation::ERROR_SUCCESS,
         System::Registry::{RegGetValueW, HKEY_CURRENT_USER, REG_VALUE_TYPE, RRF_RT_REG_SZ},
     };
 
-    let subkey = wide_null(UNINSTALL_REGISTRY_SUBKEY);
+    let subkey = wide_null(subkey);
     let value_name = wide_null(value_name);
     let mut byte_length = 0_u32;
     let first = unsafe {
@@ -900,11 +1014,17 @@ mod tests {
     }
 
     impl WindowsInstallationPort for SyntheticInstallation {
-        fn paths(&self) -> Result<WindowsInstallationPaths, io::Error> {
+        fn paths(
+            &self,
+            _contract: &WindowsPackageIdentityContract<'_>,
+        ) -> Result<WindowsInstallationPaths, io::Error> {
             Ok(self.paths.clone())
         }
 
-        fn registration(&self) -> Result<WindowsRegistration, io::Error> {
+        fn registration(
+            &self,
+            _contract: &WindowsPackageIdentityContract<'_>,
+        ) -> Result<WindowsRegistration, io::Error> {
             Ok(self.registration.clone())
         }
 
@@ -1008,6 +1128,95 @@ mod tests {
             identity.application_data_directory(),
             installation.paths.application_data_directory
         );
+    }
+
+    #[test]
+    fn resolves_an_isolated_runtime_identity_without_weakening_production_identity() {
+        let directory = TempDir::new().expect("temporary directory");
+        let contract = WindowsPackageIdentityContract {
+            product_name: "fitfreed-e2e",
+            application_identifier: "org.fitfreed.desktop.e2e",
+            executable_name: "fitfreed-e2e.exe",
+        };
+        let install_directory = directory.path().join(contract.product_name);
+        fs::create_dir_all(&install_directory).expect("installation directory");
+        let executable_path = install_directory.join(contract.executable_name);
+        let uninstaller_path = install_directory.join(UNINSTALLER_NAME);
+        fs::write(&executable_path, b"synthetic application").expect("application executable");
+        fs::write(&uninstaller_path, b"synthetic uninstaller").expect("uninstaller executable");
+        let installation = SyntheticInstallation {
+            paths: WindowsInstallationPaths {
+                install_directory: install_directory.clone(),
+                executable_path: executable_path.clone(),
+                uninstaller_path: uninstaller_path.clone(),
+                application_data_directory: directory.path().join(contract.application_identifier),
+            },
+            registration: WindowsRegistration {
+                display_name: contract.product_name.to_owned(),
+                display_version: "0.1.0".to_owned(),
+                publisher: PUBLISHER.to_owned(),
+                homepage: HOMEPAGE.to_owned(),
+                main_binary_name: contract.executable_name.to_owned(),
+                install_location: install_directory,
+                uninstall_command: uninstaller_path,
+            },
+            installers: RefCell::new(VecDeque::new()),
+        };
+
+        let identity = resolve_windows_installation_path_with_contract(
+            &installation,
+            &executable_path,
+            &contract,
+        )
+        .expect("isolated runtime identity");
+        assert_eq!(
+            identity,
+            executable_path
+                .canonicalize()
+                .expect("canonical executable")
+        );
+        assert!(matches!(
+            query_windows_native_package_identity_with_contract(
+                &installation,
+                &PRODUCTION_PACKAGE_IDENTITY,
+            ),
+            Err(WindowsUpdateRecoveryError::InvalidPackageIdentity),
+        ));
+    }
+
+    #[test]
+    fn rejects_runtime_identity_components_that_can_escape_native_boundaries() {
+        let directory = TempDir::new().expect("temporary directory");
+        let installation = synthetic_installation(directory.path(), "0.1.0");
+        let malformed_contracts = [
+            WindowsPackageIdentityContract {
+                product_name: "..",
+                application_identifier: APPLICATION_IDENTIFIER,
+                executable_name: EXECUTABLE_NAME,
+            },
+            WindowsPackageIdentityContract {
+                product_name: PRODUCT_NAME,
+                application_identifier: r"org.fitfreed\outside",
+                executable_name: EXECUTABLE_NAME,
+            },
+            WindowsPackageIdentityContract {
+                product_name: PRODUCT_NAME,
+                application_identifier: APPLICATION_IDENTIFIER,
+                executable_name: "fitfreed",
+            },
+            WindowsPackageIdentityContract {
+                product_name: PRODUCT_NAME,
+                application_identifier: APPLICATION_IDENTIFIER,
+                executable_name: r"..\fitfreed.exe",
+            },
+        ];
+
+        for contract in malformed_contracts {
+            assert!(matches!(
+                query_windows_native_package_identity_with_contract(&installation, &contract,),
+                Err(WindowsUpdateRecoveryError::InvalidPackageIdentity),
+            ));
+        }
     }
 
     #[test]

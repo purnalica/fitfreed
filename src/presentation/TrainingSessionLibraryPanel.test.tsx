@@ -1127,6 +1127,37 @@ function renderPanel(
   return { onAvailableRange, onCreateReport, onError, ...rendered };
 }
 
+function mockPaginatedTrainingLibrary() {
+  mocks.invoke.mockImplementation((command, arguments_) => {
+    const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+    if (workspaceResult) return workspaceResult;
+    if (command === "query_training_sports") return Promise.resolve(sports);
+    if (command === "query_training_sessions") {
+      const request = arguments_.request as TrainingSessionSearchRequest;
+      if (request.offset === 25) return Promise.resolve(page([oldest], 25, 26, null));
+      return Promise.resolve(page([newest, second], 0, 26, 25));
+    }
+    throw new Error(`Unexpected command: ${command}`);
+  });
+}
+
+async function renderNewestTrainingSessionDetail() {
+  const user = userEvent.setup();
+  const { onError } = renderPanel();
+  const region = await screen.findByRole("region", { name: "Find a training session" });
+  const detailOrigin = within(region).getByRole("button", {
+    name: "View session details for Aug 18, 2026, 7:30 AM",
+  });
+  await user.click(detailOrigin);
+  const detail = within(region).getByRole("heading", { name: "Session summary" })
+    .closest("section");
+  if (!detail) throw new Error("The session detail section was not rendered");
+  const detailNavigation = within(detail).getByRole("navigation", {
+    name: "Session detail",
+  });
+  return { user, onError, region, detailOrigin, detail, detailNavigation };
+}
+
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -2732,32 +2763,10 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).getByRole("heading", { name: "Pauses" })).toBeVisible();
   });
 
-  it("explores exact route and signal evidence before returning to stable pagination", async () => {
-    mocks.invoke.mockImplementation((command, arguments_) => {
-      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
-      if (workspaceResult) return workspaceResult;
-      if (command === "query_training_sports") return Promise.resolve(sports);
-      if (command === "query_training_sessions") {
-        const request = arguments_.request as TrainingSessionSearchRequest;
-        if (request.offset === 25) return Promise.resolve(page([oldest], 25, 26, null));
-        return Promise.resolve(page([newest, second], 0, 26, 25));
-      }
-      throw new Error(`Unexpected command: ${command}`);
-    });
-    const user = userEvent.setup();
-    const { onError } = renderPanel();
-    const region = await screen.findByRole("region", { name: "Find a training session" });
-    const detailOrigin = within(region).getByRole("button", {
-      name: "View session details for Aug 18, 2026, 7:30 AM",
-    });
-    await user.click(detailOrigin);
-    const detail = within(region).getByRole("heading", { name: "Session summary" })
-      .closest("section");
-    expect(detail).not.toBeNull();
-    const detailNavigation = within(detail!).getByRole("navigation", {
-      name: "Session detail",
-    });
-    const workbench = await within(detail!).findByRole("region", {
+  it("explores exact route evidence and creates a range from a recorded point", async () => {
+    mockPaginatedTrainingLibrary();
+    const { user, detail, detailNavigation } = await renderNewestTrainingSessionDetail();
+    const workbench = await within(detail).findByRole("region", {
       name: "Recorded route workbench",
     });
 
@@ -2770,7 +2779,7 @@ describe("TrainingSessionLibraryPanel", () => {
     }));
     expect(within(detailNavigation).getByRole("button", { name: "Routes" }))
       .toHaveAttribute("aria-current", "page");
-    const routeExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
+    const routeExercise = within(detail).getByRole("heading", { name: "Exercise 1" })
       .closest("article");
     expect(routeExercise).not.toBeNull();
     expect(await within(routeExercise!).findByRole("heading", { name: "Primary route" }))
@@ -2800,7 +2809,7 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(exactRegion).getByRole("button", {
       name: "Create a personal range",
     }));
-    const routeRangeEditor = within(detail!).getByRole("form", {
+    const routeRangeEditor = within(detail).getByRole("form", {
       name: "Create a personal range",
     });
     await waitFor(() => expect(within(routeRangeEditor).getByRole("heading", {
@@ -2819,13 +2828,25 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(routeExercise!).queryByRole("region", {
       name: "Exact recorded route points",
     })).not.toBeInTheDocument();
+  });
 
+  it("explores recorded signal charts and exact workbench evidence", async () => {
+    mockPaginatedTrainingLibrary();
+    const { user, detail, detailNavigation } = await renderNewestTrainingSessionDetail();
+    const workbench = await within(detail).findByRole("region", {
+      name: "Recorded route workbench",
+    });
+
+    fireEvent.change(within(workbench).getByRole("slider", {
+      name: "Recorded position",
+    }), { target: { value: "100" } });
+    expect(await within(workbench).findByText("Point 101 of 101")).toBeVisible();
     await user.click(within(workbench).getByRole("button", {
       name: "Inspect exact Heart rate samples",
     }));
     expect(within(detailNavigation).getByRole("button", { name: "Signals and zones" }))
       .toHaveAttribute("aria-current", "page");
-    const signalExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
+    const signalExercise = within(detail).getByRole("heading", { name: "Exercise 1" })
       .closest("article");
     expect(signalExercise).not.toBeNull();
     expect(await within(signalExercise!).findByRole("heading", { name: "Recorded signals" }))
@@ -2911,6 +2932,17 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(unsupportedSignal).not.toBeVisible();
     await user.click(within(signalExercise!).getByText("Review signal compatibility"));
     expect(unsupportedSignal).toBeVisible();
+  });
+
+  it("creates a range from exact signal evidence and paginates recorded samples", async () => {
+    mockPaginatedTrainingLibrary();
+    const { user, detail, detailNavigation } = await renderNewestTrainingSessionDetail();
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Signals and zones",
+    }));
+    const signalExercise = within(detail).getByRole("heading", { name: "Exercise 1" })
+      .closest("article");
+    expect(signalExercise).not.toBeNull();
     await user.click(within(signalExercise!).getByRole("button", {
       name: "Inspect exact Heart rate samples",
     }));
@@ -2926,7 +2958,7 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(exactSignalRegion).getByRole("button", {
       name: "Create a personal range",
     }));
-    const signalRangeEditor = within(detail!).getByRole("form", {
+    const signalRangeEditor = within(detail).getByRole("form", {
       name: "Create a personal range",
     });
     await waitFor(() => expect(within(signalRangeEditor).getByRole("heading", {
@@ -2966,6 +2998,12 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(unsupportedZoneGroup).not.toBeVisible();
     await user.click(within(zones).getByText("Review zone compatibility"));
     expect(unsupportedZoneGroup).toBeVisible();
+  });
+
+  it("reviews provenance and returns to stable library pagination", async () => {
+    mockPaginatedTrainingLibrary();
+    const { user, onError, region, detailOrigin, detail, detailNavigation } =
+      await renderNewestTrainingSessionDetail();
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_training_session_provenance",
     )).toHaveLength(0);
@@ -2975,7 +3013,7 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(detail!).getByRole("button", {
       name: "How did this session get here?",
     }));
-    const provenance = await within(detail!).findByRole("region", {
+    const provenance = await within(detail).findByRole("region", {
       name: "Session provenance",
     });
     expect(provenance).toHaveTextContent("Polar Flow");
@@ -2996,7 +3034,7 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(detailNavigation).getByRole("button", {
       name: "Signals and zones",
     }));
-    const secondExercise = within(detail!).getByRole("heading", { name: "Exercise 2" })
+    const secondExercise = within(detail).getByRole("heading", { name: "Exercise 2" })
       .closest("article");
     expect(secondExercise).toHaveTextContent(
       "The source did not provide a signal container for this exercise.",
@@ -3010,7 +3048,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(detail).not.toHaveTextContent("lap-");
     expect(detail).not.toHaveTextContent("pause-");
     expect(detail).not.toHaveTextContent("zone-");
-    await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
+    await user.click(within(detail).getByRole("button", { name: "Back to session results" }));
     expect(within(region).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
     await waitFor(() => expect(detailOrigin).toHaveFocus());

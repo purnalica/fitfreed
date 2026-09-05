@@ -164,7 +164,9 @@ Automated testing is the primary source of evidence that the product behaves cor
   not prove that its asynchronous result is available. Before inspecting or activating result-owned controls, tests
   wait for one exact result-owned element and retain every subsequent behavior assertion. When a durable collection
   has a known expected cardinality, the test waits for that complete cardinality before retaining element handles;
-  an empty collection observed while its query is still pending is not persistence evidence.
+  an empty collection observed while its query is still pending is not persistence evidence. Independent interaction
+  contracts remain separate tests so each keeps deterministic failure localization and bounded execution time across
+  supported hosts. A host-specific timeout is corrected by isolating those contracts, not by extending the allowance.
 - Longitudinal-chart coverage verifies four independently scaled labelled lanes over one exact local-date coordinate, source separation, locale-aware dates and durations, missing-value gaps, recorded training zero, the 366-day canvas and zoom boundary, invalid-date fail-closed behavior, high-zoom sizing, and the complete exact-table alternative. The packaged timing boundary verifies both the requested date count and first local date before accepting the laid-out result.
 - Explicit traversal between history and comparison in every other explorer, including preserved comparison input and results, exact-detail return, cross-explorer entry, and inaccessible hidden views.
 - Explicit traversal among report Library, Compose, and Preview, including preserved drafts, saved-report selection, independent review replacement, complete block manipulation, source return, and export.
@@ -331,13 +333,16 @@ Local and continuous-integration workflows will invoke the same underlying comma
   boundary receives only allowlisted native environment variables, refuses inherited PowerShell 7 module paths and
   any pre-existing installation, registration, shortcut, or application data for that identity;
   silently installs the exact generated setup; verifies registration, executable metadata, and unsigned engineering
-  trust; and then drives the same seven WebdriverIO functional, restart, adaptive-session, sport-catalogue, and
-  performance scenarios against the installed executable. Real-process restart evidence uses an exact executable-path
-  `Win32_Process` query rather than a process-name match. Silent removal must preserve all synthetic libraries and the
-  sentinel application data before the harness removes only its exact isolated data roots. Success discards generated
-  run state; CI may retain only privacy-safe WebdriverIO diagnostics after failure. This job runs only for complete
-  verification and must succeed before its executable fingerprint receives reusable evidence. Hosted Windows Server
-  execution is native capability evidence but does not replace the later exact Windows 11 desktop gate.
+  trust; requires ordinary startup to resolve that exact compiled package identity while the production identity
+  continues to reject it; and then drives the same seven WebdriverIO functional, restart, adaptive-session,
+  sport-catalogue, and performance scenarios against the installed executable. Real-process restart evidence uses an
+  exact executable-path `Win32_Process` query rather than a process-name match. Silent removal must preserve all
+  synthetic libraries and the sentinel application data before the harness removes only its exact isolated data roots.
+  That final removal waits for transient WebView descendant locks within one bounded interval, rechecks reparse-point
+  absence before every attempt, and preserves both the journey and cleanup failures when they coexist. Success discards
+  generated run state; CI may retain only privacy-safe WebdriverIO diagnostics after failure. This job runs only for
+  complete verification and must succeed before its executable fingerprint receives reusable evidence. Hosted Windows
+  Server execution is native capability evidence but does not replace the later exact Windows 11 desktop gate.
 - The manual Linux-expansion publication workflow independently admits the already sealed manifest version 6
   candidate on hosted x86-64 Ubuntu 24.04 and 26.04 before promotion can reach its second approval. Each secret-free
   row verifies the transport digest and complete candidate, installs only the manifest-declared Debian artifact,
