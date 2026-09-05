@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import path from "node:path";
 import test from "node:test";
 
 import { JSDOM } from "jsdom";
@@ -12,8 +11,9 @@ import {
   resolveProductLocale,
   validateProductPageTranslationContract,
 } from "./product-page-localization.mjs";
+import { repositoryRootFromScriptUrl } from "./module-path.mjs";
 
-const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
+const repositoryRoot = repositoryRootFromScriptUrl(import.meta.url);
 
 test("resolves a persisted choice before ordered browser preferences", () => {
   assert.equal(resolveProductLocale({

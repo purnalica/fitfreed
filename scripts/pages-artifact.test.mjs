@@ -17,9 +17,10 @@ import {
   relativeFiles,
   verifyPagesArtifact,
 } from "./pages-artifact.mjs";
+import { repositoryRootFromScriptUrl } from "./module-path.mjs";
 import { publicUpdateUrl } from "./public-origin.mjs";
 
-const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
+const repositoryRoot = repositoryRootFromScriptUrl(import.meta.url);
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");

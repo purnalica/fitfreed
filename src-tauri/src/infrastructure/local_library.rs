@@ -249,6 +249,7 @@ fn is_transient_windows_file_denial(error: &io::Error) -> bool {
 
 #[cfg(windows)]
 struct WindowsSecurityIdentities {
+    token_owner: Vec<usize>,
     token_user: Vec<usize>,
     local_system: Vec<usize>,
     administrators: Vec<usize>,
@@ -260,8 +261,9 @@ impl WindowsSecurityIdentities {
         use windows_sys::Win32::{
             Foundation::HANDLE,
             Security::{
-                CreateWellKnownSid, GetTokenInformation, TokenUser, WinBuiltinAdministratorsSid,
-                WinLocalSystemSid, SECURITY_MAX_SID_SIZE, TOKEN_QUERY, TOKEN_USER,
+                CreateWellKnownSid, GetTokenInformation, TokenOwner, TokenUser,
+                WinBuiltinAdministratorsSid, WinLocalSystemSid, SECURITY_MAX_SID_SIZE, TOKEN_OWNER,
+                TOKEN_QUERY, TOKEN_USER,
             },
             System::Threading::{GetCurrentProcess, OpenProcessToken},
         };
@@ -271,32 +273,37 @@ impl WindowsSecurityIdentities {
             return Err(io::Error::last_os_error());
         }
         let token = WindowsHandle(token);
-        let mut token_user_bytes = 0_u32;
-        unsafe {
-            GetTokenInformation(
-                token.0,
-                TokenUser,
-                std::ptr::null_mut(),
-                0,
-                &mut token_user_bytes,
-            );
-        }
-        if token_user_bytes < u32::try_from(size_of::<TOKEN_USER>()).unwrap_or(u32::MAX) {
-            return Err(io::Error::last_os_error());
-        }
-        let mut token_user = aligned_windows_buffer(token_user_bytes);
-        if unsafe {
-            GetTokenInformation(
-                token.0,
-                TokenUser,
-                token_user.as_mut_ptr().cast(),
-                token_user_bytes,
-                &mut token_user_bytes,
-            )
-        } == 0
-        {
-            return Err(io::Error::last_os_error());
-        }
+        let token_information = |class, minimum_size| -> io::Result<Vec<usize>> {
+            let mut bytes = 0_u32;
+            unsafe {
+                GetTokenInformation(token.0, class, std::ptr::null_mut(), 0, &mut bytes);
+            }
+            if bytes < minimum_size {
+                return Err(io::Error::last_os_error());
+            }
+            let mut buffer = aligned_windows_buffer(bytes);
+            if unsafe {
+                GetTokenInformation(
+                    token.0,
+                    class,
+                    buffer.as_mut_ptr().cast(),
+                    bytes,
+                    &mut bytes,
+                )
+            } == 0
+            {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(buffer)
+        };
+        let token_user = token_information(
+            TokenUser,
+            u32::try_from(size_of::<TOKEN_USER>()).unwrap_or(u32::MAX),
+        )?;
+        let token_owner = token_information(
+            TokenOwner,
+            u32::try_from(size_of::<TOKEN_OWNER>()).unwrap_or(u32::MAX),
+        )?;
 
         let well_known_sid = |kind| -> io::Result<Vec<usize>> {
             let mut size = SECURITY_MAX_SID_SIZE;
@@ -316,6 +323,7 @@ impl WindowsSecurityIdentities {
         };
 
         Ok(Self {
+            token_owner,
             token_user,
             local_system: well_known_sid(WinLocalSystemSid)?,
             administrators: well_known_sid(WinBuiltinAdministratorsSid)?,
@@ -326,6 +334,12 @@ impl WindowsSecurityIdentities {
         use windows_sys::Win32::Security::TOKEN_USER;
 
         unsafe { (*(self.token_user.as_ptr().cast::<TOKEN_USER>())).User.Sid }
+    }
+
+    fn default_owner(&self) -> windows_sys::Win32::Security::PSID {
+        use windows_sys::Win32::Security::TOKEN_OWNER;
+
+        unsafe { (*(self.token_owner.as_ptr().cast::<TOKEN_OWNER>())).Owner }
     }
 
     fn local_system(&self) -> windows_sys::Win32::Security::PSID {
@@ -423,10 +437,17 @@ fn windows_acl_is_private(
         return Err(io::Error::from_raw_os_error(result as i32));
     }
     let _descriptor = WindowsLocalAllocation(descriptor.cast());
-    if owner.is_null() || unsafe { EqualSid(owner, identities.user()) } == 0 {
-        return Err(invalid_boundary(&format!(
-            "{description} is not owned by the current user"
-        )));
+    let owner_is_user = !owner.is_null() && unsafe { EqualSid(owner, identities.user()) } != 0;
+    let owner_is_default =
+        !owner.is_null() && unsafe { EqualSid(owner, identities.default_owner()) } != 0;
+    match classify_windows_owner(owner_is_user, owner_is_default) {
+        WindowsOwnerAdmission::CurrentUser => {}
+        WindowsOwnerAdmission::CurrentTokenDefault => return Ok(false),
+        WindowsOwnerAdmission::Foreign => {
+            return Err(invalid_boundary(&format!(
+                "{description} is not owned by the current user"
+            )));
+        }
     }
     if dacl.is_null() {
         return Ok(false);
@@ -563,11 +584,105 @@ fn set_private_windows_acl(
     if result != ERROR_SUCCESS {
         return Err(io::Error::from_raw_os_error(result as i32));
     }
+    set_windows_owner_to_user(file, directory, identities)
+}
+
+#[cfg(windows)]
+fn set_windows_owner_to_user(
+    file: &File,
+    directory: bool,
+    identities: &WindowsSecurityIdentities,
+) -> io::Result<()> {
+    use windows_sys::Win32::{
+        Foundation::{ERROR_SUCCESS, INVALID_HANDLE_VALUE},
+        Security::{
+            Authorization::{SetSecurityInfo, SE_FILE_OBJECT},
+            OWNER_SECURITY_INFORMATION,
+        },
+        Storage::FileSystem::{
+            ReOpenFile, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ, FILE_SHARE_WRITE, WRITE_OWNER,
+        },
+    };
+
+    let share_mode = if directory {
+        0
+    } else {
+        FILE_SHARE_READ | FILE_SHARE_WRITE
+    };
+    let flags = if directory {
+        FILE_FLAG_BACKUP_SEMANTICS
+    } else {
+        0
+    };
+    let owner_handle =
+        unsafe { ReOpenFile(file.as_raw_handle().cast(), WRITE_OWNER, share_mode, flags) };
+    if owner_handle == INVALID_HANDLE_VALUE {
+        return Err(io::Error::last_os_error());
+    }
+    let owner_handle = WindowsHandle(owner_handle);
+    let result = unsafe {
+        SetSecurityInfo(
+            owner_handle.0,
+            SE_FILE_OBJECT,
+            OWNER_SECURITY_INFORMATION,
+            identities.user(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
+    if result != ERROR_SUCCESS {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
     Ok(())
 }
 
 fn invalid_boundary(message: &str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
+}
+
+#[cfg(any(windows, test))]
+#[derive(Debug, PartialEq, Eq)]
+enum WindowsOwnerAdmission {
+    CurrentUser,
+    CurrentTokenDefault,
+    Foreign,
+}
+
+#[cfg(any(windows, test))]
+fn classify_windows_owner(owner_is_user: bool, owner_is_default: bool) -> WindowsOwnerAdmission {
+    if owner_is_user {
+        WindowsOwnerAdmission::CurrentUser
+    } else if owner_is_default {
+        WindowsOwnerAdmission::CurrentTokenDefault
+    } else {
+        WindowsOwnerAdmission::Foreign
+    }
+}
+
+#[cfg(test)]
+mod windows_owner_policy_tests {
+    use super::{classify_windows_owner, WindowsOwnerAdmission};
+
+    #[test]
+    fn distinguishes_private_repairable_and_foreign_windows_owners() {
+        assert_eq!(
+            classify_windows_owner(true, false),
+            WindowsOwnerAdmission::CurrentUser
+        );
+        assert_eq!(
+            classify_windows_owner(false, true),
+            WindowsOwnerAdmission::CurrentTokenDefault
+        );
+        assert_eq!(
+            classify_windows_owner(true, true),
+            WindowsOwnerAdmission::CurrentUser
+        );
+        assert_eq!(
+            classify_windows_owner(false, false),
+            WindowsOwnerAdmission::Foreign
+        );
+    }
 }
 
 #[cfg(all(test, unix))]

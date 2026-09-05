@@ -57,6 +57,9 @@ This keeps source parsers, generated hashes, shell entry points, and determinist
 contributor's or runner's `core.autocrlf` setting. Checksum-governed vendored source retains an explicit matching rule.
 Repository-relative identifiers embedded in documentation or portable evidence always use `/`, even when native path
 resolution runs on Windows; native filesystem paths retain the host separator inside their owning adapter.
+Filesystem roots derived from ECMAScript module URLs are decoded through Node.js's URL-to-path API rather than by
+reading a URL pathname as a native path. The portable contract covers both POSIX roots and Windows drive-letter URLs,
+so a Windows drive cannot be interpreted twice when product-site or publication automation locates the repository.
 Node.js automation resolves each locked package's declared JavaScript binary and invokes it through the current Node.js
 executable; it never executes the platform-specific shim under `node_modules/.bin`. This keeps the same package entry
 point on Windows, macOS, and Linux without shell-dependent command resolution.
@@ -173,6 +176,12 @@ against the installed executable. Its process-restart evidence queries the exact
 Windows process metadata. Silent removal must leave every synthetic library intact; only then does the harness remove
 the exact isolated application-data roots and successful run state. The command neither installs nor replaces the
 production `FitFreed` package and provides no public-signing or Windows 11 desktop evidence.
+
+The installed Windows application can encounter an application-data directory whose owner is the default owner SID
+of its own access token rather than the token's user SID, including when the isolated package harness creates the
+directory before launch. The native library adapter recognizes only that exact same-token creation state, normalizes
+the owner to the token user together with the protected private ACL, and verifies the final boundary before SQLite
+opens. A foreign owner remains a startup rejection; automation cannot broaden the admitted identity set.
 
 `npm run verify:windows-update-e2e` is the separate native x86-64 Windows update-recovery boundary. It builds
 instrumented 0.1.0 and 0.2.0 NSIS packages with the canonical production identity, creates ephemeral updater and local

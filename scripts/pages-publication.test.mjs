@@ -5,13 +5,14 @@ import path from "node:path";
 import test from "node:test";
 
 import { composePagesArtifact, relativeFiles } from "./pages-artifact.mjs";
+import { repositoryRootFromScriptUrl } from "./module-path.mjs";
 import {
   preflightPagesPublication,
   verifyPublishedPages,
 } from "./pages-publication.mjs";
 import { publicOrigin } from "./public-origin.mjs";
 
-const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
+const repositoryRoot = repositoryRootFromScriptUrl(import.meta.url);
 const baseUrl = publicOrigin;
 
 function response(url, status, bytes = "") {

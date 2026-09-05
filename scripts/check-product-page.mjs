@@ -9,10 +9,11 @@ import {
   loadProductPageLocalization,
   renderLocalizedProductPages,
 } from "./product-page-localization.mjs";
+import { repositoryRootFromScriptUrl } from "./module-path.mjs";
 import { createProductReleaseDownloads } from "./product-release-downloads.mjs";
 import { publicOrigin } from "./public-origin.mjs";
 
-const repositoryRoot = resolve(new URL("..", import.meta.url).pathname);
+const repositoryRoot = repositoryRootFromScriptUrl(import.meta.url);
 const pagePath = "site/index.html";
 const pageDirectory = dirname(pagePath);
 const source = readFileSync(pagePath, "utf8");

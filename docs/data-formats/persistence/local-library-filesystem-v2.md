@@ -19,10 +19,13 @@ owner-controlled directory before opening the library.
 
 On Windows, the production directory is the current user's roaming application-data directory resolved by the native
 application host. FitFreed opens the direct parent itself with reparse-point-aware, no-sharing semantics and requires
-current-user ownership. It applies a protected DACL containing exactly three allowed full-control identities: the
-current user, LocalSystem, and Builtin Administrators. Directory access-control entries inherit to child containers and
-objects. An existing current-user-owned directory with a different DACL is normalized to this form before SQLite
-access. A foreign-owned directory is rejected rather than taken over.
+current-user ownership. Windows can initially assign a newly created object to the creating access token's default
+owner SID rather than its user SID. FitFreed admits that exact token-default owner only as a repairable creation state,
+then sets the owner to the token user and verifies the result. It applies a protected DACL containing exactly three
+allowed full-control identities: the current user, LocalSystem, and Builtin Administrators. Directory access-control
+entries inherit to child containers and objects. An existing current-user-owned directory with a different DACL is
+normalized to this form before SQLite access. A directory owned by neither the token user nor that same token's
+default owner is rejected rather than taken over.
 
 ## SQLite library file
 
@@ -34,8 +37,9 @@ On Unix, FitFreed creates the file with mode `0600` and repairs broader permissi
 Windows, it opens the file with the same read/write sharing required by SQLite so validation remains available while
 an import or query holds the library open. The validation handle requires current-user ownership and applies a
 protected DACL containing exactly the current user, LocalSystem, and Builtin Administrators with full control and no
-inheritance flags. Existing current-user-owned files are normalized without changing their bytes. Foreign-owned,
-multiply linked, redirected, or non-regular files are rejected without modifying their target.
+inheritance flags. The same exact token-default-owner admission and user-owner normalization applies to a newly
+created file. Existing current-user-owned files are normalized without changing their bytes. Foreign-owned, multiply
+linked, redirected, or non-regular files are rejected without modifying their target.
 
 Creation and permission repair synchronize the affected library file and application data directory before the
 boundary is admitted where the platform exposes that durability operation. An unchanged private boundary avoids this
@@ -71,8 +75,8 @@ Unix adapter tests retain the version 1 evidence: exact `0700` and `0600` creati
 byte retention, and rejection of directory links, file links, and multiple hard links without target mutation.
 
 Windows adapter tests cover create and reopen, validation beside an open SQLite connection, retained bytes, multiple
-hard links, bounded transient sharing denial, long Unicode paths, symbolic files, and a real NTFS junction without
-target mutation. The elevated filesystem
+hard links, bounded transient sharing denial, long Unicode paths, token-default-owner normalization, symbolic files,
+and a real NTFS junction without target mutation. The elevated filesystem
 admission constructs the junction and executes the native boundary test on the same isolated VHD used for real
 disk-exhaustion recovery. The installed-package cold-launch admission then verifies that the production library exists
 under the exact current-user `%APPDATA%` root, is non-empty, contains no reparse-point descendants, and has the exact

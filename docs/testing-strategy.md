@@ -214,7 +214,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   Only a valid `windows-2025-x86_64-host-package` marker bound to the current executable-input fingerprint can reuse
   that evidence; missing or invalid evidence runs the job. Static workflow tests reject Unix-only commands, mutable
   actions, elevated permissions, protected secrets, incomplete completion dependencies, and evidence written before
-  every required Windows check passes. This hosted Windows Server lane is native portability, engineering-package,
+  every required Windows check passes. Portable script tests also decode synthetic POSIX and Windows drive-letter
+  module URLs into native repository roots, protecting every product-site and Pages caller from duplicated drive
+  prefixes. This hosted Windows Server lane is native portability, engineering-package,
   and synthetic Authenticode-orchestration evidence, not public timestamped signing, signed Windows 11, desktop,
   accessibility, or product-acceptance evidence.
 - The Windows package-configuration contract independently rejects MSI or mixed target sets, Windows on ARM,
@@ -411,7 +413,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   than a test-only filesystem shortcut. Windows host tests enforce the same semantic boundary with reparse-aware
   handles, SQLite-compatible read/write sharing, current-user ownership, exactly one hard link, and protected ACLs
   limited to the current user, LocalSystem, and Builtin Administrators. Validation must remain available beside an
-  existing SQLite connection so concurrent import and navigation do not become a filesystem-boundary failure.
+  existing SQLite connection so concurrent import and navigation do not become a filesystem-boundary failure. Owner
+  policy tests distinguish the token user, the same token's repairable default owner, and a foreign owner; the native
+  create-and-reopen path must normalize the repairable state to the user before it can pass final ACL verification.
 - A mandatory macOS job prepares the source-bound production package, enforces its process-to-painted-shell cold-launch budget, then qualifies full-scale import, dense supported-signal storage and queries, and longitudinal read models before building the instrumented Tauri application under an isolated target and executing the focused packaged E2E journey with independently generated synthetic fixtures whenever executable or release inputs change and for every explicit manual or release-candidate verification request. The E2E build produces only the `.app` consumed by WebdriverIO; an instrumented DMG adds no behavioral evidence, while the separate production package and installation gates retain complete DMG coverage. The tested WebdriverIO configuration rejects the production executable path. The ordinary functional instrumented application has the stable `org.fitfreed.desktop.e2e` bundle identifier, distinct from the production identifier, so macOS can retain a dedicated Desktop assignment across rebuilds. The synthetic update packages instead obtain the canonical production identifier from `tauri.conf.json`: update recovery deliberately rejects any other application identity, and the update campaign must exercise that production security boundary while retaining its package, library, and process isolation. The packaged journey resizes the real WebView across the accepted desktop and compact boundaries and measures sidebar, workspace, current-location, localization, zoom, and overflow behavior rather than inferring layout from component presence.
 - Acceptance uses `npm run verify:e2e`, which rebuilds the instrumented application before executing its journeys. A
   direct WebdriverIO invocation reuses the existing package and cannot qualify source changed since that package was
