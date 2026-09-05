@@ -1,5 +1,4 @@
-import { spawn } from "node:child_process";
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import {
   accessSync,
   constants,
@@ -12,7 +11,9 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
+import { setTimeout as wait } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 import { linuxPackageContract } from "./linux-package-contract.mjs";
 import {
@@ -29,6 +30,10 @@ const launchTimeoutMilliseconds = 10_000;
 const terminationTimeoutMilliseconds = 3_000;
 const maximumOutputBytes = 64 * 1_024;
 const revisionPattern = /^[0-9a-f]{40,64}$/;
+const executeFile = promisify(execFile);
+const macosActivationAttempts = 20;
+const macosActivationRetryMilliseconds = 25;
+const macosActivationTimeoutMilliseconds = 250;
 
 function percentile(values, requested) {
   const sorted = [...values].sort((left, right) => left - right);
@@ -371,6 +376,39 @@ export function resetInstalledWindowsApplicationData({
   });
 }
 
+export async function activateMacosApplication(
+  processIdentifier,
+  { execute = executeFile, pause = wait } = {},
+) {
+  if (!Number.isSafeInteger(processIdentifier) || processIdentifier <= 0) {
+    throw new Error("macOS application activation requires a process identifier");
+  }
+  const expression = `ObjC.import("AppKit"); const app = $.NSRunningApplication.runningApplicationWithProcessIdentifier(${processIdentifier}); app ? app.activateWithOptions($.NSApplicationActivateIgnoringOtherApps) : false;`;
+  for (let attempt = 0; attempt < macosActivationAttempts; attempt += 1) {
+    let activated = false;
+    try {
+      const result = await execute(
+        "/usr/bin/osascript",
+        ["-l", "JavaScript", "-e", expression],
+        {
+          encoding: "utf8",
+          killSignal: "SIGKILL",
+          maxBuffer: 4_096,
+          timeout: macosActivationTimeoutMilliseconds,
+        },
+      );
+      activated = result.stdout.trim() === "true";
+    } catch {
+      activated = false;
+    }
+    if (activated) return;
+    if (attempt + 1 < macosActivationAttempts) {
+      await pause(macosActivationRetryMilliseconds);
+    }
+  }
+  throw new Error("the exact macOS application process could not be activated");
+}
+
 export async function measureFreshProcess(
   applicationBinary,
   home,
@@ -379,7 +417,9 @@ export async function measureFreshProcess(
     architecture = process.arch,
     inheritedEnvironment = process.env,
     platform = process.platform,
+    activateApplication = activateMacosApplication,
     prepareApplicationData = resetInstalledWindowsApplicationData,
+    spawnApplication = spawn,
   } = {},
 ) {
   if (platform !== "win32") mkdirSync(home, { recursive: true });
@@ -388,7 +428,7 @@ export async function measureFreshProcess(
     prepareApplicationData({ architecture, environment, platform });
   }
   const startedAt = performance.now();
-  const child = spawn(applicationBinary, [], {
+  const child = spawnApplication(applicationBinary, [], {
     env: environment,
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -421,6 +461,12 @@ export async function measureFreshProcess(
     child.once("error", () => {
       clearTimeout(timeout);
       fail("application process could not be started");
+    });
+    child.once("spawn", () => {
+      if (platform !== "darwin" || settled) return;
+      void activateApplication(child.pid).catch(() => {
+        fail("the exact macOS application process could not be activated");
+      });
     });
     child.once("exit", (code, signal) => {
       clearTimeout(timeout);

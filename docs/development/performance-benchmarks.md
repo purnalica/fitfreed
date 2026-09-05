@@ -43,6 +43,14 @@ exact Windows 11 candidate gate.
 
 The production build wrapper binds the exact Git revision and clean-tree state into the host. The benchmark rejects a dirty checkout, an application built from another revision, an instrumented package, an unexpected signal field, invalid or unordered timing values, or a build that was not clean. It starts the timer immediately before creating each application process. After locale initialization, React waits for the next animation frame and reports the interactive shell through a one-shot host command. The host emits a closed privacy-safe JSON signal containing the event contract, application version, source revision, clean-tree state, and monotonic durations for host setup, host signal receipt, renderer locale readiness, and renderer signal invocation. These durations contain no wall-clock timestamp, path, host identity, or user data. WebDriver, driver creation, WebView reloads, and timers started after process creation are outside this boundary and cannot satisfy it.
 
+On macOS, direct process creation does not represent the LaunchServices activation that accompanies a normal user
+launch and an inactive application may not receive a paint frame. After the exact child process exists, the benchmark
+therefore activates that PID through `NSRunningApplication` before awaiting the signal. The bounded native lookup
+retries only while AppKit is registering the new PID; it neither searches by product name nor launches another bundle,
+and it does not use the accessibility service. Process creation, native activation, painting, and signal transport all
+remain inside the measured interval. An activation failure rejects the run rather than accepting process lifetime as
+interactive evidence.
+
 The campaign runs exactly 100 fresh production processes with no warm-up. macOS and Linux give each process a
 distinct empty temporary home; Windows clears the exact fixed native application-data roots before starting each
 process because changing environment variables does not redirect Tauri's Windows known-folder resolution. That

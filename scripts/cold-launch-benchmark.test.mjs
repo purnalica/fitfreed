@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { EventEmitter } from "node:events";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { PassThrough } from "node:stream";
 import test from "node:test";
 
 import {
@@ -7,6 +11,7 @@ import {
   productionBuildIdentity,
 } from "./build-production.mjs";
 import {
+  activateMacosApplication,
   coldLaunchEnvironment,
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
@@ -355,6 +360,108 @@ test("isolates Unix application data and preserves the native Windows known-fold
       USERPROFILE: "C:\\unrelated",
     },
   );
+});
+
+test("activates the exact macOS process without accessibility or bundle-name lookup", async () => {
+  const calls = [];
+  const pauses = [];
+  const outcomes = ["false\n", "true\n"];
+
+  await activateMacosApplication(4_321, {
+    async execute(file, arguments_, options) {
+      calls.push({ file, arguments_, options });
+      return { stdout: outcomes.shift() };
+    },
+    async pause(milliseconds) {
+      pauses.push(milliseconds);
+    },
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].file, "/usr/bin/osascript");
+  assert.deepEqual(calls[0].arguments_.slice(0, 3), ["-l", "JavaScript", "-e"]);
+  assert.match(calls[0].arguments_[3], /runningApplicationWithProcessIdentifier\(4321\)/);
+  assert.match(calls[0].arguments_[3], /NSApplicationActivateIgnoringOtherApps/);
+  assert.deepEqual(calls[0].options, {
+    encoding: "utf8",
+    killSignal: "SIGKILL",
+    maxBuffer: 4_096,
+    timeout: 250,
+  });
+  assert.deepEqual(pauses, [25]);
+});
+
+test("bounds macOS activation and rejects an unavailable process", async () => {
+  let attempts = 0;
+  let pauses = 0;
+  await assert.rejects(
+    activateMacosApplication(4_321, {
+      async execute() {
+        attempts += 1;
+        return { stdout: "false\n" };
+      },
+      async pause() {
+        pauses += 1;
+      },
+    }),
+    /could not be activated/,
+  );
+  assert.equal(attempts, 20);
+  assert.equal(pauses, 19);
+  await assert.rejects(
+    activateMacosApplication(0),
+    /requires a process identifier/,
+  );
+});
+
+test("activates the spawned macOS process before accepting its painted shell", async () => {
+  const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-test-"));
+  const activated = [];
+  const child = new EventEmitter();
+  child.pid = 7_654;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+  try {
+    const measurement = await measureFreshProcess(
+      "/synthetic/FitFreed.app/Contents/MacOS/fitfreed",
+      path.join(temporaryDirectory, "home"),
+      { applicationVersion: "0.1.0", sourceRevision: revision },
+      {
+        async activateApplication(processIdentifier) {
+          activated.push(processIdentifier);
+        },
+        inheritedEnvironment: {},
+        platform: "darwin",
+        spawnApplication() {
+          queueMicrotask(() => {
+            child.emit("spawn");
+            child.stdout.write(`${JSON.stringify({
+              format: "org.fitfreed.startup-signal",
+              schemaVersion: 2,
+              event: "interactive-shell",
+              applicationVersion: "0.1.0",
+              sourceRevision: revision,
+              sourceTreeClean: true,
+              hostStartupMilliseconds: { setupComplete: 0, signal: 0 },
+              rendererStartupMilliseconds: { localeReady: 0, signal: 0 },
+            })}\n`);
+          });
+          return child;
+        },
+      },
+    );
+
+    assert.deepEqual(activated, [7_654]);
+    assert.ok(measurement.totalMilliseconds >= 0);
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
 });
 
 test("resets only the installed Windows application-data identity before measurement", () => {
