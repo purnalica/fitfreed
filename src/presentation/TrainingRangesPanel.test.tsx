@@ -298,9 +298,10 @@ describe("TrainingRangesPanel", () => {
     const heading = await screen.findByRole("heading", { name: "Bridge effort" });
     heading.scrollIntoView = vi.fn();
     expect(heading).toBeVisible();
-    expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_range_summary", {
-      query: { sessionRef, snapshotRef, rangeRef: firstRangeRef, expectedRangeRevision: 2 },
-    });
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_training_session_range_summary",
+      { query: { sessionRef, snapshotRef, rangeRef: firstRangeRef, expectedRangeRevision: 2 } },
+    ));
     expect(await screen.findByText("2 min")).toBeVisible();
     expect(screen.getByText("820 m")).toBeVisible();
     expect(screen.getByText("Northeast · 45°")).toBeVisible();
