@@ -41,7 +41,7 @@ pub(crate) fn prepare_private_library_path(path: &Path) -> io::Result<()> {
         validate_library_metadata(metadata)
             .map_err(|error| library_boundary_stage("validate library file", error))?;
     }
-    let file = open_library_file(path)
+    let (file, can_set_windows_owner) = open_library_file(path)
         .map_err(|error| library_boundary_stage("open library file", error))?;
     let metadata = file
         .metadata()
@@ -50,8 +50,9 @@ pub(crate) fn prepare_private_library_path(path: &Path) -> io::Result<()> {
         .map_err(|error| library_boundary_stage("validate opened library file", error))?;
     validate_library_handle(&file)
         .map_err(|error| library_boundary_stage("validate library handle", error))?;
-    let file_permissions_changed = set_private_file_permissions(&file, &metadata)
-        .map_err(|error| library_boundary_stage("protect library file", error))?;
+    let file_permissions_changed =
+        set_private_file_permissions(&file, &metadata, can_set_windows_owner)
+            .map_err(|error| library_boundary_stage("protect library file", error))?;
     let library_was_created = existing_library.is_none();
     if library_was_created || file_permissions_changed {
         file.sync_all()
@@ -97,9 +98,9 @@ fn existing_library_metadata(path: &Path) -> io::Result<Option<fs::Metadata>> {
     }
 }
 
-fn open_library_file(path: &Path) -> io::Result<File> {
+fn open_library_file(path: &Path) -> io::Result<(File, bool)> {
     #[cfg(windows)]
-    return open_windows_file_with_retry(|| {
+    return open_windows_boundary_handle(|owner_access| {
         use windows_sys::Win32::Storage::FileSystem::{
             FILE_FLAG_OPEN_REPARSE_POINT, FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_READ,
             FILE_SHARE_WRITE, WRITE_DAC,
@@ -110,7 +111,7 @@ fn open_library_file(path: &Path) -> io::Result<File> {
             .read(true)
             .write(true)
             .create(true)
-            .access_mode(FILE_GENERIC_READ | FILE_GENERIC_WRITE | WRITE_DAC)
+            .access_mode(FILE_GENERIC_READ | FILE_GENERIC_WRITE | WRITE_DAC | owner_access)
             .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
             .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
         options.open(path)
@@ -124,7 +125,7 @@ fn open_library_file(path: &Path) -> io::Result<File> {
         options
             .mode(0o600)
             .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW);
-        options.open(path)
+        Ok((options.open(path)?, false))
     }
 }
 
@@ -190,11 +191,11 @@ fn prepare_private_directory(path: &Path, _metadata: &fs::Metadata) -> io::Resul
         FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, READ_CONTROL, WRITE_DAC,
     };
 
-    let directory = open_windows_file_with_retry(|| {
+    let (directory, can_set_owner) = open_windows_boundary_handle(|owner_access| {
         let mut options = OpenOptions::new();
         options
             .read(true)
-            .access_mode(READ_CONTROL | WRITE_DAC)
+            .access_mode(READ_CONTROL | WRITE_DAC | owner_access)
             .share_mode(0)
             .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT);
         options.open(path)
@@ -203,7 +204,7 @@ fn prepare_private_directory(path: &Path, _metadata: &fs::Metadata) -> io::Resul
     if is_reparse_point(&metadata) || !metadata.is_dir() {
         return Err(invalid_boundary("library parent is not a real directory"));
     }
-    ensure_private_windows_acl(&directory, true, "library parent")
+    ensure_private_windows_acl(&directory, true, "library parent", can_set_owner)
 }
 
 #[cfg(not(any(unix, windows)))]
@@ -212,7 +213,11 @@ fn prepare_private_directory(_path: &Path, _metadata: &fs::Metadata) -> io::Resu
 }
 
 #[cfg(unix)]
-fn set_private_file_permissions(file: &File, metadata: &fs::Metadata) -> io::Result<bool> {
+fn set_private_file_permissions(
+    file: &File,
+    metadata: &fs::Metadata,
+    _can_set_windows_owner: bool,
+) -> io::Result<bool> {
     if metadata.permissions().mode() & 0o777 != 0o600 {
         file.set_permissions(fs::Permissions::from_mode(0o600))?;
         return Ok(true);
@@ -221,12 +226,20 @@ fn set_private_file_permissions(file: &File, metadata: &fs::Metadata) -> io::Res
 }
 
 #[cfg(windows)]
-fn set_private_file_permissions(file: &File, _metadata: &fs::Metadata) -> io::Result<bool> {
-    ensure_private_windows_acl(file, false, "library")
+fn set_private_file_permissions(
+    file: &File,
+    _metadata: &fs::Metadata,
+    can_set_windows_owner: bool,
+) -> io::Result<bool> {
+    ensure_private_windows_acl(file, false, "library", can_set_windows_owner)
 }
 
 #[cfg(not(any(unix, windows)))]
-fn set_private_file_permissions(_file: &File, _metadata: &fs::Metadata) -> io::Result<bool> {
+fn set_private_file_permissions(
+    _file: &File,
+    _metadata: &fs::Metadata,
+    _can_set_windows_owner: bool,
+) -> io::Result<bool> {
     Ok(false)
 }
 
@@ -242,6 +255,21 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
 #[cfg(not(windows))]
 fn is_reparse_point(metadata: &fs::Metadata) -> bool {
     metadata.file_type().is_symlink()
+}
+
+#[cfg(windows)]
+fn open_windows_boundary_handle(
+    mut open: impl FnMut(u32) -> io::Result<File>,
+) -> io::Result<(File, bool)> {
+    use windows_sys::Win32::Storage::FileSystem::WRITE_OWNER;
+
+    match open_windows_file_with_retry(|| open(WRITE_OWNER)) {
+        Ok(file) => Ok((file, true)),
+        Err(error) if error.raw_os_error() == Some(5) => {
+            open_windows_file_with_retry(|| open(0)).map(|file| (file, false))
+        }
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(windows)]
@@ -407,36 +435,57 @@ impl Drop for WindowsLocalAllocation {
 }
 
 #[cfg(windows)]
-fn ensure_private_windows_acl(file: &File, directory: bool, description: &str) -> io::Result<bool> {
+fn ensure_private_windows_acl(
+    file: &File,
+    directory: bool,
+    description: &str,
+    can_set_owner: bool,
+) -> io::Result<bool> {
     let identities = WindowsSecurityIdentities::current()?;
-    if windows_acl_is_private(file, directory, &identities, description)? {
-        return Ok(false);
+    let state = inspect_windows_acl(file, directory, &identities)?;
+    let repair = plan_windows_acl_repair(state.owner, state.dacl_is_private, can_set_owner);
+    match repair {
+        WindowsAclRepair::Unchanged => return Ok(false),
+        WindowsAclRepair::RejectForeignOwner => {
+            return Err(invalid_boundary(&format!(
+                "{description} is not owned by the current user"
+            )));
+        }
+        WindowsAclRepair::OwnerCapabilityUnavailable => {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                format!("{description} owner cannot be normalized by the current user"),
+            ));
+        }
+        WindowsAclRepair::DaclOnly | WindowsAclRepair::DaclAndOwner => {}
     }
-    set_private_windows_acl(file, directory, &identities)?;
-    if !windows_acl_is_private(file, directory, &identities, description)? {
+    set_private_windows_acl(
+        file,
+        directory,
+        &identities,
+        repair == WindowsAclRepair::DaclAndOwner,
+    )?;
+    let verified = inspect_windows_acl(file, directory, &identities)?;
+    if plan_windows_acl_repair(verified.owner, verified.dacl_is_private, true)
+        != WindowsAclRepair::Unchanged
+    {
         return Err(invalid_boundary("private Windows ACL verification failed"));
     }
     Ok(true)
 }
 
 #[cfg(windows)]
-fn windows_acl_is_private(
+fn inspect_windows_acl(
     file: &File,
     directory: bool,
     identities: &WindowsSecurityIdentities,
-    description: &str,
-) -> io::Result<bool> {
+) -> io::Result<WindowsAclState> {
     use windows_sys::Win32::{
         Foundation::ERROR_SUCCESS,
         Security::{
-            AclSizeInformation,
             Authorization::{GetSecurityInfo, SE_FILE_OBJECT},
-            EqualSid, GetAce, GetAclInformation, GetSecurityDescriptorControl, ACCESS_ALLOWED_ACE,
-            ACL, ACL_SIZE_INFORMATION, DACL_SECURITY_INFORMATION, NO_INHERITANCE,
-            OWNER_SECURITY_INFORMATION, SE_DACL_PROTECTED, SUB_CONTAINERS_AND_OBJECTS_INHERIT,
+            EqualSid, ACL, DACL_SECURITY_INFORMATION, OWNER_SECURITY_INFORMATION,
         },
-        Storage::FileSystem::FILE_ALL_ACCESS,
-        System::SystemServices::ACCESS_ALLOWED_ACE_TYPE,
     };
 
     let mut owner = std::ptr::null_mut();
@@ -461,15 +510,31 @@ fn windows_acl_is_private(
     let owner_is_user = !owner.is_null() && unsafe { EqualSid(owner, identities.user()) } != 0;
     let owner_is_default =
         !owner.is_null() && unsafe { EqualSid(owner, identities.default_owner()) } != 0;
-    match classify_windows_owner(owner_is_user, owner_is_default) {
-        WindowsOwnerAdmission::CurrentUser => {}
-        WindowsOwnerAdmission::CurrentTokenDefault => return Ok(false),
-        WindowsOwnerAdmission::Foreign => {
-            return Err(invalid_boundary(&format!(
-                "{description} is not owned by the current user"
-            )));
-        }
-    }
+    let owner = classify_windows_owner(owner_is_user, owner_is_default);
+    let dacl_is_private = windows_dacl_is_private(dacl, descriptor, directory, identities)?;
+    Ok(WindowsAclState {
+        owner,
+        dacl_is_private,
+    })
+}
+
+#[cfg(windows)]
+fn windows_dacl_is_private(
+    dacl: *mut windows_sys::Win32::Security::ACL,
+    descriptor: windows_sys::Win32::Security::PSECURITY_DESCRIPTOR,
+    directory: bool,
+    identities: &WindowsSecurityIdentities,
+) -> io::Result<bool> {
+    use windows_sys::Win32::{
+        Security::{
+            AclSizeInformation, EqualSid, GetAce, GetAclInformation, GetSecurityDescriptorControl,
+            ACCESS_ALLOWED_ACE, ACL_SIZE_INFORMATION, NO_INHERITANCE, SE_DACL_PROTECTED,
+            SUB_CONTAINERS_AND_OBJECTS_INHERIT,
+        },
+        Storage::FileSystem::FILE_ALL_ACCESS,
+        System::SystemServices::ACCESS_ALLOWED_ACE_TYPE,
+    };
+
     if dacl.is_null() {
         return Ok(false);
     }
@@ -541,6 +606,7 @@ fn set_private_windows_acl(
     file: &File,
     directory: bool,
     identities: &WindowsSecurityIdentities,
+    normalize_owner: bool,
 ) -> io::Result<()> {
     use windows_sys::Win32::{
         Foundation::ERROR_SUCCESS,
@@ -550,8 +616,8 @@ fn set_private_windows_acl(
                 SET_ACCESS, SE_FILE_OBJECT, TRUSTEE_IS_SID, TRUSTEE_IS_USER,
                 TRUSTEE_IS_WELL_KNOWN_GROUP, TRUSTEE_TYPE, TRUSTEE_W,
             },
-            ACL, DACL_SECURITY_INFORMATION, NO_INHERITANCE, PROTECTED_DACL_SECURITY_INFORMATION,
-            PSID, SUB_CONTAINERS_AND_OBJECTS_INHERIT,
+            ACL, DACL_SECURITY_INFORMATION, NO_INHERITANCE, OWNER_SECURITY_INFORMATION,
+            PROTECTED_DACL_SECURITY_INFORMATION, PSID, SUB_CONTAINERS_AND_OBJECTS_INHERIT,
         },
         Storage::FileSystem::FILE_ALL_ACCESS,
     };
@@ -591,65 +657,27 @@ fn set_private_windows_acl(
         return Err(io::Error::from_raw_os_error(result as i32));
     }
     let _acl = WindowsLocalAllocation(acl.cast());
+    let owner = if normalize_owner {
+        identities.user()
+    } else {
+        std::ptr::null_mut()
+    };
+    let security_information = DACL_SECURITY_INFORMATION
+        | PROTECTED_DACL_SECURITY_INFORMATION
+        | if normalize_owner {
+            OWNER_SECURITY_INFORMATION
+        } else {
+            0
+        };
     let result = unsafe {
         SetSecurityInfo(
             file.as_raw_handle().cast(),
             SE_FILE_OBJECT,
-            DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
-            std::ptr::null_mut(),
+            security_information,
+            owner,
             std::ptr::null_mut(),
             acl,
             std::ptr::null(),
-        )
-    };
-    if result != ERROR_SUCCESS {
-        return Err(io::Error::from_raw_os_error(result as i32));
-    }
-    set_windows_owner_to_user(file, directory, identities)
-}
-
-#[cfg(windows)]
-fn set_windows_owner_to_user(
-    file: &File,
-    directory: bool,
-    identities: &WindowsSecurityIdentities,
-) -> io::Result<()> {
-    use windows_sys::Win32::{
-        Foundation::{ERROR_SUCCESS, INVALID_HANDLE_VALUE},
-        Security::{
-            Authorization::{SetSecurityInfo, SE_FILE_OBJECT},
-            OWNER_SECURITY_INFORMATION,
-        },
-        Storage::FileSystem::{
-            ReOpenFile, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ, FILE_SHARE_WRITE, WRITE_OWNER,
-        },
-    };
-
-    let share_mode = if directory {
-        0
-    } else {
-        FILE_SHARE_READ | FILE_SHARE_WRITE
-    };
-    let flags = if directory {
-        FILE_FLAG_BACKUP_SEMANTICS
-    } else {
-        0
-    };
-    let owner_handle =
-        unsafe { ReOpenFile(file.as_raw_handle().cast(), WRITE_OWNER, share_mode, flags) };
-    if owner_handle == INVALID_HANDLE_VALUE {
-        return Err(io::Error::last_os_error());
-    }
-    let owner_handle = WindowsHandle(owner_handle);
-    let result = unsafe {
-        SetSecurityInfo(
-            owner_handle.0,
-            SE_FILE_OBJECT,
-            OWNER_SECURITY_INFORMATION,
-            identities.user(),
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
         )
     };
     if result != ERROR_SUCCESS {
@@ -663,11 +691,27 @@ fn invalid_boundary(message: &str) -> io::Error {
 }
 
 #[cfg(any(windows, test))]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum WindowsOwnerAdmission {
     CurrentUser,
     CurrentTokenDefault,
     Foreign,
+}
+
+#[cfg(windows)]
+struct WindowsAclState {
+    owner: WindowsOwnerAdmission,
+    dacl_is_private: bool,
+}
+
+#[cfg(any(windows, test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WindowsAclRepair {
+    Unchanged,
+    DaclOnly,
+    DaclAndOwner,
+    RejectForeignOwner,
+    OwnerCapabilityUnavailable,
 }
 
 #[cfg(any(windows, test))]
@@ -681,9 +725,28 @@ fn classify_windows_owner(owner_is_user: bool, owner_is_default: bool) -> Window
     }
 }
 
+#[cfg(any(windows, test))]
+fn plan_windows_acl_repair(
+    owner: WindowsOwnerAdmission,
+    dacl_is_private: bool,
+    can_set_owner: bool,
+) -> WindowsAclRepair {
+    match owner {
+        WindowsOwnerAdmission::Foreign => WindowsAclRepair::RejectForeignOwner,
+        WindowsOwnerAdmission::CurrentTokenDefault if !can_set_owner => {
+            WindowsAclRepair::OwnerCapabilityUnavailable
+        }
+        WindowsOwnerAdmission::CurrentTokenDefault => WindowsAclRepair::DaclAndOwner,
+        WindowsOwnerAdmission::CurrentUser if dacl_is_private => WindowsAclRepair::Unchanged,
+        WindowsOwnerAdmission::CurrentUser => WindowsAclRepair::DaclOnly,
+    }
+}
+
 #[cfg(test)]
 mod windows_owner_policy_tests {
-    use super::{classify_windows_owner, WindowsOwnerAdmission};
+    use super::{
+        classify_windows_owner, plan_windows_acl_repair, WindowsAclRepair, WindowsOwnerAdmission,
+    };
 
     #[test]
     fn distinguishes_private_repairable_and_foreign_windows_owners() {
@@ -703,6 +766,91 @@ mod windows_owner_policy_tests {
             classify_windows_owner(false, false),
             WindowsOwnerAdmission::Foreign
         );
+    }
+
+    #[test]
+    fn plans_acl_repair_without_reopening_an_exclusive_handle() {
+        let cases = [
+            (
+                WindowsOwnerAdmission::CurrentUser,
+                true,
+                false,
+                WindowsAclRepair::Unchanged,
+            ),
+            (
+                WindowsOwnerAdmission::CurrentUser,
+                true,
+                true,
+                WindowsAclRepair::Unchanged,
+            ),
+            (
+                WindowsOwnerAdmission::CurrentUser,
+                false,
+                false,
+                WindowsAclRepair::DaclOnly,
+            ),
+            (
+                WindowsOwnerAdmission::CurrentUser,
+                false,
+                true,
+                WindowsAclRepair::DaclOnly,
+            ),
+            (
+                WindowsOwnerAdmission::CurrentTokenDefault,
+                true,
+                false,
+                WindowsAclRepair::OwnerCapabilityUnavailable,
+            ),
+            (
+                WindowsOwnerAdmission::CurrentTokenDefault,
+                false,
+                false,
+                WindowsAclRepair::OwnerCapabilityUnavailable,
+            ),
+            (
+                WindowsOwnerAdmission::CurrentTokenDefault,
+                true,
+                true,
+                WindowsAclRepair::DaclAndOwner,
+            ),
+            (
+                WindowsOwnerAdmission::CurrentTokenDefault,
+                false,
+                true,
+                WindowsAclRepair::DaclAndOwner,
+            ),
+            (
+                WindowsOwnerAdmission::Foreign,
+                true,
+                false,
+                WindowsAclRepair::RejectForeignOwner,
+            ),
+            (
+                WindowsOwnerAdmission::Foreign,
+                true,
+                true,
+                WindowsAclRepair::RejectForeignOwner,
+            ),
+            (
+                WindowsOwnerAdmission::Foreign,
+                false,
+                false,
+                WindowsAclRepair::RejectForeignOwner,
+            ),
+            (
+                WindowsOwnerAdmission::Foreign,
+                false,
+                true,
+                WindowsAclRepair::RejectForeignOwner,
+            ),
+        ];
+
+        for (owner, dacl_is_private, can_set_owner, expected) in cases {
+            assert_eq!(
+                plan_windows_acl_repair(owner, dacl_is_private, can_set_owner),
+                expected
+            );
+        }
     }
 }
 

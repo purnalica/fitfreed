@@ -21,11 +21,14 @@ On Windows, the production directory is the current user's roaming application-d
 application host. FitFreed opens the direct parent itself with reparse-point-aware, no-sharing semantics and requires
 current-user ownership. Windows can initially assign a newly created object to the creating access token's default
 owner SID rather than its user SID. FitFreed admits that exact token-default owner only as a repairable creation state,
-then sets the owner to the token user and verifies the result. It applies a protected DACL containing exactly three
-allowed full-control identities: the current user, LocalSystem, and Builtin Administrators. Directory access-control
-entries inherit to child containers and objects. An existing current-user-owned directory with a different DACL is
-normalized to this form before SQLite access. A directory owned by neither the token user nor that same token's
-default owner is rejected rather than taken over.
+then sets the owner to the token user and verifies the result. The exclusive verified directory handle requests owner
+repair authority when Windows grants it; DACL and owner normalization use that same handle, without reopening the
+path. If owner repair authority is unavailable, a token-default-owned directory is rejected before mutation, while a
+current-user-owned directory can still receive DACL-only repair. FitFreed applies a protected DACL containing exactly
+three allowed full-control identities: the current user, LocalSystem, and Builtin Administrators. Directory
+access-control entries inherit to child containers and objects. An existing current-user-owned directory with a
+different DACL is normalized to this form before SQLite access. A directory owned by neither the token user nor that
+same token's default owner is rejected rather than taken over.
 
 ## SQLite library file
 
@@ -38,8 +41,9 @@ Windows, it opens the file with the same read/write sharing required by SQLite s
 an import or query holds the library open. The validation handle requires current-user ownership and applies a
 protected DACL containing exactly the current user, LocalSystem, and Builtin Administrators with full control and no
 inheritance flags. The same exact token-default-owner admission and user-owner normalization applies to a newly
-created file. Existing current-user-owned files are normalized without changing their bytes. Foreign-owned, multiply
-linked, redirected, or non-regular files are rejected without modifying their target.
+created file, using the same verified file handle and SQLite-compatible sharing. Existing current-user-owned files are
+normalized without changing their bytes. Foreign-owned, multiply linked, redirected, or non-regular files are rejected
+without modifying their target.
 
 Creation and permission repair synchronize the affected library file and application data directory before the
 boundary is admitted where the platform exposes that durability operation. An unchanged private boundary avoids this

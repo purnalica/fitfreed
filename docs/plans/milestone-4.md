@@ -61,6 +61,13 @@ stalled application. The corrected journey synchronizes on all four existing ter
 requesting History. This preserves the product rule that analytical navigation remains unavailable until first import
 completion and does not widen either the import or navigation budget. Exact hosted rerun remains required.
 
+Exact descendant `fff7df8` passes the complete portable and Linux-host job, installed Linux capability campaign, and
+packaged Linux update-recovery campaign in hosted run
+[`33977220148`](https://github.com/purnalica/fitfreed/actions/runs/33977220148). The corrected performance journey waits
+for complete terminal import coverage before entering History, then clears every functional, restart, adaptive-session,
+sport-catalogue, performance, replacement, and recovery assertion without a retry. This closes the exact hosted rerun
+required by the preceding finding; it does not substitute for M4.6 production authority or exact-candidate admission.
+
 Exact-source verification on 2026-09-02 exposed a timing-dependent false rejection in the dense canvas chart after
 the end boundary had visibly moved. The evidence capture showed the intended range, while the oracle could no longer
 identify the pointer-emphasized handle because ECharts had changed its palette color. The adapter now gives normal and

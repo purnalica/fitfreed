@@ -324,7 +324,7 @@ describe("TrainingSegmentationPanel", () => {
     await user.type(manualInput, "12, 8");
     expect(screen.getByRole("button", { name: "Save criterion" })).toBeDisabled();
     await user.clear(manualInput);
-    await user.type(manualInput, Array.from({ length: 100 }, (_, index) => index + 1).join(","));
+    await user.paste(Array.from({ length: 100 }, (_, index) => index + 1).join(","));
     expect(screen.getByRole("button", { name: "Save criterion" })).toBeDisabled();
     await user.clear(manualInput);
     await user.type(manualInput, "8, 12.5, 20");
