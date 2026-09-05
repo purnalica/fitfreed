@@ -55,6 +55,8 @@ signatures, signed Windows 11 exact-candidate evidence, or human evidence.
 Every project-authored text file is pinned to LF at the Git boundary while binary detection preserves binary bytes.
 This keeps source parsers, generated hashes, shell entry points, and deterministic artifacts independent of a
 contributor's or runner's `core.autocrlf` setting. Checksum-governed vendored source retains an explicit matching rule.
+Repository-relative identifiers embedded in documentation or portable evidence always use `/`, even when native path
+resolution runs on Windows; native filesystem paths retain the host separator inside their owning adapter.
 Node.js automation resolves each locked package's declared JavaScript binary and invokes it through the current Node.js
 executable; it never executes the platform-specific shim under `node_modules/.bin`. This keeps the same package entry
 point on Windows, macOS, and Linux without shell-dependent command resolution.
@@ -266,6 +268,10 @@ Commands will compose smaller versioned tasks, return meaningful exit codes, avo
 `npm run build:windows-host` is the portable all-target, all-feature desktop-host build. Rust formatting, strict Clippy,
 workspace tests, the pinned-updater test, and complete host builds use a Node.js process wrapper so environment
 variables and executable paths retain the same semantics on PowerShell and POSIX hosts.
+Native Windows process adapters pass an explicit allowlist of operating-system variables. In particular, an
+intermediate Node.js process launched by PowerShell 7 cannot pass its incompatible `PSModulePath` to Windows
+PowerShell; `powershell.exe` therefore constructs its own native module path. Protected signing values remain explicit
+operation inputs rather than inherited environment.
 
 `npm run package:windows` is the x86-64 Windows-only production-package entry point. It validates the closed Windows
 overlay before allowing Tauri to build only NSIS, and accepts only a diagnostic verbosity flag from callers. The

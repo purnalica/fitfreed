@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 
 import { e2eTargetDirectory, repositoryRoot } from "./e2e-paths.mjs";
 import { runPackagedE2e } from "./run-packaged-e2e.mjs";
+import { windowsNativeToolEnvironment } from "./windows-native-environment.mjs";
 
 export const windowsPackagedE2eContract = Object.freeze({
   applicationIdentifier: "org.fitfreed.desktop.e2e",
@@ -104,13 +105,26 @@ export function windowsPackageActionCommand({
   };
 }
 
-function runPackageAction(action, packagePath) {
+export function runWindowsPackageAction({
+  action,
+  architecture = process.arch,
+  environment = process.env,
+  packagePath,
+  platform = process.platform,
+  run = spawnSync,
+  version = packageVersion,
+}) {
   const command = windowsPackageActionCommand({
     action,
+    architecture,
     packagePath,
-    version: packageVersion,
+    platform,
+    version,
   });
-  const result = spawnSync(command.file, command.arguments, { stdio: "inherit" });
+  const result = run(command.file, command.arguments, {
+    env: windowsNativeToolEnvironment(environment),
+    stdio: "inherit",
+  });
   if (result.error) throw result.error;
   if (result.signal !== null) {
     throw new Error(`Windows E2E package ${action} was terminated by ${result.signal}`);
@@ -150,10 +164,10 @@ export function runPackagedWindowsE2e({
   let completed = false;
 
   rmSync(runRoot, { recursive: true, force: true });
-  runPackageAction("preflight", packagePath);
+  runWindowsPackageAction({ action: "preflight", environment, packagePath });
   try {
     installationAttempted = true;
-    runPackageAction("install", packagePath);
+    runWindowsPackageAction({ action: "install", environment, packagePath });
     if (!existsSync(installedExecutable) || !statSync(installedExecutable).isFile()) {
       throw new Error("the installed Windows E2E executable is unavailable");
     }
@@ -174,7 +188,9 @@ export function runPackagedWindowsE2e({
     }
     completed = true;
   } finally {
-    if (installationAttempted) runPackageAction("remove", packagePath);
+    if (installationAttempted) {
+      runWindowsPackageAction({ action: "remove", environment, packagePath });
+    }
   }
 
   if (existsSync(installedExecutable)) {

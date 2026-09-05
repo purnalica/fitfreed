@@ -73,14 +73,7 @@ function findGeneratedCargoSboms(directory, generatedFilename, results = []) {
   return results;
 }
 
-function productionCargoDependencies() {
-  const metadata = JSON.parse(
-    run(
-      "cargo",
-      ["metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version", "1", "--no-deps"],
-      { capture: true },
-    ),
-  );
+export function productionCargoDependenciesFromMetadata(metadata) {
   return new Map(
     metadata.packages
       .filter(({ id }) => metadata.workspace_members.includes(id))
@@ -91,6 +84,34 @@ function productionCargoDependencies() {
           .map(({ name }) => name),
       ]),
   );
+}
+
+function productionCargoDependencies() {
+  const metadata = JSON.parse(
+    run(
+      "cargo",
+      ["metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version", "1", "--no-deps"],
+      { capture: true },
+    ),
+  );
+  return productionCargoDependenciesFromMetadata(metadata);
+}
+
+export function cargoCycloneDxArguments(filename) {
+  return [
+    "cyclonedx",
+    "--manifest-path",
+    "src-tauri/Cargo.toml",
+    "--format",
+    "json",
+    "--no-build-deps",
+    "--spec-version",
+    "1.5",
+    "--target",
+    "all",
+    "--override-filename",
+    filename,
+  ];
 }
 
 function cargoGenerator() {
@@ -183,22 +204,9 @@ export function createCargoSboms(stagingDirectory, repositoryPath, sourceDateEpo
   const productionDependencies = productionCargoDependencies();
   const createdPaths = [];
   try {
-    run(
-      generator,
-      [
-        "cyclonedx",
-        "--manifest-path",
-        "src-tauri/Cargo.toml",
-        "--format",
-        "json",
-        "--no-build-deps",
-        "--spec-version",
-        "1.5",
-        "--override-filename",
-        prefix,
-      ],
-      { env: { SOURCE_DATE_EPOCH: sourceDateEpoch } },
-    );
+    run(generator, cargoCycloneDxArguments(prefix), {
+      env: { SOURCE_DATE_EPOCH: sourceDateEpoch },
+    });
     createdPaths.push(...findGeneratedCargoSboms(path.join(repositoryRoot, "src-tauri"), generatedFilename));
     if (createdPaths.length !== productionDependencies.size) {
       throw new Error(

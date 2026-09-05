@@ -9,6 +9,7 @@ import {
   publicUpdateUrl,
   validatePublicOriginConfiguration,
 } from "./public-origin.mjs";
+import { repositoryReferencePath } from "./repository-reference-path.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -10653,7 +10654,7 @@ for (const contractPath of [
   plannedTrainingExportDocumentPath,
   ...persistencePaths,
 ]) {
-  const relativeContract = path.relative(path.dirname(indexPath), contractPath);
+  const relativeContract = repositoryReferencePath(path.dirname(indexPath), contractPath);
   if (!index.includes(relativeContract)) {
     throw new Error(`${indexPath} does not index ${relativeContract}`);
   }

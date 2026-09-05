@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   expectedWindowsE2eNsisArtifactName,
   resolveWindowsE2eNsisPackage,
+  runWindowsPackageAction,
   windowsPackagedE2eContract,
   windowsPackageActionCommand,
 } from "./run-packaged-windows-e2e.mjs";
@@ -92,6 +93,38 @@ test("constructs bounded PowerShell actions for the exact isolated package", () 
     }),
     /requires x86-64 Windows/,
   );
+});
+
+test("isolates Windows PowerShell modules from a PowerShell 7 parent", () => {
+  const packagePath = path.resolve(
+    "src-tauri/target/e2e/release/bundle/nsis/fitfreed-e2e_0.1.0_x64-setup.exe",
+  );
+  const calls = [];
+
+  runWindowsPackageAction({
+    action: "preflight",
+    architecture: "x64",
+    environment: {
+      LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+      PATH: "C:\\Windows\\System32",
+      PSModulePath: "C:\\Program Files\\PowerShell\\7\\Modules",
+      WinPSModulePath: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules",
+    },
+    packagePath,
+    platform: "win32",
+    run(file, arguments_, options) {
+      calls.push({ arguments_, file, options });
+      return { error: undefined, signal: null, status: 0 };
+    },
+    version: "0.1.0",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].file, "powershell.exe");
+  assert.deepEqual(calls[0].options.env, {
+    LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+    PATH: "C:\\Windows\\System32",
+  });
 });
 
 test("runs installed Windows capability parity only inside complete hosted verification", () => {

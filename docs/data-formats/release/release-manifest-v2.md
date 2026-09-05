@@ -54,7 +54,7 @@ File digests cover exact bytes. The application-bundle digest covers a sorted tr
 
 ## Dependency inventories
 
-CycloneDX 1.5 JSON documents describe the production npm graph and each production Cargo workspace package. Every manifest-declared production dependency must be a direct edge from the matching Cargo SBOM root, and every component must declare a license. A development-only dependency is invalid as a direct root edge. Legitimate transitive production components remain in the inventory.
+CycloneDX 1.5 JSON documents describe the production npm graph and each production Cargo workspace package. The Cargo inventory covers all target-specific production dependency branches rather than only the host that generated the evidence, so a macOS-built evidence set still records Windows- and Linux-specific production dependencies. Every manifest-declared production dependency across those targets must be a direct edge from the matching Cargo SBOM root, and every component must declare a license. A development-only dependency is invalid as a direct root edge. Legitimate transitive production components remain in the inventory.
 
 Preparation replaces machine-local Cargo file URLs and matching dependency edges with stable `pkg:cargo` references, then rejects any remaining `file://` value or repository path.
 

@@ -55,7 +55,9 @@ Windows introduces four closed artifact kinds:
 
 Every artifact declares its owner as `darwin-aarch64`, `linux-x86_64-deb`, `windows-x86_64-nsis`, or `release`.
 Platform evidence cannot be hidden in the shared release scope. Each non-SBOM kind occurs exactly once, and at least
-one release-scoped CycloneDX SBOM is required.
+one release-scoped CycloneDX SBOM is required. Cargo SBOMs cover the direct production graph for every possible target
+rather than the host used for composition, so all three platform-specific branches remain represented in shared
+release evidence.
 
 ## Independent trust binding
 

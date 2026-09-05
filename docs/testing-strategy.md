@@ -324,7 +324,8 @@ Local and continuous-integration workflows will invoke the same underlying comma
   diagnostics identify the violated contract.
 - A separate read-only `windows-2025` capability job builds an instrumented current-user NSIS package with the isolated
   `fitfreed-e2e` product and executable names and `org.fitfreed.desktop.e2e` application identity. Its PowerShell
-  boundary refuses any pre-existing installation, registration, shortcut, or application data for that identity;
+  boundary receives only allowlisted native environment variables, refuses inherited PowerShell 7 module paths and
+  any pre-existing installation, registration, shortcut, or application data for that identity;
   silently installs the exact generated setup; verifies registration, executable metadata, and unsigned engineering
   trust; and then drives the same seven WebdriverIO functional, restart, adaptive-session, sport-catalogue, and
   performance scenarios against the installed executable. Real-process restart evidence uses an exact executable-path
