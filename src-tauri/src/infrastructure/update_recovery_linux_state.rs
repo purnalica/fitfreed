@@ -2145,11 +2145,11 @@ fn open_private_lock_file(
 }
 
 struct FileLock {
-    file: File,
+    _file: File,
 }
 
 struct StateLock {
-    file: File,
+    _file: File,
 }
 
 impl StateLock {
@@ -2161,7 +2161,7 @@ impl StateLock {
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
             return Err(io::Error::last_os_error().into());
         }
-        Ok(Self { file })
+        Ok(Self { _file: file })
     }
 
     #[cfg(not(unix))]
@@ -2176,7 +2176,7 @@ impl Drop for StateLock {
         {
             use std::os::fd::AsRawFd;
 
-            let _ = unsafe { libc::flock(self.file.as_raw_fd(), libc::LOCK_UN) };
+            let _ = unsafe { libc::flock(self._file.as_raw_fd(), libc::LOCK_UN) };
         }
     }
 }
@@ -2189,7 +2189,7 @@ impl FileLock {
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
             return Err(LinuxRecoveryStateError::ActiveAttemptExists);
         }
-        Ok(Self { file })
+        Ok(Self { _file: file })
     }
 
     #[cfg(not(unix))]
@@ -2204,7 +2204,7 @@ impl Drop for FileLock {
         {
             use std::os::fd::AsRawFd;
 
-            let _ = unsafe { libc::flock(self.file.as_raw_fd(), libc::LOCK_UN) };
+            let _ = unsafe { libc::flock(self._file.as_raw_fd(), libc::LOCK_UN) };
         }
     }
 }

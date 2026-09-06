@@ -148,7 +148,7 @@ pub(crate) fn sync_regular_file(path: &Path) -> io::Result<()> {
                 "file synchronization target is not a regular file",
             ));
         }
-        return file.sync_all();
+        file.sync_all()
     }
     #[cfg(not(windows))]
     {

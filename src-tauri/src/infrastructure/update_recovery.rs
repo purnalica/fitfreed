@@ -260,7 +260,7 @@ impl UpdateRecoveryCandidateLease {
         &self.launch_nonce
     }
 
-    #[cfg(all(test, not(target_os = "linux")))]
+    #[cfg(all(test, target_os = "macos"))]
     pub(crate) fn for_test(file: File, recovery_id: String, launch_nonce: String) -> Self {
         Self {
             _file: file,

@@ -3747,6 +3747,23 @@ passes the exact four-lane interaction, both handle movements, every subsequent 
 budgets. The complete clean gate must still repeat on the committed correction; focused evidence alone is not final
 admission.
 
+**Linux canvas-oracle checkpoint — 2026-09-06:** exact source `5e9c893` passes the exhaustive installed Linux
+functional journey, its distinct restart, adaptive session composition, and sport-catalogue restart before the dense
+Insights gate rejects the maximum four-lane canvas start-handle movement. The failure screenshot retains both slider
+handles. Diagnostic coordinates place the generated event about 60 pixels above the observed handle because the
+oracle averages every matching accent pixel in one x-column, including an unrelated chart mark. The corrected oracle
+discovers distinct two-dimensional accent components and selects the lowest vertically aligned pair with a credible
+track span. It retains the requirement that both rendered handles move at least 20 logical pixels and does not accept
+a renderer fingerprint as evidence. Its focused source contract passes; exact packaged evidence remains required.
+
+The same source passes the exhaustive installed Windows functional journey, process restart, adaptive session
+composition and restart, and sport-catalogue recognition and restart. Its first single-series chart drag does not
+move the rendered SVG handle because zrender selects native pointer listeners under WebView2 while the driver emits
+only mouse events. Event diagnostics prove that the intended coordinates reached the viewport but no zrender event
+was produced. The corrected driver mirrors zrender's listener selection and emits a complete pointer stream on
+WebView2 while retaining mouse events elsewhere. It preserves the same stable viewport target, coordinates, sustained
+input, and rendered-handle movement requirement. Exact packaged Windows evidence remains required.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,

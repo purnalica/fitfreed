@@ -647,63 +647,126 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
       canvas.width,
       canvas.height - scanTop,
     );
-    const columnCounts = new Uint16Array(canvas.width);
-    const columnYTotals = new Uint32Array(canvas.width);
+    const pixelMatchesAccent = (x, y) => {
+      const offset = (y * pixels.width + x) * 4;
+      const red = pixels.data[offset];
+      const green = pixels.data[offset + 1];
+      const blue = pixels.data[offset + 2];
+      const alpha = pixels.data[offset + 3];
+      return alpha > 200 && resolvedAccentChannels !== null
+        && Math.abs(red - resolvedAccentChannels[0]) <= 12
+        && Math.abs(green - resolvedAccentChannels[1]) <= 12
+        && Math.abs(blue - resolvedAccentChannels[2]) <= 12;
+    };
+    const visited = new Uint8Array(pixels.width * pixels.height);
+    const components = [];
     for (let y = 0; y < pixels.height; y += 1) {
       for (let x = 0; x < pixels.width; x += 1) {
-        const offset = (y * pixels.width + x) * 4;
-        const red = pixels.data[offset];
-        const green = pixels.data[offset + 1];
-        const blue = pixels.data[offset + 2];
-        const alpha = pixels.data[offset + 3];
-        if (alpha > 200 && resolvedAccentChannels !== null
-          && Math.abs(red - resolvedAccentChannels[0]) <= 12
-          && Math.abs(green - resolvedAccentChannels[1]) <= 12
-          && Math.abs(blue - resolvedAccentChannels[2]) <= 12) {
-          columnCounts[x] += 1;
-          columnYTotals[x] += y + scanTop;
-        }
-      }
-    }
-    const clusters = [];
-    const minimumHandleHeight = Math.max(8, Math.floor(canvas.height * 0.025));
-    for (let x = 0; x < columnCounts.length; x += 1) {
-      if (columnCounts[x] < minimumHandleHeight) continue;
-      const last = clusters.at(-1);
-      if (last && x === last.through + 1) {
-        last.through = x;
-        last.pixelCount += columnCounts[x];
-        last.yTotal += columnYTotals[x];
-      } else {
-        clusters.push({
+        const startIndex = y * pixels.width + x;
+        if (visited[startIndex]) continue;
+        visited[startIndex] = 1;
+        if (!pixelMatchesAccent(x, y)) continue;
+        const pending = [startIndex];
+        const component = {
+          bottom: y + scanTop,
           from: x,
+          pixelCount: 0,
           through: x,
-          pixelCount: columnCounts[x],
-          yTotal: columnYTotals[x],
+          top: y + scanTop,
+          xTotal: 0,
+          yTotal: 0,
+        };
+        while (pending.length > 0) {
+          const index = pending.pop();
+          const componentX = index % pixels.width;
+          const componentY = Math.floor(index / pixels.width);
+          const absoluteY = componentY + scanTop;
+          component.bottom = Math.max(component.bottom, absoluteY);
+          component.from = Math.min(component.from, componentX);
+          component.pixelCount += 1;
+          component.through = Math.max(component.through, componentX);
+          component.top = Math.min(component.top, absoluteY);
+          component.xTotal += componentX;
+          component.yTotal += absoluteY;
+          const neighbours = [
+            [componentX - 1, componentY],
+            [componentX + 1, componentY],
+            [componentX, componentY - 1],
+            [componentX, componentY + 1],
+          ];
+          for (const [neighbourX, neighbourY] of neighbours) {
+            if (neighbourX < 0 || neighbourX >= pixels.width
+              || neighbourY < 0 || neighbourY >= pixels.height) continue;
+            const neighbourIndex = neighbourY * pixels.width + neighbourX;
+            if (visited[neighbourIndex]) continue;
+            visited[neighbourIndex] = 1;
+            if (pixelMatchesAccent(neighbourX, neighbourY)) {
+              pending.push(neighbourIndex);
+            }
+          }
+        }
+        components.push({
+          ...component,
+          centerX: component.xTotal / component.pixelCount,
+          centerY: component.yTotal / component.pixelCount,
+          height: component.bottom - component.top + 1,
+          width: component.through - component.from + 1,
         });
       }
     }
-    if (clusters.length < 2) return {
+    const minimumHandleHeight = Math.max(8, Math.floor(canvas.height * 0.025));
+    const maximumHandleHeight = Math.max(48, Math.floor(canvas.height * 0.20));
+    const maximumHandleWidth = Math.max(24, Math.floor(canvas.width * 0.02));
+    const handleCandidates = components.filter((component) => (
+      component.width >= 2
+      && component.width <= maximumHandleWidth
+      && component.height >= minimumHandleHeight
+      && component.height <= maximumHandleHeight
+    ));
+    const alignedHandlePairs = [];
+    const verticalTolerance = Math.max(8, Math.floor(canvas.height * 0.04));
+    const minimumTrackWidth = canvas.width * 0.25;
+    for (let leftIndex = 0; leftIndex < handleCandidates.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < handleCandidates.length; rightIndex += 1) {
+        const ordered = [handleCandidates[leftIndex], handleCandidates[rightIndex]]
+          .sort((left, right) => left.centerX - right.centerX);
+        const [left, right] = ordered;
+        const span = right.centerX - left.centerX;
+        if (span < minimumTrackWidth
+          || Math.abs(left.centerY - right.centerY) > verticalTolerance) continue;
+        alignedHandlePairs.push({
+          centerY: (left.centerY + right.centerY) / 2,
+          left,
+          right,
+          span,
+        });
+      }
+    }
+    alignedHandlePairs.sort((left, right) => (
+      right.centerY - left.centerY || right.span - left.span
+    ));
+    const selectedPair = alignedHandlePairs[0];
+    if (!selectedPair) return {
       diagnostic: "slider handles were not identified",
       inspectedShapes: {
         canvasHeight: canvas.height,
         canvasWidth: canvas.width,
         expectedAccent: resolvedAccent,
-        qualifyingClusters: clusters,
+        qualifyingComponents: handleCandidates,
         scanTop,
       },
     };
-    const startHandle = clusters[0];
-    const endHandle = clusters.at(-1);
+    const startHandle = selectedPair.left;
+    const endHandle = selectedPair.right;
     const canvasScaleX = bounds.width / canvas.width;
     const canvasScaleY = bounds.height / canvas.height;
-    const trackLeft = bounds.left + ((startHandle.from + startHandle.through) / 2) * canvasScaleX;
-    const trackRight = bounds.left + ((endHandle.from + endHandle.through) / 2) * canvasScaleX;
+    const trackLeft = bounds.left + startHandle.centerX * canvasScaleX;
+    const trackRight = bounds.left + endHandle.centerX * canvasScaleX;
     const selectedHandle = expectedBoundary === "start" ? startHandle : endHandle;
     return {
       fromX: expectedBoundary === "start" ? trackLeft : trackRight,
       targetX: trackLeft + (trackRight - trackLeft) * expectedTarget,
-      y: bounds.top + (selectedHandle.yTotal / selectedHandle.pixelCount) * canvasScaleY,
+      y: bounds.top + selectedHandle.centerY * canvasScaleY,
       rendererBounds: {
         height: bounds.height,
         left: bounds.left,
@@ -741,11 +804,20 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
     const channel = new MessageChannel();
     const steps = 60;
     const observedEvents = [];
+    const zrenderUsesPointerEvents = typeof PointerEvent === "function"
+      && "onpointerdown" in window
+      && /Edge?\/[\d.]+/.test(navigator.userAgent);
+    const pointerEventTypes = {
+      mousedown: "pointerdown",
+      mousemove: "pointermove",
+      mouseup: "pointerup",
+    };
     let step = 0;
 
     function dispatch(type, clientX, buttons) {
       const rootBounds = viewportRoot.getBoundingClientRect();
-      const inputEvent = new MouseEvent(type, {
+      const nativeType = zrenderUsesPointerEvents ? pointerEventTypes[type] : type;
+      const eventInit = {
         bubbles: true,
         button: 0,
         buttons,
@@ -753,7 +825,15 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
         clientX,
         clientY: coordinates.y,
         view: window,
-      });
+      };
+      const inputEvent = zrenderUsesPointerEvents
+        ? new PointerEvent(nativeType, {
+          ...eventInit,
+          isPrimary: true,
+          pointerId: 1,
+          pointerType: "mouse",
+        })
+        : new MouseEvent(nativeType, eventInit);
       Object.defineProperties(inputEvent, {
         offsetX: { value: clientX - rootBounds.left },
         offsetY: { value: coordinates.y - rootBounds.top },
@@ -765,7 +845,7 @@ async function dragChartZoomBoundary(selector, boundary, targetFraction) {
           defaultPrevented: inputEvent.defaultPrevented,
           offsetX: inputEvent.offsetX,
           offsetY: inputEvent.offsetY,
-          type,
+          type: nativeType,
           viewportCursor: viewportRoot.style.cursor,
           which: inputEvent.which,
           zrX: inputEvent.zrX ?? null,

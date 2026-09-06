@@ -998,7 +998,7 @@ fn query_version_translations(buffer: &[u32]) -> Result<Vec<(u16, u16)>, io::Err
     } == 0
         || value.is_null()
         || byte_length == 0
-        || byte_length % 4 != 0
+        || !byte_length.is_multiple_of(4)
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,

@@ -644,6 +644,12 @@ test("drives sustained range input without animation-frame visibility", () => {
   assert.match(chartInteraction, /Object\.defineProperties\(inputEvent/);
   assert.match(chartInteraction, /offsetX/);
   assert.match(chartInteraction, /offsetY/);
+  assert.match(chartInteraction, /const zrenderUsesPointerEvents/);
+  assert.match(chartInteraction, /navigator\.userAgent/);
+  assert.match(chartInteraction, /new PointerEvent/);
+  assert.match(chartInteraction, /pointerdown/);
+  assert.match(chartInteraction, /pointermove/);
+  assert.match(chartInteraction, /pointerup/);
   assert.match(chartInteraction, /dispatch\("mousemove", coordinates\.fromX, 0\)/);
   assert.match(chartInteraction, /inspectChartZoomGeometry/);
   assert.match(chartInteraction, /Math\.abs\(/);
@@ -674,6 +680,10 @@ test("locates analytical zoom handles from the active appearance palette", () =>
   assert.match(geometryInspection, /resolvedAccentChannels/);
   assert.match(geometryInspection, /matchesAccent/);
   assert.match(geometryInspection, /canvas\.height \* 0\.70/);
+  assert.match(geometryInspection, /const components = \[\]/);
+  assert.match(geometryInspection, /const alignedHandlePairs = \[\]/);
+  assert.match(geometryInspection, /selectedPair/);
+  assert.doesNotMatch(geometryInspection, /columnYTotals/);
   assert.match(geometryInspection, /slider handles were not identified/);
   assert.doesNotMatch(geometryInspection, /green < 150/);
   assert.doesNotMatch(geometryInspection, /#1f583f/);

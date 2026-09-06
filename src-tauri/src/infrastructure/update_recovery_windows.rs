@@ -787,7 +787,7 @@ fn read_registry_utf16(subkey: &str, value_name: &str) -> Result<Vec<u16>, io::E
             &mut byte_length,
         )
     };
-    if first != ERROR_SUCCESS || byte_length < 2 || byte_length % 2 != 0 {
+    if first != ERROR_SUCCESS || byte_length < 2 || !byte_length.is_multiple_of(2) {
         return Err(io::Error::from_raw_os_error(first as i32));
     }
     let mut buffer = vec![0_u16; byte_length as usize / 2];
@@ -805,7 +805,8 @@ fn read_registry_utf16(subkey: &str, value_name: &str) -> Result<Vec<u16>, io::E
     if second != ERROR_SUCCESS {
         return Err(io::Error::from_raw_os_error(second as i32));
     }
-    if byte_length < 2 || byte_length % 2 != 0 || byte_length as usize > buffer.len() * 2 {
+    if byte_length < 2 || !byte_length.is_multiple_of(2) || byte_length as usize > buffer.len() * 2
+    {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "invalid registry string length",

@@ -68,7 +68,7 @@ impl LinuxNativePackageIdentity {
         Path::new(INSTALLED_DESKTOP_ENTRY_PATH)
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, unix))]
     pub(crate) fn for_test(version: &str) -> Self {
         Self {
             version: version.to_owned(),
@@ -101,7 +101,7 @@ impl LinuxRecoveryProcessIdentity {
         &self.executable_path
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, unix))]
     pub(crate) fn for_test(process_id: u32, boot_id: &str, start_time_clock_ticks: u64) -> Self {
         Self {
             process_id,
