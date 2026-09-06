@@ -46,6 +46,35 @@ Every implementation loop must:
 The complete acceptance matrix remains mandatory. This policy changes when evidence is gathered, not which product,
 security, recovery, accessibility, localization, performance, or documentation requirements must pass.
 
+## Goal lifecycle discipline
+
+An autonomous goal must represent one reviewable product or delivery outcome. It must not remain open as a historical
+umbrella for several completed milestones, later corrective programmes, and unrelated release gates.
+
+Before implementation starts, the owning execution plan must state:
+
+- The exact outcome whose acceptance state will change when the goal completes.
+- The finite exit criteria and the evidence owner for each criterion.
+- The capabilities explicitly outside the goal, including valuable adjacent work that does not block its outcome.
+- The human gates that may remain open after all autonomous work is complete.
+
+Only one unresolved implementation boundary may be active at a time. New findings enter the owning backlog unless
+they invalidate that boundary or make its evidence untrustworthy. Progress is the proportion of exit criteria proved,
+not elapsed time, commands run, commits made, tests executed, or documentation produced.
+
+A goal closes when its finite autonomous exit criteria pass and every remaining external decision is recorded at its
+documented human gate. A later milestone, platform, corrective programme, or publication decision starts a separate
+goal instead of silently extending the existing one.
+
+The execution loop must stop for a process review before further broad verification when either condition occurs:
+
+- The same acceptance boundary fails after two causal corrections.
+- An equivalent complete campaign would run more than once for unchanged executable inputs.
+
+The review must identify the repeated uncertainty, challenge the current test or implementation boundary, remove
+superseded work, and record the narrower next experiment. It must not weaken an acceptance criterion or raise a
+product budget merely to make the loop end.
+
 ## Human intervention gates
 
 Execution pauses only for:
