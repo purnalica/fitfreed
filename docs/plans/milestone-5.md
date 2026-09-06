@@ -9,13 +9,13 @@ remains ordered after the accepted public Linux MVP.
 
 | Field | Boundary |
 |---|---|
-| Acceptance outcome | Windows native host passes strict all-target Clippy before NSIS construction. |
-| Exact evidence | Source `48a88d3`, hosted job `101532033629`: `InteractiveShellSignal::with_runtime_output` is dead code in the non-test Windows library target. |
-| Causal hypothesis | The test constructor is admitted by `target_os = "windows"` even though only the test module calls it; Windows all-target lint therefore compiles an unused production helper. |
-| Smallest falsifying test | The retained-output Rust unit contract followed by strict all-target Clippy on the Windows host. |
-| Allowed change | Test-only compilation scope in `src-tauri/src/lib.rs`; the CI classifier and workflow needed to execute only this native boundary; their focused contracts; and the canonical execution, automation, testing, and readiness documentation they change. |
-| Evidence retained | Repository safety, portable/Linux host checks, and unrelated packaged platform evidence remain valid for their exact executable fingerprint and are not rerun by this correction. |
-| Exit or stop | Exit when the focused unit contract and Windows strict lint pass. Stop without another correction if the native result contradicts the hypothesis, then replace this record with the newly observed causal boundary. |
+| Acceptance outcome | Windows-native presentation verification completes with each independent behavior inside the five-second case budget, allowing the host to reach strict lint and NSIS verification. |
+| Exact evidence | Source `3f2a081`, hosted run `34052818811`, job `101539383698`: 494 presentation tests pass, while a 262-line application journey and a 155-line report journey each time out at five seconds before Windows Rust verification begins. The same source passes all 496 tests on the Linux host. |
+| Causal hypothesis | The two cases accumulated independent detail, filtering, comparison, navigation, localization, validation, composition, privacy, and reopening contracts as their original increments evolved. Their aggregate scheduling cost, rather than one slow product behavior, crosses the per-case budget on Windows. |
+| Smallest falsifying test | The six behavior-specific cases produced by separating those contracts, followed by the complete presentation suite on the Windows host. Each focused case must remain below five seconds without changing the global or per-case timeout. |
+| Allowed change | Test composition and shared journey setup in `src/App.test.tsx` and `src/presentation/ReportsPanel.test.tsx`, plus this exact evidence record. Assertions, product behavior, production code, and test budgets may not change. |
+| Evidence retained | Run `34052200258` proves the complete portable/Linux host boundary for source `3f2a081`; run `34052818811` proves every Windows check through portable Windows automation and explicitly skips every unrelated packaged E2E campaign. |
+| Exit or stop | Exit when all six focused contracts and the complete Windows presentation suite pass under the existing budget, then continue the same focused host boundary to the previously blocked strict lint and NSIS gates. Stop if any separated contract still exceeds the budget or reveals a functional failure. |
 
 | Increment | Status | Current evidence boundary |
 |---|---|---|

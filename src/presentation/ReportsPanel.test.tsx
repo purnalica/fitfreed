@@ -784,6 +784,52 @@ function renderPanel(properties: Partial<ComponentProps<typeof ReportsPanel>> = 
   return { onReturnToOrigin };
 }
 
+async function addEveryTrainingComparisonView(user: ReturnType<typeof userEvent.setup>) {
+  for (const block of [
+    "Key finding",
+    "Period comparison",
+    "Comparison chart",
+    "Exact values",
+    "Coverage and missing data",
+  ]) {
+    await user.click(await screen.findByRole("button", { name: `Add ${block}` }));
+  }
+}
+
+async function setReportDate(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  value: string,
+) {
+  const input = screen.getByLabelText(label);
+  await user.clear(input);
+  await user.type(input, value);
+  expect(input).toHaveValue(value);
+}
+
+async function fillTrainingComparisonReport(
+  user: ReturnType<typeof userEvent.setup>,
+  baselineStart: string,
+) {
+  await addEveryTrainingComparisonView(user);
+  await setReportDate(user, "Baseline starts", baselineStart);
+  await setReportDate(user, "Baseline ends", "2026-01-31");
+  await setReportDate(user, "Comparison starts", "2026-02-01");
+  await setReportDate(user, "Comparison ends", "2026-02-28");
+  const metrics = screen.getAllByLabelText("Measurement");
+  await user.selectOptions(metrics[0], "energy");
+  await user.selectOptions(metrics[1], "distance");
+  expect(metrics[0]).toHaveValue("energy");
+  expect(metrics[1]).toHaveValue("distance");
+  await user.clear(screen.getByLabelText("Report title"));
+  await user.type(screen.getByLabelText("Report title"), "Winter training comparison");
+  await user.click(screen.getByRole("button", { name: "Add commentary" }));
+  await user.type(
+    screen.getByLabelText(/^Your commentary/),
+    "Volume increased while measurement coverage also improved.",
+  );
+}
+
 beforeEach(() => {
   mocks.invoke.mockReset();
   mocks.reportExamples.mockReset();
@@ -2897,62 +2943,23 @@ describe("ReportsPanel", () => {
     ));
   });
 
-  it("builds, validates, saves, previews, removes, and reopens every training comparison view", async () => {
+  it("builds, removes, and validates every training comparison view", async () => {
     const user = userEvent.setup();
-    let saved: ReportDefinition | undefined;
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_report_library") return Promise.resolve(reportLibraryPage(
-        saved ? [libraryItemFromDefinition(saved)] : [],
-      ));
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
       if (command === "query_training_session_routes") {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
       }
-      if (command === "create_report") {
-        saved = analyticalDefinition();
-        return Promise.resolve(saved);
-      }
-      if (command === "resolve_report") return Promise.resolve(analyticalResolution());
       throw new Error(`Unexpected command: ${command}`);
     });
 
     renderPanel();
-    for (const block of [
-      "Key finding",
-      "Period comparison",
-      "Comparison chart",
-      "Exact values",
-      "Coverage and missing data",
-    ]) {
-      await user.click(await screen.findByRole("button", { name: `Add ${block}` }));
-    }
+    await fillTrainingComparisonReport(user, "2026-03-01");
     expect(screen.getByText("All available comparison views are in this report.")).toBeVisible();
     const removeButtons = screen.getAllByRole("button", { name: "Remove block" });
     await user.click(removeButtons.at(-1)!);
     expect(screen.getByRole("button", { name: "Add Coverage and missing data" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Add Coverage and missing data" }));
-
-    const setDate = async (label: string, value: string) => {
-      const input = screen.getByLabelText(label);
-      await user.clear(input);
-      await user.type(input, value);
-      expect(input).toHaveValue(value);
-    };
-    await setDate("Baseline starts", "2026-03-01");
-    await setDate("Baseline ends", "2026-01-31");
-    await setDate("Comparison starts", "2026-02-01");
-    await setDate("Comparison ends", "2026-02-28");
-    const metrics = screen.getAllByLabelText("Measurement");
-    await user.selectOptions(metrics[0], "energy");
-    await user.selectOptions(metrics[1], "distance");
-    expect(metrics[0]).toHaveValue("energy");
-    expect(metrics[1]).toHaveValue("distance");
-    await user.clear(screen.getByLabelText("Report title"));
-    await user.type(screen.getByLabelText("Report title"), "Winter training comparison");
-    await user.click(screen.getByRole("button", { name: "Add commentary" }));
-    await user.type(
-      screen.getByLabelText(/^Your commentary/),
-      "Volume increased while measurement coverage also improved.",
-    );
 
     await user.click(screen.getByRole("button", { name: "Save report" }));
     const comparisonError = await screen.findByRole("alert");
@@ -2974,7 +2981,28 @@ describe("ReportsPanel", () => {
       "create_report",
       expect.anything(),
     );
-    await setDate("Baseline starts", "2026-01-01");
+  });
+
+  it("saves, previews, privacy-reviews, and reopens every training comparison view", async () => {
+    const user = userEvent.setup();
+    let saved: ReportDefinition | undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage(
+        saved ? [libraryItemFromDefinition(saved)] : [],
+      ));
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
+      if (command === "create_report") {
+        saved = analyticalDefinition();
+        return Promise.resolve(saved);
+      }
+      if (command === "resolve_report") return Promise.resolve(analyticalResolution());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel();
+    await fillTrainingComparisonReport(user, "2026-01-01");
     await user.click(screen.getByRole("button", { name: "Save report" }));
 
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(

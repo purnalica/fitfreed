@@ -1091,6 +1091,104 @@ async function changeLanguageToSpanish(
   await user.click(screen.getByRole("button", { name: destinationName }));
 }
 
+function givenTrainingHistoryJourney() {
+  offerExploration("training");
+  const earlier: TestTrainingSession = {
+    sessionRef: "earlier-session",
+    startedAtLocal: "2026-01-18T08:00:00",
+    stoppedAtLocal: "2026-01-18T08:30:01.001",
+    utcOffsetMinutes: null,
+    durationMilliseconds: "1801001",
+    distanceMeters: null,
+    energyKilocalories: "250",
+    averageHeartRateBpm: null,
+    maximumHeartRateBpm: null,
+    sportRef: null,
+    exerciseCount: null,
+  };
+  const later: TestTrainingSession = {
+    sessionRef: "later-session",
+    startedAtLocal: "2026-01-20T09:00:00",
+    stoppedAtLocal: "2026-01-20T10:00:00",
+    utcOffsetMinutes: 60,
+    durationMilliseconds: "3600000",
+    distanceMeters: 5000.25,
+    energyKilocalories: "500",
+    averageHeartRateBpm: "140",
+    maximumHeartRateBpm: "170",
+    sportRef: "opaque-sport-a",
+    exerciseCount: 1,
+  };
+  const fullOverview = trainingOverview([later, earlier]);
+  const baseline = trainingOverview(
+    [earlier],
+    { from: "2026-01-18", through: "2026-01-18" },
+  ).series[0].summary;
+  const comparison = trainingOverview(
+    [later],
+    { from: "2026-01-20", through: "2026-01-20" },
+  ).series[0].summary;
+  const comparisonResult: TestTrainingComparison = {
+    availableRange: fullOverview.availableRange,
+    baselineRange: { from: "2026-01-18", through: "2026-01-18" },
+    comparisonRange: { from: "2026-01-20", through: "2026-01-20" },
+    series: [{
+      seriesRef: "synthetic-origin",
+      baseline,
+      comparison,
+      sessionCountChange: "0",
+      trainingDayChange: "0",
+      durationMillisecondsChange: "1798999",
+      distanceMetersChange: null,
+      energyKilocaloriesChange: "250",
+    }],
+  };
+  mocks.invoke.mockImplementation((command, arguments_) => {
+    if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+    if (command === "query_training_sessions") {
+      return Promise.resolve(trainingSessionSearchPage(
+        arguments_.request.from === "2026-01-20" ? [later] : [later, earlier],
+      ));
+    }
+    if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
+    if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+    if (command === "prepare_report_start") return Promise.resolve({
+      sourceSnapshotRef: "snapshot-current",
+      origin: {
+        kind: "exploration",
+        query: arguments_.start.query,
+      },
+      suggestedQuery: arguments_.start.query,
+    });
+    if (command === "query_session_story") {
+      const selectedSession = trainingSessionSearchPage([later]).sessions[0];
+      return Promise.resolve(testSessionStory(
+        selectedSession,
+        arguments_.query.snapshotRef,
+        "opaque-exercise",
+      ));
+    }
+    if (command === "query_training_session_segmentation") {
+      return Promise.resolve({
+        snapshotRef: "snapshot-current",
+        sessionRef: arguments_.query.sessionRef,
+        availableCriteria: [],
+        exercises: [{
+          exerciseRef: "opaque-exercise",
+          ordinal: 0,
+          durationMilliseconds: later.durationMilliseconds,
+          appliedCriteria: [],
+        }],
+      });
+    }
+    if (command === "query_session_planned_training_relation") {
+      return Promise.resolve(absentPlannedTrainingRelation(arguments_));
+    }
+    if (command === "query_latest_import_outcome") return Promise.resolve(null);
+    throw new Error(`Unexpected command: ${command}`);
+  });
+}
+
 describe("FitFreed import interface", () => {
   it("owns first-run Home in the application sidebar before presenting source mechanics", async () => {
     emptyLibrary();
@@ -4534,104 +4632,10 @@ describe("FitFreed import interface", () => {
     expect(await screen.findAllByText("River paddling")).not.toHaveLength(0);
   });
 
-  it("explores, filters, details, compares, localizes, and reloads training sessions", async () => {
-    offerExploration("training");
-    const earlier: TestTrainingSession = {
-      sessionRef: "earlier-session",
-      startedAtLocal: "2026-01-18T08:00:00",
-      stoppedAtLocal: "2026-01-18T08:30:01.001",
-      utcOffsetMinutes: null,
-      durationMilliseconds: "1801001",
-      distanceMeters: null,
-      energyKilocalories: "250",
-      averageHeartRateBpm: null,
-      maximumHeartRateBpm: null,
-      sportRef: null,
-      exerciseCount: null,
-    };
-    const later: TestTrainingSession = {
-      sessionRef: "later-session",
-      startedAtLocal: "2026-01-20T09:00:00",
-      stoppedAtLocal: "2026-01-20T10:00:00",
-      utcOffsetMinutes: 60,
-      durationMilliseconds: "3600000",
-      distanceMeters: 5000.25,
-      energyKilocalories: "500",
-      averageHeartRateBpm: "140",
-      maximumHeartRateBpm: "170",
-      sportRef: "opaque-sport-a",
-      exerciseCount: 1,
-    };
-    const fullOverview = trainingOverview([later, earlier]);
-    const baseline = trainingOverview(
-      [earlier],
-      { from: "2026-01-18", through: "2026-01-18" },
-    ).series[0].summary;
-    const comparison = trainingOverview(
-      [later],
-      { from: "2026-01-20", through: "2026-01-20" },
-    ).series[0].summary;
-    const comparisonResult: TestTrainingComparison = {
-      availableRange: fullOverview.availableRange,
-      baselineRange: { from: "2026-01-18", through: "2026-01-18" },
-      comparisonRange: { from: "2026-01-20", through: "2026-01-20" },
-      series: [{
-        seriesRef: "synthetic-origin",
-        baseline,
-        comparison,
-        sessionCountChange: "0",
-        trainingDayChange: "0",
-        durationMillisecondsChange: "1798999",
-        distanceMetersChange: null,
-        energyKilocaloriesChange: "250",
-      }],
-    };
-    mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_sessions") {
-        return Promise.resolve(trainingSessionSearchPage(
-          arguments_.request.from === "2026-01-20" ? [later] : [later, earlier],
-        ));
-      }
-      if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
-      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
-      if (command === "prepare_report_start") return Promise.resolve({
-        sourceSnapshotRef: "snapshot-current",
-        origin: {
-          kind: "exploration",
-          query: arguments_.start.query,
-        },
-        suggestedQuery: arguments_.start.query,
-      });
-      if (command === "query_session_story") {
-        const selectedSession = trainingSessionSearchPage([later]).sessions[0];
-        return Promise.resolve(testSessionStory(
-          selectedSession,
-          arguments_.query.snapshotRef,
-          "opaque-exercise",
-        ));
-      }
-      if (command === "query_training_session_segmentation") {
-        return Promise.resolve({
-          snapshotRef: "snapshot-current",
-          sessionRef: arguments_.query.sessionRef,
-          availableCriteria: [],
-          exercises: [{
-            exerciseRef: "opaque-exercise",
-            ordinal: 0,
-            durationMilliseconds: later.durationMilliseconds,
-            appliedCriteria: [],
-          }],
-        });
-      }
-      if (command === "query_session_planned_training_relation") {
-        return Promise.resolve(absentPlannedTrainingRelation(arguments_));
-      }
-      if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      throw new Error(`Unexpected command: ${command}`);
-    });
+  it("opens recorded training detail and returns to the same results", async () => {
+    givenTrainingHistoryJourney();
     const user = userEvent.setup();
-    const view = render(<App />);
+    render(<App />);
     await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
     const workspaceNavigation = within(training).getByRole("navigation", {
@@ -4689,7 +4693,14 @@ describe("FitFreed import interface", () => {
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(training).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
+  });
 
+  it("applies and clears training-session filters", async () => {
+    givenTrainingHistoryJourney();
+    const user = userEvent.setup();
+    render(<App />);
+    await enterExploration(user, "training");
+    const training = await screen.findByRole("region", { name: "Training history" });
     const filter = within(training).getByRole("form", { name: "Filter sessions" });
     await user.clear(within(filter).getByLabelText("From date"));
     await user.type(within(filter).getByLabelText("From date"), "2026-01-20");
@@ -4710,7 +4721,17 @@ describe("FitFreed import interface", () => {
     await user.click(within(filter).getByRole("button", { name: "Clear filters" }));
     await waitFor(() => expect(within(training)
       .getAllByRole("button", { name: /View session details/ })).toHaveLength(2));
+  });
 
+  it("compares training periods and returns from report composition", async () => {
+    givenTrainingHistoryJourney();
+    const user = userEvent.setup();
+    render(<App />);
+    await enterExploration(user, "training");
+    const training = await screen.findByRole("region", { name: "Training history" });
+    const workspaceNavigation = within(training).getByRole("navigation", {
+      name: "Training workspace",
+    });
     await user.click(within(workspaceNavigation).getByRole("button", {
       name: "Compare periods",
     }));
@@ -4773,6 +4794,17 @@ describe("FitFreed import interface", () => {
       .not.toBeInTheDocument();
 
     await user.click(within(workspaceNavigation).getByRole("button", { name: "Sessions" }));
+    expect(within(workspaceNavigation).getByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+  });
+
+  it("localizes and restores training history after invalid filters", async () => {
+    givenTrainingHistoryJourney();
+    const user = userEvent.setup();
+    const view = render(<App />);
+    await enterExploration(user, "training");
+    const training = await screen.findByRole("region", { name: "Training history" });
+    const filter = within(training).getByRole("form", { name: "Filter sessions" });
     await user.clear(within(filter).getByLabelText("From date"));
     await user.type(within(filter).getByLabelText("From date"), "2026-01-21");
     await user.clear(within(filter).getByLabelText("Through date"));
