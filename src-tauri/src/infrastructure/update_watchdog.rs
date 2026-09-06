@@ -34,6 +34,7 @@ use super::{
 
 pub(super) const INSTALLATION_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 pub(super) const REPLACEMENT_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(60);
+#[cfg(unix)]
 pub(super) const PROCESS_STOP_TIMEOUT: Duration = Duration::from_secs(5);
 pub(super) const POLL_INTERVAL: Duration = Duration::from_millis(100);
 const RESTORATION_RETRY_INTERVAL: Duration = Duration::from_millis(250);
@@ -623,6 +624,7 @@ pub(super) fn stop_original_parent(_process_id: u32) -> Result<(), UpdateRecover
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
     use std::cell::Cell;
 
     use super::*;

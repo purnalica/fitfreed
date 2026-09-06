@@ -142,9 +142,13 @@ mod tests {
     use std::{
         cell::RefCell,
         io::{Error, ErrorKind},
-        os::unix::process::ExitStatusExt,
         process::{ExitStatus, Output},
     };
+
+    #[cfg(unix)]
+    use std::os::unix::process::ExitStatusExt;
+    #[cfg(windows)]
+    use std::os::windows::process::ExitStatusExt;
 
     use fitfreed_application::{
         query_source_acquisition_guides, ExpectedSourceArchive, LocalePreference,
@@ -185,8 +189,12 @@ mod tests {
     }
 
     fn output(code: i32) -> Output {
+        #[cfg(unix)]
+        let status = ExitStatus::from_raw(code << 8);
+        #[cfg(windows)]
+        let status = ExitStatus::from_raw(code as u32);
         Output {
-            status: ExitStatus::from_raw(code << 8),
+            status,
             stdout: Vec::new(),
             stderr: Vec::new(),
         }

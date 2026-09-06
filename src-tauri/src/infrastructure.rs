@@ -173,7 +173,7 @@ mod update_recovery_windows_package;
 mod update_recovery_windows_state;
 mod update_state;
 mod update_watchdog;
-#[cfg(any(test, target_os = "linux"))]
+#[cfg(any(target_os = "linux", all(test, unix)))]
 mod update_watchdog_linux;
 mod update_watchdog_protocol;
 #[cfg(any(test, target_os = "windows"))]
@@ -277,7 +277,7 @@ pub use update_watchdog::{
     start_update_recovery_watchdog, StartedUpdateRecoveryWatchdog, UpdateRecoveryWatchdogError,
     UpdateRecoveryWatchdogOutcome,
 };
-#[cfg(any(test, target_os = "linux"))]
+#[cfg(any(target_os = "linux", all(test, unix)))]
 pub use update_watchdog_linux::{
     reattach_linux_update_recovery_watchdog, retry_linux_update_recovery,
     run_linux_update_recovery_watchdog, start_linux_update_recovery_watchdog,

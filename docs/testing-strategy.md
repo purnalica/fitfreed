@@ -220,6 +220,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   module URLs into native repository roots, protecting every product-site and Pages caller from duplicated drive
   prefixes. Cross-platform path tests compare repository-relative components and each target's native executable
   basename; they do not embed the executing host's separator or extension while simulating another target. This
+  all-targets and all-features build also compiles every test-only module admitted by its target predicate. A
+  test-only predicate may expose a platform adapter on another host only when that adapter is genuinely portable;
+  Unix process and signal adapters remain restricted to Unix test hosts, and synthetic process-exit values use the
+  executing target's `ExitStatusExt` contract. This prevents `cfg(test)` from accidentally admitting POSIX APIs into
+  the native Windows workspace while retaining cross-host tests for portable policy modules. This
   hosted Windows Server lane is native portability, engineering-package,
   and synthetic Authenticode-orchestration evidence, not public timestamped signing, signed Windows 11, desktop,
   accessibility, or product-acceptance evidence.
@@ -442,8 +447,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
 - Synchronization against transient live regions reads the complete matching renderer state in one
   `browser.execute` snapshot. It does not traverse a WebdriverIO `$$` collection across awaited element reads:
   WebdriverIO may resolve each indexed element against a later DOM, while a completed operation legitimately removes
-  or replaces earlier status nodes. One shared helper preserves the exact expected text and timeout contract for every
-  packaged scenario.
+  or replaces earlier status nodes. It also does not retain a missing element handle before an asynchronous operation
+  creates its result notice. One shared helper repeatedly queries the current renderer and preserves the exact
+  expected text and timeout contract for every packaged scenario, including report removal.
 - The feature-gated host holds each instrumented report export for a bounded test-only interval, or until cancellation,
   before entering the unchanged application use case. This makes the packaged cancellation action deterministic
   while retaining the real coordinator, cancellation token, report resolution, output adapter, and cleanup path.

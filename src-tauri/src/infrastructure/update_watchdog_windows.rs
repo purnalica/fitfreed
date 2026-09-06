@@ -11,9 +11,6 @@ use std::{
 #[cfg(any(test, all(target_os = "windows", feature = "e2e")))]
 use std::path::PathBuf;
 
-#[cfg(all(target_os = "windows", feature = "e2e"))]
-use std::io::Write as _;
-
 use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
     decide_packaged_update_recovery_startup_action,

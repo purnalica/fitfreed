@@ -3243,7 +3243,7 @@ mod tests {
                 ..
             }
         ));
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "windows"))]
         assert!(matches!(
             startup_mode(&[executable.clone(), resume_argument, installed]),
             StartupMode::UpdateRecoveryWatchdog {

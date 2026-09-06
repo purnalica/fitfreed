@@ -396,6 +396,8 @@ fn validate_owned_paths(output: &[u8]) -> Result<(), LinuxUpdateRecoveryError> {
 }
 
 fn validate_installed_file(path: &Path, executable: bool) -> Result<(), LinuxUpdateRecoveryError> {
+    #[cfg(not(unix))]
+    let _ = executable;
     let metadata =
         fs::symlink_metadata(path).map_err(|_| LinuxUpdateRecoveryError::InvalidPackageIdentity)?;
     if !metadata.file_type().is_file() || path.canonicalize()? != path {

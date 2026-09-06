@@ -3892,7 +3892,7 @@ describe("packaged FitFreed import journey", () => {
       "{title}",
       "Synthetic reusable comparison",
     )}`).click();
-    await expect($(".report-library [role='status']")).toHaveText(
+    await waitForNotice(
       english.reports.delete.removed.replace(
         "{title}",
         "Synthetic reusable comparison",

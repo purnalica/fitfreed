@@ -1,9 +1,12 @@
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, File},
     io::{self, Read, Write},
     path::{Component, Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+#[cfg(unix)]
+use std::fs::OpenOptions;
 
 #[cfg(target_os = "macos")]
 use std::process::Command;
@@ -238,13 +241,13 @@ impl UpdateRecoveryProcessIdentity {
 }
 
 pub struct UpdateRecoveryCandidateLease {
-    file: File,
+    _file: File,
     recovery_id: String,
     launch_nonce: String,
 }
 
 pub struct UpdateRecoveryWatchdogLease {
-    file: File,
+    _file: File,
     recovery_id: String,
 }
 
@@ -260,7 +263,7 @@ impl UpdateRecoveryCandidateLease {
     #[cfg(all(test, not(target_os = "linux")))]
     pub(crate) fn for_test(file: File, recovery_id: String, launch_nonce: String) -> Self {
         Self {
-            file,
+            _file: file,
             recovery_id,
             launch_nonce,
         }
@@ -1013,7 +1016,7 @@ pub fn acquire_update_recovery_watchdog_lease(
     let file = open_private_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, false)?;
     acquire_process_lock(&file)?;
     Ok(UpdateRecoveryWatchdogLease {
-        file,
+        _file: file,
         recovery_id: context.recovery_id().to_owned(),
     })
 }
@@ -1041,7 +1044,7 @@ pub fn acquire_update_recovery_candidate_lease(
     let file = open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)?;
     acquire_candidate_process_lock(&file)?;
     let lease = UpdateRecoveryCandidateLease {
-        file,
+        _file: file,
         recovery_id: recovery_id.to_owned(),
         launch_nonce: launch_nonce.to_owned(),
     };
@@ -2035,11 +2038,11 @@ struct StagingDirectory {
 }
 
 struct RecoveryStateLock {
-    file: File,
+    _file: File,
 }
 
 struct RecoveryFileLock {
-    file: File,
+    _file: File,
 }
 
 #[cfg(unix)]
@@ -2160,14 +2163,14 @@ impl RecoveryStateLock {
             return Err(UpdateRecoveryError::InvalidState);
         }
         acquire_blocking_process_lock(&file)?;
-        Ok(Self { file })
+        Ok(Self { _file: file })
     }
 
     #[cfg(unix)]
     fn acquire_existing(attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
         let file = open_private_lock_file(attempt_directory, STATE_LOCK_FILE_NAME, false)?;
         acquire_blocking_process_lock(&file)?;
-        Ok(Self { file })
+        Ok(Self { _file: file })
     }
 
     #[cfg(not(unix))]
@@ -2184,7 +2187,7 @@ impl RecoveryStateLock {
 impl RecoveryFileLock {
     fn acquire(file: File) -> Result<Self, UpdateRecoveryError> {
         acquire_blocking_process_lock(&file)?;
-        Ok(Self { file })
+        Ok(Self { _file: file })
     }
 }
 
@@ -2194,7 +2197,7 @@ impl Drop for RecoveryStateLock {
         use std::os::fd::AsRawFd;
 
         unsafe {
-            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+            libc::flock(self._file.as_raw_fd(), libc::LOCK_UN);
         }
     }
 }
@@ -2205,7 +2208,7 @@ impl Drop for RecoveryFileLock {
         use std::os::fd::AsRawFd;
 
         unsafe {
-            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+            libc::flock(self._file.as_raw_fd(), libc::LOCK_UN);
         }
     }
 }
@@ -2216,7 +2219,7 @@ impl Drop for UpdateRecoveryCandidateLease {
         use std::os::fd::AsRawFd;
 
         unsafe {
-            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+            libc::flock(self._file.as_raw_fd(), libc::LOCK_UN);
         }
     }
 }
@@ -2227,7 +2230,7 @@ impl Drop for UpdateRecoveryWatchdogLease {
         use std::os::fd::AsRawFd;
 
         unsafe {
-            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+            libc::flock(self._file.as_raw_fd(), libc::LOCK_UN);
         }
     }
 }
