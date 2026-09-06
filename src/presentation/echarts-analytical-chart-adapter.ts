@@ -598,7 +598,10 @@ export function mountEChartsAnalyticalChart(
         replaceMerge: ["grid", "xAxis", "yAxis", "dataZoom", "series"],
       });
     },
-    resize: () => chart.resize(),
+    resize: () => {
+      chart.resize();
+      chart.getZr().flush();
+    },
     dispose: () => chart.dispose(),
   };
 }

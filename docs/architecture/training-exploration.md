@@ -311,7 +311,9 @@ pointer-emphasized slider handles use the same application-palette accent and bo
 interactivity without replacing the handle's theme identity or making its rendered boundary timing-dependent. The React
 boundary records the last rendered width, height, and device
 pixel ratio, so a chart is resized only after an actual geometry change; hiding and revealing an unchanged evidence
-section cannot trigger redundant renderer work. A localized error boundary fails closed without logging private
+section cannot trigger redundant renderer work. The adapter synchronously flushes zrender after that resize, so the
+new canvas dimensions and the painted chart geometry form one observable boundary even when an occluded embedded
+WebView suspends animation frames. A localized error boundary fails closed without logging private
 evidence. Every live chart retains its semantic heading, controls, explanation, and exact tabular or structured
 alternative outside the renderer, so canvas pixels never become the sole meaning or interaction path.
 

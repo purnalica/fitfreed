@@ -3765,6 +3765,14 @@ was produced. The corrected driver mirrors zrender's listener selection and emit
 WebView2 while retaining mouse events elsewhere. It preserves the same stable viewport target, coordinates, sustained
 input, and rendered-handle movement requirement. Exact packaged Windows evidence remains required.
 
+**Linux resize-paint checkpoint — 2026-09-06:** later exact evidence disproves the earlier broad-band explanation.
+The failing canvas had already grown from 360 to 420 pixels, but its handles remained at the preceding 360-pixel paint
+position until the attempted drag triggered another render. Lane count does not move the slider into a broad middle
+band; `chart.resize()` had scheduled zrender paint through an animation stage suspended by the occluded WebView. The
+adapter now flushes that resize synchronously, and the oracle again admits only controls in the bottom band of the
+current canvas geometry. Focused lifecycle and static driver contracts protect the correction; one installed Linux
+Insights execution remains the native proof.
+
 ### X7-R8.2 — Turn History and Home into direct session discovery
 
 **Machine-complete checkpoint — 2026-08-28:** calendar contract v2 adds only the opaque session reference, local start,

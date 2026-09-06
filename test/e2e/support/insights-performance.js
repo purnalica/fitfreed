@@ -640,7 +640,7 @@ async function inspectChartZoomGeometry(selector, boundary, targetFraction) {
     }
     const context = canvas.getContext("2d");
     if (!context) return null;
-    const scanTop = Math.floor(canvas.height * 0.70);
+    const scanTop = Math.floor(canvas.height * 0.86);
     const pixels = context.getImageData(
       0,
       scanTop,

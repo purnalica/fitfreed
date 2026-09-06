@@ -679,7 +679,7 @@ test("locates analytical zoom handles from the active appearance palette", () =>
   assert.match(geometryInspection, /getPropertyValue\("--accent-deep"\)/);
   assert.match(geometryInspection, /resolvedAccentChannels/);
   assert.match(geometryInspection, /matchesAccent/);
-  assert.match(geometryInspection, /canvas\.height \* 0\.70/);
+  assert.match(geometryInspection, /canvas\.height \* 0\.86/);
   assert.match(geometryInspection, /const components = \[\]/);
   assert.match(geometryInspection, /const alignedHandlePairs = \[\]/);
   assert.match(geometryInspection, /selectedPair/);

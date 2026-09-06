@@ -80,6 +80,24 @@ beforeEach(() => {
 });
 
 describe("ECharts analytical chart lifecycle", () => {
+  it("flushes resized geometry before returning control to the caller", () => {
+    const element = document.createElement("div");
+    document.body.append(element);
+
+    const mounted = mountEChartsAnalyticalChart(element, chartModel());
+
+    mounted.resize();
+
+    expect(renderer.chart.resize).toHaveBeenCalledOnce();
+    expect(renderer.chart.getZr).toHaveBeenCalledOnce();
+    expect(renderer.flush).toHaveBeenCalledOnce();
+    expect(renderer.chart.resize.mock.invocationCallOrder[0])
+      .toBeLessThan(renderer.flush.mock.invocationCallOrder[0]);
+
+    mounted.dispose();
+    element.remove();
+  });
+
   it("flushes the completed zoom paint without waiting for an animation frame", () => {
     const element = document.createElement("div");
     document.body.append(element);
