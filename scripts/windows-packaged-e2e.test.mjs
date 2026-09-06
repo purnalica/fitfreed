@@ -157,7 +157,7 @@ test("preserves the packaged journey failure when isolated cleanup also fails", 
   );
 });
 
-test("runs installed Windows capability parity only inside complete hosted verification", () => {
+test("runs installed Windows capability parity only for its focused or candidate boundary", () => {
   const packageManifest = JSON.parse(readFileSync(path.resolve("package.json"), "utf8"));
   const workflow = readFileSync(path.resolve(".github/workflows/ci.yml"), "utf8");
   const job = workflow.match(
@@ -177,7 +177,8 @@ test("runs installed Windows capability parity only inside complete hosted verif
     "node scripts/run-packaged-windows-e2e.mjs",
   );
   assert.match(job, /^    needs: quality$/m);
-  assert.match(job, /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m);
+  assert.match(job, /needs\.quality\.outputs\.full-verification == 'true'/);
+  assert.match(job, /needs\.quality\.outputs\.focused-verification == 'windows-capability'/);
   assert.match(job, /^    runs-on: windows-2025$/m);
   assert.match(job, /npm run verify:windows-e2e/);
   assert.match(job, /\.artifacts\/e2e\/evidence/);

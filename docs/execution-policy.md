@@ -75,6 +75,38 @@ The review must identify the repeated uncertainty, challenge the current test or
 superseded work, and record the narrower next experiment. It must not weaken an acceptance criterion or raise a
 product budget merely to make the loop end.
 
+## Iteration admission and verification levels
+
+The written policy is not sufficient unless the execution topology enforces it. Before changing executable inputs or
+starting hosted verification, the active execution plan must contain one current iteration record with:
+
+- The single acceptance boundary being advanced and the exact source revision of its evidence.
+- The observed failure, its causal hypothesis, and the layer that owns the violated contract.
+- The smallest test capable of falsifying that hypothesis.
+- The contracts and files allowed to change in the iteration.
+- Evidence that remains valid and therefore must not run again.
+- The exit condition and the condition that stops the experiment without another correction.
+
+Only one iteration record may be active. If these fields cannot be stated, further implementation or broad
+verification is premature.
+
+Verification advances through four levels:
+
+1. **Focused contract:** the smallest unit, integration, automation, or source-level test proving the correction.
+2. **Affected boundary:** the relevant package, operating-system adapter, or focused packaged journey.
+3. **Native parity:** target-native verification for every platform whose executable behavior changed.
+4. **Candidate admission:** one complete clean-revision campaign across the acceptance matrix.
+
+A failed candidate does not go directly to another candidate campaign. Its correction must first pass levels 1 and 2,
+then level 3 when native behavior is involved. Candidate admission runs once after all known failed boundaries are
+closed together.
+
+Push automation must distinguish ordinary verified increments from candidate admission. An ordinary push runs fast
+portable checks and only the affected native boundary; it must not start unrelated packaged operating-system
+campaigns. The complete campaign is an explicit autonomous candidate action after the execution plan records that all
+focused boundaries are closed. If the workflow cannot express that distinction, correcting the workflow topology is
+the next task; repeatedly paying for an undifferentiated campaign is not an acceptable substitute.
+
 ## Human intervention gates
 
 Execution pauses only for:

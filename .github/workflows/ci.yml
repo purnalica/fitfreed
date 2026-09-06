@@ -6,6 +6,19 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      verification_scope:
+        description: Verification boundary to execute
+        required: true
+        default: candidate
+        type: choice
+        options:
+          - candidate
+          - macos-package
+          - linux-capability
+          - linux-update
+          - windows-capability
+          - windows-host
 
 permissions:
   contents: read
@@ -24,7 +37,9 @@ jobs:
     timeout-minutes: 60
     outputs:
       executable-fingerprint: ${{ steps.impact.outputs.executable-fingerprint }}
+      focused-verification: ${{ steps.impact.outputs.focused-verification }}
       full-verification: ${{ steps.decision.outputs.full-verification }}
+      quality-verification: ${{ steps.decision.outputs.quality-verification }}
       verification-reason: ${{ steps.decision.outputs.reason }}
 
     steps:
@@ -46,6 +61,7 @@ jobs:
           FITFREED_CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           FITFREED_CI_EVENT: ${{ github.event_name }}
           FITFREED_CI_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          FITFREED_CI_SCOPE: ${{ inputs.verification_scope || 'candidate' }}
         run: node scripts/classify-ci-impact.mjs
 
       - name: Find prior complete verification for unchanged inputs
@@ -61,6 +77,7 @@ jobs:
         id: decision
         env:
           FITFREED_CI_CANDIDATE_FULL: ${{ steps.impact.outputs.candidate-full-verification }}
+          FITFREED_CI_CANDIDATE_QUALITY: ${{ steps.impact.outputs.candidate-quality-verification }}
           FITFREED_CI_CLASSIFICATION_REASON: ${{ steps.impact.outputs.classification-reason }}
           FITFREED_CI_EVIDENCE_AVAILABLE: ${{ steps.evidence.outputs.cache-hit == 'true' }}
         run: node scripts/classify-ci-impact.mjs resolve
@@ -69,7 +86,7 @@ jobs:
         run: npm run check:docs
 
       - name: Install Tauri Linux system dependencies
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends \
@@ -85,19 +102,19 @@ jobs:
             wget
 
       - name: Verify the development environment
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run doctor
 
       - name: Install locked JavaScript dependencies
         if: >-
-          steps.decision.outputs.full-verification == 'true' ||
+          steps.decision.outputs.quality-verification == 'true' ||
           steps.impact.outputs.product-surface-verification == 'true' ||
           steps.impact.outputs.automation-verification == 'true'
         run: npm ci
 
       - name: Verify public product surfaces
         if: >-
-          steps.decision.outputs.full-verification == 'true' ||
+          steps.decision.outputs.quality-verification == 'true' ||
           steps.impact.outputs.product-surface-verification == 'true'
         run: |
           npm run check:product-surfaces
@@ -105,7 +122,7 @@ jobs:
 
       - name: Verify product publication automation
         if: >-
-          steps.decision.outputs.full-verification == 'true' ||
+          steps.decision.outputs.quality-verification == 'true' ||
           steps.impact.outputs.product-surface-verification == 'true'
         run: |
           npm run test:product-site
@@ -115,7 +132,7 @@ jobs:
 
       - name: Verify documentation and CI automation
         if: >-
-          steps.decision.outputs.full-verification == 'true' ||
+          steps.decision.outputs.quality-verification == 'true' ||
           steps.impact.outputs.automation-verification == 'true'
         run: |
           node --test scripts/classify-ci-impact.test.mjs
@@ -123,11 +140,11 @@ jobs:
           npm run check:workflows
 
       - name: Verify architecture boundaries
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:architecture
 
       - name: Verify GitHub Actions workflows
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: |
           npm run check:workflows
           npm run check:public-release-workflow
@@ -135,55 +152,55 @@ jobs:
           npm run check:public-windows-expansion-workflow
 
       - name: Verify pinned updater source and provenance
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:vendored-updater
 
       - name: Verify data contracts
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:data-contracts
 
       - name: Verify release contracts
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:release-contracts -- "$FITFREED_RELEASE_VERSION"
 
       - name: Verify the release upgrade matrix
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:upgrade-matrix
 
       - name: Verify translation catalogs
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:i18n
 
       - name: Verify live presentation inventory
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:presentation-inventory
 
       - name: Verify presentation contracts
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:ui-contracts
 
       - name: Test the presentation
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm test
 
       - name: Test project automation
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run test:scripts
 
       - name: Build the presentation
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run build
 
       - name: Verify Rust formatting
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run format:check
 
       - name: Test the complete Linux desktop host
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run test:rust
 
       - name: Lint the complete Linux desktop host
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run lint:rust
 
       - name: Build the Linux Debian package
@@ -203,17 +220,19 @@ jobs:
         run: npm run verify:linux-installation
 
       - name: Test the bounded updater refinement
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run test:vendor-updater
 
       - name: Audit JavaScript production and build dependencies
-        if: steps.decision.outputs.full-verification == 'true'
+        if: steps.decision.outputs.quality-verification == 'true'
         run: npm run audit:dependencies
 
   packaged-macos-e2e:
     name: Packaged macOS E2E
     needs: quality
-    if: needs.quality.outputs.full-verification == 'true'
+    if: >-
+      needs.quality.outputs.full-verification == 'true' ||
+      needs.quality.outputs.focused-verification == 'macos-package'
     runs-on: macos-15
     timeout-minutes: 95
 
@@ -292,7 +311,9 @@ jobs:
   packaged-linux-update-e2e:
     name: Packaged Linux update E2E
     needs: quality
-    if: needs.quality.outputs.full-verification == 'true'
+    if: >-
+      needs.quality.outputs.full-verification == 'true' ||
+      needs.quality.outputs.focused-verification == 'linux-update'
     runs-on: ubuntu-24.04
     timeout-minutes: 95
 
@@ -348,7 +369,9 @@ jobs:
   packaged-linux-e2e:
     name: Packaged Linux capability E2E
     needs: quality
-    if: needs.quality.outputs.full-verification == 'true'
+    if: >-
+      needs.quality.outputs.full-verification == 'true' ||
+      needs.quality.outputs.focused-verification == 'linux-capability'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
 
@@ -402,7 +425,9 @@ jobs:
   packaged-windows-e2e:
     name: Packaged Windows capability and update E2E
     needs: quality
-    if: needs.quality.outputs.full-verification == 'true'
+    if: >-
+      needs.quality.outputs.full-verification == 'true' ||
+      needs.quality.outputs.focused-verification == 'windows-capability'
     runs-on: windows-2025
     timeout-minutes: 120
     permissions:
@@ -446,6 +471,9 @@ jobs:
   windows-host:
     name: Windows native host and NSIS package verification
     needs: quality
+    if: >-
+      needs.quality.outputs.full-verification == 'true' ||
+      needs.quality.outputs.focused-verification == 'windows-host'
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
@@ -483,7 +511,8 @@ jobs:
       - name: Resolve required Windows verification
         id: decision
         env:
-          FITFREED_CI_CANDIDATE_FULL: ${{ needs.quality.outputs.full-verification }}
+          FITFREED_CI_CANDIDATE_FULL: ${{ needs.quality.outputs.full-verification == 'true' || needs.quality.outputs.focused-verification == 'windows-host' }}
+          FITFREED_CI_CANDIDATE_QUALITY: ${{ needs.quality.outputs.quality-verification }}
           FITFREED_CI_CLASSIFICATION_REASON: ${{ needs.quality.outputs.verification-reason }}
           FITFREED_CI_EVIDENCE_AVAILABLE: ${{ steps.reopened.outputs.evidence-valid }}
         run: node scripts/classify-ci-impact.mjs resolve

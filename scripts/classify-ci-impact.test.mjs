@@ -25,6 +25,8 @@ test("reuses packaged evidence for an explicit documentation-only change", () =>
     }),
     {
       fullVerification: false,
+      qualityVerification: false,
+      focusedVerification: "",
       productSurfaceVerification: true,
       automationVerification: false,
       reason: "documentation-only",
@@ -33,7 +35,7 @@ test("reuses packaged evidence for an explicit documentation-only change", () =>
   );
 });
 
-test("requires full verification when any executable or release input changes", () => {
+test("runs portable quality without admitting a candidate when executable inputs change", () => {
   for (const changedPath of [
     "package.json",
     "schemas/release-manifest-v2.schema.json",
@@ -53,10 +55,12 @@ test("requires full verification when any executable or release input changes", 
         changedPaths: ["docs/README.md", changedPath],
       }),
       {
-        fullVerification: true,
+        fullVerification: false,
+        qualityVerification: true,
+        focusedVerification: "",
         productSurfaceVerification: false,
         automationVerification: false,
-        reason: "release-affecting-change",
+        reason: "executable-increment",
         changedPathCount: 2,
       },
       changedPath,
@@ -64,23 +68,22 @@ test("requires full verification when any executable or release input changes", 
   }
 });
 
-test("fails closed when comparison evidence is missing or empty", () => {
-  assert.equal(
+test("fails closed to portable quality when comparison evidence is missing or empty", () => {
+  for (const candidate of [
     classifyCiImpact({
       eventName: "push",
       comparisonAvailable: false,
       changedPaths: ["docs/README.md"],
-    }).reason,
-    "comparison-unavailable",
-  );
-  assert.equal(
+    }),
     classifyCiImpact({
       eventName: "push",
       comparisonAvailable: true,
       changedPaths: [],
-    }).reason,
-    "empty-change-set",
-  );
+    }),
+  ]) {
+    assert.equal(candidate.fullVerification, false);
+    assert.equal(candidate.qualityVerification, true);
+  }
 });
 
 test("always performs an explicitly requested hosted verification", () => {
@@ -92,12 +95,42 @@ test("always performs an explicitly requested hosted verification", () => {
     }),
     {
       fullVerification: true,
+      qualityVerification: true,
+      focusedVerification: "",
       productSurfaceVerification: false,
       automationVerification: false,
       reason: "explicit-verification",
       changedPathCount: 1,
     },
   );
+});
+
+test("runs only the explicitly selected focused native boundary", () => {
+  for (const focusedVerification of [
+    "macos-package",
+    "linux-capability",
+    "linux-update",
+    "windows-capability",
+    "windows-host",
+  ]) {
+    assert.deepEqual(
+      classifyCiImpact({
+        eventName: "workflow_dispatch",
+        comparisonAvailable: true,
+        changedPaths: [],
+        requestedScope: focusedVerification,
+      }),
+      {
+        fullVerification: false,
+        qualityVerification: false,
+        focusedVerification,
+        productSurfaceVerification: false,
+        automationVerification: false,
+        reason: `focused-${focusedVerification}`,
+        changedPathCount: 0,
+      },
+    );
+  }
 });
 
 test("verifies product surfaces without rebuilding unchanged executable inputs", () => {
@@ -128,6 +161,8 @@ test("verifies product surfaces without rebuilding unchanged executable inputs",
     }),
     {
       fullVerification: false,
+      qualityVerification: false,
+      focusedVerification: "",
       productSurfaceVerification: true,
       automationVerification: false,
       reason: "documentation-only",
@@ -152,6 +187,8 @@ test("verifies documentation automation without rebuilding unchanged application
     }),
     {
       fullVerification: false,
+      qualityVerification: false,
+      focusedVerification: "",
       productSurfaceVerification: false,
       automationVerification: true,
       reason: "documentation-only",
@@ -207,26 +244,54 @@ test("reuses a documentation-only result only with matching successful evidence"
   assert.deepEqual(
     resolveCiVerification({
       candidateFullVerification: false,
-      classificationReason: "documentation-only",
-      evidenceAvailable: true,
+      candidateQualityVerification: true,
+      classificationReason: "executable-increment",
+      evidenceAvailable: false,
     }),
-    { fullVerification: false, reason: "verified-inputs-unchanged" },
+    {
+      fullVerification: false,
+      qualityVerification: true,
+      reason: "executable-increment",
+    },
   );
   assert.deepEqual(
     resolveCiVerification({
       candidateFullVerification: false,
+      candidateQualityVerification: false,
+      classificationReason: "documentation-only",
+      evidenceAvailable: true,
+    }),
+    {
+      fullVerification: false,
+      qualityVerification: false,
+      reason: "verified-inputs-unchanged",
+    },
+  );
+  assert.deepEqual(
+    resolveCiVerification({
+      candidateFullVerification: false,
+      candidateQualityVerification: false,
       classificationReason: "documentation-only",
       evidenceAvailable: false,
     }),
-    { fullVerification: true, reason: "verification-evidence-unavailable" },
+    {
+      fullVerification: false,
+      qualityVerification: false,
+      reason: "verification-evidence-unavailable",
+    },
   );
   assert.deepEqual(
     resolveCiVerification({
       candidateFullVerification: true,
-      classificationReason: "release-affecting-change",
+      candidateQualityVerification: true,
+      classificationReason: "explicit-verification",
       evidenceAvailable: true,
     }),
-    { fullVerification: true, reason: "release-affecting-change" },
+    {
+      fullVerification: true,
+      qualityVerification: true,
+      reason: "explicit-verification",
+    },
   );
 });
 
@@ -252,7 +317,19 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   )?.groups?.body;
 
   assert.match(workflow, /fetch-depth: 0/);
+  assert.match(workflow, /verification_scope:/);
+  for (const scope of [
+    "candidate",
+    "macos-package",
+    "linux-capability",
+    "linux-update",
+    "windows-capability",
+    "windows-host",
+  ]) {
+    assert.match(workflow, new RegExp(`- ${scope}`));
+  }
   assert.match(workflow, /id: impact/);
+  assert.match(workflow, /FITFREED_CI_SCOPE: \$\{\{ inputs\.verification_scope \|\| 'candidate' \}\}/);
   assert.match(workflow, /run: node scripts\/classify-ci-impact\.mjs/);
   assert.match(workflow, /uses: actions\/cache\/restore@[0-9a-f]{40}/);
   assert.match(workflow, /run: node scripts\/classify-ci-impact\.mjs resolve/);
@@ -269,10 +346,43 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
     workflow,
     /full-verification: \$\{\{ steps\.decision\.outputs\.full-verification \}\}/,
   );
-  assert.match(workflow, /needs: quality/);
   assert.match(
     workflow,
-    /if: needs\.quality\.outputs\.full-verification == 'true'/,
+    /quality-verification: \$\{\{ steps\.decision\.outputs\.quality-verification \}\}/,
+  );
+  assert.match(
+    workflow,
+    /focused-verification: \$\{\{ steps\.impact\.outputs\.focused-verification \}\}/,
+  );
+  assert.match(workflow, /needs: quality/);
+  for (const job of [
+    packagedMacosJob,
+    packagedLinuxUpdateJob,
+    packagedLinuxJob,
+    packagedWindowsJob,
+    windowsHostJob,
+  ]) {
+    assert.match(job ?? "", /needs\.quality\.outputs\.full-verification == 'true'/);
+  }
+  assert.match(
+    packagedMacosJob ?? "",
+    /needs\.quality\.outputs\.focused-verification == 'macos-package'/,
+  );
+  assert.match(
+    packagedLinuxUpdateJob ?? "",
+    /needs\.quality\.outputs\.focused-verification == 'linux-update'/,
+  );
+  assert.match(
+    packagedLinuxJob ?? "",
+    /needs\.quality\.outputs\.focused-verification == 'linux-capability'/,
+  );
+  assert.match(
+    packagedWindowsJob ?? "",
+    /needs\.quality\.outputs\.focused-verification == 'windows-capability'/,
+  );
+  assert.match(
+    windowsHostJob ?? "",
+    /needs\.quality\.outputs\.focused-verification == 'windows-host'/,
   );
   assert.match(
     workflow,
@@ -302,21 +412,21 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   assert.match(packagedLinuxUpdateJob ?? "", /^    needs: quality$/m);
   assert.match(
     packagedLinuxUpdateJob ?? "",
-    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
+    /needs\.quality\.outputs\.full-verification == 'true'/,
   );
   assert.match(packagedLinuxUpdateJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(packagedLinuxUpdateJob ?? "", /npm run verify:linux-update-e2e/);
   assert.match(packagedLinuxJob ?? "", /^    needs: quality$/m);
   assert.match(
     packagedLinuxJob ?? "",
-    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
+    /needs\.quality\.outputs\.full-verification == 'true'/,
   );
   assert.match(packagedLinuxJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(packagedLinuxJob ?? "", /npm run verify:linux-e2e/);
   assert.match(packagedWindowsJob ?? "", /^    needs: quality$/m);
   assert.match(
     packagedWindowsJob ?? "",
-    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
+    /needs\.quality\.outputs\.full-verification == 'true'/,
   );
   assert.match(packagedWindowsJob ?? "", /^    runs-on: windows-2025$/m);
   assert.match(packagedWindowsJob ?? "", /npm run verify:windows-e2e/);

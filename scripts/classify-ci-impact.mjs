@@ -5,6 +5,13 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const commitSha = /^[0-9a-f]{40}$/;
+const focusedVerificationScopes = new Set([
+  "linux-capability",
+  "linux-update",
+  "macos-package",
+  "windows-capability",
+  "windows-host",
+]);
 
 function productSurfacePath(candidatePath) {
   return (
@@ -66,35 +73,72 @@ export function fingerprintExecutableEntries(entries) {
   return fingerprint.digest("hex");
 }
 
-export function classifyCiImpact({ eventName, comparisonAvailable, changedPaths }) {
+export function classifyCiImpact({
+  eventName,
+  comparisonAvailable,
+  changedPaths,
+  requestedScope = "candidate",
+}) {
   const uniquePaths = [...new Set(changedPaths)];
-  const result = (fullVerification, reason) => ({
+  const result = (fullVerification, qualityVerification, focusedVerification, reason) => ({
     fullVerification,
+    qualityVerification,
+    focusedVerification,
     productSurfaceVerification: uniquePaths.some(productSurfacePath),
     automationVerification: uniquePaths.some(automationVerificationPath),
     reason,
     changedPathCount: uniquePaths.length,
   });
 
-  if (eventName === "workflow_dispatch") return result(true, "explicit-verification");
-  if (!comparisonAvailable) return result(true, "comparison-unavailable");
-  if (uniquePaths.length === 0) return result(true, "empty-change-set");
-  if (uniquePaths.every(documentationOnlyPath)) return result(false, "documentation-only");
-  return result(true, "release-affecting-change");
+  if (eventName === "workflow_dispatch") {
+    if (requestedScope === "candidate") {
+      return result(true, true, "", "explicit-verification");
+    }
+    if (!focusedVerificationScopes.has(requestedScope)) {
+      throw new Error(`Unsupported focused verification scope: ${requestedScope}`);
+    }
+    return result(false, false, requestedScope, `focused-${requestedScope}`);
+  }
+  if (!comparisonAvailable) return result(false, true, "", "comparison-unavailable");
+  if (uniquePaths.length === 0) return result(false, true, "", "empty-change-set");
+  if (uniquePaths.every(documentationOnlyPath)) {
+    return result(false, false, "", "documentation-only");
+  }
+  return result(false, true, "", "executable-increment");
 }
 
 export function resolveCiVerification({
   candidateFullVerification,
+  candidateQualityVerification,
   classificationReason,
   evidenceAvailable,
 }) {
   if (candidateFullVerification) {
-    return { fullVerification: true, reason: classificationReason };
+    return {
+      fullVerification: true,
+      qualityVerification: true,
+      reason: classificationReason,
+    };
+  }
+  if (candidateQualityVerification) {
+    return {
+      fullVerification: false,
+      qualityVerification: true,
+      reason: classificationReason,
+    };
   }
   if (evidenceAvailable) {
-    return { fullVerification: false, reason: "verified-inputs-unchanged" };
+    return {
+      fullVerification: false,
+      qualityVerification: false,
+      reason: "verified-inputs-unchanged",
+    };
   }
-  return { fullVerification: true, reason: "verification-evidence-unavailable" };
+  return {
+    fullVerification: false,
+    qualityVerification: false,
+    reason: "verification-evidence-unavailable",
+  };
 }
 
 function changedPathsFromEnvironment(environment) {
@@ -150,14 +194,17 @@ function runClassification(environment) {
   const comparison = changedPathsFromEnvironment(environment);
   const result = classifyCiImpact({
     eventName: environment.FITFREED_CI_EVENT,
+    requestedScope: environment.FITFREED_CI_SCOPE || "candidate",
     ...comparison,
   });
   const fingerprint = executableFingerprint(environment.FITFREED_CI_HEAD || "HEAD");
   writeOutputs(environment, {
     "candidate-full-verification": result.fullVerification,
+    "candidate-quality-verification": result.qualityVerification,
     "classification-reason": result.reason,
     "changed-path-count": result.changedPathCount,
     "executable-fingerprint": fingerprint,
+    "focused-verification": result.focusedVerification,
     "product-surface-verification": result.productSurfaceVerification,
     "automation-verification": result.automationVerification,
   });
@@ -167,11 +214,13 @@ function runClassification(environment) {
 function runResolution(environment) {
   const result = resolveCiVerification({
     candidateFullVerification: environment.FITFREED_CI_CANDIDATE_FULL === "true",
+    candidateQualityVerification: environment.FITFREED_CI_CANDIDATE_QUALITY === "true",
     classificationReason: environment.FITFREED_CI_CLASSIFICATION_REASON,
     evidenceAvailable: environment.FITFREED_CI_EVIDENCE_AVAILABLE === "true",
   });
   writeOutputs(environment, {
     "full-verification": result.fullVerification,
+    "quality-verification": result.qualityVerification,
     reason: result.reason,
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);

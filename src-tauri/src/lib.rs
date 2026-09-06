@@ -260,7 +260,7 @@ impl InteractiveShellSignal {
         Self::default()
     }
 
-    #[cfg(any(test, target_os = "windows"))]
+    #[cfg(test)]
     fn with_runtime_output(output: Box<dyn Write + Send>) -> Self {
         Self {
             runtime_output: Mutex::new(Some(output)),

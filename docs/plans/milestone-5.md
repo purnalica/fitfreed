@@ -5,6 +5,18 @@
 In progress as of 2026-09-06, with independent portability engineering authorized by ADR 0039. Public promotion
 remains ordered after the accepted public Linux MVP.
 
+## Current iteration
+
+| Field | Boundary |
+|---|---|
+| Acceptance outcome | Windows native host passes strict all-target Clippy before NSIS construction. |
+| Exact evidence | Source `48a88d3`, hosted job `101532033629`: `InteractiveShellSignal::with_runtime_output` is dead code in the non-test Windows library target. |
+| Causal hypothesis | The test constructor is admitted by `target_os = "windows"` even though only the test module calls it; Windows all-target lint therefore compiles an unused production helper. |
+| Smallest falsifying test | The retained-output Rust unit contract followed by strict all-target Clippy on the Windows host. |
+| Allowed change | Test-only compilation scope in `src-tauri/src/lib.rs`; the CI classifier and workflow needed to execute only this native boundary; their focused contracts; and the canonical execution, automation, testing, and readiness documentation they change. |
+| Evidence retained | Repository safety, portable/Linux host checks, and unrelated packaged platform evidence remain valid for their exact executable fingerprint and are not rerun by this correction. |
+| Exit or stop | Exit when the focused unit contract and Windows strict lint pass. Stop without another correction if the native result contradicts the hypothesis, then replace this record with the newly observed causal boundary. |
+
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | In progress | Exact source `b94a8f4` passes the complete portable and Linux-host boundary, compiles and tests the complete Windows desktop host, passes strict native lint, and builds the release-shaped NSIS package in [hosted run `34031313078`](https://github.com/purnalica/fitfreed/actions/runs/34031313078). Native installation inventory fails after its wrapper collapses the native failure to a generic phase. The current tree preserves the last closed granular subphase and rejects arbitrary diagnostic text. One corrected exact native run remains. |
@@ -410,9 +422,9 @@ installation and executable identity, runs the same seven functional, restart, s
 performance scenarios against the installed executable, then requires silent package removal to preserve every
 synthetic library before removing only the isolated test application data it created. Restart evidence uses `ps` on
 macOS and Linux and an exact executable-path `Win32_Process` query on Windows; a process name or reused identifier is
-not accepted. The separate read-only `windows-2025` capability job runs only when complete verification is required,
-retains only privacy-safe failure diagnostics, and is required before the executable fingerprint can receive complete
-reusable evidence. Local contract tests validate this topology; the hosted job has not yet supplied native execution
+not accepted. The separate read-only `windows-2025` capability job runs for an explicit focused Windows boundary or
+complete candidate verification, retains only privacy-safe failure diagnostics, and is required before the executable
+fingerprint can receive complete reusable evidence. Local contract tests validate this topology; the hosted job has not yet supplied native execution
 evidence, and this slice does not close Windows file-dialog, external-link, display-scaling, update, or exact Windows 11
 acceptance.
 

@@ -64,6 +64,13 @@ test("rejects an unpinned, Unix-dependent, incomplete, or reusable-without-proof
 test("requires isolated packaged Windows capability evidence", () => {
   assert.throws(
     () => validateWindowsCiWorkflow(workflow.replace(
+      "needs.quality.outputs.focused-verification == 'windows-capability'",
+      "needs.quality.outputs.focused-verification == 'linux-capability'",
+    )),
+    /candidate or focused Windows verification/,
+  );
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
       "npm run verify:windows-e2e",
       "npm run build:e2e",
     )),

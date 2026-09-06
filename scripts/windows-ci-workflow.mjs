@@ -128,8 +128,8 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
-    /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m,
-    "packaged Windows capability must run only for complete verification",
+    /^    if: >-\n      needs\.quality\.outputs\.full-verification == 'true' \|\|\n      needs\.quality\.outputs\.focused-verification == 'windows-capability'$/m,
+    "packaged Windows capability must run only for candidate or focused Windows verification",
   );
   requireMatch(
     errors,

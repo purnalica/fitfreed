@@ -317,7 +317,7 @@ test("delegates lifecycle operations to a fixed-identity non-interactive Windows
   assert.doesNotMatch(source, /Remove-Item\s+-Path\s+\$env:/);
 });
 
-test("runs native Windows update recovery in the existing complete hosted lane", () => {
+test("runs native Windows update recovery in the focused or candidate hosted lane", () => {
   const packageManifest = JSON.parse(readFileSync(path.resolve("package.json"), "utf8"));
   const workflow = readFileSync(path.resolve(".github/workflows/ci.yml"), "utf8");
   const job = workflow.match(

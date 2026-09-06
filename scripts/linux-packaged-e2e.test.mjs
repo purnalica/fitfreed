@@ -119,7 +119,7 @@ test("accepts only the isolated package metadata and executable", () => {
   }
 });
 
-test("runs installed Linux capability parity only inside complete hosted verification", () => {
+test("runs installed Linux capability parity only for its focused or candidate boundary", () => {
   const packageManifest = JSON.parse(readFileSync(path.resolve("package.json"), "utf8"));
   const workflow = readFileSync(path.resolve(".github/workflows/ci.yml"), "utf8");
   const job = workflow.match(
@@ -139,7 +139,8 @@ test("runs installed Linux capability parity only inside complete hosted verific
     "node scripts/run-packaged-linux-e2e.mjs",
   );
   assert.match(job, /^    needs: quality$/m);
-  assert.match(job, /^    if: needs\.quality\.outputs\.full-verification == 'true'$/m);
+  assert.match(job, /needs\.quality\.outputs\.full-verification == 'true'/);
+  assert.match(job, /needs\.quality\.outputs\.focused-verification == 'linux-capability'/);
   assert.match(job, /^    runs-on: ubuntu-24\.04$/m);
   assert.match(job, /webkit2gtk-driver/);
   assert.match(job, /xvfb-run -a npm run verify:linux-e2e/);
