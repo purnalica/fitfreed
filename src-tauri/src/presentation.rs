@@ -7973,6 +7973,15 @@ mod tests {
 
     use super::*;
 
+    fn synthetic_absolute_report_path(file_name: &str) -> PathBuf {
+        #[cfg(windows)]
+        let root = PathBuf::from(r"C:\fitfreed-synthetic");
+        #[cfg(not(windows))]
+        let root = PathBuf::from("/private/synthetic");
+
+        root.join(file_name)
+    }
+
     #[test]
     fn validates_and_serializes_transient_report_run_parameters() {
         let request: ResolveReportRequestDto = from_value(json!({
@@ -9885,13 +9894,14 @@ mod tests {
             .expected_resolved_snapshot_ref
             .starts_with("planned-snapshot-"));
 
+        let destination = synthetic_absolute_report_path("planned-report.html");
         let export: ReportExportRequestDto = from_value(json!({
             "reportRef": report_ref,
             "expectedRevision": "1",
             "expectedSourceSnapshotRef": snapshot_ref,
             "includePhysiologicalContext": false,
             "routeChoices": [],
-            "destinationPath": "/private/synthetic/planned-report.html"
+            "destinationPath": destination
         }))
         .expect("planned report export transport");
         let export = ReportExportRequest::try_from(export).expect("planned report export");
@@ -12142,6 +12152,7 @@ mod tests {
             })
         );
 
+        let destination = synthetic_absolute_report_path("report.html");
         let export: SessionReportExportRequestDto =
             from_value(json!({
                 "reportRef":
@@ -12150,14 +12161,14 @@ mod tests {
                 "expectedSourceSnapshotRef":
                     "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "includePhysiologicalContext": false,
-                "destinationPath": "/private/synthetic/report.html"
+                "destinationPath": destination
             }))
             .expect("report export request");
         assert_eq!(
             ReportExportRequest::try_from(export)
                 .expect("valid export")
                 .destination,
-            PathBuf::from("/private/synthetic/report.html")
+            synthetic_absolute_report_path("report.html")
         );
         for destination_path in ["", "relative/report.html", "/"] {
             let invalid: SessionReportExportRequestDto =

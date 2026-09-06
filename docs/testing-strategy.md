@@ -223,9 +223,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   all-targets and all-features build also compiles every test-only module admitted by its target predicate. A
   test-only predicate may expose a platform adapter on another host only when that adapter is genuinely portable;
   Unix process and signal adapters remain restricted to Unix test hosts, and synthetic process-exit values use the
-  executing target's `ExitStatusExt` contract. This prevents `cfg(test)` from accidentally admitting POSIX APIs into
-  the native Windows workspace while retaining cross-host tests for portable policy modules. This
-  hosted Windows Server lane is native portability, engineering-package,
+  executing target's `ExitStatusExt` contract. Legacy macOS recovery and Linux package or process test modules run
+  only on Unix hosts, while their platform-neutral state-machine modules remain in every compatible host suite and
+  the native Windows recovery modules run on Windows. This prevents `cfg(test)` from accidentally admitting POSIX APIs
+  or path semantics into the native Windows workspace while retaining cross-host tests for portable policy modules.
+  The hosted Windows Server lane is native portability, engineering-package,
   and synthetic Authenticode-orchestration evidence, not public timestamped signing, signed Windows 11, desktop,
   accessibility, or product-acceptance evidence.
 - The Windows package-configuration contract independently rejects MSI or mixed target sets, Windows on ARM,
@@ -459,7 +461,12 @@ Local and continuous-integration workflows will invoke the same underlying comma
   supported coverage for daily activity, training, sleep, and recovery. It requests analytical History only after
   those assertions pass. Waiting for a disabled navigation control is not an import-completion oracle, and widening a
   generic navigation timeout cannot make a slow or stalled import pass.
-- The exhaustive functional journey has a ten-minute aggregate watchdog and emits elapsed-time phase records from first shell through durable restart preparation. This allowance contains the complete bilingual, accessible, visual-evidence campaign and is independent from the narrower WebDriver command, operation, and product-performance budgets. Extending the journey cannot make a stalled operation or a slow product interaction pass.
+- The exhaustive functional journey has a ten-minute aggregate watchdog on macOS and Linux and a twenty-minute
+  aggregate watchdog on Windows. It emits elapsed-time phase records from first shell through durable restart
+  preparation. The Windows allowance accounts for the same complete bilingual, accessible, visual-evidence campaign
+  running through an installed NSIS application and WebView2; it does not remove, retry, or reduce an assertion. Both
+  allowances remain independent from the narrower WebDriver command, operation, and product-performance budgets.
+  Extending a complete journey cannot make a stalled operation or a slow product interaction pass.
 - Component coverage drives native keyboard activation through contextual-create and saved-edit cancellation
   and checks focus return to the exact source or restored result. The packaged journey crosses cancellation,
   privacy review, and evidence review through the embedded driver's native activation command; leaves and returns

@@ -546,7 +546,7 @@ fn parse_process_start_time(value: &[u8]) -> Result<u64, LinuxUpdateRecoveryErro
         .ok_or(LinuxUpdateRecoveryError::InvalidProcessIdentity)
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use std::{cell::RefCell, collections::VecDeque, ffi::OsStr};
 

@@ -10706,7 +10706,7 @@ pub fn backup_database(source_path: &Path, backup_path: &Path) -> Result<()> {
         backup.run_to_completion(64, Duration::from_millis(5), None)?;
     }
     verify_library_file(&temporary_path, SCHEMA_VERSION)?;
-    File::open(&temporary_path)?.sync_all()?;
+    local_file::sync_regular_file(&temporary_path)?;
     temporary.persist_replace(backup_path)?;
     Ok(())
 }

@@ -3230,6 +3230,9 @@ mod tests {
         let executable = OsString::from("fitfreed");
         let argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_ARGUMENT);
         let resume_argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT);
+        #[cfg(windows)]
+        let installed = OsString::from(r"C:\Program Files\FitFreed");
+        #[cfg(not(windows))]
         let installed = OsString::from("/Applications/FitFreed.app");
 
         assert!(matches!(

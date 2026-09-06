@@ -18,7 +18,7 @@ use thiserror::Error;
 #[cfg(target_os = "windows")]
 use super::query_windows_native_package_identity;
 use super::{
-    local_file::{sync_directory, PrivateStagingFile},
+    local_file::{sync_directory, sync_regular_file, PrivateStagingFile},
     update_recovery_windows::{EXECUTABLE_NAME, PRODUCT_NAME, UNINSTALLER_NAME},
 };
 
@@ -727,7 +727,7 @@ fn sync_tree(root: &Path) -> Result<(), WindowsRecoveryPackageError> {
     let entries = collect_tree_entries(root)?;
     for entry in &entries {
         if entry.kind == b'F' {
-            open_regular_file(&entry.absolute_path)?.sync_all()?;
+            sync_regular_file(&entry.absolute_path)?;
         }
     }
     let mut directories = entries

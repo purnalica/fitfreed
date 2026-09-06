@@ -25,7 +25,10 @@ import {
   repositoryRoot,
   updateE2eTargetDirectory,
 } from "./e2e-paths.mjs";
-import { config as defaultConfig } from "../wdio.conf.js";
+import {
+  config as defaultConfig,
+  functionalJourneyTimeoutFor,
+} from "../wdio.conf.js";
 import { config as performanceConfig } from "../wdio.performance.conf.js";
 import {
   waitForElementCount,
@@ -330,6 +333,9 @@ test("keeps packaged update fixtures outside both retained application targets",
 
 test("gives the exhaustive functional journey a bounded campaign watchdog", () => {
   assert.equal(defaultConfig.mochaOpts.timeout, 600_000);
+  assert.equal(functionalJourneyTimeoutFor("darwin"), 600_000);
+  assert.equal(functionalJourneyTimeoutFor("linux"), 600_000);
+  assert.equal(functionalJourneyTimeoutFor("win32"), 1_200_000);
   assert.deepEqual(defaultConfig.specs, ["./test/e2e/**/*.spec.js"]);
 });
 

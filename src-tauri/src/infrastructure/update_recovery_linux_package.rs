@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::{self, Read, Write},
     path::{Component, Path, PathBuf},
     process::{Command, Stdio},
@@ -10,7 +10,7 @@ use semver::Version;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
-use super::local_file::{sync_directory, PrivateStagingFile};
+use super::local_file::{sync_directory, sync_regular_file, PrivateStagingFile};
 
 const DPKG_DEB_PATH: &str = "/usr/bin/dpkg-deb";
 const PACKAGE_NAME: &str = "fitfreed";
@@ -756,7 +756,7 @@ fn sync_tree(root: &Path) -> Result<(), LinuxRecoveryPackageError> {
     let entries = collect_tree_entries(root)?;
     for entry in &entries {
         if entry.kind == b'F' {
-            File::open(&entry.absolute_path)?.sync_all()?;
+            sync_regular_file(&entry.absolute_path)?;
         }
     }
     let mut directories = entries
@@ -908,7 +908,7 @@ fn create_private_directory(path: &Path) -> Result<(), LinuxRecoveryPackageError
     configured
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use std::{cell::RefCell, collections::VecDeque, ffi::OsString};
 

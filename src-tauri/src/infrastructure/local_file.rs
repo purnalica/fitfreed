@@ -120,6 +120,49 @@ pub(crate) fn sync_directory(_path: &Path) -> io::Result<()> {
     Ok(())
 }
 
+pub(crate) fn sync_regular_file(path: &Path) -> io::Result<()> {
+    let mut options = OpenOptions::new();
+    options.read(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
+
+        use windows_sys::Win32::Storage::FileSystem::{
+            FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_OPEN_REPARSE_POINT,
+        };
+
+        options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
+        let file = options.open(path)?;
+        let metadata = file.metadata()?;
+        if !metadata.file_type().is_file()
+            || metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "file synchronization target is not a regular file",
+            ));
+        }
+        return file.sync_all();
+    }
+    #[cfg(not(windows))]
+    {
+        let file = options.open(path)?;
+        if !file.metadata()?.file_type().is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "file synchronization target is not a regular file",
+            ));
+        }
+        file.sync_all()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Write;
@@ -174,6 +217,38 @@ mod tests {
         assert_eq!(
             fs::read_to_string(destination).expect("preserved active state"),
             "existing"
+        );
+    }
+
+    #[test]
+    fn synchronizes_a_closed_regular_file_with_write_access() {
+        let directory = tempdir().expect("temporary directory");
+        let path = directory.path().join("durable.dat");
+        fs::write(&path, "durable bytes").expect("regular file");
+
+        sync_regular_file(&path).expect("synchronized regular file");
+
+        assert_eq!(
+            fs::read_to_string(path).expect("synchronized bytes"),
+            "durable bytes"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_to_synchronize_through_a_symbolic_link() {
+        use std::os::unix::fs::symlink;
+
+        let directory = tempdir().expect("temporary directory");
+        let target = directory.path().join("target.dat");
+        let link = directory.path().join("link.dat");
+        fs::write(&target, "outside bytes").expect("target file");
+        symlink(&target, &link).expect("symbolic link");
+
+        assert!(sync_regular_file(&link).is_err());
+        assert_eq!(
+            fs::read_to_string(target).expect("unchanged target bytes"),
+            "outside bytes"
         );
     }
 }

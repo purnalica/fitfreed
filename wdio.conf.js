@@ -5,6 +5,12 @@ import { e2eApplicationBinary } from "./scripts/e2e-paths.mjs";
 
 const application = e2eApplicationBinary;
 const evidenceDirectory = path.resolve(".artifacts/e2e/evidence");
+
+export function functionalJourneyTimeoutFor(platform) {
+  return platform === "win32" ? 1_200_000 : 600_000;
+}
+
+const functionalJourneyTimeout = functionalJourneyTimeoutFor(process.platform);
 mkdirSync(evidenceDirectory, { recursive: true });
 process.env.FITFREED_E2E_DATABASE_PATH ??= path.resolve(
   `.artifacts/e2e/library-${process.pid}.sqlite`,
@@ -45,7 +51,7 @@ export const config = {
   connectionRetryCount: 1,
   mochaOpts: {
     ui: "bdd",
-    timeout: 600_000,
+    timeout: functionalJourneyTimeout,
   },
   afterTest: async function (test, _context, result) {
     if (result.passed) return;

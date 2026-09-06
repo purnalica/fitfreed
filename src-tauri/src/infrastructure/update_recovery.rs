@@ -2273,7 +2273,7 @@ impl Drop for StagingDirectory {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use fitfreed_application::UpdateArtifact;
     use plist::{Dictionary, Value};

@@ -90,6 +90,22 @@ gate, where p95 is 3,034 ms against the 2,500 ms budget; exact predecessor `5e53
 hosted profile. This result remains a failure, does not authorize a budget change, and requires a passing measurement
 from the next exact release-affecting revision.
 
+Exact source `2fe2ce4` clears the previous macOS cold-launch failure and passes the complete portable, Linux host,
+installed Linux capability, and packaged Linux update-recovery boundaries in [continuous integration
+`34017342998`](https://github.com/purnalica/fitfreed/actions/runs/34017342998). Its native Windows host compiles and
+runs the complete Rust suite, where 320 tests pass before 33 failures expose three target-boundary defects. Closed
+SQLite backups and recovery-tree files were reopened read-only before a Windows durability flush that requires a
+writable handle; legacy macOS and Linux implementation tests were admitted by `cfg(test)` on Windows despite relying
+on Unix locks, process paths, or path roots; and two transport fixtures plus one watchdog fixture encoded POSIX
+absolute paths. The installed Windows capability journey independently advances through report deletion and into
+range validation, continuously emitting phase progress, before the unchanged ten-minute aggregate campaign watchdog
+expires. The current tree reopens only verified regular non-reparse files with read and write access for durability,
+confines implementation-specific tests to compatible hosts while retaining portable state-machine coverage, uses
+target-native absolute fixtures, and assigns the complete Windows journey a bounded twenty-minute aggregate watchdog.
+No functional assertion, operation watchdog, or product-performance budget changes. Complete local Rust, strict
+lint, formatting, and portable Windows automation pass; exact native Windows acceptance awaits the corrected hosted
+run.
+
 ## Objective
 
 Deliver the unchanged first-MVP capability baseline on supported x86-64 Windows 11 editions through one current-user

@@ -70,9 +70,11 @@ byte-for-byte archive extraction.
 
 The library is copied through SQLite's online backup API to `previous/fitfreed.sqlite`, closed, reopened, checked for
 the exact source schema and `PRAGMA integrity_check = ok`, hashed, synchronized, and promoted without overwriting an
-existing asset. The active pointer is published only after both packages, the complete runnable tree, the library
-backup, and the manifest reopen and validate. Recovery after publication requires no network access. Preparation
-failure removes only private staging or attempt assets created by that operation.
+existing asset. Windows synchronization reopens each closed regular file with read and write access because the
+native durability operation requires a writable handle; the adapter still rejects reparse points and non-regular
+objects before flushing. The active pointer is published only after both packages, the complete runnable tree, the
+library backup, and the manifest reopen and validate. Recovery after publication requires no network access.
+Preparation failure removes only private staging or attempt assets created by that operation.
 
 ## Runnable tree digest
 
