@@ -2946,7 +2946,7 @@ describe("ReportsPanel", () => {
   it("builds, removes, and validates every training comparison view", async () => {
     const user = userEvent.setup();
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
       if (command === "query_training_session_routes") {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
       }
