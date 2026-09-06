@@ -20,6 +20,32 @@ Execution continues without asking for routine confirmation when work involves:
 - Creating a focused local commit after a coherent increment passes its applicable documentation, privacy, security, and quality checks.
 - Pushing each verified commit with a normal fast-forward push to the exact `origin/main` target after the complete outgoing range passes repository, secret, and identity checks.
 
+## Evidence-efficient iteration
+
+Autonomous execution optimizes for resolved acceptance uncertainty, not for the number of commands, tests, commits, or
+documents produced. Quality means obtaining the right independent evidence at the right boundary without repeating
+evidence that is already valid.
+
+Every implementation loop must:
+
+1. Name the nearest unproven acceptance outcome and the concrete uncertainty preventing it from passing.
+2. Trace a failure to its owning contract and causal layer before changing code.
+3. Map the changed contract to the smallest sufficient local unit, integration, contract, or focused packaged test
+   set. A broad gate is not a substitute for this mapping.
+4. Use the target-native hosted lane for operating-system behavior that a development host cannot prove.
+5. Run one complete clean-revision campaign only when executable inputs have changed and the revision is ready to be
+   admitted as a candidate. Do not start an equivalent local campaign after the same revision is already undergoing
+   authoritative hosted verification.
+6. Reuse valid fingerprint-bound evidence when executable inputs are unchanged. Documentation-only descendants do not
+   repeat native package, performance, or E2E campaigns.
+7. After a failure, rerun only the failed boundary and its affected contracts until the correction is stable; return
+   to the complete campaign once, at the candidate boundary.
+8. Stop or avoid superseded work whose result cannot change the current decision. Record genuinely useful partial
+   evidence, but do not keep a campaign alive merely because it has already consumed resources.
+
+The complete acceptance matrix remains mandatory. This policy changes when evidence is gathered, not which product,
+security, recovery, accessibility, localization, performance, or documentation requirements must pass.
+
 ## Human intervention gates
 
 Execution pauses only for:

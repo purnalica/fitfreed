@@ -2159,16 +2159,20 @@ describe("packaged FitFreed import journey", () => {
       "r10-source-workspace-en-wide.png",
     ));
     await $("aria/Open official account page").click();
-    await browser.execute(() => {
-      [...document.querySelectorAll("button")]
-        .find((button) => button.textContent?.trim() === "Open official instructions")
-        ?.focus();
-    });
-    await expectDocumentFocus(
-      ".source-official-action:nth-child(2) button",
+    await browser.waitUntil(async () => {
+      await openerMock.update();
+      return openerMock.mock.calls.length === 1;
+    }, { timeout: 10_000, timeoutMsg: "official account destination was not opened" });
+    expect(openerMock.mock.calls[0][0].url).toBe("https://account.polar.com/");
+    await expect($(".source-link-accepted")).toHaveText(english.sources.openAccepted);
+    const officialInstructionsAction = await $("aria/Open official instructions");
+    await expect(officialInstructionsAction).toBeEnabled();
+    await browser.execute((target) => target.focus(), officialInstructionsAction);
+    await expectElementFocus(
+      officialInstructionsAction,
       "official instructions action did not receive keyboard focus",
     );
-    await $("aria/Open official instructions").click();
+    await officialInstructionsAction.click();
     await browser.waitUntil(async () => {
       await openerMock.update();
       return openerMock.mock.calls.length === 2;

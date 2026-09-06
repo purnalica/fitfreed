@@ -332,7 +332,10 @@ test("keeps packaged update fixtures outside both retained application targets",
 });
 
 test("gives the exhaustive functional journey a bounded campaign watchdog", () => {
-  assert.equal(defaultConfig.mochaOpts.timeout, 600_000);
+  assert.equal(
+    defaultConfig.mochaOpts.timeout,
+    functionalJourneyTimeoutFor(process.platform),
+  );
   assert.equal(functionalJourneyTimeoutFor("darwin"), 600_000);
   assert.equal(functionalJourneyTimeoutFor("linux"), 600_000);
   assert.equal(functionalJourneyTimeoutFor("win32"), 1_200_000);

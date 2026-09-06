@@ -4,6 +4,7 @@ import { e2eApplicationBinary } from "../../scripts/e2e-paths.mjs";
 import {
   goToHome,
   waitForElementCount,
+  waitForNotice,
 } from "./support/application-actions.js";
 import {
   exactApplicationProcessId,
@@ -155,7 +156,7 @@ describe("packaged FitFreed application-process restart", () => {
       "{title}",
       "Synthetic comparison answer",
     )}`).click();
-    await expect($(".report-library [role='status']")).toHaveText(
+    await waitForNotice(
       spanish.reports.delete.removed.replace("{title}", "Synthetic comparison answer"),
     );
     const remainingReports = await $$(".report-list .report-library-open");

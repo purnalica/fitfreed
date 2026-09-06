@@ -164,7 +164,9 @@ Automated testing is the primary source of evidence that the product behaves cor
   not prove that its asynchronous result is available. Before inspecting or activating result-owned controls, tests
   wait for one exact result-owned element and retain every subsequent behavior assertion. When a durable collection
   has a known expected cardinality, the test waits for that complete cardinality before retaining element handles;
-  an empty collection observed while its query is still pending is not persistence evidence. Independent interaction
+  an empty collection observed while its query is still pending is not persistence evidence. When an asynchronous
+  action temporarily disables sibling controls, a later focus or activation assertion waits for the first action's
+  terminal result and the target's enabled state. Independent interaction
   contracts remain separate tests so each keeps deterministic failure localization and bounded execution time across
   supported hosts. A host-specific timeout is corrected by isolating those contracts, not by extending the allowance.
 - Longitudinal-chart coverage verifies four independently scaled labelled lanes over one exact local-date coordinate, source separation, locale-aware dates and durations, missing-value gaps, recorded training zero, the 366-day canvas and zoom boundary, invalid-date fail-closed behavior, high-zoom sizing, and the complete exact-table alternative. The packaged timing boundary verifies both the requested date count and first local date before accepting the laid-out result.
