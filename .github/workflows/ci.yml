@@ -21,6 +21,7 @@ on:
           - windows-capability
           - windows-host
           - windows-package
+          - windows-update
 
 permissions:
   contents: read
@@ -437,7 +438,8 @@ jobs:
     needs: quality
     if: >-
       needs.quality.outputs.full-verification == 'true' ||
-      needs.quality.outputs.focused-verification == 'windows-capability'
+      needs.quality.outputs.focused-verification == 'windows-capability' ||
+      needs.quality.outputs.focused-verification == 'windows-update'
     runs-on: windows-2025
     timeout-minutes: 120
     permissions:
@@ -462,6 +464,9 @@ jobs:
         run: npm ci
 
       - name: Build, install, and test packaged Windows capability parity
+        if: >-
+          needs.quality.outputs.full-verification == 'true' ||
+          needs.quality.outputs.focused-verification == 'windows-capability'
         run: npm run verify:windows-e2e
 
       - name: Build and verify native NSIS update recovery

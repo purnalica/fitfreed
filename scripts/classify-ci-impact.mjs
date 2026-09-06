@@ -13,6 +13,7 @@ const focusedVerificationScopes = new Set([
   "windows-capability",
   "windows-host",
   "windows-package",
+  "windows-update",
 ]);
 
 function productSurfacePath(candidatePath) {

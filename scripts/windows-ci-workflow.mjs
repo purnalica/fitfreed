@@ -146,8 +146,8 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
-    /^    if: >-\n      needs\.quality\.outputs\.full-verification == 'true' \|\|\n      needs\.quality\.outputs\.focused-verification == 'windows-capability'$/m,
-    "packaged Windows capability must run only for candidate or focused Windows verification",
+    /^    if: >-\n      needs\.quality\.outputs\.full-verification == 'true' \|\|\n      needs\.quality\.outputs\.focused-verification == 'windows-capability' \|\|\n      needs\.quality\.outputs\.focused-verification == 'windows-update'$/m,
+    "packaged Windows verification must run only for candidate, capability, or update focus",
   );
   requireMatch(
     errors,
@@ -158,7 +158,7 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
-    /npm run verify:windows-e2e/,
+    /- name: Build, install, and test packaged Windows capability parity\n        if: >-\n          needs\.quality\.outputs\.full-verification == 'true' \|\|\n          needs\.quality\.outputs\.focused-verification == 'windows-capability'\n        run: npm run verify:windows-e2e/,
     "packaged Windows capability must build, install, and exercise the isolated NSIS package",
   );
   requireMatch(

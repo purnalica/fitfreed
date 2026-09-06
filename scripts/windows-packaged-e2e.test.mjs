@@ -179,8 +179,13 @@ test("runs installed Windows capability parity only for its focused or candidate
   assert.match(job, /^    needs: quality$/m);
   assert.match(job, /needs\.quality\.outputs\.full-verification == 'true'/);
   assert.match(job, /needs\.quality\.outputs\.focused-verification == 'windows-capability'/);
+  assert.match(job, /needs\.quality\.outputs\.focused-verification == 'windows-update'/);
   assert.match(job, /^    runs-on: windows-2025$/m);
   assert.match(job, /npm run verify:windows-e2e/);
+  assert.match(
+    job,
+    /- name: Build, install, and test packaged Windows capability parity\n        if: >-\n          needs\.quality\.outputs\.full-verification == 'true' \|\|\n          needs\.quality\.outputs\.focused-verification == 'windows-capability'/,
+  );
   assert.match(job, /\.artifacts\/e2e\/evidence/);
   assert.match(job, /npm run verify:windows-update-e2e/);
   assert.match(

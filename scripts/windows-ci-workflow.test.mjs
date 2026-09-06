@@ -75,7 +75,7 @@ test("requires isolated packaged Windows capability evidence", () => {
       "needs.quality.outputs.focused-verification == 'windows-capability'",
       "needs.quality.outputs.focused-verification == 'linux-capability'",
     )),
-    /candidate or focused Windows verification/,
+    /candidate, capability, or update focus/,
   );
   assert.throws(
     () => validateWindowsCiWorkflow(workflow.replace(
@@ -98,4 +98,17 @@ test("requires isolated packaged Windows capability evidence", () => {
     )),
     /native NSIS update recovery/,
   );
+});
+
+test("isolates native Windows update recovery from accepted capability evidence", () => {
+  const packagedJob = workflow.match(
+    /  packaged-windows-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
+  )?.groups?.body ?? "";
+
+  assert.match(packagedJob, /focused-verification == 'windows-update'/);
+  assert.match(
+    packagedJob,
+    /- name: Build, install, and test packaged Windows capability parity\n        if: >-\n          needs\.quality\.outputs\.full-verification == 'true' \|\|\n          needs\.quality\.outputs\.focused-verification == 'windows-capability'/,
+  );
+  assert.match(packagedJob, /npm run verify:windows-update-e2e/);
 });
