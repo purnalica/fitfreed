@@ -299,7 +299,11 @@ refuses an existing FitFreed installation, registration, or application-data dir
 native adapter verifies the current-user location, package-manager identity, executable metadata, canonical shortcuts,
 WebView2 availability, and the deliberately unsigned engineering boundary. It invokes the real uninstaller and
 requires package-owned files, registration, and shortcuts to disappear while canonical application data remains
-unchanged. Output is a closed path-tokenized record; failures expose only a bounded phase and cleanup status.
+unchanged. Output is a closed path-tokenized record. Failures expose only the last allowlisted subphase and cleanup
+status, distinguishing input and clean-host preconditions, installation, registry identity and policy, installed-file
+metadata and trust, layout, shortcuts, WebView2, removal, and application-data preservation. The JavaScript and
+PowerShell phase sets are contract-tested together; arbitrary adapter text, paths, and injected phase names remain
+redacted.
 
 `npm run inventory:windows-package` performs that native cycle once and writes
 `FitFreed_<version>_x64-setup.exe.inventory.json` beside the exact setup only after installation, identity, complete

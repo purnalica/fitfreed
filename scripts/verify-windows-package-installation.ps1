@@ -15,7 +15,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-$phase = "precondition"
+$phase = "precondition-inputs"
 $installDirectory = Join-Path $env:LOCALAPPDATA $ExpectedProductName
 $registryRelativePath = "Software\Microsoft\Windows\CurrentVersion\Uninstall\$ExpectedProductName"
 $registryPath = "HKCU:\$registryRelativePath"
@@ -133,6 +133,8 @@ try {
     Assert-True ([string]::IsNullOrEmpty($SignToolPath)) "unsigned inspection received SignTool"
     Assert-True ([string]::IsNullOrEmpty($TrustScriptPath)) "unsigned inspection received a trust inspector"
   }
+
+  $phase = "precondition-clean-host"
   Assert-True (-not (Test-Path -LiteralPath $installDirectory)) "installation directory already exists"
   Assert-True (-not (Test-Path -LiteralPath $registryPath)) "registration already exists"
   Assert-True (-not (Test-Path -LiteralPath $applicationDataDirectory)) "application data already exists"
@@ -150,32 +152,47 @@ try {
   $installer = Start-Process -FilePath $PackagePath -ArgumentList "/S" -Wait -PassThru
   Assert-Equal $installer.ExitCode 0 "setup returned a failure"
 
-  $phase = "registry-identity"
+  $phase = "registry-presence"
   Assert-True (Test-Path -LiteralPath $registryPath) "Add or Remove Programs registration is absent"
   $registration = Get-ItemProperty -LiteralPath $registryPath
+
+  $phase = "registry-product-identity"
   Assert-Equal $registration.DisplayName $ExpectedProductName "registered display name differs"
   Assert-Equal $registration.DisplayVersion $ExpectedVersion "registered version differs"
   Assert-Equal $registration.Publisher $ExpectedPublisher "registered publisher differs"
+
+  $phase = "registry-web-links"
   Assert-Equal $registration.URLInfoAbout $ExpectedHomepage "registered homepage differs"
   Assert-Equal $registration.URLUpdateInfo $ExpectedHomepage "registered update page differs"
   Assert-Equal $registration.HelpLink $ExpectedHomepage "registered help page differs"
+
+  $phase = "registry-maintenance-policy"
   Assert-Equal $registration.NoModify 1 "registered modification policy differs"
   Assert-Equal $registration.NoRepair 1 "registered repair policy differs"
+
+  $phase = "registry-runtime-paths"
   Assert-Equal $registration.MainBinaryName $ExpectedExecutable "registered executable differs"
   Assert-Equal $registration.InstallLocation.Trim('"') $installDirectory "registered install directory differs"
   Assert-Equal $registration.UninstallString.Trim('"') $uninstallerPath "registered uninstaller differs"
 
-  $phase = "installed-files"
+  $phase = "installed-file-presence"
   Assert-True (Test-Path -LiteralPath $executablePath -PathType Leaf) "installed executable is absent"
   Assert-True (Test-Path -LiteralPath $uninstallerPath -PathType Leaf) "installed uninstaller is absent"
+
+  $phase = "installed-file-metadata"
   $executableVersion = (Get-Item -LiteralPath $executablePath).VersionInfo
   Assert-Equal $executableVersion.ProductName $ExpectedProductName "executable product name differs"
   Assert-Equal $executableVersion.FileDescription $ExpectedProductName "executable description differs"
   Assert-Equal $executableVersion.FileVersion $ExpectedVersion "executable file version differs"
   Assert-Equal $executableVersion.ProductVersion $ExpectedVersion "executable product version differs"
-  $phase = "installed-trust"
+
+  $phase = "installed-trust-executable"
   $executableSignature = Get-SignatureEvidence $executablePath $false
+
+  $phase = "installed-trust-uninstaller"
   $uninstallerSignature = Get-SignatureEvidence $uninstallerPath $true
+
+  $phase = "installed-layout"
   $unsupportedInstalledEntries = @(Get-ChildItem -LiteralPath $installDirectory -Recurse -Force |
     Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
   Assert-Equal $unsupportedInstalledEntries.Count 0 "installed package contains a reparse point"
@@ -192,9 +209,11 @@ try {
       }
     } | Sort-Object -Property sortKey | ForEach-Object { $_.entry })
 
-  $phase = "shortcuts"
+  $phase = "shortcuts-presence"
   Assert-True (Test-Path -LiteralPath $startMenuShortcut -PathType Leaf) "Start Menu shortcut is absent"
   Assert-True (Test-Path -LiteralPath $desktopShortcut -PathType Leaf) "desktop shortcut is absent"
+
+  $phase = "shortcuts-targets"
   Assert-Equal (Get-ShortcutTarget $startMenuShortcut) $executablePath "Start Menu target differs"
   Assert-Equal (Get-ShortcutTarget $desktopShortcut) $executablePath "desktop target differs"
 
@@ -202,9 +221,11 @@ try {
   $webView2Version = Find-WebView2Version
   Assert-True (-not [string]::IsNullOrWhiteSpace($webView2Version)) "WebView2 is unavailable"
 
-  $phase = "removal"
+  $phase = "removal-execution"
   $uninstaller = Start-Process -FilePath $uninstallerPath -ArgumentList "/S" -Wait -PassThru
   Assert-Equal $uninstaller.ExitCode 0 "uninstaller returned a failure"
+
+  $phase = "removal-cleanup"
   Wait-UntilRemoved @($installDirectory, $startMenuShortcut, $desktopShortcut) $registryPath
   $installationStarted = $false
 

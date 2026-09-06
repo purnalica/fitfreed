@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -9,11 +9,35 @@ import {
   findWindowsNsisPackage,
   validateWindowsInstallationFacts,
   verifyWindowsPackageInstallation,
+  windowsInstallationDiagnosticPhases,
   windowsInstallationPowerShellCommand,
 } from "./verify-windows-package-installation.mjs";
 
 const packageBytes = "synthetic package";
 const packageSha256 = createHash("sha256").update(packageBytes).digest("hex");
+
+const expectedDiagnosticPhases = Object.freeze([
+  "precondition-inputs",
+  "precondition-clean-host",
+  "package-trust",
+  "installation",
+  "registry-presence",
+  "registry-product-identity",
+  "registry-web-links",
+  "registry-maintenance-policy",
+  "registry-runtime-paths",
+  "installed-file-presence",
+  "installed-file-metadata",
+  "installed-trust-executable",
+  "installed-trust-uninstaller",
+  "installed-layout",
+  "shortcuts-presence",
+  "shortcuts-targets",
+  "webview-runtime",
+  "removal-execution",
+  "removal-cleanup",
+  "application-data-preservation",
+]);
 
 function unsignedSignature(fileSha256) {
   return {
@@ -248,6 +272,17 @@ test("passes public trust inputs to the native adapter without inheriting signin
   );
 });
 
+test("keeps native installation diagnostics closed, granular, and synchronized", () => {
+  assert.deepEqual(windowsInstallationDiagnosticPhases, expectedDiagnosticPhases);
+  const script = readFileSync(
+    new URL("./verify-windows-package-installation.ps1", import.meta.url),
+    "utf8",
+  );
+  const assignedPhases = [...script.matchAll(/\$phase = "([a-z-]+)"/g)]
+    .map((match) => match[1]);
+  assert.deepEqual([...new Set(assignedPhases)], expectedDiagnosticPhases);
+});
+
 test("returns only validated native evidence and bounds native failures", (context) => {
   const directory = mkdtempSync(path.join(tmpdir(), "fitfreed-windows-package-test-"));
   context.after(() => rmSync(directory, { recursive: true, force: true }));
@@ -274,12 +309,31 @@ test("returns only validated native evidence and bounds native failures", (conte
     }),
     expectedFacts,
   );
+  for (const phase of windowsInstallationDiagnosticPhases) {
+    assert.throws(
+      () => verifyWindowsPackageInstallation({
+        ...options,
+        run: () => ({ status: 17, stderr: `private path\nFITFREED_PHASE=${phase}\n` }),
+      }),
+      new RegExp(`^Error: Windows package installation failed during ${phase}$`),
+    );
+  }
   assert.throws(
     () => verifyWindowsPackageInstallation({
       ...options,
-      run: () => ({ status: 17, stderr: "private path\nFITFREED_PHASE=registry-identity\n" }),
+      run: () => ({ status: 17, stderr: "FITFREED_PHASE=untrusted-injected-phase\n" }),
     }),
-    /^Error: Windows package installation failed during registry-identity$/,
+    /^Error: Windows package installation failed during native-adapter$/,
+  );
+  assert.throws(
+    () => verifyWindowsPackageInstallation({
+      ...options,
+      run: () => ({
+        status: 17,
+        stderr: "FITFREED_PHASE=installation\nFITFREED_PHASE=removal-cleanup\n",
+      }),
+    }),
+    /^Error: Windows package installation failed during removal-cleanup$/,
   );
   assert.throws(
     () => verifyWindowsPackageInstallation({

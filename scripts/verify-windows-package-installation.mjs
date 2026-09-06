@@ -25,6 +25,30 @@ const trustScript = path.join(
 );
 const signatureProfiles = new Set(["public-authenticode", "unsigned-engineering"]);
 
+export const windowsInstallationDiagnosticPhases = Object.freeze([
+  "precondition-inputs",
+  "precondition-clean-host",
+  "package-trust",
+  "installation",
+  "registry-presence",
+  "registry-product-identity",
+  "registry-web-links",
+  "registry-maintenance-policy",
+  "registry-runtime-paths",
+  "installed-file-presence",
+  "installed-file-metadata",
+  "installed-trust-executable",
+  "installed-trust-uninstaller",
+  "installed-layout",
+  "shortcuts-presence",
+  "shortcuts-targets",
+  "webview-runtime",
+  "removal-execution",
+  "removal-cleanup",
+  "application-data-preservation",
+]);
+const installationDiagnosticPhaseSet = new Set(windowsInstallationDiagnosticPhases);
+
 const expectedInstallation = Object.freeze({
   applicationDataDirectory: windowsPackageContract.applicationDataDirectory,
   desktopShortcut: windowsPackageContract.desktopShortcut,
@@ -333,7 +357,10 @@ export function verifyWindowsPackageInstallation({
   });
   if (result.error) throw new Error("Windows package installation adapter could not start");
   if (result.status !== 0) {
-    const phase = result.stderr?.match(/FITFREED_PHASE=([a-z-]+)/)?.[1] ?? "native-adapter";
+    const phase = [...(result.stderr ?? "").matchAll(/^FITFREED_PHASE=([a-z-]+)$/gm)]
+      .map((match) => match[1])
+      .filter((candidate) => installationDiagnosticPhaseSet.has(candidate))
+      .at(-1) ?? "native-adapter";
     throw new Error(`Windows package installation failed during ${phase}`);
   }
   try {
