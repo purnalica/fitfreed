@@ -313,7 +313,7 @@ test("returns only validated native evidence and bounds native failures", (conte
     assert.throws(
       () => verifyWindowsPackageInstallation({
         ...options,
-        run: () => ({ status: 17, stderr: `private path\nFITFREED_PHASE=${phase}\n` }),
+        run: () => ({ status: 17, stderr: `private path\r\nFITFREED_PHASE=${phase}\r\n` }),
       }),
       new RegExp(`^Error: Windows package installation failed during ${phase}$`),
     );
@@ -340,6 +340,26 @@ test("returns only validated native evidence and bounds native failures", (conte
       ...options,
       run: () => ({ status: 0, stderr: "", stdout: "not-json" }),
     }),
-    /^Error: Windows package installation returned invalid evidence$/,
+    /^Error: Windows package installation failed during evidence-syntax$/,
+  );
+  const invalidDescriptionFacts = structuredClone(expectedFacts);
+  invalidDescriptionFacts.package.fileDescription = "Different description";
+  assert.throws(
+    () => verifyWindowsPackageInstallation({
+      ...options,
+      run: () => ({
+        status: 0,
+        stderr: "",
+        stdout: JSON.stringify(invalidDescriptionFacts),
+      }),
+    }),
+    /^Error: Windows package installation failed during evidence-package-description$/,
+  );
+  assert.throws(
+    () => verifyWindowsPackageInstallation({
+      ...options,
+      run: () => ({ error: new Error("private adapter detail") }),
+    }),
+    /^Error: Windows package installation failed during adapter-start$/,
   );
 });

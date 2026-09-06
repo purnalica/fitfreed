@@ -233,11 +233,23 @@ test("preserves prior inventory evidence when native installation fails", (conte
       platform: "win32",
       releaseDirectory: root,
       verify: () => {
-        throw new Error("Windows package installation failed during installed-trust");
+        throw new Error("Windows package installation failed during evidence-package-description");
       },
       version: "0.1.0",
     }),
-    /native-installation\/installed-trust/,
+    /native-installation\/evidence-package-description/,
+  );
+  assert.throws(
+    () => generateWindowsPackageInventory({
+      architecture: "x64",
+      platform: "win32",
+      releaseDirectory: root,
+      verify: () => {
+        throw new Error("Windows package installation failed during injected-phase");
+      },
+      version: "0.1.0",
+    }),
+    /Windows package inventory generation failed during native-installation$/,
   );
 });
 

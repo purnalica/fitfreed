@@ -52,6 +52,12 @@ Only that complete success writes the marker. The hosted Windows Server result p
 portability, engineering package behavior, and Authenticode orchestration; it does not replace timestamped public
 signatures, signed Windows 11 exact-candidate evidence, or human evidence.
 
+The native Windows package verifier carries one allowlisted diagnostic phase across the PowerShell lifecycle,
+JSON handoff, facts validation, and inventory wrapper. Lifecycle output is decoded with native CRLF semantics;
+returned evidence uses stable field-level codes rather than values. Unknown or injected text collapses to the owning
+boundary, so hosted failure output can identify the next decision without exposing paths, host state, or binary
+metadata values.
+
 Every project-authored text file is pinned to LF at the Git boundary while binary detection preserves binary bytes.
 This keeps source parsers, generated hashes, shell entry points, and deterministic artifacts independent of a
 contributor's or runner's `core.autocrlf` setting. Checksum-governed vendored source retains an explicit matching rule.

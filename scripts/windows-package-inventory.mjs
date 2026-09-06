@@ -20,6 +20,7 @@ import {
   findWindowsNsisPackage,
   validateWindowsInstallationFacts,
   verifyWindowsPackageInstallation,
+  windowsInstallationFailurePhases,
 } from "./verify-windows-package-installation.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
@@ -31,6 +32,7 @@ const validateSchema = ajv.compile(schema);
 const sha256Pattern = /^[0-9a-f]{64}$/;
 const nativeInstallationFailurePattern =
   /^Windows package installation failed during (?<phase>[a-z]+(?:-[a-z]+)*)$/;
+const nativeInstallationFailurePhaseSet = new Set(windowsInstallationFailurePhases);
 
 function digest(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -214,8 +216,11 @@ export function generateWindowsPackageInventory({
       version: inventory.identity.version,
     };
   } catch (error) {
-    const nativePhase = phase === "native-installation" && error instanceof Error
+    const candidateNativePhase = phase === "native-installation" && error instanceof Error
       ? error.message.match(nativeInstallationFailurePattern)?.groups?.phase
+      : undefined;
+    const nativePhase = nativeInstallationFailurePhaseSet.has(candidateNativePhase)
+      ? candidateNativePhase
       : undefined;
     const failurePhase = nativePhase ? `${phase}/${nativePhase}` : phase;
     throw new Error(`Windows package inventory generation failed during ${failurePhase}`);

@@ -49,6 +49,73 @@ export const windowsInstallationDiagnosticPhases = Object.freeze([
 ]);
 const installationDiagnosticPhaseSet = new Set(windowsInstallationDiagnosticPhases);
 
+export const windowsInstallationEvidenceDiagnosticCodes = Object.freeze([
+  "top-level-fields",
+  "package-fields",
+  "installation-fields",
+  "removal-fields",
+  "schema-version",
+  "signature-profile",
+  "setup-digest",
+  "certificate-fingerprint",
+  "target",
+  "package-format",
+  "install-mode",
+  "product-name",
+  "package-version",
+  "package-description",
+  "setup-signature-fields",
+  "setup-signature-status",
+  "setup-signature-certificate",
+  "setup-signature-timestamp",
+  "setup-signature-digest-format",
+  "setup-signature-digest-binding",
+  "publisher",
+  "homepage",
+  "installation-application-data-directory",
+  "installation-desktop-shortcut",
+  "installation-executable",
+  "installation-install-directory",
+  "installation-start-menu-shortcut",
+  "installation-uninstaller",
+  "installation-uninstall-registry",
+  "webview-runtime",
+  "entry-fields",
+  "entry-path",
+  "entry-size",
+  "entry-digest",
+  "entry-order",
+  "entry-required-executable",
+  "entry-required-uninstaller",
+  "executable-signature-fields",
+  "executable-signature-status",
+  "executable-signature-certificate",
+  "executable-signature-timestamp",
+  "executable-signature-digest-format",
+  "executable-signature-digest-binding",
+  "uninstaller-signature-fields",
+  "uninstaller-signature-status",
+  "uninstaller-signature-certificate",
+  "uninstaller-signature-timestamp",
+  "uninstaller-signature-digest-format",
+  "uninstaller-signature-digest-binding",
+  "removal-package-files-removed",
+  "removal-registration-removed",
+  "removal-shortcuts-removed",
+  "removal-application-data-preserved",
+]);
+const evidenceDiagnosticCodeSet = new Set(windowsInstallationEvidenceDiagnosticCodes);
+
+export const windowsInstallationFailurePhases = Object.freeze([
+  "adapter-start",
+  "native-adapter",
+  "evidence-syntax",
+  "evidence-validation",
+  ...windowsInstallationDiagnosticPhases,
+  ...windowsInstallationEvidenceDiagnosticCodes.map((code) => `evidence-${code}`),
+]);
+const installationFailurePhaseSet = new Set(windowsInstallationFailurePhases);
+
 const expectedInstallation = Object.freeze({
   applicationDataDirectory: windowsPackageContract.applicationDataDirectory,
   desktopShortcut: windowsPackageContract.desktopShortcut,
@@ -58,6 +125,26 @@ const expectedInstallation = Object.freeze({
   uninstaller: windowsPackageContract.uninstaller,
   uninstallRegistry: windowsPackageContract.uninstallRegistry,
 });
+
+class WindowsInstallationFactsError extends Error {
+  constructor(issues) {
+    super(issues.map(({ message }) => message).join("\n"));
+    this.name = "WindowsInstallationFactsError";
+    this.diagnosticCode = issues[0]?.code;
+  }
+}
+
+function validationIssue(code, message) {
+  if (!evidenceDiagnosticCodeSet.has(code)) {
+    throw new Error("unsupported Windows installation evidence diagnostic code");
+  }
+  return { code, message };
+}
+
+function failureError(phase) {
+  const safePhase = installationFailurePhaseSet.has(phase) ? phase : "native-adapter";
+  return new Error(`Windows package installation failed during ${safePhase}`);
+}
 
 function unexpectedFields(object, allowed) {
   return Object.keys(object ?? {}).filter((field) => !allowed.includes(field)).sort();
@@ -86,31 +173,49 @@ function validateSignatureFacts(signature, {
   label,
   signatureProfile,
 }) {
-  const errors = [];
+  const issues = [];
   const fields = unexpectedFields(
     signature,
     ["certificateSha256", "fileSha256", "status", "timestamped"],
   );
   if (fields.length > 0) {
-    errors.push(`Windows installation ${label} signature has unexpected fields: ${fields.join(", ")}`);
+    issues.push(validationIssue(
+      `${label}-signature-fields`,
+      `Windows installation ${label} signature has unexpected fields: ${fields.join(", ")}`,
+    ));
   }
   const isPublic = signatureProfile === "public-authenticode";
   const expectedStatus = isPublic ? "Valid" : "NotSigned";
   if (signature?.status !== expectedStatus) {
-    errors.push(`Windows installation ${label} signature must be ${isPublic ? "public and valid" : "unsigned"}`);
+    issues.push(validationIssue(
+      `${label}-signature-status`,
+      `Windows installation ${label} signature must be ${isPublic ? "public and valid" : "unsigned"}`,
+    ));
   }
   if (signature?.certificateSha256 !== (isPublic ? certificateSha256 : null)) {
-    errors.push(`Windows installation ${label} signature uses an unexpected certificate`);
+    issues.push(validationIssue(
+      `${label}-signature-certificate`,
+      `Windows installation ${label} signature uses an unexpected certificate`,
+    ));
   }
   if (signature?.timestamped !== isPublic) {
-    errors.push(`Windows installation ${label} signature has an unexpected timestamp state`);
+    issues.push(validationIssue(
+      `${label}-signature-timestamp`,
+      `Windows installation ${label} signature has an unexpected timestamp state`,
+    ));
   }
   if (!sha256Pattern.test(signature?.fileSha256 ?? "")) {
-    errors.push(`Windows installation ${label} signature requires a lowercase SHA-256 digest`);
+    issues.push(validationIssue(
+      `${label}-signature-digest-format`,
+      `Windows installation ${label} signature requires a lowercase SHA-256 digest`,
+    ));
   } else if (signature.fileSha256 !== expectedDigest) {
-    errors.push(`Windows installation ${label} digest does not bind the inspected file`);
+    issues.push(validationIssue(
+      `${label}-signature-digest-binding`,
+      `Windows installation ${label} digest does not bind the inspected file`,
+    ));
   }
-  return errors;
+  return issues;
 }
 
 export function validateWindowsInstallationFacts(facts, expectedVersion, {
@@ -118,7 +223,7 @@ export function validateWindowsInstallationFacts(facts, expectedVersion, {
   packageSha256,
   signatureProfile,
 }) {
-  const errors = [];
+  const issues = [];
   for (const [object, allowed, label] of [
     [facts, ["architecture", "installation", "installMode", "package", "packageFormat", "platform", "removal", "schemaVersion", "signatureProfile"], "top-level"],
     [facts?.package, ["fileDescription", "fileVersion", "productName", "productVersion", "signature", "version"], "package"],
@@ -126,43 +231,62 @@ export function validateWindowsInstallationFacts(facts, expectedVersion, {
     [facts?.removal, ["applicationDataPreserved", "packageFilesRemoved", "registrationRemoved", "shortcutsRemoved"], "removal"],
   ]) {
     const fields = unexpectedFields(object, allowed);
-    if (fields.length > 0) errors.push(`Windows installation ${label} has unexpected fields: ${fields.join(", ")}`);
+    if (fields.length > 0) {
+      issues.push(validationIssue(
+        `${label}-fields`,
+        `Windows installation ${label} has unexpected fields: ${fields.join(", ")}`,
+      ));
+    }
   }
-  if (facts?.schemaVersion !== 2) errors.push("Windows installation schema version must be 2");
+  if (facts?.schemaVersion !== 2) {
+    issues.push(validationIssue("schema-version", "Windows installation schema version must be 2"));
+  }
   if (!signatureProfiles.has(signatureProfile) || facts?.signatureProfile !== signatureProfile) {
-    errors.push("Windows installation signature profile does not match the requested profile");
+    issues.push(validationIssue(
+      "signature-profile",
+      "Windows installation signature profile does not match the requested profile",
+    ));
   }
   if (!sha256Pattern.test(packageSha256 ?? "")) {
-    errors.push("Windows installation requires the exact setup digest");
+    issues.push(validationIssue("setup-digest", "Windows installation requires the exact setup digest"));
   }
   if (
     signatureProfile === "public-authenticode"
     && !sha256Pattern.test(certificateSha256 ?? "")
   ) {
-    errors.push("Windows installation public profile requires an admitted certificate fingerprint");
+    issues.push(validationIssue(
+      "certificate-fingerprint",
+      "Windows installation public profile requires an admitted certificate fingerprint",
+    ));
   }
   if (facts?.platform !== "windows" || facts?.architecture !== windowsPackageContract.architecture) {
-    errors.push("Windows installation target must be windows x86_64");
+    issues.push(validationIssue("target", "Windows installation target must be windows x86_64"));
   }
   if (facts?.packageFormat !== windowsPackageContract.target) {
-    errors.push("Windows package format must be nsis");
+    issues.push(validationIssue("package-format", "Windows package format must be nsis"));
   }
   if (facts?.installMode !== windowsPackageContract.installMode) {
-    errors.push("Windows install mode must be currentUser");
+    issues.push(validationIssue("install-mode", "Windows install mode must be currentUser"));
   }
   const packageFacts = facts?.package ?? {};
   if (packageFacts.productName !== windowsPackageContract.bundleProductName) {
-    errors.push("Windows package product name must be FitFreed");
+    issues.push(validationIssue("product-name", "Windows package product name must be FitFreed"));
   }
   if (packageFacts.version !== expectedVersion
       || packageFacts.fileVersion !== expectedVersion
       || packageFacts.productVersion !== expectedVersion) {
-    errors.push(`Windows package version metadata must be ${expectedVersion}`);
+    issues.push(validationIssue(
+      "package-version",
+      `Windows package version metadata must be ${expectedVersion}`,
+    ));
   }
   if (packageFacts.fileDescription !== windowsPackageContract.bundleProductName) {
-    errors.push("Windows package file description must be FitFreed");
+    issues.push(validationIssue(
+      "package-description",
+      "Windows package file description must be FitFreed",
+    ));
   }
-  errors.push(...validateSignatureFacts(packageFacts.signature, {
+  issues.push(...validateSignatureFacts(packageFacts.signature, {
     certificateSha256,
     expectedDigest: packageSha256,
     label: "setup",
@@ -170,18 +294,28 @@ export function validateWindowsInstallationFacts(facts, expectedVersion, {
   }));
   const installation = facts?.installation ?? {};
   if (installation.publisher !== windowsPackageContract.publisher) {
-    errors.push(`Windows package publisher must be ${windowsPackageContract.publisher}`);
+    issues.push(validationIssue(
+      "publisher",
+      `Windows package publisher must be ${windowsPackageContract.publisher}`,
+    ));
   }
   if (installation.homepage !== windowsPackageContract.homepage) {
-    errors.push(`Windows package homepage must be ${windowsPackageContract.homepage}`);
+    issues.push(validationIssue(
+      "homepage",
+      `Windows package homepage must be ${windowsPackageContract.homepage}`,
+    ));
   }
   for (const [field, expected] of Object.entries(expectedInstallation)) {
     if (installation[field] !== expected) {
-      errors.push(`Windows ${field.replaceAll(/([A-Z])/g, " $1").toLowerCase()} must be ${expected}`);
+      const fieldCode = field.replaceAll(/([A-Z])/g, "-$1").toLowerCase();
+      issues.push(validationIssue(
+        `installation-${fieldCode}`,
+        `Windows ${field.replaceAll(/([A-Z])/g, " $1").toLowerCase()} must be ${expected}`,
+      ));
     }
   }
   if (installation.webview2Available !== true) {
-    errors.push("WebView2 must be available after package installation");
+    issues.push(validationIssue("webview-runtime", "WebView2 must be available after package installation"));
   }
   const installedEntries = Array.isArray(installation.installedEntries)
     ? installation.installedEntries
@@ -190,38 +324,59 @@ export function validateWindowsInstallationFacts(facts, expectedVersion, {
   for (const entry of installedEntries) {
     const fields = unexpectedFields(entry, ["path", "sha256", "size"]);
     if (fields.length > 0) {
-      errors.push(`Windows installation entry has unexpected fields: ${fields.join(", ")}`);
+      issues.push(validationIssue(
+        "entry-fields",
+        `Windows installation entry has unexpected fields: ${fields.join(", ")}`,
+      ));
     }
     if (!safeInstalledPath(entry?.path)) {
-      errors.push("Windows installation entry path must be safe and relative");
+      issues.push(validationIssue(
+        "entry-path",
+        "Windows installation entry path must be safe and relative",
+      ));
     } else {
       entryPaths.push(entry.path);
     }
     if (!Number.isSafeInteger(entry?.size) || entry.size < 0) {
-      errors.push("Windows installation entry size must be a non-negative safe integer");
+      issues.push(validationIssue(
+        "entry-size",
+        "Windows installation entry size must be a non-negative safe integer",
+      ));
     }
     if (!sha256Pattern.test(entry?.sha256 ?? "")) {
-      errors.push("Windows installation entry digest must be lowercase SHA-256");
+      issues.push(validationIssue(
+        "entry-digest",
+        "Windows installation entry digest must be lowercase SHA-256",
+      ));
     }
   }
   const expectedEntryPaths = [...new Set(entryPaths)].sort(byteOrder);
   if (installedEntries.length === 0
       || JSON.stringify(entryPaths) !== JSON.stringify(expectedEntryPaths)) {
-    errors.push("Windows installation entries must have unique byte-sorted paths");
+    issues.push(validationIssue(
+      "entry-order",
+      "Windows installation entries must have unique byte-sorted paths",
+    ));
   }
   const entriesByPath = new Map(installedEntries.map((entry) => [entry?.path, entry]));
-  for (const requiredPath of [windowsPackageContract.executable, windowsPackageContract.uninstaller]) {
+  for (const [requiredPath, requiredLabel] of [
+    [windowsPackageContract.executable, "executable"],
+    [windowsPackageContract.uninstaller, "uninstaller"],
+  ]) {
     if (!entriesByPath.has(requiredPath)) {
-      errors.push(`Windows installation entries must contain ${requiredPath}`);
+      issues.push(validationIssue(
+        `entry-required-${requiredLabel}`,
+        `Windows installation entries must contain ${requiredPath}`,
+      ));
     }
   }
-  errors.push(...validateSignatureFacts(installation.executableSignature, {
+  issues.push(...validateSignatureFacts(installation.executableSignature, {
     certificateSha256,
     expectedDigest: entriesByPath.get(windowsPackageContract.executable)?.sha256,
     label: "executable",
     signatureProfile,
   }));
-  errors.push(...validateSignatureFacts(installation.uninstallerSignature, {
+  issues.push(...validateSignatureFacts(installation.uninstallerSignature, {
     certificateSha256,
     expectedDigest: entriesByPath.get(windowsPackageContract.uninstaller)?.sha256,
     label: "uninstaller",
@@ -234,9 +389,15 @@ export function validateWindowsInstallationFacts(facts, expectedVersion, {
     ["shortcutsRemoved", "shortcuts"],
     ["applicationDataPreserved", "application data"],
   ]) {
-    if (removal[field] !== true) errors.push(`Windows removal must preserve or remove ${label} as declared`);
+    if (removal[field] !== true) {
+      const fieldCode = field.replaceAll(/([A-Z])/g, "-$1").toLowerCase();
+      issues.push(validationIssue(
+        `removal-${fieldCode}`,
+        `Windows removal must preserve or remove ${label} as declared`,
+      ));
+    }
   }
-  if (errors.length > 0) throw new Error(errors.join("\n"));
+  if (issues.length > 0) throw new WindowsInstallationFactsError(issues);
   return facts;
 }
 
@@ -355,24 +516,32 @@ export function verifyWindowsPackageInstallation({
     maxBuffer: 10 * 1024 * 1024,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  if (result.error) throw new Error("Windows package installation adapter could not start");
+  if (result.error) throw failureError("adapter-start");
   if (result.status !== 0) {
-    const phase = [...(result.stderr ?? "").matchAll(/^FITFREED_PHASE=([a-z-]+)$/gm)]
-      .map((match) => match[1])
+    const phase = (result.stderr ?? "").split(/\r?\n/)
+      .map((line) => line.match(/^FITFREED_PHASE=([a-z-]+)$/)?.[1])
       .filter((candidate) => installationDiagnosticPhaseSet.has(candidate))
       .at(-1) ?? "native-adapter";
-    throw new Error(`Windows package installation failed during ${phase}`);
+    throw failureError(phase);
+  }
+  let facts;
+  try {
+    facts = JSON.parse(result.stdout.trim());
+  } catch {
+    throw failureError("evidence-syntax");
   }
   try {
     const packageSha256 = createHash("sha256").update(readFileSync(packagePath)).digest("hex");
-    return validateWindowsInstallationFacts(JSON.parse(result.stdout.trim()), version, {
+    return validateWindowsInstallationFacts(facts, version, {
       certificateSha256,
       packageSha256,
       signatureProfile,
     });
   } catch (error) {
-    if (error.message.startsWith("Windows installation")) throw error;
-    throw new Error("Windows package installation returned invalid evidence");
+    if (error instanceof WindowsInstallationFactsError) {
+      throw failureError(`evidence-${error.diagnosticCode}`);
+    }
+    throw failureError("evidence-validation");
   }
 }
 
