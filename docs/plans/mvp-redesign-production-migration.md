@@ -12,12 +12,13 @@ redesign.
 
 ### Current execution snapshot
 
-Updated 2026-08-30. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries are
-machine-complete historical evidence. The production-native review of that result was paused and rejected after it
-found material defects in sport identity, calendar discovery, information density, analytical charts, route
-interaction, and report execution. X7-R8.0 through X7-R8.8 reached machine completion, but the bounded product-owner
-experience gate rejected their candidate on 2026-08-30. No prior green campaign or audit overrides that observed
-product failure, and X7-R8 is reopened.
+Updated 2026-09-06. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries remain
+machine-complete historical evidence. The production-native reviews rejected those results and later X7-R8 candidates;
+no prior green campaign or audit overrides an observed product failure. X7-R8.0 through X7-R8.14 now retain complete
+machine evidence. Exact source `7583ca9` passes the complete local and hosted campaigns, repeated independent audit,
+immutable executable-input evidence, and revision-isolated native inspection. One bounded product-owner experience
+review remains open, so no current MVP candidate is accepted. Independent Linux and Windows parity engineering may
+continue without reinterpreting that human gate.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) closes its only material
 finding after an exact clean rebuild and accepts no additional critical or major finding. Exact [repository safety
@@ -355,7 +356,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Machine-complete — the XH-24 unnamed-provider-phase correction retains exact clean, hosted, and private-reference evidence | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | Awaiting human evaluation — R8.0 through R8.12 retain machine evidence; R8.13 closes the missing bundled catalogue and exact source `a447910` passes every automatable admission gate | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Awaiting human evaluation — R8.0 through R8.14 retain machine evidence; exact source `7583ca9` passes every automatable product admission gate | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
 
 ## X4-P0 — Freeze the executable contract
 
