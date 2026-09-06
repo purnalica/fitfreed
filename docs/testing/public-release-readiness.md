@@ -91,7 +91,12 @@ packaged E2E campaign is skipped, while native inventory now reports the precise
 file sort introduced by `7b50b90` supplied ordered dictionaries whose `sortKey` key is not a sortable object property
 on that runtime. The current tree materializes those temporary records as `PSCustomObject` values and preserves the
 existing UTF-8 hexadecimal key plus independent JavaScript byte-order validation. Focused installation and inventory
-contracts pass; one exact package-only native rerun remains.
+contracts pass. Exact source `ae59828` then passes the complete package-only Windows boundary in focused [run
+`34060294715`](https://github.com/purnalica/fitfreed/actions/runs/34060294715): the NSIS package builds, installs into
+the clean current-user profile, emits the validated package inventory, removes package-owned state, preserves
+application data, and records reusable Windows host evidence. Every packaged E2E campaign is skipped. The Windows
+installation and engineering-inventory boundary is closed; public Authenticode authority, update recovery,
+performance, exact-candidate, Windows 11 acceptance, and promotion remain separate open boundaries.
 Automation does not overrule the observed failure or accept the corrected experience.
 The ADR 0020 Pages compositor and localized product site remain live without an application download. The macOS,
 Linux-expansion, and Windows-expansion release workflows are implemented but inactive; later-platform engineering does
