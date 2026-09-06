@@ -29,7 +29,10 @@ import {
 } from "./update-channel-v3.mjs";
 import { nodePackageScriptPath } from "./node-package-script.mjs";
 import { expectedWindowsNsisArtifactName } from "./windows-package-contract.mjs";
-import { windowsInstalledPackageActionCommand } from "./windows-installed-package.mjs";
+import {
+  windowsInstalledPackageActionCommand,
+  windowsInstalledPackageActionScript,
+} from "./windows-installed-package.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const artifactRoot = path.join(repositoryRoot, ".artifacts/windows-update-e2e");
@@ -727,7 +730,7 @@ async function runScenario(
           FITFREED_UPDATE_E2E_DRIVER_PORT: String(await availableTcpPort()),
           FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
           FITFREED_UPDATE_E2E_EVIDENCE_PATH: evidencePath,
-          FITFREED_UPDATE_E2E_PACKAGE_SCRIPT: packageActionScript,
+          FITFREED_UPDATE_E2E_PACKAGE_SCRIPT: windowsInstalledPackageActionScript,
           FITFREED_E2E_DATABASE_PATH: databasePath,
           FITFREED_E2E_UPDATE_CONTRACT: "stable-v3",
           FITFREED_E2E_UPDATE_ENDPOINT: endpoint,

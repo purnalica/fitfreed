@@ -13,12 +13,14 @@ import {
 import {
   activateMacosApplication,
   coldLaunchEnvironment,
+  createWindowsStartupSignalChannel,
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
   measureFreshProcess,
   resetInstalledWindowsApplicationData,
   resolveColdLaunchApplication,
   validateInteractiveShellSignal,
+  windowsStartupSignalPipeName,
 } from "./run-cold-launch-benchmark.mjs";
 
 const revision = "a".repeat(40);
@@ -462,6 +464,212 @@ test("activates the spawned macOS process before accepting its painted shell", a
   } finally {
     rmSync(temporaryDirectory, { recursive: true, force: true });
   }
+});
+
+test("creates an unguessable one-shot Windows startup signal channel", async () => {
+  const events = [];
+  const server = new EventEmitter();
+  server.listen = (pipeName, callback) => {
+    events.push(["listen", pipeName]);
+    server.listening = true;
+    queueMicrotask(callback);
+  };
+  server.close = (callback) => {
+    events.push(["close"]);
+    server.listening = false;
+    queueMicrotask(callback);
+  };
+
+  const channel = await createWindowsStartupSignalChannel({
+    createServer(connectionHandler) {
+      server.connectionHandler = connectionHandler;
+      return server;
+    },
+    randomBytes() {
+      return Buffer.from("ab".repeat(32), "hex");
+    },
+  });
+
+  assert.equal(
+    channel.pipeName,
+    "\\\\.\\pipe\\fitfreed-startup-abababababababababababababababababababababababababababababababab",
+  );
+  assert.equal(channel.isConnected(), false);
+  assert.deepEqual(events, [["listen", channel.pipeName]]);
+  const connection = new PassThrough();
+  server.connectionHandler(connection);
+  assert.equal(channel.isConnected(), true);
+  await channel.close();
+  assert.deepEqual(events, [["listen", channel.pipeName], ["close"]]);
+});
+
+test("accepts only a lowercase 256-bit Windows startup pipe identity", () => {
+  assert.equal(
+    windowsStartupSignalPipeName(() => Buffer.from("01".repeat(32), "hex")),
+    "\\\\.\\pipe\\fitfreed-startup-0101010101010101010101010101010101010101010101010101010101010101",
+  );
+  assert.throws(
+    () => windowsStartupSignalPipeName(() => Buffer.alloc(31)),
+    /256-bit random identity/,
+  );
+});
+
+test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async () => {
+  const signalOutput = new PassThrough();
+  const child = new EventEmitter();
+  child.pid = 8_765;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+  let channelClosed = false;
+  let applicationDataPrepared = false;
+
+  const measurement = await measureFreshProcess(
+    "C:\\FitFreed\\fitfreed.exe",
+    "C:\\unused-home",
+    { applicationVersion: "0.1.0", sourceRevision: revision },
+    {
+      architecture: "x64",
+      async createWindowsSignalChannel() {
+        return {
+          pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "cd".repeat(32),
+          output: signalOutput,
+          isConnected() {
+            return true;
+          },
+          async close() {
+            channelClosed = true;
+          },
+        };
+      },
+      inheritedEnvironment: {
+        FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE: "\\\\.\\pipe\\fitfreed-startup-inherited",
+        LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+        PATH: "C:\\Windows\\System32",
+      },
+      platform: "win32",
+      prepareApplicationData() {
+        applicationDataPrepared = true;
+      },
+      spawnApplication(_binary, _arguments, options) {
+        assert.equal(applicationDataPrepared, true);
+        assert.deepEqual(options.stdio, ["ignore", "ignore", "pipe"]);
+        assert.equal(
+          options.env.FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE,
+          "\\\\.\\pipe\\fitfreed-startup-" + "cd".repeat(32),
+        );
+        queueMicrotask(() => {
+          child.emit("spawn");
+          signalOutput.write(`${JSON.stringify({
+            format: "org.fitfreed.startup-signal",
+            schemaVersion: 2,
+            event: "interactive-shell",
+            applicationVersion: "0.1.0",
+            sourceRevision: revision,
+            sourceTreeClean: true,
+            hostStartupMilliseconds: { setupComplete: 0, signal: 0 },
+            rendererStartupMilliseconds: { localeReady: 0, signal: 0 },
+          })}\n`);
+        });
+        return child;
+      },
+    },
+  );
+
+  assert.ok(measurement.totalMilliseconds >= 0);
+  assert.equal(channelClosed, true);
+});
+
+test("rejects a Windows startup channel that closes before the painted-shell signal", async () => {
+  const signalOutput = new PassThrough();
+  const child = new EventEmitter();
+  child.pid = 8_766;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+
+  await assert.rejects(
+    measureFreshProcess(
+      "C:\\FitFreed\\fitfreed.exe",
+      "C:\\unused-home",
+      { applicationVersion: "0.1.0", sourceRevision: revision },
+      {
+        architecture: "x64",
+        async createWindowsSignalChannel() {
+          return {
+            pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "ef".repeat(32),
+            output: signalOutput,
+            isConnected() {
+              return true;
+            },
+            async close() {},
+          };
+        },
+        inheritedEnvironment: {
+          LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+          PATH: "C:\\Windows\\System32",
+        },
+        platform: "win32",
+        prepareApplicationData() {},
+        spawnApplication() {
+          queueMicrotask(() => {
+            child.emit("spawn");
+            signalOutput.end();
+          });
+          return child;
+        },
+      },
+    ),
+    /closed its startup channel/,
+  );
+});
+
+test("closes the Windows startup channel when process creation fails synchronously", async () => {
+  let channelClosed = false;
+
+  await assert.rejects(
+    measureFreshProcess(
+      "C:\\FitFreed\\fitfreed.exe",
+      "C:\\unused-home",
+      { applicationVersion: "0.1.0", sourceRevision: revision },
+      {
+        architecture: "x64",
+        async createWindowsSignalChannel() {
+          return {
+            pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "12".repeat(32),
+            output: new PassThrough(),
+            isConnected() {
+              return false;
+            },
+            async close() {
+              channelClosed = true;
+            },
+          };
+        },
+        inheritedEnvironment: {
+          LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+          PATH: "C:\\Windows\\System32",
+        },
+        platform: "win32",
+        prepareApplicationData() {},
+        spawnApplication() {
+          throw new Error("synthetic process creation failure");
+        },
+      },
+    ),
+    /application process could not be started/,
+  );
+  assert.equal(channelClosed, true);
 });
 
 test("resets only the installed Windows application-data identity before measurement", () => {

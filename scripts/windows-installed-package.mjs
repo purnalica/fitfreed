@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { expectedWindowsNsisArtifactName } from "./windows-package-contract.mjs";
 
-const packageActionScript = path.resolve(
+export const windowsInstalledPackageActionScript = path.resolve(
   import.meta.dirname,
   "run-installed-windows-package.ps1",
 );
@@ -35,7 +35,7 @@ export function windowsInstalledPackageActionCommand({
     "-ExecutionPolicy",
     "Bypass",
     "-File",
-    packageActionScript,
+    windowsInstalledPackageActionScript,
     "-Action",
     action,
   ];

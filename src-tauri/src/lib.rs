@@ -16,6 +16,8 @@ use std::{
 
 #[cfg(feature = "e2e")]
 use std::fs;
+#[cfg(target_os = "windows")]
+use std::fs::OpenOptions;
 
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
@@ -221,6 +223,8 @@ struct InteractiveShellSignal {
     started_at: Instant,
     setup_complete: Mutex<Option<Duration>>,
     emitted: Mutex<bool>,
+    #[cfg(any(test, target_os = "windows"))]
+    runtime_output: Mutex<Option<Box<dyn Write + Send>>>,
 }
 
 impl Default for InteractiveShellSignal {
@@ -229,11 +233,41 @@ impl Default for InteractiveShellSignal {
             started_at: Instant::now(),
             setup_complete: Mutex::new(None),
             emitted: Mutex::new(false),
+            #[cfg(any(test, target_os = "windows"))]
+            runtime_output: Mutex::new(None),
         }
     }
 }
 
 impl InteractiveShellSignal {
+    #[cfg(target_os = "windows")]
+    fn for_runtime() -> Self {
+        let output = windows_startup_signal_pipe_path(env::var_os(
+            WINDOWS_STARTUP_SIGNAL_PIPE_ENVIRONMENT_VARIABLE,
+        ))
+        .ok()
+        .flatten()
+        .and_then(|pipe_path| OpenOptions::new().write(true).open(pipe_path).ok())
+        .map(|pipe| Box::new(pipe) as Box<dyn Write + Send>);
+        Self {
+            runtime_output: Mutex::new(output),
+            ..Self::default()
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn for_runtime() -> Self {
+        Self::default()
+    }
+
+    #[cfg(any(test, target_os = "windows"))]
+    fn with_runtime_output(output: Box<dyn Write + Send>) -> Self {
+        Self {
+            runtime_output: Mutex::new(Some(output)),
+            ..Self::default()
+        }
+    }
+
     fn record_setup_complete(&self) -> io::Result<()> {
         let mut setup_complete = self
             .setup_complete
@@ -241,6 +275,21 @@ impl InteractiveShellSignal {
             .map_err(|_| io::Error::other("interactive shell setup timing is unavailable"))?;
         *setup_complete = Some(self.started_at.elapsed());
         Ok(())
+    }
+
+    #[cfg(any(test, target_os = "windows"))]
+    fn write_to_runtime(
+        &self,
+        renderer_startup_milliseconds: RendererStartupMilliseconds,
+    ) -> io::Result<bool> {
+        let mut output = self
+            .runtime_output
+            .lock()
+            .map_err(|_| io::Error::other("interactive shell runtime output is unavailable"))?;
+        let Some(output) = output.as_mut() else {
+            return Ok(false);
+        };
+        write_interactive_shell_signal(self, renderer_startup_milliseconds, output)
     }
 }
 
@@ -278,6 +327,35 @@ struct InteractiveShellPayload<'a> {
     source_tree_clean: bool,
     host_startup_milliseconds: HostStartupMilliseconds,
     renderer_startup_milliseconds: RendererStartupMilliseconds,
+}
+
+#[cfg(any(test, target_os = "windows"))]
+const WINDOWS_STARTUP_SIGNAL_PIPE_PREFIX: &str = r"\\.\pipe\fitfreed-startup-";
+#[cfg(target_os = "windows")]
+const WINDOWS_STARTUP_SIGNAL_PIPE_ENVIRONMENT_VARIABLE: &str =
+    "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
+
+#[cfg(any(test, target_os = "windows"))]
+fn windows_startup_signal_pipe_path(value: Option<OsString>) -> io::Result<Option<PathBuf>> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let text = value
+        .to_str()
+        .ok_or_else(|| io::Error::other("Windows startup signal pipe is not UTF-8"))?;
+    let identity = text
+        .strip_prefix(WINDOWS_STARTUP_SIGNAL_PIPE_PREFIX)
+        .ok_or_else(|| io::Error::other("Windows startup signal pipe has an invalid prefix"))?;
+    if identity.len() != 64
+        || !identity
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(io::Error::other(
+            "Windows startup signal pipe has an invalid identity",
+        ));
+    }
+    Ok(Some(PathBuf::from(value)))
 }
 
 fn write_interactive_shell_signal(
@@ -326,18 +404,34 @@ fn write_interactive_shell_signal(
     Ok(true)
 }
 
+#[cfg(not(target_os = "windows"))]
+fn write_interactive_shell_signal_to_runtime(
+    signal: &InteractiveShellSignal,
+    renderer_startup_milliseconds: RendererStartupMilliseconds,
+) -> io::Result<bool> {
+    write_interactive_shell_signal(
+        signal,
+        renderer_startup_milliseconds,
+        &mut io::stdout().lock(),
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn write_interactive_shell_signal_to_runtime(
+    signal: &InteractiveShellSignal,
+    renderer_startup_milliseconds: RendererStartupMilliseconds,
+) -> io::Result<bool> {
+    signal.write_to_runtime(renderer_startup_milliseconds)
+}
+
 #[tauri::command]
 fn report_interactive_shell(
     signal: State<'_, InteractiveShellSignal>,
     renderer_startup_milliseconds: RendererStartupMilliseconds,
 ) -> Result<(), CommandErrorDto> {
-    write_interactive_shell_signal(
-        signal.inner(),
-        renderer_startup_milliseconds,
-        &mut io::stdout().lock(),
-    )
-    .map(|_| ())
-    .map_err(|_| CommandErrorDto::new("interactive-shell-signal-unavailable"))
+    write_interactive_shell_signal_to_runtime(signal.inner(), renderer_startup_milliseconds)
+        .map(|_| ())
+        .map_err(|_| CommandErrorDto::new("interactive-shell-signal-unavailable"))
 }
 
 #[derive(Default)]
@@ -2590,7 +2684,7 @@ fn start_library_recovery(library_path: PathBuf, startup_recovery: Arc<StartupLi
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let interactive_shell_signal = InteractiveShellSignal::default();
+    let interactive_shell_signal = InteractiveShellSignal::for_runtime();
     let startup_recovery = Arc::new(StartupLibraryRecovery::default());
     let pending_recovery_confirmation = match startup_mode(&env::args_os().collect::<Vec<_>>()) {
         StartupMode::Desktop => None,
@@ -2823,6 +2917,24 @@ mod tests {
     use tokio::sync::Notify;
 
     use super::*;
+
+    struct SharedTestWriter {
+        output: Arc<Mutex<Vec<u8>>>,
+    }
+
+    impl Write for SharedTestWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.output
+                .lock()
+                .map_err(|_| io::Error::other("shared test output is unavailable"))?
+                .extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
 
     struct FixedUpdateChannel(UpdateChannelRead);
 
@@ -3374,6 +3486,55 @@ mod tests {
             write_interactive_shell_signal(&signal, valid_renderer_timings, &mut output)
                 .expect("valid timing should remain reportable")
         );
+    }
+
+    #[test]
+    fn retained_runtime_output_reports_the_painted_shell_once() {
+        let output = Arc::new(Mutex::new(Vec::new()));
+        let signal = InteractiveShellSignal::with_runtime_output(Box::new(SharedTestWriter {
+            output: Arc::clone(&output),
+        }));
+        signal
+            .record_setup_complete()
+            .expect("setup timing should be recorded");
+
+        assert!(signal
+            .write_to_runtime(RendererStartupMilliseconds {
+                locale_ready: 1.0,
+                signal: 2.0,
+            })
+            .expect("painted shell signal"));
+        assert!(!signal
+            .write_to_runtime(RendererStartupMilliseconds {
+                locale_ready: 1.0,
+                signal: 2.0,
+            })
+            .expect("repeated painted shell signal"));
+
+        let bytes = output.lock().expect("shared output").clone();
+        let payload: serde_json::Value = serde_json::from_slice(&bytes).expect("JSON signal");
+        assert_eq!(payload["event"], "interactive-shell");
+    }
+
+    #[test]
+    fn accepts_only_the_exact_windows_startup_signal_pipe_identity() {
+        let valid = OsString::from(format!(r"\\.\pipe\fitfreed-startup-{}", "ab".repeat(32)));
+
+        assert_eq!(
+            windows_startup_signal_pipe_path(Some(valid.clone())).expect("valid pipe"),
+            Some(PathBuf::from(valid))
+        );
+        assert_eq!(
+            windows_startup_signal_pipe_path(None).expect("absent pipe"),
+            None
+        );
+        for invalid in [
+            OsString::from(format!(r"C:\temp\fitfreed-startup-{}", "ab".repeat(32))),
+            OsString::from(format!(r"\\.\pipe\fitfreed-startup-{}", "AB".repeat(32))),
+            OsString::from(format!(r"\\.\pipe\fitfreed-startup-{}", "ab".repeat(31))),
+        ] {
+            assert!(windows_startup_signal_pipe_path(Some(invalid)).is_err());
+        }
     }
 
     #[test]

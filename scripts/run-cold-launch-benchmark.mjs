@@ -1,4 +1,5 @@
 import { execFile, execFileSync, spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import {
   accessSync,
   constants,
@@ -9,8 +10,10 @@ import {
   statfsSync,
 } from "node:fs";
 import os from "node:os";
+import { createServer } from "node:net";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
+import { PassThrough } from "node:stream";
 import { setTimeout as wait } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -34,6 +37,8 @@ const executeFile = promisify(execFile);
 const macosActivationAttempts = 20;
 const macosActivationRetryMilliseconds = 25;
 const macosActivationTimeoutMilliseconds = 250;
+const windowsStartupSignalEnvironmentVariable = "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
+const windowsStartupSignalPipePrefix = "\\\\.\\pipe\\fitfreed-startup-";
 
 function percentile(values, requested) {
   const sorted = [...values].sort((left, right) => left - right);
@@ -409,6 +414,65 @@ export async function activateMacosApplication(
   throw new Error("the exact macOS application process could not be activated");
 }
 
+export function windowsStartupSignalPipeName(entropy = randomBytes) {
+  const identity = entropy(32);
+  if (!(identity instanceof Uint8Array) || identity.byteLength !== 32) {
+    throw new Error("Windows startup signal channel requires a 256-bit random identity");
+  }
+  return `${windowsStartupSignalPipePrefix}${Buffer.from(identity).toString("hex")}`;
+}
+
+export async function createWindowsStartupSignalChannel({
+  createServer: createNamedPipeServer = createServer,
+  randomBytes: entropy = randomBytes,
+} = {}) {
+  const pipeName = windowsStartupSignalPipeName(entropy);
+  const output = new PassThrough();
+  let activeConnection = null;
+  const server = createNamedPipeServer((connection) => {
+    if (activeConnection !== null) {
+      connection.destroy();
+      output.destroy(new Error("Windows startup signal channel received multiple connections"));
+      return;
+    }
+    activeConnection = connection;
+    connection.once("error", (error) => output.destroy(error));
+    connection.pipe(output);
+  });
+
+  await new Promise((resolve, reject) => {
+    const rejectListen = (error) => reject(error);
+    server.once("error", rejectListen);
+    server.listen(pipeName, () => {
+      server.off("error", rejectListen);
+      server.on("error", (error) => output.destroy(error));
+      resolve();
+    });
+  });
+
+  let closed = false;
+  return {
+    pipeName,
+    output,
+    isConnected() {
+      return activeConnection !== null;
+    },
+    async close() {
+      if (closed) return;
+      closed = true;
+      if (activeConnection && !activeConnection.destroyed) activeConnection.destroy();
+      if (!output.destroyed) output.destroy();
+      if (!server.listening) return;
+      await new Promise((resolve, reject) => {
+        server.close((error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    },
+  };
+}
+
 export async function measureFreshProcess(
   applicationBinary,
   home,
@@ -418,6 +482,7 @@ export async function measureFreshProcess(
     inheritedEnvironment = process.env,
     platform = process.platform,
     activateApplication = activateMacosApplication,
+    createWindowsSignalChannel = createWindowsStartupSignalChannel,
     prepareApplicationData = resetInstalledWindowsApplicationData,
     spawnApplication = spawn,
   } = {},
@@ -427,11 +492,25 @@ export async function measureFreshProcess(
   if (platform === "win32") {
     prepareApplicationData({ architecture, environment, platform });
   }
+  const windowsSignalChannel = platform === "win32"
+    ? await createWindowsSignalChannel()
+    : null;
+  if (windowsSignalChannel) {
+    environment[windowsStartupSignalEnvironmentVariable] = windowsSignalChannel.pipeName;
+  }
   const startedAt = performance.now();
-  const child = spawnApplication(applicationBinary, [], {
-    env: environment,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  let child;
+  try {
+    child = spawnApplication(applicationBinary, [], {
+      env: environment,
+      stdio: platform === "win32"
+        ? ["ignore", "ignore", "pipe"]
+        : ["ignore", "pipe", "pipe"],
+    });
+  } catch {
+    await windowsSignalChannel?.close();
+    throw new Error("application process could not be started");
+  }
   let standardOutput = "";
   let standardErrorBytes = 0;
   let settled = false;
@@ -443,7 +522,11 @@ export async function measureFreshProcess(
       reject(new Error(message));
     };
     const timeout = setTimeout(
-      () => fail("application did not report an interactive shell within 10 seconds"),
+      () => fail(
+        windowsSignalChannel?.isConnected()
+          ? "application connected its startup channel but did not report an interactive shell within 10 seconds"
+          : "application did not connect its startup channel within 10 seconds",
+      ),
       launchTimeoutMilliseconds,
     );
     const succeed = (signal) => {
@@ -479,7 +562,16 @@ export async function measureFreshProcess(
         fail("application diagnostics exceeded the benchmark bound");
       }
     });
-    child.stdout.on("data", (chunk) => {
+    const signalOutput = windowsSignalChannel?.output ?? child.stdout;
+    signalOutput.once("error", () => {
+      clearTimeout(timeout);
+      fail("application startup signal transport failed");
+    });
+    signalOutput.once("end", () => {
+      clearTimeout(timeout);
+      fail("application closed its startup channel before reporting an interactive shell");
+    });
+    signalOutput.on("data", (chunk) => {
       standardOutput += chunk.toString("utf8");
       if (Buffer.byteLength(standardOutput) > maximumOutputBytes) {
         clearTimeout(timeout);
@@ -509,6 +601,7 @@ export async function measureFreshProcess(
   } finally {
     if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
     await awaitExit(child);
+    await windowsSignalChannel?.close();
   }
 }
 

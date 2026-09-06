@@ -3,10 +3,17 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import { windowsInstalledPackageActionCommand } from "./windows-installed-package.mjs";
+import {
+  windowsInstalledPackageActionCommand,
+  windowsInstalledPackageActionScript,
+} from "./windows-installed-package.mjs";
 
 test("exposes one fixed production-package lifecycle boundary", () => {
   const packagePath = path.resolve("synthetic/FitFreed_0.1.0_x64-setup.exe");
+  assert.equal(
+    windowsInstalledPackageActionScript,
+    path.resolve("scripts/run-installed-windows-package.ps1"),
+  );
   assert.deepEqual(
     windowsInstalledPackageActionCommand({
       action: "install",

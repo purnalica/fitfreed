@@ -29,6 +29,8 @@ const schema = JSON.parse(
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 const validateSchema = ajv.compile(schema);
 const sha256Pattern = /^[0-9a-f]{64}$/;
+const nativeInstallationFailurePattern =
+  /^Windows package installation failed during (?<phase>[a-z]+(?:-[a-z]+)*)$/;
 
 function digest(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -211,8 +213,12 @@ export function generateWindowsPackageInventory({
       productName: inventory.identity.productName,
       version: inventory.identity.version,
     };
-  } catch {
-    throw new Error(`Windows package inventory generation failed during ${phase}`);
+  } catch (error) {
+    const nativePhase = phase === "native-installation" && error instanceof Error
+      ? error.message.match(nativeInstallationFailurePattern)?.groups?.phase
+      : undefined;
+    const failurePhase = nativePhase ? `${phase}/${nativePhase}` : phase;
+    throw new Error(`Windows package inventory generation failed during ${failurePhase}`);
   } finally {
     if (temporaryInventoryPath && existsSync(temporaryInventoryPath)) {
       rmSync(temporaryInventoryPath, { force: true });

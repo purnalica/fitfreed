@@ -226,6 +226,19 @@ test("preserves prior inventory evidence when native installation fails", (conte
     existsSync(`${inventoryPath}.tmp-${process.pid}`),
     false,
   );
+
+  assert.throws(
+    () => generateWindowsPackageInventory({
+      architecture: "x64",
+      platform: "win32",
+      releaseDirectory: root,
+      verify: () => {
+        throw new Error("Windows package installation failed during installed-trust");
+      },
+      version: "0.1.0",
+    }),
+    /native-installation\/installed-trust/,
+  );
 });
 
 test("keeps the schema and normative package-inventory documentation discoverable", () => {

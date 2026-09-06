@@ -41,6 +41,18 @@ alongside a real FitFreed library. The explicit
 `.github/workflows/windows-performance.yml` workflow owns the hosted Windows Server 2025 run; it does not replace the
 exact Windows 11 candidate gate.
 
+The release executable uses the Windows GUI subsystem and therefore does not own a reliable standard-output
+measurement channel; the [Rust standard-library contract](https://doc.rust-lang.org/std/io/fn.stdout.html) states
+that a detached-console stream can be null and silently discard writes. The benchmark creates a one-connection local
+named pipe with a new lowercase 256-bit random
+identity before every launch, removes any inherited value for that channel, and passes only the generated pipe name
+to the child. The host accepts only the exact `\\.\pipe\fitfreed-startup-<64 lowercase hexadecimal characters>`
+shape, connects during process startup, retains that connection, and writes the same closed privacy-safe payload used
+on other platforms after the renderer reports its painted shell. Pipe creation finishes before timing; process
+creation, the named-pipe connection, painting, and signal transport remain inside the measured interval. A timeout
+states whether the host never connected or connected without receiving the renderer report. The channel is closed
+after that exact process and its identifier is never retained as evidence.
+
 The production build wrapper binds the exact Git revision and clean-tree state into the host. The benchmark rejects a dirty checkout, an application built from another revision, an instrumented package, an unexpected signal field, invalid or unordered timing values, or a build that was not clean. It starts the timer immediately before creating each application process. After locale initialization, React waits for the next animation frame and reports the interactive shell through a one-shot host command. The host emits a closed privacy-safe JSON signal containing the event contract, application version, source revision, clean-tree state, and monotonic durations for host setup, host signal receipt, renderer locale readiness, and renderer signal invocation. These durations contain no wall-clock timestamp, path, host identity, or user data. WebDriver, driver creation, WebView reloads, and timers started after process creation are outside this boundary and cannot satisfy it.
 
 On macOS, direct process creation does not represent the LaunchServices activation that accompanies a normal user

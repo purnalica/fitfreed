@@ -124,6 +124,11 @@ test("invokes every Tauri update operation through the portable Node.js entry po
     "utf8",
   );
   assert.doesNotMatch(verifier, /run\("npm"/u);
+  assert.match(
+    verifier,
+    /FITFREED_UPDATE_E2E_PACKAGE_SCRIPT: windowsInstalledPackageActionScript/u,
+  );
+  assert.doesNotMatch(verifier, /\bpackageActionScript\b/u);
 });
 
 test("coordinates a local Windows recovery retry while update transport is unavailable", async () => {

@@ -405,7 +405,12 @@ Local and continuous-integration workflows will invoke the same underlying comma
   processes. Before every process, it revalidates the fixed installed identity and removes only its two non-reparse
   application-data roots resolved through native Windows known-folder APIs; changing `APPDATA` or `LOCALAPPDATA`
   does not constitute isolation. The reset completes before timing begins. The campaign unconditionally removes the
-  package and the state it created, then runs the same full-scale
+  package and the state it created. Because the release binary uses the Windows GUI subsystem, every process reports
+  its painted shell through a fresh one-connection local named pipe rather than an unavailable standard-output
+  stream. The harness removes inherited channel values, generates a lowercase 256-bit random pipe identity, and the
+  host admits only that closed pipe-name shape. The host connects during process startup and retains its writer until
+  the renderer reports the painted shell; channel setup precedes timing while connection and transport remain
+  measured, and timeout diagnostics distinguish the two stages. The campaign then runs the same full-scale
   import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights, report-resolution, and export
   read-model campaigns. Windows benchmark binaries use the native `.exe` suffix, and the Rust process peak working
   set is normalized to mebibytes before entering the unchanged shared memory budget. No push, pull-request, schedule,
