@@ -13,6 +13,7 @@ import {
   windowsUpdateBuildArguments,
   windowsUpdatePackageActionCommand,
   windowsUpdateScenarioPlan,
+  windowsUpdateTauriInvocation,
 } from "./verify-packaged-windows-update.mjs";
 
 test("defines initial release-shaped Windows recovery journeys", () => {
@@ -102,6 +103,27 @@ test("builds only instrumented production-identity NSIS packages", () => {
     expectedWindowsUpdatePackageName("0.1.0"),
     "FitFreed_0.1.0_x64-setup.exe",
   );
+});
+
+test("invokes every Tauri update operation through the portable Node.js entry point", () => {
+  const invocation = windowsUpdateTauriInvocation([
+    "signer",
+    "generate",
+    "--ci",
+  ]);
+
+  assert.equal(invocation.program, process.execPath);
+  assert.match(
+    invocation.arguments[0],
+    /node_modules[/\\]@tauri-apps[/\\]cli[/\\]tauri\.js$/,
+  );
+  assert.deepEqual(invocation.arguments.slice(1), ["signer", "generate", "--ci"]);
+
+  const verifier = readFileSync(
+    path.resolve("scripts/verify-packaged-windows-update.mjs"),
+    "utf8",
+  );
+  assert.doesNotMatch(verifier, /run\("npm"/u);
 });
 
 test("coordinates a local Windows recovery retry while update transport is unavailable", async () => {

@@ -87,11 +87,11 @@ test("uses public Authenticode without asking Tauri to create updater artifacts"
   );
   assert.match(
     prepareSource,
-    /run\("npm", \["run", "package:windows-expansion-input"\]\)/u,
+    /runNpm\(\["run", "package:windows-expansion-input"\], environment\)/u,
   );
   assert.doesNotMatch(
     prepareSource,
-    /run\("npm", \["run", "package:windows"\]\)/u,
+    /runNpm\(\["run", "package:windows"\], environment\)/u,
   );
 });
 

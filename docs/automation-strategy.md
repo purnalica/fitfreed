@@ -62,7 +62,9 @@ reading a URL pathname as a native path. The portable contract covers both POSIX
 so a Windows drive cannot be interpreted twice when product-site or publication automation locates the repository.
 Node.js automation resolves each locked package's declared JavaScript binary and invokes it through the current Node.js
 executable; it never executes the platform-specific shim under `node_modules/.bin`. This keeps the same package entry
-point on Windows, macOS, and Linux without shell-dependent command resolution.
+point on Windows, macOS, and Linux without shell-dependent command resolution. When Windows automation must invoke a
+nested npm script, it likewise runs the npm JavaScript CLI exposed by the parent npm process through the current
+Node.js executable; a `.cmd` shim is never treated as a directly executable program.
 
 - Change-scope detection without skipping required dependency checks.
 - Unit, integration, E2E, migration, performance, packaging, and platform matrices.

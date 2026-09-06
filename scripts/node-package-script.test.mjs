@@ -11,7 +11,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { nodePackageScriptPath } from "./node-package-script.mjs";
+import {
+  nodePackageScriptPath,
+  npmCliInvocation,
+} from "./node-package-script.mjs";
 
 test("keeps project automation independent from platform-specific npm shims", () => {
   const scriptsDirectory = path.resolve(import.meta.dirname);
@@ -32,6 +35,29 @@ test("resolves JavaScript package binaries without platform-specific npm shims",
   assert.match(
     nodePackageScriptPath("@wdio/cli", "wdio"),
     /node_modules[/\\]@wdio[/\\]cli[/\\]bin[/\\]wdio\.js$/,
+  );
+});
+
+test("runs npm through its JavaScript CLI on Windows without a command shim", () => {
+  assert.deepEqual(
+    npmCliInvocation(
+      ["run", "package:windows-expansion-input"],
+      "win32",
+      "C:\\toolchain\\node_modules\\npm\\bin\\npm-cli.js",
+      "C:\\toolchain\\node.exe",
+    ),
+    {
+      arguments: [
+        "C:\\toolchain\\node_modules\\npm\\bin\\npm-cli.js",
+        "run",
+        "package:windows-expansion-input",
+      ],
+      program: "C:\\toolchain\\node.exe",
+    },
+  );
+  assert.throws(
+    () => npmCliInvocation(["run", "test"], "win32", ""),
+    /npm CLI path is unavailable/,
   );
 });
 

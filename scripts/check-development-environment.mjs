@@ -3,6 +3,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { npmCliInvocation } from "./node-package-script.mjs";
+
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const commonCommands = ["cargo", "node", "npm", "rustc", "rustup"];
 const macosCommands = [
@@ -125,13 +127,7 @@ export function developmentCommandInvocation(
   nodeExecutable = process.execPath,
 ) {
   if (platform === "win32" && command === "npm") {
-    if (!npmCliPath) {
-      throw new Error("the npm CLI path is unavailable; run this check with npm run doctor");
-    }
-    return {
-      arguments: [npmCliPath, ...arguments_],
-      program: nodeExecutable,
-    };
+    return npmCliInvocation(arguments_, platform, npmCliPath, nodeExecutable);
   }
   return {
     arguments: arguments_,

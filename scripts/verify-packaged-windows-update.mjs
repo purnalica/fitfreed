@@ -251,6 +251,16 @@ export function validateWindowsUpdateEvidence(evidence) {
   return evidence;
 }
 
+export function windowsUpdateTauriInvocation(arguments_) {
+  return {
+    program: process.execPath,
+    arguments: [
+      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
+      ...arguments_,
+    ],
+  };
+}
+
 function run(command, arguments_, options = {}) {
   const result = spawnSync(command, arguments_, {
     cwd: repositoryRoot,
@@ -269,6 +279,11 @@ function run(command, arguments_, options = {}) {
     throw new Error(`${command} failed with status ${result.status}${detail}`);
   }
   return result;
+}
+
+function runTauri(arguments_, options = {}) {
+  const invocation = windowsUpdateTauriInvocation(arguments_);
+  return run(invocation.program, invocation.arguments, options);
 }
 
 function runAsync(command, arguments_, environment) {
@@ -377,16 +392,16 @@ function createTlsAuthority() {
 
 function generateSigningKey() {
   mkdirSync(keyDirectory, { recursive: true, mode: 0o700 });
-  run("npm", [
-    "run", "tauri", "--", "signer", "generate", "--ci", "--write-keys", privateKeyPath,
+  runTauri([
+    "signer", "generate", "--ci", "--write-keys", privateKeyPath,
   ], { capture: true, env: { CI: "true" } });
   return readFileSync(publicKeyPath, "utf8").trim();
 }
 
 function signFile(filePath) {
   rmSync(`${filePath}.sig`, { force: true });
-  run("npm", [
-    "run", "tauri", "--", "signer", "sign",
+  runTauri([
+    "signer", "sign",
     "--private-key-path", privateKeyPath,
     "--password", "",
     filePath,
@@ -450,12 +465,8 @@ function buildNsisPackage(version, publicKey, packageVariant = "ordinary") {
     };
   }
   writeFileSync(generatedConfiguration, `${JSON.stringify(configuration, null, 2)}\n`);
-  run(
-    process.execPath,
-    [
-      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
-      ...windowsUpdateBuildArguments(generatedConfiguration),
-    ],
+  runTauri(
+    windowsUpdateBuildArguments(generatedConfiguration),
     {
       env: {
         CI: "true",

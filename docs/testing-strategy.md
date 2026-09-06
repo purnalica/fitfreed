@@ -539,6 +539,10 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 
 - Diagnose failures to their root cause before changing production or test code.
 - Preserve the behavior originally protected by a test when adapting it to structural changes.
+- Enter realistic bulk form values with a paste interaction when the protected contract concerns validation,
+  persistence, or subsequent behavior rather than individual keystrokes. Character-by-character input remains
+  required when per-key interaction is itself the behavior under test; a slower host is not grounds for enlarging a
+  timeout or weakening the contract.
 - Treat flaky tests as defects. Record ownership, reproduce the timing or state dependency, and correct the cause.
 - Quarantine is permitted only as a visible, time-bounded safety measure with an owner and restoration criterion; it cannot make a required quality gate appear healthy.
 - Do not accept release artifacts when a required platform, migration, or E2E path is unverified.

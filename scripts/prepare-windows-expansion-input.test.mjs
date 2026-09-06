@@ -13,6 +13,7 @@ import test from "node:test";
 import {
   stageWindowsExpansionInput,
   verifyWindowsExpansionInput,
+  windowsExpansionNpmInvocation,
 } from "./prepare-windows-expansion-input.mjs";
 import { createWindowsExpansionInputFixture } from "./test-support/windows-expansion-input.mjs";
 
@@ -36,6 +37,25 @@ function verify(input, overrides = {}) {
     ...overrides,
   });
 }
+
+test("invokes Windows expansion build scripts without a command shim", () => {
+  assert.deepEqual(
+    windowsExpansionNpmInvocation(
+      ["run", "audit:dependencies"],
+      { npm_execpath: "C:\\toolchain\\npm-cli.js" },
+      "win32",
+      "C:\\toolchain\\node.exe",
+    ),
+    {
+      arguments: [
+        "C:\\toolchain\\npm-cli.js",
+        "run",
+        "audit:dependencies",
+      ],
+      program: "C:\\toolchain\\node.exe",
+    },
+  );
+});
 
 test("stages one exact authority-free Windows input for protected composition", (context) => {
   const input = createWindowsExpansionInputFixture();

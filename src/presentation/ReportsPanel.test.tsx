@@ -2609,12 +2609,11 @@ describe("ReportsPanel", () => {
       "report-editor-error",
     );
 
-    await user.type(screen.getByLabelText("Report title"), "Ridge progression");
+    await user.click(screen.getByLabelText("Report title"));
+    await user.paste("Ridge progression");
     await user.click(screen.getByRole("button", { name: "Add commentary" }));
-    await user.type(
-      screen.getByLabelText(/^Your commentary/),
-      "Held the intended effort on every climb.",
-    );
+    await user.click(screen.getByLabelText(/^Your commentary/));
+    await user.paste("Held the intended effort on every climb.");
     await user.click(screen.getByRole("button", { name: "Save report" }));
 
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
@@ -2648,12 +2647,9 @@ describe("ReportsPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Compose" }));
     await user.clear(screen.getByLabelText("Report title"));
-    await user.type(screen.getByLabelText("Report title"), "Ridge progression review");
+    await user.paste("Ridge progression review");
     await user.clear(screen.getByLabelText(/^Your commentary/));
-    await user.type(
-      screen.getByLabelText(/^Your commentary/),
-      "Held the intended effort and finished with control.",
-    );
+    await user.paste("Held the intended effort and finished with control.");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
       "update_report",
@@ -2737,7 +2733,7 @@ describe("ReportsPanel", () => {
     scrollIntoView.mockClear();
     await user.click(await screen.findByRole("button", { name: "Review and export" }));
 
-    const review = screen.getByRole("region", { name: "Review the export" });
+    const review = await screen.findByRole("region", { name: "Review the export" });
     await waitFor(() => expect(within(review).getByRole("heading", {
       name: "Review the export",
     })).toHaveFocus());

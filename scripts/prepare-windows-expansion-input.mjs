@@ -16,6 +16,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
+import { npmCliInvocation } from "./node-package-script.mjs";
 import { assertWindowsExpansionAuthoritySeparation } from "./build-windows-expansion-input.mjs";
 import {
   assertCleanRevision,
@@ -263,8 +264,23 @@ export function stageWindowsExpansionInput({
   }
 }
 
-function run(command, arguments_) {
-  execFileSync(command, arguments_, {
+export function windowsExpansionNpmInvocation(
+  arguments_,
+  environment = process.env,
+  platform = process.platform,
+  nodeExecutable = process.execPath,
+) {
+  return npmCliInvocation(
+    arguments_,
+    platform,
+    environment.npm_execpath,
+    nodeExecutable,
+  );
+}
+
+function runNpm(arguments_, environment) {
+  const invocation = windowsExpansionNpmInvocation(arguments_, environment);
+  execFileSync(invocation.program, invocation.arguments, {
     cwd: repositoryRoot,
     encoding: "utf8",
     stdio: "inherit",
@@ -290,8 +306,8 @@ export function prepareWindowsExpansionInput({
   if (authority.profile !== "public" || !authority.requireTimestamp) {
     throw new Error("Windows expansion input preparation requires public Authenticode authority");
   }
-  run("npm", ["run", "audit:dependencies"]);
-  run("npm", ["run", "package:windows-expansion-input"]);
+  runNpm(["run", "audit:dependencies"], environment);
+  runNpm(["run", "package:windows-expansion-input"], environment);
   const releaseDirectory = path.join(
     repositoryRoot,
     "src-tauri/target/release/bundle/nsis",

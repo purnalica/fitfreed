@@ -4,10 +4,29 @@ import {
   statSync,
 } from "node:fs";
 import path from "node:path";
+import process from "node:process";
 
 const defaultRepositoryRoot = path.resolve(import.meta.dirname, "..");
 const packageNamePattern = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
 const binaryNamePattern = /^[a-z0-9][a-z0-9._-]*$/;
+
+export function npmCliInvocation(
+  arguments_,
+  platform = process.platform,
+  npmCliPath = process.env.npm_execpath,
+  nodeExecutable = process.execPath,
+) {
+  if (platform !== "win32") {
+    return { arguments: arguments_, program: "npm" };
+  }
+  if (!npmCliPath) {
+    throw new Error("the npm CLI path is unavailable; invoke this command through an npm script");
+  }
+  return {
+    arguments: [npmCliPath, ...arguments_],
+    program: nodeExecutable,
+  };
+}
 
 function isInside(parent, candidate) {
   const relative = path.relative(parent, candidate);
