@@ -111,6 +111,33 @@ The states mean:
 
 No row changes state by implication. A green source build does not prove Apple trust, environment protection, human usability, public bytes, or publication authority.
 
+### D0–E6 completion audit
+
+This audit evaluates the retained [MVP experience delivery plan](../plans/mvp-experience-delivery.md) against the
+current product rather than treating its historical completion labels as proof. Presentation evidence rejected by a
+later independent review is not reused. The [production migration plan](../plans/mvp-redesign-production-migration.md)
+owns the corrective implementation and maps every retained baseline to its current replacement.
+
+| Baseline | Required outcome | Current authoritative evidence | Verdict |
+|---|---|---|---|
+| D0 | Decide the smallest complete deep-session and report-authoring boundaries from source, interaction, library, privacy, accessibility, and licence evidence | The accepted [boundary assessment](../research/mvp-experience-boundary-assessment.md), requirements, roadmap, and ADRs [0021](../architecture/decisions/0021-model-training-as-attributed-evidence.md) and [0022](../architecture/decisions/0022-persist-reproducible-evidence-reports.md) agree on both boundaries. Later implementation preserves them. | **Passed** |
+| E1 | Deliver the first-run shell, Sources, persistent Settings, acquisition actions, navigation, restart, localization, zoom, theme, accessibility, and concurrency behavior through real adapters | Retained E1 functional evidence is replaced in presentation by X5-R2 and corrected by X7-R1 and X7-R3. Exact source `7583ca9` passes the complete hosted product campaign and revision-isolated native inspection. | **Passed for the implemented automatable boundary** |
+| E2 | Turn committed import state into an immediate provider-neutral answer and restore a valid Home or workspace after restart and reimport | The versioned Library Home contract and retained E2 composition, persistence, migration, packaged, restart, and performance evidence remain in use. X5-R3 and X7-R1 replace the rejected presentation and long-operation behavior without adding a second calculation path. | **Passed for the implemented automatable boundary** |
+| E3 | Provide full-history sport and session discovery, classification, filtering, chronology, calendar, comparison, exact navigation, restoration, and bounded performance | Retained E3 domain, query, migration, full-scale, packaged, and hosted evidence is strengthened by X7-R2 and X7-R8.9 through X7-R8.13. The privacy-minimized private-reference procedure confirms recognition of every represented source sport for the supplied compatibility case. | **Passed for the implemented automatable boundary** |
+| E4 | Preserve and explore supported structure, routes, signals, zones, provenance, and authored segmentation with exact alternatives, safe reimport enrichment, bounded memory, accessibility, and route privacy | Retained E4 contract, migration, million-sample, packaged, and hosted evidence remains valid. X5-R6 through X5-R8 and X7-R4, X7-R5, and X7-R8.14 replace the rejected presentation, add the accepted structured-training behavior, and bound sustained chart and route-range interaction. | **Passed for the implemented automatable boundary** |
+| E5 | Create, persist, reopen, refresh, duplicate, navigate, privacy-review, and deterministically export portable result-first reports through authoritative queries | Retained E5 domain, application, persistence, migration, independent-output, packaged, restart, and hosted evidence remains valid. X5-R9 and X7-R6 replace the rejected hierarchy and complete built-in examples, duplication, explicit subjects, and transient run parameters. | **Passed for the implemented automatable boundary** |
+| E6 | Remove superseded paths safely, harden the complete release-shaped journey, keep all documentation current, pass one exact evidence matrix, and finish with an independent audit that has no unresolved material finding | X5-R10 and X7-R8.14 pass the automatable hardening, documentation, audit, exact hosted, and native-inspection boundaries. Earlier human reviews rejected the product and therefore invalidate historical E6 acceptance. The corrected revision has not passed the required bounded product-owner experience review. | **Awaiting human evaluation** |
+
+The objective's transversal delivery obligations have separate evidence and do not inherit a phase verdict:
+
+| Obligation | Evidence | Verdict |
+|---|---|---|
+| Clean Architecture and DDD | Versioned dependency rules, thematic architecture, domain/application/adapter separation, and the architecture checker cover every implemented vertical. No current platform correction changes the domain direction. | **Passed** |
+| TDD and behavior-based unit, integration, presentation, packaged, migration, accessibility, and performance verification | Each retained and corrective increment records its affected contract and focused evidence before its complete candidate campaign. The current Windows correction adds focused failing-then-passing contract coverage without removing or weakening a product assertion. | **Passed for implemented increments** |
+| Complete canonical documentation | Requirements, current architecture, data formats, schemas, migrations, user guidance, contributor guidance, troubleshooting, operations, active plans, and this ledger are versioned and checked together. Candidate-specific public guidance remains intentionally open until sealed candidate bytes exist. | **Passed for the current non-public candidate state** |
+| Focused commit and synchronization discipline | Every completed correction is a focused local commit. The complete outgoing range passes repository-content, secret, and public-identity safeguards. The verified local increments remain ahead of `origin/main` because the bounded SSH attempt could not obtain a Secretive signature. | **Pending synchronization** |
+| Exact current-source native platform evidence | The previous campaign proves Linux, macOS, and packaged Windows capability but exposed three Windows verification defects. The local correction passes every affected portable contract; no exact native Windows result exists because the correction is not synchronized. | **Pending hosted verification** |
+
 ## Readiness ledger
 
 | Gate | State | Current evidence | Required closure |
