@@ -16,6 +16,7 @@ on:
           - candidate
           - macos-package
           - linux-capability
+          - linux-insights
           - linux-update
           - windows-capability
           - windows-host
@@ -372,7 +373,8 @@ jobs:
     needs: quality
     if: >-
       needs.quality.outputs.full-verification == 'true' ||
-      needs.quality.outputs.focused-verification == 'linux-capability'
+      needs.quality.outputs.focused-verification == 'linux-capability' ||
+      needs.quality.outputs.focused-verification == 'linux-insights'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
 
@@ -412,7 +414,14 @@ jobs:
         run: npm ci
 
       - name: Build, install, and test packaged Linux capability parity
+        if: >-
+          needs.quality.outputs.full-verification == 'true' ||
+          needs.quality.outputs.focused-verification == 'linux-capability'
         run: xvfb-run -a npm run verify:linux-e2e
+
+      - name: Build, install, and test packaged Linux Insights only
+        if: needs.quality.outputs.focused-verification == 'linux-insights'
+        run: xvfb-run -a npm run verify:linux-insights-e2e
 
       - name: Retain privacy-safe Linux capability failure evidence
         if: failure()

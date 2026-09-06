@@ -109,6 +109,7 @@ test("runs only the explicitly selected focused native boundary", () => {
   for (const focusedVerification of [
     "macos-package",
     "linux-capability",
+    "linux-insights",
     "linux-update",
     "windows-capability",
     "windows-host",
@@ -323,6 +324,7 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
     "candidate",
     "macos-package",
     "linux-capability",
+    "linux-insights",
     "linux-update",
     "windows-capability",
     "windows-host",
@@ -379,6 +381,10 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
     /needs\.quality\.outputs\.focused-verification == 'linux-capability'/,
   );
   assert.match(
+    packagedLinuxJob ?? "",
+    /needs\.quality\.outputs\.focused-verification == 'linux-insights'/,
+  );
+  assert.match(
     packagedWindowsJob ?? "",
     /needs\.quality\.outputs\.focused-verification == 'windows-capability'/,
   );
@@ -433,6 +439,7 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   );
   assert.match(packagedLinuxJob ?? "", /^    runs-on: ubuntu-24\.04$/m);
   assert.match(packagedLinuxJob ?? "", /npm run verify:linux-e2e/);
+  assert.match(packagedLinuxJob ?? "", /npm run verify:linux-insights-e2e/);
   assert.match(packagedWindowsJob ?? "", /^    needs: quality$/m);
   assert.match(
     packagedWindowsJob ?? "",

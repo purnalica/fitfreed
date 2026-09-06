@@ -143,7 +143,10 @@ function removeTestPackage() {
   }
 }
 
-export function runPackagedLinuxE2e({ platform = process.platform } = {}) {
+export function runPackagedLinuxE2e({
+  platform = process.platform,
+  scenarioNames = null,
+} = {}) {
   if (platform !== linuxPackagedE2eContract.platform) {
     throw new Error("the installed Debian E2E journey requires Linux");
   }
@@ -179,6 +182,7 @@ export function runPackagedLinuxE2e({ platform = process.platform } = {}) {
       },
       removeCompletedRun: false,
       runDirectory: journeyRunDirectory,
+      scenarioNames,
     });
 
     for (const databasePath of new Set(scenarios.map(({ databasePath }) => databasePath))) {
@@ -214,7 +218,9 @@ export function runPackagedLinuxE2e({ platform = process.platform } = {}) {
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   try {
-    runPackagedLinuxE2e();
+    runPackagedLinuxE2e({
+      scenarioNames: process.argv.length > 2 ? process.argv.slice(2) : null,
+    });
   } catch (error) {
     process.stderr.write(`Packaged Linux E2E failed: ${error.message}\n`);
     process.exitCode = 1;

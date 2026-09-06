@@ -119,7 +119,7 @@ test("accepts only the isolated package metadata and executable", () => {
   }
 });
 
-test("runs installed Linux capability parity only for its focused or candidate boundary", () => {
+test("runs complete or Insights-only installed Linux capability at its explicit boundary", () => {
   const packageManifest = JSON.parse(readFileSync(path.resolve("package.json"), "utf8"));
   const workflow = readFileSync(path.resolve(".github/workflows/ci.yml"), "utf8");
   const job = workflow.match(
@@ -138,12 +138,28 @@ test("runs installed Linux capability parity only for its focused or candidate b
     packageManifest.scripts["test:e2e:linux-package"],
     "node scripts/run-packaged-linux-e2e.mjs",
   );
+  assert.equal(
+    packageManifest.scripts["test:e2e:linux-insights-package"],
+    "node scripts/run-packaged-linux-e2e.mjs performance",
+  );
+  assert.equal(
+    packageManifest.scripts["verify:linux-insights-e2e"],
+    "npm run icons && npm run fixture:insights-performance && npm run build:e2e:linux-package && npm run test:e2e:linux-insights-package",
+  );
   assert.match(job, /^    needs: quality$/m);
   assert.match(job, /needs\.quality\.outputs\.full-verification == 'true'/);
   assert.match(job, /needs\.quality\.outputs\.focused-verification == 'linux-capability'/);
+  assert.match(job, /needs\.quality\.outputs\.focused-verification == 'linux-insights'/);
   assert.match(job, /^    runs-on: ubuntu-24\.04$/m);
   assert.match(job, /webkit2gtk-driver/);
-  assert.match(job, /xvfb-run -a npm run verify:linux-e2e/);
+  assert.match(
+    job,
+    /- name: Build, install, and test packaged Linux capability parity\n        if: >-\n          needs\.quality\.outputs\.full-verification == 'true' \|\|\n          needs\.quality\.outputs\.focused-verification == 'linux-capability'\n        run: xvfb-run -a npm run verify:linux-e2e/,
+  );
+  assert.match(
+    job,
+    /- name: Build, install, and test packaged Linux Insights only\n        if: needs\.quality\.outputs\.focused-verification == 'linux-insights'\n        run: xvfb-run -a npm run verify:linux-insights-e2e/,
+  );
   assert.match(job, /\.artifacts\/e2e\/evidence/);
   assert.match(
     workflow,

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const commitSha = /^[0-9a-f]{40}$/;
 const focusedVerificationScopes = new Set([
   "linux-capability",
+  "linux-insights",
   "linux-update",
   "macos-package",
   "windows-capability",

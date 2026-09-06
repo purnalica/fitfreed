@@ -322,6 +322,58 @@ test("runs every packaged scenario from a controlled nested artifact directory",
   }
 });
 
+test("runs only an explicitly selected closed packaged scenario", () => {
+  const artifactDirectory = path.resolve(
+    `.artifacts/packaged-e2e-selection-${process.pid}`,
+  );
+  const runDirectory = path.join(artifactDirectory, "performance");
+  const calls = [];
+  rmSync(artifactDirectory, { recursive: true, force: true });
+  try {
+    const scenarios = runPackagedE2e({
+      execute: (...arguments_) => {
+        calls.push(arguments_);
+        return { error: undefined, signal: null, status: 0 };
+      },
+      removeCompletedRun: false,
+      runDirectory,
+      scenarioNames: ["performance"],
+    });
+
+    assert.deepEqual(scenarios.map(({ name }) => name), ["performance"]);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][1].at(-1), "test/e2e/insights-performance.spec.js");
+    assert.match(calls[0][2].env.FITFREED_E2E_DATABASE_PATH, /performance\.sqlite$/);
+  } finally {
+    rmSync(artifactDirectory, { recursive: true, force: true });
+  }
+});
+
+test("rejects empty, duplicate, or unknown packaged scenario selections", () => {
+  const artifactDirectory = path.resolve(
+    `.artifacts/packaged-e2e-invalid-selection-${process.pid}`,
+  );
+  rmSync(artifactDirectory, { recursive: true, force: true });
+  try {
+    for (const [index, scenarioNames] of [
+      [],
+      ["performance", "performance"],
+      ["unregistered-scenario"],
+    ].entries()) {
+      assert.throws(
+        () => runPackagedE2e({
+          execute: () => ({ error: undefined, signal: null, status: 0 }),
+          runDirectory: path.join(artifactDirectory, `invalid-${index}`),
+          scenarioNames,
+        }),
+        /packaged E2E scenario selection/,
+      );
+    }
+  } finally {
+    rmSync(artifactDirectory, { recursive: true, force: true });
+  }
+});
+
 test("keeps packaged update fixtures outside both retained application targets", () => {
   assert.equal(
     updateE2eTargetDirectory,

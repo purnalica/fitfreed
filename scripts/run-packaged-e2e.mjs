@@ -23,7 +23,20 @@ export function runPackagedE2e({
   execute = spawnSync,
   removeCompletedRun = true,
   runDirectory: requestedRunDirectory = null,
+  scenarioNames = null,
 } = {}) {
+  const requestedScenarios = Array.isArray(scenarioNames) ? new Set(scenarioNames) : null;
+  const availableScenarioNames = new Set(
+    packagedE2eScenarioPlan(runsDirectory).map(({ name }) => name),
+  );
+  if (scenarioNames !== null && (
+    !Array.isArray(scenarioNames)
+    || scenarioNames.length === 0
+    || requestedScenarios.size !== scenarioNames.length
+    || scenarioNames.some((name) => !availableScenarioNames.has(name))
+  )) {
+    throw new Error("the packaged E2E scenario selection is invalid");
+  }
   mkdirSync(runsDirectory, { recursive: true });
   const runDirectory = requestedRunDirectory === null
     ? mkdtempSync(path.join(runsDirectory, "packaged-"))
@@ -34,7 +47,8 @@ export function runPackagedE2e({
     }
     mkdirSync(runDirectory, { recursive: true });
   }
-  const scenarios = packagedE2eScenarioPlan(runDirectory);
+  const scenarios = packagedE2eScenarioPlan(runDirectory)
+    .filter(({ name }) => requestedScenarios === null || requestedScenarios.has(name));
   let complete = false;
 
   try {
