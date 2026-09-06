@@ -27,6 +27,35 @@ const CANDIDATE_PACKAGE_RELATIVE_PATH: &str = "candidate/package.exe";
 const INSTALLER_SILENT_ARGUMENT: &str = "/S";
 const PROCESS_STOP_TIMEOUT_MILLISECONDS: u32 = 5_000;
 
+pub(super) fn windows_path_texts_equal(left: &str, right: &str) -> bool {
+    comparable_windows_path_text(left).eq_ignore_ascii_case(&comparable_windows_path_text(right))
+}
+
+pub(super) fn canonical_windows_path_matches(canonical: &Path, original: &Path) -> bool {
+    canonical
+        .to_str()
+        .zip(original.to_str())
+        .is_some_and(|(canonical, original)| windows_path_texts_equal(canonical, original))
+}
+
+fn comparable_windows_path_text(value: &str) -> String {
+    if let Some(relative) = value.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{relative}")
+    } else if let Some(relative) = value.strip_prefix(r"\\?\") {
+        let bytes = relative.as_bytes();
+        if bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && bytes[2] == b'\\'
+        {
+            return relative.to_owned();
+        }
+        value.to_owned()
+    } else {
+        value.to_owned()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct WindowsPackageIdentityContract<'a> {
     product_name: &'a str,
@@ -520,7 +549,9 @@ fn install_windows_package_with(
     let package_path = attempt_directory.join(role.relative_path());
     let canonical_package =
         canonical_regular_file(&package_path).map_err(|_| role.invalid_error())?;
-    if canonical_package != package_path || fs::metadata(&canonical_package)?.len() == 0 {
+    if !canonical_windows_path_matches(&canonical_package, &package_path)
+        || fs::metadata(&canonical_package)?.len() == 0
+    {
         return Err(role.invalid_error());
     }
     let success = installation
@@ -1507,6 +1538,38 @@ mod tests {
         assert!(matches!(
             terminate_windows_recovery_process_with(&process, &identity),
             Err(WindowsUpdateRecoveryError::InvalidProcessIdentity)
+        ));
+    }
+
+    #[test]
+    fn matches_canonical_windows_drive_paths_without_weakening_the_target() {
+        let ordinary = r"C:\FitFreedTests\Profile\AppData\Roaming\org.fitfreed.desktop";
+        let canonical = r"\\?\C:\FitFreedTests\Profile\AppData\Roaming\org.fitfreed.desktop";
+
+        assert!(windows_path_texts_equal(canonical, ordinary));
+        assert!(windows_path_texts_equal(
+            canonical,
+            r"c:\FitFreedTests\Profile\AppData\Roaming\org.fitfreed.desktop"
+        ));
+        assert!(!windows_path_texts_equal(
+            canonical,
+            r"C:\FitFreedTests\Profile\AppData\Roaming\other.desktop"
+        ));
+        assert!(!windows_path_texts_equal(
+            r"\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\FitFreed",
+            r"GLOBALROOT\Device\HarddiskVolumeShadowCopy1\FitFreed"
+        ));
+    }
+
+    #[test]
+    fn matches_canonical_windows_unc_paths_without_weakening_the_share() {
+        let ordinary = r"\\server\share\FitFreed\fitfreed.sqlite";
+        let canonical = r"\\?\UNC\server\share\FitFreed\fitfreed.sqlite";
+
+        assert!(windows_path_texts_equal(canonical, ordinary));
+        assert!(!windows_path_texts_equal(
+            canonical,
+            r"\\server\other\FitFreed\fitfreed.sqlite"
         ));
     }
 }

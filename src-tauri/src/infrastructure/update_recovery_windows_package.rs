@@ -19,7 +19,9 @@ use thiserror::Error;
 use super::query_windows_native_package_identity;
 use super::{
     local_file::{sync_directory, sync_regular_file, PrivateStagingFile},
-    update_recovery_windows::{EXECUTABLE_NAME, PRODUCT_NAME, UNINSTALLER_NAME},
+    update_recovery_windows::{
+        canonical_windows_path_matches, EXECUTABLE_NAME, PRODUCT_NAME, UNINSTALLER_NAME,
+    },
 };
 
 const PREDECESSOR_PACKAGE_RELATIVE_PATH: &str = "previous/package.exe";
@@ -330,7 +332,7 @@ fn validate_attempt_directory(
         return Err(WindowsRecoveryPackageError::InvalidExpectation);
     }
     let canonical = attempt_directory.canonicalize()?;
-    if canonical != attempt_directory {
+    if !canonical_windows_path_matches(&canonical, attempt_directory) {
         return Err(WindowsRecoveryPackageError::InvalidExpectation);
     }
     #[cfg(unix)]
@@ -358,7 +360,7 @@ fn validate_installed_directory(path: &Path) -> Result<PathBuf, WindowsRecoveryP
     let canonical = path
         .canonicalize()
         .map_err(|_| WindowsRecoveryPackageError::InvalidPackageIdentity)?;
-    if canonical != path {
+    if !canonical_windows_path_matches(&canonical, path) {
         return Err(WindowsRecoveryPackageError::InvalidPackageIdentity);
     }
     Ok(canonical)
@@ -398,7 +400,7 @@ fn validate_package_file(
     if !metadata.file_type().is_file()
         || is_reparse_point(&metadata)
         || metadata.len() != expectation.size_bytes()
-        || path.canonicalize()? != path
+        || !canonical_windows_path_matches(&path.canonicalize()?, path)
         || file_sha256(path, metadata.len())? != expectation.sha256()
     {
         return Err(WindowsRecoveryPackageError::InvalidPackage);
@@ -885,7 +887,7 @@ fn create_private_directory(path: &Path) -> Result<(), WindowsRecoveryPackageErr
 #[cfg(target_os = "windows")]
 fn system_inspect_binary(path: &Path) -> Result<WindowsBinaryIdentity, io::Error> {
     let canonical = path.canonicalize()?;
-    if canonical != path {
+    if !canonical_windows_path_matches(&canonical, path) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "binary path is not canonical",

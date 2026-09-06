@@ -24,7 +24,10 @@ use url::Url;
 use super::update_recovery_outcome::{
     read_update_recovery_outcome, write_update_recovery_outcome, UpdateRecoveryOutcomeStoreError,
 };
-use super::update_recovery_windows::verify_windows_native_installation_matches_runnable;
+use super::update_recovery_windows::{
+    canonical_windows_path_matches, verify_windows_native_installation_matches_runnable,
+    windows_path_texts_equal,
+};
 use super::{
     backup_database,
     local_file::{sync_directory, PrivateStagingFile},
@@ -2110,14 +2113,8 @@ fn path_has_fixed_child(parent: &str, child: &str, name: &str) -> bool {
         .is_some_and(|expected| paths_equal(expected, child))
 }
 
-#[cfg(target_os = "windows")]
 fn paths_equal(left: &str, right: &str) -> bool {
-    left.eq_ignore_ascii_case(right)
-}
-
-#[cfg(not(target_os = "windows"))]
-fn paths_equal(left: &str, right: &str) -> bool {
-    left == right
+    windows_path_texts_equal(left, right)
 }
 
 fn native_package_identity(
@@ -2137,13 +2134,14 @@ fn native_package_identity(
 fn valid_installed_identity(identity: &InstalledIdentity) -> bool {
     valid_semver(&identity.version).is_some()
         && canonical_directory(&identity.install_directory)
-            .is_ok_and(|path| path == identity.install_directory)
+            .is_ok_and(|path| canonical_windows_path_matches(&path, &identity.install_directory))
         && canonical_regular_file(&identity.executable_path)
-            .is_ok_and(|path| path == identity.executable_path)
+            .is_ok_and(|path| canonical_windows_path_matches(&path, &identity.executable_path))
         && canonical_regular_file(&identity.uninstaller_path)
-            .is_ok_and(|path| path == identity.uninstaller_path)
-        && canonical_directory(&identity.application_data_directory)
-            .is_ok_and(|path| path == identity.application_data_directory)
+            .is_ok_and(|path| canonical_windows_path_matches(&path, &identity.uninstaller_path))
+        && canonical_directory(&identity.application_data_directory).is_ok_and(|path| {
+            canonical_windows_path_matches(&path, &identity.application_data_directory)
+        })
         && identity.executable_path
             == identity
                 .install_directory
@@ -2345,7 +2343,7 @@ fn canonical_private_directory(path: &Path) -> Result<PathBuf, WindowsRecoverySt
         return Err(WindowsRecoveryStateError::InvalidState);
     }
     let canonical = path.canonicalize()?;
-    if canonical != path {
+    if !canonical_windows_path_matches(&canonical, path) {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
     #[cfg(unix)]
