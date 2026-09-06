@@ -112,6 +112,7 @@ test("runs only the explicitly selected focused native boundary", () => {
     "linux-update",
     "windows-capability",
     "windows-host",
+    "windows-package",
   ]) {
     assert.deepEqual(
       classifyCiImpact({
@@ -325,6 +326,7 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
     "linux-update",
     "windows-capability",
     "windows-host",
+    "windows-package",
   ]) {
     assert.match(workflow, new RegExp(`- ${scope}`));
   }
@@ -383,6 +385,14 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   assert.match(
     windowsHostJob ?? "",
     /needs\.quality\.outputs\.focused-verification == 'windows-host'/,
+  );
+  assert.match(
+    windowsHostJob ?? "",
+    /needs\.quality\.outputs\.focused-verification == 'windows-package'/,
+  );
+  assert.match(
+    windowsHostJob ?? "",
+    /needs\.quality\.outputs\.focused-verification != 'windows-package'/,
   );
   assert.match(
     workflow,

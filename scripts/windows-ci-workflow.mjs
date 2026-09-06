@@ -29,6 +29,12 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     windows,
+    /^    if: >-\n      needs\.quality\.outputs\.full-verification == 'true' \|\|\n      needs\.quality\.outputs\.focused-verification == 'windows-host' \|\|\n      needs\.quality\.outputs\.focused-verification == 'windows-package'$/m,
+    "Windows host must admit candidate, complete host, or focused package verification only",
+  );
+  requireMatch(
+    errors,
+    windows,
     /permissions:\n      contents: read/,
     "Windows host permissions must remain read-only",
   );
@@ -59,14 +65,14 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     windows,
-    /npm run package:windows/,
-    "Windows host must build the complete release-shaped NSIS package",
+    /- name: Build the release-shaped Windows NSIS package\n        if: >-\n          steps\.decision\.outputs\.full-verification == 'true' \|\|\n          needs\.quality\.outputs\.focused-verification == 'windows-package'\n        run: npm run package:windows/,
+    "Windows package focus must build the complete release-shaped NSIS package",
   );
   requireMatch(
     errors,
     windows,
-    /npm run inventory:windows-package/,
-    "Windows host must inventory one native NSIS installation and removal",
+    /- name: Install, inventory, and remove the Windows NSIS package\n        if: >-\n          steps\.decision\.outputs\.full-verification == 'true' \|\|\n          needs\.quality\.outputs\.focused-verification == 'windows-package'\n        run: npm run inventory:windows-package/,
+    "Windows package focus must inventory one native NSIS installation and removal",
   );
   requireMatch(
     errors,
@@ -95,6 +101,18 @@ export function validateWindowsCiWorkflow(source) {
       `${command} is missing from Windows host verification`,
     );
   }
+  requireMatch(
+    errors,
+    windows,
+    /- name: Verify the Windows development environment\n        if: steps\.decision\.outputs\.full-verification == 'true'\n        run: npm run doctor/,
+    "focused package verification must not repeat complete Windows host checks",
+  );
+  requireMatch(
+    errors,
+    windows,
+    /- name: Verify synthetic Windows Authenticode orchestration and cleanup\n        if: steps\.decision\.outputs\.full-verification == 'true'\n        run: npm run verify:windows-authenticode-smoke/,
+    "focused package verification must not repeat Authenticode orchestration",
+  );
   requireMatch(
     errors,
     windows,

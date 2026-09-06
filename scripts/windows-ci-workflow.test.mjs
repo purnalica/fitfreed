@@ -51,6 +51,14 @@ test("rejects an unpinned, Unix-dependent, incomplete, or reusable-without-proof
       "    runs-on: windows-2025\n    timeout-minutes: 60\n    permissions:\n      contents: read",
       "    runs-on: windows-2025\n    timeout-minutes: 60\n    permissions:\n      contents: write",
     ), /read-only/],
+    [(source) => source.replace(
+      "      needs.quality.outputs.focused-verification == 'windows-package'",
+      "      needs.quality.outputs.focused-verification == 'windows-capability'",
+    ), /focused package verification/],
+    [(source) => source.replace(
+      "      - name: Verify the Windows development environment\n        if: steps.decision.outputs.full-verification == 'true'",
+      "      - name: Verify the Windows development environment\n        if: needs.quality.outputs.focused-verification == 'windows-package'",
+    ), /must not repeat complete Windows host checks/],
   ];
   for (const [index, [mutate, expected]] of invalidWorkflows.entries()) {
     assert.throws(

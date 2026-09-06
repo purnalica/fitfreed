@@ -11,6 +11,7 @@ const focusedVerificationScopes = new Set([
   "macos-package",
   "windows-capability",
   "windows-host",
+  "windows-package",
 ]);
 
 function productSurfacePath(candidatePath) {

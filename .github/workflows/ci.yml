@@ -19,6 +19,7 @@ on:
           - linux-update
           - windows-capability
           - windows-host
+          - windows-package
 
 permissions:
   contents: read
@@ -473,7 +474,8 @@ jobs:
     needs: quality
     if: >-
       needs.quality.outputs.full-verification == 'true' ||
-      needs.quality.outputs.focused-verification == 'windows-host'
+      needs.quality.outputs.focused-verification == 'windows-host' ||
+      needs.quality.outputs.focused-verification == 'windows-package'
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
@@ -494,6 +496,7 @@ jobs:
 
       - name: Restore exact Windows host evidence when available
         id: evidence
+        if: needs.quality.outputs.focused-verification != 'windows-package'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .artifacts/windows-host-evidence
@@ -501,6 +504,7 @@ jobs:
 
       - name: Reopen exact Windows host evidence
         id: reopened
+        if: needs.quality.outputs.focused-verification != 'windows-package'
         env:
           FITFREED_EXECUTABLE_FINGERPRINT: ${{ needs.quality.outputs.executable-fingerprint }}
         run: >-
@@ -518,7 +522,9 @@ jobs:
         run: node scripts/classify-ci-impact.mjs resolve
 
       - name: Install locked JavaScript dependencies
-        if: steps.decision.outputs.full-verification == 'true'
+        if: >-
+          steps.decision.outputs.full-verification == 'true' ||
+          needs.quality.outputs.focused-verification == 'windows-package'
         run: npm ci
 
       - name: Verify the Windows development environment
@@ -634,11 +640,15 @@ jobs:
         run: npm run test:vendor-updater
 
       - name: Build the release-shaped Windows NSIS package
-        if: steps.decision.outputs.full-verification == 'true'
+        if: >-
+          steps.decision.outputs.full-verification == 'true' ||
+          needs.quality.outputs.focused-verification == 'windows-package'
         run: npm run package:windows
 
       - name: Install, inventory, and remove the Windows NSIS package
-        if: steps.decision.outputs.full-verification == 'true'
+        if: >-
+          steps.decision.outputs.full-verification == 'true' ||
+          needs.quality.outputs.focused-verification == 'windows-package'
         run: npm run inventory:windows-package
 
       - name: Verify synthetic Windows Authenticode orchestration and cleanup
