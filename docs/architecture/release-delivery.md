@@ -221,6 +221,9 @@ executable receive complete architecture, identity, version, certificate, timest
 uninstaller receives certificate, timestamp, policy, and digest inspection because it is a package control binary, not
 the application executable. The adapter then cross-checks those three observed file digests against the setup artifact
 and complete installed-file inventory before removal.
+Temporary installed-file records are `PSCustomObject` values so the deliberately invoked Windows PowerShell 5.1
+runtime can observe their hexadecimal UTF-8 sort keys. The inventory validator remains the independent authority for
+unique byte-ordered paths; native enumeration order is never evidence.
 
 The public signing adapter accepts only an explicit public or synthetic-test profile, an absolute `signtool.exe`, a
 SHA-1 certificate-store selector, an independently calculated lowercase SHA-256 leaf-certificate fingerprint, and—only

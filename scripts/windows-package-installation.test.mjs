@@ -283,6 +283,19 @@ test("keeps native installation diagnostics closed, granular, and synchronized",
   assert.deepEqual([...new Set(assignedPhases)], expectedDiagnosticPhases);
 });
 
+test("exposes the installed-entry sort key to Windows PowerShell 5.1", () => {
+  const script = readFileSync(
+    new URL("./verify-windows-package-installation.ps1", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    script,
+    /\[pscustomobject\]\[ordered\]@\{\s*sortKey = \[BitConverter\]::ToString\(\[Text\.Encoding\]::UTF8\.GetBytes\(\$relativePath\)\)\.Replace\("-", ""\)/u,
+  );
+  assert.match(script, /\| Sort-Object -Property sortKey \|/u);
+});
+
 test("returns only validated native evidence and bounds native failures", (context) => {
   const directory = mkdtempSync(path.join(tmpdir(), "fitfreed-windows-package-test-"));
   context.after(() => rmSync(directory, { recursive: true, force: true }));

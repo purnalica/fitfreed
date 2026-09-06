@@ -199,7 +199,7 @@ try {
   $installedEntries = @(Get-ChildItem -LiteralPath $installDirectory -Recurse -File -Force |
     ForEach-Object {
       $relativePath = $_.FullName.Substring($installDirectory.Length + 1).Replace("\", "/")
-      [ordered]@{
+      [pscustomobject][ordered]@{
         sortKey = [BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($relativePath)).Replace("-", "")
         entry = [ordered]@{
           path = $relativePath

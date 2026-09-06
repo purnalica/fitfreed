@@ -84,6 +84,14 @@ the generic `native-installation` phase. Local commit `0048f52` preserves closed
 both JavaScript layers, while `bfeec51` adds a package-only Windows dispatch so the next experiment cannot repeat the
 already successful host checks. Their 195 Windows automation contracts, workflow validation, documentation,
 repository-content, secret, and public-identity gates pass. Exact native evidence remains pending synchronization.
+Exact source `6d0b51f` then exercises only the package boundary in focused [run
+`34059108525`](https://github.com/purnalica/fitfreed/actions/runs/34059108525): NSIS construction passes and every
+packaged E2E campaign is skipped, while native inventory now reports the precise
+`native-installation/evidence-entry-order` rejection. The adapter invokes Windows PowerShell 5.1, but the installed
+file sort introduced by `7b50b90` supplied ordered dictionaries whose `sortKey` key is not a sortable object property
+on that runtime. The current tree materializes those temporary records as `PSCustomObject` values and preserves the
+existing UTF-8 hexadecimal key plus independent JavaScript byte-order validation. Focused installation and inventory
+contracts pass; one exact package-only native rerun remains.
 Automation does not overrule the observed failure or accept the corrected experience.
 The ADR 0020 Pages compositor and localized product site remain live without an application download. The macOS,
 Linux-expansion, and Windows-expansion release workflows are implemented but inactive; later-platform engineering does

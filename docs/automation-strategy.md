@@ -315,7 +315,9 @@ redacted.
 `FitFreed_<version>_x64-setup.exe.inventory.json` beside the exact setup only after installation, identity, complete
 installed-file hashing, removal, application-data preservation, schema, and privacy checks pass. The hosted Windows
 lane uses this composed command instead of separately repeating installation verification. The direct verification
-command remains available for focused diagnosis. Neither command grants public Authenticode trust.
+command remains available for focused diagnosis. The Windows PowerShell 5.1 adapter exposes each hexadecimal UTF-8
+sort key through a `PSCustomObject` property before sorting; the JavaScript boundary independently verifies the
+resulting byte order. Neither command grants public Authenticode trust.
 
 `npm run verify:windows-authenticode-smoke` runs only on x86-64 Windows after the unsigned release executable exists.
 It discovers the x86-64 Windows SDK SignTool, creates a short-lived non-exportable self-signed code-signing certificate,
