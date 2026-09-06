@@ -30,7 +30,7 @@ use super::update_recovery_windows::{
 };
 use super::{
     backup_database,
-    local_file::{sync_directory, PrivateStagingFile},
+    local_file::{sync_directory, sync_regular_file, PrivateStagingFile},
     observe_windows_recovery_process, prepare_windows_recovery_packages_from_path,
     query_windows_native_package_identity, reinstall_windows_predecessor_package,
     verify_library_file, verify_windows_recovery_packages, ImportError, UpdateRecoveryMaintenance,
@@ -2743,21 +2743,21 @@ fn sync_prepared_attempt(path: &Path) -> Result<(), WindowsRecoveryStateError> {
         WATCHDOG_LOCK_FILE_NAME,
         MANIFEST_FILE_NAME,
     ] {
-        File::open(path.join(name))?.sync_all()?;
+        sync_regular_file(&path.join(name))?;
     }
-    File::open(path.join(PREDECESSOR_PACKAGE_RELATIVE_PATH))?.sync_all()?;
-    File::open(path.join(TARGET_PACKAGE_RELATIVE_PATH))?.sync_all()?;
-    File::open(path.join(LIBRARY_BACKUP_RELATIVE_PATH))?.sync_all()?;
-    File::open(
-        path.join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+    sync_regular_file(&path.join(PREDECESSOR_PACKAGE_RELATIVE_PATH))?;
+    sync_regular_file(&path.join(TARGET_PACKAGE_RELATIVE_PATH))?;
+    sync_regular_file(&path.join(LIBRARY_BACKUP_RELATIVE_PATH))?;
+    sync_regular_file(
+        &path
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
             .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
-    )?
-    .sync_all()?;
-    File::open(
-        path.join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+    )?;
+    sync_regular_file(
+        &path
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
             .join(RUNNABLE_UNINSTALLER_RELATIVE_PATH),
-    )?
-    .sync_all()?;
+    )?;
     sync_directory(&path.join(RUNNABLE_PREDECESSOR_RELATIVE_PATH))?;
     sync_directory(&path.join("previous"))?;
     sync_directory(&path.join("candidate"))?;
@@ -4549,5 +4549,40 @@ mod tests {
             Err(WindowsRecoveryStateError::ActiveAttemptExists)
         ));
         drop(candidate);
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod windows_tests {
+    use std::path::PathBuf;
+
+    use tempfile::TempDir;
+
+    use super::*;
+
+    #[test]
+    fn synchronizes_the_complete_prepared_file_set_with_windows_durability_semantics() {
+        let directory = TempDir::new().expect("temporary directory");
+        let attempt = directory.path().join("attempt");
+        for relative in [
+            PathBuf::from(STATE_LOCK_FILE_NAME),
+            PathBuf::from(CANDIDATE_LOCK_FILE_NAME),
+            PathBuf::from(WATCHDOG_LOCK_FILE_NAME),
+            PathBuf::from(MANIFEST_FILE_NAME),
+            PathBuf::from(PREDECESSOR_PACKAGE_RELATIVE_PATH),
+            PathBuf::from(TARGET_PACKAGE_RELATIVE_PATH),
+            PathBuf::from(LIBRARY_BACKUP_RELATIVE_PATH),
+            PathBuf::from(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+                .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+            PathBuf::from(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+                .join(RUNNABLE_UNINSTALLER_RELATIVE_PATH),
+        ] {
+            let path = attempt.join(relative);
+            fs::create_dir_all(path.parent().expect("prepared file parent"))
+                .expect("prepared directory");
+            fs::write(path, b"prepared bytes").expect("prepared file");
+        }
+
+        sync_prepared_attempt(&attempt).expect("durable prepared recovery");
     }
 }

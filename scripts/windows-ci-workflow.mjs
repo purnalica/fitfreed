@@ -164,6 +164,12 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
+    /- name: Test prepared-recovery durability on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_windows_state::windows_tests::synchronizes_the_complete_prepared_file_set_with_windows_durability_semantics\n          --lib/,
+    "focused Windows update verification must falsify the native durability hypothesis before packaging",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
     /npm run verify:windows-update-e2e/,
     "packaged Windows capability must exercise native NSIS update recovery",
   );

@@ -469,6 +469,13 @@ jobs:
           needs.quality.outputs.focused-verification == 'windows-capability'
         run: npm run verify:windows-e2e
 
+      - name: Test prepared-recovery durability on Windows
+        if: needs.quality.outputs.focused-verification == 'windows-update'
+        run: >-
+          cargo test --manifest-path src-tauri/Cargo.toml
+          infrastructure::update_recovery_windows_state::windows_tests::synchronizes_the_complete_prepared_file_set_with_windows_durability_semantics
+          --lib
+
       - name: Build and verify native NSIS update recovery
         run: npm run verify:windows-update-e2e
 
