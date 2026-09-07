@@ -170,6 +170,19 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
+    /- name: Generate application icons for the native recovery test\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: npm run icons/,
+    "focused Windows recovery verification must generate Tauri icons only for the focused native test",
+  );
+  const iconGeneration = packagedCapability.indexOf("npm run icons");
+  const preparedRecoveryTest = packagedCapability.indexOf(
+    "cargo test --manifest-path src-tauri/Cargo.toml",
+  );
+  if (iconGeneration < 0 || preparedRecoveryTest < 0 || iconGeneration > preparedRecoveryTest) {
+    errors.push("focused Windows recovery verification must generate Tauri icons before native compilation");
+  }
+  requireMatch(
+    errors,
+    packagedCapability,
     /npm run verify:windows-update-e2e/,
     "packaged Windows capability must exercise native NSIS update recovery",
   );

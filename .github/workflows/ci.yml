@@ -469,6 +469,10 @@ jobs:
           needs.quality.outputs.focused-verification == 'windows-capability'
         run: npm run verify:windows-e2e
 
+      - name: Generate application icons for the native recovery test
+        if: needs.quality.outputs.focused-verification == 'windows-update'
+        run: npm run icons
+
       - name: Test prepared-recovery durability on Windows
         if: needs.quality.outputs.focused-verification == 'windows-update'
         run: >-

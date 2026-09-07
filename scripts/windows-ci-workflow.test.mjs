@@ -114,5 +114,19 @@ test("isolates native Windows update recovery from accepted capability evidence"
     packagedJob,
     /- name: Test prepared-recovery durability on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?synchronizes_the_complete_prepared_file_set_with_windows_durability_semantics[\s\S]*?--lib/,
   );
+  const iconGeneration = packagedJob.indexOf("npm run icons");
+  assert.notEqual(iconGeneration, -1);
+  assert.ok(
+    iconGeneration
+      < packagedJob.indexOf("cargo test --manifest-path src-tauri/Cargo.toml"),
+  );
   assert.match(packagedJob, /npm run verify:windows-update-e2e/);
+
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      "      - name: Generate application icons for the native recovery test\n        if: needs.quality.outputs.focused-verification == 'windows-update'\n        run: npm run icons",
+      "      - name: Generate application icons for the native recovery test\n        run: npm run icons",
+    )),
+    /generate Tauri icons only for the focused native test/,
+  );
 });
