@@ -114,6 +114,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
     packagedJob,
     /- name: Test prepared-recovery durability on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?synchronizes_the_complete_prepared_file_set_with_windows_durability_semantics[\s\S]*?--lib/,
   );
+  assert.match(
+    packagedJob,
+    /- name: Test held-watchdog phase reads on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?reads_active_windows_phase_through_the_held_watchdog_lease[\s\S]*?--lib -- --exact/,
+  );
   const iconGeneration = packagedJob.indexOf("npm run icons");
   assert.notEqual(iconGeneration, -1);
   assert.ok(
@@ -121,6 +125,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
       < packagedJob.indexOf("cargo test --manifest-path src-tauri/Cargo.toml"),
   );
   assert.match(packagedJob, /npm run verify:windows-update-e2e/);
+  assert.ok(
+    packagedJob.indexOf("reads_active_windows_phase_through_the_held_watchdog_lease")
+      < packagedJob.indexOf("npm run verify:windows-update-e2e"),
+  );
 
   assert.throws(
     () => validateWindowsCiWorkflow(workflow.replace(

@@ -631,6 +631,17 @@ pub fn active_windows_update_recovery_phase(
     active_windows_update_recovery_phase_with(&SystemRecoveryPackages, recovery_root)
 }
 
+pub fn active_windows_update_recovery_phase_with_watchdog_lease(
+    context: &WindowsUpdateRecoveryWatchdogContext,
+    watchdog_lease: &WindowsUpdateRecoveryWatchdogLease,
+) -> Result<PackagedUpdateRecoveryPhase, WindowsRecoveryStateError> {
+    active_windows_update_recovery_phase_with_watchdog_lease_with(
+        &SystemRecoveryPackages,
+        context,
+        watchdog_lease,
+    )
+}
+
 pub fn transition_active_windows_update_recovery(
     recovery_root: &Path,
     recovery_id: &str,
@@ -1608,6 +1619,42 @@ fn active_windows_update_recovery_phase_with(
     let recovery_id = read_active_recovery_id(&active_path)?;
     let manifest = verify_windows_update_recovery_with(packages, &recovery_root, &recovery_id)?;
     Ok(Some((recovery_id, manifest.phase.into())))
+}
+
+fn active_windows_update_recovery_phase_with_watchdog_lease_with(
+    packages: &impl RecoveryPackagePort,
+    context: &WindowsUpdateRecoveryWatchdogContext,
+    watchdog_lease: &WindowsUpdateRecoveryWatchdogLease,
+) -> Result<PackagedUpdateRecoveryPhase, WindowsRecoveryStateError> {
+    if watchdog_lease.recovery_id() != context.recovery_id() {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    let recovery_root = canonical_private_directory(context.recovery_root())?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != context.recovery_id() {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    let manifest = verify_windows_update_recovery_with_held_locks(
+        packages,
+        &recovery_root,
+        context.recovery_id(),
+        &[WATCHDOG_LOCK_FILE_NAME],
+    )?;
+    if manifest.source.version != context.source_version()
+        || manifest.target.version != context.target_version()
+        || manifest.target.library_schema_version != context.target_library_schema_version()
+        || manifest.prepared_at != context.prepared_at()
+        || !paths_equal(
+            &manifest.source.native_package.executable_path,
+            &path_text(context.installed_executable_path())?,
+        )
+        || !paths_equal(
+            &manifest.source.library_path,
+            &path_text(context.library_path())?,
+        )
+    {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    Ok(manifest.phase.into())
 }
 
 fn observe_windows_recovery_preparation<T, E: std::fmt::Debug>(
@@ -2953,14 +3000,16 @@ fn path_entry_exists(path: &Path) -> Result<bool, WindowsRecoveryStateError> {
     }
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests {
     use std::{
         cell::{Cell, RefCell},
         collections::VecDeque,
         io::Cursor,
-        os::unix::fs::symlink,
     };
+
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
 
     use minisign::{sign, KeyPair};
     use rusqlite::Connection;
@@ -3469,6 +3518,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn rejects_redirected_recovery_objects() {
         let harness = Harness::new();
         let redirected_root = harness
@@ -3797,6 +3847,59 @@ mod tests {
         drop(watchdog);
         acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
             .expect("released watchdog lease");
+    }
+
+    #[test]
+    fn reads_active_windows_phase_through_the_held_watchdog_lease() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared = prepare_windows_update_recovery_with(
+            &packages,
+            &harness.identity,
+            harness.preparation(),
+        )
+        .expect("prepared recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        let context = resolve_windows_update_recovery_watchdog_context_with(
+            &packages,
+            &watchdog_executable,
+            &harness.identity.executable_path,
+        )
+        .expect("watchdog context");
+        let mut watchdog = acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
+            .expect("watchdog lease");
+
+        assert_eq!(
+            active_windows_update_recovery_phase_with_watchdog_lease_with(
+                &packages, &context, &watchdog,
+            )
+            .expect("prepared phase"),
+            PackagedUpdateRecoveryPhase::Prepared
+        );
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        assert_eq!(
+            active_windows_update_recovery_phase_with_watchdog_lease_with(
+                &packages, &context, &watchdog,
+            )
+            .expect("replacement-started phase"),
+            PackagedUpdateRecoveryPhase::ReplacementStarted
+        );
+
+        watchdog.recovery_id = "b".repeat(64);
+        assert!(matches!(
+            active_windows_update_recovery_phase_with_watchdog_lease_with(
+                &packages, &context, &watchdog,
+            ),
+            Err(WindowsRecoveryStateError::InvalidState)
+        ));
     }
 
     #[test]

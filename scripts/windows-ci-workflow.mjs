@@ -170,6 +170,12 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
+    /- name: Test held-watchdog phase reads on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_windows_state::tests::reads_active_windows_phase_through_the_held_watchdog_lease\n          --lib -- --exact/,
+    "focused Windows update verification must prove lease-bound phase reads before packaging",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
     /- name: Generate application icons for the native recovery test\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: npm run icons/,
     "focused Windows recovery verification must generate Tauri icons only for the focused native test",
   );
@@ -179,6 +185,13 @@ export function validateWindowsCiWorkflow(source) {
   );
   if (iconGeneration < 0 || preparedRecoveryTest < 0 || iconGeneration > preparedRecoveryTest) {
     errors.push("focused Windows recovery verification must generate Tauri icons before native compilation");
+  }
+  const heldWatchdogTest = packagedCapability.indexOf(
+    "infrastructure::update_recovery_windows_state::tests::reads_active_windows_phase_through_the_held_watchdog_lease",
+  );
+  const packagedUpdate = packagedCapability.indexOf("npm run verify:windows-update-e2e");
+  if (heldWatchdogTest < 0 || packagedUpdate < 0 || heldWatchdogTest > packagedUpdate) {
+    errors.push("focused Windows recovery verification must prove held-watchdog phase reads before packaging");
   }
   requireMatch(
     errors,

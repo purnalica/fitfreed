@@ -515,7 +515,10 @@ Feature-gated backend diagnostics report the typed error and fixed preparation-s
 without recording a local path or changing the production error contract. Pre-readiness watchdog failures use a
 second feature-gated channel whose contract permits only the fixed startup stage and broad error category; focused
 tests cover every stage, successful silence, and the rule that child standard error is inherited only by Windows E2E
-builds. Production child processes discard that stream. The campaign retains only privacy-safe
+builds. Production child processes discard that stream. Before package construction, the focused native lane also
+acquires the no-sharing watchdog handle and proves that phase reads and legal transitions remain available through
+that exact lease while a mismatched lease is rejected. This native test protects the Windows handle semantics that a
+portable host cannot reproduce. The campaign retains only privacy-safe
 evidence on failure and always removes only the package and non-reparse application-data roots it created. Native
 hosted success remains Windows Server engineering evidence, not exact Windows 11 candidate acceptance.
 

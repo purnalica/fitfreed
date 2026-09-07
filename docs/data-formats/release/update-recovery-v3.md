@@ -42,7 +42,9 @@ required files; preservation covers every validated entry in the installed FitFr
 Windows actors open them with sharing disabled for the complete protected operation. A conflicting open means that
 another actor owns the lease; it is never treated as absence. The manifest is the state source of truth, while the
 native handle is the cross-process exclusion boundary. Readers verify the exact final path, file identity, zero
-length, and absence of reparse attributes before trusting a lease.
+length, and absence of reparse attributes before trusting a lease. An actor that already owns a lease must pass that
+exact authority into subsequent verification: the verifier treats only that named handle as held and must not reopen
+its no-sharing pathname. Readers without the lease must continue to reopen every authority file.
 
 ## Preparation and authenticated assets
 
@@ -177,7 +179,8 @@ Ordinary startup resolves recovery authority from the active pointer and fully v
 restart never extends the original installation or confirmation deadline. A reconstructed watchdog treats `prepared`
 as a pre-replacement interruption and `replacement-started` as an uncertain native replacement that must recover; it
 never repeats candidate installation from either phase. It resumes later launch or recovery work only after acquiring
-the watchdog handle and reconciling the persisted phase with the exact native process identity. It does not
+the watchdog handle and reconciling the persisted phase through that same held lease with the exact native process
+identity. It does not
 automatically repeat a previously failed native rollback; retry from `native-recovery-unavailable` is an explicit
 application action without caller-supplied identifiers, paths, packages, or commands.
 

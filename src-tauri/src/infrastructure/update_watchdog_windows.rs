@@ -30,11 +30,12 @@ use super::update_watchdog_protocol::{
     UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT, WATCHDOG_READY_TIMEOUT,
 };
 use super::{
-    acquire_windows_update_recovery_watchdog_lease, active_windows_update_recovery_phase,
-    begin_windows_update_recovery_retry, cancel_windows_update_recovery_retry,
-    discard_prepared_windows_update_recovery, install_windows_candidate_package,
-    maintain_windows_update_recovery_with_watchdog_lease, observe_windows_parent_process,
-    observe_windows_recovery_process, record_active_windows_update_recovery_replacement_launch,
+    acquire_windows_update_recovery_watchdog_lease,
+    active_windows_update_recovery_phase_with_watchdog_lease, begin_windows_update_recovery_retry,
+    cancel_windows_update_recovery_retry, discard_prepared_windows_update_recovery,
+    install_windows_candidate_package, maintain_windows_update_recovery_with_watchdog_lease,
+    observe_windows_parent_process, observe_windows_recovery_process,
+    record_active_windows_update_recovery_replacement_launch,
     resolve_active_windows_update_recovery_watchdog_context,
     resolve_windows_update_recovery_watchdog_context, restore_active_windows_update_recovery,
     terminate_windows_recovery_process, transition_active_windows_update_recovery,
@@ -288,15 +289,15 @@ pub fn run_windows_update_recovery_watchdog(
             installed_executable_path,
         ),
     )?;
-    let mut watchdog_lease = Some(observe_windows_watchdog_startup(
+    let watchdog_lease = observe_windows_watchdog_startup(
         WindowsWatchdogStartupStage::WatchdogLease,
         WindowsWatchdogStartupErrorCategory::RecoveryState,
         acquire_windows_update_recovery_watchdog_lease(&context),
-    )?);
+    )?;
     observe_windows_watchdog_startup(
         WindowsWatchdogStartupStage::ActivePhase,
         WindowsWatchdogStartupErrorCategory::RecoveryState,
-        active_phase(&context),
+        active_phase(&context, &watchdog_lease),
     )?;
     let original_parent = observe_windows_watchdog_startup(
         WindowsWatchdogStartupStage::ParentProcess,
@@ -309,6 +310,7 @@ pub fn run_windows_update_recovery_watchdog(
         write_watchdog_readiness(readiness),
     )?;
 
+    let mut watchdog_lease = Some(watchdog_lease);
     let installation_deadline = persisted_deadline(context.prepared_at(), INSTALLATION_TIMEOUT)?;
     let mut replacement = context
         .replacement_process()
@@ -316,7 +318,12 @@ pub fn run_windows_update_recovery_watchdog(
         .map(MonitoredWindowsReplacement::Inherited);
 
     loop {
-        let phase = active_phase(&context)?;
+        let phase = active_phase(
+            &context,
+            watchdog_lease
+                .as_ref()
+                .ok_or(UpdateRecoveryWatchdogError::TerminalCleanup)?,
+        )?;
         if should_install_candidate(phase, resumed_after_interruption) {
             stop_original_parent(&original_parent)?;
             let installation = install_windows_candidate_package(
@@ -529,15 +536,10 @@ fn retain_terminal_outcome(
 
 fn active_phase(
     context: &WindowsUpdateRecoveryWatchdogContext,
+    watchdog_lease: &WindowsUpdateRecoveryWatchdogLease,
 ) -> Result<PackagedUpdateRecoveryPhase, UpdateRecoveryWatchdogError> {
-    let Some((recovery_id, phase)) = active_windows_update_recovery_phase(context.recovery_root())?
-    else {
-        return Err(WindowsRecoveryStateError::InvalidState.into());
-    };
-    if recovery_id != context.recovery_id() {
-        return Err(WindowsRecoveryStateError::InvalidState.into());
-    }
-    Ok(phase)
+    active_windows_update_recovery_phase_with_watchdog_lease(context, watchdog_lease)
+        .map_err(Into::into)
 }
 
 fn watchdog_event(

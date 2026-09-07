@@ -171,6 +171,9 @@ fresh launch nonce, and absolute confirmation deadline. The preserved executable
 through its exact active attempt layout; a watchdog lease revalidates that immutable context, and a candidate lease
 requires the exact persisted PID, creation `FILETIME`, executable, nonce, and target native installation identity.
 Both process-lifetime leases use the same exclusive-handle boundary without reopening their held lock on Windows.
+Every watchdog phase read requires its concrete lease, revalidates the complete attempt while declaring only that
+watchdog handle already held, and rejects a lease or active pointer for another attempt. Unleased readers still reopen
+all authority files.
 Candidate confirmation holds its lease, derives the fixed library beside the recovery root, and requires the active
 manifest, launch nonce, target native identity, running version, target schema, and SQLite integrity before the
 specialized transition can enter `confirmed`; the generic transition API cannot claim that state. The installation
