@@ -512,7 +512,10 @@ production builds. The NSIS gate exists only in the generated synthetic predeces
 and predecessor are built
 before the first scenario; the distinct installer-failure candidate is built only after ordinary replacement passes.
 Feature-gated backend diagnostics report the typed error and fixed preparation-stage name when publication fails,
-without recording a local path or changing the production error contract. The campaign retains only privacy-safe
+without recording a local path or changing the production error contract. Pre-readiness watchdog failures use a
+second feature-gated channel whose contract permits only the fixed startup stage and broad error category; focused
+tests cover every stage, successful silence, and the rule that child standard error is inherited only by Windows E2E
+builds. Production child processes discard that stream. The campaign retains only privacy-safe
 evidence on failure and always removes only the package and non-reparse application-data roots it created. Native
 hosted success remains Windows Server engineering evidence, not exact Windows 11 candidate acceptance.
 

@@ -47,6 +47,110 @@ use super::{
 
 const PROCESS_OBSERVATION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WindowsWatchdogStartupStage {
+    ContextResolution,
+    WatchdogLease,
+    ActivePhase,
+    ParentProcess,
+    ReadinessWrite,
+}
+
+#[cfg(any(test, all(target_os = "windows", feature = "e2e")))]
+impl WindowsWatchdogStartupStage {
+    const fn diagnostic_name(self) -> &'static str {
+        match self {
+            Self::ContextResolution => "context-resolution",
+            Self::WatchdogLease => "watchdog-lease",
+            Self::ActivePhase => "active-phase",
+            Self::ParentProcess => "parent-process",
+            Self::ReadinessWrite => "readiness-write",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WindowsWatchdogStartupErrorCategory {
+    RecoveryState,
+    NativeProcess,
+    InputOutput,
+}
+
+#[cfg(any(test, all(target_os = "windows", feature = "e2e")))]
+impl WindowsWatchdogStartupErrorCategory {
+    const fn diagnostic_name(self) -> &'static str {
+        match self {
+            Self::RecoveryState => "recovery-state",
+            Self::NativeProcess => "native-process",
+            Self::InputOutput => "input-output",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WindowsWatchdogDiagnosticTransport {
+    Discard,
+    Inherit,
+}
+
+const fn windows_watchdog_diagnostic_transport(
+    target_is_windows: bool,
+    e2e_enabled: bool,
+) -> WindowsWatchdogDiagnosticTransport {
+    if target_is_windows && e2e_enabled {
+        WindowsWatchdogDiagnosticTransport::Inherit
+    } else {
+        WindowsWatchdogDiagnosticTransport::Discard
+    }
+}
+
+fn windows_watchdog_child_stderr() -> Stdio {
+    match windows_watchdog_diagnostic_transport(cfg!(target_os = "windows"), cfg!(feature = "e2e"))
+    {
+        WindowsWatchdogDiagnosticTransport::Discard => Stdio::null(),
+        WindowsWatchdogDiagnosticTransport::Inherit => Stdio::inherit(),
+    }
+}
+
+#[cfg(any(test, all(target_os = "windows", feature = "e2e")))]
+fn observe_windows_watchdog_startup_with<T, E>(
+    stage: WindowsWatchdogStartupStage,
+    category: WindowsWatchdogStartupErrorCategory,
+    result: Result<T, E>,
+    diagnostics: &mut impl Write,
+) -> Result<T, E> {
+    if result.is_err() {
+        let _ = writeln!(
+            diagnostics,
+            "FitFreed Windows update watchdog startup failed at {}: {}",
+            stage.diagnostic_name(),
+            category.diagnostic_name()
+        );
+    }
+    result
+}
+
+fn observe_windows_watchdog_startup<T, E>(
+    stage: WindowsWatchdogStartupStage,
+    category: WindowsWatchdogStartupErrorCategory,
+    result: Result<T, E>,
+) -> Result<T, E> {
+    #[cfg(all(target_os = "windows", feature = "e2e"))]
+    {
+        return observe_windows_watchdog_startup_with(
+            stage,
+            category,
+            result,
+            &mut std::io::stderr().lock(),
+        );
+    }
+    #[cfg(not(all(target_os = "windows", feature = "e2e")))]
+    {
+        let _ = (stage, category);
+        result
+    }
+}
+
 pub struct StartedWindowsUpdateRecoveryWatchdog {
     child: Child,
 }
@@ -145,7 +249,7 @@ fn spawn_windows_update_recovery_watchdog(
         .arg(installed_executable_path)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(windows_watchdog_child_stderr())
         .spawn()?;
     let process_id = child.id();
     let stdout = child
@@ -176,14 +280,34 @@ pub fn run_windows_update_recovery_watchdog(
     resumed_after_interruption: bool,
     readiness: &mut impl Write,
 ) -> Result<UpdateRecoveryWatchdogOutcome, UpdateRecoveryWatchdogError> {
-    let context = resolve_windows_update_recovery_watchdog_context(
-        watchdog_executable,
-        installed_executable_path,
+    let context = observe_windows_watchdog_startup(
+        WindowsWatchdogStartupStage::ContextResolution,
+        WindowsWatchdogStartupErrorCategory::RecoveryState,
+        resolve_windows_update_recovery_watchdog_context(
+            watchdog_executable,
+            installed_executable_path,
+        ),
     )?;
-    let mut watchdog_lease = Some(acquire_windows_update_recovery_watchdog_lease(&context)?);
-    active_phase(&context)?;
-    let original_parent = observe_windows_parent_process(context.installed_executable_path())?;
-    write_watchdog_readiness(readiness)?;
+    let mut watchdog_lease = Some(observe_windows_watchdog_startup(
+        WindowsWatchdogStartupStage::WatchdogLease,
+        WindowsWatchdogStartupErrorCategory::RecoveryState,
+        acquire_windows_update_recovery_watchdog_lease(&context),
+    )?);
+    observe_windows_watchdog_startup(
+        WindowsWatchdogStartupStage::ActivePhase,
+        WindowsWatchdogStartupErrorCategory::RecoveryState,
+        active_phase(&context),
+    )?;
+    let original_parent = observe_windows_watchdog_startup(
+        WindowsWatchdogStartupStage::ParentProcess,
+        WindowsWatchdogStartupErrorCategory::NativeProcess,
+        observe_windows_parent_process(context.installed_executable_path()),
+    )?;
+    observe_windows_watchdog_startup(
+        WindowsWatchdogStartupStage::ReadinessWrite,
+        WindowsWatchdogStartupErrorCategory::InputOutput,
+        write_watchdog_readiness(readiness),
+    )?;
 
     let installation_deadline = persisted_deadline(context.prepared_at(), INSTALLATION_TIMEOUT)?;
     let mut replacement = context
@@ -804,5 +928,89 @@ mod tests {
         assert!(candidate_arguments(&"a".repeat(64), &"b".repeat(64))
             .first()
             .is_some_and(|argument| argument == UPDATE_RECOVERY_CANDIDATE_ARGUMENT));
+    }
+
+    #[test]
+    fn reports_only_fixed_stage_and_category_for_watchdog_startup_failures() {
+        let cases = [
+            (
+                WindowsWatchdogStartupStage::ContextResolution,
+                WindowsWatchdogStartupErrorCategory::RecoveryState,
+                "FitFreed Windows update watchdog startup failed at context-resolution: recovery-state\n",
+            ),
+            (
+                WindowsWatchdogStartupStage::WatchdogLease,
+                WindowsWatchdogStartupErrorCategory::RecoveryState,
+                "FitFreed Windows update watchdog startup failed at watchdog-lease: recovery-state\n",
+            ),
+            (
+                WindowsWatchdogStartupStage::ActivePhase,
+                WindowsWatchdogStartupErrorCategory::RecoveryState,
+                "FitFreed Windows update watchdog startup failed at active-phase: recovery-state\n",
+            ),
+            (
+                WindowsWatchdogStartupStage::ParentProcess,
+                WindowsWatchdogStartupErrorCategory::NativeProcess,
+                "FitFreed Windows update watchdog startup failed at parent-process: native-process\n",
+            ),
+            (
+                WindowsWatchdogStartupStage::ReadinessWrite,
+                WindowsWatchdogStartupErrorCategory::InputOutput,
+                "FitFreed Windows update watchdog startup failed at readiness-write: input-output\n",
+            ),
+        ];
+
+        for (stage, category, expected) in cases {
+            let mut diagnostics = Vec::new();
+            let error = observe_windows_watchdog_startup_with(
+                stage,
+                category,
+                Err::<(), _>("private local path"),
+                &mut diagnostics,
+            )
+            .expect_err("failed startup operation");
+
+            assert_eq!(error, "private local path");
+            assert_eq!(
+                String::from_utf8(diagnostics).expect("UTF-8 diagnostic"),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn emits_no_watchdog_startup_diagnostic_for_success() {
+        let mut diagnostics = Vec::new();
+
+        let value = observe_windows_watchdog_startup_with(
+            WindowsWatchdogStartupStage::ContextResolution,
+            WindowsWatchdogStartupErrorCategory::RecoveryState,
+            Ok::<_, &str>(42),
+            &mut diagnostics,
+        )
+        .expect("successful startup operation");
+
+        assert_eq!(value, 42);
+        assert!(diagnostics.is_empty());
+    }
+
+    #[test]
+    fn inherits_watchdog_diagnostics_only_for_windows_e2e_builds() {
+        assert_eq!(
+            windows_watchdog_diagnostic_transport(true, true),
+            WindowsWatchdogDiagnosticTransport::Inherit
+        );
+        assert_eq!(
+            windows_watchdog_diagnostic_transport(true, false),
+            WindowsWatchdogDiagnosticTransport::Discard
+        );
+        assert_eq!(
+            windows_watchdog_diagnostic_transport(false, true),
+            WindowsWatchdogDiagnosticTransport::Discard
+        );
+        assert_eq!(
+            windows_watchdog_diagnostic_transport(false, false),
+            WindowsWatchdogDiagnosticTransport::Discard
+        );
     }
 }

@@ -200,8 +200,11 @@ after an exact post-install watchdog interruption. It also drives retained runna
 and terminal exhaustion through a recovery-time-only NSIS gate. The failure-specific 0.2.0 installer is constructed
 only after the ordinary replacement scenario succeeds, so a failure on the primary path cannot spend another package
 build on an unreachable scenario. Feature-gated preparation diagnostics identify only the failed recovery stage and
-typed error in backend test logs; they contain no local paths and do not exist in production builds. Each scenario
-starts only after production installation, registration, shortcut, and application-data preflight proves the
+typed error in backend test logs. The preserved watchdog separately inherits the captured backend diagnostic stream
+only in Windows E2E builds and reports a fixed stage and error category when context resolution, lease acquisition,
+phase reopening, parent-process binding, or readiness output fails. Production watchdog processes continue to discard
+standard error. Neither diagnostic records a local path or changes the production error contract. Each scenario starts
+only after production installation, registration, shortcut, and application-data preflight proves the
 disposable user has no existing
 FitFreed state. Cleanup is then limited to the exact package identity and the application-data roots created by that
 scenario, after rejecting reparse points.
