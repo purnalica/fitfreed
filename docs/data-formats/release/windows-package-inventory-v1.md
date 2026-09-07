@@ -2,9 +2,9 @@
 
 ## Purpose and authority
 
-The Windows package inventory binds one x86-64 NSIS setup to its exact bytes, installed file set, native identity,
-signature state, and verified removal outcome. It is release evidence used to detect package drift before candidate
-admission or publication. This document is the normative human-readable contract.
+The Windows package inventory binds one NSIS setup for the x86-64 application target to its exact bytes, installed file
+set, native identity, signature state, and verified removal outcome. It is release evidence used to detect package
+drift before candidate admission or publication. This document is the normative human-readable contract.
 [`windows-package-inventory-v1.schema.json`](../../../schemas/windows-package-inventory-v1.schema.json) is its
 structural JSON Schema.
 
@@ -31,7 +31,8 @@ initial NSIS evidence boundary.
 
 `target.platform` is `windows`, `target.architecture` is `x86_64`, `target.packageFormat` is `nsis`, and
 `target.installMode` is `currentUser`. These closed values describe the first Windows package contract rather than
-every possible Windows target.
+every possible Windows target. `target.architecture` describes the installed application payload. The Tauri NSIS setup
+container is an x86 Unicode PE wrapper and is validated as that distinct executable role.
 
 `artifact.path` is the exact top-level setup filename derived from `identity.version`. `artifact.size` is its positive
 byte length and `artifact.sha256` is the lowercase SHA-256 digest of the complete setup bytes. No artifact or installed

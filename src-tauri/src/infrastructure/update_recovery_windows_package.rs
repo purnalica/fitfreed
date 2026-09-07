@@ -122,13 +122,34 @@ struct WindowsBinaryIdentity {
     file_description: String,
     file_version: String,
     product_version: String,
-    architecture: String,
+    architecture: WindowsPeArchitecture,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WindowsPeArchitecture {
+    X86,
+    X86_64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct WindowsInstalledPackage {
     version: String,
     install_directory: PathBuf,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WindowsBinaryRole {
+    NsisSetup,
+    RunnableApplication,
+}
+
+impl WindowsBinaryRole {
+    fn architecture(self) -> WindowsPeArchitecture {
+        match self {
+            Self::NsisSetup => WindowsPeArchitecture::X86,
+            Self::RunnableApplication => WindowsPeArchitecture::X86_64,
+        }
+    }
 }
 
 trait WindowsRecoveryPackagePort {
@@ -207,7 +228,12 @@ fn prepare_windows_recovery_packages_from_path_with(
 ) -> Result<PreparedWindowsRecoveryPackages, WindowsRecoveryPackageError> {
     validate_version_order(predecessor, candidate)?;
     validate_package_file(predecessor_source, predecessor)?;
-    validate_binary_identity(package_port, predecessor_source, predecessor.version())?;
+    validate_binary_identity(
+        package_port,
+        predecessor_source,
+        predecessor.version(),
+        WindowsBinaryRole::NsisSetup,
+    )?;
     validate_package_bytes(candidate_bytes, candidate)?;
 
     let attempt_directory = validate_attempt_directory(attempt_directory)?;
@@ -387,8 +413,18 @@ fn validate_package_pair(
 ) -> Result<(), WindowsRecoveryPackageError> {
     validate_package_file(predecessor_path, predecessor)?;
     validate_package_file(candidate_path, candidate)?;
-    validate_binary_identity(package_port, predecessor_path, predecessor.version())?;
-    validate_binary_identity(package_port, candidate_path, candidate.version())
+    validate_binary_identity(
+        package_port,
+        predecessor_path,
+        predecessor.version(),
+        WindowsBinaryRole::NsisSetup,
+    )?;
+    validate_binary_identity(
+        package_port,
+        candidate_path,
+        candidate.version(),
+        WindowsBinaryRole::NsisSetup,
+    )
 }
 
 fn validate_package_file(
@@ -412,6 +448,7 @@ fn validate_binary_identity(
     package_port: &impl WindowsRecoveryPackagePort,
     path: &Path,
     expected_version: &str,
+    role: WindowsBinaryRole,
 ) -> Result<(), WindowsRecoveryPackageError> {
     let identity = package_port
         .inspect_binary(path)
@@ -420,7 +457,7 @@ fn validate_binary_identity(
         || identity.file_description != PRODUCT_NAME
         || identity.file_version != expected_version
         || identity.product_version != expected_version
-        || identity.architecture != "x86_64"
+        || identity.architecture != role.architecture()
     {
         return Err(WindowsRecoveryPackageError::InvalidPackageIdentity);
     }
@@ -502,8 +539,13 @@ fn validate_runnable_tree(
             return Err(WindowsRecoveryPackageError::InvalidRunnablePredecessor);
         }
     }
-    validate_binary_identity(package_port, &executable, expected_version)
-        .map_err(|_| WindowsRecoveryPackageError::InvalidRunnablePredecessor)?;
+    validate_binary_identity(
+        package_port,
+        &executable,
+        expected_version,
+        WindowsBinaryRole::RunnableApplication,
+    )
+    .map_err(|_| WindowsRecoveryPackageError::InvalidRunnablePredecessor)?;
     Ok(digest)
 }
 
@@ -894,13 +936,11 @@ fn system_inspect_binary(path: &Path) -> Result<WindowsBinaryIdentity, io::Error
         ));
     }
     let architecture = inspect_pe_architecture(path)?;
-    let mut identity = inspect_version_strings(path)?;
-    identity.architecture = architecture;
-    Ok(identity)
+    inspect_version_strings(path, architecture)
 }
 
 #[cfg(target_os = "windows")]
-fn inspect_pe_architecture(path: &Path) -> Result<String, io::Error> {
+fn inspect_pe_architecture(path: &Path) -> Result<WindowsPeArchitecture, io::Error> {
     use std::io::{Seek, SeekFrom};
 
     let mut file = open_regular_file(path)?;
@@ -926,19 +966,34 @@ fn inspect_pe_architecture(path: &Path) -> Result<String, io::Error> {
     file.seek(SeekFrom::Start(u64::from(offset)))?;
     let mut signature_and_machine = [0_u8; 6];
     file.read_exact(&mut signature_and_machine)?;
-    if &signature_and_machine[0..4] != b"PE\0\0"
-        || u16::from_le_bytes([signature_and_machine[4], signature_and_machine[5]]) != 0x8664
-    {
+    if &signature_and_machine[0..4] != b"PE\0\0" {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "binary is not x86-64 PE",
+            "invalid PE signature",
         ));
     }
-    Ok("x86_64".to_owned())
+    classify_pe_architecture(u16::from_le_bytes([
+        signature_and_machine[4],
+        signature_and_machine[5],
+    ]))
+}
+
+fn classify_pe_architecture(machine: u16) -> Result<WindowsPeArchitecture, io::Error> {
+    match machine {
+        0x014c => Ok(WindowsPeArchitecture::X86),
+        0x8664 => Ok(WindowsPeArchitecture::X86_64),
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unsupported PE architecture",
+        )),
+    }
 }
 
 #[cfg(target_os = "windows")]
-fn inspect_version_strings(path: &Path) -> Result<WindowsBinaryIdentity, io::Error> {
+fn inspect_version_strings(
+    path: &Path,
+    architecture: WindowsPeArchitecture,
+) -> Result<WindowsBinaryIdentity, io::Error> {
     use std::{iter, os::windows::ffi::OsStrExt};
 
     use windows_sys::Win32::Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW};
@@ -968,7 +1023,7 @@ fn inspect_version_strings(path: &Path) -> Result<WindowsBinaryIdentity, io::Err
             file_description: query_version_string(&buffer, &format!(r"{base}\FileDescription"))?,
             file_version: query_version_string(&buffer, &format!(r"{base}\FileVersion"))?,
             product_version: query_version_string(&buffer, &format!(r"{base}\ProductVersion"))?,
-            architecture: String::new(),
+            architecture,
         };
         if result.as_ref().is_some_and(|existing| existing != &current) {
             return Err(io::Error::new(
@@ -1107,13 +1162,13 @@ mod tests {
         fn valid(install_directory: &Path, predecessor: &str, candidate: &str) -> Self {
             Self {
                 identities: RefCell::new(VecDeque::from([
-                    identity(predecessor),
-                    identity(predecessor),
-                    identity(candidate),
-                    identity(predecessor),
-                    identity(predecessor),
-                    identity(predecessor),
-                    identity(candidate),
+                    setup_identity(predecessor),
+                    setup_identity(predecessor),
+                    setup_identity(candidate),
+                    runnable_identity(predecessor),
+                    runnable_identity(predecessor),
+                    setup_identity(predecessor),
+                    setup_identity(candidate),
                 ])),
                 installed: WindowsInstalledPackage {
                     version: predecessor.to_owned(),
@@ -1126,9 +1181,9 @@ mod tests {
         fn valid_for_verification(predecessor: &str, candidate: &str) -> Self {
             Self {
                 identities: RefCell::new(VecDeque::from([
-                    identity(predecessor),
-                    identity(candidate),
-                    identity(predecessor),
+                    setup_identity(predecessor),
+                    setup_identity(candidate),
+                    runnable_identity(predecessor),
                 ])),
                 installed: WindowsInstalledPackage {
                     version: predecessor.to_owned(),
@@ -1216,13 +1271,23 @@ mod tests {
         }
     }
 
-    fn identity(version: &str) -> WindowsBinaryIdentity {
+    fn setup_identity(version: &str) -> WindowsBinaryIdentity {
         WindowsBinaryIdentity {
             product_name: PRODUCT_NAME.to_owned(),
             file_description: PRODUCT_NAME.to_owned(),
             file_version: version.to_owned(),
             product_version: version.to_owned(),
-            architecture: "x86_64".to_owned(),
+            architecture: WindowsPeArchitecture::X86,
+        }
+    }
+
+    fn runnable_identity(version: &str) -> WindowsBinaryIdentity {
+        WindowsBinaryIdentity {
+            product_name: PRODUCT_NAME.to_owned(),
+            file_description: PRODUCT_NAME.to_owned(),
+            file_version: version.to_owned(),
+            product_version: version.to_owned(),
+            architecture: WindowsPeArchitecture::X86_64,
         }
     }
 
@@ -1452,6 +1517,56 @@ mod tests {
         ));
         assert!(!harness.attempt_directory.join("previous").exists());
         assert!(!harness.attempt_directory.join("candidate").exists());
+    }
+
+    #[test]
+    fn rejects_setup_and_runnable_architecture_role_confusion() {
+        let harness = Harness::new();
+        let package_port = harness.package_port();
+        package_port
+            .identities
+            .borrow_mut()
+            .front_mut()
+            .expect("setup identity")
+            .architecture = WindowsPeArchitecture::X86_64;
+        assert!(matches!(
+            validate_binary_identity(
+                &package_port,
+                &harness.predecessor_source,
+                harness.predecessor.version(),
+                WindowsBinaryRole::NsisSetup,
+            ),
+            Err(WindowsRecoveryPackageError::InvalidPackageIdentity)
+        ));
+
+        let package_port = harness.package_port();
+        assert!(matches!(
+            validate_binary_identity(
+                &package_port,
+                &harness.predecessor_source,
+                harness.predecessor.version(),
+                WindowsBinaryRole::RunnableApplication,
+            ),
+            Err(WindowsRecoveryPackageError::InvalidPackageIdentity)
+        ));
+    }
+
+    #[test]
+    fn classifies_only_the_supported_setup_and_runnable_pe_machines() {
+        assert_eq!(
+            classify_pe_architecture(0x014c).expect("x86 PE machine"),
+            WindowsPeArchitecture::X86
+        );
+        assert_eq!(
+            classify_pe_architecture(0x8664).expect("x86-64 PE machine"),
+            WindowsPeArchitecture::X86_64
+        );
+        assert_eq!(
+            classify_pe_architecture(0xaa64)
+                .expect_err("ARM64 is outside the Windows x86-64 package contract")
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
     }
 
     #[test]

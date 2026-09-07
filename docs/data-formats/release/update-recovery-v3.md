@@ -54,19 +54,20 @@ version 3.
 
 The exact predecessor package comes from a verified local cache or its authenticated immutable release URL. Both
 predecessor and candidate packages must match the signed-channel URL, size, SHA-256, updater signature, target, and
-version. Each must also be an x86-64 PE whose `ProductName`, `FileDescription`, `FileVersion`, and `ProductVersion`
-match FitFreed and its recorded semantic version. The predecessor package version must equal the installed native
-version; the candidate must be newer. Package bytes are copied through private no-clobber staging files and reopened
-before authority is published.
+version. Each must also be a Tauri NSIS x86 setup-wrapper PE whose `ProductName`, `FileDescription`, `FileVersion`, and
+`ProductVersion` match FitFreed and its recorded semantic version. The x86 wrapper installs the separately validated
+x86-64 application target; the two PE machine roles are not interchangeable. The predecessor package version must
+equal the installed native version; the candidate must be newer. Package bytes are copied through private no-clobber
+staging files and reopened before authority is published.
 
 Preparation copies the complete current installation directory into `previous/runnable` without following reparse
 points. It accepts only directories and regular files with valid Windows path components, at most 65,536 descendant
 entries, 4 GiB of regular-file content, and 4,096 UTF-8 bytes per relative path. Device names, alternate-data-stream
 separators, control characters, trailing dots or spaces, and paths that collide under ASCII case folding are invalid.
-The result must contain `fitfreed.exe` with the exact predecessor PE identity and `uninstall.exe`. A deterministic tree
-digest is calculated before and after no-clobber promotion. `runnablePredecessor.sourcePackageSha256` binds the image
-to the authenticated package for the same validated installed version; it does not claim that NSIS installation is a
-byte-for-byte archive extraction.
+The result must contain x86-64 `fitfreed.exe` with the exact predecessor PE identity and `uninstall.exe`. A
+deterministic tree digest is calculated before and after no-clobber promotion.
+`runnablePredecessor.sourcePackageSha256` binds the image to the authenticated package for the same validated installed
+version; it does not claim that NSIS installation is a byte-for-byte archive extraction.
 
 The library is copied through SQLite's online backup API to `previous/fitfreed.sqlite`, closed, reopened, checked for
 the exact source schema and `PRAGMA integrity_check = ok`, hashed, synchronized, and promoted without overwriting an

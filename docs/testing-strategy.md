@@ -283,10 +283,12 @@ Local and continuous-integration workflows will invoke the same underlying comma
   for the real known-folder, Registry, reparse-point, process-handle, wait, and termination APIs; non-Windows source
   tests cannot substitute for that execution evidence.
 - Windows recovery-package unit tests require strictly ordered semantic versions, exact package size and SHA-256,
-  x86-64 PE product and version identity, agreement with the installed predecessor, no-clobber preservation, a bounded
-  complete non-reparse runnable tree with safe Windows names, deterministic tree hashing, reopening, mutation
-  detection, and removal of only partially created assets. Native Windows execution remains authoritative for version
-  resources, installed-directory semantics, file sharing, and reparse attributes.
+  FitFreed product and version identity from x86 NSIS setup wrappers, an x86-64 FitFreed executable in the runnable
+  predecessor, rejection when either PE machine type is presented in the opposite role, agreement with the installed
+  predecessor, no-clobber preservation, a bounded complete non-reparse runnable tree with safe Windows names,
+  deterministic tree hashing, reopening, mutation detection, and removal of only partially created assets. Native
+  Windows execution remains authoritative for version resources, installed-directory semantics, file sharing, and
+  reparse attributes.
 - Windows recovery-contract tests validate schema version 3 independently from the closed macOS and Linux formats.
   They require one current-user x86-64 NSIS identity, canonical package and runnable paths, lossless process creation
   `FILETIME`, consistent native directories, exact source and target version relationships, credential-free immutable

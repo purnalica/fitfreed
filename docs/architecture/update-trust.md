@@ -144,12 +144,13 @@ an unreadable registration, an unexpected version, or another invalid native ide
 persist `installer-failed` and `installed-state-invalid` without inferring the cause from an incomplete installation.
 
 Windows package preparation validates the authenticated predecessor and candidate byte lengths and SHA-256 digests,
-requires their x86-64 PE product, description, file version, and product version to match the expected FitFreed
-identity, and requires the current native installation to be the same predecessor version. It copies the complete
-installed directory into a no-clobber staging tree, rejecting reparse points, special files, unsafe Windows names,
-excessive paths, entry counts, or expanded size. The preserved tree must contain the exact application and uninstaller;
-its deterministic digest and both packages are reopened after no-clobber promotion. Failed preparation removes only
-the directories it created.
+requires each Tauri NSIS x86 setup wrapper's PE product, description, file version, and product version to match the
+expected FitFreed identity, and requires the current native installation to be the same predecessor version. The
+wrapper architecture is distinct from the x86-64 application target carried by that setup. Preparation copies the
+complete installed directory into a no-clobber staging tree, rejecting reparse points, special files, unsafe Windows
+names, excessive paths, entry counts, or expanded size. The preserved tree must contain the exact x86-64 application
+and uninstaller; its deterministic digest and both packages are reopened after no-clobber promotion. Failed
+preparation removes only the directories it created.
 
 The Windows-local [recovery contract version 3](../data-formats/release/update-recovery-v3.md) fixes that attempt to
 one x86-64 current-user NSIS identity. It binds the two authenticated installers, complete runnable predecessor,
