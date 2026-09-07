@@ -598,10 +598,23 @@ pub enum WindowsNativeRecoveryFailure {
 pub fn prepare_windows_update_recovery(
     preparation: WindowsUpdateRecoveryPreparation<'_>,
 ) -> Result<PreparedWindowsUpdateRecovery, WindowsRecoveryStateError> {
-    let native_identity = query_windows_native_package_identity()
-        .map_err(|_| WindowsRecoveryStateError::InvalidInput)?;
-    let installed_identity = InstalledIdentity::from_native(&native_identity)?;
-    prepare_windows_update_recovery_with(&SystemRecoveryPackages, &installed_identity, preparation)
+    let native_identity = observe_windows_recovery_preparation(
+        "native-package-identity",
+        query_windows_native_package_identity()
+            .map_err(|_| WindowsRecoveryStateError::InvalidInput),
+    )?;
+    let installed_identity = observe_windows_recovery_preparation(
+        "installed-identity",
+        InstalledIdentity::from_native(&native_identity),
+    )?;
+    observe_windows_recovery_preparation(
+        "preparation-flow",
+        prepare_windows_update_recovery_with(
+            &SystemRecoveryPackages,
+            &installed_identity,
+            preparation,
+        ),
+    )
 }
 
 pub fn verify_windows_update_recovery(
@@ -1158,7 +1171,10 @@ fn discard_prepared_windows_update_recovery_with(
     }
 
     fs::remove_file(active_path)?;
-    sync_directory(&recovery_root)?;
+    observe_windows_recovery_preparation(
+        "recovery-root-durability",
+        sync_directory(&recovery_root),
+    )?;
     drop(state_lock);
     drop(candidate_lock);
     drop(watchdog_lock);
@@ -1594,74 +1610,146 @@ fn active_windows_update_recovery_phase_with(
     Ok(Some((recovery_id, manifest.phase.into())))
 }
 
+fn observe_windows_recovery_preparation<T, E: std::fmt::Debug>(
+    stage: &'static str,
+    result: Result<T, E>,
+) -> Result<T, E> {
+    #[cfg(all(target_os = "windows", feature = "e2e"))]
+    if let Err(error) = &result {
+        eprintln!("FitFreed Windows update preparation failed at {stage}: {error:?}");
+    }
+    #[cfg(not(all(target_os = "windows", feature = "e2e")))]
+    let _ = stage;
+    result
+}
+
 fn prepare_windows_update_recovery_with(
     packages: &impl RecoveryPackagePort,
     native_identity: &InstalledIdentity,
     preparation: WindowsUpdateRecoveryPreparation<'_>,
 ) -> Result<PreparedWindowsUpdateRecovery, WindowsRecoveryStateError> {
-    let validated = validate_preparation(native_identity, &preparation)?;
+    let validated = observe_windows_recovery_preparation(
+        "input-validation",
+        validate_preparation(native_identity, &preparation),
+    )?;
     let derived_recovery_root = native_identity
         .application_data_directory
         .join("update-recovery");
-    let recovery_root = prepare_recovery_root(
-        &derived_recovery_root,
-        &native_identity.application_data_directory,
+    let recovery_root = observe_windows_recovery_preparation(
+        "recovery-root",
+        prepare_recovery_root(
+            &derived_recovery_root,
+            &native_identity.application_data_directory,
+        ),
     )?;
-    let outcome_file = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)
-        .map_err(map_lock_contention)?;
+    let outcome_file = observe_windows_recovery_preparation(
+        "outcome-lock-open",
+        open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)
+            .map_err(map_lock_contention),
+    )?;
     sync_directory(&recovery_root)?;
-    let _outcome_lock = ExclusiveFileLock::acquire(outcome_file)?;
+    let _outcome_lock = observe_windows_recovery_preparation(
+        "outcome-lock-acquire",
+        ExclusiveFileLock::acquire(outcome_file),
+    )?;
     let active_path = recovery_root.join(ACTIVE_FILE_NAME);
-    if path_entry_exists(&active_path)? {
-        return Err(WindowsRecoveryStateError::ActiveAttemptExists);
+    if observe_windows_recovery_preparation(
+        "active-authority-check",
+        path_entry_exists(&active_path),
+    )? {
+        return observe_windows_recovery_preparation(
+            "active-authority-check",
+            Err(WindowsRecoveryStateError::ActiveAttemptExists),
+        );
     }
 
     let attempts_directory = recovery_root.join(ATTEMPTS_DIRECTORY_NAME);
-    create_or_validate_private_directory(&attempts_directory)?;
-    let recovery_id = generate_recovery_id(&preparation)?;
+    observe_windows_recovery_preparation(
+        "attempts-directory",
+        create_or_validate_private_directory(&attempts_directory),
+    )?;
+    let recovery_id = observe_windows_recovery_preparation(
+        "recovery-identity",
+        generate_recovery_id(&preparation),
+    )?;
     let staging_directory = attempts_directory.join(format!(".staging-{recovery_id}"));
     let attempt_directory = attempts_directory.join(&recovery_id);
-    if path_entry_exists(&staging_directory)? || path_entry_exists(&attempt_directory)? {
-        return Err(WindowsRecoveryStateError::InvalidState);
+    if observe_windows_recovery_preparation(
+        "attempt-collision-check",
+        path_entry_exists(&staging_directory),
+    )? || observe_windows_recovery_preparation(
+        "attempt-collision-check",
+        path_entry_exists(&attempt_directory),
+    )? {
+        return observe_windows_recovery_preparation(
+            "attempt-collision-check",
+            Err(WindowsRecoveryStateError::InvalidState),
+        );
     }
-    create_private_directory(&staging_directory)?;
+    observe_windows_recovery_preparation(
+        "staging-directory",
+        create_private_directory(&staging_directory),
+    )?;
     let mut staging = StagingAttempt::new(staging_directory.clone());
     for name in [
         STATE_LOCK_FILE_NAME,
         CANDIDATE_LOCK_FILE_NAME,
         WATCHDOG_LOCK_FILE_NAME,
     ] {
-        drop(open_private_lock_file(&staging_directory, name, true)?);
+        drop(observe_windows_recovery_preparation(
+            "attempt-lock-files",
+            open_private_lock_file(&staging_directory, name, true),
+        )?);
     }
 
-    let runnable_tree_sha256 = packages.prepare(
-        &staging_directory,
-        preparation.predecessor_package_path,
-        &validated.predecessor_expectation,
-        preparation.candidate_package_bytes,
-        &validated.candidate_expectation,
+    let runnable_tree_sha256 = observe_windows_recovery_preparation(
+        "package-and-runnable-preparation",
+        packages.prepare(
+            &staging_directory,
+            preparation.predecessor_package_path,
+            &validated.predecessor_expectation,
+            preparation.candidate_package_bytes,
+            &validated.candidate_expectation,
+        ),
     )?;
     let library_backup_path = staging_directory.join(LIBRARY_BACKUP_RELATIVE_PATH);
-    backup_database(&validated.library_path, &library_backup_path)?;
-    verify_library_file(
-        &library_backup_path,
-        i64::from(validated.source_library_schema_version),
+    observe_windows_recovery_preparation(
+        "library-backup",
+        backup_database(&validated.library_path, &library_backup_path),
     )?;
-    let library_metadata = fs::symlink_metadata(&library_backup_path)?;
+    observe_windows_recovery_preparation(
+        "library-backup-verification",
+        verify_library_file(
+            &library_backup_path,
+            i64::from(validated.source_library_schema_version),
+        ),
+    )?;
+    let library_metadata = observe_windows_recovery_preparation(
+        "library-backup-metadata",
+        fs::symlink_metadata(&library_backup_path),
+    )?;
     if !library_metadata.file_type().is_file()
         || is_reparse_point(&library_metadata)
         || library_metadata.len() == 0
         || library_metadata.len() > MAX_LIBRARY_BACKUP_BYTES
     {
-        return Err(WindowsRecoveryStateError::InvalidState);
+        return observe_windows_recovery_preparation(
+            "library-backup-metadata",
+            Err(WindowsRecoveryStateError::InvalidState),
+        );
     }
-    let library_sha256 = file_sha256(&library_backup_path, library_metadata.len())?;
+    let library_sha256 = observe_windows_recovery_preparation(
+        "library-backup-digest",
+        file_sha256(&library_backup_path, library_metadata.len()),
+    )?;
 
     let predecessor_artifact = preparation
         .authorization
         .predecessor_artifact
         .as_ref()
-        .ok_or(WindowsRecoveryStateError::InvalidInput)?;
+        .ok_or(WindowsRecoveryStateError::InvalidInput);
+    let predecessor_artifact =
+        observe_windows_recovery_preparation("predecessor-authority", predecessor_artifact)?;
     let manifest = WindowsRecoveryManifest {
         format: RECOVERY_FORMAT.to_owned(),
         schema_version: RECOVERY_SCHEMA_VERSION,
@@ -1717,17 +1805,42 @@ fn prepare_windows_update_recovery_with(
             last_failure: None,
         },
     };
-    validate_manifest(&manifest)?;
-    write_new_manifest(&staging_directory.join(MANIFEST_FILE_NAME), &manifest)?;
-    sync_prepared_attempt(&staging_directory)?;
-    fs::rename(&staging_directory, &attempt_directory)?;
+    observe_windows_recovery_preparation("manifest-validation", validate_manifest(&manifest))?;
+    observe_windows_recovery_preparation(
+        "manifest-write",
+        write_new_manifest(&staging_directory.join(MANIFEST_FILE_NAME), &manifest),
+    )?;
+    observe_windows_recovery_preparation(
+        "prepared-state-durability",
+        sync_prepared_attempt(&staging_directory),
+    )?;
+    observe_windows_recovery_preparation(
+        "attempt-publication",
+        fs::rename(&staging_directory, &attempt_directory),
+    )?;
     staging.move_to(attempt_directory.clone());
-    sync_directory(&attempts_directory)?;
-    verify_windows_update_recovery_with(packages, &recovery_root, &recovery_id)?;
-    write_active_recovery_id(&active_path, &recovery_id)?;
+    observe_windows_recovery_preparation(
+        "attempts-directory-durability",
+        sync_directory(&attempts_directory),
+    )?;
+    observe_windows_recovery_preparation(
+        "published-attempt-verification",
+        verify_windows_update_recovery_with(packages, &recovery_root, &recovery_id),
+    )?;
+    observe_windows_recovery_preparation(
+        "active-authority-publication",
+        write_active_recovery_id(&active_path, &recovery_id),
+    )?;
     staging.disarm();
-    if read_active_recovery_id(&active_path)? != recovery_id {
-        return Err(WindowsRecoveryStateError::InvalidState);
+    if observe_windows_recovery_preparation(
+        "active-authority-verification",
+        read_active_recovery_id(&active_path),
+    )? != recovery_id
+    {
+        return observe_windows_recovery_preparation(
+            "active-authority-verification",
+            Err(WindowsRecoveryStateError::InvalidState),
+        );
     }
 
     Ok(PreparedWindowsUpdateRecovery {

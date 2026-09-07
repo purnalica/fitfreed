@@ -9,6 +9,7 @@ import {
   expectedWindowsUpdatePackageName,
   validateWindowsUpdateEvidence,
   windowsInstallerFailureHook,
+  windowsMissingCandidateVariant,
   windowsPredecessorGateHook,
   windowsUpdateBuildArguments,
   windowsUpdatePackageActionCommand,
@@ -224,6 +225,38 @@ test("builds installer failure as a signed NSIS preinstall variant", () => {
   assert.match(verifier, /candidate-installer-failure\.exe/);
   assert.match(verifier, /signFile\(retained\)/);
   assert.match(verifier, /candidatePackages\.get\(scenario\.candidateVariant\)/);
+});
+
+test("defers a failure-only candidate build until a scenario first requires it", () => {
+  const available = new Map([["ordinary", "ordinary-package"]]);
+
+  assert.equal(
+    windowsMissingCandidateVariant(available, windowsUpdateScenarioPlan()[0]),
+    undefined,
+  );
+  assert.equal(
+    windowsMissingCandidateVariant(available, windowsUpdateScenarioPlan()[1]),
+    "installer-failure",
+  );
+  available.set("installer-failure", "failure-package");
+  assert.equal(
+    windowsMissingCandidateVariant(available, windowsUpdateScenarioPlan()[1]),
+    undefined,
+  );
+
+  const verifier = readFileSync(
+    path.resolve("scripts/verify-packaged-windows-update.mjs"),
+    "utf8",
+  );
+  const initialCandidates = verifier.match(
+    /const candidatePackages = new Map\(\[(?<entries>[\s\S]*?)\]\);/u,
+  )?.groups?.entries ?? "";
+  assert.match(initialCandidates, /"ordinary"/u);
+  assert.doesNotMatch(initialCandidates, /"installer-failure"/u);
+  assert.match(
+    verifier,
+    /windowsMissingCandidateVariant\(candidatePackages, scenario\)[\s\S]*buildNsisPackage\(candidateVersion, publicKey, missingVariant\)/u,
+  );
 });
 
 test("accepts only privacy-safe evidence matching the declared scenario", () => {

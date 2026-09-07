@@ -191,13 +191,18 @@ directory before launch. The native library adapter recognizes only that exact s
 the owner to the token user together with the protected private ACL, and verifies the final boundary before SQLite
 opens. A foreign owner remains a startup rejection; automation cannot broaden the admitted identity set.
 
-`npm run verify:windows-update-e2e` is the separate native x86-64 Windows update-recovery boundary. It builds
-instrumented 0.1.0 and 0.2.0 NSIS packages with the canonical production identity, creates ephemeral updater and local
-TLS authority, and serves signed `stable-v3` metadata only over loopback HTTPS. It runs successful replacement,
+`npm run verify:windows-update-e2e` is the separate native x86-64 Windows update-recovery boundary. It builds the
+instrumented 0.1.0 predecessor and ordinary 0.2.0 NSIS candidate with the canonical production identity, creates
+ephemeral updater and local TLS authority, and serves signed `stable-v3` metadata only over loopback HTTPS. It runs
+successful replacement,
 native installer failure, candidate rejection with automatic predecessor restoration, and ordinary-startup resumption
 after an exact post-install watchdog interruption. It also drives retained runnable-predecessor fallback, offline retry,
-and terminal exhaustion through a recovery-time-only NSIS gate. Each scenario starts only after production
-installation, registration, shortcut, and application-data preflight proves the disposable user has no existing
+and terminal exhaustion through a recovery-time-only NSIS gate. The failure-specific 0.2.0 installer is constructed
+only after the ordinary replacement scenario succeeds, so a failure on the primary path cannot spend another package
+build on an unreachable scenario. Feature-gated preparation diagnostics identify only the failed recovery stage and
+typed error in backend test logs; they contain no local paths and do not exist in production builds. Each scenario
+starts only after production installation, registration, shortcut, and application-data preflight proves the
+disposable user has no existing
 FitFreed state. Cleanup is then limited to the exact package identity and the application-data roots created by that
 scenario, after rejecting reparse points.
 The command is therefore CI-oriented and must not run on a contributor account that contains a real FitFreed library.

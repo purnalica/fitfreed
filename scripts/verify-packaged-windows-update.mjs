@@ -110,6 +110,15 @@ export function windowsUpdateScenarioPlan() {
   ];
 }
 
+export function windowsMissingCandidateVariant(candidatePackages, scenario) {
+  if (!(candidatePackages instanceof Map) || typeof scenario?.candidateVariant !== "string") {
+    throw new Error("The Windows update candidate build decision is invalid");
+  }
+  return candidatePackages.has(scenario.candidateVariant)
+    ? undefined
+    : scenario.candidateVariant;
+}
+
 export function windowsInstallerFailureHook() {
   return [
     "!macro NSIS_HOOK_PREINSTALL",
@@ -520,7 +529,10 @@ async function startUpdateServer(candidatePackages, predecessorPackage) {
       response.end(envelopeBytes);
       return;
     }
-    const artifact = routes.get(request.url);
+    const candidateVariant = request.url?.match(/^\/candidate-(?<variant>[a-z-]+)\.exe$/u)
+      ?.groups?.variant;
+    const artifact = routes.get(request.url)
+      ?? (candidateVariant ? candidatePackages.get(candidateVariant) : undefined);
     if (artifact) {
       response.writeHead(200, {
         "content-type": "application/vnd.microsoft.portable-executable",
@@ -787,16 +799,19 @@ async function main() {
   const publicKey = generateSigningKey();
   const candidatePackages = new Map([
     ["ordinary", buildNsisPackage(candidateVersion, publicKey)],
-    [
-      "installer-failure",
-      buildNsisPackage(candidateVersion, publicKey, "installer-failure"),
-    ],
   ]);
   const predecessorPackage = buildNsisPackage(currentVersion, publicKey, "predecessor-gated");
   const updateServer = await startUpdateServer(candidatePackages, predecessorPackage);
   try {
     const endpoint = `https://127.0.0.1:${updateServer.port}/stable.json`;
     for (const scenario of windowsUpdateScenarioPlan()) {
+      const missingVariant = windowsMissingCandidateVariant(candidatePackages, scenario);
+      if (missingVariant) {
+        candidatePackages.set(
+          missingVariant,
+          buildNsisPackage(candidateVersion, publicKey, missingVariant),
+        );
+      }
       const candidatePackage = candidatePackages.get(scenario.candidateVariant);
       if (!candidatePackage) {
         throw new Error(`The ${scenario.name} candidate package is unavailable`);

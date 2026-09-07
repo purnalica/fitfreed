@@ -504,9 +504,12 @@ guidance with no retry or ordinary update action. Every path revalidates the rec
 exact installed version, library and locale persistence, applicable terminal receipt and cleanup, localized outcome,
 and acknowledgement. The interruption hook is compiled only into instrumented Windows builds, requires two distinct
 absolute marker paths, creates the ready marker without clobbering, and is absent from production builds. The NSIS
-gate exists only in the generated synthetic predecessor package. The campaign retains only privacy-safe evidence on
-failure and always removes only the package and non-reparse application-data roots it created. Native hosted success
-remains Windows Server engineering evidence, not exact Windows 11 candidate acceptance.
+gate exists only in the generated synthetic predecessor package. The ordinary candidate and predecessor are built
+before the first scenario; the distinct installer-failure candidate is built only after ordinary replacement passes.
+Feature-gated backend diagnostics report the typed error and fixed preparation-stage name when publication fails,
+without recording a local path or changing the production error contract. The campaign retains only privacy-safe
+evidence on failure and always removes only the package and non-reparse application-data roots it created. Native
+hosted success remains Windows Server engineering evidence, not exact Windows 11 candidate acceptance.
 
 Linux recovery tests protect the application-owned phase and three-attempt policy, active-manifest validation,
 exclusive-watchdog transition, spawn-failure rollback, privacy-minimized host DTO, fail-closed update presentation, and
