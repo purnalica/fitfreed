@@ -9,6 +9,7 @@ import {
   startWdioSession,
 } from "@wdio/tauri-service";
 
+import { windowsPathTextsEqual } from "../../scripts/windows-path-text.mjs";
 import { openSettingsCategory } from "../e2e/support/application-actions.js";
 import {
   exactApplicationProcessId,
@@ -354,7 +355,10 @@ async function verifyJourney(browser) {
   const recovery = await publishedRecovery;
   assert.equal(recovery.manifest.source.version, "0.1.0");
   assert.equal(recovery.manifest.target.version, "0.2.0");
-  assert.equal(recovery.manifest.source.libraryPath, databasePath);
+  assert.equal(
+    windowsPathTextsEqual(recovery.manifest.source.libraryPath, databasePath),
+    true,
+  );
   assert.deepEqual(recovery.manifest.platform, {
     os: "windows",
     architecture: "x86_64",
@@ -365,7 +369,13 @@ async function verifyJourney(browser) {
   assert.equal(recovery.manifest.source.nativePackage.productName, "FitFreed");
   assert.equal(recovery.manifest.source.nativePackage.version, "0.1.0");
   assert.equal(recovery.manifest.source.nativePackage.architecture, "x86_64");
-  assert.equal(recovery.manifest.source.nativePackage.executablePath, applicationBinary);
+  assert.equal(
+    windowsPathTextsEqual(
+      recovery.manifest.source.nativePackage.executablePath,
+      applicationBinary,
+    ),
+    true,
+  );
   assert.equal(
     fs.existsSync(path.join(recovery.attemptDirectory, "previous/package.exe")),
     true,

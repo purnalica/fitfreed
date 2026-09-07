@@ -504,9 +504,12 @@ and completes an explicit retry without another transport request. The exhaustio
 three durable failures, reopens the runnable predecessor after each available retry, and requires terminal manual
 guidance with no retry or ordinary update action. Every path revalidates the recovery manifest and preserved assets,
 exact installed version, library and locale persistence, applicable terminal receipt and cleanup, localized outcome,
-and acknowledgement. The interruption hook is compiled only into instrumented Windows builds, requires two distinct
-absolute marker paths, creates the ready marker without clobbering, and is absent from production builds. The NSIS
-gate exists only in the generated synthetic predecessor package. The ordinary candidate and predecessor are built
+and acknowledgement. Manifest library and runnable locations must match the scenario's exact paths under the same
+narrow ordinary-versus-verbatim drive and UNC equivalence used by the production Windows adapter; a different target
+or unsupported device path remains a failure. The interruption hook is compiled only into instrumented Windows
+builds, requires two distinct absolute marker paths, creates the ready marker without clobbering, and is absent from
+production builds. The NSIS gate exists only in the generated synthetic predecessor package. The ordinary candidate
+and predecessor are built
 before the first scenario; the distinct installer-failure candidate is built only after ordinary replacement passes.
 Feature-gated backend diagnostics report the typed error and fixed preparation-stage name when publication fails,
 without recording a local path or changing the production error contract. The campaign retains only privacy-safe

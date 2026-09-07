@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+import { windowsPathTextsEqual } from "./windows-path-text.mjs";
 import {
   coordinateWindowsOfflineRecoveryRetry,
   createWindowsUpdateTransportGate,
@@ -16,6 +17,35 @@ import {
   windowsUpdateScenarioPlan,
   windowsUpdateTauriInvocation,
 } from "./verify-packaged-windows-update.mjs";
+
+test("matches only equivalent ordinary and verbatim Windows paths", () => {
+  const ordinaryDrive = String.raw`C:\FitFreedTests\Profile\fitfreed.sqlite`;
+  const verbatimDrive = String.raw`\\?\C:\FitFreedTests\Profile\fitfreed.sqlite`;
+  const ordinaryUnc = String.raw`\\server\share\FitFreed\fitfreed.sqlite`;
+  const verbatimUnc = String.raw`\\?\UNC\server\share\FitFreed\fitfreed.sqlite`;
+
+  assert.equal(windowsPathTextsEqual(verbatimDrive, ordinaryDrive), true);
+  assert.equal(windowsPathTextsEqual(ordinaryDrive, verbatimDrive), true);
+  assert.equal(
+    windowsPathTextsEqual(verbatimDrive, ordinaryDrive.toLowerCase()),
+    true,
+  );
+  assert.equal(windowsPathTextsEqual(verbatimUnc, ordinaryUnc), true);
+  assert.equal(
+    windowsPathTextsEqual(
+      verbatimDrive,
+      String.raw`C:\FitFreedTests\Other\fitfreed.sqlite`,
+    ),
+    false,
+  );
+  assert.equal(
+    windowsPathTextsEqual(
+      String.raw`\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\FitFreed`,
+      String.raw`GLOBALROOT\Device\HarddiskVolumeShadowCopy1\FitFreed`,
+    ),
+    false,
+  );
+});
 
 test("defines initial release-shaped Windows recovery journeys", () => {
   assert.deepEqual(windowsUpdateScenarioPlan(), [
