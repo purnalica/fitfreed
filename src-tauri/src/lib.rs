@@ -3507,7 +3507,7 @@ mod tests {
         ));
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         assert!(matches!(
-            startup_mode(&[executable.clone(), resume_argument, installed]),
+            startup_mode(&[executable.clone(), resume_argument, installed.clone()]),
             StartupMode::UpdateRecoveryWatchdog {
                 resumed_after_interruption: true,
                 ..
