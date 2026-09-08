@@ -2279,6 +2279,13 @@ enum StartupMode {
     InvalidPrivateMode,
 }
 
+impl StartupMode {
+    #[cfg(any(test, target_os = "linux", target_os = "windows"))]
+    fn reattaches_update_recovery_watchdog(&self) -> bool {
+        matches!(self, Self::Desktop)
+    }
+}
+
 fn startup_mode(arguments: &[OsString]) -> StartupMode {
     match arguments.get(1).and_then(|argument| argument.to_str()) {
         Some(UPDATE_RECOVERY_WATCHDOG_ARGUMENT) => match arguments {
@@ -2686,7 +2693,10 @@ fn start_library_recovery(library_path: PathBuf, startup_recovery: Arc<StartupLi
 pub fn run() {
     let interactive_shell_signal = InteractiveShellSignal::for_runtime();
     let startup_recovery = Arc::new(StartupLibraryRecovery::default());
-    let pending_recovery_confirmation = match startup_mode(&env::args_os().collect::<Vec<_>>()) {
+    let startup_mode = startup_mode(&env::args_os().collect::<Vec<_>>());
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    let reattach_update_recovery_watchdog = startup_mode.reattaches_update_recovery_watchdog();
+    let pending_recovery_confirmation = match startup_mode {
         StartupMode::Desktop => None,
         StartupMode::UpdateRecoveryCandidate(candidate) => {
             let succeeded = await_update_recovery_candidate_go(
@@ -2762,7 +2772,7 @@ pub fn run() {
                     .map_err(|_| io::Error::other("candidate recovery state is unavailable"))?;
             }
             #[cfg(target_os = "linux")]
-            {
+            if reattach_update_recovery_watchdog {
                 let recovery_root = library_path
                     .parent()
                     .ok_or_else(|| io::Error::other("Linux recovery path is invalid"))?
@@ -2774,7 +2784,7 @@ pub fn run() {
                     .map_err(|_| io::Error::other("Linux update recovery could not resume"))?;
             }
             #[cfg(target_os = "windows")]
-            {
+            if reattach_update_recovery_watchdog {
                 let recovery_root = library_path
                     .parent()
                     .ok_or_else(|| io::Error::other("Windows recovery path is invalid"))?
@@ -3571,6 +3581,22 @@ mod tests {
             ]),
             StartupMode::InvalidPrivateMode
         ));
+    }
+
+    #[test]
+    fn reattaches_an_interrupted_watchdog_only_during_ordinary_desktop_startup() {
+        assert!(StartupMode::Desktop.reattaches_update_recovery_watchdog());
+        assert!(!StartupMode::UpdateRecoveryCandidate(CandidateStartup {
+            recovery_id: "a".repeat(64),
+            launch_nonce: "b".repeat(64),
+        })
+        .reattaches_update_recovery_watchdog());
+        assert!(!StartupMode::UpdateRecoveryWatchdog {
+            installed_application: PathBuf::from("installed-application"),
+            resumed_after_interruption: true,
+        }
+        .reattaches_update_recovery_watchdog());
+        assert!(!StartupMode::InvalidPrivateMode.reattaches_update_recovery_watchdog());
     }
 
     #[test]

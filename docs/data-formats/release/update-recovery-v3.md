@@ -184,8 +184,9 @@ as a pre-replacement interruption and `replacement-started` as an uncertain nati
 never repeats candidate installation from either phase. It resumes later launch or recovery work only after acquiring
 the watchdog handle and reconciling the persisted phase through that same held lease with the exact native process
 identity. A live candidate may retain its separate handle during those reads and confirmation, and a watchdog restart
-may acquire its role while that candidate handle remains live. It does not
-automatically repeat a previously failed native rollback; retry from `native-recovery-unavailable` is an explicit
+may acquire its role while that candidate handle remains live. Candidate startup never invokes ordinary-startup
+watchdog reattachment because it is already the replacement actor within that watchdog-owned attempt. A restart does
+not automatically repeat a previously failed native rollback; retry from `native-recovery-unavailable` is an explicit
 application action without caller-supplied identifiers, paths, packages, or commands.
 
 Terminal cleanup requires exclusive watchdog, candidate, state, and outcome handles. For `confirmed`, the installed

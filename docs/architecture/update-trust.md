@@ -112,7 +112,8 @@ handshake, confirms the candidate through the held lease, and drives failed laun
 recovery. When native recovery cannot finish, it launches only the verified runnable predecessor without candidate
 authority and leaves the non-terminal attempt intact. An ordinary Linux startup now resolves only the active verified
 attempt, applies application-owned restart policy, probes the exclusive watchdog lease, and relaunches the preserved
-watchdog under a distinct private restart mode when interrupted work remains. That mode closes a merely prepared
+watchdog under a distinct private restart mode when interrupted work remains. A nonce-bound candidate startup retains
+its candidate lease and does not enter that ordinary reattachment path. The restart mode closes a merely prepared
 attempt, begins recovery immediately after an interrupted native replacement, and continues later phases from their
 persisted evidence without duplicating an active watchdog. It does not automatically repeat unavailable native
 authorization. The host instead exposes a privacy-minimized, read-only recovery intervention derived from the active
@@ -187,8 +188,10 @@ Only a fresh watchdog may stop that exact parent and invoke `candidate/package.e
 `replacement-started` phase treats the uncertain installer boundary as an interruption and enters recovery instead of
 repeating NSIS. A successful installation enters `replacement-installed`, launches the fixed installed executable
 behind an operating-system-random nonce gate, records its complete process identity before releasing startup, and
-waits for candidate confirmation. Ordinary Windows startup reattaches the preserved watchdog only when the verified
-active phase requires it and an existing watchdog does not already own the attempt. Restoration holds
+waits for candidate confirmation. An installed candidate retains its candidate lease and never enters the
+ordinary-startup reattachment path because the watchdog already owns that live attempt. Ordinary Windows startup
+reattaches the preserved watchdog only when the verified active phase requires it and an existing watchdog does not
+already own the attempt. Restoration holds
 the watchdog, candidate, and state ownership boundaries together, reopens the complete attempt, atomically restores
 the fixed library from its verified backup, and invokes only the preserved predecessor package. It enters `recovered`
 only after the exact source registration and preserved critical files agree. Failed NSIS execution and an invalid

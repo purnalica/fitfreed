@@ -172,7 +172,8 @@ and retains the recovery attempt.
 An ordinary Linux startup resolves restart authority only from the active pointer and the fully verified preserved
 executable layout. The application-layer lifecycle policy requests reattachment for `prepared`,
 `replacement-started`, `replacement-installed`, `launching`, and `recovering`; it never reopens a terminal state and
-leaves `native-recovery-unavailable` waiting for an explicit user retry. The adapter probes the exclusive watchdog
+leaves `native-recovery-unavailable` waiting for an explicit user retry. A candidate launched by the active watchdog
+retains its candidate lease and never invokes this ordinary-startup reattachment path. The adapter probes the exclusive watchdog
 lease before spawning, treats a held lease as an already active monitor, and resolves a concurrent start in the same
 way after a failed readiness handshake. A replacement watchdog receives the separate fixed private
 `--fitfreed-update-recovery-watchdog-resume` argument. It discards an interrupted `prepared` attempt immediately and
