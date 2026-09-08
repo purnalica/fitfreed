@@ -7295,7 +7295,7 @@ const syntheticWindowsUpdateRecovery = {
   },
   runnablePredecessor: {
     relativePath: "previous/runnable",
-    executableRelativePath: "fitfreed.exe",
+    executableRelativePath: "fitfreed-update-recovery.exe",
     uninstallerRelativePath: "uninstall.exe",
     treeSha256: "456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123",
     sourcePackageSha256:

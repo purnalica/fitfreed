@@ -16,6 +16,7 @@ const PUBLISHER: &str = "FitFreed contributors";
 const HOMEPAGE: &str = "https://fitfreed.org/";
 const APPLICATION_IDENTIFIER: &str = "org.fitfreed.desktop";
 pub(super) const EXECUTABLE_NAME: &str = "fitfreed.exe";
+pub(super) const RECOVERY_EXECUTABLE_NAME: &str = "fitfreed-update-recovery.exe";
 pub(super) const UNINSTALLER_NAME: &str = "uninstall.exe";
 #[cfg(target_os = "windows")]
 const UNINSTALL_REGISTRY_PREFIX: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall";

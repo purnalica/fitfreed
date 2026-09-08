@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  copyFileSync,
   createReadStream,
   existsSync,
   mkdirSync,
@@ -51,6 +52,8 @@ const predecessorGateHookPath = path.join(artifactRoot, "predecessor-gate.nsh");
 const keyId = "synthetic-windows-e2e-key";
 const currentVersion = "0.1.0";
 const candidateVersion = "0.2.0";
+const productExecutableName = "fitfreed.exe";
+const recoveryExecutableName = "fitfreed-update-recovery.exe";
 const productionIdentifier = JSON.parse(
   readFileSync(path.join(repositoryRoot, "src-tauri/tauri.conf.json"), "utf8"),
 ).identifier;
@@ -108,6 +111,13 @@ export function windowsUpdateScenarioPlan() {
       expectedVersion: candidateVersion,
     },
   ];
+}
+
+export function windowsUpdateRecoveryProcessNames() {
+  return Object.freeze({
+    product: productExecutableName,
+    recovery: recoveryExecutableName,
+  });
 }
 
 export function windowsMissingCandidateVariant(candidatePackages, scenario) {
@@ -326,6 +336,117 @@ function runPackageAction(action, options = {}) {
     capture: options.capture,
     env: options.env,
   });
+}
+
+function waitForProcessStart(child, description) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      child.off("spawn", onSpawn);
+      reject(error);
+    };
+    const onSpawn = () => {
+      child.off("error", onError);
+      setTimeout(() => {
+        if (child.exitCode === null && child.signalCode === null) resolve();
+        else reject(new Error(`${description} exited before candidate installation`));
+      }, 250);
+    };
+    child.once("error", onError);
+    child.once("spawn", onSpawn);
+  });
+}
+
+function waitForProcessExit(child, description, timeoutMilliseconds = 5_000) {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      child.off("exit", onExit);
+      reject(new Error(`${description} did not exit within the bounded interval`));
+    }, timeoutMilliseconds);
+    const onExit = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    child.once("exit", onExit);
+  });
+}
+
+async function stopProcess(child, description) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  if (!child.kill()) throw new Error(`${description} could not be terminated`);
+  await waitForProcessExit(child, description);
+}
+
+async function verifyWindowsRecoveryProcessSurvival(candidatePackage) {
+  const systemRoot = process.env.SystemRoot;
+  if (!systemRoot || !path.isAbsolute(systemRoot)) {
+    throw new Error("The Windows system root is unavailable");
+  }
+  const probeSource = path.join(systemRoot, "System32", "ping.exe");
+  if (!statSync(probeSource).isFile()) {
+    throw new Error("The Windows process-survival probe is unavailable");
+  }
+  const probeRoot = path.join(artifactRoot, "watchdog-survival");
+  rmSync(probeRoot, { recursive: true, force: true });
+  mkdirSync(probeRoot, { recursive: true });
+  const productProbePath = path.join(probeRoot, productExecutableName);
+  const recoveryProbePath = path.join(probeRoot, recoveryExecutableName);
+  copyFileSync(probeSource, productProbePath);
+  copyFileSync(probeSource, recoveryProbePath);
+  const launchProbe = (probePath) => spawn(probePath, ["-t", "127.0.0.1"], {
+    cwd: probeRoot,
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  const productProbe = launchProbe(productProbePath);
+  const recoveryProbe = launchProbe(recoveryProbePath);
+  let installationOwned = false;
+  let failure;
+  try {
+    await Promise.all([
+      waitForProcessStart(productProbe, "The product-name process-survival probe"),
+      waitForProcessStart(recoveryProbe, "The recovery-name process-survival probe"),
+    ]);
+    installationOwned = true;
+    runPackageAction("install", {
+      packagePath: candidatePackage,
+      version: candidateVersion,
+    });
+    await waitForProcessExit(
+      productProbe,
+      "The NSIS product-name process-survival probe",
+    );
+    if (recoveryProbe.exitCode !== null || recoveryProbe.signalCode !== null) {
+      throw new Error("Candidate installation terminated the dedicated recovery process");
+    }
+  } catch (error) {
+    failure = error;
+  }
+  const cleanupFailures = [];
+  for (const [child, description] of [
+    [productProbe, "The product-name process-survival probe"],
+    [recoveryProbe, "The recovery-name process-survival probe"],
+  ]) {
+    try {
+      await stopProcess(child, description);
+    } catch (error) {
+      cleanupFailures.push(error);
+    }
+  }
+  if (installationOwned) {
+    try {
+      runPackageAction("remove");
+    } catch (error) {
+      cleanupFailures.push(error);
+    }
+  }
+  if (failure && cleanupFailures.length > 0) {
+    throw new AggregateError([failure, ...cleanupFailures], "Windows process-survival verification and cleanup failed");
+  }
+  if (failure) throw failure;
+  if (cleanupFailures.length > 0) {
+    throw new AggregateError(cleanupFailures, "Windows process-survival cleanup failed");
+  }
 }
 
 function sha256(filePath) {
@@ -801,6 +922,7 @@ async function main() {
     ["ordinary", buildNsisPackage(candidateVersion, publicKey)],
   ]);
   const predecessorPackage = buildNsisPackage(currentVersion, publicKey, "predecessor-gated");
+  await verifyWindowsRecoveryProcessSurvival(candidatePackages.get("ordinary"));
   const updateServer = await startUpdateServer(candidatePackages, predecessorPackage);
   try {
     const endpoint = `https://127.0.0.1:${updateServer.port}/stable.json`;

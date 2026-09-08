@@ -14,6 +14,7 @@ import {
   windowsPredecessorGateHook,
   windowsUpdateBuildArguments,
   windowsUpdatePackageActionCommand,
+  windowsUpdateRecoveryProcessNames,
   windowsUpdateScenarioPlan,
   windowsUpdateTauriInvocation,
 } from "./verify-packaged-windows-update.mjs";
@@ -134,6 +135,26 @@ test("builds only instrumented production-identity NSIS packages", () => {
   assert.equal(
     expectedWindowsUpdatePackageName("0.1.0"),
     "FitFreed_0.1.0_x64-setup.exe",
+  );
+});
+
+test("keeps the recovery process outside the NSIS product image-name boundary", () => {
+  assert.deepEqual(windowsUpdateRecoveryProcessNames(), {
+    product: "fitfreed.exe",
+    recovery: "fitfreed-update-recovery.exe",
+  });
+  const verifier = readFileSync(
+    path.resolve("scripts/verify-packaged-windows-update.mjs"),
+    "utf8",
+  );
+  assert.match(
+    verifier,
+    /await verifyWindowsRecoveryProcessSurvival\(candidatePackages\.get\("ordinary"\)\)/u,
+  );
+  assert.match(verifier, /await waitForProcessExit\([\s\S]*productProbe/u);
+  assert.match(
+    verifier,
+    /Candidate installation terminated the dedicated recovery process/u,
   );
 });
 

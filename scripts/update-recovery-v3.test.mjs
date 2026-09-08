@@ -60,7 +60,7 @@ function manifest() {
     predecessorPackage: packageEvidence("previous/package.exe", "0.1.0", "c"),
     runnablePredecessor: {
       relativePath: "previous/runnable",
-      executableRelativePath: "fitfreed.exe",
+      executableRelativePath: "fitfreed-update-recovery.exe",
       uninstallerRelativePath: "uninstall.exe",
       treeSha256: "d".repeat(64),
       sourcePackageSha256: "c".repeat(64),
@@ -104,6 +104,7 @@ test("rejects cross-version, cross-package, unsafe URL, and digest relationships
     [(value) => { value.target.version = "0.1.0"; }, /must be newer/],
     [(value) => { value.target.librarySchemaVersion = 36; }, /cannot precede/],
     [(value) => { value.runnablePredecessor.sourcePackageSha256 = "9".repeat(64); }, /bind the predecessor/],
+    [(value) => { value.runnablePredecessor.executableRelativePath = "fitfreed.exe"; }, /schema violation/],
     [(value) => { value.predecessorPackage.sourceUrl += "?temporary=credential"; }, /credential-free/],
     [(value) => { value.targetPackage.relativePath = "previous/package.exe"; }, /must be equal/],
   ]) {

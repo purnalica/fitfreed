@@ -32,7 +32,7 @@ use super::update_recovery_outcome::{
 };
 use super::update_recovery_windows::{
     canonical_windows_path_matches, verify_windows_native_installation_matches_runnable,
-    windows_path_texts_equal,
+    windows_path_texts_equal, EXECUTABLE_NAME, RECOVERY_EXECUTABLE_NAME,
 };
 use super::{
     backup_database,
@@ -56,7 +56,8 @@ const CANDIDATE_LOCK_FILE_NAME: &str = "candidate.lock";
 const WATCHDOG_LOCK_FILE_NAME: &str = "watchdog.lock";
 const PREDECESSOR_PACKAGE_RELATIVE_PATH: &str = "previous/package.exe";
 const RUNNABLE_PREDECESSOR_RELATIVE_PATH: &str = "previous/runnable";
-const RUNNABLE_EXECUTABLE_RELATIVE_PATH: &str = "fitfreed.exe";
+const RUNNABLE_EXECUTABLE_RELATIVE_PATH: &str = EXECUTABLE_NAME;
+const RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH: &str = RECOVERY_EXECUTABLE_NAME;
 const RUNNABLE_UNINSTALLER_RELATIVE_PATH: &str = "uninstall.exe";
 const LIBRARY_BACKUP_RELATIVE_PATH: &str = "previous/fitfreed.sqlite";
 const TARGET_PACKAGE_RELATIVE_PATH: &str = "candidate/package.exe";
@@ -865,7 +866,7 @@ fn resolve_active_windows_update_recovery_watchdog_context_with(
         .join(ATTEMPTS_DIRECTORY_NAME)
         .join(recovery_id)
         .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-        .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+        .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
     resolve_windows_update_recovery_watchdog_context_with(
         packages,
         &watchdog_executable,
@@ -887,7 +888,7 @@ fn resolve_windows_update_recovery_watchdog_context_with(
         .ok_or(WindowsRecoveryStateError::InvalidInput)?;
     if attempt_directory
         .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-        .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH)
+        .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH)
         != watchdog_executable
     {
         return Err(WindowsRecoveryStateError::InvalidInput);
@@ -1838,7 +1839,7 @@ fn prepare_windows_update_recovery_with(
         ),
         runnable_predecessor: RunnablePredecessor {
             relative_path: RUNNABLE_PREDECESSOR_RELATIVE_PATH.to_owned(),
-            executable_relative_path: RUNNABLE_EXECUTABLE_RELATIVE_PATH.to_owned(),
+            executable_relative_path: RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH.to_owned(),
             uninstaller_relative_path: RUNNABLE_UNINSTALLER_RELATIVE_PATH.to_owned(),
             tree_sha256: runnable_tree_sha256,
             source_package_sha256: predecessor_artifact.expected_sha256.clone(),
@@ -2095,7 +2096,7 @@ fn validate_manifest(manifest: &WindowsRecoveryManifest) -> Result<(), WindowsRe
         || manifest.predecessor_package.signing_key_id != manifest.target_package.signing_key_id
         || manifest.runnable_predecessor.relative_path != RUNNABLE_PREDECESSOR_RELATIVE_PATH
         || manifest.runnable_predecessor.executable_relative_path
-            != RUNNABLE_EXECUTABLE_RELATIVE_PATH
+            != RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH
         || manifest.runnable_predecessor.uninstaller_relative_path
             != RUNNABLE_UNINSTALLER_RELATIVE_PATH
         || !valid_sha256(&manifest.runnable_predecessor.tree_sha256)
@@ -3052,6 +3053,11 @@ fn sync_prepared_attempt(path: &Path) -> Result<(), WindowsRecoveryStateError> {
     sync_regular_file(
         &path
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH),
+    )?;
+    sync_regular_file(
+        &path
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
             .join(RUNNABLE_UNINSTALLER_RELATIVE_PATH),
     )?;
     sync_directory(&path.join(RUNNABLE_PREDECESSOR_RELATIVE_PATH))?;
@@ -3202,6 +3208,12 @@ mod tests {
             fs::write(
                 attempt_directory
                     .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+                    .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH),
+                SYNTHETIC_EXECUTABLE,
+            )?;
+            fs::write(
+                attempt_directory
+                    .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
                     .join(RUNNABLE_UNINSTALLER_RELATIVE_PATH),
                 SYNTHETIC_UNINSTALLER,
             )?;
@@ -3230,6 +3242,11 @@ mod tests {
                     .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
                     .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
             )?;
+            let recovery_executable = fs::read(
+                attempt_directory
+                    .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+                    .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH),
+            )?;
             let uninstaller = fs::read(
                 attempt_directory
                     .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
@@ -3240,6 +3257,7 @@ mod tests {
                 || candidate_bytes.len() as u64 != candidate.size_bytes()
                 || lower_hex(&Sha256::digest(&candidate_bytes)) != candidate.sha256()
                 || executable != SYNTHETIC_EXECUTABLE
+                || recovery_executable != SYNTHETIC_EXECUTABLE
                 || uninstaller != SYNTHETIC_UNINSTALLER
                 || runnable_tree_sha256 != "9".repeat(64)
             {
@@ -3420,7 +3438,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
         let context = resolve_windows_update_recovery_watchdog_context_with(
             packages,
             &watchdog_executable,
@@ -3937,7 +3955,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
 
         let context = resolve_windows_update_recovery_watchdog_context_with(
             &packages,
@@ -3964,6 +3982,15 @@ mod tests {
             &harness.identity.executable_path,
         )
         .is_err());
+        assert!(resolve_windows_update_recovery_watchdog_context_with(
+            &packages,
+            &prepared
+                .attempt_directory()
+                .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+                .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+            &harness.identity.executable_path,
+        )
+        .is_err());
     }
 
     #[test]
@@ -3979,7 +4006,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
         let context = resolve_windows_update_recovery_watchdog_context_with(
             &packages,
             &watchdog_executable,
@@ -4164,7 +4191,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
         let context = resolve_windows_update_recovery_watchdog_context_with(
             &packages,
             &watchdog_executable,
@@ -4604,7 +4631,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
         let context = resolve_windows_update_recovery_watchdog_context_with(
             &packages,
             &watchdog_executable,
@@ -4801,7 +4828,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
         let context = resolve_windows_update_recovery_watchdog_context_with(
             &packages,
             &watchdog_executable,
@@ -4877,7 +4904,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
         let context = resolve_windows_update_recovery_watchdog_context_with(
             &packages,
             &watchdog_executable,
@@ -4998,7 +5025,7 @@ mod tests {
         let watchdog_executable = prepared
             .attempt_directory()
             .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH);
+            .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
         let context = resolve_windows_update_recovery_watchdog_context_with(
             &packages,
             &watchdog_executable,
@@ -5097,6 +5124,8 @@ mod windows_tests {
             PathBuf::from(LIBRARY_BACKUP_RELATIVE_PATH),
             PathBuf::from(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
                 .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+            PathBuf::from(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+                .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH),
             PathBuf::from(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
                 .join(RUNNABLE_UNINSTALLER_RELATIVE_PATH),
         ] {

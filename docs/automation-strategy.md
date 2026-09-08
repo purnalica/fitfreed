@@ -194,6 +194,9 @@ opens. A foreign owner remains a startup rejection; automation cannot broaden th
 `npm run verify:windows-update-e2e` is the separate native x86-64 Windows update-recovery boundary. It builds the
 instrumented 0.1.0 predecessor and ordinary 0.2.0 NSIS candidate with the canonical production identity, creates
 ephemeral updater and local TLS authority, and serves signed `stable-v3` metadata only over loopback HTTPS. It runs
+one bounded pre-journey process-survival check against the ordinary candidate: NSIS must terminate a same-user probe
+named `fitfreed.exe` while leaving the byte-equivalent recovery-name probe alive. A failure stops before WebDriver.
+It then runs
 successful replacement,
 native installer failure, candidate rejection with automatic predecessor restoration, and ordinary-startup resumption
 after an exact post-install watchdog interruption. It also drives retained runnable-predecessor fallback, offline retry,

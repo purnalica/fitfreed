@@ -19,6 +19,7 @@ use fitfreed_application::{
     UpdateRecoveryOutcomeKind, UpdateRecoveryWatchdogEvent,
 };
 
+use super::update_recovery_windows::RECOVERY_EXECUTABLE_NAME;
 use super::update_watchdog::{
     persisted_deadline, stop_child, UpdateRecoveryWatchdogError, UpdateRecoveryWatchdogOutcome,
     INSTALLATION_TIMEOUT, POLL_INTERVAL, REPLACEMENT_CONFIRMATION_TIMEOUT,
@@ -172,7 +173,8 @@ pub fn start_windows_update_recovery_watchdog(
 ) -> Result<StartedWindowsUpdateRecoveryWatchdog, UpdateRecoveryWatchdogError> {
     let executable = prepared
         .attempt_directory()
-        .join("previous/runnable/fitfreed.exe");
+        .join("previous/runnable")
+        .join(RECOVERY_EXECUTABLE_NAME);
     spawn_windows_update_recovery_watchdog(
         &executable,
         installed_executable_path,
@@ -923,10 +925,11 @@ mod tests {
     fn keeps_the_native_and_fallback_executable_roles_distinct() {
         let native = PathBuf::from("C:\\Users\\person\\AppData\\Local\\FitFreed\\fitfreed.exe");
         let fallback = PathBuf::from(
-            "C:\\Users\\person\\AppData\\Roaming\\org.fitfreed.desktop\\update-recovery\\attempts\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\previous\\runnable\\fitfreed.exe",
+            "C:\\Users\\person\\AppData\\Roaming\\org.fitfreed.desktop\\update-recovery\\attempts\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\previous\\runnable\\fitfreed-update-recovery.exe",
         );
 
         assert_ne!(native, fallback);
+        assert_ne!(native.file_name(), fallback.file_name());
         assert!(candidate_arguments(&"a".repeat(64), &"b".repeat(64))
             .first()
             .is_some_and(|argument| argument == UPDATE_RECOVERY_CANDIDATE_ARGUMENT));

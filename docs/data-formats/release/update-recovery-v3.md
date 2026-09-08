@@ -28,6 +28,7 @@ update-recovery/
             ├── package.exe
             ├── runnable/
             │   ├── fitfreed.exe
+            │   ├── fitfreed-update-recovery.exe
             │   └── uninstall.exe
             └── fitfreed.sqlite
 ```
@@ -35,8 +36,9 @@ update-recovery/
 The `active`, outcome, bounded-read, atomic-replacement, receipt, and receipt-bound cleanup rules are semantically
 identical to versions 1 and 2. The version 3 `manifest.json` conforms to
 [`update-recovery-v3.schema.json`](../../../schemas/update-recovery-v3.schema.json), is UTF-8 JSON limited to 64 KiB,
-rejects unknown fields, and uses only the fixed relative locations above. The abbreviated runnable tree shows the two
-required files; preservation covers every validated entry in the installed FitFreed directory.
+rejects unknown fields, and uses only the fixed relative locations above. The abbreviated runnable tree shows the
+three required files; preservation covers every validated entry in the installed FitFreed directory plus the
+dedicated recovery image derived from its application executable.
 
 `state.lock`, `candidate.lock`, `watchdog.lock`, and `outcome.lock` are private, empty, non-reparse regular files.
 Windows actors open them with sharing disabled for the complete protected operation. A conflicting open means that
@@ -76,8 +78,11 @@ Preparation copies the complete current installation directory into `previous/ru
 points. It accepts only directories and regular files with valid Windows path components, at most 65,536 descendant
 entries, 4 GiB of regular-file content, and 4,096 UTF-8 bytes per relative path. Device names, alternate-data-stream
 separators, control characters, trailing dots or spaces, and paths that collide under ASCII case folding are invalid.
-The result must contain x86-64 `fitfreed.exe` with the exact predecessor PE identity and `uninstall.exe`. A
-deterministic tree digest is calculated before and after no-clobber promotion.
+The result must contain x86-64 `fitfreed.exe` with the exact predecessor PE identity and `uninstall.exe`. Preparation
+also copies that verified application byte stream to `fitfreed-update-recovery.exe`, validates the same PE identity,
+and requires both executable digests to agree. The distinct image name keeps the watchdog outside Tauri's NSIS
+product-process termination boundary while preserving the exact predecessor program. A deterministic tree digest is
+calculated before and after no-clobber promotion.
 `runnablePredecessor.sourcePackageSha256` binds the image to the authenticated package for the same validated installed
 version; it does not claim that NSIS installation is a byte-for-byte archive extraction.
 
@@ -117,7 +122,7 @@ directory and no-sharing handle rules are validated independently on every use.
 | `source.nativePackage` | Exact product, version, architecture, install directory, executable, uninstaller, and application-data directory. |
 | `target.*` | Authenticated candidate version, library schema, channel sequence, and payload digest. |
 | `predecessorPackage.*` | Fixed local path plus authenticated version, source URL, size, digest, key identifier, and updater signature. |
-| `runnablePredecessor.*` | Fixed copy root, executable, uninstaller, tree digest, and predecessor-package digest binding. |
+| `runnablePredecessor.*` | Fixed copy root, dedicated recovery executable, uninstaller, tree digest, and predecessor-package digest binding. |
 | `libraryBackup.*` | Fixed backup path, size, and digest. |
 | `targetPackage.*` | Fixed local path plus authenticated candidate-package evidence. |
 | `replacementProcess.processId` | Windows process identifier; never sufficient as authority. |
@@ -160,11 +165,14 @@ lease, and manifest record. A process identifier alone never authorizes control 
 termination, the adapter opens one handle with query, synchronization, and termination rights and repeats the complete
 identity check on that same handle.
 
-The coordinator starts the watchdog from `previous/runnable/fitfreed.exe` and receives readiness before publishing
-`replacement-started`. Before readiness, the watchdog binds its direct parent to the fixed installed executable by
-PID, creation `FILETIME`, and canonical path. Only that fresh watchdog may stop the parent and launch the fixed
-candidate installer in silent mode from `candidate/package.exe`; a replacement-started watchdog reconstructed after
-an interruption must recover instead of repeating an installer whose outcome is uncertain. The watchdog then repeats
+The coordinator starts the watchdog from `previous/runnable/fitfreed-update-recovery.exe` and receives readiness
+before publishing `replacement-started`. The recovery image must remain byte-identical to the preserved
+`fitfreed.exe`, but its filename must differ from the product executable because the pinned Tauri NSIS installer finds
+and terminates current-user processes by the product image name before replacement. Before readiness, the watchdog
+binds its direct parent to the fixed installed executable by PID, creation `FILETIME`, and canonical path. Only that
+fresh watchdog may stop the parent and launch the fixed candidate installer in silent mode from
+`candidate/package.exe`; a replacement-started watchdog reconstructed after an interruption must recover instead of
+repeating an installer whose outcome is uncertain. The watchdog then repeats
 the complete current-user native identity and target-version validation before entering `replacement-installed`. It
 launches the installed candidate behind the same nonce-bound startup gate used by the other platform contracts. The
 nonce contains 256 bits from the operating-system random source. Native process identity is recorded before startup is

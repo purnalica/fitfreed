@@ -108,7 +108,7 @@
       ],
       "properties": {
         "relativePath": { "const": "previous/runnable" },
-        "executableRelativePath": { "const": "fitfreed.exe" },
+        "executableRelativePath": { "const": "fitfreed-update-recovery.exe" },
         "uninstallerRelativePath": { "const": "uninstall.exe" },
         "treeSha256": { "$ref": "#/$defs/sha256" },
         "sourcePackageSha256": { "$ref": "#/$defs/sha256" }

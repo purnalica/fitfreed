@@ -150,8 +150,10 @@ expected FitFreed identity, and requires the current native installation to be t
 wrapper architecture is distinct from the x86-64 application target carried by that setup. Preparation copies the
 complete installed directory into a no-clobber staging tree, rejecting reparse points, special files, unsafe Windows
 names, excessive paths, entry counts, or expanded size. The preserved tree must contain the exact x86-64 application
-and uninstaller; its deterministic digest and both packages are reopened after no-clobber promotion. Failed
-preparation removes only the directories it created.
+and uninstaller. It also contains a byte-identical, independently PE-validated recovery copy named
+`fitfreed-update-recovery.exe`; this distinct process image remains outside the pinned Tauri NSIS installer's
+product-name termination boundary. The deterministic tree digest and both packages are reopened after no-clobber
+promotion. Failed preparation removes only the directories it created.
 
 The Windows-local [recovery contract version 3](../data-formats/release/update-recovery-v3.md) fixes that attempt to
 one x86-64 current-user NSIS identity. It binds the two authenticated installers, complete runnable predecessor,
@@ -173,7 +175,8 @@ wait expiry fail closed; watchdog, candidate, and outcome leases remain non-bloc
 transition cannot forge `launching`; that phase is written
 atomically only with the exact process identifier, lossless creation `FILETIME`, canonical installed executable path,
 fresh launch nonce, and absolute confirmation deadline. The preserved executable resolves watchdog authority only
-through its exact active attempt layout; a watchdog lease revalidates that immutable context, and a candidate lease
+through its exact active attempt layout and dedicated recovery filename; the ordinary preserved `fitfreed.exe` cannot
+claim watchdog authority. A watchdog lease revalidates that immutable context, and a candidate lease
 requires the exact persisted PID, creation `FILETIME`, executable, nonce, and target native installation identity.
 Each process-lifetime lease owns a distinct no-sharing handle. Complete verification receives one closed, role-specific
 lock set: an owned lock is revalidated through its existing handle; an unowned lock is reopened and validated when
@@ -185,9 +188,10 @@ Every watchdog phase read still requires its concrete lease and rejects a lease 
 Candidate confirmation holds its lease, derives the fixed library beside the recovery root, and requires the active
 manifest, launch nonce, target native identity, running version, target schema, and SQLite integrity before the
 specialized transition can enter `confirmed`; the generic transition API cannot claim that state. The installation
-coordinator now obtains the authenticated predecessor before preparation, starts the watchdog from the preserved
-predecessor executable, and waits for its readiness before publishing `replacement-started`. The watchdog binds its
-direct parent to the installed executable by PID, creation `FILETIME`, and canonical path before declaring readiness.
+coordinator now obtains the authenticated predecessor before preparation, starts the watchdog from the dedicated
+byte-identical predecessor recovery image, and waits for its readiness before publishing `replacement-started`. The
+watchdog binds its direct parent to the installed executable by PID, creation `FILETIME`, and canonical path before
+declaring readiness.
 Only a fresh watchdog may stop that exact parent and invoke `candidate/package.exe`; a watchdog resumed from a durable
 `replacement-started` phase treats the uncertain installer boundary as an interruption and enters recovery instead of
 repeating NSIS. A successful installation enters `replacement-installed`, launches the fixed installed executable

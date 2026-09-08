@@ -284,9 +284,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   tests cannot substitute for that execution evidence.
 - Windows recovery-package unit tests require strictly ordered semantic versions, exact package size and SHA-256,
   FitFreed product and version identity from x86 NSIS setup wrappers, an x86-64 FitFreed executable in the runnable
-  predecessor, rejection when either PE machine type is presented in the opposite role, agreement with the installed
+  predecessor, a byte-identical independently validated recovery image under a filename distinct from
+  `fitfreed.exe`, rejection when either PE machine type is presented in the opposite role, agreement with the installed
   predecessor, no-clobber preservation, a bounded complete non-reparse runnable tree with safe Windows names,
-  deterministic tree hashing, reopening, mutation detection, and removal of only partially created assets. Native
+  deterministic tree hashing, reopening, mutation detection for either executable role, and removal of only partially created assets. Native
   Windows execution remains authoritative for version resources, installed-directory semantics, file sharing, and
   reparse attributes.
 - Windows recovery-contract tests validate schema version 3 independently from the closed macOS and Linux formats.
@@ -522,7 +523,12 @@ builds. Production child processes discard that stream. Before package construct
 acquires the distinct no-sharing watchdog and candidate handles, rejects a second owner of either role, confirms the
 exact candidate while both actors remain live, and requires the watchdog to observe both `launching` and `confirmed`
 through its original lease. This native test protects the Windows sharing semantics that a portable host cannot
-reproduce. Before failure cleanup, the packaged journey projects the harness stage, active-pointer state, closed
+reproduce. After building the ordinary candidate and before the WebDriver journey, a native process-survival probe
+installs that exact NSIS package while same-user processes run under both the product filename and the dedicated
+recovery filename. The product-named probe must be terminated by the installer's fixed process boundary while the
+recovery-named probe remains alive; this proves the mechanism that the actual watchdog depends on without repeating
+the complete packaged journey. Before failure cleanup, the packaged journey projects the harness stage,
+active-pointer state, closed
 manifest phase, bounded recovery attempts, closed recovery failure and outcome values, installed version, and bounded
 exact-process counts into a schema-versioned diagnostic. The projection cannot retain recovery identifiers, local
 paths, process identifiers, URLs, hashes, user data, or arbitrary error text; absent and unreadable state remain

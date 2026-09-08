@@ -20,7 +20,8 @@ use super::query_windows_native_package_identity;
 use super::{
     local_file::{sync_directory, sync_regular_file, PrivateStagingFile},
     update_recovery_windows::{
-        canonical_windows_path_matches, EXECUTABLE_NAME, PRODUCT_NAME, UNINSTALLER_NAME,
+        canonical_windows_path_matches, EXECUTABLE_NAME, PRODUCT_NAME, RECOVERY_EXECUTABLE_NAME,
+        UNINSTALLER_NAME,
     },
 };
 
@@ -266,6 +267,10 @@ fn prepare_windows_recovery_packages_from_path_with(
             .ok_or(WindowsRecoveryPackageError::InvalidRunnablePredecessor)?,
     )?;
     copy_runnable_tree(&installed_directory, staging.path())?;
+    copy_regular_file(
+        &staging.path().join(EXECUTABLE_NAME),
+        &staging.path().join(RECOVERY_EXECUTABLE_NAME),
+    )?;
     let prepared_tree_sha256 =
         validate_runnable_tree(package_port, staging.path(), predecessor.version())?;
     sync_tree(staging.path())?;
@@ -531,8 +536,9 @@ fn validate_runnable_tree(
 ) -> Result<String, WindowsRecoveryPackageError> {
     let digest = runnable_tree_sha256(root)?;
     let executable = root.join(EXECUTABLE_NAME);
+    let recovery_executable = root.join(RECOVERY_EXECUTABLE_NAME);
     let uninstaller = root.join(UNINSTALLER_NAME);
-    for required in [&executable, &uninstaller] {
+    for required in [&executable, &recovery_executable, &uninstaller] {
         let metadata = fs::symlink_metadata(required)
             .map_err(|_| WindowsRecoveryPackageError::InvalidRunnablePredecessor)?;
         if !metadata.file_type().is_file() || is_reparse_point(&metadata) {
@@ -546,6 +552,21 @@ fn validate_runnable_tree(
         WindowsBinaryRole::RunnableApplication,
     )
     .map_err(|_| WindowsRecoveryPackageError::InvalidRunnablePredecessor)?;
+    validate_binary_identity(
+        package_port,
+        &recovery_executable,
+        expected_version,
+        WindowsBinaryRole::RunnableApplication,
+    )
+    .map_err(|_| WindowsRecoveryPackageError::InvalidRunnablePredecessor)?;
+    let executable_size = fs::metadata(&executable)?.len();
+    let recovery_executable_size = fs::metadata(&recovery_executable)?.len();
+    if executable_size != recovery_executable_size
+        || file_digest_bytes(&executable, executable_size)?
+            != file_digest_bytes(&recovery_executable, recovery_executable_size)?
+    {
+        return Err(WindowsRecoveryPackageError::InvalidRunnablePredecessor);
+    }
     Ok(digest)
 }
 
@@ -1167,6 +1188,8 @@ mod tests {
                     setup_identity(candidate),
                     runnable_identity(predecessor),
                     runnable_identity(predecessor),
+                    runnable_identity(predecessor),
+                    runnable_identity(predecessor),
                     setup_identity(predecessor),
                     setup_identity(candidate),
                 ])),
@@ -1183,6 +1206,7 @@ mod tests {
                 identities: RefCell::new(VecDeque::from([
                     setup_identity(predecessor),
                     setup_identity(candidate),
+                    runnable_identity(predecessor),
                     runnable_identity(predecessor),
                 ])),
                 installed: WindowsInstalledPackage {
@@ -1337,6 +1361,27 @@ mod tests {
     }
 
     #[test]
+    fn preserves_a_dedicated_recovery_image_outside_the_product_process_name() {
+        let harness = Harness::new();
+        let prepared = prepare_windows_recovery_packages_from_path_with(
+            &harness.package_port(),
+            &harness.attempt_directory,
+            &harness.predecessor_source,
+            &harness.predecessor,
+            &harness.candidate_bytes,
+            &harness.candidate,
+        )
+        .expect("prepared Windows packages");
+        let runnable = prepared.runnable_predecessor_path();
+
+        assert_eq!(
+            fs::read(runnable.join("fitfreed-update-recovery.exe"))
+                .expect("dedicated recovery image"),
+            fs::read(runnable.join(EXECUTABLE_NAME)).expect("runnable predecessor image")
+        );
+    }
+
+    #[test]
     fn rejects_package_drift_version_regression_and_installed_version_mismatch() {
         let harness = Harness::new();
         let package_port = harness.package_port();
@@ -1454,6 +1499,34 @@ mod tests {
             b"changed resource",
         )
         .expect("mutated runnable resource");
+        assert!(matches!(
+            verify_windows_recovery_packages_with(
+                &SyntheticWindowsPackage::valid_for_verification("0.1.0", "0.2.0"),
+                &harness.attempt_directory,
+                &harness.predecessor,
+                &harness.candidate,
+                prepared.runnable_tree_sha256(),
+            ),
+            Err(WindowsRecoveryPackageError::InvalidRunnablePredecessor)
+        ));
+
+        let harness = Harness::new();
+        let prepared = prepare_windows_recovery_packages_from_path_with(
+            &harness.package_port(),
+            &harness.attempt_directory,
+            &harness.predecessor_source,
+            &harness.predecessor,
+            &harness.candidate_bytes,
+            &harness.candidate,
+        )
+        .expect("prepared Windows packages");
+        fs::write(
+            prepared
+                .runnable_predecessor_path()
+                .join(RECOVERY_EXECUTABLE_NAME),
+            b"changed recovery executable",
+        )
+        .expect("mutated recovery executable");
         assert!(matches!(
             verify_windows_recovery_packages_with(
                 &SyntheticWindowsPackage::valid_for_verification("0.1.0", "0.2.0"),
