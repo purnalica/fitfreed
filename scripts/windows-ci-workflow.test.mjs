@@ -130,6 +130,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
     packagedJob,
     /- name: Test Windows-state outcome acknowledgement[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?acknowledges_retained_outcome_through_windows_state_boundary[\s\S]*?--lib -- --exact/,
   );
+  assert.match(
+    packagedJob,
+    /- name: Test Windows watchdog and runnable-fallback role separation[\s\S]*?focused-verification == 'windows-update'[\s\S]*?resolves_watchdog_authority_only_from_the_preserved_windows_executable[\s\S]*?validates_only_the_active_user_facing_windows_recovery_fallback[\s\S]*?keeps_the_native_watchdog_and_fallback_executable_roles_distinct[\s\S]*?routes_only_exact_private_update_recovery_invocations_away_from_desktop_startup[\s\S]*?--lib -- --exact/,
+  );
   const iconGeneration = packagedJob.indexOf("npm run icons");
   assert.notEqual(iconGeneration, -1);
   assert.ok(
@@ -151,6 +155,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
   );
   assert.ok(
     packagedJob.indexOf("acknowledges_retained_outcome_through_windows_state_boundary")
+      < packagedJob.indexOf("npm run verify:windows-update-e2e"),
+  );
+  assert.ok(
+    packagedJob.indexOf("validates_only_the_active_user_facing_windows_recovery_fallback")
       < packagedJob.indexOf("npm run verify:windows-update-e2e"),
   );
 
@@ -176,6 +184,14 @@ test("isolates native Windows update recovery from accepted capability evidence"
       "",
     )),
     /native state-boundary outcome acknowledgement/,
+  );
+
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      /      - name: Test Windows watchdog and runnable-fallback role separation\n[\s\S]*?(?=      - name: Build and verify native NSIS update recovery)/,
+      "",
+    )),
+    /watchdog and runnable-fallback role separation/,
   );
 
   assert.throws(

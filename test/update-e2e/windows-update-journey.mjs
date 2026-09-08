@@ -42,6 +42,7 @@ const offlineRecoveryCompleted =
   process.env.FITFREED_UPDATE_E2E_OFFLINE_RECOVERY_COMPLETED;
 const noticeVerificationReady =
   process.env.FITFREED_UPDATE_E2E_NOTICE_VERIFICATION_READY;
+const recoveryFallbackArgument = "--fitfreed-update-recovery-fallback";
 
 function requiredEnvironment(name) {
   const value = process.env[name];
@@ -272,8 +273,9 @@ async function verifyManualRecoveryIntervention(browser, recoveryId) {
   );
 }
 
-function capabilitiesFor(executablePath) {
+function capabilitiesFor(executablePath, appArgs = []) {
   const capabilities = createTauriCapabilities(executablePath, {
+    appArgs,
     driverProvider: "embedded",
     tauriDriverPort: driverPort,
     logLevel: "warn",
@@ -288,8 +290,8 @@ function capabilitiesFor(executablePath) {
   return capabilities;
 }
 
-async function startSession(executablePath) {
-  return startWdioSession(capabilitiesFor(executablePath), {
+async function startSession(executablePath, appArgs = []) {
+  return startWdioSession(capabilitiesFor(executablePath, appArgs), {
     rootDir: process.cwd(),
     logLevel: "warn",
   });
@@ -402,7 +404,10 @@ async function replaceWithFallbackSession(browser, recovery) {
   await cleanupReplacedSession(browser);
   await stopApplication(fallbackExecutable);
   return {
-    browser: await startSession(fallbackExecutable),
+    browser: await startSession(fallbackExecutable, [
+      recoveryFallbackArgument,
+      applicationBinary,
+    ]),
     fallbackExecutable,
   };
 }
@@ -473,7 +478,7 @@ async function interruptAndResume(recovery, browser) {
   assert.equal(installedVersion(), "0.2.0");
   const watchdogExecutable = path.join(
     recovery.attemptDirectory,
-    "previous/runnable/fitfreed.exe",
+    "previous/runnable/fitfreed-update-recovery.exe",
   );
   exactApplicationProcessId(watchdogExecutable);
   await stopApplication(watchdogExecutable);
@@ -584,7 +589,10 @@ async function main() {
       await cleanupReplacedSession(browser);
       browser = undefined;
       await stopApplication(fallbackExecutable);
-      browser = await startSession(fallbackExecutable);
+      browser = await startSession(fallbackExecutable, [
+        recoveryFallbackArgument,
+        applicationBinary,
+      ]);
       await verifyManualRecoveryIntervention(browser, recovery.recoveryId);
       assert.equal(installedVersion(), "0.2.0");
     } else {

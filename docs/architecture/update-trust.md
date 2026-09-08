@@ -152,7 +152,9 @@ complete installed directory into a no-clobber staging tree, rejecting reparse p
 names, excessive paths, entry counts, or expanded size. The preserved tree must contain the exact x86-64 application
 and uninstaller. It also contains a byte-identical, independently PE-validated recovery copy named
 `fitfreed-update-recovery.exe`; this distinct process image remains outside the pinned Tauri NSIS installer's
-product-name termination boundary. Because Windows keeps that running image open, terminal work is split without
+product-name termination boundary. These images have separate fixed roles: only `fitfreed-update-recovery.exe` may
+act as the external watchdog, while only the sibling `fitfreed.exe` may provide the user-facing runnable fallback.
+Because Windows keeps the running watchdog image open, terminal work is split without
 weakening receipt-bound authority: the watchdog validates the installed pair, makes the receipt durable, removes the
 active pointer, releases its state and candidate handles, and retains its no-sharing watchdog lease until process exit.
 The installed application therefore cannot enter deletion while the recovery image is still executing. After Windows
@@ -204,8 +206,8 @@ manifest, launch nonce, target native identity, running version, target schema, 
 specialized transition can enter `confirmed`; the generic transition API cannot claim that state. The installation
 coordinator now obtains the authenticated predecessor before preparation, starts the watchdog from the dedicated
 byte-identical predecessor recovery image, and waits for its readiness before publishing `replacement-started`. The
-watchdog binds its direct parent to the installed executable by PID, creation `FILETIME`, and canonical path before
-declaring readiness.
+initial or ordinary-startup watchdog binds its direct parent to the installed executable by PID, creation `FILETIME`,
+and canonical path before declaring readiness.
 Only a fresh watchdog may stop that exact parent and invoke `candidate/package.exe`; a watchdog resumed from a durable
 `replacement-started` phase treats the uncertain installer boundary as an interruption and enters recovery instead of
 repeating NSIS. A successful installation enters `replacement-installed`, launches the fixed installed executable
@@ -221,8 +223,15 @@ resulting installation remain distinct durable reasons; the first two failures r
 third is terminal. Ordinary restart resolution derives the same verified watchdog context from the active pointer,
 without accepting an attempt identifier or executable path from presentation. A privacy-minimized intervention
 describes only retryable or terminal native recovery. Explicit retry first proves that no watchdog owns the attempt,
-then returns to `recovering`; cancellation with the matching new watchdog lease returns it to
-`native-recovery-unavailable`. A still-quiescent `prepared` attempt can be discarded only while the outcome, watchdog,
+then returns to `recovering` and starts the dedicated watchdog in a closed retry mode. That watchdog validates the
+fixed installed target but binds its direct parent to the exact preserved fallback executable. The preserved
+`fitfreed.exe` itself starts only through a closed fallback mode carrying the same fixed installed target; before the
+renderer or library opens, startup requires that executable to be the exact product-image sibling in the active
+attempt and the phase to be retryable or terminal. Recovery queries and retries continue to address the fixed native
+installation rather than deriving authority from the fallback path; the target path remains valid recovery evidence
+even when a failed native operation has temporarily removed its executable. Cancellation with the matching new
+watchdog lease returns it to `native-recovery-unavailable`. A still-quiescent `prepared` attempt can be discarded only
+while the outcome, watchdog,
 candidate, and state boundaries are all exclusively held; the active pointer is removed before those Windows handles
 are closed and the exact attempt is deleted, while every later phase remains preserved. Terminal maintenance accepts
 only `confirmed` or `recovered`, revalidates the exact target or source native identity and SQLite schema, and also

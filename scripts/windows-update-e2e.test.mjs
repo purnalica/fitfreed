@@ -156,6 +156,26 @@ test("keeps the recovery process outside the NSIS product image-name boundary", 
     verifier,
     /Candidate installation terminated the dedicated recovery process/u,
   );
+  const journey = readFileSync(
+    path.resolve("test/update-e2e/windows-update-journey.mjs"),
+    "utf8",
+  );
+  assert.match(
+    journey,
+    /function replaceWithFallbackSession[\s\S]*previous\/runnable\/fitfreed\.exe/u,
+  );
+  assert.match(
+    journey,
+    /function interruptAndResume[\s\S]*previous\/runnable\/fitfreed-update-recovery\.exe/u,
+  );
+  assert.match(
+    journey,
+    /const recoveryFallbackArgument = "--fitfreed-update-recovery-fallback"/u,
+  );
+  assert.match(
+    journey,
+    /startSession\(fallbackExecutable, \[\s*recoveryFallbackArgument,\s*applicationBinary,\s*\]\)/u,
+  );
 });
 
 test("invokes every Tauri update operation through the portable Node.js entry point", () => {

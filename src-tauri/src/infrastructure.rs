@@ -265,12 +265,13 @@ pub use update_recovery_windows_state::{
     record_active_windows_update_recovery_replacement_launch,
     resolve_active_windows_update_recovery_watchdog_context,
     resolve_windows_update_recovery_watchdog_context, restore_active_windows_update_recovery,
-    transition_active_windows_update_recovery, verify_windows_update_recovery,
-    PreparedWindowsUpdateRecovery, WindowsNativeRecoveryFailure, WindowsRecoveryStateError,
-    WindowsUpdateRecoveryCandidateLease, WindowsUpdateRecoveryPreparation,
-    WindowsUpdateRecoveryReplacementLaunch, WindowsUpdateRecoveryReplacementProcess,
-    WindowsUpdateRecoveryRestoration, WindowsUpdateRecoveryRestorationOutcome,
-    WindowsUpdateRecoveryWatchdogContext, WindowsUpdateRecoveryWatchdogLease,
+    transition_active_windows_update_recovery, validate_windows_update_recovery_fallback,
+    verify_windows_update_recovery, PreparedWindowsUpdateRecovery, WindowsNativeRecoveryFailure,
+    WindowsRecoveryStateError, WindowsUpdateRecoveryCandidateLease,
+    WindowsUpdateRecoveryPreparation, WindowsUpdateRecoveryReplacementLaunch,
+    WindowsUpdateRecoveryReplacementProcess, WindowsUpdateRecoveryRestoration,
+    WindowsUpdateRecoveryRestorationOutcome, WindowsUpdateRecoveryWatchdogContext,
+    WindowsUpdateRecoveryWatchdogLease,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
@@ -285,8 +286,9 @@ pub use update_watchdog_linux::{
     StartedLinuxUpdateRecoveryWatchdog,
 };
 pub use update_watchdog_protocol::{
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_FALLBACK_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_RETRY_ARGUMENT,
 };
 #[cfg(any(test, target_os = "windows"))]
 pub use update_watchdog_windows::{

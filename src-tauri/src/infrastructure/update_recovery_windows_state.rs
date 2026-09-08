@@ -221,6 +221,7 @@ pub struct WindowsUpdateRecoveryWatchdogContext {
     recovery_root: PathBuf,
     recovery_id: String,
     installed_executable_path: PathBuf,
+    watchdog_executable_path: PathBuf,
     runnable_predecessor_executable_path: PathBuf,
     library_path: PathBuf,
     source_version: String,
@@ -248,6 +249,10 @@ impl WindowsUpdateRecoveryWatchdogContext {
 
     pub fn installed_executable_path(&self) -> &Path {
         &self.installed_executable_path
+    }
+
+    pub fn watchdog_executable_path(&self) -> &Path {
+        &self.watchdog_executable_path
     }
 
     pub fn runnable_predecessor_executable_path(&self) -> &Path {
@@ -770,6 +775,19 @@ pub fn resolve_active_windows_update_recovery_watchdog_context(
     )
 }
 
+pub fn validate_windows_update_recovery_fallback(
+    recovery_root: &Path,
+    fallback_executable: &Path,
+    expected_installed_executable: &Path,
+) -> Result<(), WindowsRecoveryStateError> {
+    validate_windows_update_recovery_fallback_with(
+        &SystemRecoveryPackages,
+        recovery_root,
+        fallback_executable,
+        expected_installed_executable,
+    )
+}
+
 pub fn query_windows_update_recovery_intervention(
     recovery_root: &Path,
     expected_installed_executable: &Path,
@@ -885,7 +903,11 @@ fn resolve_windows_update_recovery_watchdog_context_with(
     watchdog_executable: &Path,
     expected_installed_executable: &Path,
 ) -> Result<WindowsUpdateRecoveryWatchdogContext, WindowsRecoveryStateError> {
-    let expected_installed_executable = canonical_regular_file(expected_installed_executable)?;
+    let expected_installed_executable_text = path_text(expected_installed_executable)?;
+    if !valid_absolute_path(&expected_installed_executable_text) {
+        return Err(WindowsRecoveryStateError::InvalidInput);
+    }
+    let expected_installed_executable = expected_installed_executable.to_owned();
     let watchdog_executable = canonical_regular_file(watchdog_executable)?;
     let attempt_directory = watchdog_executable
         .ancestors()
@@ -921,7 +943,7 @@ fn resolve_windows_update_recovery_watchdog_context_with(
     let manifest = verify_windows_update_recovery_with(packages, recovery_root, recovery_id)?;
     if !paths_equal(
         &manifest.source.native_package.executable_path,
-        &path_text(&expected_installed_executable)?,
+        &expected_installed_executable_text,
     ) {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
@@ -932,11 +954,17 @@ fn resolve_windows_update_recovery_watchdog_context_with(
     if !paths_equal(&manifest.source.library_path, &path_text(&library_path)?) {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
+    let runnable_predecessor_executable_path = canonical_regular_file(
+        &attempt_directory
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+            .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+    )?;
     Ok(WindowsUpdateRecoveryWatchdogContext {
         recovery_root: recovery_root.to_owned(),
         recovery_id: recovery_id.to_owned(),
         installed_executable_path: expected_installed_executable,
-        runnable_predecessor_executable_path: watchdog_executable,
+        watchdog_executable_path: watchdog_executable,
+        runnable_predecessor_executable_path,
         library_path,
         source_version: manifest.source.version,
         target_version: manifest.target.version,
@@ -949,6 +977,32 @@ fn resolve_windows_update_recovery_watchdog_context_with(
             .map(replacement_process_view)
             .transpose()?,
     })
+}
+
+fn validate_windows_update_recovery_fallback_with(
+    packages: &impl RecoveryPackagePort,
+    recovery_root: &Path,
+    fallback_executable: &Path,
+    expected_installed_executable: &Path,
+) -> Result<(), WindowsRecoveryStateError> {
+    let fallback_executable = canonical_regular_file(fallback_executable)?;
+    let Some((context, phase)) = resolve_active_windows_update_recovery_watchdog_context_with(
+        packages,
+        recovery_root,
+        expected_installed_executable,
+    )?
+    else {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    };
+    if !matches!(
+        phase,
+        PackagedUpdateRecoveryPhase::NativeRecoveryUnavailable
+            | PackagedUpdateRecoveryPhase::RecoveryFailed
+    ) || fallback_executable != context.runnable_predecessor_executable_path()
+    {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    Ok(())
 }
 
 pub fn acquire_windows_update_recovery_watchdog_lease(
@@ -4022,6 +4076,14 @@ mod tests {
         assert_eq!(context.library_path(), harness.library_path);
         assert_eq!(context.target_version(), "0.2.0");
         assert_eq!(context.replacement_process(), None);
+        assert_eq!(context.watchdog_executable_path(), watchdog_executable);
+        assert_eq!(
+            context.runnable_predecessor_executable_path(),
+            prepared
+                .attempt_directory()
+                .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+                .join(RUNNABLE_EXECUTABLE_RELATIVE_PATH)
+        );
 
         assert!(resolve_windows_update_recovery_watchdog_context_with(
             &packages,
@@ -4046,6 +4108,105 @@ mod tests {
             &harness.identity.executable_path,
         )
         .is_err());
+    }
+
+    #[test]
+    fn validates_only_the_active_user_facing_windows_recovery_fallback() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let (prepared, _context, watchdog) = prepare_with_watchdog(&harness, &packages);
+        let runnable_directory = prepared
+            .attempt_directory()
+            .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH);
+        assert!(validate_windows_update_recovery_fallback_with(
+            &packages,
+            &harness.recovery_root,
+            &runnable_directory.join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+            &harness.identity.executable_path,
+        )
+        .is_err());
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering");
+        let native = SyntheticNativeRecovery::new(vec![Err(
+            WindowsUpdateRecoveryError::NativeRollbackFailed,
+        )]);
+        assert!(matches!(
+            restore_active_windows_update_recovery_with(
+                &packages,
+                &native,
+                &watchdog,
+                WindowsUpdateRecoveryRestoration {
+                    recovery_root: &harness.recovery_root,
+                    recovery_id: prepared.recovery_id(),
+                    expected_library_path: &harness.library_path,
+                },
+            ),
+            Ok(
+                WindowsUpdateRecoveryRestorationOutcome::NativeRecoveryUnavailable {
+                    attempts: 1,
+                    failure: WindowsNativeRecoveryFailure::InstallerFailed,
+                }
+            )
+        ));
+
+        validate_windows_update_recovery_fallback_with(
+            &packages,
+            &harness.recovery_root,
+            &runnable_directory.join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+            &harness.identity.executable_path,
+        )
+        .expect("validated fallback");
+        assert!(validate_windows_update_recovery_fallback_with(
+            &packages,
+            &harness.recovery_root,
+            &runnable_directory.join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH),
+            &harness.identity.executable_path,
+        )
+        .is_err());
+        assert!(validate_windows_update_recovery_fallback_with(
+            &packages,
+            &harness.recovery_root,
+            &runnable_directory.join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+            &harness.identity.uninstaller_path,
+        )
+        .is_err());
+
+        drop(watchdog);
+        fs::remove_file(&harness.identity.executable_path).expect("missing native executable");
+        validate_windows_update_recovery_fallback_with(
+            &packages,
+            &harness.recovery_root,
+            &runnable_directory.join(RUNNABLE_EXECUTABLE_RELATIVE_PATH),
+            &harness.identity.executable_path,
+        )
+        .expect("validated fallback with absent native executable");
+        assert!(query_windows_update_recovery_intervention_with(
+            &packages,
+            &harness.recovery_root,
+            &harness.identity.executable_path,
+        )
+        .expect("recovery intervention")
+        .is_some());
+        let retry = begin_windows_update_recovery_retry_with(
+            &packages,
+            &harness.recovery_root,
+            &harness.identity.executable_path,
+        )
+        .expect("retry context");
+        assert_eq!(
+            retry.installed_executable_path(),
+            harness.identity.executable_path
+        );
     }
 
     #[test]

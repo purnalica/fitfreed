@@ -194,6 +194,12 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
+    /- name: Test Windows watchdog and runnable-fallback role separation\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        shell: pwsh\n        run: \|[\s\S]*?resolves_watchdog_authority_only_from_the_preserved_windows_executable[\s\S]*?validates_only_the_active_user_facing_windows_recovery_fallback[\s\S]*?keeps_the_native_watchdog_and_fallback_executable_roles_distinct[\s\S]*?routes_only_exact_private_update_recovery_invocations_away_from_desktop_startup[\s\S]*?--lib -- --exact/,
+    "focused Windows update verification must prove watchdog and runnable-fallback role separation before packaging",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
     /- name: Generate application icons for the native recovery test\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: npm run icons/,
     "focused Windows recovery verification must generate Tauri icons only for the focused native test",
   );
@@ -212,6 +218,9 @@ export function validateWindowsCiWorkflow(source) {
   );
   const windowsStateOutcomeAcknowledgementTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::tests::acknowledges_retained_outcome_through_windows_state_boundary",
+  );
+  const watchdogFallbackRoleTest = packagedCapability.indexOf(
+    "infrastructure::update_recovery_windows_state::tests::validates_only_the_active_user_facing_windows_recovery_fallback",
   );
   const stateSerializationTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows",
@@ -244,6 +253,13 @@ export function validateWindowsCiWorkflow(source) {
     || windowsStateOutcomeAcknowledgementTest > packagedUpdate
   ) {
     errors.push("focused Windows recovery verification must prove native state-boundary outcome acknowledgement before packaging");
+  }
+  if (
+    watchdogFallbackRoleTest < 0
+    || packagedUpdate < 0
+    || watchdogFallbackRoleTest > packagedUpdate
+  ) {
+    errors.push("focused Windows recovery verification must prove watchdog and runnable-fallback role separation before packaging");
   }
   requireMatch(
     errors,

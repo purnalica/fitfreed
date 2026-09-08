@@ -93,7 +93,8 @@ use infrastructure::{
     maintain_windows_update_recovery, query_windows_update_recovery_intervention,
     reattach_windows_update_recovery_watchdog, resolve_windows_runtime_installation_path,
     resolve_windows_update_installation_path, retry_windows_update_recovery,
-    run_windows_update_recovery_watchdog, WindowsUpdateRecoveryCandidateLease,
+    run_windows_update_recovery_watchdog, validate_windows_update_recovery_fallback,
+    WindowsUpdateRecoveryCandidateLease,
 };
 #[cfg(target_os = "linux")]
 use infrastructure::{
@@ -119,8 +120,9 @@ use infrastructure::{
     SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary,
     SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError,
     UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryMaintenance,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_FALLBACK_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_RETRY_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto,
@@ -1783,6 +1785,7 @@ async fn postpone_available_update(
 async fn query_update_recovery_intervention(
     app: AppHandle,
     coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
+    runtime_target: State<'_, RuntimeUpdateRecoveryTarget>,
 ) -> Result<Option<UpdateRecoveryInterventionDto>, CommandErrorDto> {
     let _operation = coordinator.reserve().await;
     let library_path =
@@ -1793,7 +1796,7 @@ async fn query_update_recovery_intervention(
         .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
     let executable =
         env::current_exe().map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
-    let installed_target = packaged_update_recovery_target(&executable);
+    let installed_target = packaged_update_recovery_target(&executable, &runtime_target);
     tauri::async_runtime::spawn_blocking(move || {
         query_platform_update_recovery_intervention(&recovery_root, &installed_target)
     })
@@ -1808,6 +1811,7 @@ async fn retry_update_recovery(
     app: AppHandle,
     update_coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
     import_coordinator: State<'_, ImportCoordinator>,
+    runtime_target: State<'_, RuntimeUpdateRecoveryTarget>,
 ) -> Result<(), CommandErrorDto> {
     let _update_operation = update_coordinator.reserve().await;
     let _import_operation = import_coordinator
@@ -1821,7 +1825,7 @@ async fn retry_update_recovery(
         .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
     let executable =
         env::current_exe().map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
-    let installed_target = packaged_update_recovery_target(&executable);
+    let installed_target = packaged_update_recovery_target(&executable, &runtime_target);
     tauri::async_runtime::spawn_blocking(move || {
         retry_platform_update_recovery(&recovery_root, &installed_target)
     })
@@ -2290,9 +2294,14 @@ fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
 enum StartupMode {
     Desktop,
     UpdateRecoveryCandidate(CandidateStartup),
+    #[cfg(target_os = "windows")]
+    UpdateRecoveryFallback {
+        installed_application: PathBuf,
+    },
     UpdateRecoveryWatchdog {
         installed_application: PathBuf,
         resumed_after_interruption: bool,
+        started_from_runnable_predecessor: bool,
     },
     InvalidPrivateMode,
 }
@@ -2301,6 +2310,35 @@ impl StartupMode {
     #[cfg(any(test, target_os = "linux", target_os = "windows"))]
     fn reattaches_update_recovery_watchdog(&self) -> bool {
         matches!(self, Self::Desktop)
+    }
+
+    fn fallback_installed_application(&self) -> Option<&Path> {
+        #[cfg(target_os = "windows")]
+        if let Self::UpdateRecoveryFallback {
+            installed_application,
+        } = self
+        {
+            return Some(installed_application);
+        }
+        None
+    }
+}
+
+struct RuntimeUpdateRecoveryTarget {
+    fallback_installed_application: Option<PathBuf>,
+}
+
+impl RuntimeUpdateRecoveryTarget {
+    fn from_startup_mode(startup_mode: &StartupMode) -> Self {
+        Self {
+            fallback_installed_application: startup_mode
+                .fallback_installed_application()
+                .map(Path::to_owned),
+        }
+    }
+
+    fn fallback_installed_application(&self) -> Option<&Path> {
+        self.fallback_installed_application.as_deref()
     }
 }
 
@@ -2311,6 +2349,7 @@ fn startup_mode(arguments: &[OsString]) -> StartupMode {
                 StartupMode::UpdateRecoveryWatchdog {
                     installed_application: PathBuf::from(installed_application),
                     resumed_after_interruption: false,
+                    started_from_runnable_predecessor: false,
                 }
             }
             _ => StartupMode::InvalidPrivateMode,
@@ -2325,12 +2364,53 @@ fn startup_mode(arguments: &[OsString]) -> StartupMode {
                         StartupMode::UpdateRecoveryWatchdog {
                             installed_application: PathBuf::from(installed_application),
                             resumed_after_interruption: true,
+                            started_from_runnable_predecessor: false,
                         }
                     }
                     _ => StartupMode::InvalidPrivateMode,
                 }
             }
             #[cfg(target_os = "macos")]
+            {
+                StartupMode::InvalidPrivateMode
+            }
+        }
+        Some(UPDATE_RECOVERY_WATCHDOG_RETRY_ARGUMENT) => {
+            #[cfg(target_os = "windows")]
+            {
+                match arguments {
+                    [_, _, installed_application]
+                        if Path::new(installed_application).is_absolute() =>
+                    {
+                        StartupMode::UpdateRecoveryWatchdog {
+                            installed_application: PathBuf::from(installed_application),
+                            resumed_after_interruption: true,
+                            started_from_runnable_predecessor: true,
+                        }
+                    }
+                    _ => StartupMode::InvalidPrivateMode,
+                }
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                StartupMode::InvalidPrivateMode
+            }
+        }
+        Some(UPDATE_RECOVERY_FALLBACK_ARGUMENT) => {
+            #[cfg(target_os = "windows")]
+            {
+                match arguments {
+                    [_, _, installed_application]
+                        if Path::new(installed_application).is_absolute() =>
+                    {
+                        StartupMode::UpdateRecoveryFallback {
+                            installed_application: PathBuf::from(installed_application),
+                        }
+                    }
+                    _ => StartupMode::InvalidPrivateMode,
+                }
+            }
+            #[cfg(not(target_os = "windows"))]
             {
                 StartupMode::InvalidPrivateMode
             }
@@ -2456,10 +2536,12 @@ fn run_platform_update_recovery_watchdog(
     watchdog_executable: &Path,
     installed_target: &Path,
     resumed_after_interruption: bool,
+    started_from_runnable_predecessor: bool,
     readiness: &mut impl Write,
 ) -> bool {
     #[cfg(target_os = "linux")]
     {
+        let _ = started_from_runnable_predecessor;
         run_linux_update_recovery_watchdog(
             watchdog_executable,
             installed_target,
@@ -2475,6 +2557,7 @@ fn run_platform_update_recovery_watchdog(
             watchdog_executable,
             installed_target,
             resumed_after_interruption,
+            started_from_runnable_predecessor,
             readiness,
         )
         .is_ok()
@@ -2482,7 +2565,10 @@ fn run_platform_update_recovery_watchdog(
 
     #[cfg(target_os = "macos")]
     {
-        let _ = resumed_after_interruption;
+        let _ = (
+            resumed_after_interruption,
+            started_from_runnable_predecessor,
+        );
         run_update_recovery_watchdog(watchdog_executable, installed_target, readiness).is_ok()
     }
 }
@@ -2594,7 +2680,13 @@ fn installed_update_recovery_target(executable: &Path) -> Result<PathBuf, ()> {
     }
 }
 
-fn packaged_update_recovery_target(executable: &Path) -> PathBuf {
+fn packaged_update_recovery_target(
+    executable: &Path,
+    runtime_target: &RuntimeUpdateRecoveryTarget,
+) -> PathBuf {
+    if let Some(installed_application) = runtime_target.fallback_installed_application() {
+        return installed_application.to_owned();
+    }
     #[cfg(target_os = "linux")]
     {
         let _ = executable;
@@ -2712,6 +2804,8 @@ pub fn run() {
     let interactive_shell_signal = InteractiveShellSignal::for_runtime();
     let startup_recovery = Arc::new(StartupLibraryRecovery::default());
     let startup_mode = startup_mode(&env::args_os().collect::<Vec<_>>());
+    let runtime_update_recovery_target =
+        RuntimeUpdateRecoveryTarget::from_startup_mode(&startup_mode);
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     let reattach_update_recovery_watchdog = startup_mode.reattaches_update_recovery_watchdog();
     let pending_recovery_confirmation = match startup_mode {
@@ -2732,15 +2826,19 @@ pub fn run() {
             }
             Some(candidate)
         }
+        #[cfg(target_os = "windows")]
+        StartupMode::UpdateRecoveryFallback { .. } => None,
         StartupMode::UpdateRecoveryWatchdog {
             installed_application,
             resumed_after_interruption,
+            started_from_runnable_predecessor,
         } => {
             let succeeded = env::current_exe().is_ok_and(|executable| {
                 run_platform_update_recovery_watchdog(
                     &executable,
                     &installed_application,
                     resumed_after_interruption,
+                    started_from_runnable_predecessor,
                     &mut io::stdout().lock(),
                 )
             });
@@ -2767,7 +2865,26 @@ pub fn run() {
         ))
         .manage(Arc::clone(&update_channel))
         .manage(Arc::clone(&update_coordinator))
+        .manage(runtime_update_recovery_target)
         .setup(move |app| {
+            #[cfg(target_os = "windows")]
+            if let Some(installed_application) = app
+                .state::<RuntimeUpdateRecoveryTarget>()
+                .fallback_installed_application()
+            {
+                let recovery_root = app
+                    .path()
+                    .app_data_dir()
+                    .map_err(io::Error::other)?
+                    .join("update-recovery");
+                let executable = env::current_exe()?;
+                validate_windows_update_recovery_fallback(
+                    &recovery_root,
+                    &executable,
+                    installed_application,
+                )
+                .map_err(|_| io::Error::other("Windows recovery fallback is invalid"))?;
+            }
             let library_path = database_path(app.handle()).map_err(io::Error::other)?;
             let pending = app.state::<PendingUpdateRecoveryConfirmation>();
             if let Some(candidate) = pending
@@ -3366,10 +3483,12 @@ mod tests {
     }
 
     #[test]
-    fn routes_only_the_exact_private_watchdog_invocation_away_from_desktop_startup() {
+    fn routes_only_exact_private_update_recovery_invocations_away_from_desktop_startup() {
         let executable = OsString::from("fitfreed");
         let argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_ARGUMENT);
         let resume_argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT);
+        let retry_argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_RETRY_ARGUMENT);
+        let fallback_argument = OsString::from(UPDATE_RECOVERY_FALLBACK_ARGUMENT);
         #[cfg(windows)]
         let installed = OsString::from(r"C:\Program Files\FitFreed");
         #[cfg(not(windows))]
@@ -3396,7 +3515,77 @@ mod tests {
         ));
         #[cfg(target_os = "macos")]
         assert!(matches!(
-            startup_mode(&[executable.clone(), resume_argument, installed]),
+            startup_mode(&[executable.clone(), resume_argument, installed.clone()]),
+            StartupMode::InvalidPrivateMode
+        ));
+        #[cfg(target_os = "windows")]
+        {
+            let retry = startup_mode(&[
+                executable.clone(),
+                retry_argument.clone(),
+                installed.clone(),
+            ]);
+            assert!(matches!(
+                &retry,
+                StartupMode::UpdateRecoveryWatchdog {
+                    installed_application,
+                    resumed_after_interruption: true,
+                    started_from_runnable_predecessor: true,
+                } if installed_application == Path::new(&installed)
+            ));
+            let fallback = startup_mode(&[
+                executable.clone(),
+                fallback_argument.clone(),
+                installed.clone(),
+            ]);
+            assert!(matches!(
+                &fallback,
+                StartupMode::UpdateRecoveryFallback {
+                    installed_application,
+                } if installed_application == Path::new(&installed)
+            ));
+            let runtime_target = RuntimeUpdateRecoveryTarget::from_startup_mode(&fallback);
+            assert_eq!(
+                packaged_update_recovery_target(
+                    Path::new(r"C:\recovery\fitfreed.exe"),
+                    &runtime_target
+                ),
+                PathBuf::from(installed.clone())
+            );
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            assert!(matches!(
+                startup_mode(&[
+                    executable.clone(),
+                    retry_argument.clone(),
+                    installed.clone(),
+                ]),
+                StartupMode::InvalidPrivateMode
+            ));
+            assert!(matches!(
+                startup_mode(&[
+                    executable.clone(),
+                    fallback_argument.clone(),
+                    installed.clone(),
+                ]),
+                StartupMode::InvalidPrivateMode
+            ));
+        }
+        assert!(matches!(
+            startup_mode(&[
+                executable.clone(),
+                retry_argument,
+                OsString::from("relative/fitfreed.exe")
+            ]),
+            StartupMode::InvalidPrivateMode
+        ));
+        assert!(matches!(
+            startup_mode(&[
+                executable.clone(),
+                fallback_argument,
+                OsString::from("relative/fitfreed.exe")
+            ]),
             StartupMode::InvalidPrivateMode
         ));
         assert!(matches!(
@@ -3418,7 +3607,12 @@ mod tests {
     fn packaged_recovery_query_does_not_require_a_packaged_application_on_other_platforms() {
         let directory = TempDir::new().expect("temporary directory");
         let unpackaged_executable = directory.path().join("debug").join("fitfreed");
-        let recovery_target = packaged_update_recovery_target(&unpackaged_executable);
+        let recovery_target = packaged_update_recovery_target(
+            &unpackaged_executable,
+            &RuntimeUpdateRecoveryTarget {
+                fallback_installed_application: None,
+            },
+        );
 
         assert_eq!(recovery_target, unpackaged_executable);
         assert_eq!(
@@ -3612,6 +3806,7 @@ mod tests {
         assert!(!StartupMode::UpdateRecoveryWatchdog {
             installed_application: PathBuf::from("installed-application"),
             resumed_after_interruption: true,
+            started_from_runnable_predecessor: false,
         }
         .reattaches_update_recovery_watchdog());
         assert!(!StartupMode::InvalidPrivateMode.reattaches_update_recovery_watchdog());

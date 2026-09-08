@@ -508,6 +508,18 @@ jobs:
           infrastructure::update_recovery_windows_state::tests::acknowledges_retained_outcome_through_windows_state_boundary
           --lib -- --exact
 
+      - name: Test Windows watchdog and runnable-fallback role separation
+        if: needs.quality.outputs.focused-verification == 'windows-update'
+        shell: pwsh
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml infrastructure::update_recovery_windows_state::tests::resolves_watchdog_authority_only_from_the_preserved_windows_executable --lib -- --exact
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --manifest-path src-tauri/Cargo.toml infrastructure::update_recovery_windows_state::tests::validates_only_the_active_user_facing_windows_recovery_fallback --lib -- --exact
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --manifest-path src-tauri/Cargo.toml infrastructure::update_watchdog_windows::tests::keeps_the_native_watchdog_and_fallback_executable_roles_distinct --lib -- --exact
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --manifest-path src-tauri/Cargo.toml tests::routes_only_exact_private_update_recovery_invocations_away_from_desktop_startup --lib -- --exact
+
       - name: Build and verify native NSIS update recovery
         run: npm run verify:windows-update-e2e
 

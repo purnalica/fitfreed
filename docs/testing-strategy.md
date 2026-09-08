@@ -302,8 +302,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   files, a second active attempt, and later package, runnable, library, or manifest mutation. State-transition tests
   require serialized legal phase changes, prohibit generic entry into `launching`, bind that phase to the exact PID,
   creation `FILETIME`, canonical installed executable, nonce, and deadline, and prove rejected process evidence does
-  not mutate the durable phase. Watchdog tests derive authority only from the exact preserved executable and active
-  attempt. Lease tests permit one watchdog and one candidate, require exact process, nonce, and installed target
+  not mutate the durable phase. Watchdog tests derive authority only from the dedicated preserved recovery executable
+  and active attempt, expose the sibling product executable only as the runnable fallback, and require fallback startup
+  to match that exact active image, fixed installed target, and retryable or terminal phase, including when a failed
+  native operation has left the target executable absent. Lease tests permit one watchdog and one candidate, require
+  exact process, nonce, and installed target
   identity for the latter, release ownership on drop, and keep held no-sharing lock files out of reopening checks. An
   exact candidate-confirmation test requires the held lease, native target, running version, target library schema,
   fixed library and SQLite integrity, while rejected evidence preserves `launching`. Restoration tests require all
@@ -330,9 +333,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   sharing and lock violations and a distinct timeout outcome. Windows-watchdog tests require complete direct-parent
   identity before readiness, allow only a fresh watchdog to invoke the handed-off candidate installer, treat a resumed
   pre-installation phase as an interruption, generate a 256-bit lowercase nonce from the operating-system random
-  source, record the candidate before releasing startup, distinguish installed and runnable-predecessor executable
-  roles, and preserve exact process ownership through stop, recovery, and terminal cleanup. Host-routing compilation
-  binds Windows startup resume, candidate confirmation, intervention, retry, and maintenance to that lifecycle. An
+  source, record the candidate before releasing startup, distinguish installed, dedicated-watchdog, and
+  runnable-fallback executable roles, bind initial and resumed watchdogs to the installed parent, bind a retry watchdog
+  only to the verified fallback parent, and preserve exact process ownership through stop, recovery, and terminal
+  cleanup. Host-routing compilation binds Windows startup resume, validated fallback, candidate confirmation,
+  intervention, retry, and maintenance to that lifecycle. An
   isolated Windows-target source build checks the no-sharing handle, reparse-aware file access, process observation,
   watchdog, coordinator, restoration, and terminal cleanup compilation paths; only the pinned native Windows job can
   prove the corresponding operating-system behavior.

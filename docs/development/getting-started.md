@@ -337,8 +337,11 @@ recovery. It refuses to start if any FitFreed installation, registration, shortc
 exists. It then builds and installs synthetic 0.1.0 and 0.2.0 NSIS packages, serves signed update metadata over local
 HTTPS, and verifies successful replacement, native installer failure, candidate rejection with rollback, and restart
 resumption after a bounded watchdog interruption. It also verifies runnable fallback, a successful offline recovery
-retry, and manual guidance after three failed recovery attempts. It removes only state created after its successful
-preflight. Do not run it on an account that contains a real FitFreed library; hosted success remains engineering
+retry, and manual guidance after three failed recovery attempts. The harness addresses the preserved
+`fitfreed-update-recovery.exe` only as the watchdog and opens the sibling `fitfreed.exe` only through the validated
+fallback mode; these private arguments are internal recovery protocol, not contributor entry points. It removes only
+state created after its successful preflight. Do not run it on an account that contains a real FitFreed library;
+hosted success remains engineering
 evidence rather than exact Windows 11 acceptance.
 
 Run `npm run verify:windows-cold-launch` only after `npm run package:windows`, from native x86-64 Windows PowerShell in

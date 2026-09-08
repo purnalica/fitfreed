@@ -169,8 +169,8 @@ The coordinator starts the watchdog from `previous/runnable/fitfreed-update-reco
 before publishing `replacement-started`. The recovery image must remain byte-identical to the preserved
 `fitfreed.exe`, but its filename must differ from the product executable because the pinned Tauri NSIS installer finds
 and terminates current-user processes by the product image name before replacement. Before readiness, the watchdog
-binds its direct parent to the fixed installed executable by PID, creation `FILETIME`, and canonical path. Only that
-fresh watchdog may stop the parent and launch the fixed candidate installer in silent mode from
+started for initial replacement or ordinary restart binds its direct parent to the fixed installed executable by PID,
+creation `FILETIME`, and canonical path. Only that fresh watchdog may stop the parent and launch the fixed candidate installer in silent mode from
 `candidate/package.exe`; a replacement-started watchdog reconstructed after an interruption must recover instead of
 repeating an installer whose outcome is uncertain. The watchdog then repeats
 the complete current-user native identity and target-version validation before entering `replacement-installed`. It
@@ -187,9 +187,16 @@ Only that complete native and library state may enter `recovered`.
 An NSIS failure records `installer-failed`; a completed installer whose native state does not match records
 `installed-state-invalid`. Either reason enters `native-recovery-unavailable` for the first two attempts, retains every
 asset, blocks another update, and permits an explicit retry. The validated runnable predecessor may be launched in a
-separate recovery mode so the user can access the matching preserved library, but that state is not reported as
-recovered. The third failed native attempt enters `recovery-failed` and requires manual recovery; no evidence is
-automatically removed.
+closed recovery-fallback mode so the user can access the matching preserved library, but that state is not reported as
+recovered. That mode carries the fixed installed `fitfreed.exe` target and is accepted only when the running executable
+is the exact `previous/runnable/fitfreed.exe` sibling of the manifest-declared watchdog in the active attempt and the
+phase is `native-recovery-unavailable` or `recovery-failed`. It does not reinterpret the preserved path as the native
+installation. The manifest-bound native target remains authoritative for retry even when an incomplete native
+operation has left its executable absent. An explicit retry starts `fitfreed-update-recovery.exe` in a distinct closed
+retry mode and binds its direct parent to that verified fallback image; all other watchdog launches bind the fixed
+installed executable. The
+third failed native attempt enters `recovery-failed` and requires manual recovery; no evidence is automatically
+removed. Neither private invocation is persisted in the manifest or accepted as caller-supplied recovery authority.
 
 ## Restart, terminal cleanup, and failure behavior
 

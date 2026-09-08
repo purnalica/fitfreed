@@ -199,8 +199,9 @@ named `fitfreed.exe` while leaving the byte-equivalent recovery-name probe alive
 It then runs
 successful replacement,
 native installer failure, candidate rejection with automatic predecessor restoration, and ordinary-startup resumption
-after an exact post-install watchdog interruption. It also drives retained runnable-predecessor fallback, offline retry,
-and terminal exhaustion through a recovery-time-only NSIS gate. The failure-specific 0.2.0 installer is constructed
+after an exact post-install watchdog interruption. It also drives the retained product-image fallback through its
+validated private startup mode, starts offline retry from that fallback through the distinct dedicated watchdog, and
+drives terminal exhaustion through a recovery-time-only NSIS gate. The failure-specific 0.2.0 installer is constructed
 only after the ordinary replacement scenario succeeds, so a failure on the primary path cannot spend another package
 build on an unreachable scenario. Feature-gated preparation diagnostics identify only the failed recovery stage and
 typed error in backend test logs. The preserved watchdog separately inherits the captured backend diagnostic stream

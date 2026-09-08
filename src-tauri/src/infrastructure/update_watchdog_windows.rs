@@ -27,8 +27,9 @@ use super::update_watchdog::{
 };
 use super::update_watchdog_protocol::{
     generate_launch_nonce, read_watchdog_readiness, write_candidate_go, write_watchdog_readiness,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT, WATCHDOG_READY_TIMEOUT,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_FALLBACK_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_RETRY_ARGUMENT, WATCHDOG_READY_TIMEOUT,
 };
 use super::{
     acquire_windows_update_recovery_watchdog_lease,
@@ -204,7 +205,7 @@ pub fn reattach_windows_update_recovery_watchdog(
         Err(error) => return Err(error.into()),
     }
     match spawn_windows_update_recovery_watchdog(
-        context.runnable_predecessor_executable_path(),
+        context.watchdog_executable_path(),
         installed_executable_path,
         UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
     ) {
@@ -226,9 +227,9 @@ pub fn retry_windows_update_recovery(
 ) -> Result<Option<StartedWindowsUpdateRecoveryWatchdog>, UpdateRecoveryWatchdogError> {
     let context = begin_windows_update_recovery_retry(recovery_root, installed_executable_path)?;
     match spawn_windows_update_recovery_watchdog(
-        context.runnable_predecessor_executable_path(),
+        context.watchdog_executable_path(),
         installed_executable_path,
-        UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+        UPDATE_RECOVERY_WATCHDOG_RETRY_ARGUMENT,
     ) {
         Ok(watchdog) => Ok(Some(watchdog)),
         Err(start_error) => match acquire_windows_update_recovery_watchdog_lease(&context) {
@@ -281,6 +282,7 @@ pub fn run_windows_update_recovery_watchdog(
     watchdog_executable: &Path,
     installed_executable_path: &Path,
     resumed_after_interruption: bool,
+    started_from_runnable_predecessor: bool,
     readiness: &mut impl Write,
 ) -> Result<UpdateRecoveryWatchdogOutcome, UpdateRecoveryWatchdogError> {
     let context = observe_windows_watchdog_startup(
@@ -304,7 +306,11 @@ pub fn run_windows_update_recovery_watchdog(
     let original_parent = observe_windows_watchdog_startup(
         WindowsWatchdogStartupStage::ParentProcess,
         WindowsWatchdogStartupErrorCategory::NativeProcess,
-        observe_windows_parent_process(context.installed_executable_path()),
+        observe_windows_parent_process(watchdog_parent_executable(
+            context.installed_executable_path(),
+            context.runnable_predecessor_executable_path(),
+            started_from_runnable_predecessor,
+        )),
     )?;
     observe_windows_watchdog_startup(
         WindowsWatchdogStartupStage::ReadinessWrite,
@@ -710,13 +716,29 @@ fn launch_runnable_predecessor(
     context: &WindowsUpdateRecoveryWatchdogContext,
 ) -> Result<(), UpdateRecoveryWatchdogError> {
     let executable = context.runnable_predecessor_executable_path();
-    let mut child = launch_application(executable, &[], false)?;
+    let arguments = [
+        OsString::from(UPDATE_RECOVERY_FALLBACK_ARGUMENT),
+        context.installed_executable_path().as_os_str().to_owned(),
+    ];
+    let mut child = launch_application(executable, &arguments, false)?;
     match observe_started_windows_process(&mut child, executable) {
         Ok(_) => Ok(()),
         Err(error) => {
             let _ = stop_child(&mut child);
             Err(error)
         }
+    }
+}
+
+fn watchdog_parent_executable<'a>(
+    installed_executable: &'a Path,
+    runnable_predecessor_executable: &'a Path,
+    started_from_runnable_predecessor: bool,
+) -> &'a Path {
+    if started_from_runnable_predecessor {
+        runnable_predecessor_executable
+    } else {
+        installed_executable
     }
 }
 
@@ -938,14 +960,29 @@ mod tests {
     }
 
     #[test]
-    fn keeps_the_native_and_fallback_executable_roles_distinct() {
+    fn keeps_the_native_watchdog_and_fallback_executable_roles_distinct() {
         let native = PathBuf::from("C:\\Users\\person\\AppData\\Local\\FitFreed\\fitfreed.exe");
         let fallback = PathBuf::from(
+            "C:\\Users\\person\\AppData\\Roaming\\org.fitfreed.desktop\\update-recovery\\attempts\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\previous\\runnable\\fitfreed.exe",
+        );
+        let watchdog = PathBuf::from(
             "C:\\Users\\person\\AppData\\Roaming\\org.fitfreed.desktop\\update-recovery\\attempts\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\previous\\runnable\\fitfreed-update-recovery.exe",
         );
 
         assert_ne!(native, fallback);
-        assert_ne!(native.file_name(), fallback.file_name());
+        assert!(native.to_string_lossy().ends_with("\\fitfreed.exe"));
+        assert!(fallback.to_string_lossy().ends_with("\\fitfreed.exe"));
+        assert!(watchdog
+            .to_string_lossy()
+            .ends_with("\\fitfreed-update-recovery.exe"));
+        assert_eq!(
+            watchdog_parent_executable(&native, &fallback, false),
+            native
+        );
+        assert_eq!(
+            watchdog_parent_executable(&native, &fallback, true),
+            fallback
+        );
         assert!(candidate_arguments(&"a".repeat(64), &"b".repeat(64))
             .first()
             .is_some_and(|argument| argument == UPDATE_RECOVERY_CANDIDATE_ARGUMENT));
