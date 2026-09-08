@@ -164,6 +164,12 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
+    /- name: Test state-lock serialization on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows\n          --lib -- --exact/,
+    "focused Windows update verification must prove state-lock serialization before packaging",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
     /- name: Test prepared-recovery durability on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_windows_state::windows_tests::synchronizes_the_complete_prepared_file_set_with_windows_durability_semantics\n          --lib/,
     "focused Windows update verification must falsify the native durability hypothesis before packaging",
   );
@@ -189,7 +195,17 @@ export function validateWindowsCiWorkflow(source) {
   const concurrentActorsTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::tests::keeps_watchdog_and_candidate_leases_distinct_through_confirmation",
   );
+  const stateSerializationTest = packagedCapability.indexOf(
+    "infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows",
+  );
   const packagedUpdate = packagedCapability.indexOf("npm run verify:windows-update-e2e");
+  if (
+    stateSerializationTest < 0
+    || packagedUpdate < 0
+    || stateSerializationTest > packagedUpdate
+  ) {
+    errors.push("focused Windows recovery verification must prove state-lock serialization before packaging");
+  }
   if (
     concurrentActorsTest < 0
     || packagedUpdate < 0

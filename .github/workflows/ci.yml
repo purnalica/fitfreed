@@ -473,6 +473,13 @@ jobs:
         if: needs.quality.outputs.focused-verification == 'windows-update'
         run: npm run icons
 
+      - name: Test state-lock serialization on Windows
+        if: needs.quality.outputs.focused-verification == 'windows-update'
+        run: >-
+          cargo test --manifest-path src-tauri/Cargo.toml
+          infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows
+          --lib -- --exact
+
       - name: Test prepared-recovery durability on Windows
         if: needs.quality.outputs.focused-verification == 'windows-update'
         run: >-

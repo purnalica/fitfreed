@@ -166,7 +166,11 @@ preparation removes only its owned staging attempt; an existing active attempt, 
 or mutated package, runnable image, library, or manifest fails closed. Windows uses a no-sharing file handle for the
 production outcome lease, while portable tests exercise the equivalent non-blocking exclusive ownership boundary.
 Lifecycle mutation now serializes through the state lock, requires the active pointer and manifest identity to agree,
-and admits only application-owned transitions. The generic transition cannot forge `launching`; that phase is written
+and admits only application-owned transitions. A Windows state writer waits for an exact sharing or lock violation
+for at most ten seconds, polling every ten milliseconds, so a watchdog verification and coordinator transition remain
+serialized rather than turning normal peer ownership into an installation failure. Any other open error and a bounded
+wait expiry fail closed; watchdog, candidate, and outcome leases remain non-blocking exclusive authorities. The generic
+transition cannot forge `launching`; that phase is written
 atomically only with the exact process identifier, lossless creation `FILETIME`, canonical installed executable path,
 fresh launch nonce, and absolute confirmation deadline. The preserved executable resolves watchdog authority only
 through its exact active attempt layout; a watchdog lease revalidates that immutable context, and a candidate lease

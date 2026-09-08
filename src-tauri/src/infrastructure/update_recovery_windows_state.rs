@@ -6,6 +6,12 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+#[cfg(target_os = "windows")]
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
+
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, SecondsFormat, Utc};
 use fitfreed_application::{
@@ -64,6 +70,10 @@ const MAX_LOCAL_PATH_BYTES: usize = 4096;
 const MAX_URL_BYTES: usize = 2048;
 const MAX_VERSION_BYTES: usize = 255;
 const MAX_SAFE_JSON_INTEGER: u64 = 9_007_199_254_740_991;
+#[cfg(target_os = "windows")]
+const STATE_LOCK_POLL_INTERVAL: Duration = Duration::from_millis(10);
+#[cfg(target_os = "windows")]
+const STATE_LOCK_WAIT_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Error)]
 pub enum WindowsRecoveryStateError {
@@ -71,6 +81,8 @@ pub enum WindowsRecoveryStateError {
     InvalidInput,
     #[error("a Windows recovery attempt is already active")]
     ActiveAttemptExists,
+    #[error("timed out waiting for Windows recovery state serialization")]
+    StateLockTimeout,
     #[error("the Windows recovery state is invalid")]
     InvalidState,
     #[error("the Windows recovery transition is invalid")]
@@ -2722,13 +2734,41 @@ impl StateLock {
 
     #[cfg(target_os = "windows")]
     fn acquire(attempt_directory: &Path) -> Result<Self, WindowsRecoveryStateError> {
-        open_private_lock_file(attempt_directory, STATE_LOCK_FILE_NAME, false)
-            .map(|file| Self { _file: file })
+        let deadline = Instant::now() + STATE_LOCK_WAIT_TIMEOUT;
+        acquire_windows_state_lock_with(
+            || open_private_lock_file(attempt_directory, STATE_LOCK_FILE_NAME, false),
+            || {
+                let now = Instant::now();
+                if now >= deadline {
+                    return false;
+                }
+                thread::sleep(STATE_LOCK_POLL_INTERVAL.min(deadline.duration_since(now)));
+                true
+            },
+        )
     }
 
     #[cfg(not(any(unix, target_os = "windows")))]
     fn acquire(_attempt_directory: &Path) -> Result<Self, WindowsRecoveryStateError> {
         Err(WindowsRecoveryStateError::InvalidState)
+    }
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn acquire_windows_state_lock_with(
+    mut open: impl FnMut() -> Result<File, WindowsRecoveryStateError>,
+    mut wait_before_retry: impl FnMut() -> bool,
+) -> Result<StateLock, WindowsRecoveryStateError> {
+    loop {
+        match open() {
+            Ok(file) => return Ok(StateLock { _file: file }),
+            Err(WindowsRecoveryStateError::Io(error)) if windows_lock_open_is_contended(&error) => {
+                if !wait_before_retry() {
+                    return Err(WindowsRecoveryStateError::StateLockTimeout);
+                }
+            }
+            Err(error) => return Err(error),
+        }
     }
 }
 
@@ -2754,12 +2794,17 @@ fn map_lock_contention(error: WindowsRecoveryStateError) -> WindowsRecoveryState
 
 #[cfg(target_os = "windows")]
 fn lock_open_is_contended(error: &io::Error) -> bool {
-    matches!(error.raw_os_error(), Some(32 | 33))
+    windows_lock_open_is_contended(error)
 }
 
 #[cfg(not(target_os = "windows"))]
 fn lock_open_is_contended(_error: &io::Error) -> bool {
     false
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn windows_lock_open_is_contended(error: &io::Error) -> bool {
+    matches!(error.raw_os_error(), Some(32 | 33))
 }
 
 impl ExclusiveFileLock {
@@ -3695,6 +3740,85 @@ mod tests {
             Err(WindowsRecoveryStateError::ActiveAttemptExists)
         ));
         assert!(!harness.recovery_root.join(ATTEMPTS_DIRECTORY_NAME).exists());
+    }
+
+    #[test]
+    fn retries_windows_state_lock_contention_until_the_mutex_is_acquired() {
+        let directory = TempDir::new().expect("temporary directory");
+        let lock_path = directory.path().join(STATE_LOCK_FILE_NAME);
+        drop(
+            open_private_lock_file(directory.path(), STATE_LOCK_FILE_NAME, true)
+                .expect("state lock file"),
+        );
+        let open_attempts = Cell::new(0_u8);
+        let waits = Cell::new(0_u8);
+
+        let lock = acquire_windows_state_lock_with(
+            || {
+                open_attempts.set(open_attempts.get() + 1);
+                if open_attempts.get() < 3 {
+                    return Err(io::Error::from_raw_os_error(32).into());
+                }
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(&lock_path)
+                    .map_err(Into::into)
+            },
+            || {
+                waits.set(waits.get() + 1);
+                true
+            },
+        )
+        .expect("serialized state lock acquisition");
+
+        assert_eq!(open_attempts.get(), 3);
+        assert_eq!(waits.get(), 2);
+        validate_private_lock_file(&lock._file).expect("valid acquired lock");
+    }
+
+    #[test]
+    fn bounds_windows_state_lock_contention_without_retrying_other_io_failures() {
+        let contention_attempts = Cell::new(0_u8);
+        let contention_waits = Cell::new(0_u8);
+
+        let contended = acquire_windows_state_lock_with(
+            || {
+                contention_attempts.set(contention_attempts.get() + 1);
+                Err(io::Error::from_raw_os_error(32).into())
+            },
+            || {
+                contention_waits.set(contention_waits.get() + 1);
+                false
+            },
+        );
+
+        assert!(matches!(
+            contended,
+            Err(WindowsRecoveryStateError::StateLockTimeout)
+        ));
+        assert_eq!(contention_attempts.get(), 1);
+        assert_eq!(contention_waits.get(), 1);
+
+        let other_attempts = Cell::new(0_u8);
+        let other_waits = Cell::new(0_u8);
+        let other = acquire_windows_state_lock_with(
+            || {
+                other_attempts.set(other_attempts.get() + 1);
+                Err(io::Error::from_raw_os_error(5).into())
+            },
+            || {
+                other_waits.set(other_waits.get() + 1);
+                true
+            },
+        );
+
+        assert!(matches!(
+            other,
+            Err(WindowsRecoveryStateError::Io(error)) if error.raw_os_error() == Some(5)
+        ));
+        assert_eq!(other_attempts.get(), 1);
+        assert_eq!(other_waits.get(), 0);
     }
 
     #[test]
@@ -4948,7 +5072,12 @@ mod tests {
 
 #[cfg(all(test, target_os = "windows"))]
 mod windows_tests {
-    use std::path::PathBuf;
+    use std::{
+        path::PathBuf,
+        sync::mpsc::{self, RecvTimeoutError},
+        thread,
+        time::Duration,
+    };
 
     use tempfile::TempDir;
 
@@ -4978,5 +5107,39 @@ mod windows_tests {
         }
 
         sync_prepared_attempt(&attempt).expect("durable prepared recovery");
+    }
+
+    #[test]
+    fn serializes_competing_state_lock_owners_on_windows() {
+        let directory = TempDir::new().expect("temporary directory");
+        let attempt = directory.path().join("attempt");
+        fs::create_dir(&attempt).expect("attempt directory");
+        drop(
+            open_private_lock_file(&attempt, STATE_LOCK_FILE_NAME, true).expect("state lock file"),
+        );
+        let first_owner = StateLock::acquire(&attempt).expect("first state lock owner");
+        let (started_sender, started_receiver) = mpsc::channel();
+        let (result_sender, result_receiver) = mpsc::channel();
+
+        let competing_attempt = attempt.clone();
+        let competing_owner = thread::spawn(move || {
+            started_sender.send(()).expect("started acquisition");
+            let acquired = StateLock::acquire(&competing_attempt).is_ok();
+            result_sender.send(acquired).expect("acquisition result");
+        });
+
+        started_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("competing acquisition started");
+        assert!(matches!(
+            result_receiver.recv_timeout(Duration::from_millis(500)),
+            Err(RecvTimeoutError::Timeout)
+        ));
+
+        drop(first_owner);
+        assert!(result_receiver
+            .recv_timeout(Duration::from_secs(2))
+            .expect("competing acquisition completed"));
+        competing_owner.join().expect("competing owner joined");
     }
 }

@@ -317,7 +317,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   preserve watchdog ownership across deferred or rejected maintenance, consume it only after committing the durable
   receipt and active-pointer removal, and resume cleanup only from that exact receipt. Installation-coordinator tests
   require watchdog readiness before the `replacement-started` handoff, discard only while still quiescent, and stop a
-  started watchdog before a failed transition is discarded. Windows-watchdog tests require complete direct-parent
+  started watchdog before a failed transition is discarded. A native Windows concurrency contract holds the state
+  mutex across a competing acquisition, proves that the second owner waits without succeeding or failing, and requires
+  it to acquire within a bounded deadline after release; portable policy tests require retries only for exact Windows
+  sharing and lock violations and a distinct timeout outcome. Windows-watchdog tests require complete direct-parent
   identity before readiness, allow only a fresh watchdog to invoke the handed-off candidate installer, treat a resumed
   pre-installation phase as an interruption, generate a 256-bit lowercase nonce from the operating-system random
   source, record the candidate before releasing startup, distinguish installed and runnable-predecessor executable

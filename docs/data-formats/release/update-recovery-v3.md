@@ -49,6 +49,13 @@ are accepted for read verification only; they neither make the file absent nor g
 other open or validation failure remains fatal. State changes still require the state handle, and watchdog, candidate,
 recovery, discard, and cleanup mutations still require their separately specified exclusive authorities.
 
+`state.lock` is the short-lived lifecycle mutex rather than a process-lifetime actor lease. An acquiring Windows state
+writer retries only sharing violation 32 or lock violation 33 every ten milliseconds for at most ten seconds, then
+reopens and validates the file before entering the serialized operation. Acquisition of any other lock remains
+non-blocking. Any other state-lock open failure is fatal immediately, and expiry of the bounded wait is a distinct
+state-serialization failure. Read-only complete verification may continue to treat an exact state-lock collision as
+evidence of peer ownership, but it gains no write authority from that observation.
+
 ## Preparation and authenticated assets
 
 Before replacement, the Windows adapter derives the installed application and data roots from the Windows known

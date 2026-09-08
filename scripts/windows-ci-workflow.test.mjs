@@ -112,6 +112,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
   );
   assert.match(
     packagedJob,
+    /- name: Test state-lock serialization on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?serializes_competing_state_lock_owners_on_windows[\s\S]*?--lib -- --exact/,
+  );
+  assert.match(
+    packagedJob,
     /- name: Test prepared-recovery durability on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?synchronizes_the_complete_prepared_file_set_with_windows_durability_semantics[\s\S]*?--lib/,
   );
   assert.match(
@@ -126,8 +130,20 @@ test("isolates native Windows update recovery from accepted capability evidence"
   );
   assert.match(packagedJob, /npm run verify:windows-update-e2e/);
   assert.ok(
+    packagedJob.indexOf("serializes_competing_state_lock_owners_on_windows")
+      < packagedJob.indexOf("npm run verify:windows-update-e2e"),
+  );
+  assert.ok(
     packagedJob.indexOf("keeps_watchdog_and_candidate_leases_distinct_through_confirmation")
       < packagedJob.indexOf("npm run verify:windows-update-e2e"),
+  );
+
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      "      - name: Test state-lock serialization on Windows\n        if: needs.quality.outputs.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri/Cargo.toml\n          infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows\n          --lib -- --exact\n\n",
+      "",
+    )),
+    /state-lock serialization/,
   );
 
   assert.throws(
