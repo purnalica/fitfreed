@@ -41,10 +41,13 @@ required files; preservation covers every validated entry in the installed FitFr
 `state.lock`, `candidate.lock`, `watchdog.lock`, and `outcome.lock` are private, empty, non-reparse regular files.
 Windows actors open them with sharing disabled for the complete protected operation. A conflicting open means that
 another actor owns the lease; it is never treated as absence. The manifest is the state source of truth, while the
-native handle is the cross-process exclusion boundary. Readers verify the exact final path, file identity, zero
-length, and absence of reparse attributes before trusting a lease. An actor that already owns a lease must pass that
-exact authority into subsequent verification: the verifier treats only that named handle as held and must not reopen
-its no-sharing pathname. Readers without the lease must continue to reopen every authority file.
+native handle is the cross-process exclusion boundary. Acquisition verifies the exact final path, file identity, zero
+length, and absence of reparse attributes before trusting a lease. Subsequent complete verification receives a closed
+expectation for each named role. It revalidates a caller-owned lock through the existing handle and reopens an
+unowned lock when Windows permits access. Sharing violations 32 and 33 mean that a peer currently owns the role and
+are accepted for read verification only; they neither make the file absent nor grant the reader that lease. Every
+other open or validation failure remains fatal. State changes still require the state handle, and watchdog, candidate,
+recovery, discard, and cleanup mutations still require their separately specified exclusive authorities.
 
 ## Preparation and authenticated assets
 
@@ -180,7 +183,8 @@ restart never extends the original installation or confirmation deadline. A reco
 as a pre-replacement interruption and `replacement-started` as an uncertain native replacement that must recover; it
 never repeats candidate installation from either phase. It resumes later launch or recovery work only after acquiring
 the watchdog handle and reconciling the persisted phase through that same held lease with the exact native process
-identity. It does not
+identity. A live candidate may retain its separate handle during those reads and confirmation, and a watchdog restart
+may acquire its role while that candidate handle remains live. It does not
 automatically repeat a previously failed native rollback; retry from `native-recovery-unavailable` is an explicit
 application action without caller-supplied identifiers, paths, packages, or commands.
 

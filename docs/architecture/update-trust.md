@@ -170,10 +170,13 @@ atomically only with the exact process identifier, lossless creation `FILETIME`,
 fresh launch nonce, and absolute confirmation deadline. The preserved executable resolves watchdog authority only
 through its exact active attempt layout; a watchdog lease revalidates that immutable context, and a candidate lease
 requires the exact persisted PID, creation `FILETIME`, executable, nonce, and target native installation identity.
-Both process-lifetime leases use the same exclusive-handle boundary without reopening their held lock on Windows.
-Every watchdog phase read requires its concrete lease, revalidates the complete attempt while declaring only that
-watchdog handle already held, and rejects a lease or active pointer for another attempt. Unleased readers still reopen
-all authority files.
+Each process-lifetime lease owns a distinct no-sharing handle. Complete verification receives one closed, role-specific
+lock set: an owned lock is revalidated through its existing handle; an unowned lock is reopened and validated when
+available; and an exact Windows sharing collision is accepted only as evidence that a peer actor currently owns that
+role. Peer activity grants the reader no mutation authority. Atomic manifest replacement keeps an unleased read
+complete while the state writer is active, and mutations remain serialized by the state handle. This allows the
+watchdog and exact candidate to coexist from launch through confirmation without reopening either actor's handle.
+Every watchdog phase read still requires its concrete lease and rejects a lease or active pointer for another attempt.
 Candidate confirmation holds its lease, derives the fixed library beside the recovery root, and requires the active
 manifest, launch nonce, target native identity, running version, target schema, and SQLite integrity before the
 specialized transition can enter `confirmed`; the generic transition API cannot claim that state. The installation

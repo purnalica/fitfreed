@@ -948,11 +948,15 @@ fn acquire_windows_update_recovery_watchdog_lease_with(
     let lock_file = open_private_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, false)
         .map_err(map_lock_contention)?;
     let lock = ExclusiveFileLock::acquire(lock_file)?;
-    let manifest = verify_windows_update_recovery_with_held_locks(
+    let lease = WindowsUpdateRecoveryWatchdogLease {
+        _lock: lock,
+        recovery_id: context.recovery_id().to_owned(),
+    };
+    let manifest = verify_windows_update_recovery_with_locks(
         packages,
         &recovery_root,
         context.recovery_id(),
-        &[WATCHDOG_LOCK_FILE_NAME],
+        RecoveryLockExpectations::watchdog_owned(&lease._lock),
     )?;
     if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != context.recovery_id()
         || manifest.target.version != context.target_version()
@@ -961,10 +965,7 @@ fn acquire_windows_update_recovery_watchdog_lease_with(
     {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    Ok(WindowsUpdateRecoveryWatchdogLease {
-        _lock: lock,
-        recovery_id: context.recovery_id().to_owned(),
-    })
+    Ok(lease)
 }
 
 pub fn acquire_windows_update_recovery_candidate_lease(
@@ -1007,15 +1008,20 @@ fn acquire_windows_update_recovery_candidate_lease_with(
     let lock_file = open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)
         .map_err(map_lock_contention)?;
     let lock = ExclusiveFileLock::acquire(lock_file)?;
-    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    let candidate_lease = WindowsUpdateRecoveryCandidateLease {
+        _lock: lock,
+        recovery_id: recovery_id.to_owned(),
+        launch_nonce: launch_nonce.to_owned(),
+    };
+    let state_lock = StateLock::acquire(&attempt_directory)?;
     if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    let manifest = verify_windows_update_recovery_with_held_locks(
+    let manifest = verify_windows_update_recovery_with_locks(
         packages,
         &recovery_root,
         recovery_id,
-        &[CANDIDATE_LOCK_FILE_NAME, STATE_LOCK_FILE_NAME],
+        RecoveryLockExpectations::candidate_and_state_owned(&candidate_lease._lock, &state_lock),
     )?;
     let replacement = manifest
         .replacement_process
@@ -1038,11 +1044,7 @@ fn acquire_windows_update_recovery_candidate_lease_with(
     {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    Ok(WindowsUpdateRecoveryCandidateLease {
-        _lock: lock,
-        recovery_id: recovery_id.to_owned(),
-        launch_nonce: launch_nonce.to_owned(),
-    })
+    Ok(candidate_lease)
 }
 
 pub fn confirm_active_windows_update_recovery(
@@ -1083,16 +1085,16 @@ fn confirm_active_windows_update_recovery_with(
     let library_path = canonical_windows_library_path(&recovery_root, library_path)?;
     let recovery_id = candidate_lease.recovery_id();
     let attempt_directory = canonical_recovery_attempt(&recovery_root, recovery_id)?;
-    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    let state_lock = StateLock::acquire(&attempt_directory)?;
     if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
     let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
-    let mut manifest = verify_windows_update_recovery_with_held_locks(
+    let mut manifest = verify_windows_update_recovery_with_locks(
         packages,
         &recovery_root,
         recovery_id,
-        &[CANDIDATE_LOCK_FILE_NAME, STATE_LOCK_FILE_NAME],
+        RecoveryLockExpectations::candidate_and_state_owned(&candidate_lease._lock, &state_lock),
     )?;
     let replacement_process = manifest
         .replacement_process
@@ -1167,15 +1169,11 @@ fn discard_prepared_windows_update_recovery_with(
     if read_active_recovery_id(&active_path)? != recovery_id {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    let manifest = verify_windows_update_recovery_with_held_locks(
+    let manifest = verify_windows_update_recovery_with_locks(
         packages,
         &recovery_root,
         recovery_id,
-        &[
-            WATCHDOG_LOCK_FILE_NAME,
-            CANDIDATE_LOCK_FILE_NAME,
-            STATE_LOCK_FILE_NAME,
-        ],
+        RecoveryLockExpectations::all_owned(&state_lock, &candidate_lock, &watchdog_lock),
     )?;
     if manifest.phase != WindowsRecoveryPhaseWire::Prepared || manifest.recovery_id != recovery_id {
         return Err(WindowsRecoveryStateError::InvalidTransition);
@@ -1324,15 +1322,16 @@ fn finalize_terminal_windows_update_recovery(
         return Err(WindowsRecoveryStateError::InvalidState);
     }
 
-    let manifest = verify_windows_update_recovery_with_held_locks(
+    let watchdog_authority = watchdog_lease
+        .as_ref()
+        .map(|lease| &lease._lock)
+        .or(watchdog_lock.as_ref())
+        .ok_or(WindowsRecoveryStateError::InvalidState)?;
+    let manifest = verify_windows_update_recovery_with_locks(
         packages,
         recovery_root,
         recovery_id,
-        &[
-            WATCHDOG_LOCK_FILE_NAME,
-            CANDIDATE_LOCK_FILE_NAME,
-            STATE_LOCK_FILE_NAME,
-        ],
+        RecoveryLockExpectations::all_owned(&state_lock, &candidate_lock, watchdog_authority),
     )?;
     let kind = match manifest.phase {
         WindowsRecoveryPhaseWire::Confirmed => UpdateRecoveryOutcomeKind::Updated,
@@ -1460,21 +1459,17 @@ fn restore_active_windows_update_recovery_with(
     let candidate_file =
         open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)
             .map_err(map_lock_contention)?;
-    let _candidate_lock = ExclusiveFileLock::acquire(candidate_file)?;
-    let _state_lock = StateLock::acquire(&attempt_directory)?;
+    let candidate_lock = ExclusiveFileLock::acquire(candidate_file)?;
+    let state_lock = StateLock::acquire(&attempt_directory)?;
     if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != restoration.recovery_id {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
     let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
-    let mut manifest = verify_windows_update_recovery_with_held_locks(
+    let mut manifest = verify_windows_update_recovery_with_locks(
         packages,
         &recovery_root,
         restoration.recovery_id,
-        &[
-            WATCHDOG_LOCK_FILE_NAME,
-            CANDIDATE_LOCK_FILE_NAME,
-            STATE_LOCK_FILE_NAME,
-        ],
+        RecoveryLockExpectations::all_owned(&state_lock, &candidate_lock, &watchdog_lease._lock),
     )?;
     if manifest.phase != WindowsRecoveryPhaseWire::Recovering
         || manifest.recovery_id != restoration.recovery_id
@@ -1633,11 +1628,11 @@ fn active_windows_update_recovery_phase_with_watchdog_lease_with(
     if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != context.recovery_id() {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    let manifest = verify_windows_update_recovery_with_held_locks(
+    let manifest = verify_windows_update_recovery_with_locks(
         packages,
         &recovery_root,
         context.recovery_id(),
-        &[WATCHDOG_LOCK_FILE_NAME],
+        RecoveryLockExpectations::watchdog_owned(&watchdog_lease._lock),
     )?;
     if manifest.source.version != context.source_version()
         || manifest.target.version != context.target_version()
@@ -1990,14 +1985,19 @@ fn verify_windows_update_recovery_with(
     recovery_root: &Path,
     recovery_id: &str,
 ) -> Result<WindowsRecoveryManifest, WindowsRecoveryStateError> {
-    verify_windows_update_recovery_with_held_locks(packages, recovery_root, recovery_id, &[])
+    verify_windows_update_recovery_with_locks(
+        packages,
+        recovery_root,
+        recovery_id,
+        RecoveryLockExpectations::unowned(),
+    )
 }
 
-fn verify_windows_update_recovery_with_held_locks(
+fn verify_windows_update_recovery_with_locks(
     packages: &impl RecoveryPackagePort,
     recovery_root: &Path,
     recovery_id: &str,
-    held_lock_names: &[&str],
+    locks: RecoveryLockExpectations<'_>,
 ) -> Result<WindowsRecoveryManifest, WindowsRecoveryStateError> {
     if !valid_sha256(recovery_id) {
         return Err(WindowsRecoveryStateError::InvalidInput);
@@ -2006,15 +2006,13 @@ fn verify_windows_update_recovery_with_held_locks(
     let attempts_directory =
         canonical_private_directory(&recovery_root.join(ATTEMPTS_DIRECTORY_NAME))?;
     let attempt_directory = canonical_private_directory(&attempts_directory.join(recovery_id))?;
-    for name in [
-        STATE_LOCK_FILE_NAME,
+    verify_recovery_lock_file(&attempt_directory, STATE_LOCK_FILE_NAME, locks.state)?;
+    verify_recovery_lock_file(
+        &attempt_directory,
         CANDIDATE_LOCK_FILE_NAME,
-        WATCHDOG_LOCK_FILE_NAME,
-    ] {
-        if !held_lock_names.contains(&name) {
-            drop(open_private_lock_file(&attempt_directory, name, false)?);
-        }
-    }
+        locks.candidate,
+    )?;
+    verify_recovery_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, locks.watchdog)?;
     let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
     validate_manifest(&manifest)?;
     if manifest.recovery_id != recovery_id {
@@ -2554,7 +2552,7 @@ fn open_private_lock_file(
     name: &str,
     create: bool,
 ) -> Result<File, WindowsRecoveryStateError> {
-    use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
+    use std::os::unix::fs::OpenOptionsExt;
 
     let file = OpenOptions::new()
         .read(true)
@@ -2563,6 +2561,14 @@ fn open_private_lock_file(
         .mode(0o600)
         .custom_flags(libc::O_NOFOLLOW)
         .open(directory.join(name))?;
+    validate_private_lock_file(&file)?;
+    Ok(file)
+}
+
+#[cfg(unix)]
+fn validate_private_lock_file(file: &File) -> Result<(), WindowsRecoveryStateError> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
     let metadata = file.metadata()?;
     if !metadata.file_type().is_file()
         || metadata.len() != 0
@@ -2572,7 +2578,7 @@ fn open_private_lock_file(
     {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    Ok(file)
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -2593,11 +2599,17 @@ fn open_private_lock_file(
         .share_mode(0)
         .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
     let file = options.open(directory.join(name))?;
+    validate_private_lock_file(&file)?;
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn validate_private_lock_file(file: &File) -> Result<(), WindowsRecoveryStateError> {
     let metadata = file.metadata()?;
     if !metadata.file_type().is_file() || metadata.len() != 0 || is_reparse_point(&metadata) {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    Ok(file)
+    Ok(())
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
@@ -2609,12 +2621,91 @@ fn open_private_lock_file(
     Err(WindowsRecoveryStateError::InvalidState)
 }
 
+#[cfg(not(any(unix, target_os = "windows")))]
+fn validate_private_lock_file(_file: &File) -> Result<(), WindowsRecoveryStateError> {
+    Err(WindowsRecoveryStateError::InvalidState)
+}
+
 struct ExclusiveFileLock {
     _file: File,
 }
 
 struct StateLock {
     _file: File,
+}
+
+#[derive(Clone, Copy)]
+enum RecoveryLockExpectation<'a> {
+    Owned(&'a File),
+    AvailableOrHeldByPeer,
+}
+
+#[derive(Clone, Copy)]
+struct RecoveryLockExpectations<'a> {
+    state: RecoveryLockExpectation<'a>,
+    candidate: RecoveryLockExpectation<'a>,
+    watchdog: RecoveryLockExpectation<'a>,
+}
+
+impl RecoveryLockExpectations<'_> {
+    fn unowned() -> Self {
+        Self {
+            state: RecoveryLockExpectation::AvailableOrHeldByPeer,
+            candidate: RecoveryLockExpectation::AvailableOrHeldByPeer,
+            watchdog: RecoveryLockExpectation::AvailableOrHeldByPeer,
+        }
+    }
+}
+
+impl<'a> RecoveryLockExpectations<'a> {
+    fn watchdog_owned(watchdog: &'a ExclusiveFileLock) -> Self {
+        Self {
+            watchdog: RecoveryLockExpectation::Owned(&watchdog._file),
+            ..Self::unowned()
+        }
+    }
+
+    fn candidate_and_state_owned(candidate: &'a ExclusiveFileLock, state: &'a StateLock) -> Self {
+        Self {
+            state: RecoveryLockExpectation::Owned(&state._file),
+            candidate: RecoveryLockExpectation::Owned(&candidate._file),
+            watchdog: RecoveryLockExpectation::AvailableOrHeldByPeer,
+        }
+    }
+
+    fn all_owned(
+        state: &'a StateLock,
+        candidate: &'a ExclusiveFileLock,
+        watchdog: &'a ExclusiveFileLock,
+    ) -> Self {
+        Self {
+            state: RecoveryLockExpectation::Owned(&state._file),
+            candidate: RecoveryLockExpectation::Owned(&candidate._file),
+            watchdog: RecoveryLockExpectation::Owned(&watchdog._file),
+        }
+    }
+}
+
+fn verify_recovery_lock_file(
+    attempt_directory: &Path,
+    name: &str,
+    expectation: RecoveryLockExpectation<'_>,
+) -> Result<(), WindowsRecoveryStateError> {
+    match expectation {
+        RecoveryLockExpectation::Owned(file) => validate_private_lock_file(file),
+        RecoveryLockExpectation::AvailableOrHeldByPeer => {
+            match open_private_lock_file(attempt_directory, name, false)
+                .map_err(map_lock_contention)
+            {
+                Ok(file) => {
+                    drop(file);
+                    Ok(())
+                }
+                Err(WindowsRecoveryStateError::ActiveAttemptExists) => Ok(()),
+                Err(error) => Err(error),
+            }
+        }
+    }
 }
 
 impl StateLock {
@@ -3847,6 +3938,93 @@ mod tests {
         drop(watchdog);
         acquire_windows_update_recovery_watchdog_lease_with(&packages, &context)
             .expect("released watchdog lease");
+    }
+
+    #[test]
+    fn keeps_watchdog_and_candidate_leases_distinct_through_confirmation() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let (prepared, context, watchdog) = prepare_with_watchdog(&harness, &packages);
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+        transition_active_windows_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            PackagedUpdateRecoveryPhase::ReplacementInstalled,
+        )
+        .expect("replacement installed");
+        let process = WindowsRecoveryProcessIdentity::for_test(
+            42,
+            133_713_371_337,
+            &harness.identity.executable_path,
+        );
+        let launch_nonce = "7".repeat(64);
+        record_active_windows_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            WindowsUpdateRecoveryReplacementLaunch {
+                process: &process,
+                launch_nonce: &launch_nonce,
+                confirmation_deadline: "2026-09-04T08:05:00Z",
+            },
+        )
+        .expect("recorded replacement launch");
+        let mut candidate_identity = harness.identity.clone();
+        candidate_identity.version = "0.2.0".to_owned();
+
+        let candidate = acquire_windows_update_recovery_candidate_lease_with(
+            &packages,
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &launch_nonce,
+            &process,
+            &candidate_identity,
+        )
+        .expect("candidate lease alongside watchdog");
+        assert_eq!(
+            active_windows_update_recovery_phase_with_watchdog_lease_with(
+                &packages, &context, &watchdog,
+            )
+            .expect("launching phase alongside candidate"),
+            PackagedUpdateRecoveryPhase::Launching
+        );
+
+        confirm_active_windows_update_recovery_with(
+            &packages,
+            &candidate_identity,
+            &candidate,
+            &harness.recovery_root,
+            &harness.library_path,
+            "0.2.0",
+            u32::try_from(SCHEMA_VERSION).expect("schema version"),
+        )
+        .expect("candidate confirmation alongside watchdog");
+        assert_eq!(
+            active_windows_update_recovery_phase_with_watchdog_lease_with(
+                &packages, &context, &watchdog,
+            )
+            .expect("confirmed phase alongside candidate"),
+            PackagedUpdateRecoveryPhase::Confirmed
+        );
+        assert!(matches!(
+            acquire_windows_update_recovery_watchdog_lease_with(&packages, &context),
+            Err(WindowsRecoveryStateError::ActiveAttemptExists)
+        ));
+        assert!(matches!(
+            acquire_windows_update_recovery_candidate_lease_with(
+                &packages,
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                &launch_nonce,
+                &process,
+                &candidate_identity,
+            ),
+            Err(WindowsRecoveryStateError::ActiveAttemptExists)
+        ));
     }
 
     #[test]

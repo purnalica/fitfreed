@@ -116,7 +116,7 @@ test("isolates native Windows update recovery from accepted capability evidence"
   );
   assert.match(
     packagedJob,
-    /- name: Test held-watchdog phase reads on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?reads_active_windows_phase_through_the_held_watchdog_lease[\s\S]*?--lib -- --exact/,
+    /- name: Test concurrent Windows recovery actors[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?keeps_watchdog_and_candidate_leases_distinct_through_confirmation[\s\S]*?--lib -- --exact/,
   );
   const iconGeneration = packagedJob.indexOf("npm run icons");
   assert.notEqual(iconGeneration, -1);
@@ -126,7 +126,7 @@ test("isolates native Windows update recovery from accepted capability evidence"
   );
   assert.match(packagedJob, /npm run verify:windows-update-e2e/);
   assert.ok(
-    packagedJob.indexOf("reads_active_windows_phase_through_the_held_watchdog_lease")
+    packagedJob.indexOf("keeps_watchdog_and_candidate_leases_distinct_through_confirmation")
       < packagedJob.indexOf("npm run verify:windows-update-e2e"),
   );
 
