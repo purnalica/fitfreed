@@ -206,9 +206,15 @@ application action without caller-supplied identifiers, paths, packages, or comm
 
 Terminal cleanup requires exclusive watchdog, candidate, state, and outcome handles. For `confirmed`, the installed
 native identity and library must match the target. For `recovered`, they must match the source and preserved critical
-files. Cleanup first writes the shared version 1 outcome receipt, then removes the matching active pointer and only the
-verified attempt directory. An interrupted cleanup can continue solely for the exact receipt-bound attempt. A failed,
-invalid, busy, unrelated, redirected, or tampered attempt retains all evidence and blocks replacement.
+files. The watchdog first writes the shared version 1 outcome receipt, removes the matching active pointer, releases
+every attempt handle, and exits without deleting the directory that contains its running recovery image. This
+receipt-published state is terminal but is not yet a user-visible completed outcome. The installed target or recovered
+application reopens and revalidates the exact receipt-bound attempt. Before touching the tree, it must obtain exclusive
+delete access to `previous/runnable/fitfreed-update-recovery.exe`; an executing image or transient sharing denial leaves
+the complete attempt intact and reports cleanup as pending. Once the image is no longer in use, the application removes
+only the verified attempt directory and synchronizes `attempts`. It may then present the retained outcome for explicit
+acknowledgement. An interrupted cleanup can continue solely for the exact receipt-bound attempt. A failed, invalid,
+busy, unrelated, redirected, or tampered attempt retains all evidence and blocks replacement.
 
 Version 3 readers reject another format, schema, platform, architecture, package kind, installation scope, phase, path,
 package identity, process shape, unknown field, invalid transition, or incomplete asset. They do not guess, migrate,

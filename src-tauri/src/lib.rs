@@ -2112,12 +2112,17 @@ fn retain_update_recovery_outcome_after_startup(
         match maintain_platform_update_recovery(recovery_root, application_path, library_path)? {
             UpdateRecoveryMaintenance::OutcomeRetained(outcome) => return Ok(Some(outcome)),
             UpdateRecoveryMaintenance::NoTerminalOutcome => return Ok(None),
+            UpdateRecoveryMaintenance::CleanupPending(_) if Instant::now() < deadline => {
+                thread::sleep(UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL);
+            }
             UpdateRecoveryMaintenance::Deferred
                 if wait_for_terminal_outcome && Instant::now() < deadline =>
             {
                 thread::sleep(UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL);
             }
-            UpdateRecoveryMaintenance::Deferred => return Ok(None),
+            UpdateRecoveryMaintenance::Deferred | UpdateRecoveryMaintenance::CleanupPending(_) => {
+                return Ok(None)
+            }
         }
     }
 }

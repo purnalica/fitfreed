@@ -316,9 +316,12 @@ Local and continuous-integration workflows will invoke the same underlying comma
   replacement begins. Terminal-maintenance tests defer while the candidate lease is held, retain an outcome only after
   the exact target or recovered source pair revalidates, close Windows no-sharing handles before deleting the attempt,
   preserve watchdog ownership across deferred or rejected maintenance, consume it only after committing the durable
-  receipt and active-pointer removal, and resume cleanup only from that exact receipt. Installation-coordinator tests
-  require watchdog readiness before the `replacement-started` handoff, discard only while still quiescent, and stop a
-  started watchdog before a failed transition is discarded. A native Windows concurrency contract holds the state
+  receipt and active-pointer removal, leave the complete manifest and attempt for the installed application, and
+  resume cleanup only from that exact receipt. A Windows-native test requires an executing image to deny exclusive
+  delete access and an idle byte-identical copy to grant it before any recursive removal begins. Installation-
+  coordinator tests require watchdog readiness before the `replacement-started` handoff, discard only while still
+  quiescent, and stop a started watchdog before a failed transition is discarded. A native Windows concurrency
+  contract holds the state
   mutex across a competing acquisition, proves that the second owner waits without succeeding or failing, and requires
   it to acquire within a bounded deadline after release; portable policy tests require retries only for exact Windows
   sharing and lock violations and a distinct timeout outcome. Windows-watchdog tests require complete direct-parent
@@ -523,11 +526,13 @@ builds. Production child processes discard that stream. Before package construct
 acquires the distinct no-sharing watchdog and candidate handles, rejects a second owner of either role, confirms the
 exact candidate while both actors remain live, and requires the watchdog to observe both `launching` and `confirmed`
 through its original lease. This native test protects the Windows sharing semantics that a portable host cannot
-reproduce. After building the ordinary candidate and before the WebDriver journey, a native process-survival probe
-installs that exact NSIS package while same-user processes run under both the product filename and the dedicated
-recovery filename. The product-named probe must be terminated by the installer's fixed process boundary while the
-recovery-named probe remains alive; this proves the mechanism that the actual watchdog depends on without repeating
-the complete packaged journey. Before failure cleanup, the packaged journey projects the harness stage,
+reproduce. The Rust suite additionally executes the recovery-image cleanup probe on Windows: its running test image
+must be classified as pending while an idle copy is deletable. After building the ordinary candidate and before the
+WebDriver journey, a native process-survival probe installs that exact NSIS package while same-user processes run under
+both the product filename and the dedicated recovery filename. The product-named probe must be terminated by the
+installer's fixed process boundary while the recovery-named probe remains alive; this proves the mechanism that the
+actual watchdog depends on without repeating the complete packaged journey. Before failure cleanup, the packaged
+journey projects the harness stage,
 active-pointer state, closed
 manifest phase, bounded recovery attempts, closed recovery failure and outcome values, installed version, and bounded
 exact-process counts into a schema-versioned diagnostic. The projection cannot retain recovery identifiers, local

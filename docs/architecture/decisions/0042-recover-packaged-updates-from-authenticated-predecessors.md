@@ -72,6 +72,10 @@ installer and the minimum complete runnable predecessor image before candidate r
 - On candidate failure, the runner first restores the matching library and invokes the predecessor native installer.
   Debian rollback uses the operating system's authorization boundary; current-user NSIS rollback is unprivileged. The
   runner validates package state and installed bytes before declaring recovery complete.
+- A Windows runner never deletes the attempt containing its own executing recovery image. It validates the terminal
+  pair, writes the durable receipt, removes active authority, and releases its handles. The installed application then
+  revalidates that exact receipt-bound attempt and requires exclusive delete access to the recovery image before
+  removing the complete directory. A sharing denial preserves the intact attempt for bounded retry or later startup.
 - If native rollback cannot complete, the validated predecessor image remains available through an explicit recovery
   launch mode and retains all recovery assets. This state is not reported as recovered. It provides the previous
   application and actionable retry guidance without treating mixed native state as success.

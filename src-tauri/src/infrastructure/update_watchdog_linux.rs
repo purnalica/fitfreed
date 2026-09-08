@@ -313,6 +313,7 @@ fn retain_terminal_outcome(
             }
             UpdateRecoveryMaintenance::Deferred
             | UpdateRecoveryMaintenance::NoTerminalOutcome
+            | UpdateRecoveryMaintenance::CleanupPending(_)
             | UpdateRecoveryMaintenance::OutcomeRetained(_) => {
                 return Err(UpdateRecoveryWatchdogError::TerminalCleanup)
             }

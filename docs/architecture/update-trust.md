@@ -152,8 +152,12 @@ complete installed directory into a no-clobber staging tree, rejecting reparse p
 names, excessive paths, entry counts, or expanded size. The preserved tree must contain the exact x86-64 application
 and uninstaller. It also contains a byte-identical, independently PE-validated recovery copy named
 `fitfreed-update-recovery.exe`; this distinct process image remains outside the pinned Tauri NSIS installer's
-product-name termination boundary. The deterministic tree digest and both packages are reopened after no-clobber
-promotion. Failed preparation removes only the directories it created.
+product-name termination boundary. Because Windows keeps that running image open, terminal work is split without
+weakening receipt-bound authority: the watchdog validates the installed pair, makes the receipt durable, removes the
+active pointer, releases its handles, and exits; the installed application waits for exclusive delete access to the
+recovery image before it touches and removes the complete attempt. A pending probe preserves the intact manifest and
+assets for bounded retry or the next startup. The deterministic tree digest and both packages are reopened after
+no-clobber promotion. Failed preparation removes only the directories it created.
 
 The Windows-local [recovery contract version 3](../data-formats/release/update-recovery-v3.md) fixes that attempt to
 one x86-64 current-user NSIS identity. It binds the two authenticated installers, complete runnable predecessor,

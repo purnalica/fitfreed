@@ -398,6 +398,20 @@ FitFreed installation, registration, shortcut, or application-data root, so pref
 such state. Generated authority, packages, recovery files, and libraries remain transient; only privacy-safe failure
 evidence is retained. The hosted native run is still pending, and this slice does not replace the exact Windows 11 gate.
 
+The focused native campaign for revision `c120b5a` (workflow run `34243637684`, failure artifact
+`10064236662`) proved that the dedicated `fitfreed-update-recovery.exe` survives NSIS replacement, installs and
+launches 0.2.0, reaches the terminal `updated` outcome, removes the active pointer, and preserves no predecessor
+process. It also exposed a distinct terminal-cleanup defect: Windows keeps the running recovery image open, while the
+watchdog attempted to remove the attempt directory containing that same image. `remove_dir_all` removed the manifest
+before it reached the in-use executable, leaving a valid durable receipt beside a partially removed attempt. The
+correction separates receipt publication by the watchdog from attempt deletion by the installed application. The
+watchdog now leaves the complete attempt intact and exits; installed-application maintenance preflights the recovery
+image for exclusive deletion before touching the tree and retries while that image remains active. Portable state
+tests protect the two-stage handoff, and a Windows-only test requires the running image to remain protected while an
+idle byte-identical copy is deletable. The next focused native campaign must prove this behavior before the Windows
+update boundary can pass. Increasing the verifier timeout or accepting the retained directory would violate the
+documented terminal-cleanup contract and is not an admissible correction.
+
 ## Increment M5.3 — Packaged capability parity
 
 **Outcome:** the installed NSIS application provides the same accepted product experience on Windows 11.

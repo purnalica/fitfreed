@@ -519,6 +519,9 @@ fn retain_terminal_outcome(
     let deadline = Instant::now() + TERMINAL_CLEANUP_TIMEOUT;
     loop {
         match maintain_windows_update_recovery_with_watchdog_lease(context, watchdog_lease)? {
+            UpdateRecoveryMaintenance::CleanupPending(outcome) if outcome.kind == expected_kind => {
+                return Ok(())
+            }
             UpdateRecoveryMaintenance::OutcomeRetained(outcome)
                 if outcome.kind == expected_kind =>
             {
@@ -529,6 +532,7 @@ fn retain_terminal_outcome(
             }
             UpdateRecoveryMaintenance::Deferred
             | UpdateRecoveryMaintenance::NoTerminalOutcome
+            | UpdateRecoveryMaintenance::CleanupPending(_)
             | UpdateRecoveryMaintenance::OutcomeRetained(_) => {
                 return Err(UpdateRecoveryWatchdogError::TerminalCleanup)
             }

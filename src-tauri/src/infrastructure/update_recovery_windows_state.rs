@@ -1304,7 +1304,8 @@ fn finalize_terminal_windows_update_recovery(
     {
         return Err(WindowsRecoveryStateError::InvalidState);
     }
-    let watchdog_lock = if watchdog_lease.is_some() {
+    let watchdog_owned_cleanup = watchdog_lease.is_some();
+    let watchdog_lock = if watchdog_owned_cleanup {
         None
     } else {
         let Some(lock) = try_acquire_exclusive_lock(open_private_lock_file(
@@ -1421,9 +1422,51 @@ fn finalize_terminal_windows_update_recovery(
     drop(candidate_lock);
     drop(watchdog_lock);
     drop(watchdog_lease.take());
+    if watchdog_owned_cleanup {
+        return Ok(UpdateRecoveryMaintenance::CleanupPending(outcome));
+    }
+    let recovery_executable = attempt_directory
+        .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
+        .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
+    if !recovery_image_is_ready_for_cleanup(&recovery_executable)? {
+        return Ok(UpdateRecoveryMaintenance::CleanupPending(outcome));
+    }
     fs::remove_dir_all(&attempt_directory)?;
     sync_directory(&attempts_directory)?;
     Ok(UpdateRecoveryMaintenance::OutcomeRetained(outcome))
+}
+
+#[cfg(target_os = "windows")]
+fn recovery_image_is_ready_for_cleanup(
+    recovery_executable: &Path,
+) -> Result<bool, WindowsRecoveryStateError> {
+    use std::os::windows::fs::OpenOptionsExt;
+
+    use windows_sys::Win32::Storage::FileSystem::{DELETE, FILE_FLAG_OPEN_REPARSE_POINT};
+
+    let mut options = OpenOptions::new();
+    options
+        .access_mode(DELETE)
+        .share_mode(0)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
+    match options.open(recovery_executable) {
+        Ok(file) => {
+            let metadata = file.metadata()?;
+            if !metadata.file_type().is_file() || is_reparse_point(&metadata) {
+                return Err(WindowsRecoveryStateError::InvalidState);
+            }
+            Ok(true)
+        }
+        Err(error) if matches!(error.raw_os_error(), Some(5 | 32 | 33)) => Ok(false),
+        Err(error) => Err(error.into()),
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn recovery_image_is_ready_for_cleanup(
+    _recovery_executable: &Path,
+) -> Result<bool, WindowsRecoveryStateError> {
+    Ok(true)
 }
 
 fn try_acquire_exclusive_lock(
@@ -4671,11 +4714,15 @@ mod tests {
                 &harness.library_path,
                 &mut watchdog_lease,
             )
-            .expect("terminal maintenance"),
-            UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
+            .expect("watchdog terminal publication"),
+            UpdateRecoveryMaintenance::CleanupPending(expected.clone())
         );
         assert!(watchdog_lease.is_none());
-        assert!(!prepared.attempt_directory().exists());
+        assert!(prepared.attempt_directory().exists());
+        assert!(prepared
+            .attempt_directory()
+            .join(MANIFEST_FILE_NAME)
+            .exists());
         assert!(!harness.recovery_root.join(ACTIVE_FILE_NAME).exists());
         assert_eq!(
             read_update_recovery_outcome(&harness.recovery_root).expect("durable outcome"),
@@ -4755,15 +4802,44 @@ mod tests {
                 &harness.library_path,
                 &mut watchdog_lease,
             )
-            .expect("terminal maintenance"),
-            UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
+            .expect("watchdog terminal publication"),
+            UpdateRecoveryMaintenance::CleanupPending(expected.clone())
         );
         assert!(watchdog_lease.is_none());
         assert_eq!(
             read_update_recovery_outcome(&harness.recovery_root).expect("recovered outcome"),
-            Some(expected)
+            Some(expected.clone())
+        );
+        assert!(prepared.attempt_directory().exists());
+        assert!(prepared
+            .attempt_directory()
+            .join(MANIFEST_FILE_NAME)
+            .exists());
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &SyntheticInstalledState::new(&harness, "0.1.0", true),
+                &harness.recovery_root,
+                &harness.library_path,
+                &mut None,
+            )
+            .expect("installed application cleanup"),
+            UpdateRecoveryMaintenance::OutcomeRetained(expected)
         );
         assert!(!prepared.attempt_directory().exists());
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn defers_attempt_deletion_while_the_recovery_image_is_executing() {
+        let running_image = std::env::current_exe().expect("running test image");
+        assert!(!recovery_image_is_ready_for_cleanup(&running_image)
+            .expect("running image cleanup probe"));
+
+        let directory = TempDir::new().expect("temporary directory");
+        let idle_image = directory.path().join("fitfreed-update-recovery.exe");
+        fs::copy(&running_image, &idle_image).expect("idle image copy");
+        assert!(recovery_image_is_ready_for_cleanup(&idle_image).expect("idle image cleanup probe"));
     }
 
     #[test]

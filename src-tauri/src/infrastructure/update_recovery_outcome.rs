@@ -30,6 +30,7 @@ pub(super) enum UpdateRecoveryOutcomeStoreError {
 pub enum UpdateRecoveryMaintenance {
     NoTerminalOutcome,
     Deferred,
+    CleanupPending(UpdateRecoveryOutcome),
     OutcomeRetained(UpdateRecoveryOutcome),
 }
 
