@@ -317,8 +317,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   the exact target or recovered source pair revalidates, close Windows no-sharing handles before deleting the attempt,
   preserve watchdog ownership across deferred or rejected maintenance, consume it only after committing the durable
   receipt and active-pointer removal, leave the complete manifest and attempt for the installed application, and
-  resume cleanup only from that exact receipt. A Windows-native test requires an executing image to deny exclusive
-  delete access and an idle byte-identical copy to grant it before any recursive removal begins. Installation-
+  retain the watchdog lease until process exit so cleanup can resume only from that exact receipt. A Windows-native
+  child-process test requires that no-sharing lease to deny a competing cleanup owner while its holder runs and to
+  become available only after process exit. Installation-
   coordinator tests require watchdog readiness before the `replacement-started` handoff, discard only while still
   quiescent, and stop a started watchdog before a failed transition is discarded. A native Windows concurrency
   contract holds the state
@@ -526,8 +527,9 @@ builds. Production child processes discard that stream. Before package construct
 acquires the distinct no-sharing watchdog and candidate handles, rejects a second owner of either role, confirms the
 exact candidate while both actors remain live, and requires the watchdog to observe both `launching` and `confirmed`
 through its original lease. This native test protects the Windows sharing semantics that a portable host cannot
-reproduce. The focused Windows update job additionally executes the recovery-image cleanup probe before package
-construction: its running test image must be classified as pending while an idle copy is deletable. After building the
+reproduce. The focused Windows update job additionally executes the watchdog process-lifetime cleanup test before
+package construction: a child process holds the actual no-sharing handle, a competing owner must be denied, and process
+exit must release the handle. After building the
 ordinary candidate and before the WebDriver journey, a native process-survival probe installs that exact NSIS package
 while same-user processes run under both the product filename and the dedicated recovery filename. The product-named
 probe must be terminated by the

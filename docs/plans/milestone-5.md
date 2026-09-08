@@ -405,16 +405,22 @@ process. It also exposed a distinct terminal-cleanup defect: Windows keeps the r
 watchdog attempted to remove the attempt directory containing that same image. `remove_dir_all` removed the manifest
 before it reached the in-use executable, leaving a valid durable receipt beside a partially removed attempt. The
 correction separates receipt publication by the watchdog from attempt deletion by the installed application. The
-watchdog now leaves the complete attempt intact and exits; installed-application maintenance preflights the recovery
-image for exclusive deletion before touching the tree and retries while that image remains active. Portable state
-tests protect the two-stage handoff, and a Windows-only test requires the running image to remain protected while an
-idle byte-identical copy is deletable. The next focused native campaign must prove this behavior before the Windows
-update boundary can pass. Increasing the verifier timeout or accepting the retained directory would violate the
-documented terminal-cleanup contract and is not an admissible correction.
+watchdog now leaves the complete attempt intact and retains its no-sharing lease until process exit. Installed-
+application maintenance cannot acquire cleanup authority while that process remains active; after exit it revalidates
+the complete receipt-bound attempt before deletion. Portable state tests protect both stages, and a Windows-only child-
+process test requires the lease to deny a competing owner until the holder exits and to become available immediately
+afterward. The next focused native campaign must prove this behavior before the Windows update boundary can pass.
+Increasing the verifier timeout or accepting the retained directory would violate the documented terminal-cleanup
+contract and is not an admissible correction.
 
 Focused run `34251145685` was deliberately cancelled before package construction when review found that its workflow
-did not invoke the new Windows-only cleanup-readiness test. The workflow contract now requires that native falsifier
-before the single release-shaped update campaign; the cancelled run is not product evidence and is not retried.
+did not invoke a Windows-only process-lifetime falsifier. The workflow contract now requires that native check before
+the single release-shaped update campaign; the cancelled run is not product evidence and is not retried. Corrected
+focused run `34252175539` passed state-lock serialization, prepared-state durability, and concurrent actor ownership,
+then stopped at that newly wired falsifier before package construction. It established that acquiring `DELETE` access
+does not prove an executable image is deletable: Windows enforces the mapped-image constraint at deletion. The
+correction therefore uses the already authenticated no-sharing watchdog lease as the process-lifetime barrier instead
+of adding a second inferred file-state signal.
 
 ## Increment M5.3 — Packaged capability parity
 

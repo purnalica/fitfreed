@@ -433,6 +433,7 @@ pub fn run_windows_update_recovery_watchdog(
                     &mut watchdog_lease,
                     UpdateRecoveryOutcomeKind::Updated,
                 )?;
+                retain_cleanup_authority_until_process_exit(&mut watchdog_lease)?;
                 return Ok(UpdateRecoveryWatchdogOutcome::Confirmed);
             }
             PackagedUpdateRecoveryWatchdogAction::FinishRecovered => {
@@ -441,6 +442,7 @@ pub fn run_windows_update_recovery_watchdog(
                     &mut watchdog_lease,
                     UpdateRecoveryOutcomeKind::Recovered,
                 )?;
+                retain_cleanup_authority_until_process_exit(&mut watchdog_lease)?;
                 launch_application(context.installed_executable_path(), &[], false)?;
                 return Ok(UpdateRecoveryWatchdogOutcome::Recovered);
             }
@@ -449,6 +451,16 @@ pub fn run_windows_update_recovery_watchdog(
             }
         }
     }
+}
+
+fn retain_cleanup_authority_until_process_exit(
+    watchdog_lease: &mut Option<WindowsUpdateRecoveryWatchdogLease>,
+) -> Result<(), UpdateRecoveryWatchdogError> {
+    let watchdog_lease = watchdog_lease
+        .take()
+        .ok_or(UpdateRecoveryWatchdogError::TerminalCleanup)?;
+    watchdog_lease.retain_until_process_exit();
+    Ok(())
 }
 
 #[cfg(any(test, all(target_os = "windows", feature = "e2e")))]

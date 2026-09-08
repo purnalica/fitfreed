@@ -307,6 +307,10 @@ impl WindowsUpdateRecoveryWatchdogLease {
     pub fn recovery_id(&self) -> &str {
         &self.recovery_id
     }
+
+    pub(crate) fn retain_until_process_exit(self) {
+        self._lock.retain_until_process_exit();
+    }
 }
 
 trait RecoveryPackagePort {
@@ -1421,52 +1425,13 @@ fn finalize_terminal_windows_update_recovery(
     drop(state_lock);
     drop(candidate_lock);
     drop(watchdog_lock);
-    drop(watchdog_lease.take());
     if watchdog_owned_cleanup {
         return Ok(UpdateRecoveryMaintenance::CleanupPending(outcome));
     }
-    let recovery_executable = attempt_directory
-        .join(RUNNABLE_PREDECESSOR_RELATIVE_PATH)
-        .join(RUNNABLE_RECOVERY_EXECUTABLE_RELATIVE_PATH);
-    if !recovery_image_is_ready_for_cleanup(&recovery_executable)? {
-        return Ok(UpdateRecoveryMaintenance::CleanupPending(outcome));
-    }
+    drop(watchdog_lease.take());
     fs::remove_dir_all(&attempt_directory)?;
     sync_directory(&attempts_directory)?;
     Ok(UpdateRecoveryMaintenance::OutcomeRetained(outcome))
-}
-
-#[cfg(target_os = "windows")]
-fn recovery_image_is_ready_for_cleanup(
-    recovery_executable: &Path,
-) -> Result<bool, WindowsRecoveryStateError> {
-    use std::os::windows::fs::OpenOptionsExt;
-
-    use windows_sys::Win32::Storage::FileSystem::{DELETE, FILE_FLAG_OPEN_REPARSE_POINT};
-
-    let mut options = OpenOptions::new();
-    options
-        .access_mode(DELETE)
-        .share_mode(0)
-        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
-    match options.open(recovery_executable) {
-        Ok(file) => {
-            let metadata = file.metadata()?;
-            if !metadata.file_type().is_file() || is_reparse_point(&metadata) {
-                return Err(WindowsRecoveryStateError::InvalidState);
-            }
-            Ok(true)
-        }
-        Err(error) if matches!(error.raw_os_error(), Some(5 | 32 | 33)) => Ok(false),
-        Err(error) => Err(error.into()),
-    }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn recovery_image_is_ready_for_cleanup(
-    _recovery_executable: &Path,
-) -> Result<bool, WindowsRecoveryStateError> {
-    Ok(true)
 }
 
 fn try_acquire_exclusive_lock(
@@ -2871,6 +2836,10 @@ impl ExclusiveFileLock {
     fn acquire(_file: File) -> Result<Self, WindowsRecoveryStateError> {
         Err(WindowsRecoveryStateError::InvalidState)
     }
+
+    fn retain_until_process_exit(self) {
+        std::mem::forget(self);
+    }
 }
 
 impl Drop for ExclusiveFileLock {
@@ -3205,6 +3174,25 @@ mod tests {
 
     const SYNTHETIC_EXECUTABLE: &[u8] = b"synthetic FitFreed executable";
     const SYNTHETIC_UNINSTALLER: &[u8] = b"synthetic FitFreed uninstaller";
+    #[cfg(target_os = "windows")]
+    const WATCHDOG_LOCK_HOLDER_TEST: &str = "infrastructure::update_recovery_windows_state::tests::holds_watchdog_lock_for_process_lifetime_probe";
+    #[cfg(target_os = "windows")]
+    const WATCHDOG_LOCK_ATTEMPT_ENV: &str = "FITFREED_TEST_WATCHDOG_LOCK_ATTEMPT";
+    #[cfg(target_os = "windows")]
+    const WATCHDOG_LOCK_READY_ENV: &str = "FITFREED_TEST_WATCHDOG_LOCK_READY";
+    #[cfg(target_os = "windows")]
+    const WATCHDOG_LOCK_RELEASE_ENV: &str = "FITFREED_TEST_WATCHDOG_LOCK_RELEASE";
+
+    #[cfg(target_os = "windows")]
+    struct RunningTestProcess(process::Child);
+
+    #[cfg(target_os = "windows")]
+    impl Drop for RunningTestProcess {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
 
     struct SyntheticPackages {
         fail_preparation: bool,
@@ -4717,7 +4705,7 @@ mod tests {
             .expect("watchdog terminal publication"),
             UpdateRecoveryMaintenance::CleanupPending(expected.clone())
         );
-        assert!(watchdog_lease.is_none());
+        assert!(watchdog_lease.is_some());
         assert!(prepared.attempt_directory().exists());
         assert!(prepared
             .attempt_directory()
@@ -4736,7 +4724,19 @@ mod tests {
                 &harness.library_path,
                 &mut None,
             )
-            .expect("resumed maintenance"),
+            .expect("maintenance while watchdog is exiting"),
+            UpdateRecoveryMaintenance::Deferred
+        );
+        drop(watchdog_lease.take());
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &installed,
+                &harness.recovery_root,
+                &harness.library_path,
+                &mut None,
+            )
+            .expect("resumed maintenance after watchdog exit"),
             UpdateRecoveryMaintenance::OutcomeRetained(expected)
         );
     }
@@ -4805,7 +4805,7 @@ mod tests {
             .expect("watchdog terminal publication"),
             UpdateRecoveryMaintenance::CleanupPending(expected.clone())
         );
-        assert!(watchdog_lease.is_none());
+        assert!(watchdog_lease.is_some());
         assert_eq!(
             read_update_recovery_outcome(&harness.recovery_root).expect("recovered outcome"),
             Some(expected.clone())
@@ -4823,7 +4823,19 @@ mod tests {
                 &harness.library_path,
                 &mut None,
             )
-            .expect("installed application cleanup"),
+            .expect("maintenance while watchdog is exiting"),
+            UpdateRecoveryMaintenance::Deferred
+        );
+        drop(watchdog_lease.take());
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &SyntheticInstalledState::new(&harness, "0.1.0", true),
+                &harness.recovery_root,
+                &harness.library_path,
+                &mut None,
+            )
+            .expect("installed application cleanup after watchdog exit"),
             UpdateRecoveryMaintenance::OutcomeRetained(expected)
         );
         assert!(!prepared.attempt_directory().exists());
@@ -4831,15 +4843,116 @@ mod tests {
 
     #[cfg(target_os = "windows")]
     #[test]
-    fn defers_attempt_deletion_while_the_recovery_image_is_executing() {
-        let running_image = std::env::current_exe().expect("running test image");
-        assert!(!recovery_image_is_ready_for_cleanup(&running_image)
-            .expect("running image cleanup probe"));
+    fn releases_watchdog_cleanup_authority_only_at_process_exit() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let prepared = prepare_windows_update_recovery_with(
+            &packages,
+            &harness.identity,
+            harness.preparation(),
+        )
+        .expect("prepared recovery");
+        let holder_image = harness._directory.path().join("watchdog-lock-holder.exe");
+        let ready_marker = harness._directory.path().join("ready");
+        let release_marker = harness._directory.path().join("release");
+        fs::copy(
+            std::env::current_exe().expect("running test image"),
+            &holder_image,
+        )
+        .expect("watchdog lock-holder image");
+        let mut child = RunningTestProcess(
+            process::Command::new(&holder_image)
+                .arg(WATCHDOG_LOCK_HOLDER_TEST)
+                .arg("--exact")
+                .arg("--nocapture")
+                .env(WATCHDOG_LOCK_ATTEMPT_ENV, prepared.attempt_directory())
+                .env(WATCHDOG_LOCK_READY_ENV, &ready_marker)
+                .env(WATCHDOG_LOCK_RELEASE_ENV, &release_marker)
+                .spawn()
+                .expect("running watchdog lock holder"),
+        );
+        let ready_deadline = Instant::now() + Duration::from_secs(10);
+        while !ready_marker.exists() {
+            assert!(
+                child.0.try_wait().expect("watchdog holder state").is_none(),
+                "watchdog holder exited before readiness"
+            );
+            assert!(
+                Instant::now() < ready_deadline,
+                "watchdog holder did not become ready"
+            );
+            thread::sleep(Duration::from_millis(10));
+        }
 
-        let directory = TempDir::new().expect("temporary directory");
-        let idle_image = directory.path().join("fitfreed-update-recovery.exe");
-        fs::copy(&running_image, &idle_image).expect("idle image copy");
-        assert!(recovery_image_is_ready_for_cleanup(&idle_image).expect("idle image cleanup probe"));
+        assert!(try_acquire_exclusive_lock(open_private_lock_file(
+            prepared.attempt_directory(),
+            WATCHDOG_LOCK_FILE_NAME,
+            false,
+        ))
+        .expect("competing watchdog lock while holder runs")
+        .is_none());
+
+        fs::write(&release_marker, b"release\n").expect("watchdog holder release marker");
+        let exit_deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            if let Some(status) = child.0.try_wait().expect("watchdog holder exit state") {
+                assert!(status.success(), "watchdog lock holder failed");
+                break;
+            }
+            assert!(
+                Instant::now() < exit_deadline,
+                "watchdog lock holder did not exit"
+            );
+            thread::sleep(Duration::from_millis(10));
+        }
+        assert!(try_acquire_exclusive_lock(open_private_lock_file(
+            prepared.attempt_directory(),
+            WATCHDOG_LOCK_FILE_NAME,
+            false,
+        ))
+        .expect("watchdog lock after holder exit")
+        .is_some());
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn holds_watchdog_lock_for_process_lifetime_probe() {
+        let Some(attempt_directory) = std::env::var_os(WATCHDOG_LOCK_ATTEMPT_ENV) else {
+            return;
+        };
+        let ready_marker =
+            std::env::var_os(WATCHDOG_LOCK_READY_ENV).expect("watchdog lock ready marker path");
+        let release_marker =
+            std::env::var_os(WATCHDOG_LOCK_RELEASE_ENV).expect("watchdog lock release marker path");
+        let watchdog_lock = ExclusiveFileLock::acquire(
+            open_private_lock_file(
+                Path::new(&attempt_directory),
+                WATCHDOG_LOCK_FILE_NAME,
+                false,
+            )
+            .expect("watchdog lock file"),
+        )
+        .expect("watchdog lock");
+        WindowsUpdateRecoveryWatchdogLease {
+            _lock: watchdog_lock,
+            recovery_id: "process-lifetime-probe".to_owned(),
+        }
+        .retain_until_process_exit();
+        let mut ready_file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(ready_marker)
+            .expect("watchdog lock ready marker");
+        ready_file.write_all(b"ready\n").expect("ready marker");
+        ready_file.sync_all().expect("durable ready marker");
+        let deadline = Instant::now() + Duration::from_secs(15);
+        while !Path::new(&release_marker).exists() {
+            assert!(
+                Instant::now() < deadline,
+                "watchdog lock release marker did not arrive"
+            );
+            thread::sleep(Duration::from_millis(10));
+        }
     }
 
     #[test]

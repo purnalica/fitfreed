@@ -182,8 +182,8 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
-    /- name: Test recovery-image cleanup readiness on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_windows_state::tests::defers_attempt_deletion_while_the_recovery_image_is_executing\n          --lib -- --exact/,
-    "focused Windows update verification must prove recovery-image cleanup readiness before packaging",
+    /- name: Test watchdog process-lifetime cleanup boundary on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_windows_state::tests::releases_watchdog_cleanup_authority_only_at_process_exit\n          --lib -- --exact/,
+    "focused Windows update verification must prove the watchdog process-lifetime cleanup boundary before packaging",
   );
   requireMatch(
     errors,
@@ -201,8 +201,8 @@ export function validateWindowsCiWorkflow(source) {
   const concurrentActorsTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::tests::keeps_watchdog_and_candidate_leases_distinct_through_confirmation",
   );
-  const cleanupReadinessTest = packagedCapability.indexOf(
-    "infrastructure::update_recovery_windows_state::tests::defers_attempt_deletion_while_the_recovery_image_is_executing",
+  const watchdogProcessLifetimeTest = packagedCapability.indexOf(
+    "infrastructure::update_recovery_windows_state::tests::releases_watchdog_cleanup_authority_only_at_process_exit",
   );
   const stateSerializationTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows",
@@ -223,11 +223,11 @@ export function validateWindowsCiWorkflow(source) {
     errors.push("focused Windows recovery verification must prove concurrent recovery actors before packaging");
   }
   if (
-    cleanupReadinessTest < 0
+    watchdogProcessLifetimeTest < 0
     || packagedUpdate < 0
-    || cleanupReadinessTest > packagedUpdate
+    || watchdogProcessLifetimeTest > packagedUpdate
   ) {
-    errors.push("focused Windows recovery verification must prove recovery-image cleanup readiness before packaging");
+    errors.push("focused Windows recovery verification must prove the watchdog process-lifetime cleanup boundary before packaging");
   }
   requireMatch(
     errors,

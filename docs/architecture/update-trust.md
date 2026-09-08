@@ -154,9 +154,13 @@ and uninstaller. It also contains a byte-identical, independently PE-validated r
 `fitfreed-update-recovery.exe`; this distinct process image remains outside the pinned Tauri NSIS installer's
 product-name termination boundary. Because Windows keeps that running image open, terminal work is split without
 weakening receipt-bound authority: the watchdog validates the installed pair, makes the receipt durable, removes the
-active pointer, releases its handles, and exits; the installed application waits for exclusive delete access to the
-recovery image before it touches and removes the complete attempt. A pending probe preserves the intact manifest and
-assets for bounded retry or the next startup. The deterministic tree digest and both packages are reopened after
+active pointer, releases its state and candidate handles, and retains its no-sharing watchdog lease until process exit.
+The installed application therefore cannot enter deletion while the recovery image is still executing. After Windows
+releases the lease with the process, the application reacquires all cleanup handles, revalidates the exact receipt-bound
+attempt, and removes the complete directory. Contention preserves the intact manifest and assets for bounded retry or
+the next startup. This follows the operating system's documented
+[executable-image](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/executable-images) lifetime rather
+than attempting to infer it from file-open access. The deterministic tree digest and both packages are reopened after
 no-clobber promotion. Failed preparation removes only the directories it created.
 
 The Windows-local [recovery contract version 3](../data-formats/release/update-recovery-v3.md) fixes that attempt to
