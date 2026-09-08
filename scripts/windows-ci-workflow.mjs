@@ -188,6 +188,12 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
+    /- name: Test transient outcome acknowledgement on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_outcome::tests::waits_for_transient_windows_sharing_before_removing_outcome\n          --lib -- --exact/,
+    "focused Windows update verification must prove transient outcome acknowledgement before packaging",
+  );
+  requireMatch(
+    errors,
+    packagedCapability,
     /- name: Generate application icons for the native recovery test\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: npm run icons/,
     "focused Windows recovery verification must generate Tauri icons only for the focused native test",
   );
@@ -203,6 +209,9 @@ export function validateWindowsCiWorkflow(source) {
   );
   const watchdogProcessLifetimeTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::tests::releases_watchdog_cleanup_authority_only_at_process_exit",
+  );
+  const transientOutcomeAcknowledgementTest = packagedCapability.indexOf(
+    "infrastructure::update_recovery_outcome::tests::waits_for_transient_windows_sharing_before_removing_outcome",
   );
   const stateSerializationTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows",
@@ -228,6 +237,13 @@ export function validateWindowsCiWorkflow(source) {
     || watchdogProcessLifetimeTest > packagedUpdate
   ) {
     errors.push("focused Windows recovery verification must prove the watchdog process-lifetime cleanup boundary before packaging");
+  }
+  if (
+    transientOutcomeAcknowledgementTest < 0
+    || packagedUpdate < 0
+    || transientOutcomeAcknowledgementTest > packagedUpdate
+  ) {
+    errors.push("focused Windows recovery verification must prove transient outcome acknowledgement before packaging");
   }
   requireMatch(
     errors,

@@ -4,6 +4,12 @@ use std::{
     path::Path,
 };
 
+#[cfg(windows)]
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
+
 use fitfreed_application::{UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind};
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -15,6 +21,10 @@ const RECOVERY_OUTCOME_FORMAT: &str = "org.fitfreed.update-recovery-outcome";
 const RECOVERY_OUTCOME_SCHEMA_VERSION: u32 = 1;
 pub(super) const OUTCOME_FILE_NAME: &str = "last-outcome.json";
 const MAX_OUTCOME_BYTES: u64 = 4 * 1024;
+#[cfg(windows)]
+const WINDOWS_OUTCOME_REMOVAL_TIMEOUT: Duration = Duration::from_secs(5);
+#[cfg(windows)]
+const WINDOWS_OUTCOME_REMOVAL_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 #[derive(Debug, Error)]
 pub(super) enum UpdateRecoveryOutcomeStoreError {
@@ -127,9 +137,39 @@ pub(super) fn write_update_recovery_outcome(
 pub(super) fn remove_update_recovery_outcome(
     recovery_root: &Path,
 ) -> Result<(), UpdateRecoveryOutcomeStoreError> {
-    fs::remove_file(recovery_root.join(OUTCOME_FILE_NAME))?;
+    remove_outcome_file(&recovery_root.join(OUTCOME_FILE_NAME))?;
     sync_directory(recovery_root)?;
     Ok(())
+}
+
+#[cfg(not(windows))]
+fn remove_outcome_file(path: &Path) -> io::Result<()> {
+    fs::remove_file(path)
+}
+
+#[cfg(windows)]
+fn remove_outcome_file(path: &Path) -> io::Result<()> {
+    let deadline = Instant::now() + WINDOWS_OUTCOME_REMOVAL_TIMEOUT;
+    loop {
+        match fs::remove_file(path) {
+            Ok(()) => return Ok(()),
+            Err(error) if transient_windows_removal_error(&error) && Instant::now() < deadline => {
+                thread::sleep(WINDOWS_OUTCOME_REMOVAL_POLL_INTERVAL);
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+#[cfg(windows)]
+fn transient_windows_removal_error(error: &io::Error) -> bool {
+    use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION};
+
+    matches!(
+        error.raw_os_error(),
+        Some(code)
+            if code == ERROR_ACCESS_DENIED as i32 || code == ERROR_SHARING_VIOLATION as i32
+    )
 }
 
 fn validate_recovery_outcome(
@@ -300,5 +340,48 @@ mod tests {
             .expect("redirected outcome");
 
         assert!(read_update_recovery_outcome(directory.path()).is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn waits_for_transient_windows_sharing_before_removing_outcome() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        use windows_sys::Win32::Foundation::{
+            ERROR_ACCESS_DENIED, ERROR_FILE_NOT_FOUND, ERROR_SHARING_VIOLATION,
+        };
+        use windows_sys::Win32::Storage::FileSystem::FILE_SHARE_READ;
+
+        assert!(transient_windows_removal_error(
+            &io::Error::from_raw_os_error(ERROR_ACCESS_DENIED as i32,)
+        ));
+        assert!(transient_windows_removal_error(
+            &io::Error::from_raw_os_error(ERROR_SHARING_VIOLATION as i32,)
+        ));
+        assert!(!transient_windows_removal_error(
+            &io::Error::from_raw_os_error(ERROR_FILE_NOT_FOUND as i32,)
+        ));
+
+        let directory = TempDir::new().expect("temporary directory");
+        write_update_recovery_outcome(
+            directory.path(),
+            &outcome(UpdateRecoveryOutcomeKind::Updated),
+        )
+        .expect("updated outcome");
+        let outcome_path = directory.path().join(OUTCOME_FILE_NAME);
+        let mut options = OpenOptions::new();
+        options.read(true).share_mode(FILE_SHARE_READ);
+        let held_outcome = options.open(&outcome_path).expect("held outcome");
+        let first_error = fs::remove_file(&outcome_path).expect_err("sharing denial");
+        assert!(transient_windows_removal_error(&first_error));
+
+        let release = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(100));
+            drop(held_outcome);
+        });
+        remove_update_recovery_outcome(directory.path()).expect("removed outcome after release");
+        release.join().expect("outcome release");
+
+        assert!(!outcome_path.exists());
     }
 }

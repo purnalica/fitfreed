@@ -126,6 +126,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
     packagedJob,
     /- name: Test watchdog process-lifetime cleanup boundary on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?releases_watchdog_cleanup_authority_only_at_process_exit[\s\S]*?--lib -- --exact/,
   );
+  assert.match(
+    packagedJob,
+    /- name: Test transient outcome acknowledgement on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?waits_for_transient_windows_sharing_before_removing_outcome[\s\S]*?--lib -- --exact/,
+  );
   const iconGeneration = packagedJob.indexOf("npm run icons");
   assert.notEqual(iconGeneration, -1);
   assert.ok(
@@ -145,6 +149,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
     packagedJob.indexOf("releases_watchdog_cleanup_authority_only_at_process_exit")
       < packagedJob.indexOf("npm run verify:windows-update-e2e"),
   );
+  assert.ok(
+    packagedJob.indexOf("waits_for_transient_windows_sharing_before_removing_outcome")
+      < packagedJob.indexOf("npm run verify:windows-update-e2e"),
+  );
 
   assert.throws(
     () => validateWindowsCiWorkflow(workflow.replace(
@@ -160,6 +168,14 @@ test("isolates native Windows update recovery from accepted capability evidence"
       "",
     )),
     /watchdog process-lifetime cleanup boundary/,
+  );
+
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      "      - name: Test transient outcome acknowledgement on Windows\n        if: needs.quality.outputs.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri/Cargo.toml\n          infrastructure::update_recovery_outcome::tests::waits_for_transient_windows_sharing_before_removing_outcome\n          --lib -- --exact\n\n",
+      "",
+    )),
+    /transient outcome acknowledgement/,
   );
 
   assert.throws(

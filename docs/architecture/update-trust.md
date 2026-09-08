@@ -163,6 +163,14 @@ the next startup. This follows the operating system's documented
 than attempting to infer it from file-open access. The deterministic tree digest and both packages are reopened after
 no-clobber promotion. Failed preparation removes only the directories it created.
 
+Explicit result acknowledgement is a later, independent Windows filesystem boundary. It holds the outcome lock,
+reopens the closed receipt, proves its receipt-bound attempt is absent, and removes only that receipt. Windows can
+temporarily reject `DeleteFile` when another handle denies delete sharing or the file remains mapped. The Windows
+outcome adapter therefore retries only `ERROR_ACCESS_DENIED` and `ERROR_SHARING_VIOLATION` for five seconds at a fixed
+interval. Success remains the durable absence of the receipt; timeout or any other error leaves the valid receipt and
+visible result intact. Other platforms retain their single removal operation. This follows the documented
+[Windows deletion contract](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-deletefile).
+
 The Windows-local [recovery contract version 3](../data-formats/release/update-recovery-v3.md) fixes that attempt to
 one x86-64 current-user NSIS identity. It binds the two authenticated installers, complete runnable predecessor,
 matching library, exact known-folder-derived native paths, native retry state, and lossless process creation `FILETIME`

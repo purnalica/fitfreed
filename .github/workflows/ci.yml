@@ -501,6 +501,13 @@ jobs:
           infrastructure::update_recovery_windows_state::tests::releases_watchdog_cleanup_authority_only_at_process_exit
           --lib -- --exact
 
+      - name: Test transient outcome acknowledgement on Windows
+        if: needs.quality.outputs.focused-verification == 'windows-update'
+        run: >-
+          cargo test --manifest-path src-tauri/Cargo.toml
+          infrastructure::update_recovery_outcome::tests::waits_for_transient_windows_sharing_before_removing_outcome
+          --lib -- --exact
+
       - name: Build and verify native NSIS update recovery
         run: npm run verify:windows-update-e2e
 
