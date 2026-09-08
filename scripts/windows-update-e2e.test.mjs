@@ -17,6 +17,7 @@ import {
   windowsUpdateScenarioPlan,
   windowsUpdateTauriInvocation,
 } from "./verify-packaged-windows-update.mjs";
+import { createWindowsUpdateFailureEvidence } from "../test/update-e2e/support/windows-update-failure-evidence.mjs";
 
 test("matches only equivalent ordinary and verbatim Windows paths", () => {
   const ordinaryDrive = String.raw`C:\FitFreedTests\Profile\fitfreed.sqlite`;
@@ -324,6 +325,148 @@ test("accepts only privacy-safe evidence matching the declared scenario", () => 
   );
 });
 
+test("projects a closed privacy-safe Windows update failure snapshot", () => {
+  const privateRecoveryId = "private-recovery-id";
+  const privatePath = String.raw`D:\confidential-fixture\FitFreed\fitfreed.sqlite`;
+  const privateUrl = "https://private.invalid/update";
+  const privateHash = "a".repeat(64);
+  const evidence = createWindowsUpdateFailureEvidence({
+    scenario: "success",
+    journeyStage: "terminal-outcome",
+    activePointerState: "present",
+    attemptManifest: {
+      state: "present",
+      value: {
+        recoveryId: privateRecoveryId,
+        phase: "launching",
+        replacementProcess: {
+          processId: 424_242,
+          executablePath: privatePath,
+        },
+        nativeRecovery: {
+          attempts: 0,
+          lastFailure: null,
+        },
+        source: { libraryPath: privatePath },
+        targetPackage: { sourceUrl: privateUrl, sha256: privateHash },
+      },
+    },
+    retainedOutcome: {
+      state: "absent",
+    },
+    installedVersion: "0.2.0",
+    installedApplicationProcessCount: 1,
+    runnablePredecessorProcessCount: 0,
+  });
+
+  assert.deepEqual(evidence, {
+    check: "packaged-windows-update-failure",
+    schemaVersion: 1,
+    scenario: "success",
+    journeyStage: "terminal-outcome",
+    activePointerState: "present",
+    attemptManifestState: "present",
+    phase: "launching",
+    nativeRecoveryAttempts: 0,
+    nativeRecoveryLastFailure: null,
+    replacementProcessRecorded: true,
+    retainedOutcomeState: "absent",
+    retainedOutcome: null,
+    installedVersion: "0.2.0",
+    installedApplicationProcessCount: 1,
+    runnablePredecessorProcessCount: 0,
+  });
+  const serialized = JSON.stringify(evidence);
+  for (const privateValue of [
+    privateRecoveryId,
+    privatePath,
+    privateUrl,
+    privateHash,
+    "424242",
+  ]) {
+    assert.doesNotMatch(serialized, new RegExp(privateValue.replaceAll("\\", "\\\\")));
+  }
+});
+
+test("records absent or unreadable Windows update failure state without raw values", () => {
+  assert.deepEqual(
+    createWindowsUpdateFailureEvidence({
+      scenario: "candidate-failure",
+      journeyStage: "recovery-published",
+      activePointerState: "absent",
+      attemptManifest: {
+        state: "unreadable",
+        value: { phase: "private-unknown-phase", privatePath: "/private/value" },
+      },
+      retainedOutcome: {
+        state: "unreadable",
+        value: { outcome: "private-unknown-outcome", recoveryId: "private-id" },
+      },
+      installedVersion: undefined,
+      installedApplicationProcessCount: undefined,
+      runnablePredecessorProcessCount: undefined,
+    }),
+    {
+      check: "packaged-windows-update-failure",
+      schemaVersion: 1,
+      scenario: "candidate-failure",
+      journeyStage: "recovery-published",
+      activePointerState: "absent",
+      attemptManifestState: "unreadable",
+      phase: null,
+      nativeRecoveryAttempts: null,
+      nativeRecoveryLastFailure: null,
+      replacementProcessRecorded: null,
+      retainedOutcomeState: "unreadable",
+      retainedOutcome: null,
+      installedVersion: null,
+      installedApplicationProcessCount: null,
+      runnablePredecessorProcessCount: null,
+    },
+  );
+});
+
+test("rejects open Windows update failure evidence dimensions", () => {
+  const valid = {
+    scenario: "success",
+    journeyStage: "application-start",
+    activePointerState: "absent",
+    attemptManifest: { state: "absent" },
+    retainedOutcome: { state: "absent" },
+    installedVersion: "0.1.0",
+    installedApplicationProcessCount: 0,
+    runnablePredecessorProcessCount: 0,
+  };
+
+  assert.throws(
+    () => createWindowsUpdateFailureEvidence({ ...valid, scenario: "private-scenario" }),
+    /scenario/,
+  );
+  assert.throws(
+    () => createWindowsUpdateFailureEvidence({ ...valid, journeyStage: privatePathForTest() }),
+    /journey stage/,
+  );
+  assert.throws(
+    () => createWindowsUpdateFailureEvidence({
+      ...valid,
+      installedApplicationProcessCount: 11,
+    }),
+    /process count/,
+  );
+  assert.throws(
+    () => createWindowsUpdateFailureEvidence({ ...valid, installedVersion: "private" }),
+    /version/,
+  );
+  assert.throws(
+    () => createWindowsUpdateFailureEvidence({ ...valid, privatePath: privatePathForTest() }),
+    /unexpected fields/,
+  );
+});
+
+function privatePathForTest() {
+  return String.raw`D:\confidential-fixture\stage`;
+}
+
 test("delegates lifecycle operations to a fixed-identity non-interactive Windows boundary", () => {
   const packagePath = path.resolve(
     ".artifacts/windows-update-e2e/packages/FitFreed_0.1.0_x64-setup.exe",
@@ -404,4 +547,24 @@ test("stops only revalidated exact Windows processes and tolerates an exit race"
   assert.match(journey, /spawnSync\("taskkill\.exe"/);
   assert.match(journey, /await stopApplication\(watchdogExecutable\)/);
   assert.doesNotMatch(journey, /execFileSync\("taskkill\.exe"/);
+});
+
+test("retains the closed Windows update failure snapshot before cleanup", () => {
+  const journey = readFileSync(
+    path.resolve("test/update-e2e/windows-update-journey.mjs"),
+    "utf8",
+  );
+  const failureHandler = journey.indexOf("} catch (error) {");
+  const evidenceWrite = journey.indexOf(
+    "await writeWindowsUpdateFailureEvidence",
+    failureHandler,
+  );
+  const cleanup = journey.indexOf("} finally {", failureHandler);
+
+  assert.notEqual(failureHandler, -1);
+  assert.notEqual(evidenceWrite, -1);
+  assert.notEqual(cleanup, -1);
+  assert.equal(evidenceWrite < cleanup, true);
+  assert.match(journey, /failure-state\.json/u);
+  assert.match(journey, /let recovery;/u);
 });

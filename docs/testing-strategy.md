@@ -522,8 +522,13 @@ builds. Production child processes discard that stream. Before package construct
 acquires the distinct no-sharing watchdog and candidate handles, rejects a second owner of either role, confirms the
 exact candidate while both actors remain live, and requires the watchdog to observe both `launching` and `confirmed`
 through its original lease. This native test protects the Windows sharing semantics that a portable host cannot
-reproduce. The campaign retains only privacy-safe
-evidence on failure and always removes only the package and non-reparse application-data roots it created. Native
+reproduce. Before failure cleanup, the packaged journey projects the harness stage, active-pointer state, closed
+manifest phase, bounded recovery attempts, closed recovery failure and outcome values, installed version, and bounded
+exact-process counts into a schema-versioned diagnostic. The projection cannot retain recovery identifiers, local
+paths, process identifiers, URLs, hashes, user data, or arbitrary error text; absent and unreadable state remain
+distinct. Pure tests enforce both the closed dimensions and exclusion of private-shaped sentinel input. The campaign
+retains only this diagnostic and other privacy-safe evidence on failure and always removes only the package and
+non-reparse application-data roots it created. Native
 hosted success remains Windows Server engineering evidence, not exact Windows 11 candidate acceptance.
 
 Linux recovery tests protect the application-owned phase and three-attempt policy, active-manifest validation,

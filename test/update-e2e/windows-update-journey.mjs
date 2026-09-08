@@ -16,6 +16,7 @@ import {
   parseExactApplicationProcessIds,
   applicationProcessTable,
 } from "../e2e/support/application-process.js";
+import { createWindowsUpdateFailureEvidence } from "./support/windows-update-failure-evidence.mjs";
 
 const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
@@ -302,6 +303,75 @@ async function cleanupReplacedSession(browser) {
   }
 }
 
+function activePointerState() {
+  try {
+    const active = fs.readFileSync(path.join(recoveryRoot, "active"), "utf8").trim();
+    return /^[0-9a-f]{64}$/u.test(active) ? "present" : "unreadable";
+  } catch (error) {
+    return error.code === "ENOENT" ? "absent" : "unreadable";
+  }
+}
+
+function jsonObservation(filePath) {
+  try {
+    return {
+      state: "present",
+      value: JSON.parse(fs.readFileSync(filePath, "utf8")),
+    };
+  } catch (error) {
+    return {
+      state: error.code === "ENOENT" ? "absent" : "unreadable",
+    };
+  }
+}
+
+function attemptManifestObservation(recovery) {
+  if (!recovery) {
+    return {
+      state: activePointerState() === "absent" ? "absent" : "unreadable",
+    };
+  }
+  return jsonObservation(path.join(recovery.attemptDirectory, "manifest.json"));
+}
+
+function observedInstalledVersion() {
+  try {
+    return installedVersion();
+  } catch {
+    return undefined;
+  }
+}
+
+function observedApplicationProcessCount(executablePath) {
+  if (!executablePath) return undefined;
+  try {
+    return applicationProcessIds(executablePath).length;
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeWindowsUpdateFailureEvidence(recovery, journeyStage) {
+  const runnablePredecessor = recovery
+    ? path.join(recovery.attemptDirectory, "previous/runnable/fitfreed.exe")
+    : undefined;
+  const evidence = createWindowsUpdateFailureEvidence({
+    scenario,
+    journeyStage,
+    activePointerState: activePointerState(),
+    attemptManifest: attemptManifestObservation(recovery),
+    retainedOutcome: jsonObservation(path.join(recoveryRoot, "last-outcome.json")),
+    installedVersion: observedInstalledVersion(),
+    installedApplicationProcessCount: observedApplicationProcessCount(applicationBinary),
+    runnablePredecessorProcessCount: observedApplicationProcessCount(runnablePredecessor),
+  });
+  fs.writeFileSync(
+    path.join(evidenceDirectory, "failure-state.json"),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+    { flag: "wx", mode: 0o600 },
+  );
+}
+
 function launchOrdinaryApplication(executablePath) {
   const environment = { ...process.env };
   delete environment.FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_READY;
@@ -337,7 +407,7 @@ async function replaceWithFallbackSession(browser, recovery) {
   };
 }
 
-async function verifyJourney(browser) {
+async function verifyJourney(browser, recoveryPublished) {
   await openSettingsCategory("updates", browser);
   const checkNow = await browser.$(".update-panel-heading button");
   await checkNow.waitForEnabled({ timeout: 15_000 });
@@ -353,6 +423,7 @@ async function verifyJourney(browser) {
   const publishedRecovery = waitForPublishedRecovery();
   await install.click();
   const recovery = await publishedRecovery;
+  recoveryPublished(recovery);
   assert.equal(recovery.manifest.source.version, "0.1.0");
   assert.equal(recovery.manifest.target.version, "0.2.0");
   assert.equal(
@@ -445,10 +516,17 @@ async function main() {
   }
   fs.mkdirSync(evidenceDirectory, { recursive: true });
   let browser;
+  let recovery;
   let journeyCompleted = false;
+  let journeyStage = "application-start";
   try {
     browser = await startSession(applicationBinary);
-    const recovery = await verifyJourney(browser);
+    journeyStage = "update-request";
+    recovery = await verifyJourney(browser, (publishedRecovery) => {
+      recovery = publishedRecovery;
+      journeyStage = "recovery-published";
+    });
+    journeyStage = "terminal-outcome";
     if (gatedScenario) {
       const unavailable = await waitForRecoveryPhase(
         recovery.recoveryId,
@@ -472,6 +550,7 @@ async function main() {
         sourceVersion: "0.1.0",
         targetVersion: "0.2.0",
       });
+      journeyStage = "terminal-cleanup";
       await waitForTerminalCleanup(recovery);
       assert.equal(installedVersion(), "0.1.0");
       fs.writeFileSync(offlineRecoveryCompleted, "complete\n", {
@@ -522,10 +601,12 @@ async function main() {
         sourceVersion: "0.1.0",
         targetVersion: "0.2.0",
       });
+      journeyStage = "terminal-cleanup";
       await waitForTerminalCleanup(recovery);
       assert.equal(installedVersion(), expectedInstalledVersion);
     }
     if (scenario !== "recovery-exhaustion") {
+      journeyStage = "notice-verification";
       if (browser) await cleanupReplacedSession(browser);
       browser = undefined;
       await stopApplication(applicationBinary);
@@ -534,6 +615,7 @@ async function main() {
     }
     const locale = await readLocale(browser);
     assert.equal(locale, "es-ES");
+    journeyStage = "evidence-write";
     const evidence = {
       scenario,
       outcome: expectedOutcome,
@@ -548,6 +630,11 @@ async function main() {
     browser = undefined;
     journeyCompleted = true;
   } catch (error) {
+    try {
+      await writeWindowsUpdateFailureEvidence(recovery, journeyStage);
+    } catch {
+      process.stderr.write("Windows update failure-evidence capture failed\n");
+    }
     if (browser) {
       try {
         await browser.saveScreenshot(path.join(evidenceDirectory, "failure.png"));

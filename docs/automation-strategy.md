@@ -207,7 +207,10 @@ standard error. Neither diagnostic records a local path or changes the productio
 only after production installation, registration, shortcut, and application-data preflight proves the
 disposable user has no existing
 FitFreed state. Cleanup is then limited to the exact package identity and the application-data roots created by that
-scenario, after rejecting reparse points.
+scenario, after rejecting reparse points. If a journey fails after recovery publication, the harness writes a closed
+`failure-state.json` before session or package cleanup. It retains only the harness stage, lifecycle phase, bounded
+attempt and exact-process counts, closed failure or outcome values, and installed version; recovery identifiers,
+paths, process identifiers, URLs, hashes, user data, and arbitrary exception text are excluded by construction.
 The command is therefore CI-oriented and must not run on a contributor account that contains a real FitFreed library.
 Its synthetic signing authority is not Authenticode authority, and hosted Windows Server evidence does not satisfy the
 exact Windows 11 candidate gate.
