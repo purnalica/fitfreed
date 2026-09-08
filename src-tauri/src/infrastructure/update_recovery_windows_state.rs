@@ -28,7 +28,8 @@ use thiserror::Error;
 use url::Url;
 
 use super::update_recovery_outcome::{
-    read_update_recovery_outcome, write_update_recovery_outcome, UpdateRecoveryOutcomeStoreError,
+    read_update_recovery_outcome, remove_update_recovery_outcome, write_update_recovery_outcome,
+    UpdateRecoveryOutcomeStoreError,
 };
 use super::update_recovery_windows::{
     canonical_windows_path_matches, verify_windows_native_installation_matches_runnable,
@@ -1221,6 +1222,29 @@ pub fn maintain_windows_update_recovery(
         expected_library_path,
         &mut watchdog_lease,
     )
+}
+
+pub fn acknowledge_windows_update_recovery_outcome(
+    recovery_root: &Path,
+) -> Result<bool, WindowsRecoveryStateError> {
+    if !path_entry_exists(recovery_root)? {
+        return Ok(false);
+    }
+    let recovery_root = canonical_private_directory(recovery_root)?;
+    let outcome_file = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, false)
+        .map_err(map_lock_contention)?;
+    let _outcome_lock = ExclusiveFileLock::acquire(outcome_file)?;
+    let Some(outcome) = read_update_recovery_outcome(&recovery_root)? else {
+        return Ok(false);
+    };
+    let receipt_bound_attempt = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(&outcome.recovery_id);
+    if path_entry_exists(&receipt_bound_attempt)? {
+        return Err(WindowsRecoveryStateError::InvalidState);
+    }
+    remove_update_recovery_outcome(&recovery_root)?;
+    Ok(true)
 }
 
 pub fn maintain_windows_update_recovery_with_watchdog_lease(
@@ -4738,6 +4762,44 @@ mod tests {
             )
             .expect("resumed maintenance after watchdog exit"),
             UpdateRecoveryMaintenance::OutcomeRetained(expected)
+        );
+    }
+
+    #[test]
+    fn acknowledges_retained_outcome_through_windows_state_boundary() {
+        let harness = Harness::new();
+        let packages = SyntheticPackages::available();
+        let (prepared, candidate) = prepare_confirmed_candidate(&harness, &packages);
+        drop(candidate);
+        let expected = UpdateRecoveryOutcome {
+            recovery_id: prepared.recovery_id().to_owned(),
+            kind: UpdateRecoveryOutcomeKind::Updated,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        assert_eq!(
+            maintain_windows_update_recovery_with(
+                &packages,
+                &SyntheticInstalledState::new(&harness, "0.2.0", true),
+                &harness.recovery_root,
+                &harness.library_path,
+                &mut None,
+            )
+            .expect("retained outcome"),
+            UpdateRecoveryMaintenance::OutcomeRetained(expected)
+        );
+
+        assert!(
+            acknowledge_windows_update_recovery_outcome(&harness.recovery_root)
+                .expect("acknowledged outcome")
+        );
+        assert_eq!(
+            read_update_recovery_outcome(&harness.recovery_root).expect("absent outcome"),
+            None
+        );
+        assert!(
+            !acknowledge_windows_update_recovery_outcome(&harness.recovery_root)
+                .expect("already acknowledged outcome")
         );
     }
 

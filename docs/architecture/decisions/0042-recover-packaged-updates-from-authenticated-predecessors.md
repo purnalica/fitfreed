@@ -77,9 +77,9 @@ installer and the minimum complete runnable predecessor image before candidate r
   installed application cannot reacquire that no-sharing lease while the recovery image is still running. Once the
   operating system releases it at process exit, the application revalidates the exact receipt-bound attempt before
   removing the complete directory. Contention preserves the intact attempt for bounded retry or later startup.
-- Windows result acknowledgement remains separate from terminal cleanup. After validating the retained receipt and
-  proving its attempt absent, it retries only native access-denied or sharing-violation receipt deletion for a bounded
-  interval. Exhaustion preserves the receipt and visible result; it cannot be treated as acknowledged.
+- Windows result acknowledgement remains separate from terminal cleanup and runs through the Windows recovery-state
+  adapter. It validates the private recovery root, exclusively owns the native outcome lock, reopens the retained
+  receipt, proves its receipt-bound attempt absent, and only then removes the receipt.
 - If native rollback cannot complete, the validated predecessor image remains available through an explicit recovery
   launch mode and retains all recovery assets. This state is not reported as recovered. It provides the previous
   application and actionable retry guidance without treating mixed native state as success.

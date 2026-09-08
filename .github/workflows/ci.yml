@@ -501,11 +501,11 @@ jobs:
           infrastructure::update_recovery_windows_state::tests::releases_watchdog_cleanup_authority_only_at_process_exit
           --lib -- --exact
 
-      - name: Test transient outcome acknowledgement on Windows
+      - name: Test Windows-state outcome acknowledgement
         if: needs.quality.outputs.focused-verification == 'windows-update'
         run: >-
           cargo test --manifest-path src-tauri/Cargo.toml
-          infrastructure::update_recovery_outcome::tests::waits_for_transient_windows_sharing_before_removing_outcome
+          infrastructure::update_recovery_windows_state::tests::acknowledges_retained_outcome_through_windows_state_boundary
           --lib -- --exact
 
       - name: Build and verify native NSIS update recovery

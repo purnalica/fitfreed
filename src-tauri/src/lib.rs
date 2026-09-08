@@ -84,19 +84,16 @@ use fitfreed_application::{
     ReportExportCancellation, SessionStoryPorts, UpdateChannelPort, UpdateCheckContext,
     UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
 };
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use infrastructure::acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome;
+#[cfg(target_os = "windows")]
 use infrastructure::{
-    acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
-    await_update_recovery_candidate_go, current_update_target, download_verified_update,
-    install_bundled_provider_sport_catalogue, install_verified_update, library_schema_version,
-    prepare_private_library_path, recover_interrupted_imports, HttpsUpdateChannel,
-    NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides,
-    SelfContainedHtmlReportExporter, SqliteActivityLibrary, SqliteApplicationPreferences,
-    SqliteImportOutcomeLibrary, SqliteLibraryHome, SqliteLongitudinalLibrary,
-    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary,
-    SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError,
-    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryMaintenance,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
+    acknowledge_windows_update_recovery_outcome, acquire_windows_update_recovery_candidate_lease,
+    confirm_active_windows_update_recovery, download_verified_predecessor,
+    maintain_windows_update_recovery, query_windows_update_recovery_intervention,
+    reattach_windows_update_recovery_watchdog, resolve_windows_runtime_installation_path,
+    resolve_windows_update_installation_path, retry_windows_update_recovery,
+    run_windows_update_recovery_watchdog, WindowsUpdateRecoveryCandidateLease,
 };
 #[cfg(target_os = "linux")]
 use infrastructure::{
@@ -112,14 +109,18 @@ use infrastructure::{
     maintain_update_recovery, resolve_update_application_path, run_update_recovery_watchdog,
     UpdateRecoveryCandidateLease,
 };
-#[cfg(target_os = "windows")]
 use infrastructure::{
-    acquire_windows_update_recovery_candidate_lease, confirm_active_windows_update_recovery,
-    download_verified_predecessor, maintain_windows_update_recovery,
-    query_windows_update_recovery_intervention, reattach_windows_update_recovery_watchdog,
-    resolve_windows_runtime_installation_path, resolve_windows_update_installation_path,
-    retry_windows_update_recovery, run_windows_update_recovery_watchdog,
-    WindowsUpdateRecoveryCandidateLease,
+    await_update_recovery_candidate_go, current_update_target, download_verified_update,
+    install_bundled_provider_sport_catalogue, install_verified_update, library_schema_version,
+    prepare_private_library_path, recover_interrupted_imports, HttpsUpdateChannel,
+    NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides,
+    SelfContainedHtmlReportExporter, SqliteActivityLibrary, SqliteApplicationPreferences,
+    SqliteImportOutcomeLibrary, SqliteLibraryHome, SqliteLongitudinalLibrary,
+    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError,
+    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryMaintenance,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_RESUME_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto,
@@ -2139,11 +2140,23 @@ async fn acknowledge_update_recovery_notice(app: AppHandle) -> Result<bool, Comm
         return Ok(false);
     }
     tauri::async_runtime::spawn_blocking(move || {
-        acknowledge_retained_update_recovery_outcome(&recovery_root)
+        acknowledge_platform_update_recovery_outcome(&recovery_root)
     })
     .await
     .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
     .map_err(|_| CommandErrorDto::new("update-recovery-outcome-failed"))
+}
+
+fn acknowledge_platform_update_recovery_outcome(recovery_root: &Path) -> Result<bool, ()> {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        acknowledge_retained_update_recovery_outcome(recovery_root).map_err(|_| ())
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        acknowledge_windows_update_recovery_outcome(recovery_root).map_err(|_| ())
+    }
 }
 
 fn current_utc_datetime() -> String {

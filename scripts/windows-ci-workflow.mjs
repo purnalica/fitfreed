@@ -188,8 +188,8 @@ export function validateWindowsCiWorkflow(source) {
   requireMatch(
     errors,
     packagedCapability,
-    /- name: Test transient outcome acknowledgement on Windows\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_outcome::tests::waits_for_transient_windows_sharing_before_removing_outcome\n          --lib -- --exact/,
-    "focused Windows update verification must prove transient outcome acknowledgement before packaging",
+    /- name: Test Windows-state outcome acknowledgement\n        if: needs\.quality\.outputs\.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri\/Cargo\.toml\n          infrastructure::update_recovery_windows_state::tests::acknowledges_retained_outcome_through_windows_state_boundary\n          --lib -- --exact/,
+    "focused Windows update verification must prove native state-boundary outcome acknowledgement before packaging",
   );
   requireMatch(
     errors,
@@ -210,8 +210,8 @@ export function validateWindowsCiWorkflow(source) {
   const watchdogProcessLifetimeTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::tests::releases_watchdog_cleanup_authority_only_at_process_exit",
   );
-  const transientOutcomeAcknowledgementTest = packagedCapability.indexOf(
-    "infrastructure::update_recovery_outcome::tests::waits_for_transient_windows_sharing_before_removing_outcome",
+  const windowsStateOutcomeAcknowledgementTest = packagedCapability.indexOf(
+    "infrastructure::update_recovery_windows_state::tests::acknowledges_retained_outcome_through_windows_state_boundary",
   );
   const stateSerializationTest = packagedCapability.indexOf(
     "infrastructure::update_recovery_windows_state::windows_tests::serializes_competing_state_lock_owners_on_windows",
@@ -239,11 +239,11 @@ export function validateWindowsCiWorkflow(source) {
     errors.push("focused Windows recovery verification must prove the watchdog process-lifetime cleanup boundary before packaging");
   }
   if (
-    transientOutcomeAcknowledgementTest < 0
+    windowsStateOutcomeAcknowledgementTest < 0
     || packagedUpdate < 0
-    || transientOutcomeAcknowledgementTest > packagedUpdate
+    || windowsStateOutcomeAcknowledgementTest > packagedUpdate
   ) {
-    errors.push("focused Windows recovery verification must prove transient outcome acknowledgement before packaging");
+    errors.push("focused Windows recovery verification must prove native state-boundary outcome acknowledgement before packaging");
   }
   requireMatch(
     errors,

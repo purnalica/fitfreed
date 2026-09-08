@@ -255,7 +255,7 @@ pub use update_recovery_windows_package::{
 };
 #[cfg(any(test, target_os = "windows"))]
 pub use update_recovery_windows_state::{
-    acquire_windows_update_recovery_candidate_lease,
+    acknowledge_windows_update_recovery_outcome, acquire_windows_update_recovery_candidate_lease,
     acquire_windows_update_recovery_watchdog_lease, active_windows_update_recovery_phase,
     active_windows_update_recovery_phase_with_watchdog_lease, begin_windows_update_recovery_retry,
     cancel_windows_update_recovery_retry, confirm_active_windows_update_recovery,
