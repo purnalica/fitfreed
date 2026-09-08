@@ -494,6 +494,13 @@ jobs:
           infrastructure::update_recovery_windows_state::tests::keeps_watchdog_and_candidate_leases_distinct_through_confirmation
           --lib -- --exact
 
+      - name: Test recovery-image cleanup readiness on Windows
+        if: needs.quality.outputs.focused-verification == 'windows-update'
+        run: >-
+          cargo test --manifest-path src-tauri/Cargo.toml
+          infrastructure::update_recovery_windows_state::tests::defers_attempt_deletion_while_the_recovery_image_is_executing
+          --lib -- --exact
+
       - name: Build and verify native NSIS update recovery
         run: npm run verify:windows-update-e2e
 

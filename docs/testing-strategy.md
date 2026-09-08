@@ -526,10 +526,11 @@ builds. Production child processes discard that stream. Before package construct
 acquires the distinct no-sharing watchdog and candidate handles, rejects a second owner of either role, confirms the
 exact candidate while both actors remain live, and requires the watchdog to observe both `launching` and `confirmed`
 through its original lease. This native test protects the Windows sharing semantics that a portable host cannot
-reproduce. The Rust suite additionally executes the recovery-image cleanup probe on Windows: its running test image
-must be classified as pending while an idle copy is deletable. After building the ordinary candidate and before the
-WebDriver journey, a native process-survival probe installs that exact NSIS package while same-user processes run under
-both the product filename and the dedicated recovery filename. The product-named probe must be terminated by the
+reproduce. The focused Windows update job additionally executes the recovery-image cleanup probe before package
+construction: its running test image must be classified as pending while an idle copy is deletable. After building the
+ordinary candidate and before the WebDriver journey, a native process-survival probe installs that exact NSIS package
+while same-user processes run under both the product filename and the dedicated recovery filename. The product-named
+probe must be terminated by the
 installer's fixed process boundary while the recovery-named probe remains alive; this proves the mechanism that the
 actual watchdog depends on without repeating the complete packaged journey. Before failure cleanup, the packaged
 journey projects the harness stage,

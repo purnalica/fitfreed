@@ -412,6 +412,10 @@ idle byte-identical copy is deletable. The next focused native campaign must pro
 update boundary can pass. Increasing the verifier timeout or accepting the retained directory would violate the
 documented terminal-cleanup contract and is not an admissible correction.
 
+Focused run `34251145685` was deliberately cancelled before package construction when review found that its workflow
+did not invoke the new Windows-only cleanup-readiness test. The workflow contract now requires that native falsifier
+before the single release-shaped update campaign; the cancelled run is not product evidence and is not retried.
+
 ## Increment M5.3 — Packaged capability parity
 
 **Outcome:** the installed NSIS application provides the same accepted product experience on Windows 11.

@@ -122,6 +122,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
     packagedJob,
     /- name: Test concurrent Windows recovery actors[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?keeps_watchdog_and_candidate_leases_distinct_through_confirmation[\s\S]*?--lib -- --exact/,
   );
+  assert.match(
+    packagedJob,
+    /- name: Test recovery-image cleanup readiness on Windows[\s\S]*?focused-verification == 'windows-update'[\s\S]*?cargo test --manifest-path src-tauri\/Cargo\.toml[\s\S]*?defers_attempt_deletion_while_the_recovery_image_is_executing[\s\S]*?--lib -- --exact/,
+  );
   const iconGeneration = packagedJob.indexOf("npm run icons");
   assert.notEqual(iconGeneration, -1);
   assert.ok(
@@ -137,6 +141,10 @@ test("isolates native Windows update recovery from accepted capability evidence"
     packagedJob.indexOf("keeps_watchdog_and_candidate_leases_distinct_through_confirmation")
       < packagedJob.indexOf("npm run verify:windows-update-e2e"),
   );
+  assert.ok(
+    packagedJob.indexOf("defers_attempt_deletion_while_the_recovery_image_is_executing")
+      < packagedJob.indexOf("npm run verify:windows-update-e2e"),
+  );
 
   assert.throws(
     () => validateWindowsCiWorkflow(workflow.replace(
@@ -144,6 +152,14 @@ test("isolates native Windows update recovery from accepted capability evidence"
       "",
     )),
     /state-lock serialization/,
+  );
+
+  assert.throws(
+    () => validateWindowsCiWorkflow(workflow.replace(
+      "      - name: Test recovery-image cleanup readiness on Windows\n        if: needs.quality.outputs.focused-verification == 'windows-update'\n        run: >-\n          cargo test --manifest-path src-tauri/Cargo.toml\n          infrastructure::update_recovery_windows_state::tests::defers_attempt_deletion_while_the_recovery_image_is_executing\n          --lib -- --exact\n\n",
+      "",
+    )),
+    /recovery-image cleanup readiness/,
   );
 
   assert.throws(
