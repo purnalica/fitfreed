@@ -2600,7 +2600,7 @@ fn open_private_lock_file(
         .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
     let file = options.open(directory.join(name))?;
     validate_private_lock_file(&file)?;
-    Ok(())
+    Ok(file)
 }
 
 #[cfg(target_os = "windows")]
