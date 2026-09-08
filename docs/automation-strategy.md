@@ -196,7 +196,11 @@ instrumented 0.1.0 predecessor and ordinary 0.2.0 NSIS candidate with the canoni
 ephemeral updater and local TLS authority, and serves signed `stable-v3` metadata only over loopback HTTPS. It runs
 one bounded pre-journey process-survival check against the ordinary candidate: NSIS must terminate a same-user probe
 named `fitfreed.exe` while leaving the byte-equivalent recovery-name probe alive. A failure stops before WebDriver.
-It then runs
+The recovered process resolves a retained terminal outcome before update discovery and suppresses only its immediate
+launch check; manual discovery and the host-owned periodic schedule remain intact. Process-replacing retry actions
+accept WebDriver session loss only after exact process exit. Closed-transport diagnostics retain only relative
+synthetic request paths, and concurrent orchestration reports the journey failure before any secondary coordinator
+failure. It then runs
 successful replacement,
 native installer failure, candidate rejection with automatic predecessor restoration, and ordinary-startup resumption
 after an exact post-install watchdog interruption. It also drives the retained product-image fallback through its

@@ -583,6 +583,35 @@ describe("UpdatePanel", () => {
     expect(invoke).not.toHaveBeenCalledWith("check_for_updates_on_launch");
   });
 
+  it("keeps manual discovery available without repeating launch discovery after recovery", async () => {
+    invoke.mockImplementation((command) => {
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
+      if (command === "check_for_updates") return Promise.resolve(outcome());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        automaticLaunchCheck={false}
+        refreshToken={0}
+      />,
+    );
+
+    const panel = await screen.findByRole("region", { name: "Application updates" });
+    const checkNow = await within(panel).findByRole("button", { name: "Check now" });
+    expect(invoke).not.toHaveBeenCalledWith("check_for_updates_on_launch");
+
+    await user.click(checkNow);
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("check_for_updates"));
+    expect(within(panel).getByText("Version 0.2.0 is available.")).toBeVisible();
+  });
+
   it("keeps manual checking available when only the launch update check fails", async () => {
     withoutRecovery((command) => command === "check_for_updates_on_launch"
       ? Promise.reject({ code: "update-channel-failed", detail: "private URL" })

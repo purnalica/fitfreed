@@ -17,6 +17,7 @@ import {
   applicationProcessTable,
 } from "../e2e/support/application-process.js";
 import { createWindowsUpdateFailureEvidence } from "./support/windows-update-failure-evidence.mjs";
+import { runProcessReplacingAction } from "./support/process-replacing-action.mjs";
 
 const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
@@ -395,6 +396,15 @@ async function waitForApplication(executablePath) {
   throw new Error("the exact Windows fallback application did not start");
 }
 
+async function waitForApplicationStop(executablePath) {
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    if (applicationProcessIds(executablePath).length === 0) return;
+    await delay(100);
+  }
+  throw new Error("the exact Windows fallback application did not stop for recovery");
+}
+
 async function replaceWithFallbackSession(browser, recovery) {
   const fallbackExecutable = path.join(
     recovery.attemptDirectory,
@@ -541,11 +551,15 @@ async function main() {
       assert.equal(unavailable.manifest.nativeRecovery.lastFailure, "installer-failed");
     }
     if (scenario === "recovery-retry") {
-      ({ browser } = await replaceWithFallbackSession(browser, recovery));
+      let fallbackExecutable;
+      ({ browser, fallbackExecutable } = await replaceWithFallbackSession(browser, recovery));
       const retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 1);
       fs.writeFileSync(recoveryRetryRequest, "request\n", { flag: "wx", mode: 0o600 });
       await waitForMarker(recoveryRetryReady, "receive recovery retry authorization");
-      await retry.click();
+      await runProcessReplacingAction({
+        runAction: () => retry.click(),
+        verifyExactProcessReplacement: () => waitForApplicationStop(fallbackExecutable),
+      });
       const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
       assert.deepEqual(outcome, {
         format: "org.fitfreed.update-recovery-outcome",
@@ -570,7 +584,10 @@ async function main() {
       let fallbackExecutable;
       ({ browser, fallbackExecutable } = await replaceWithFallbackSession(browser, recovery));
       let retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 1);
-      await retry.click();
+      await runProcessReplacingAction({
+        runAction: () => retry.click(),
+        verifyExactProcessReplacement: () => waitForApplicationStop(fallbackExecutable),
+      });
       let unavailable = await waitForRecoveryPhase(
         recovery.recoveryId,
         "native-recovery-unavailable",
@@ -579,7 +596,10 @@ async function main() {
       assert.equal(unavailable.manifest.nativeRecovery.lastFailure, "installer-failed");
       ({ browser } = await replaceWithFallbackSession(browser, recovery));
       retry = await verifyRecoveryIntervention(browser, recovery.recoveryId, 2);
-      await retry.click();
+      await runProcessReplacingAction({
+        runAction: () => retry.click(),
+        verifyExactProcessReplacement: () => waitForApplicationStop(fallbackExecutable),
+      });
       unavailable = await waitForRecoveryPhase(
         recovery.recoveryId,
         "recovery-failed",

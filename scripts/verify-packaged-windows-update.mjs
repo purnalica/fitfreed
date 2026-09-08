@@ -155,26 +155,67 @@ export function windowsPredecessorGateHook() {
 
 export function createWindowsUpdateTransportGate() {
   let open = true;
-  let requestsWhileClosed = 0;
+  const pathsWhileClosed = new Set();
   return Object.freeze({
-    allowRequest() {
+    allowRequest(requestTarget = "") {
       if (open) return true;
-      requestsWhileClosed += 1;
+      let requestPath = "<invalid-target>";
+      try {
+        const parsed = new URL(requestTarget, "https://synthetic.invalid");
+        if (/^\/[A-Za-z0-9._/-]*$/u.test(parsed.pathname)) {
+          requestPath = parsed.pathname;
+        }
+      } catch {
+        // Preserve only a closed synthetic path classification.
+      }
+      pathsWhileClosed.add(requestPath);
       return false;
     },
     close() {
       open = false;
-      requestsWhileClosed = 0;
+      pathsWhileClosed.clear();
     },
     open() {
       open = true;
     },
     assertUnusedWhileClosed() {
-      if (requestsWhileClosed !== 0) {
-        throw new Error("Windows recovery reached update transport while it was unavailable");
+      if (pathsWhileClosed.size !== 0) {
+        throw new Error(
+          `Windows recovery reached update transport while it was unavailable: ${[
+            ...pathsWhileClosed,
+          ].sort().join(", ")}`,
+        );
       }
     },
   });
+}
+
+function failureMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export async function settleWindowsUpdateScenarioTasks({
+  journey,
+  offlineRecovery,
+  abortOfflineRecovery,
+}) {
+  const observedJourney = Promise.resolve(journey).catch((error) => {
+    abortOfflineRecovery();
+    throw error;
+  });
+  const [journeyResult, offlineResult] = await Promise.allSettled([
+    observedJourney,
+    offlineRecovery,
+  ]);
+  if (journeyResult.status === "rejected" && offlineResult.status === "rejected") {
+    throw new AggregateError(
+      [journeyResult.reason, offlineResult.reason],
+      `Windows update journey failed: ${failureMessage(journeyResult.reason)}; `
+        + `offline coordination also failed: ${failureMessage(offlineResult.reason)}`,
+    );
+  }
+  if (journeyResult.status === "rejected") throw journeyResult.reason;
+  if (offlineResult.status === "rejected") throw offlineResult.reason;
 }
 
 export async function coordinateWindowsOfflineRecoveryRetry({
@@ -631,7 +672,7 @@ async function startUpdateServer(candidatePackages, predecessorPackage) {
     key: readFileSync(serverKeyPath),
     cert: readFileSync(serverCertificatePath),
   }, (request, response) => {
-    if (!transportGate.allowRequest()) {
+    if (!transportGate.allowRequest(request.url)) {
       response.writeHead(503, { "content-length": "0" });
       response.end();
       return;
@@ -853,49 +894,51 @@ async function runScenario(
       })
       : Promise.resolve();
     try {
-      await Promise.all([
-        runAsync("node", ["test/update-e2e/windows-update-journey.mjs"], {
-          FITFREED_UPDATE_E2E_APPLICATION:
-            path.join(process.env.LOCALAPPDATA, "FitFreed", "fitfreed.exe"),
-          FITFREED_UPDATE_E2E_SCENARIO: scenario.name,
-          FITFREED_UPDATE_E2E_EXPECTED_OUTCOME: scenario.expectedOutcome,
-          FITFREED_UPDATE_E2E_EXPECTED_VERSION: scenario.expectedVersion,
-          FITFREED_UPDATE_E2E_DRIVER_PORT: String(await availableTcpPort()),
-          FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
-          FITFREED_UPDATE_E2E_EVIDENCE_PATH: evidencePath,
-          FITFREED_UPDATE_E2E_PACKAGE_SCRIPT: windowsInstalledPackageActionScript,
-          FITFREED_E2E_DATABASE_PATH: databasePath,
-          FITFREED_E2E_UPDATE_CONTRACT: "stable-v3",
-          FITFREED_E2E_UPDATE_ENDPOINT: endpoint,
-          FITFREED_E2E_UPDATE_KEY_ID: keyId,
-          FITFREED_E2E_UPDATE_PUBLIC_KEY: publicKey,
-          FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH: certificatePath,
-          WDIO_LOG_LEVEL: "warn",
-          ...(scenario.gatePredecessor
-            ? {
-              FITFREED_E2E_WINDOWS_PREDECESSOR_INSTALL_READY: predecessorInstallReady,
-            }
-            : {}),
-          ...(scenario.name === "recovery-retry"
-            ? {
-              FITFREED_UPDATE_E2E_RECOVERY_RETRY_REQUEST: recoveryRetryRequest,
-              FITFREED_UPDATE_E2E_RECOVERY_RETRY_READY: recoveryRetryReady,
-              FITFREED_UPDATE_E2E_OFFLINE_RECOVERY_COMPLETED: offlineRecoveryCompleted,
-              FITFREED_UPDATE_E2E_NOTICE_VERIFICATION_READY: noticeVerificationReady,
-            }
-            : {}),
-          ...(scenario.rejectCandidate
-            ? { FITFREED_E2E_REJECT_UPDATE_CANDIDATE: "1" }
-            : {}),
-          ...(scenario.interruptWatchdog
-            ? {
-              FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_READY: interruptionReady,
-              FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_CONTINUE: interruptionContinue,
-            }
-            : {}),
-        }),
+      const journey = runAsync("node", ["test/update-e2e/windows-update-journey.mjs"], {
+        FITFREED_UPDATE_E2E_APPLICATION:
+          path.join(process.env.LOCALAPPDATA, "FitFreed", "fitfreed.exe"),
+        FITFREED_UPDATE_E2E_SCENARIO: scenario.name,
+        FITFREED_UPDATE_E2E_EXPECTED_OUTCOME: scenario.expectedOutcome,
+        FITFREED_UPDATE_E2E_EXPECTED_VERSION: scenario.expectedVersion,
+        FITFREED_UPDATE_E2E_DRIVER_PORT: String(await availableTcpPort()),
+        FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
+        FITFREED_UPDATE_E2E_EVIDENCE_PATH: evidencePath,
+        FITFREED_UPDATE_E2E_PACKAGE_SCRIPT: windowsInstalledPackageActionScript,
+        FITFREED_E2E_DATABASE_PATH: databasePath,
+        FITFREED_E2E_UPDATE_CONTRACT: "stable-v3",
+        FITFREED_E2E_UPDATE_ENDPOINT: endpoint,
+        FITFREED_E2E_UPDATE_KEY_ID: keyId,
+        FITFREED_E2E_UPDATE_PUBLIC_KEY: publicKey,
+        FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH: certificatePath,
+        WDIO_LOG_LEVEL: "warn",
+        ...(scenario.gatePredecessor
+          ? {
+            FITFREED_E2E_WINDOWS_PREDECESSOR_INSTALL_READY: predecessorInstallReady,
+          }
+          : {}),
+        ...(scenario.name === "recovery-retry"
+          ? {
+            FITFREED_UPDATE_E2E_RECOVERY_RETRY_REQUEST: recoveryRetryRequest,
+            FITFREED_UPDATE_E2E_RECOVERY_RETRY_READY: recoveryRetryReady,
+            FITFREED_UPDATE_E2E_OFFLINE_RECOVERY_COMPLETED: offlineRecoveryCompleted,
+            FITFREED_UPDATE_E2E_NOTICE_VERIFICATION_READY: noticeVerificationReady,
+          }
+          : {}),
+        ...(scenario.rejectCandidate
+          ? { FITFREED_E2E_REJECT_UPDATE_CANDIDATE: "1" }
+          : {}),
+        ...(scenario.interruptWatchdog
+          ? {
+            FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_READY: interruptionReady,
+            FITFREED_E2E_WINDOWS_UPDATE_INTERRUPTION_CONTINUE: interruptionContinue,
+          }
+          : {}),
+      });
+      await settleWindowsUpdateScenarioTasks({
+        journey,
         offlineRecovery,
-      ]);
+        abortOfflineRecovery: () => controller.abort(),
+      });
     } finally {
       controller.abort();
     }

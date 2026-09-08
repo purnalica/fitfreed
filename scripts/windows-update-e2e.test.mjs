@@ -8,6 +8,7 @@ import {
   coordinateWindowsOfflineRecoveryRetry,
   createWindowsUpdateTransportGate,
   expectedWindowsUpdatePackageName,
+  settleWindowsUpdateScenarioTasks,
   validateWindowsUpdateEvidence,
   windowsInstallerFailureHook,
   windowsMissingCandidateVariant,
@@ -19,6 +20,7 @@ import {
   windowsUpdateTauriInvocation,
 } from "./verify-packaged-windows-update.mjs";
 import { createWindowsUpdateFailureEvidence } from "../test/update-e2e/support/windows-update-failure-evidence.mjs";
+import { runProcessReplacingAction } from "../test/update-e2e/support/process-replacing-action.mjs";
 
 test("matches only equivalent ordinary and verbatim Windows paths", () => {
   const ordinaryDrive = String.raw`C:\FitFreedTests\Profile\fitfreed.sqlite`;
@@ -243,10 +245,86 @@ test("coordinates a local Windows recovery retry while update transport is unava
   ]);
 
   transport.close();
-  assert.equal(transport.allowRequest(), false);
+  assert.equal(transport.allowRequest("/stable.json?ignored=private"), false);
   assert.throws(
     () => transport.assertUnusedWhileClosed(),
-    /reached update transport/,
+    /reached update transport.*\/stable\.json/u,
+  );
+});
+
+test("preserves the primary Windows journey failure while aborting offline coordination", async () => {
+  const controller = new AbortController();
+  const journeyFailure = new Error("journey failed first");
+  const offlineRecovery = new Promise((resolve) => {
+    controller.signal.addEventListener("abort", resolve, { once: true });
+  });
+
+  await assert.rejects(
+    settleWindowsUpdateScenarioTasks({
+      journey: Promise.reject(journeyFailure),
+      offlineRecovery,
+      abortOfflineRecovery: () => controller.abort(),
+    }),
+    (error) => error === journeyFailure,
+  );
+  assert.equal(controller.signal.aborted, true);
+});
+
+test("retains both Windows journey and offline-coordinator failures in causal order", async () => {
+  const controller = new AbortController();
+  const journeyFailure = new Error("journey failed first");
+  const coordinationFailure = new Error("offline cleanup also failed");
+  const offlineRecovery = new Promise((_, reject) => {
+    controller.signal.addEventListener(
+      "abort",
+      () => reject(coordinationFailure),
+      { once: true },
+    );
+  });
+
+  await assert.rejects(
+    settleWindowsUpdateScenarioTasks({
+      journey: Promise.reject(journeyFailure),
+      offlineRecovery,
+      abortOfflineRecovery: () => controller.abort(),
+    }),
+    (error) => {
+      assert.equal(error instanceof AggregateError, true);
+      assert.deepEqual(error.errors, [journeyFailure, coordinationFailure]);
+      assert.match(error.message, /journey failed first.*offline cleanup also failed/u);
+      return true;
+    },
+  );
+});
+
+test("accepts WebDriver session loss only after exact native process replacement", async () => {
+  const events = [];
+  await runProcessReplacingAction({
+    async runAction() {
+      events.push("action");
+      throw new Error(
+        "invalid session id: WebDriverError: Session synthetic not found when running execute/sync",
+      );
+    },
+    async verifyExactProcessReplacement() {
+      events.push("replacement");
+    },
+  });
+  assert.deepEqual(events, ["action", "replacement"]);
+
+  await assert.rejects(
+    runProcessReplacingAction({
+      runAction: () => Promise.reject(new Error("element is not clickable")),
+      verifyExactProcessReplacement: () => Promise.resolve(),
+    }),
+    /element is not clickable/u,
+  );
+  await assert.rejects(
+    runProcessReplacingAction({
+      runAction: () => Promise.reject(new Error("invalid session id")),
+      verifyExactProcessReplacement: () => Promise.reject(new Error("process remains live")),
+    }),
+    /process remains live/u,
   );
 });
 

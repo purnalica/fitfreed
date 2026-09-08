@@ -3082,6 +3082,7 @@ describe("FitFreed import interface", () => {
 
   it("requests backend-owned update confirmation only after locale startup completes", async () => {
     let completePreferences!: (load: ApplicationPreferencesLoad) => void;
+    let completeUpdateConfirmation!: (outcome: null) => void;
     mocks.preferencesInvoke.mockImplementation((command) => {
       if (command === "load_preferences") {
         return new Promise((resolve) => {
@@ -3089,6 +3090,28 @@ describe("FitFreed import interface", () => {
         });
       }
       throw new Error(`Unexpected preference command: ${command}`);
+    });
+    mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "confirm_update_recovery_startup") {
+        return new Promise((resolve) => {
+          completeUpdateConfirmation = resolve;
+        });
+      }
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
+      if (command === "check_for_updates_on_launch") {
+        return Promise.resolve({
+          installedVersion: "0.1.0",
+          checkedAt: "2026-08-17T09:00:00Z",
+          status: "up-to-date",
+          release: null,
+          installedWithdrawal: null,
+          updateActionAvailable: false,
+          postponedUntil: null,
+          manualRecoveryReason: null,
+          trustFailure: null,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
@@ -3106,6 +3129,83 @@ describe("FitFreed import interface", () => {
     await act(async () => completePreferences(preferencesLoad()));
     await waitFor(() => expect(mocks.updateInvoke).toHaveBeenCalledWith(
       "confirm_update_recovery_startup",
+      undefined,
+    ));
+    expect(mocks.updateInvoke).not.toHaveBeenCalledWith(
+      "check_for_updates_on_launch",
+      undefined,
+    );
+
+    await act(async () => completeUpdateConfirmation(null));
+
+    await waitFor(() => expect(mocks.updateInvoke).toHaveBeenCalledWith(
+      "check_for_updates_on_launch",
+      undefined,
+    ));
+  });
+
+  it("orders launch discovery after recovery resolution and suppresses it for a retained outcome", async () => {
+    emptyLibrary();
+    let completeConfirmation!: (outcome: Record<string, string>) => void;
+    mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "confirm_update_recovery_startup") {
+        return new Promise((resolve) => {
+          completeConfirmation = resolve;
+        });
+      }
+      if (command === "query_update_recovery_intervention") return Promise.resolve(null);
+      if (command === "check_for_updates") {
+        return Promise.resolve({
+          installedVersion: "0.1.0",
+          checkedAt: "2026-08-17T09:00:00Z",
+          status: "up-to-date",
+          release: null,
+          installedWithdrawal: null,
+          updateActionAvailable: false,
+          postponedUntil: null,
+          manualRecoveryReason: null,
+          trustFailure: null,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await waitFor(() => expect(completeConfirmation).toBeTypeOf("function"));
+    expect(mocks.updateInvoke).not.toHaveBeenCalledWith(
+      "query_update_recovery_intervention",
+      undefined,
+    );
+    expect(mocks.updateInvoke).not.toHaveBeenCalledWith(
+      "check_for_updates_on_launch",
+      undefined,
+    );
+
+    await act(async () => completeConfirmation({
+      outcome: "recovered",
+      sourceVersion: "0.1.0",
+      targetVersion: "0.2.0",
+    }));
+
+    expect(await screen.findByRole("status", {
+      name: "Update recovery completed",
+    })).toBeVisible();
+    await waitFor(() => expect(mocks.updateInvoke).toHaveBeenCalledWith(
+      "query_update_recovery_intervention",
+      undefined,
+    ));
+    expect(mocks.updateInvoke).not.toHaveBeenCalledWith(
+      "check_for_updates_on_launch",
+      undefined,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    await user.click(screen.getByRole("button", { name: "Updates" }));
+    await user.click(await screen.findByRole("button", { name: "Check now" }));
+    await waitFor(() => expect(mocks.updateInvoke).toHaveBeenCalledWith(
+      "check_for_updates",
       undefined,
     ));
   });

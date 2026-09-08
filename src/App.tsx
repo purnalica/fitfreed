@@ -169,6 +169,8 @@ interface UpdateRecoveryOutcome {
   targetVersion: string;
 }
 
+type UpdateRecoveryStartupState = "pending" | "ordinary" | "outcome" | "failed";
+
 function systemLocale(): Locale {
   const preferredLanguages = navigator.languages.length > 0
     ? navigator.languages
@@ -296,6 +298,8 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [updateInstalling, setUpdateInstalling] = useState(false);
   const [updateRecoveryOutcome, setUpdateRecoveryOutcome] = useState<UpdateRecoveryOutcome>();
+  const [updateRecoveryStartupState, setUpdateRecoveryStartupState]
+    = useState<UpdateRecoveryStartupState>("pending");
   const [updateRecoveryAcknowledging, setUpdateRecoveryAcknowledging] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [errorCode, setErrorCode] = useState<string>();
@@ -533,10 +537,19 @@ function App() {
     let active = true;
     invoke<UpdateRecoveryOutcome | null>("confirm_update_recovery_startup")
       .then((recoveryOutcome) => {
-        if (active && recoveryOutcome) setUpdateRecoveryOutcome(recoveryOutcome);
+        if (!active) return;
+        if (recoveryOutcome) {
+          setUpdateRecoveryOutcome(recoveryOutcome);
+          setUpdateRecoveryStartupState("outcome");
+        } else {
+          setUpdateRecoveryStartupState("ordinary");
+        }
       })
       .catch((reason) => {
-        if (active) setErrorCode(commandErrorCode(reason));
+        if (active) {
+          setUpdateRecoveryStartupState("failed");
+          setErrorCode(commandErrorCode(reason));
+        }
       });
     return () => {
       active = false;
@@ -1340,13 +1353,16 @@ function App() {
                       onDiscardAndContinue: discardSettingsAndNavigate,
                     }
                   : undefined}
-                updatePanel={applicationReady && (
+                updatePanel={applicationReady
+                  && updateRecoveryStartupState !== "pending"
+                  && updateRecoveryStartupState !== "failed" && (
                   <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
                     <UpdatePanel
                       locale={locale}
                       messages={messages.updates}
                       errors={errorMessages}
                       ready
+                      automaticLaunchCheck={updateRecoveryStartupState === "ordinary"}
                       refreshToken={updateLocaleRefreshToken}
                       installationBlocked={busy}
                       onInstallationStateChange={setUpdateInstalling}

@@ -64,6 +64,7 @@ interface UpdatePanelProps {
   messages: UpdateMessages;
   errors: Record<string, string>;
   ready: boolean;
+  automaticLaunchCheck?: boolean;
   refreshToken: number;
   installationBlocked?: boolean;
   onInstallationStateChange?: (installing: boolean) => void;
@@ -89,6 +90,7 @@ export function UpdatePanel({
   messages,
   errors,
   ready,
+  automaticLaunchCheck = true,
   refreshToken,
   installationBlocked = false,
   onInstallationStateChange,
@@ -162,6 +164,7 @@ export function UpdatePanel({
         setOutcome(undefined);
         return;
       }
+      if (!automaticLaunchCheck) return;
       try {
         const result = await invoke<UpdateCheckOutcome>("check_for_updates_on_launch");
         if (active && requestId === requestSequence.current) {
@@ -178,7 +181,7 @@ export function UpdatePanel({
     return () => {
       active = false;
     };
-  }, [ready, refreshToken]);
+  }, [ready, automaticLaunchCheck, refreshToken]);
 
   async function checkNow() {
     if (recoveryInterventionActive.current) return;

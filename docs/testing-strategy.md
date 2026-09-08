@@ -515,7 +515,11 @@ from its preinstall hook, the same restoration after candidate rejection, and re
 preserved watchdog is terminated at the durable `replacement-installed` boundary. A signed predecessor test package
 contains an E2E-only NSIS gate that is inert during initial installation. The retry path activates that gate, requires
 one failed native restoration and the retained runnable predecessor, closes the update transport, releases the gate,
-and completes an explicit retry without another transport request. The exhaustion path keeps the gate closed through
+and completes an explicit retry without another transport request. The automatically relaunched recovered process
+resolves its retained outcome before update discovery and suppresses that process's one launch check. WebDriver
+session loss is accepted only after the exact fallback process exits; durable outcome, cleanup, installation identity,
+and notice checks remain mandatory. The transport diagnostic retains only relative synthetic request paths, and
+concurrent failures report the journey before coordinator cleanup. The exhaustion path keeps the gate closed through
 three durable failures, reopens the runnable predecessor after each available retry, and requires terminal manual
 guidance with no retry or ordinary update action. Every path revalidates the recovery manifest and preserved assets,
 exact installed version, library and locale persistence, applicable terminal receipt and cleanup, localized outcome,
@@ -570,8 +574,10 @@ localized result presentation, and explicit acknowledgement. The authorization s
 but denies predecessor installation, verifies the retained first attempt and runnable fallback, grants only the same
 preserved predecessor boundary, and drives the visible explicit retry to terminal recovery without network access.
 A two-way completion handshake reopens the test channel only after terminal recovery and before the separate
-notice-verification restart, so ordinary discovery after recovery remains outside the offline-recovery assertion
-without weakening it.
+notice-verification restart. The automatically relaunched recovered process first resolves and presents its retained
+terminal outcome and suppresses its one launch discovery attempt, so no request can escape the offline-recovery
+interval. Explicit manual discovery and the 24-hour host schedule remain available without weakening the terminal
+recovery, cleanup, installed-version, independent-notice, or acknowledgement assertions.
 The exhaustion scenario keeps that denial in place, drives the two available UI retries, verifies durable attempt
 counts one through three and the classified authorization failure, then opens the preserved runnable predecessor and
 requires localized manual-reinstall guidance with no retry or ordinary update action. Its evidence must retain the
