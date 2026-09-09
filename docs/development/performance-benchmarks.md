@@ -43,6 +43,14 @@ alongside a real FitFreed library. The explicit
 `.github/workflows/windows-performance.yml` workflow owns the hosted Windows Server 2025 run; it does not replace the
 exact Windows 11 candidate gate.
 
+Select the default `complete` scope when package or cold-launch inputs changed. Select `recovery-and-data` only to
+continue gates that a later failure prevented, and provide the completed predecessor run identifier. The resume
+preflight reads that run's job steps, verifies that package construction and all 100 launches succeeded before the
+filesystem failure, proves the current revision descends from that source, and rejects any change to the measured
+product. The currently admitted comparison additionally recognizes only the exact development-tool security update
+and the filesystem harness, tests, workflow, and documentation. No missing or manually asserted evidence can bypass
+the complete scope.
+
 The release executable uses the Windows GUI subsystem and therefore does not own a reliable standard-output
 measurement channel; the [Rust standard-library contract](https://doc.rust-lang.org/std/io/fn.stdout.html) states
 that a detached-console stream can be null and silently discard writes. The benchmark creates a one-connection local
@@ -309,7 +317,10 @@ database must retain the exact protected private ACL for the current user, Local
 Failure rejects the performance admission before owned installation cleanup.
 
 The filesystem command creates and mounts one isolated 64 MiB NTFS VHD on an unused drive letter, verifies its
-filesystem, capacity, and sentinel, and points exact ignored release-mode Rust tests at it. The recovery test commits a baseline
+filesystem and capacity, creates a dedicated application-data child with the isolation sentinel, and points exact
+ignored release-mode Rust tests at that child. The volume root remains outside the product library boundary because
+a freshly formatted NTFS root is system-owned rather than representative of a current-user application-data directory.
+The recovery test commits a baseline
 synthetic history, consumes the volume through actual Windows disk-full failure, requires the next import to fail
 without exposing new history, restores capacity, and enters the ordinary startup-recovery path. SQLite integrity and
 the baseline history must remain intact before the same additional import succeeds on retry. The boundary test creates

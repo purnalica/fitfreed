@@ -81,7 +81,7 @@ byte retention, and rejection of directory links, file links, and multiple hard 
 Windows adapter tests cover create and reopen, validation beside an open SQLite connection, retained bytes, multiple
 hard links, bounded transient sharing denial, long Unicode paths, token-default-owner normalization, symbolic files,
 and a real NTFS junction without target mutation. The elevated filesystem
-admission constructs the junction and executes the native boundary test on the same isolated VHD used for real
+admission constructs a dedicated application-data child and the junction on the same isolated VHD used for real
 disk-exhaustion recovery. The installed-package cold-launch admission then verifies that the production library exists
 under the exact current-user `%APPDATA%` root, is non-empty, contains no reparse-point descendants, and has the exact
 protected directory and file DACLs. Every packaged command traverses the same production adapter rather than a

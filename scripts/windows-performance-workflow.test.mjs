@@ -9,9 +9,17 @@ const workflow = readFileSync(
 
 test("keeps Windows performance admission explicit and publication-authority-free", () => {
   assert.match(workflow, /^name: Windows performance admission$/m);
-  assert.match(workflow, /^on:\n  workflow_dispatch:$/m);
+  assert.match(workflow, /^on:\n  workflow_dispatch:\n    inputs:/m);
+  assert.match(
+    workflow,
+    /scope:\n\s+description: Windows performance boundary to execute\n\s+required: true\n\s+default: complete\n\s+type: choice\n\s+options:\n\s+- complete\n\s+- recovery-and-data/,
+  );
+  assert.match(
+    workflow,
+    /accepted_run_id:\n\s+description: Required successful cold-launch run when resuming recovery and data\n\s+required: false\n\s+type: string/,
+  );
   assert.doesNotMatch(workflow, /^  (push|pull_request|schedule):/m);
-  assert.match(workflow, /^permissions:\n  contents: read$/m);
+  assert.match(workflow, /^permissions:\n  actions: read\n  contents: read$/m);
   assert.doesNotMatch(workflow, /secrets\.|upload-artifact|contents: write/);
 });
 
@@ -32,11 +40,14 @@ test("runs every production data benchmark on the pinned Windows host", () => {
   );
 });
 
-test("builds, installs, measures, and always removes the production package", () => {
-  assert.match(workflow, /run: npm run package:windows/);
+test("runs package and cold-launch work only for a complete campaign", () => {
   assert.match(
     workflow,
-    /name: Verify installed Windows cold-launch budget\n\s+run: npm run verify:windows-cold-launch/,
+    /name: Build the source-bound Windows package\n\s+if: inputs\.scope == 'complete'\n\s+run: npm run package:windows/,
+  );
+  assert.match(
+    workflow,
+    /name: Verify installed Windows cold-launch budget\n\s+if: inputs\.scope == 'complete'\n\s+run: npm run verify:windows-cold-launch/,
   );
   assert.ok(
     workflow.indexOf("name: Build the source-bound Windows package")
@@ -45,6 +56,27 @@ test("builds, installs, measures, and always removes the production package", ()
   assert.ok(
     workflow.indexOf("name: Verify installed Windows cold-launch budget")
       < workflow.indexOf("name: Verify full-scale import budgets"),
+  );
+});
+
+test("admits a recovery-and-data resume only after verifying retained evidence", () => {
+  assert.match(workflow, /fetch-depth: 0/);
+  assert.match(
+    workflow,
+    /name: Verify retained Windows cold-launch evidence\n\s+if: inputs\.scope == 'recovery-and-data'/,
+  );
+  assert.match(workflow, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(workflow, /GITHUB_REPOSITORY: \$\{\{ github\.repository \}\}/);
+  assert.match(workflow, /GITHUB_SHA: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /FITFREED_ACCEPTED_RUN_ID: \$\{\{ inputs\.accepted_run_id \}\}/);
+  assert.match(
+    workflow,
+    /run: node scripts\/verify-windows-performance-resume\.mjs/,
+  );
+  assert.doesNotMatch(workflow, /run:.*inputs\.accepted_run_id/);
+  assert.ok(
+    workflow.indexOf("name: Verify retained Windows cold-launch evidence")
+      < workflow.indexOf("name: Verify the Windows development environment"),
   );
 });
 

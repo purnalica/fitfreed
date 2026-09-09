@@ -79,6 +79,23 @@ test("creates one bounded isolated NTFS VHD and detaches it unconditionally", ()
   assert.doesNotMatch(powershell, /Clear-Disk|Remove-Partition|Format-Volume|rm -r|rm -rf/);
 });
 
+test("uses a dedicated application-data child instead of the system-owned NTFS root", () => {
+  assert.match(powershell, /\$libraryRoot = Join-Path \$driveRoot "library-root"/);
+  assert.match(powershell, /New-Item -ItemType Directory -Path \$libraryRoot/);
+  assert.match(
+    powershell,
+    /New-Item -ItemType File -Path \(Join-Path \$libraryRoot "\.fitfreed-isolated-filesystem"\)/,
+  );
+  assert.match(
+    powershell,
+    /\$env:FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT = \$libraryRoot/,
+  );
+  assert.doesNotMatch(
+    powershell,
+    /\$env:FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT = \$driveRoot/,
+  );
+});
+
 test("runs only the exact ignored Windows disk-exhaustion recovery test", () => {
   assert.match(powershell, /FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT/);
   assert.match(powershell, /"test",/);

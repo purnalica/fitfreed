@@ -88,7 +88,9 @@ try {
   if ($volume.Size -lt 48MB -or $volume.Size -gt 80MB) {
     throw "isolated NTFS volume is outside the admitted capacity boundary"
   }
-  New-Item -ItemType File -Path (Join-Path $driveRoot ".fitfreed-isolated-filesystem") | Out-Null
+  $libraryRoot = Join-Path $driveRoot "library-root"
+  New-Item -ItemType Directory -Path $libraryRoot | Out-Null
+  New-Item -ItemType File -Path (Join-Path $libraryRoot ".fitfreed-isolated-filesystem") | Out-Null
   $junctionTarget = Join-Path $driveRoot "junction-target"
   $junctionPath = Join-Path $driveRoot "application-data-junction"
   New-Item -ItemType Directory -Path $junctionTarget | Out-Null
@@ -99,7 +101,7 @@ try {
   )
   New-Item -ItemType Junction -Path $junctionPath -Target $junctionTarget | Out-Null
 
-  $env:FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT = $driveRoot
+  $env:FITFREED_WINDOWS_FILESYSTEM_TEST_ROOT = $libraryRoot
   $env:FITFREED_WINDOWS_JUNCTION_TEST_PATH = $junctionPath
   if ([String]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) { $env:CARGO_BUILD_JOBS = "8" }
   Invoke-RustTests "infrastructure::local_library::windows_tests::" $false $false

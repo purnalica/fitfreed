@@ -2,8 +2,22 @@ name: Windows performance admission
 
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Windows performance boundary to execute
+        required: true
+        default: complete
+        type: choice
+        options:
+          - complete
+          - recovery-and-data
+      accepted_run_id:
+        description: Required successful cold-launch run when resuming recovery and data
+        required: false
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -21,12 +35,22 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Use the supported Node.js version
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
+
+      - name: Verify retained Windows cold-launch evidence
+        if: inputs.scope == 'recovery-and-data'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          FITFREED_ACCEPTED_RUN_ID: ${{ inputs.accepted_run_id }}
+        run: node scripts/verify-windows-performance-resume.mjs
 
       - name: Verify the Windows development environment
         run: npm run doctor
@@ -35,9 +59,11 @@ jobs:
         run: npm ci
 
       - name: Build the source-bound Windows package
+        if: inputs.scope == 'complete'
         run: npm run package:windows
 
       - name: Verify installed Windows cold-launch budget
+        if: inputs.scope == 'complete'
         run: npm run verify:windows-cold-launch
 
       - name: Verify Windows filesystem failure recovery

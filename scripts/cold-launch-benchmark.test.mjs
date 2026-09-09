@@ -840,7 +840,7 @@ test("wires production identity and cold launch into local and hosted gates", ()
   );
   assert.match(
     windowsWorkflow,
-    /name: Verify installed Windows cold-launch budget\n\s+run: npm run verify:windows-cold-launch/,
+    /name: Verify installed Windows cold-launch budget\n\s+if: inputs\.scope == 'complete'\n\s+run: npm run verify:windows-cold-launch/,
   );
   assert.ok(
     windowsWorkflow.indexOf("name: Verify installed Windows cold-launch budget")

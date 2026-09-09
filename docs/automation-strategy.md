@@ -243,7 +243,7 @@ weakens SQLite durability, or treats an injected adapter error as Linux filesyst
 
 `.github/workflows/windows-performance.yml` is the corresponding explicit Windows Server 2025 engineering admission.
 It is read-only, manual-dispatch only, secret-free, and concurrency-cancelled, so unrelated revisions or elapsed time
-cannot repeat the multi-gigabyte campaign. It builds the source-bound production NSIS package and invokes
+cannot repeat the multi-gigabyte campaign. Its default `complete` scope builds the source-bound production NSIS package and invokes
 `npm run verify:windows-cold-launch`, whose fixed-identity boundary refuses all pre-existing production package and
 application state, installs the exact setup, and measures 100 processes after revalidating the package identity and
 removing only the non-reparse `org.fitfreed.desktop` roots returned by the current user's native Windows known-folder
@@ -260,12 +260,21 @@ distinguishes a host that never connected from a connected host whose renderer n
 installed launch, the workflow verifies that the non-empty production library resides under the exact native
 `%APPDATA%` root with no reparse descendants and the protected current-user, LocalSystem, and Builtin Administrators
 ACL defined by the version 2 filesystem contract. The same workflow creates an isolated 64 MiB NTFS VHD on its
-elevated disposable runner, admits only the expected filesystem and capacity, drives the exact release-mode SQLite
-recovery test through real disk exhaustion, and exercises a real NTFS junction plus the native long-Unicode-path,
+elevated disposable runner, admits only the expected filesystem and capacity, and creates a dedicated
+current-token application-data child rather than misrepresenting the system-owned NTFS volume root as a user library.
+It drives the exact release-mode SQLite recovery test through real disk exhaustion and exercises a real NTFS junction plus the native long-Unicode-path,
 hard-link, and transient-sharing-denial matrix. It unconditionally detaches and removes the VHD before continuing.
 The workflow then runs the unchanged full-scale
-import, dense-history, and Insights
-commands. Rust benchmark executables use the native `.exe` suffix and obtain peak resident memory from the Windows
+import, dense-history, and Insights commands. A `recovery-and-data` dispatch may resume only those latter gates after
+the same workflow verifies a referenced completed run: the package and 100-process cold-launch steps must have
+succeeded, filesystem recovery must be the first failure, every data benchmark must have been skipped, and the
+accepted source must be an ancestor of the resumed source. The source comparison rejects product changes and admits
+only the documented filesystem-harness correction, its tests and workflow, documentation, and the exact
+development-tool security revisions that leave the measured application inputs unchanged. The workflow obtains only
+read access to Actions metadata through its short-lived repository token; an arbitrary run number, changed product,
+unrelated package revision, or incomplete evidence fails before recovery begins.
+
+Rust benchmark executables use the native `.exe` suffix and obtain peak resident memory from the Windows
 process peak working set. A successful hosted run is Windows Server environment-qualified evidence, not the clean
 supported Windows 11 exact-candidate result.
 
