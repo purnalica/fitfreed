@@ -421,8 +421,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   data in its disposable current-user boundary, installs the exact setup, and measures 100 fresh interactive-shell
   processes. Before every process, it revalidates the fixed installed identity and removes only its two non-reparse
   application-data roots resolved through native Windows known-folder APIs; changing `APPDATA` or `LOCALAPPDATA`
-  does not constitute isolation. The reset completes before timing begins. The campaign unconditionally removes the
-  package and the state it created. Because the release binary uses the Windows GUI subsystem, every process reports
+  does not constitute isolation. Direct application-process exit does not imply immediate WebView2 descendant
+  quiescence, so one shared cleanup policy revalidates the exact root and every non-reparse descendant on each bounded
+  attempt before removing only that root. Both production-package measurement and isolated packaged E2E use this
+  policy and fail if the directory remains after the finite interval. The reset completes before timing begins. The
+  campaign unconditionally removes the package and the state it created. Because the release binary uses the Windows GUI subsystem, every process reports
   its painted shell through a fresh one-connection local named pipe rather than an unavailable standard-output
   stream. The harness removes inherited channel values, generates a lowercase 256-bit random pipe identity, and the
   host admits only that closed pipe-name shape. The host connects during process startup and retains its writer until

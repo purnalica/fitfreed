@@ -34,8 +34,10 @@ version-derived package; and resolves the executable only through its complete c
 `%LOCALAPPDATA%\FitFreed\fitfreed.exe` identity. Windows known-folder APIs, rather than process environment overrides,
 define the actual roaming and local application-data roots used by Tauri. Before every measured process, the command
 revalidates the installed package, stops only the exact installed executable or its verified recovery predecessor,
-rejects a root or descendant reparse point, and removes only `org.fitfreed.desktop` below those two native roots. The
-package and only the application-data roots created by the campaign are removed in an unconditional finalizer. This
+rejects a root or descendant reparse point, and removes only `org.fitfreed.desktop` below those two native roots. A
+WebView2 descendant can retain a local file briefly after the direct application process exits. The same cleanup
+policy used by packaged E2E therefore revalidates the exact non-reparse boundary on every bounded removal attempt and
+fails if the owned directory does not become quiescent. The package and only the application-data roots created by the campaign are removed in an unconditional finalizer. This
 destructive production-identity cleanup boundary is intended only for a disposable hosted user and must never run
 alongside a real FitFreed library. The explicit
 `.github/workflows/windows-performance.yml` workflow owns the hosted Windows Server 2025 run; it does not replace the

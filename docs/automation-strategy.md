@@ -247,7 +247,10 @@ cannot repeat the multi-gigabyte campaign. It builds the source-bound production
 `npm run verify:windows-cold-launch`, whose fixed-identity boundary refuses all pre-existing production package and
 application state, installs the exact setup, and measures 100 processes after revalidating the package identity and
 removing only the non-reparse `org.fitfreed.desktop` roots returned by the current user's native Windows known-folder
-APIs before every process. That reset occurs before measurement begins. A finalizer removes the owned package and
+APIs before every process. Application exit can precede release of a WebView2 file handle, so the production and
+isolated-package lifecycles share one bounded cleanup implementation. Every attempt reopens the exact root, rejects a
+root or descendant reparse point, and retries removal only for that owned directory; a directory that remains after
+the finite interval fails the gate. That reset occurs before measurement begins. A finalizer removes the owned package and
 data. Each launch uses a newly generated one-connection local named pipe because the release executable's Windows GUI
 subsystem has no application-owned reliable standard-output transport. The harness removes inherited channel values,
 passes only an unguessable lowercase 256-bit pipe identity, and the host accepts only its exact closed namespace and

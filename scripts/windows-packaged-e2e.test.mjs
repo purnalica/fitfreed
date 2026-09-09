@@ -129,19 +129,35 @@ test("isolates Windows PowerShell modules from a PowerShell 7 parent", () => {
 });
 
 test("bounds isolated application-data cleanup while WebView descendants become quiescent", () => {
-  const source = readFileSync(
+  const lifecycle = readFileSync(
     path.resolve("scripts/run-packaged-windows-e2e.ps1"),
     "utf8",
   );
-  const cleanup = source.match(
-    /function Remove-IsolatedApplicationData[\s\S]*?(?=\n}\n\nif \(\$Action -eq "preflight"\))/,
-  )?.[0] ?? "";
+  const cleanup = readFileSync(
+    path.resolve("scripts/windows-application-data-cleanup.ps1"),
+    "utf8",
+  );
 
+  assert.match(lifecycle, /\. \(Join-Path \$PSScriptRoot "windows-application-data-cleanup\.ps1"\)/);
+  assert.match(
+    lifecycle,
+    /Remove-ValidatedApplicationData -Directory \$roamingDataDirectory -Description "isolated roaming application data"/,
+  );
+  assert.match(
+    lifecycle,
+    /Remove-ValidatedApplicationData -Directory \$localDataDirectory -Description "isolated local application data"/,
+  );
+  assert.match(cleanup, /function Remove-ValidatedApplicationData/);
   assert.match(cleanup, /for \(\$attempt = 0; \$attempt -lt 300; \$attempt \+= 1\)/);
+  assert.match(cleanup, /Get-Item -LiteralPath \$Directory -Force -ErrorAction Stop/);
   assert.match(cleanup, /Get-ChildItem -LiteralPath \$Directory -Recurse -Force/);
   assert.match(cleanup, /Remove-Item -LiteralPath \$Directory -Recurse -Force -ErrorAction Stop/);
+  assert.match(
+    cleanup,
+    /Remove-Item[\s\S]*if \(-not \(Test-Path -LiteralPath \$Directory\)\) \{ return \}/,
+  );
   assert.match(cleanup, /Start-Sleep -Milliseconds 100/);
-  assert.match(cleanup, /throw "isolated application data remains after bounded cleanup"/);
+  assert.match(cleanup, /throw "\$Description remains after bounded cleanup"/);
 });
 
 test("preserves the packaged journey failure when isolated cleanup also fails", () => {

@@ -82,10 +82,13 @@ test("protects cleanup with exact identity, process-path, and reparse checks", (
     path.resolve("scripts/run-installed-windows-package.ps1"),
     "utf8",
   );
+  const cleanup = readFileSync(
+    path.resolve("scripts/windows-application-data-cleanup.ps1"),
+    "utf8",
+  );
   assert.match(source, /org\.fitfreed\.desktop/);
   assert.match(source, /Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FitFreed/);
   assert.match(source, /Get-CimInstance Win32_Process/);
-  assert.match(source, /ReparsePoint/);
   assert.match(
     source,
     /GetFolderPath\(\[Environment\+SpecialFolder\]::ApplicationData\)/,
@@ -96,7 +99,11 @@ test("protects cleanup with exact identity, process-path, and reparse checks", (
   );
   assert.match(
     source,
-    /if \(\$Action -eq "reset-data"\)[\s\S]*Get-InstalledVersion[\s\S]*Stop-OwnedProcesses[\s\S]*Remove-OwnedData \$roamingDataDirectory[\s\S]*Remove-OwnedData \$localDataDirectory[\s\S]*exit 0/,
+    /\. \(Join-Path \$PSScriptRoot "windows-application-data-cleanup\.ps1"\)/,
+  );
+  assert.match(
+    source,
+    /if \(\$Action -eq "reset-data"\)[\s\S]*Get-InstalledVersion[\s\S]*Stop-OwnedProcesses[\s\S]*Remove-ValidatedApplicationData -Directory \$roamingDataDirectory -Description "production roaming application data"[\s\S]*Remove-ValidatedApplicationData -Directory \$localDataDirectory -Description "production local application data"[\s\S]*exit 0/,
   );
   assert.match(
     source,
@@ -106,5 +113,18 @@ test("protects cleanup with exact identity, process-path, and reparse checks", (
     source,
     /if \(\$Action -eq "verify-data"\)[\s\S]*fitfreed\.sqlite[\s\S]*Assert-PrivateAcl \$roamingDataDirectory \$true[\s\S]*Assert-PrivateAcl \$library \$false/,
   );
+  assert.match(cleanup, /function Remove-ValidatedApplicationData/);
+  assert.match(cleanup, /for \(\$attempt = 0; \$attempt -lt 300; \$attempt \+= 1\)/);
+  assert.match(cleanup, /Get-Item -LiteralPath \$Directory -Force -ErrorAction Stop/);
+  assert.match(cleanup, /ReparsePoint/);
+  assert.match(cleanup, /Get-ChildItem -LiteralPath \$Directory -Recurse -Force -ErrorAction Stop/);
+  assert.match(cleanup, /Remove-Item -LiteralPath \$Directory -Recurse -Force -ErrorAction Stop/);
+  assert.match(
+    cleanup,
+    /Remove-Item[\s\S]*if \(-not \(Test-Path -LiteralPath \$Directory\)\) \{ return \}/,
+  );
+  assert.match(cleanup, /Start-Sleep -Milliseconds 100/);
+  assert.match(cleanup, /throw "\$Description remains after bounded cleanup"/);
   assert.doesNotMatch(source, /Remove-Item\s+-Path\s+\$env:/);
+  assert.doesNotMatch(cleanup, /Remove-Item\s+-Path\s+\$env:/);
 });

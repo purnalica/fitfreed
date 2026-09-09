@@ -635,11 +635,17 @@ test("delegates lifecycle operations to a fixed-identity non-interactive Windows
   );
 
   const source = readFileSync(path.resolve("scripts/run-installed-windows-package.ps1"), "utf8");
+  const cleanup = readFileSync(
+    path.resolve("scripts/windows-application-data-cleanup.ps1"),
+    "utf8",
+  );
   assert.match(source, /org\.fitfreed\.desktop/);
   assert.match(source, /Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FitFreed/);
   assert.match(source, /Get-CimInstance Win32_Process/);
-  assert.match(source, /ReparsePoint/);
+  assert.match(source, /\. \(Join-Path \$PSScriptRoot "windows-application-data-cleanup\.ps1"\)/);
+  assert.match(cleanup, /ReparsePoint/);
   assert.doesNotMatch(source, /Remove-Item\s+-Path\s+\$env:/);
+  assert.doesNotMatch(cleanup, /Remove-Item\s+-Path\s+\$env:/);
 });
 
 test("runs native Windows update recovery in the focused or candidate hosted lane", () => {

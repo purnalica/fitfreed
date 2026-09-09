@@ -11,6 +11,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+. (Join-Path $PSScriptRoot "windows-application-data-cleanup.ps1")
+
 function Assert-Equal([object]$Actual, [object]$Expected, [string]$Message) {
   if ($Actual -ne $Expected) { throw $Message }
 }
@@ -57,21 +59,6 @@ function Wait-UntilRemoved {
   throw "isolated package-owned state remains after removal"
 }
 
-function Remove-IsolatedApplicationData([string]$Directory) {
-  for ($attempt = 0; $attempt -lt 300; $attempt += 1) {
-    if (-not (Test-Path -LiteralPath $Directory)) { return }
-    $reparsePoints = @(Get-ChildItem -LiteralPath $Directory -Recurse -Force -ErrorAction Stop |
-      Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
-    Assert-Equal $reparsePoints.Count 0 "isolated application data contains a reparse point"
-    try {
-      Remove-Item -LiteralPath $Directory -Recurse -Force -ErrorAction Stop
-    } catch {
-      if ($attempt -lt 299) { Start-Sleep -Milliseconds 100 }
-    }
-  }
-  throw "isolated application data remains after bounded cleanup"
-}
-
 if ($Action -eq "preflight") {
   Assert-True (Test-Path -LiteralPath $PackagePath -PathType Leaf) "isolated setup is absent"
   Assert-PackageAbsent
@@ -113,5 +100,5 @@ if (Test-Path -LiteralPath $uninstallerPath -PathType Leaf) {
 Wait-UntilRemoved
 Assert-True (Test-Path -LiteralPath $sentinelPath -PathType Leaf) "package removal deleted isolated application data"
 Assert-Equal (Get-Content -LiteralPath $sentinelPath -Raw) $sentinel "isolated application data changed"
-Remove-IsolatedApplicationData $roamingDataDirectory
-Remove-IsolatedApplicationData $localDataDirectory
+Remove-ValidatedApplicationData -Directory $roamingDataDirectory -Description "isolated roaming application data"
+Remove-ValidatedApplicationData -Directory $localDataDirectory -Description "isolated local application data"

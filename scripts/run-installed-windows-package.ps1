@@ -8,6 +8,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+. (Join-Path $PSScriptRoot "windows-application-data-cleanup.ps1")
+
 $productName = "FitFreed"
 $publisher = "FitFreed contributors"
 $homepage = "https://fitfreed.org/"
@@ -106,17 +108,6 @@ function Wait-UntilPackageRemoved {
   throw "FitFreed package-owned state remains after removal"
 }
 
-function Remove-OwnedData([string]$Directory) {
-  if (-not (Test-Path -LiteralPath $Directory)) { return }
-  $root = Get-Item -LiteralPath $Directory -Force
-  Assert-True (($root.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) "application data root is a reparse point"
-  $reparsePoints = @(Get-ChildItem -LiteralPath $Directory -Recurse -Force |
-    Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 })
-  Assert-Equal $reparsePoints.Count 0 "application data contains a reparse point"
-  Remove-Item -LiteralPath $Directory -Recurse -Force
-  Assert-True (-not (Test-Path -LiteralPath $Directory)) "application data remains after cleanup"
-}
-
 function Assert-PrivateAcl([string]$Path, [bool]$Directory) {
   $item = Get-Item -LiteralPath $Path -Force
   Assert-True (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) "private data is a reparse point"
@@ -203,8 +194,8 @@ if ($Action -eq "verify-data") {
 if ($Action -eq "reset-data") {
   Get-InstalledVersion | Out-Null
   Stop-OwnedProcesses
-  Remove-OwnedData $roamingDataDirectory
-  Remove-OwnedData $localDataDirectory
+  Remove-ValidatedApplicationData -Directory $roamingDataDirectory -Description "production roaming application data"
+  Remove-ValidatedApplicationData -Directory $localDataDirectory -Description "production local application data"
   exit 0
 }
 
@@ -214,5 +205,5 @@ if (Test-Path -LiteralPath $uninstallerPath -PathType Leaf) {
   Assert-Equal $uninstaller.ExitCode 0 "FitFreed uninstaller returned a failure"
 }
 Wait-UntilPackageRemoved
-Remove-OwnedData $roamingDataDirectory
-Remove-OwnedData $localDataDirectory
+Remove-ValidatedApplicationData -Directory $roamingDataDirectory -Description "production roaming application data"
+Remove-ValidatedApplicationData -Directory $localDataDirectory -Description "production local application data"
