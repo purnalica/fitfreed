@@ -71,23 +71,24 @@ process because changing environment variables does not redirect Tauri's Windows
 preparation completes before the timer starts. One hundred measurements prevent the p95 estimator from collapsing
 to the single maximum observation while retaining a distinct reported maximum and enough observations above the
 selected percentile to expose the tail. Every duration includes process creation, Tauri and WebView startup, storage
-initialization and interrupted-import recovery, locale resolution, React rendering, one painted localized shell
+initialization and interrupted-import recovery, locale resolution, framework-independent shell rendering, one painted localized shell
 frame, and the signal round trip. Analytical reads, source guidance, update discovery, update-recovery confirmation,
 and their separately loaded presentation modules start only after the signal command is dispatched. They never await
 diagnostic settlement and therefore cannot be blocked by its output consumer. A one-second no-frame fallback
 continues the product without emitting evidence but retains the single pending frame observation. A later frame emits
-the signal exactly once; unmounting cancels the observation, and the benchmark fails closed when the signal remains
+the signal exactly once, and the benchmark fails closed when the signal remains
 absent at its independent timeout. Deferred work is deliberately outside the first-interaction boundary and remains covered by its own
 behavioral, recovery, and performance gates. The process is terminated only after the signal, and all temporary
 application data is removed. Output and diagnostics are bounded; their raw content is never included in evidence.
 
-The initial renderer graph contains only the progressive startup root, critical shell styles, and build-generated
-shell projections derived from the canonical English and Spanish catalogs. Persisted language, appearance, and zoom
-are applied before the localized shell can satisfy the signal. The complete application, complete selected catalog,
-application stylesheet, Library Home, Settings, Sources, import outcome, and their transitive presentation modules
-load after signal dispatch. Navigation remains active during that deferred load and the most recent explicit
-destination is authoritative when the complete application takes ownership. The production build rejects a static
-entry closure that reaches `App`, the complete application stylesheet, or either complete catalog. This split is
+The initial renderer graph contains only the framework-independent startup bootstrap, imperative shell adapter,
+critical shell styles, and build-generated shell projections derived from the canonical English and Spanish
+catalogs. Persisted language, appearance, and zoom are applied before the localized shell can satisfy the signal.
+React, React DOM, Scheduler, the React shell, the complete application, complete selected catalog, application
+stylesheet, Library Home, Settings, Sources, import outcome, and their transitive presentation modules load after
+signal dispatch. Navigation remains active during that deferred load and the most recent explicit destination is
+authoritative when React takes ownership through the typed startup contract. The production build rejects a static
+entry closure that reaches any deferred framework, application, stylesheet, or complete-catalog module. This split is
 part of the measured production path rather than benchmark-only instrumentation; focused startup, locale,
 navigation, import, and preference tests protect the behavior on both sides of the boundary.
 

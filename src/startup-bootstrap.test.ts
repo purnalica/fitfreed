@@ -1,10 +1,13 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, screen } from "@testing-library/dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "./locales/catalogs";
+import { startupShellCatalogs } from "./locales/startup-catalogs";
 import type { ApplicationStartup } from "./presentation/application-startup";
-import { StartupRoot, type ApplicationRuntimeLoader } from "./StartupRoot";
+import {
+  bootstrapApplication,
+  type ApplicationRuntimeLoader,
+} from "./startup-bootstrap";
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
@@ -15,7 +18,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 afterEach(() => {
-  cleanup();
+  document.body.replaceChildren();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -25,6 +28,13 @@ afterEach(() => {
   document.documentElement.removeAttribute("style");
   document.documentElement.lang = "en";
 });
+
+function rootElement() {
+  const root = document.createElement("div");
+  root.id = "root";
+  document.body.append(root);
+  return root;
+}
 
 function preferenceLoad(locale: "en-US" | "es-ES") {
   return {
@@ -38,8 +48,8 @@ function preferenceLoad(locale: "en-US" | "es-ES") {
   };
 }
 
-describe("StartupRoot", () => {
-  it("paints the persisted localized shell before loading the full application", async () => {
+describe("startup bootstrap", () => {
+  it("paints the persisted localized shell before loading React", async () => {
     let paintShell!: FrameRequestCallback;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
       paintShell = callback;
@@ -55,18 +65,29 @@ describe("StartupRoot", () => {
     const loadRuntime = vi.fn<ApplicationRuntimeLoader>(() => new Promise((resolve) => {
       resolveRuntime = resolve;
     }));
+    const mount = vi.fn();
 
-    render(<StartupRoot loadApplicationRuntime={loadRuntime} />);
+    await bootstrapApplication(rootElement(), { loadApplicationRuntime: loadRuntime });
 
-    expect(await screen.findByRole("button", { name: "Ajustes" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Historial" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Cargando esta vista…");
+    const shellMessages = startupShellCatalogs["es-ES"];
+    expect(screen.getByRole("navigation", { name: shellMessages.navigation })).toBeVisible();
+    for (const label of [
+      shellMessages.home,
+      shellMessages.explore,
+      shellMessages.reports,
+      shellMessages.sources,
+      shellMessages.settings,
+    ]) {
+      expect(screen.getByRole("button", { name: label })).toBeVisible();
+    }
+    expect(screen.getByRole("button", { name: shellMessages.explore })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(shellMessages.loading);
     expect(document.documentElement).toHaveAttribute("lang", "es-ES");
     expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1.75");
     expect(loadRuntime).not.toHaveBeenCalled();
 
-    await act(async () => paintShell(performance.now()));
+    paintShell(performance.now());
 
     expect(mocks.invoke).toHaveBeenCalledWith("report_interactive_shell", {
       rendererStartupMilliseconds: {
@@ -79,18 +100,10 @@ describe("StartupRoot", () => {
       mocks.invoke.mock.calls[index]?.[0] === "report_interactive_shell"))
       .toBeLessThan(loadRuntime.mock.invocationCallOrder[0]);
 
-    let receivedStartup: ApplicationStartup | undefined;
-    function TestApplication({ startup }: { startup?: ApplicationStartup }) {
-      receivedStartup = startup;
-      return <h1>Loaded application</h1>;
-    }
-    await act(async () => resolveRuntime({
-      Application: TestApplication,
-      messages: catalogs["es-ES"],
-    }));
+    resolveRuntime({ mount, messages: catalogs["es-ES"] });
+    await vi.waitFor(() => expect(mount).toHaveBeenCalled());
 
-    expect(await screen.findByRole("heading", { name: "Loaded application" })).toBeVisible();
-    expect(receivedStartup).toMatchObject({
+    expect(mount).toHaveBeenCalledWith(expect.objectContaining({
       locale: "es-ES",
       messages: catalogs["es-ES"],
       savedPreferences: preferenceLoad("es-ES").preferences,
@@ -98,10 +111,10 @@ describe("StartupRoot", () => {
       libraryReady: true,
       initialHome: "home",
       interactiveShellReported: true,
-    });
+    }));
   });
 
-  it("preserves navigation performed while the full application is loading", async () => {
+  it("preserves navigation performed while React is loading", async () => {
     let paintShell!: FrameRequestCallback;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
       paintShell = callback;
@@ -117,26 +130,17 @@ describe("StartupRoot", () => {
     const loadRuntime = vi.fn<ApplicationRuntimeLoader>(() => new Promise((resolve) => {
       resolveRuntime = resolve;
     }));
-    let receivedStartup: ApplicationStartup | undefined;
-    function TestApplication({ startup }: { startup?: ApplicationStartup }) {
-      receivedStartup = startup;
-      return <h1>Loaded application</h1>;
-    }
-    const user = userEvent.setup();
-    render(<StartupRoot loadApplicationRuntime={loadRuntime} />);
+    const mount = vi.fn();
 
-    await screen.findByRole("button", { name: "Settings" });
-    await act(async () => paintShell(performance.now()));
-    await user.click(screen.getByRole("button", { name: "Sources" }));
+    await bootstrapApplication(rootElement(), { loadApplicationRuntime: loadRuntime });
+    paintShell(performance.now());
+    fireEvent.click(screen.getByRole("button", { name: "Sources" }));
     expect(screen.getByRole("button", { name: "Sources" }))
       .toHaveAttribute("aria-current", "page");
-    await act(async () => resolveRuntime({
-      Application: TestApplication,
-      messages: catalogs["en-US"],
-    }));
+    resolveRuntime({ mount, messages: catalogs["en-US"] });
+    await vi.waitFor(() => expect(mount).toHaveBeenCalled());
 
-    await screen.findByRole("heading", { name: "Loaded application" });
-    expect(receivedStartup?.initialHome).toBe("sources");
+    expect(mount.mock.calls[0][0].initialHome).toBe("sources");
   });
 
   it("retains a destination selected as the deferred runtime settles", async () => {
@@ -155,25 +159,15 @@ describe("StartupRoot", () => {
     const loadRuntime = vi.fn<ApplicationRuntimeLoader>(() => new Promise((resolve) => {
       resolveRuntime = resolve;
     }));
-    let receivedStartup: ApplicationStartup | undefined;
-    function TestApplication({ startup }: { startup?: ApplicationStartup }) {
-      receivedStartup = startup;
-      return <h1>Loaded application</h1>;
-    }
+    const mount = vi.fn();
 
-    render(<StartupRoot loadApplicationRuntime={loadRuntime} />);
-    await screen.findByRole("button", { name: "Settings" });
-    await act(async () => paintShell(performance.now()));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Reports" }));
-      resolveRuntime({
-        Application: TestApplication,
-        messages: catalogs["en-US"],
-      });
-    });
+    await bootstrapApplication(rootElement(), { loadApplicationRuntime: loadRuntime });
+    paintShell(performance.now());
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
+    resolveRuntime({ mount, messages: catalogs["en-US"] });
+    await vi.waitFor(() => expect(mount).toHaveBeenCalled());
 
-    await screen.findByRole("heading", { name: "Loaded application" });
-    expect(receivedStartup?.initialHome).toBe("reports");
+    expect(mount.mock.calls[0][0].initialHome).toBe("reports");
   });
 
   it("continues before a late frame and reports that frame exactly once", async () => {
@@ -191,14 +185,10 @@ describe("StartupRoot", () => {
     });
     const loadRuntime = vi.fn<ApplicationRuntimeLoader>(() => new Promise(() => undefined));
 
-    render(<StartupRoot loadApplicationRuntime={loadRuntime} />);
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await bootstrapApplication(rootElement(), { loadApplicationRuntime: loadRuntime });
     expect(loadRuntime).not.toHaveBeenCalled();
 
-    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    await vi.advanceTimersByTimeAsync(1_000);
 
     expect(mocks.invoke).not.toHaveBeenCalledWith(
       "report_interactive_shell",
@@ -206,12 +196,8 @@ describe("StartupRoot", () => {
     );
     expect(loadRuntime).toHaveBeenCalledWith("en-US");
 
-    await act(async () => paintShell(performance.now()));
+    paintShell(performance.now());
 
-    expect(mocks.invoke).toHaveBeenCalledWith(
-      "report_interactive_shell",
-      expect.anything(),
-    );
     expect(mocks.invoke.mock.calls.filter(([command]) => command === "report_interactive_shell"))
       .toHaveLength(1);
   });
@@ -231,22 +217,20 @@ describe("StartupRoot", () => {
       if (command === "report_interactive_shell") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
-    let receivedStartup: ApplicationStartup | undefined;
-    function TestApplication({ startup }: { startup?: ApplicationStartup }) {
-      receivedStartup = startup;
-      return <h1>Loaded application</h1>;
-    }
+    const mount = vi.fn<(startup: ApplicationStartup) => void>();
     const loadRuntime = vi.fn<ApplicationRuntimeLoader>(() => Promise.resolve({
-      Application: TestApplication,
+      mount,
       messages: catalogs["es-ES"],
     }));
 
-    render(<StartupRoot loadApplicationRuntime={loadRuntime} />);
-    expect(await screen.findByRole("button", { name: "Ajustes" })).toBeVisible();
-    await act(async () => paintShell(performance.now()));
-    await waitFor(() => expect(receivedStartup).toBeDefined());
+    await bootstrapApplication(rootElement(), { loadApplicationRuntime: loadRuntime });
+    expect(screen.getByRole("button", {
+      name: startupShellCatalogs["es-ES"].settings,
+    })).toBeVisible();
+    paintShell(performance.now());
+    await vi.waitFor(() => expect(mount).toHaveBeenCalled());
 
-    expect(receivedStartup).toMatchObject({
+    expect(mount.mock.calls[0][0]).toMatchObject({
       locale: "es-ES",
       libraryReady: true,
       errorCode: "preference-initialization-failed",

@@ -10,7 +10,11 @@ const stylesheet = stylesheetPaths
   .join("\n");
 const applicationPath = path.join(repositoryRoot, "src", "App.tsx");
 const application = readFileSync(applicationPath, "utf8");
-const startupRoot = readFileSync(path.join(repositoryRoot, "src", "StartupRoot.tsx"), "utf8");
+const startupBootstrap = readFileSync(
+  path.join(repositoryRoot, "src", "startup-bootstrap.ts"),
+  "utf8",
+);
+const startupShell = readFileSync(path.join(repositoryRoot, "src", "startup-shell.ts"), "utf8");
 const applicationShellPath = path.join(
   repositoryRoot,
   "src",
@@ -18,6 +22,12 @@ const applicationShellPath = path.join(
   "ApplicationShell.tsx",
 );
 const applicationShell = readFileSync(applicationShellPath, "utf8");
+const applicationShellModel = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "application-shell-model.ts",
+), "utf8");
 const trainingInsights = readFileSync(path.join(
   repositoryRoot,
   "src",
@@ -245,8 +255,16 @@ if (!application.includes("<ApplicationShell")) {
 if (!/<aside\s+className="app-sidebar"\s+aria-label=/.test(applicationShell)) {
   throw new Error("the application shell must expose semantic primary navigation");
 }
-if (!applicationShell.includes('{ destination: "home", icon: "home" }')) {
+if (!applicationShellModel.includes('{ destination: "home", icon: "home" }')) {
   throw new Error("the application shell must expose Home as an explicit destination");
+}
+if (!applicationShell.includes("applicationNavigationItems")
+  || !startupShell.includes("applicationNavigationItems")) {
+  throw new Error("startup and React shells must consume the shared navigation model");
+}
+if (!startupShell.includes('htmlElement("aside", "app-sidebar")')
+  || !startupShell.includes('navigation.setAttribute("aria-label", messages.navigation)')) {
+  throw new Error("the startup shell must expose semantic primary navigation");
 }
 if (!applicationShell.includes("fitfreed-icon.svg")) {
   throw new Error("the application shell must use the approved FitFreed brand asset");
@@ -1044,7 +1062,8 @@ for (const boundary of [
 if (!application.includes('className="settings-home" hidden={activeHome !== "settings"}')) {
   throw new Error("Settings must remain mounted but hidden outside its application workspace");
 }
-if (!startupRoot.includes('useState<ApplicationHome>("home")')
+if (!startupShell.includes('let activeHome: ApplicationHome = "home"')
+  || !startupBootstrap.includes("shell.selectedHome()")
   || !application.includes('startup?.initialHome ?? "home"')
   || !libraryHomePanel.includes("onClick={onOpenSources}")) {
   throw new Error("empty startup must lead from value-first Home into secondary Sources");

@@ -53,10 +53,8 @@ import {
   type ApplicationPreferencesLoad,
 } from "./presentation/application-preferences";
 import type { SettingsWorkspace } from "./presentation/SettingsPanel";
-import {
-  ApplicationShell,
-  type ApplicationHome,
-} from "./presentation/ApplicationShell";
+import { ApplicationShell } from "./presentation/ApplicationShell";
+import type { ApplicationHome } from "./presentation/application-shell-model";
 import type {
   ExploreDestination,
   LibraryHome,

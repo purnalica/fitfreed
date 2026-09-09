@@ -12,8 +12,15 @@ const resolvedStartupCatalogModuleId = `\0${startupCatalogModuleId}`;
 const deferredStartupModules = [
   "/src/App.tsx",
   "/src/App.css",
+  "/src/ReactApplicationRoot.tsx",
+  "/src/presentation/ApplicationShell.tsx",
   "/src/locales/en-US.json",
   "/src/locales/es-ES.json",
+];
+const deferredStartupModuleSegments = [
+  "/node_modules/react/",
+  "/node_modules/react-dom/",
+  "/node_modules/scheduler/",
 ];
 
 function startupCatalogPlugin() {
@@ -66,8 +73,16 @@ function startupBoundaryPlugin() {
           throw new Error(`${deferredModule} must remain outside the interactive startup graph`);
         }
       }
-      if (!eagerModules.some((module) => module.endsWith("/src/StartupRoot.tsx"))) {
-        throw new Error("the interactive startup graph must contain StartupRoot");
+      for (const deferredSegment of deferredStartupModuleSegments) {
+        if (eagerModules.some((module) => module.includes(deferredSegment))) {
+          throw new Error(`${deferredSegment} must remain outside the interactive startup graph`);
+        }
+      }
+      if (!eagerModules.some((module) => module.endsWith("/src/startup-bootstrap.ts"))) {
+        throw new Error("the interactive startup graph must contain the startup bootstrap");
+      }
+      if (!eagerModules.some((module) => module.endsWith("/src/startup-shell.ts"))) {
+        throw new Error("the interactive startup graph must contain the startup shell adapter");
       }
       if (!eagerModules.includes(resolvedStartupCatalogModuleId)) {
         throw new Error("the interactive startup graph must use the generated locale projection");

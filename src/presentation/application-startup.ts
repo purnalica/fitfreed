@@ -1,6 +1,6 @@
 import type { Locale } from "../locales/catalogs";
 import type { RuntimeCatalog } from "../locales/runtime-catalogs";
-import type { ApplicationHome } from "./ApplicationShell";
+import type { ApplicationHome } from "./application-shell-model";
 import {
   defaultApplicationPreferences,
   type ApplicationPreferences,

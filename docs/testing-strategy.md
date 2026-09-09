@@ -58,11 +58,11 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Range-summary composition from real SQLite route, signal, source-lap, review-required, reimported, and stale
   revision evidence without moving calculation or cross-coordinate alignment into persistence.
 - Localization catalogs, placeholders, plural rules, and fallback.
-- Progressive startup applies the persisted locale, appearance, and zoom before the first painted shell, exposes
-  real navigation while the complete application loads, retains the latest explicit destination, never awaits the
+- The framework-independent progressive startup applies the persisted locale, appearance, and zoom before the first
+  painted shell, exposes real navigation while React and the complete application load, retains the latest explicit destination, never awaits the
   diagnostic transport, continues after one second without claiming evidence when no paint frame has arrived, and
-  still reports one later frame exactly once. Production builds
-  reject eager imports of the complete application, application stylesheet, or complete locale catalogs.
+  still reports one later frame exactly once. Production builds reject eager imports of React, React DOM, Scheduler,
+  the React shell, the complete application, application stylesheet, or complete locale catalogs.
 - Production presentation reachability, locale-message consumption, CSS ownership, automation entry points,
   and packaged-test registration, with explicit typed handling for dynamic dictionaries and generated class
   families. The same contract scan rejects production `Intl` constructors outside the named shared
