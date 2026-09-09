@@ -24,6 +24,7 @@
     "npm": ">=10.9.0 <11"
   },
   "scripts": {
+    "activate:public-update-key": "node scripts/activate-public-update-key.mjs",
     "doctor": "node scripts/check-development-environment.mjs",
     "dev": "vite",
     "build": "tsc && tsc --noEmit -p tsconfig.node.json && vite build",

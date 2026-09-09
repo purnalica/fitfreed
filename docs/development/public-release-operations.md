@@ -56,11 +56,41 @@ It deletes the PFX immediately and leaves only minimal retry state in the runner
 A cleanup failure blocks acceptance and requires inspection of the affected ephemeral runner execution; it never
 justifies printing a secret or deleting the retry state.
 
+## Activate the public updater trust
+
+Generate the updater key pair in a protected location outside the repository and provide the password interactively:
+
+```sh
+npm run tauri -- signer generate -w "/secure/external/path/fitfreed-stable.key"
+```
+
+Keep the private key, its encrypted recovery copy, and the separately held password outside the repository. Tauri
+2.11 writes the public file as a canonical Base64-wrapped Minisign key. Consume that `.pub` file exactly as generated;
+do not encode it again and do not copy the private key into the public configuration.
+
+Activate the first reviewed public key from the repository root:
+
+```sh
+npm run activate:public-update-key -- stable.primary-1 \
+  "/secure/external/path/fitfreed-stable.key.pub"
+```
+
+The command reads only the public file. It requires an absolute, non-symbolic path outside the repository, validates
+the complete Tauri/Minisign representation, writes the canonical public key and identifier atomically to
+`release/public-update-channel.json`, and reports a public SHA-256 fingerprint without printing key contents. An exact
+repeat is safe and does not rewrite the file. A different key is rejected once trust is active; use the reviewed
+overlap procedure under [Key rotation and compromise](#key-rotation-and-compromise) instead.
+
+Review the resulting public-only diff and run `npm run check:public-update-config`. Activation changes the trust root
+embedded in a future public candidate and invalidates earlier public-candidate executable evidence. It does not read
+the private key, sign an artifact, publish update metadata, create a release, or make an ordinary development build
+update-aware.
+
 ## One-time GitHub configuration
 
 An accountable maintainer configures these prerequisites before the first release dispatch:
 
-1. Make `release/public-update-channel.json` active with the reviewed public updater key and keep the metadata endpoint derived from `release/public-origin.json`: `https://fitfreed.org/updates/stable.json`.
+1. Confirm that `release/public-update-channel.json` is active with the reviewed public updater key and keeps the metadata endpoint derived from `release/public-origin.json`: `https://fitfreed.org/updates/stable.json`.
 2. Enable immutable Releases for the repository.
 3. Verify `fitfreed.org` for the `purnalica` organization, configure it as the Actions-backed Pages custom domain with the documented apex and `www` DNS records, and enforce HTTPS.
 4. Create `public-macos-release` with the project owner as a required reviewer, leave `prevent_self_review` disabled

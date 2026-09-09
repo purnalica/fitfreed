@@ -925,10 +925,11 @@ The public repository will provide a clear path through four stages:
 4. Support for one person or multiple independent libraries.
 5. Long-term retention or deletion policy for original ZIP archives and extracted source artifacts. Version 0.1.0 exposes no archive-copy feature and requires users to preserve the selected ZIP independently.
 6. Governance evolution beyond the bootstrap owner-maintainer model defined in `GOVERNANCE.md`.
-7. Accountable production custody and activation timing for updater signing, Developer ID, App Store Connect, and
-   release approvals. Bootstrap governance permits the sole maintainer to approve both protected release deployments;
-   person-level separation remains a future explicit governance decision. The release architecture and fail-closed
-   procedures are already defined; the external authority is not configured.
+7. Accountable production custody and protected-environment admission timing for updater signing, Developer ID, App
+   Store Connect, and release approvals. The reviewed public updater trust root is active, but its private authority is
+   not configured in GitHub. Bootstrap governance permits the sole maintainer to approve both protected release
+   deployments; person-level separation remains a future explicit governance decision. The release architecture and
+   fail-closed procedures are already defined.
 8. Exceptional public security-update policy beyond the defined stable-channel compatibility, withdrawal, recovery, and ordinary update schedule.
 9. Cross-source identity, overlap, conflict, and user-controlled reconciliation rules after the single-source MVP.
 

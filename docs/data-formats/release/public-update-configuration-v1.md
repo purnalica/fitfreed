@@ -4,7 +4,10 @@
 
 [`public-update-configuration-v1.schema.json`](../../../schemas/public-update-configuration-v1.schema.json) defines the versioned, public, non-secret inputs that distinguish an ordinary build from a public stable-channel build. The current instance is [`release/public-update-channel.json`](../../../release/public-update-channel.json).
 
-This configuration does not contain or name environment secrets, private keys, Apple credentials, generated signatures, packages, or publication authority. Its initial `inactive` state is intentional until an accountable production Minisign key ceremony provides the public trust material.
+This configuration does not contain or name environment secrets, private keys, Apple credentials, generated
+signatures, packages, or publication authority. The current instance is active with the reviewed public
+`stable.primary-1` key after the accountable external key ceremony. Activation supplies public trust to future release
+builds; it does not make private signing authority or a signed update snapshot available.
 
 ## Fields
 
@@ -28,3 +31,13 @@ Public candidate preparation validates the complete document and maps an active 
 An ordinary production build supplies none of them and remains unconfigured. If any compile-time value is present without all others, the contract is not `stable-v2`, the endpoint differs, the trust JSON is malformed, a key is invalid, or the host target is unsupported, the application fails closed before making a request. E2E transport configuration and public configuration cannot coexist.
 
 Changing status, endpoint, contract, or keys changes the application trust root and invalidates prior executable evidence. Activating or rotating trust requires review, a clean exact candidate, complete packaged-update verification, repository safety checks, and an accountable key-custody record outside Git.
+
+The first activation consumes the Base64-wrapped `.pub` output from Tauri without encoding it again:
+
+```sh
+npm run activate:public-update-key -- stable.primary-1 \
+  "/secure/external/path/fitfreed-stable.key.pub"
+```
+
+The [public release operations runbook](../../development/public-release-operations.md#activate-the-public-updater-trust)
+defines custody, validation, failure, rotation, and the remaining protected-authority boundary.

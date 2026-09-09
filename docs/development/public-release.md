@@ -2,7 +2,13 @@
 
 ## Current boundary
 
-Public binary release automation is deliberately inactive. The checked-in update and release-checksum configurations contain no production trust keys, the release environments are not configured, and no Apple, updater, release-checksum, or Windows Authenticode authority is available. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the canonical origin for the product site without an application download. The initial macOS, first Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are release gates, not reasons to weaken or bypass an implemented publication workflow.
+Public binary release automation is deliberately inactive. The checked-in update configuration contains the reviewed
+public `stable.primary-1` trust key, while release-checksum trust remains inactive. No private updater, Apple,
+release-checksum, or Windows Authenticode authority is available to a workflow, and the release environments are not
+configured. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the canonical origin
+for the product site without an application download or signed update snapshot. The initial macOS, first
+Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are release gates,
+not reasons to weaken or bypass an implemented publication workflow.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -59,7 +65,10 @@ It defines these non-secret variables:
 - `FITFREED_APPLE_API_ISSUER`; and
 - `FITFREED_APPLE_API_KEY_ID`.
 
-The public update key identifier and public key are not secrets. They become active only through a reviewed change to the versioned public update configuration. The [public release operations runbook](public-release-operations.md) owns key custody, activation, rotation, compromise, withdrawal, and partial-publication recovery.
+The public update key identifier and public key are not secrets. The reviewed `stable.primary-1` key is active in the
+versioned public update configuration; activation alone supplies no private signing authority and publishes no update.
+The [public release operations runbook](public-release-operations.md#activate-the-public-updater-trust) owns key
+custody, activation, rotation, compromise, withdrawal, and partial-publication recovery.
 
 ## Objective trust gate
 

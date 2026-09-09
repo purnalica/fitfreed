@@ -1,8 +1,13 @@
 {
   "format": "org.fitfreed.public-update-configuration",
   "schemaVersion": 1,
-  "status": "inactive",
+  "status": "active",
   "contract": "stable-v2",
   "metadataEndpoint": "https://fitfreed.org/updates/stable.json",
-  "keys": []
+  "keys": [
+    {
+      "id": "stable.primary-1",
+      "publicKey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzMzMyM0E2RkU1OUVFM0EKUldRNjdsbitwaU16Z3dzeENxU2lNOUkvZFFaRFZhcXI0cGIvcEFmNDIxZEdFZjdTR1NhelVJV0YK"
+    }
+  ]
 }

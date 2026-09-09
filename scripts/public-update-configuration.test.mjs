@@ -7,10 +7,17 @@ import {
   validatePublicUpdateConfiguration,
 } from "./public-update-configuration.mjs";
 import { publicUpdateEndpoint } from "./public-origin.mjs";
+import { decodeReleasePublicKey } from "./release-signature.mjs";
 
-const inactiveConfiguration = JSON.parse(
+const canonicalConfiguration = JSON.parse(
   readFileSync(new URL("../release/public-update-channel.json", import.meta.url), "utf8"),
 );
+
+const inactiveConfiguration = {
+  ...canonicalConfiguration,
+  status: "inactive",
+  keys: [],
+};
 
 const activeConfiguration = {
   ...inactiveConfiguration,
@@ -40,6 +47,21 @@ test("keeps the versioned public update channel inactive without production trus
     () => publicUpdateBuildEnvironment(inactiveConfiguration, true),
     /public update channel is inactive/,
   );
+});
+
+test("activates the reviewed primary public updater trust", () => {
+  const configuration = validatePublicUpdateConfiguration(canonicalConfiguration);
+
+  assert.equal(configuration.status, "active");
+  assert.deepEqual(configuration.keys.map(({ id }) => id), ["stable.primary-1"]);
+  decodeReleasePublicKey(configuration.keys[0].publicKey);
+  assert.deepEqual(publicUpdateBuildEnvironment(configuration, true), {
+    FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v2",
+    FITFREED_PUBLIC_UPDATE_ENDPOINT: publicUpdateEndpoint,
+    FITFREED_PUBLIC_UPDATE_TRUST: JSON.stringify({
+      "stable.primary-1": configuration.keys[0].publicKey,
+    }),
+  });
 });
 
 test("maps complete active public trust to compile-time inputs without private material", () => {

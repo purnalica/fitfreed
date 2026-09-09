@@ -121,6 +121,7 @@ const documentContracts = Object.freeze({
     headings: [
       "Status and authority",
       "Trust and credential inventory",
+      "Activate the public updater trust",
       "One-time GitHub configuration",
       "Prepare the versioned source",
       "Build approval and sealed candidate",
@@ -134,6 +135,8 @@ const documentContracts = Object.freeze({
     ],
     evidence: () => [
       [/public-macos-release/, "protected environment"],
+      [/activate:public-update-key[\s\S]*stable\.primary-1/, "public updater trust activation"],
+      [/do not encode it again/i, "Tauri public-key representation boundary"],
       [/prevent_self_review[\s\S]*disabled/, "bootstrap initiator-approval policy"],
       [/build-candidate/, "candidate build boundary"],
       [/publish-candidate/, "candidate promotion boundary"],
