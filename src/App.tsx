@@ -457,28 +457,29 @@ function App({ startup }: AppProps = {}) {
     if (startup?.interactiveShellReported) return;
     if (!localeReady || !libraryReady) return;
     let active = true;
-    let startupContinued = false;
-    function continueStartup(reportPaintedShell: boolean) {
-      if (!active || startupContinued) return;
-      startupContinued = true;
-      if (reportPaintedShell) {
-        void invoke("report_interactive_shell", {
-          rendererStartupMilliseconds: {
-            localeReady: localeReadyMilliseconds.current,
-            signal: performance.now() - rendererStartedAt,
-          },
-        }).catch(() => undefined);
-      }
+    let applicationContinued = false;
+    function reportPaintedShell() {
+      if (!active) return;
+      void invoke("report_interactive_shell", {
+        rendererStartupMilliseconds: {
+          localeReady: localeReadyMilliseconds.current,
+          signal: performance.now() - rendererStartedAt,
+        },
+      }).catch(() => undefined);
+    }
+    function continueStartup() {
+      if (!active || applicationContinued) return;
+      applicationContinued = true;
       setApplicationReady(true);
     }
     let frameTimeout = 0;
     const frame = requestAnimationFrame(() => {
       window.clearTimeout(frameTimeout);
-      continueStartup(true);
+      reportPaintedShell();
+      continueStartup();
     });
     frameTimeout = window.setTimeout(() => {
-      cancelAnimationFrame(frame);
-      continueStartup(false);
+      continueStartup();
     }, INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS);
     return () => {
       active = false;

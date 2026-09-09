@@ -74,9 +74,10 @@ selected percentile to expose the tail. Every duration includes process creation
 initialization and interrupted-import recovery, locale resolution, React rendering, one painted localized shell
 frame, and the signal round trip. Analytical reads, source guidance, update discovery, update-recovery confirmation,
 and their separately loaded presentation modules start only after the signal command is dispatched. They never await
-diagnostic settlement and therefore cannot be blocked by its output consumer. A one-second no-frame fallback cancels
-the diagnostic attempt and continues the product without emitting evidence; the benchmark fails closed when the
-signal is absent. Deferred work is deliberately outside the first-interaction boundary and remains covered by its own
+diagnostic settlement and therefore cannot be blocked by its output consumer. A one-second no-frame fallback
+continues the product without emitting evidence but retains the single pending frame observation. A later frame emits
+the signal exactly once; unmounting cancels the observation, and the benchmark fails closed when the signal remains
+absent at its independent timeout. Deferred work is deliberately outside the first-interaction boundary and remains covered by its own
 behavioral, recovery, and performance gates. The process is terminated only after the signal, and all temporary
 application data is removed. Output and diagnostics are bounded; their raw content is never included in evidence.
 

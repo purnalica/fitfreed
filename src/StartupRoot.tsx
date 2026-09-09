@@ -97,19 +97,20 @@ export function StartupRoot({
     if (!preferenceStartup) return;
     const initializedPreferences = preferenceStartup;
     let active = true;
-    let startupContinued = false;
+    let runtimeLoadStarted = false;
     const localeReady = performance.now() - rendererStartedAt;
-    function continueStartup(reportPaintedShell: boolean) {
-      if (!active || startupContinued) return;
-      startupContinued = true;
-      if (reportPaintedShell) {
-        void invoke("report_interactive_shell", {
-          rendererStartupMilliseconds: {
-            localeReady,
-            signal: performance.now() - rendererStartedAt,
-          },
-        }).catch(() => undefined);
-      }
+    function reportPaintedShell() {
+      if (!active) return;
+      void invoke("report_interactive_shell", {
+        rendererStartupMilliseconds: {
+          localeReady,
+          signal: performance.now() - rendererStartedAt,
+        },
+      }).catch(() => undefined);
+    }
+    function continueStartup() {
+      if (!active || runtimeLoadStarted) return;
+      runtimeLoadStarted = true;
       void loadRuntime(initializedPreferences.locale).then((loadedRuntime) => {
         if (!active) return;
         const initialHome = activeHomeRef.current;
@@ -131,11 +132,11 @@ export function StartupRoot({
     let frameTimeout = 0;
     const frame = requestAnimationFrame(() => {
       window.clearTimeout(frameTimeout);
-      continueStartup(true);
+      reportPaintedShell();
+      continueStartup();
     });
     frameTimeout = window.setTimeout(() => {
-      cancelAnimationFrame(frame);
-      continueStartup(false);
+      continueStartup();
     }, INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS);
     return () => {
       active = false;

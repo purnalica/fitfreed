@@ -176,12 +176,17 @@ describe("StartupRoot", () => {
     expect(receivedStartup?.initialHome).toBe("reports");
   });
 
-  it("continues without claiming painted-shell evidence when no frame arrives", async () => {
+  it("continues before a late frame and reports that frame exactly once", async () => {
     vi.useFakeTimers();
-    vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
+    let paintShell!: FrameRequestCallback;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
+      paintShell = callback;
+      return 1;
+    }));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
     mocks.invoke.mockImplementation((command) => {
       if (command === "load_preferences") return Promise.resolve(preferenceLoad("en-US"));
+      if (command === "report_interactive_shell") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     const loadRuntime = vi.fn<ApplicationRuntimeLoader>(() => new Promise(() => undefined));
@@ -200,6 +205,15 @@ describe("StartupRoot", () => {
       expect.anything(),
     );
     expect(loadRuntime).toHaveBeenCalledWith("en-US");
+
+    await act(async () => paintShell(performance.now()));
+
+    expect(mocks.invoke).toHaveBeenCalledWith(
+      "report_interactive_shell",
+      expect.anything(),
+    );
+    expect(mocks.invoke.mock.calls.filter(([command]) => command === "report_interactive_shell"))
+      .toHaveLength(1);
   });
 
   it("keeps a supported system locale usable when first-run persistence fails", async () => {

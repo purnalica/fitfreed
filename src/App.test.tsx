@@ -2996,9 +2996,13 @@ describe("FitFreed import interface", () => {
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
   });
 
-  it("continues startup without emitting painted-shell evidence when no frame is delivered", async () => {
+  it("continues startup before a late frame and reports that frame exactly once", async () => {
     vi.useFakeTimers();
-    vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
+    let paintShell!: FrameRequestCallback;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
+      paintShell = callback;
+      return 1;
+    }));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
     render(<App />);
@@ -3024,6 +3028,10 @@ describe("FitFreed import interface", () => {
       "check_for_updates_on_launch",
       undefined,
     );
+
+    await act(async () => paintShell(performance.now()));
+
+    expect(mocks.interactiveShellInvoke).toHaveBeenCalledTimes(1);
   });
 
   it("blocks mutable desktop controls while an update installation owns the application", async () => {
