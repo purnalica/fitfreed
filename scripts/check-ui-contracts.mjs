@@ -3,10 +3,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const stylesheetPath = path.join(repositoryRoot, "src", "App.css");
-const stylesheet = readFileSync(stylesheetPath, "utf8");
+const stylesheetPaths = ["Startup.css", "App.css"]
+  .map((name) => path.join(repositoryRoot, "src", name));
+const stylesheet = stylesheetPaths
+  .map((stylesheetPath) => readFileSync(stylesheetPath, "utf8"))
+  .join("\n");
 const applicationPath = path.join(repositoryRoot, "src", "App.tsx");
 const application = readFileSync(applicationPath, "utf8");
+const startupRoot = readFileSync(path.join(repositoryRoot, "src", "StartupRoot.tsx"), "utf8");
 const applicationShellPath = path.join(
   repositoryRoot,
   "src",
@@ -1040,7 +1044,8 @@ for (const boundary of [
 if (!application.includes('className="settings-home" hidden={activeHome !== "settings"}')) {
   throw new Error("Settings must remain mounted but hidden outside its application workspace");
 }
-if (!application.includes('useState<ApplicationHome>("home")')
+if (!startupRoot.includes('useState<ApplicationHome>("home")')
+  || !application.includes('startup?.initialHome ?? "home"')
   || !libraryHomePanel.includes("onClick={onOpenSources}")) {
   throw new Error("empty startup must lead from value-first Home into secondary Sources");
 }
@@ -1186,7 +1191,7 @@ if (!stylesheet.includes(':is(input, select, textarea)[aria-invalid="true"]')) {
 const reducedMotionQuery = "@media (prefers-reduced-motion: no-preference)";
 const queryStart = stylesheet.indexOf(reducedMotionQuery);
 if (queryStart < 0) {
-  throw new Error("App.css must define the reduced-motion animation boundary");
+  throw new Error("the application stylesheets must define the reduced-motion animation boundary");
 }
 
 const blockStart = stylesheet.indexOf("{", queryStart);
@@ -1217,7 +1222,9 @@ for (const declaration of motionDeclarations) {
 
 const darkQuery = "@media (prefers-color-scheme: dark)";
 const darkStart = stylesheet.indexOf(darkQuery);
-if (darkStart < 0) throw new Error("App.css must define the dark appearance boundary");
+if (darkStart < 0) {
+  throw new Error("the application stylesheets must define the dark appearance boundary");
+}
 const nextMediaStart = stylesheet.indexOf("@media", darkStart + darkQuery.length);
 const darkBlock = stylesheet.slice(
   darkStart,
@@ -1232,7 +1239,9 @@ const contrastContracts = new Map([
   [".recovery-summary span", "--ink-soft"],
 ]);
 const explicitDarkStart = stylesheet.indexOf(':root[data-appearance="dark"]');
-if (explicitDarkStart < 0) throw new Error("App.css must define explicit dark appearance tokens");
+if (explicitDarkStart < 0) {
+  throw new Error("the application stylesheets must define explicit dark appearance tokens");
+}
 const explicitDarkEnd = stylesheet.indexOf("}", explicitDarkStart);
 const explicitDarkBlock = stylesheet.slice(explicitDarkStart, explicitDarkEnd);
 for (const [selector, token] of contrastContracts) {

@@ -80,13 +80,15 @@ signal is absent. Deferred work is deliberately outside the first-interaction bo
 behavioral, recovery, and performance gates. The process is terminated only after the signal, and all temporary
 application data is removed. Output and diagnostics are bounded; their raw content is never included in evidence.
 
-The initial renderer graph contains the complete canonical English catalog as its deterministic fallback. A
-persisted non-default catalog is fetched as a separate production module and must finish loading before the
-localized shell can satisfy the signal; changing locale later uses the same cached runtime catalog. Ordinary Home
-startup also defers the Settings, Sources, and import-outcome presentation modules until after the first interactive
-frame. Explicitly choosing one of those destinations remains authoritative and loads it immediately. This split is
-part of the measured production path rather than benchmark-only instrumentation, and locale, navigation, import,
-and preference tests protect the behavior on both sides of the boundary.
+The initial renderer graph contains only the progressive startup root, critical shell styles, and build-generated
+shell projections derived from the canonical English and Spanish catalogs. Persisted language, appearance, and zoom
+are applied before the localized shell can satisfy the signal. The complete application, complete selected catalog,
+application stylesheet, Library Home, Settings, Sources, import outcome, and their transitive presentation modules
+load after signal dispatch. Navigation remains active during that deferred load and the most recent explicit
+destination is authoritative when the complete application takes ownership. The production build rejects a static
+entry closure that reaches `App`, the complete application stylesheet, or either complete catalog. This split is
+part of the measured production path rather than benchmark-only instrumentation; focused startup, locale,
+navigation, import, and preference tests protect the behavior on both sides of the boundary.
 
 Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. The p95 budget is 2.5 seconds. The local output object records application and source identity, clean-tree state, host profile, free storage, scenario, boundary, run policy, median, p95, maximum, budget, result, and aggregate median/p95/maximum for five exhaustive phases: outer process creation plus evidence transport; host startup through setup completion; setup completion through renderer startup plus command transport; renderer startup through locale readiness; and locale readiness through the painted-shell signal. The first and third values deliberately combine intervals that cannot be separated without cross-process absolute timestamps; the labels preserve that limitation instead of implying false precision. The phases sum to the total within each process, but aggregate phase percentiles can belong to different processes and must not be added together. Per-process timings are never emitted as benchmark evidence. The exact host profile and raw output remain local. Versioned evidence retains aggregate measurements and classifies the run by its admitted environment. The exact macOS, Linux, and Windows candidate environments must pass before their respective candidate handoff.
 

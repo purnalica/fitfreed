@@ -130,8 +130,9 @@ function sourceGraph(root) {
 }
 
 function cssInventory(root, graph) {
-  const stylesheetPath = path.join(root, "src", "App.css");
-  const stylesheet = readFileSync(stylesheetPath, "utf8");
+  const stylesheet = ["Startup.css", "App.css"]
+    .map((name) => readFileSync(path.join(root, "src", name), "utf8"))
+    .join("\n");
   const selectors = [...new Set(
     [...stylesheet.matchAll(/\.([A-Za-z_][A-Za-z0-9_-]*)/g)].map((match) => match[1]),
   )];

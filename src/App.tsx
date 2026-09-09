@@ -22,6 +22,10 @@ import {
   loadRuntimeCatalog,
   type RuntimeCatalog,
 } from "./locales/runtime-catalogs";
+import {
+  type ApplicationStartup,
+  resolveApplicationPreferenceStartup,
+} from "./presentation/application-startup";
 import type {
   ActivityDateRange,
   ActivityDayAvailability,
@@ -74,6 +78,7 @@ import {
 } from "./presentation/RangeFilterActions";
 import { restoreFocusAfterReveal } from "./presentation/focus-restoration";
 import { submissionOrigin } from "./presentation/submission-origin";
+import { systemLocale } from "./presentation/system-locale";
 import { APPLICATION_ERROR_ID, useInvalidForm } from "./presentation/useInvalidForm";
 
 const rendererStartedAt = performance.now();
@@ -171,18 +176,6 @@ interface UpdateRecoveryOutcome {
 
 type UpdateRecoveryStartupState = "pending" | "ordinary" | "outcome" | "failed";
 
-function systemLocale(): Locale {
-  const preferredLanguages = navigator.languages.length > 0
-    ? navigator.languages
-    : [navigator.language];
-  for (const language of preferredLanguages) {
-    const baseLanguage = language.toLowerCase().split("-")[0];
-    if (baseLanguage === "es") return "es-ES";
-    if (baseLanguage === "en") return "en-US";
-  }
-  return "en-US";
-}
-
 function localDate(localDateValue: string): Date {
   const [year, month, day] = localDateValue.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day));
@@ -209,28 +202,35 @@ function applicationScroller() {
   return document.scrollingElement ?? document.documentElement;
 }
 
-function App() {
+interface AppProps {
+  startup?: ApplicationStartup;
+}
+
+function App({ startup }: AppProps = {}) {
   const desktopPlatform = useMemo(currentDesktopPlatform, []);
-  const [locale, setLocale] = useState<Locale>(systemLocale);
-  const [messages, setMessages] = useState<RuntimeCatalog>(defaultCatalog);
-  const [localeReady, setLocaleReady] = useState(false);
-  const [libraryReady, setLibraryReady] = useState(false);
+  const initialSystemLocale = useMemo(systemLocale, []);
+  const [locale, setLocale] = useState<Locale>(startup?.locale ?? initialSystemLocale);
+  const [messages, setMessages] = useState<RuntimeCatalog>(startup?.messages ?? defaultCatalog);
+  const [localeReady, setLocaleReady] = useState(startup !== undefined);
+  const [libraryReady, setLibraryReady] = useState(startup?.libraryReady ?? false);
   const localeReadyMilliseconds = useRef(0);
   const localeCatalogRequest = useRef(0);
-  const [applicationReady, setApplicationReady] = useState(false);
+  const [applicationReady, setApplicationReady] = useState(startup?.libraryReady ?? false);
   const [defaultPreferences, setDefaultPreferences] = useState<ApplicationPreferences>(() =>
-    defaultApplicationPreferences(systemLocale()));
+    startup?.defaultPreferences ?? defaultApplicationPreferences(initialSystemLocale));
   const [savedPreferences, setSavedPreferences] = useState<ApplicationPreferences>(() =>
-    defaultApplicationPreferences(systemLocale()));
+    startup?.savedPreferences ?? defaultApplicationPreferences(initialSystemLocale));
   const [preferencesOperation, setPreferencesOperation] = useState<"save">();
   const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
-  const [preferencesRecovered, setPreferencesRecovered] = useState(false);
+  const [preferencesRecovered, setPreferencesRecovered] = useState(
+    startup?.preferencesRecovered ?? false,
+  );
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
   const [settingsDirty, setSettingsDirty] = useState(false);
   const [settingsNavigationIntent, setSettingsNavigationIntent]
     = useState<SettingsNavigationIntent>();
   const [settingsWorkspace, setSettingsWorkspace] = useState<SettingsWorkspace>("appearance");
-  const [activeHome, setActiveHome] = useState<ApplicationHome>("home");
+  const [activeHome, setActiveHome] = useState<ApplicationHome>(startup?.initialHome ?? "home");
   const activeHomeRef = useRef<ApplicationHome>(activeHome);
   const applicationHomeScrollPositions = useRef<Record<ApplicationHome, number>>({
     home: 0,
@@ -239,8 +239,10 @@ function App() {
     sources: 0,
     settings: 0,
   });
-  const homeNavigationRevision = useRef(0);
-  const startupHomeNavigationRevision = useRef(homeNavigationRevision.current);
+  const homeNavigationRevision = useRef(
+    startup && startup.initialHome !== "home" ? 1 : 0,
+  );
+  const startupHomeNavigationRevision = useRef(0);
   const libraryHomeProjectionRequest = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [libraryHomeProjection, setLibraryHomeProjection] = useState<LibraryHomeProjection>({
@@ -302,7 +304,7 @@ function App() {
     = useState<UpdateRecoveryStartupState>("pending");
   const [updateRecoveryAcknowledging, setUpdateRecoveryAcknowledging] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
-  const [errorCode, setErrorCode] = useState<string>();
+  const [errorCode, setErrorCode] = useState<string | undefined>(startup?.errorCode);
   const [sourceErrorCode, setSourceErrorCode] = useState<string>();
   const activityRangeValidation = useInvalidForm(setErrorCode);
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
@@ -419,62 +421,40 @@ function App() {
   }
 
   useEffect(() => {
+    if (startup) return;
     let active = true;
     async function initializePreferences() {
       const defaultLocale = systemLocale();
-      setDefaultPreferences(defaultApplicationPreferences(defaultLocale));
-      try {
-        const loaded = await invoke<ApplicationPreferencesLoad>("load_preferences", {
-          defaultLocale,
-        });
-        const catalog = await loadRuntimeCatalog(loaded.preferences.locale);
-        if (active) {
-          applyApplicationPreferences(loaded.preferences);
-          setSavedPreferences(loaded.preferences);
-          setLocale(loaded.preferences.locale);
-          setMessages(catalog);
-          setPreferencesRecovered(loaded.status === "recovered");
-          setLibraryReady(true);
-        }
-      } catch (reason) {
-        if (active) {
-          const code = commandErrorCode(reason);
-          let fallbackLocale = defaultLocale;
-          let fallbackCatalog: RuntimeCatalog;
-          try {
-            fallbackCatalog = await loadRuntimeCatalog(fallbackLocale);
-          } catch {
-            fallbackLocale = "en-US";
-            fallbackCatalog = defaultCatalog;
-          }
-          const defaults = defaultApplicationPreferences(fallbackLocale);
-          setDefaultPreferences(defaults);
-          applyApplicationPreferences(defaults);
-          setSavedPreferences(defaults);
-          setLocale(fallbackLocale);
-          setMessages(fallbackCatalog);
-          if (code === "preference-update-failed") setLibraryReady(true);
-          setErrorCode(
-            code === "preference-update-failed"
-              ? "preference-initialization-failed"
-              : code,
-          );
-        }
-      } finally {
-        if (active) {
-          localeReadyMilliseconds.current = performance.now() - rendererStartedAt;
-          setLocaleReady(true);
-        }
+      const initialized = await resolveApplicationPreferenceStartup({
+        defaultLocale,
+        defaultCatalog,
+        loadPreferences: (locale) => invoke<ApplicationPreferencesLoad>("load_preferences", {
+          defaultLocale: locale,
+        }),
+        loadCatalog: loadRuntimeCatalog,
+      });
+      if (active) {
+        applyApplicationPreferences(initialized.savedPreferences);
+        setDefaultPreferences(initialized.defaultPreferences);
+        setSavedPreferences(initialized.savedPreferences);
+        setLocale(initialized.locale);
+        setMessages(initialized.messages);
+        setPreferencesRecovered(initialized.preferencesRecovered);
+        setLibraryReady(initialized.libraryReady);
+        setErrorCode(initialized.errorCode);
+        localeReadyMilliseconds.current = performance.now() - rendererStartedAt;
+        setLocaleReady(true);
       }
     }
 
-    initializePreferences();
+    void initializePreferences();
     return () => {
       active = false;
     };
-  }, []);
+  }, [startup]);
 
   useEffect(() => {
+    if (startup?.interactiveShellReported) return;
     if (!localeReady || !libraryReady) return;
     let active = true;
     let startupContinued = false;
@@ -505,7 +485,7 @@ function App() {
       cancelAnimationFrame(frame);
       window.clearTimeout(frameTimeout);
     };
-  }, [libraryReady, localeReady]);
+  }, [libraryReady, localeReady, startup?.interactiveShellReported]);
 
   useEffect(() => {
     if (!applicationReady) return;

@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
+import "./Startup.css";
+import { StartupRoot } from "./StartupRoot";
 
 async function start() {
   if (import.meta.env.VITE_FITFREED_E2E === "true") {
@@ -9,7 +10,7 @@ async function start() {
 
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
-      <App />
+      <StartupRoot />
     </React.StrictMode>,
   );
 }

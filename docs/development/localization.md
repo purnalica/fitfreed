@@ -16,11 +16,13 @@ At startup the application resolves its locale in this order:
 
 The selected locale is one member of the atomic `application_preference` set documented by the [SQLite version 10 specification](../data-formats/persistence/sqlite-v10.md). If first-run persistence fails, the derived system locale remains active for that session and localized guidance explains that restart will retry initialization. A failed explicit save restores the previous complete visible preference set. Locale changes never rewrite imported information.
 
-The canonical English catalog is immediately available as the deterministic runtime fallback. Other supported
-catalogs are separate production modules loaded only when selected and cached for subsequent previews or
-navigation. Startup never presents the interactive shell or reports locale readiness until the persisted or
-derived selected catalog is available. Failure to load a non-default catalog during preference recovery falls
-back to English as one complete preference set rather than mixing messages from two locales.
+The initial renderer graph contains shell-only projections generated from both canonical catalogs at build time.
+They let startup apply the selected locale and paint real localized navigation without loading either complete
+catalog. The projections are generated artifacts inside the bundle, never authored translation sources. Complete
+catalogs are separate production modules loaded after the first interactive shell and cached for later previews or
+navigation. Startup never presents that shell or reports locale readiness until the persisted or derived selected
+shell projection is available. Failure to load a selected complete catalog during preference recovery falls back
+to English as one complete preference set rather than mixing messages from two locales.
 
 Authenticated update text is selected in the application layer from the persisted locale; React never selects a raw signed-language map. After the preference set is saved, the update panel repeats its launch-style evaluation so any visible signed release notes use the new locale. A failed save restores the previous interface and does not trigger that refresh.
 

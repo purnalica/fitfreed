@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { catalogs } from "./locales/catalogs";
+import type { ApplicationStartup } from "./presentation/application-startup";
 import type { ApplicationPreferencesLoad } from "./presentation/application-preferences";
 import type {
   ReportExampleCatalog,
@@ -2963,6 +2964,36 @@ describe("FitFreed import interface", () => {
     expect(mocks.interactiveShellInvoke.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.sourceInvoke.mock.invocationCallOrder[0],
     );
+  });
+
+  it("adopts an already painted startup without repeating preference or shell work", async () => {
+    emptyLibrary();
+    const preferences = preferencesLoad("en-US").preferences;
+    const startup: ApplicationStartup = {
+      locale: "en-US",
+      messages: catalogs["en-US"],
+      defaultPreferences: preferences,
+      savedPreferences: preferences,
+      preferencesRecovered: false,
+      libraryReady: true,
+      initialHome: "settings",
+      interactiveShellReported: true,
+    };
+
+    render(<App startup={startup} />);
+
+    expect(await screen.findByRole("heading", { name: "Application settings" })).toBeVisible();
+    await waitFor(() => expect(mocks.homeInvoke).toHaveBeenCalledWith(
+      "query_library_home",
+      { request: { afterImportOperationRef: null } },
+    ));
+    expect(screen.getByRole("button", { name: "Settings" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(mocks.preferencesInvoke).not.toHaveBeenCalledWith(
+      "load_preferences",
+      expect.anything(),
+    );
+    expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
   });
 
   it("continues startup without emitting painted-shell evidence when no frame is delivered", async () => {
