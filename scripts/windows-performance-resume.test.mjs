@@ -10,10 +10,8 @@ const previousFilesystemCommand =
   "node scripts/verify-windows-filesystem-reliability.mjs";
 const currentFilesystemCommand =
   "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs";
-const acceptedWindowsFilesystemSourceSha256 =
-  "cd063439a4df76e43b638e92280c8eed2113fc8fb101d849e707f9c6ed5933a8";
-const currentWindowsFilesystemSourceSha256 =
-  "2afaa6851b25e8e8b450b6955044733c9f22aa61f792f9a300f93bb2df8af363";
+const acceptedWindowsFilesystemBlobOid = "8d5a234ea6b84e100da230f733cfaa475f9ac067";
+const currentWindowsFilesystemBlobOid = "6063dc350a729e1ea4796f794d4a5ada2e59042e";
 
 function packageManifest(vitest = "^4.1.10", filesystemCommand = previousFilesystemCommand) {
   return {
@@ -116,8 +114,8 @@ function evidence(overrides = {}) {
       "scripts/windows-performance-workflow.test.mjs",
       "src-tauri/src/infrastructure.rs",
     ],
-    previousWindowsFilesystemSourceSha256: acceptedWindowsFilesystemSourceSha256,
-    currentWindowsFilesystemSourceSha256,
+    previousWindowsFilesystemBlobOid: acceptedWindowsFilesystemBlobOid,
+    currentWindowsFilesystemBlobOid,
     previousPackage,
     currentPackage,
     previousLock: packageLock(),
@@ -183,7 +181,7 @@ test("admits only the exact test-only Windows disk-pressure source correction", 
 
   assert.throws(
     () => validateRetainedWindowsPerformanceEvidence(evidence({
-      currentWindowsFilesystemSourceSha256: "c".repeat(64),
+      currentWindowsFilesystemBlobOid: "c".repeat(40),
     })),
     /disk-pressure test source differs from the admitted correction/,
   );
