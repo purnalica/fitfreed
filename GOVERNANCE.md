@@ -31,6 +31,17 @@ Contributors propose and review changes through the documented issue and pull-re
 
 Consensus is preferred when several maintainers are active. Until that point, the project owner resolves unresolved material decisions and records the rationale. Passing automation is required where applicable but does not override product, architecture, privacy, security, accessibility, or licensing review.
 
+## Bootstrap release approvals
+
+While the project has one active maintainer, the project owner may initiate and approve both protected deployments in
+the release workflow: candidate construction and the later promotion of the exact evaluated candidate. Each remains a
+separate explicit approval. Release environments require the project owner as a reviewer, allow initiator approval,
+disable administrator bypass, and admit only version tags.
+
+This bootstrap policy does not bypass signing, notarization, sealed-candidate evaluation, native-platform admission,
+immutable publication, or remote verification. Person-level separation will be reconsidered through an explicit
+governance decision when at least two active maintainers can assume release responsibility. [ADR 0047](docs/architecture/decisions/0047-permit-bootstrap-solo-release-approval.md)
+
 ## Becoming a maintainer
 
 There is no application quota or automatic threshold. A prospective maintainer should demonstrate sustained contributions, respectful review, sound judgment across project constraints, reliable follow-through, and willingness to perform maintenance work beyond feature implementation.

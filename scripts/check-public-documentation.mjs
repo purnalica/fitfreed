@@ -134,7 +134,7 @@ const documentContracts = Object.freeze({
     ],
     evidence: () => [
       [/public-macos-release/, "protected environment"],
-      [/prevent_self_review/, "independent environment review"],
+      [/prevent_self_review[\s\S]*disabled/, "bootstrap initiator-approval policy"],
       [/build-candidate/, "candidate build boundary"],
       [/publish-candidate/, "candidate promotion boundary"],
       [/candidate\.tar\.gz/, "sealed candidate transport"],
@@ -209,7 +209,7 @@ const documentContracts = Object.freeze({
       [/matches the reviewed Windows 11 x86-64 policy/, "native host boundary"],
       [/production package\s+intentionally contains no WebDriver instrumentation/, "separate behavior evidence"],
       [/public-windows-product-acceptance/, "distinct product-acceptance gate"],
-      [/public-macos-release/, "independent publication approval"],
+      [/public-macos-release/, "separate publication approval"],
     ],
   },
   readiness: {

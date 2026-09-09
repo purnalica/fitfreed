@@ -9,11 +9,14 @@ Normal commit and push authority does not authorize a tag, protected-environment
 The roles are capabilities, not named people:
 
 - the **release owner** authorizes the version, exact tag, and public promotion;
-- a **release builder reviewer** admits the protected build to production signing and notarization authority;
+- a **release builder approver** admits the protected build to production signing and notarization authority;
 - a **candidate evaluator** completes the versioned manual procedure against the sealed bytes; and
-- a **promotion reviewer** independently admits those exact accepted bytes to publication.
+- a **promotion approver** admits those exact accepted bytes to publication.
 
-GitHub's `prevent_self_review` rule ensures that the workflow initiator cannot approve either protected job. One person may hold more than one maintainer role only when the recorded review still satisfies the project's independent-evaluation requirement.
+Under the bootstrap governance model, the only active maintainer may hold all four roles. The release environments
+therefore require that maintainer as a reviewer but leave GitHub's `prevent_self_review` rule disabled. Candidate build
+and promotion remain two separate approvals, and the second may occur only after the exact sealed candidate has passed
+the required admission and evaluation. [ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md)
 
 ## Trust and credential inventory
 
@@ -60,12 +63,14 @@ An accountable maintainer configures these prerequisites before the first releas
 1. Make `release/public-update-channel.json` active with the reviewed public updater key and keep the metadata endpoint derived from `release/public-origin.json`: `https://fitfreed.org/updates/stable.json`.
 2. Enable immutable Releases for the repository.
 3. Verify `fitfreed.org` for the `purnalica` organization, configure it as the Actions-backed Pages custom domain with the documented apex and `www` DNS records, and enforce HTTPS.
-4. Create `public-macos-release` with at least one required reviewer, prevent self-review, disable administrator bypass, and admit only tags matching the single `v*` tag policy.
+4. Create `public-macos-release` with the project owner as a required reviewer, leave `prevent_self_review` disabled
+   so the initiating owner can approve, disable administrator bypass, and admit only tags matching the single `v*`
+   tag policy.
 5. Add the exact protected secrets and non-secret variables documented in [public release preparation](public-release.md).
 6. Confirm private vulnerability reporting, Issues, and the documented support routes are available.
 
-Before Windows expansion, create two additional environments with the same required-reviewer, self-review,
-administrator-bypass, and `v*` tag restrictions:
+Before Windows expansion, create two additional environments with the same required-reviewer, initiator-approval,
+administrator-bypass, and `v*` tag policies:
 
 - `public-windows-release` owns only the ephemeral Authenticode builder authority and its reviewed public fingerprint;
 - `public-windows-product-acceptance` records the distinct bounded product-experience verdict and owns no signing or
@@ -116,7 +121,7 @@ release-checksum authority, builds fresh same-version macOS artifacts, signs the
 manifest version 6 candidate. The complete Release set and the complete stable-v3 Pages set must both contain macOS
 and Linux; no per-platform partial snapshot is promotable.
 
-The resulting `public-macos-linux-candidate-<version>-<revision>` archive follows the same independent second-approval,
+The resulting `public-macos-linux-candidate-<version>-<revision>` archive follows the same separate second-approval,
 exact reopening, attestation, immutable Release, Release-before-Pages, and remote-acceptance rules as the initial
 macOS candidate. Provenance verification requires the expansion workflow for manifest version 6 and the initial
 workflow for manifest version 3; evidence from one cannot satisfy the other.
@@ -176,7 +181,7 @@ replacement for the exact candidate.
 
 Only after every technical admission job passes may the `public-windows-product-acceptance` environment record the
 bounded product-owner verdict defined by the [Windows supplement](../testing/windows-candidate-manual-evaluation.md).
-The later `public-macos-release` approval is the independent irreversible publication decision. A rejected or expired
+The later `public-macos-release` approval is the separate irreversible publication decision. A rejected or expired
 candidate is never rebuilt inside a downstream job; correct the cause and create a new source and candidate.
 
 On Apple Silicon, `npm run prepare:complete-platform-release -- <version> <update-key-id> <release-key-id>

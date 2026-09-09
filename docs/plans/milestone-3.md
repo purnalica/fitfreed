@@ -68,7 +68,7 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 3. Build with Developer ID hardened-runtime signing, submit with supported Apple notarization credentials, staple tickets, and verify `codesign`, `spctl`, and `stapler` results.
 4. Generate checksums and SBOMs from the final signed bytes, attest every public subject, and reject any post-verification mutation.
 5. Prepare GitHub Release and Pages deployment inputs without automatically publishing them in normal CI.
-6. Seal the exact candidate for independent evaluation, publish only after a second protected-environment approval, then verify remote bytes and the direct stable endpoint before accepting promotion.
+6. Seal the exact candidate for separate exact-candidate evaluation, publish only after a second protected-environment approval, then verify remote bytes and the direct stable endpoint before accepting promotion.
 
 **Acceptance evidence:** all preparation and inspection behavior passes with synthetic or ad-hoc test identities where Apple permits it; the exact public candidate additionally requires a real Developer ID, successful Apple notarization, Gatekeeper acceptance, protected-environment execution, provenance, and remote byte verification.
 
@@ -104,3 +104,6 @@ Engineering continues without an Apple account or production release key. Final 
 - completion of the exact-candidate human accessibility and usability evaluation.
 
 Until those gates close, automation must report the public release as inactive rather than substituting an unsigned package, synthetic identity, unprotected secret, or unverified manual claim.
+
+Approval identity follows the bootstrap policy in [governance](../../GOVERNANCE.md); a second maintainer is not a
+prerequisite while that policy remains active.

@@ -27,7 +27,7 @@ human acceptance, and public promotion remain ordered after the accepted public 
 | M5.3 Packaged capability parity | In progress | Exact source `b94a8f4` builds and installs the isolated Linux and Windows packages and passes both exhaustive functional journeys, process restarts, adaptive session composition and restart, sport-catalogue recognition and restart, and Insights interaction and responsiveness budgets. The same source passes the complete packaged macOS campaign. The hosted engineering parity boundary is closed; exact Windows 11 candidate and human acceptance remain open. |
 | M5.4 Windows performance and reliability admission | Complete | Exact source `43b04ff` and [run `34315586139`](https://github.com/purnalica/fitfreed/actions/runs/34315586139) accept 100 installed fresh-data launches at p95 `2,175.046 ms` against `2,500 ms`. Exact descendant `23b0f1e` and [recovery-and-data run `34334118449`](https://github.com/purnalica/fitfreed/actions/runs/34334118449) reopen that package evidence, skip its build and cold-launch campaign, and pass native NTFS disk-exhaustion recovery plus every full-scale import, exact-repeat, reimport, dense-history, concurrent-navigation, Insights, report-export, memory, and database-size budget. This closes the hosted Windows Server 2025 engineering boundary without claiming the separate exact Windows 11 candidate gate in M5.6. |
 | M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the complete user lifecycle. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, destructive isolated gates, protected Authenticode input, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime; the exact packaged capability step in run `34031313078` exercises that platform-conditional help before its separate later update failure. One protected Apple Silicon command authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. Exact-candidate documentation evidence and download activation remain M5.6 gates. |
-| M5.6 Exact candidate and promotion | In progress | The inactive manual Windows workflow, protected builder, complete-predecessor downloader, version 7 composition, exact Ubuntu and Windows 11 admission topology, distinct product-acceptance gate, independent promotion, immutable publication, and remote reconstruction are implemented and locally contract-tested. Production authorities and environments, disposable native runners, an immutable macOS-plus-Linux predecessor, exact candidate execution, human acceptance, and publication remain open. |
+| M5.6 Exact candidate and promotion | In progress | The inactive manual Windows workflow, protected builder, complete-predecessor downloader, version 7 composition, exact Ubuntu and Windows 11 admission topology, distinct product-acceptance gate, separate promotion, immutable publication, and remote reconstruction are implemented and locally contract-tested. Bootstrap governance permits the same accountable maintainer to approve both protected decisions. Production authorities and environments, disposable native runners, an immutable macOS-plus-Linux predecessor, exact candidate execution, human acceptance, and publication remain open. |
 
 Exact descendant `8e0e67b` passes repository safety, product-site publication, the portable quality lane, and the
 complete Linux host in run [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902). The Windows
@@ -564,14 +564,14 @@ deploys the exact accepted Pages artifact.
 
 ## Increment M5.6 — Exact candidate and promotion
 
-**Outcome:** one immutable macOS-plus-Linux-plus-Windows expansion candidate is independently admitted and promoted
+**Outcome:** one immutable macOS-plus-Linux-plus-Windows expansion candidate is separately admitted and promoted
 only after Linux publication.
 
 **Work:**
 
 1. Build the exact tagged target in each protected native environment with ephemeral platform and updater authority,
    then compose only their same-version, same-revision evidence and remove all authority.
-2. Seal the candidate before independent evaluation and preserve exact bytes across promotion.
+2. Seal the candidate before separate exact-candidate evaluation and preserve exact bytes across promotion.
 3. Run the complete matrix on a clean supported Windows 11 x86-64 desktop, including trust UI, installation, first
    launch, update, recovery, migration, removal, accessibility, localization, and product experience.
 4. Attest and publish only the accepted complete expanding target set, atomically update versioned downloads and
@@ -595,7 +595,8 @@ downloads and reopens every complete predecessor Release before creating manifes
 secret-free Windows 11 jobs reopen the exact candidate. The native host must match the versioned reviewed edition,
 display-version, build, architecture, and lifecycle policy. Exact-package trust, install, removal, and cold launch stay
 separate from the source-matched instrumented capability campaign. A distinct protected product-experience verdict
-precedes the independent publication approval.
+precedes the separate publication approval. During bootstrap governance, one accountable maintainer may approve both
+protected decisions under [ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md).
 
 The workflow, policy schema, static topology checks, predecessor downloader, and portable admission contracts pass
 locally. Production Authenticode and release authority, repository-scoped disposable Windows 11 runners, the immutable
@@ -608,3 +609,6 @@ Engineering and hosted evidence proceed autonomously. Final acceptance requires 
 authority, protected release configuration, a clean supported Windows 11 x86-64 evidence environment, the bounded
 product-owner usability verdict, explicit tag and publication authority, and the public Linux dependency. A hosted
 Windows Server run or unsigned NSIS file cannot substitute for those gates.
+
+Approval identity follows the bootstrap policy in [governance](../../GOVERNANCE.md); a second maintainer is not a
+prerequisite while that policy remains active.

@@ -17,8 +17,8 @@ function protectedEnvironment() {
     protection_rules: [
       {
         type: "required_reviewers",
-        prevent_self_review: true,
-        reviewers: [{ type: "User", reviewer: { login: "synthetic-reviewer" } }],
+        prevent_self_review: false,
+        reviewers: [{ type: "User", reviewer: { login: "synthetic-release-owner" } }],
       },
       { type: "branch_policy" },
     ],
@@ -54,7 +54,7 @@ function invocation() {
     protectedEnvironment: {
       environment: "public-macos-release",
       requiredReviewerCount: 1,
-      selfReview: false,
+      selfReview: true,
       administratorBypass: false,
       tagPolicy: "v*",
     },
@@ -71,7 +71,7 @@ function invocation() {
   };
 }
 
-test("accepts a reviewer-protected environment limited to version tags", () => {
+test("accepts a solo-maintainer protected environment limited to version tags", () => {
   assert.deepEqual(
     validateProtectedReleaseEnvironment(protectedEnvironment(), {
       branch_policies: [{ name: "v*", type: "tag" }],
@@ -79,7 +79,7 @@ test("accepts a reviewer-protected environment limited to version tags", () => {
     {
       environment: "public-macos-release",
       requiredReviewerCount: 1,
-      selfReview: false,
+      selfReview: true,
       administratorBypass: false,
       tagPolicy: "v*",
     },
@@ -97,12 +97,12 @@ test("accepts a reviewer-protected environment limited to version tags", () => {
   );
 });
 
-test("rejects an implicit, bypassable, unreviewed, or branch-open environment", () => {
+test("rejects an implicit, bypassable, bootstrap-incompatible, unreviewed, or branch-open environment", () => {
   for (const mutate of [
     (environment) => { environment.can_admins_bypass = true; },
     (environment) => {
       environment.protection_rules.find(({ type }) => type === "required_reviewers")
-        .prevent_self_review = false;
+        .prevent_self_review = true;
     },
     (environment) => { environment.protection_rules = [{ type: "branch_policy" }]; },
     (environment) => { environment.deployment_branch_policy.custom_branch_policies = false; },

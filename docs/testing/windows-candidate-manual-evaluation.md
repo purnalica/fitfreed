@@ -35,5 +35,7 @@ record it once, stop the affected journey, and return the candidate to engineeri
 reproduction.
 
 Record only the candidate label, accepted or rejected product-experience outcome, and concise privacy-safe findings.
-The environment approval records that verdict; it does not grant signing or publication authority. An independent
-later `public-macos-release` approval remains the irreversible publication decision.
+The environment approval records that verdict; it does not grant signing or publication authority. A separate later
+`public-macos-release` approval remains the irreversible publication decision. During bootstrap governance, the same
+accountable project owner may record both approvals under
+[ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md).

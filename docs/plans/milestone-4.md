@@ -209,14 +209,14 @@ from synthetic evidence.
 
 ## Increment M4.6 — Exact candidate and promotion
 
-**Outcome:** one immutable macOS-plus-Linux expansion candidate is independently admitted and, only after macOS
+**Outcome:** one immutable macOS-plus-Linux expansion candidate is separately admitted and, only after macOS
 publication, promoted.
 
 **Work:**
 
 1. Build the exact tagged macOS and Linux targets in their protected native environments with ephemeral release
    authority, then compose only their same-version, same-revision evidence.
-2. Seal it before independent evaluation; never rebuild accepted bytes during promotion.
+2. Seal it before separate exact-candidate evaluation; never rebuild accepted bytes during promotion.
 3. Run clean Ubuntu Desktop 24.04 and 26.04 installation, update, recovery, removal, accessibility, localization, and
    product-experience evaluation.
 4. Attest and publish only the accepted complete expanding target set, atomically advance versioned download and update
@@ -233,3 +233,6 @@ Engineering and hosted evidence proceed autonomously. Final acceptance alone req
 authority, a protected publication environment, a clean Ubuntu 26.04 Desktop evidence environment if no stable hosted
 equivalent exists, the bounded product-owner usability verdict, explicit tag and publication authority, and the public
 macOS dependency. None may be replaced by an unsigned, untested, or merely compilable package.
+
+Approval identity follows the bootstrap policy in [governance](../../GOVERNANCE.md); a second maintainer is not a
+prerequisite while that policy remains active.

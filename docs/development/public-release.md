@@ -14,7 +14,8 @@ The public workflow accepts only a manual dispatch whose selected ref is the exa
 - a clean tagged commit reachable from `origin/main` in the canonical public repository;
 - an active `stable-v2` configuration containing the selected updater key;
 - the `public-macos-release` environment through GitHub's API;
-- at least one required environment reviewer, prevented self-review, disabled administrator bypass, custom deployment policies, and the single `v*` tag policy;
+- the project owner as a required environment reviewer, initiator approval allowed under bootstrap governance,
+  disabled administrator bypass, custom deployment policies, and the single `v*` tag policy;
 - Actions-backed GitHub Pages at the canonical project URL with HTTPS enforced;
 - successful `push` executions of `ci.yml` and `repository-safety.yml` for the exact release revision;
 - the local and remote `v<version>` tag resolving to that exact revision; and
@@ -236,11 +237,13 @@ Before the first dispatch, maintainers must explicitly:
 1. activate the reviewed public update configuration and production public key;
 2. enable immutable releases for future releases;
 3. configure GitHub Pages to deploy through Actions with HTTPS;
-4. create `public-macos-release`, require at least one reviewer, prevent self-review, disable administrator bypass, and admit only `v*` tags;
+4. create `public-macos-release`, require the project owner as a reviewer, allow the initiating owner to approve under
+   [ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md), disable administrator bypass,
+   and admit only `v*` tags;
 5. install the protected variables and secrets listed above;
 6. before Windows expansion, create separately protected `public-windows-release` and
-   `public-windows-product-acceptance` environments with the same version-tag, reviewer, self-review, and administrator
-   bypass restrictions; provision separately labeled disposable Windows 11 x86-64 builder and admission runners under
+   `public-windows-product-acceptance` environments with the same version-tag, reviewer, initiator-approval, and
+   administrator-bypass policies; provision separately labeled disposable Windows 11 x86-64 builder and admission runners under
    [ADR 0046](../architecture/decisions/0046-separate-windows-candidate-build-and-admission-hosts.md); and
 7. create and push the reviewed exact version tag only after its CI and repository-safety runs pass.
 

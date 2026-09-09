@@ -47,8 +47,8 @@ export function validateProtectedReleaseEnvironment(
   if (!reviewerRule || !Array.isArray(reviewerRule.reviewers) || reviewerRule.reviewers.length < 1) {
     errors.push("protected environment must require at least one reviewer");
   }
-  if (reviewerRule?.prevent_self_review !== true) {
-    errors.push("protected environment must prevent self-review");
+  if (reviewerRule?.prevent_self_review !== false) {
+    errors.push("protected environment must allow initiator approval during bootstrap governance");
   }
   if (environment?.can_admins_bypass !== false) {
     errors.push("protected environment must disallow administrator bypass");
@@ -72,7 +72,7 @@ export function validateProtectedReleaseEnvironment(
   return {
     environment: environmentName,
     requiredReviewerCount: reviewerRule.reviewers.length,
-    selfReview: false,
+    selfReview: true,
     administratorBypass: false,
     tagPolicy: "v*",
   };
@@ -206,7 +206,7 @@ export function validatePublicReleaseInvocation({
     protectedEnvironment?.environment !== releaseEnvironmentName
     || !Number.isSafeInteger(protectedEnvironment?.requiredReviewerCount)
     || protectedEnvironment.requiredReviewerCount < 1
-    || protectedEnvironment?.selfReview !== false
+    || protectedEnvironment?.selfReview !== true
     || protectedEnvironment?.administratorBypass !== false
     || protectedEnvironment?.tagPolicy !== "v*"
   ) {

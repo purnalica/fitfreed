@@ -26,7 +26,7 @@ function isProtectedEnvironment(value, expectedName) {
   return value?.environment === expectedName
     && Number.isSafeInteger(value.requiredReviewerCount)
     && value.requiredReviewerCount >= 1
-    && value.selfReview === false
+    && value.selfReview === true
     && value.administratorBypass === false
     && value.tagPolicy === "v*";
 }

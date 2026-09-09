@@ -87,14 +87,14 @@ test("requires distinct protected Windows build and product-acceptance environme
       administratorBypass: false,
       environment: "public-windows-product-acceptance",
       requiredReviewerCount: 1,
-      selfReview: false,
+      selfReview: true,
       tagPolicy: "v*",
     },
     windowsReleaseEnvironment: {
       administratorBypass: false,
       environment: "public-windows-release",
       requiredReviewerCount: 1,
-      selfReview: false,
+      selfReview: true,
       tagPolicy: "v*",
     },
   };
@@ -104,7 +104,7 @@ test("requires distinct protected Windows build and product-acceptance environme
   });
 
   for (const mutate of [
-    (value) => { value.productAcceptanceEnvironment.selfReview = true; },
+    (value) => { value.productAcceptanceEnvironment.selfReview = false; },
     (value) => { value.windowsReleaseEnvironment.administratorBypass = true; },
     (value) => { value.windowsReleaseEnvironment.environment = "public-macos-release"; },
     (value) => { value.productAcceptanceEnvironment.tagPolicy = "main"; },
