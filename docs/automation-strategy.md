@@ -200,7 +200,9 @@ The recovered process resolves a retained terminal outcome before update discove
 launch check; manual discovery and the host-owned periodic schedule remain intact. Process-replacing retry actions
 accept WebDriver session loss only after exact process exit. Closed-transport diagnostics retain only relative
 synthetic request paths, and concurrent orchestration reports the journey failure before any secondary coordinator
-failure. It then runs
+failure. The authenticated installed target carried by a Windows runnable-fallback startup is shared by startup
+confirmation, intervention query, and explicit retry; the preserved executable itself is never reclassified as an
+installed package. It then runs
 successful replacement,
 native installer failure, candidate rejection with automatic predecessor restoration, and ordinary-startup resumption
 after an exact post-install watchdog interruption. It also drives the retained product-image fallback through its

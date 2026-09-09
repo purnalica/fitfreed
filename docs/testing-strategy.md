@@ -519,7 +519,10 @@ and completes an explicit retry without another transport request. The automatic
 resolves its retained outcome before update discovery and suppresses that process's one launch check. WebDriver
 session loss is accepted only after the exact fallback process exits; durable outcome, cleanup, installation identity,
 and notice checks remain mandatory. The transport diagnostic retains only relative synthetic request paths, and
-concurrent failures report the journey before coordinator cleanup. The exhaustion path keeps the gate closed through
+concurrent failures report the journey before coordinator cleanup. A runnable fallback must resolve startup
+confirmation, intervention query, and retry against the exact installed target authenticated by its private startup
+mode; focused host tests prove that the preserved fallback path never enters ordinary installed-package resolution.
+The exhaustion path keeps the gate closed through
 three durable failures, reopens the runnable predecessor after each available retry, and requires terminal manual
 guidance with no retry or ordinary update action. Every path revalidates the recovery manifest and preserved assets,
 exact installed version, library and locale persistence, applicable terminal receipt and cleanup, localized outcome,

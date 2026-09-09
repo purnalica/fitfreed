@@ -2012,6 +2012,7 @@ fn map_update_installation_error(error: UpdateInstallationError) -> CommandError
 async fn confirm_update_recovery_startup(
     app: AppHandle,
     pending: State<'_, PendingUpdateRecoveryConfirmation>,
+    runtime_target: State<'_, RuntimeUpdateRecoveryTarget>,
 ) -> Result<Option<UpdateRecoveryOutcomeDto>, CommandErrorDto> {
     let candidate = pending
         .take()
@@ -2045,7 +2046,12 @@ async fn confirm_update_recovery_startup(
         }
         CommandErrorDto::new("update-recovery-outcome-failed")
     })?;
-    let current_application_path = installed_update_recovery_target(&executable).map_err(|_| {
+    let current_application_path = update_recovery_confirmation_target_with(
+        &executable,
+        &runtime_target,
+        installed_update_recovery_target,
+    )
+    .map_err(|_| {
         if let Some(candidate) = candidate.clone() {
             pending.restore(candidate);
         }
@@ -2678,6 +2684,17 @@ fn installed_update_recovery_target(executable: &Path) -> Result<PathBuf, ()> {
     {
         resolve_update_application_path(executable).map_err(|_| ())
     }
+}
+
+fn update_recovery_confirmation_target_with(
+    executable: &Path,
+    runtime_target: &RuntimeUpdateRecoveryTarget,
+    resolve_installed_target: impl FnOnce(&Path) -> Result<PathBuf, ()>,
+) -> Result<PathBuf, ()> {
+    if let Some(installed_application) = runtime_target.fallback_installed_application() {
+        return Ok(installed_application.to_owned());
+    }
+    resolve_installed_target(executable)
 }
 
 fn packaged_update_recovery_target(
@@ -3619,6 +3636,39 @@ mod tests {
             query_platform_update_recovery_intervention(directory.path(), &recovery_target),
             Ok(None)
         );
+    }
+
+    #[test]
+    fn update_recovery_confirmation_uses_the_bound_fallback_target() {
+        let fallback_target = PathBuf::from("/installed/FitFreed");
+        let runtime_target = RuntimeUpdateRecoveryTarget {
+            fallback_installed_application: Some(fallback_target.clone()),
+        };
+
+        let resolved = update_recovery_confirmation_target_with(
+            Path::new("/preserved/runnable/fitfreed"),
+            &runtime_target,
+            |_| panic!("fallback confirmation must not resolve the runnable executable"),
+        );
+
+        assert_eq!(resolved, Ok(fallback_target));
+    }
+
+    #[test]
+    fn update_recovery_confirmation_keeps_ordinary_platform_resolution() {
+        let executable = Path::new("/installed/FitFreed");
+        let installed_target = PathBuf::from("/resolved/FitFreed");
+        let runtime_target = RuntimeUpdateRecoveryTarget {
+            fallback_installed_application: None,
+        };
+
+        let resolved =
+            update_recovery_confirmation_target_with(executable, &runtime_target, |received| {
+                assert_eq!(received, executable);
+                Ok(installed_target.clone())
+            });
+
+        assert_eq!(resolved, Ok(installed_target));
     }
 
     #[test]

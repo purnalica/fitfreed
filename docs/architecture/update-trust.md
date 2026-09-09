@@ -281,6 +281,13 @@ requires each durable failure count, and opens the retained runnable predecessor
 guidance without an update or retry action. The gate and its marker are generated only for instrumented packages; no
 production build, update endpoint, signing authority, or application code receives that behavior.
 
+The Windows runnable fallback starts only through its validated private mode and carries the absolute installed
+application target authenticated by that mode. Startup confirmation, intervention query, and explicit retry all use
+that same runtime target; none attempts to reinterpret the preserved fallback executable as an installed package.
+Candidate and ordinary desktop startups retain the platform installation resolver. Recovery startup resolves before
+the update surface is mounted, after which an active intervention suppresses every channel check and a terminal
+outcome suppresses only that process's automatic launch check.
+
 ## Verification pipeline
 
 An update check uses this fail-closed order:
