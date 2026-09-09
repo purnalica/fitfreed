@@ -24,7 +24,7 @@ const currentFilesystemCommand =
   "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs";
 const windowsFilesystemSourcePath = "src-tauri/src/infrastructure.rs";
 const acceptedWindowsFilesystemBlobOid = "8d5a234ea6b84e100da230f733cfaa475f9ac067";
-const correctedWindowsFilesystemBlobOid = "6063dc350a729e1ea4796f794d4a5ada2e59042e";
+const correctedWindowsFilesystemBlobOid = "a28aa7f95640e96ca952343cd860b1423f811cbe";
 const skippedSuccessors = [
   "Verify full-scale import budgets",
   "Verify dense training-history budgets",

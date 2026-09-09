@@ -11,7 +11,7 @@ const previousFilesystemCommand =
 const currentFilesystemCommand =
   "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs";
 const acceptedWindowsFilesystemBlobOid = "8d5a234ea6b84e100da230f733cfaa475f9ac067";
-const currentWindowsFilesystemBlobOid = "6063dc350a729e1ea4796f794d4a5ada2e59042e";
+const currentWindowsFilesystemBlobOid = "a28aa7f95640e96ca952343cd860b1423f811cbe";
 
 function packageManifest(vitest = "^4.1.10", filesystemCommand = previousFilesystemCommand) {
   return {

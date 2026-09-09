@@ -28343,6 +28343,18 @@ mod tests {
 
     const WINDOWS_FILLER_MAX_WRITE_BYTES: u64 = 1024 * 1024;
 
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum WindowsFillerWriteOutcome {
+        Written,
+        DiskFull,
+    }
+
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum WindowsFillerAction {
+        Continue,
+        Exhausted,
+    }
+
     fn windows_filler_write_size(free_clusters: u32, allocation_unit_bytes: u64) -> Option<usize> {
         if free_clusters == 0 {
             return None;
@@ -28359,6 +28371,46 @@ mod tests {
         Some(usize::try_from(write_bytes).expect("Windows filler write fits memory"))
     }
 
+    fn windows_filler_action(
+        free_clusters_before: u32,
+        free_clusters_after: u32,
+        requested_clusters: u32,
+        write_outcome: WindowsFillerWriteOutcome,
+    ) -> WindowsFillerAction {
+        assert_ne!(
+            free_clusters_before, 0,
+            "Windows filler write requires reported free capacity"
+        );
+        assert!(
+            requested_clusters > 0 && requested_clusters <= free_clusters_before,
+            "Windows filler write must cover a bounded reported cluster count"
+        );
+        assert!(
+            free_clusters_after <= free_clusters_before,
+            "Windows filler write must not make reported capacity increase"
+        );
+        match write_outcome {
+            WindowsFillerWriteOutcome::Written => {
+                assert!(
+                    free_clusters_after < free_clusters_before,
+                    "successful Windows filler write must consume reported capacity"
+                );
+                if free_clusters_after == 0 {
+                    WindowsFillerAction::Exhausted
+                } else {
+                    WindowsFillerAction::Continue
+                }
+            }
+            WindowsFillerWriteOutcome::DiskFull => {
+                assert_eq!(
+                    requested_clusters, free_clusters_before,
+                    "Windows disk-full termination must cover the complete reported remainder"
+                );
+                WindowsFillerAction::Exhausted
+            }
+        }
+    }
+
     #[test]
     fn windows_disk_pressure_uses_complete_bounded_allocation_units_until_none_remain() {
         assert_eq!(windows_filler_write_size(0, 4 * 1024), None);
@@ -28368,6 +28420,50 @@ mod tests {
             windows_filler_write_size(2, 2 * 1024 * 1024),
             Some(2 * 1024 * 1024)
         );
+    }
+
+    #[test]
+    fn windows_disk_pressure_accepts_observed_disk_full_with_a_reported_terminal_cluster() {
+        assert_eq!(
+            windows_filler_action(1, 1, 1, WindowsFillerWriteOutcome::DiskFull),
+            WindowsFillerAction::Exhausted
+        );
+        assert_eq!(
+            windows_filler_action(2, 1, 2, WindowsFillerWriteOutcome::DiskFull),
+            WindowsFillerAction::Exhausted
+        );
+    }
+
+    #[test]
+    fn windows_disk_pressure_continues_only_after_a_successful_capacity_reduction() {
+        assert_eq!(
+            windows_filler_action(300, 44, 256, WindowsFillerWriteOutcome::Written),
+            WindowsFillerAction::Continue
+        );
+        assert_eq!(
+            windows_filler_action(1, 0, 1, WindowsFillerWriteOutcome::Written),
+            WindowsFillerAction::Exhausted
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "successful Windows filler write must consume reported capacity")]
+    fn windows_disk_pressure_rejects_a_successful_write_without_capacity_reduction() {
+        windows_filler_action(1, 1, 1, WindowsFillerWriteOutcome::Written);
+    }
+
+    #[test]
+    #[should_panic(expected = "Windows filler write must not make reported capacity increase")]
+    fn windows_disk_pressure_rejects_an_increasing_capacity_report() {
+        windows_filler_action(1, 2, 1, WindowsFillerWriteOutcome::DiskFull);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Windows disk-full termination must cover the complete reported remainder"
+    )]
+    fn windows_disk_pressure_rejects_disk_full_before_the_terminal_remainder() {
+        windows_filler_action(300, 299, 256, WindowsFillerWriteOutcome::DiskFull);
     }
 
     #[cfg(target_os = "windows")]
@@ -28413,11 +28509,6 @@ mod tests {
         );
         let filler_path = filesystem_root.join("filler.bin");
         fill_windows_filesystem(&filesystem_root, &filler_path);
-        assert_eq!(
-            windows_filesystem_space(&filesystem_root).free_clusters,
-            0,
-            "Windows disk pressure must consume every allocatable cluster"
-        );
 
         let error = import_archive(&database_path, &additional_archive, "polar:synthetic")
             .expect_err("disk-full import failure");
@@ -28521,18 +28612,29 @@ mod tests {
                 break;
             };
             let block = vec![0_u8; write_size];
+            let requested_clusters = u32::try_from(
+                u64::try_from(write_size).expect("Windows filler write size")
+                    / before.allocation_unit_bytes,
+            )
+            .expect("bounded Windows filler cluster count");
             let write_result = filler.write_all(&block).and_then(|_| filler.sync_data());
             let after = windows_filesystem_space(filesystem_root);
-            if let Err(error) = &write_result {
-                assert!(
-                    is_windows_disk_full_io_error(error),
-                    "unexpected filesystem filler error: {error}"
-                );
+            let write_outcome = match write_result {
+                Ok(()) => WindowsFillerWriteOutcome::Written,
+                Err(error) if is_windows_disk_full_io_error(&error) => {
+                    WindowsFillerWriteOutcome::DiskFull
+                }
+                Err(error) => panic!("unexpected filesystem filler error: {error}"),
+            };
+            if windows_filler_action(
+                before.free_clusters,
+                after.free_clusters,
+                requested_clusters,
+                write_outcome,
+            ) == WindowsFillerAction::Exhausted
+            {
+                break;
             }
-            assert!(
-                after.free_clusters < before.free_clusters,
-                "filesystem filler did not consume reported free clusters"
-            );
         }
     }
 
