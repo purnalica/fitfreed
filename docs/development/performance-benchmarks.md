@@ -316,10 +316,12 @@ created it. The library must be non-empty and its directory tree must contain no
 database must retain the exact protected private ACL for the current user, LocalSystem, and Builtin Administrators.
 Failure rejects the performance admission before owned installation cleanup.
 
-The filesystem command creates and mounts one isolated 64 MiB NTFS VHD on an unused drive letter, verifies its
-filesystem and capacity, creates a dedicated application-data child with the isolation sentinel, and points exact
-ignored release-mode Rust tests at that child. The volume root remains outside the product library boundary because
-a freshly formatted NTFS root is system-owned rather than representative of a current-user application-data directory.
+The filesystem command first generates the canonical Tauri icons required by the native Rust build, so it is
+independently runnable from a clean checkout. It then creates and mounts one isolated 64 MiB NTFS VHD on an unused
+drive letter, verifies its filesystem and capacity, creates a dedicated application-data child with the isolation
+sentinel, and points exact ignored release-mode Rust tests at that child. The volume root remains outside the product
+library boundary because a freshly formatted NTFS root is system-owned rather than representative of a current-user
+application-data directory.
 The recovery test commits a baseline
 synthetic history, consumes the volume through actual Windows disk-full failure, requires the next import to fail
 without exposing new history, restores capacity, and enters the ordinary startup-recovery path. SQLite integrity and

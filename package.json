@@ -133,7 +133,7 @@
     "verify:linux-public-release": "node scripts/verify-linux-public-release.mjs",
     "verify:windows-installation": "node scripts/verify-windows-package-installation.mjs",
     "verify:windows-cold-launch": "node scripts/verify-windows-cold-launch.mjs",
-    "verify:windows-filesystem-reliability": "node scripts/verify-windows-filesystem-reliability.mjs",
+    "verify:windows-filesystem-reliability": "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs",
     "verify:windows-candidate-admission": "node scripts/verify-windows-candidate-admission.mjs",
     "verify:expanding-public-release": "node scripts/verify-expanding-public-release.mjs",
     "verify:complete-platform-release": "node scripts/verify-complete-platform-release.mjs",

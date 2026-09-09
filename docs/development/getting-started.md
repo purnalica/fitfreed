@@ -82,8 +82,9 @@ npm run package:windows
 npm run verify:windows-cold-launch
 ```
 
-The filesystem-reliability gate creates and formats an isolated bounded VHD. Run only that command from an elevated
-PowerShell session on a disposable host; never redirect it to a user library or ordinary drive:
+The filesystem-reliability gate generates the canonical Tauri icons, then creates and formats an isolated bounded
+VHD. Run only that command from an elevated PowerShell session on a disposable host; never redirect it to a user
+library or ordinary drive:
 
 ```powershell
 npm run verify:windows-filesystem-reliability

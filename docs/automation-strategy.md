@@ -264,13 +264,16 @@ elevated disposable runner, admits only the expected filesystem and capacity, an
 current-token application-data child rather than misrepresenting the system-owned NTFS volume root as a user library.
 It drives the exact release-mode SQLite recovery test through real disk exhaustion and exercises a real NTFS junction plus the native long-Unicode-path,
 hard-link, and transient-sharing-denial matrix. It unconditionally detaches and removes the VHD before continuing.
+The shared filesystem entry point generates Tauri's canonical application icons before invoking the native adapter;
+it does not rely on package construction or another workflow step to prepare ignored build inputs.
 The workflow then runs the unchanged full-scale
 import, dense-history, and Insights commands. A `recovery-and-data` dispatch may resume only those latter gates after
 the same workflow verifies a referenced completed run: the package and 100-process cold-launch steps must have
 succeeded, filesystem recovery must be the first failure, every data benchmark must have been skipped, and the
 accepted source must be an ancestor of the resumed source. The source comparison rejects product changes and admits
-only the documented filesystem-harness correction, its tests and workflow, documentation, and the exact
-development-tool security revisions that leave the measured application inputs unchanged. The workflow obtains only
+only the documented filesystem-harness correction, its self-contained icon-generation entry point, tests and
+workflow, documentation, and the exact development-tool security revisions that leave the measured application
+inputs unchanged. The workflow obtains only
 read access to Actions metadata through its short-lived repository token; an arbitrary run number, changed product,
 unrelated package revision, or incomplete evidence fails before recovery begins.
 

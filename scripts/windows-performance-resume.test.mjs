@@ -6,11 +6,18 @@ import { validateRetainedWindowsPerformanceEvidence } from "./verify-windows-per
 const acceptedSha = "a".repeat(40);
 const currentSha = "b".repeat(40);
 const runId = "34315586139";
+const previousFilesystemCommand =
+  "node scripts/verify-windows-filesystem-reliability.mjs";
+const currentFilesystemCommand =
+  "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs";
 
-function packageManifest(vitest = "^4.1.10") {
+function packageManifest(vitest = "^4.1.10", filesystemCommand = previousFilesystemCommand) {
   return {
     name: "fitfreed",
-    scripts: { build: "vite build" },
+    scripts: {
+      build: "vite build",
+      "verify:windows-filesystem-reliability": filesystemCommand,
+    },
     overrides: { "@puppeteer/browsers": "3.2.0" },
     dependencies: { react: "19.2.4" },
     devDependencies: { vitest },
@@ -53,7 +60,7 @@ function packageLock(vitest = "4.1.10", yaml = "4.3.1") {
 
 function evidence(overrides = {}) {
   const previousPackage = packageManifest();
-  const currentPackage = packageManifest("4.1.11");
+  const currentPackage = packageManifest("4.1.11", currentFilesystemCommand);
   currentPackage.overrides["@testing-library/jest-dom"] = { vitest: "4.1.11" };
   currentPackage.overrides["js-yaml"] = "4.3.2";
   return {
@@ -177,5 +184,12 @@ test("rejects package changes outside the exact development-tool correction", ()
   assert.throws(
     () => validateRetainedWindowsPerformanceEvidence(lockInput),
     /package lock changes more than the admitted development tools/,
+  );
+
+  const scriptInput = evidence();
+  scriptInput.currentPackage.scripts.build = "vite build --debug";
+  assert.throws(
+    () => validateRetainedWindowsPerformanceEvidence(scriptInput),
+    /package manifest changes more than the admitted development tools and filesystem command/,
   );
 });

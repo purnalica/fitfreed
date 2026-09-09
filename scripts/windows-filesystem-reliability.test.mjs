@@ -13,6 +13,16 @@ const localLibrary = readFileSync(
   new URL("../src-tauri/src/infrastructure/local_library.rs", import.meta.url),
   "utf8",
 );
+const packageMetadata = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
+
+test("generates the Tauri icons before compiling the native reliability test", () => {
+  assert.equal(
+    packageMetadata.scripts["verify:windows-filesystem-reliability"],
+    "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs",
+  );
+});
 
 test("runs only the native Windows NTFS admission adapter", () => {
   const calls = [];

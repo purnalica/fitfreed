@@ -18,6 +18,10 @@ const successfulPredecessors = [
   "Verify installed Windows cold-launch budget",
 ];
 const filesystemStep = "Verify Windows filesystem failure recovery";
+const previousFilesystemCommand =
+  "node scripts/verify-windows-filesystem-reliability.mjs";
+const currentFilesystemCommand =
+  "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs";
 const skippedSuccessors = [
   "Verify full-scale import budgets",
   "Verify dense training-history budgets",
@@ -51,19 +55,24 @@ function validatePackageManifest(previousPackage, currentPackage) {
     || previousPackage?.overrides?.["js-yaml"] !== undefined
     || currentPackage?.overrides?.["js-yaml"] !== "4.3.2"
     || previousPackage?.overrides?.["@testing-library/jest-dom"] !== undefined
+    || previousPackage?.scripts?.["verify:windows-filesystem-reliability"]
+      !== previousFilesystemCommand
+    || currentPackage?.scripts?.["verify:windows-filesystem-reliability"]
+      !== currentFilesystemCommand
     || !isDeepStrictEqual(currentPackage?.overrides?.["@testing-library/jest-dom"], {
       vitest: "4.1.11",
     })
   ) {
-    fail("package manifest changes more than the admitted development tools");
+    fail("package manifest changes more than the admitted development tools and filesystem command");
   }
 
   const normalized = clone(currentPackage);
   normalized.devDependencies.vitest = previousPackage.devDependencies.vitest;
+  normalized.scripts["verify:windows-filesystem-reliability"] = previousFilesystemCommand;
   delete normalized.overrides["js-yaml"];
   delete normalized.overrides["@testing-library/jest-dom"];
   if (!isDeepStrictEqual(previousPackage, normalized)) {
-    fail("package manifest changes more than the admitted development tools");
+    fail("package manifest changes more than the admitted development tools and filesystem command");
   }
 }
 
