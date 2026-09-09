@@ -449,8 +449,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   workflow, and exact job; reopens its Actions step results; proves package construction and cold launch succeeded;
   requires filesystem recovery to be the first failed boundary and all data gates to be skipped; and proves the
   accepted source is an ancestor of the current source. A complete-history checkout then rejects any product path or
-  package-graph change beyond the exact development-only Vitest and `js-yaml` security correction and the exact
-  addition of canonical icon generation to the filesystem command. This is evidence reuse, not a retry or a weakened
+  package-graph change beyond the exact development-only Vitest and `js-yaml` security correction, the exact
+  addition of canonical icon generation to the filesystem command, and the digest-bound test-only source correction
+  that establishes actual NTFS exhaustion. This is evidence reuse, not a retry or a weakened
   admission path: missing, unrelated, stale, or broader evidence fails closed before the filesystem command executes.
 - The same Windows workflow verifies the installed non-empty `%APPDATA%` library and exact protected ACL before
   removing the production package. It then creates one 64 MiB VHD under a validated non-reparse child of the system temporary
@@ -458,7 +459,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
   filesystem and capacity. A dedicated application-data child created on that volume—not the system-owned volume
   root—is exposed to one exact ignored release-mode test. The shared command generates the canonical Tauri icons first
   and is therefore independently executable from a clean checkout. The test commits a synthetic
-  baseline, fills the real filesystem until Windows reports disk exhaustion, requires the next import to remain
+  baseline, derives the real allocation-unit and reported free-cluster counts, and consumes complete clusters with
+  write-through writes until no cluster remains. A disk-full write or flush is not sufficient evidence while the
+  filesystem still reports allocatable clusters. The test then requires the next import to remain
   invisible, restores capacity, runs normal startup recovery, verifies SQLite integrity and the baseline history, and
   retries successfully. The wrapper unconditionally detaches the selected VHD, verifies that the drive disappears,
   and removes only its private working directory; native failure, detachment failure, or cleanup failure rejects the

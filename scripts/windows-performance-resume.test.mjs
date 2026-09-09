@@ -10,6 +10,10 @@ const previousFilesystemCommand =
   "node scripts/verify-windows-filesystem-reliability.mjs";
 const currentFilesystemCommand =
   "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs";
+const acceptedWindowsFilesystemSourceSha256 =
+  "cd063439a4df76e43b638e92280c8eed2113fc8fb101d849e707f9c6ed5933a8";
+const currentWindowsFilesystemSourceSha256 =
+  "2afaa6851b25e8e8b450b6955044733c9f22aa61f792f9a300f93bb2df8af363";
 
 function packageManifest(vitest = "^4.1.10", filesystemCommand = previousFilesystemCommand) {
   return {
@@ -110,7 +114,10 @@ function evidence(overrides = {}) {
       "scripts/windows-filesystem-reliability.test.mjs",
       "scripts/windows-performance-resume.test.mjs",
       "scripts/windows-performance-workflow.test.mjs",
+      "src-tauri/src/infrastructure.rs",
     ],
+    previousWindowsFilesystemSourceSha256: acceptedWindowsFilesystemSourceSha256,
+    currentWindowsFilesystemSourceSha256,
     previousPackage,
     currentPackage,
     previousLock: packageLock(),
@@ -168,6 +175,17 @@ test("rejects non-descendant or product changes", () => {
       evidence({ changedPaths: ["src/application/App.tsx"] }),
     ),
     /changes the measured product/,
+  );
+});
+
+test("admits only the exact test-only Windows disk-pressure source correction", () => {
+  assert.doesNotThrow(() => validateRetainedWindowsPerformanceEvidence(evidence()));
+
+  assert.throws(
+    () => validateRetainedWindowsPerformanceEvidence(evidence({
+      currentWindowsFilesystemSourceSha256: "c".repeat(64),
+    })),
+    /disk-pressure test source differs from the admitted correction/,
   );
 });
 

@@ -323,7 +323,10 @@ sentinel, and points exact ignored release-mode Rust tests at that child. The vo
 library boundary because a freshly formatted NTFS root is system-owned rather than representative of a current-user
 application-data directory.
 The recovery test commits a baseline
-synthetic history, consumes the volume through actual Windows disk-full failure, requires the next import to fail
+synthetic history, derives the mounted volume's allocation unit and reported free-cluster count, and uses
+write-through allocation-unit-aligned writes until Windows reports zero free clusters. A disk-full write or flush does
+not satisfy the precondition while any cluster remains available: actual Windows disk-full failure must coincide with
+measured zero-cluster exhaustion. It then requires the next import to fail
 without exposing new history, restores capacity, and enters the ordinary startup-recovery path. SQLite integrity and
 the baseline history must remain intact before the same additional import succeeds on retry. The boundary test creates
 a real junction, proves its target remains unchanged, and exercises symbolic-file rejection. Ordinary native tests in

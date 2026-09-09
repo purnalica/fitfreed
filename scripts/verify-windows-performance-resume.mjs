@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,12 +23,17 @@ const previousFilesystemCommand =
   "node scripts/verify-windows-filesystem-reliability.mjs";
 const currentFilesystemCommand =
   "npm run icons && node scripts/verify-windows-filesystem-reliability.mjs";
+const windowsFilesystemSourcePath = "src-tauri/src/infrastructure.rs";
+const acceptedWindowsFilesystemSourceSha256 =
+  "cd063439a4df76e43b638e92280c8eed2113fc8fb101d849e707f9c6ed5933a8";
+const correctedWindowsFilesystemSourceSha256 =
+  "2afaa6851b25e8e8b450b6955044733c9f22aa61f792f9a300f93bb2df8af363";
 const skippedSuccessors = [
   "Verify full-scale import budgets",
   "Verify dense training-history budgets",
   "Verify Insights read-model performance budgets",
 ];
-const allowedAutomationPaths = new Set([
+const allowedResumePaths = new Set([
   ".github/workflows/windows-performance.yml",
   "package-lock.json",
   "package.json",
@@ -37,6 +43,7 @@ const allowedAutomationPaths = new Set([
   "scripts/windows-filesystem-reliability.test.mjs",
   "scripts/windows-performance-resume.test.mjs",
   "scripts/windows-performance-workflow.test.mjs",
+  windowsFilesystemSourcePath,
 ]);
 const vitestLockEntry = /(?:^|\/)node_modules\/@vitest\/(?:expect|mocker|pretty-format|runner|snapshot|spy|utils)$/;
 
@@ -46,6 +53,10 @@ function fail(message) {
 
 function clone(value) {
   return structuredClone(value);
+}
+
+function sha256(value) {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 function validatePackageManifest(previousPackage, currentPackage) {
@@ -150,6 +161,8 @@ export function validateRetainedWindowsPerformanceEvidence({
   currentPackage,
   previousLock,
   currentLock,
+  previousWindowsFilesystemSourceSha256,
+  currentWindowsFilesystemSourceSha256,
 }) {
   if (!runIdPattern.test(runId ?? "") || Number(runId) !== run?.id) {
     fail("run identifier is invalid");
@@ -201,9 +214,18 @@ export function validateRetainedWindowsPerformanceEvidence({
   }
 
   for (const changedPath of changedPaths) {
-    if (!changedPath.startsWith("docs/") && !allowedAutomationPaths.has(changedPath)) {
+    if (!changedPath.startsWith("docs/") && !allowedResumePaths.has(changedPath)) {
       fail(`${changedPath} changes the measured product`);
     }
+  }
+  if (
+    changedPaths.includes(windowsFilesystemSourcePath)
+    && (
+      previousWindowsFilesystemSourceSha256 !== acceptedWindowsFilesystemSourceSha256
+      || currentWindowsFilesystemSourceSha256 !== correctedWindowsFilesystemSourceSha256
+    )
+  ) {
+    fail("disk-pressure test source differs from the admitted correction");
   }
   if (changedPaths.includes("package.json") || changedPaths.includes("package-lock.json")) {
     if (!changedPaths.includes("package.json") || !changedPaths.includes("package-lock.json")) {
@@ -272,6 +294,14 @@ async function main() {
     "accepted package lock could not be inspected",
   ));
   const repositoryRoot = path.resolve(import.meta.dirname, "..");
+  const previousWindowsFilesystemSource = requireGit(
+    ["show", `${run.head_sha}:${windowsFilesystemSourcePath}`],
+    "accepted Windows filesystem test source could not be inspected",
+  );
+  const currentWindowsFilesystemSource = readFileSync(
+    path.join(repositoryRoot, windowsFilesystemSourcePath),
+    "utf8",
+  );
   const result = validateRetainedWindowsPerformanceEvidence({
     repository,
     currentSha,
@@ -284,6 +314,8 @@ async function main() {
     currentPackage: JSON.parse(readFileSync(path.join(repositoryRoot, "package.json"), "utf8")),
     previousLock,
     currentLock: JSON.parse(readFileSync(path.join(repositoryRoot, "package-lock.json"), "utf8")),
+    previousWindowsFilesystemSourceSha256: sha256(previousWindowsFilesystemSource),
+    currentWindowsFilesystemSourceSha256: sha256(currentWindowsFilesystemSource),
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }

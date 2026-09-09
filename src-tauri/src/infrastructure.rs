@@ -28341,6 +28341,35 @@ mod tests {
         );
     }
 
+    const WINDOWS_FILLER_MAX_WRITE_BYTES: u64 = 1024 * 1024;
+
+    fn windows_filler_write_size(free_clusters: u32, allocation_unit_bytes: u64) -> Option<usize> {
+        if free_clusters == 0 {
+            return None;
+        }
+        assert_ne!(
+            allocation_unit_bytes, 0,
+            "Windows filesystem allocation unit"
+        );
+        let bounded_clusters = u64::from(free_clusters)
+            .min((WINDOWS_FILLER_MAX_WRITE_BYTES / allocation_unit_bytes).max(1));
+        let write_bytes = bounded_clusters
+            .checked_mul(allocation_unit_bytes)
+            .expect("bounded Windows filler write size");
+        Some(usize::try_from(write_bytes).expect("Windows filler write fits memory"))
+    }
+
+    #[test]
+    fn windows_disk_pressure_uses_complete_bounded_allocation_units_until_none_remain() {
+        assert_eq!(windows_filler_write_size(0, 4 * 1024), None);
+        assert_eq!(windows_filler_write_size(1, 4 * 1024), Some(4 * 1024));
+        assert_eq!(windows_filler_write_size(300, 4 * 1024), Some(1024 * 1024));
+        assert_eq!(
+            windows_filler_write_size(2, 2 * 1024 * 1024),
+            Some(2 * 1024 * 1024)
+        );
+    }
+
     #[cfg(target_os = "windows")]
     #[test]
     #[ignore = "requires the isolated NTFS volume mounted by the Windows reliability admission"]
@@ -28359,8 +28388,8 @@ mod tests {
         assert!(filesystem_root
             .join(".fitfreed-isolated-filesystem")
             .is_file());
-        let capacity = windows_filesystem_capacity(&filesystem_root);
-        assert!((48 * 1024 * 1024..=80 * 1024 * 1024).contains(&capacity));
+        let space = windows_filesystem_space(&filesystem_root);
+        assert!((48 * 1024 * 1024..=80 * 1024 * 1024).contains(&space.total_bytes));
 
         let database_path = filesystem_root.join("fitfreed.sqlite");
         prepare_private_library_path(&database_path).expect("private Windows library boundary");
@@ -28383,7 +28412,12 @@ mod tests {
             )],
         );
         let filler_path = filesystem_root.join("filler.bin");
-        fill_windows_filesystem(&filler_path);
+        fill_windows_filesystem(&filesystem_root, &filler_path);
+        assert_eq!(
+            windows_filesystem_space(&filesystem_root).free_clusters,
+            0,
+            "Windows disk pressure must consume every allocatable cluster"
+        );
 
         let error = import_archive(&database_path, &additional_archive, "polar:synthetic")
             .expect_err("disk-full import failure");
@@ -28417,44 +28451,88 @@ mod tests {
     }
 
     #[cfg(target_os = "windows")]
-    fn windows_filesystem_capacity(path: &Path) -> u64 {
+    struct WindowsFilesystemSpace {
+        allocation_unit_bytes: u64,
+        free_clusters: u32,
+        total_bytes: u64,
+    }
+
+    #[cfg(target_os = "windows")]
+    fn windows_filesystem_space(path: &Path) -> WindowsFilesystemSpace {
         use std::os::windows::ffi::OsStrExt;
 
-        use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+        use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceW;
 
-        let path = path
+        let root = path
+            .ancestors()
+            .last()
+            .expect("Windows filesystem volume root")
             .as_os_str()
             .encode_wide()
             .chain(std::iter::once(0))
             .collect::<Vec<_>>();
-        let mut total_bytes = 0_u64;
+        let mut sectors_per_cluster = 0_u32;
+        let mut bytes_per_sector = 0_u32;
+        let mut free_clusters = 0_u32;
+        let mut total_clusters = 0_u32;
         let result = unsafe {
-            GetDiskFreeSpaceExW(
-                path.as_ptr(),
-                std::ptr::null_mut(),
-                &mut total_bytes,
-                std::ptr::null_mut(),
+            GetDiskFreeSpaceW(
+                root.as_ptr(),
+                &mut sectors_per_cluster,
+                &mut bytes_per_sector,
+                &mut free_clusters,
+                &mut total_clusters,
             )
         };
         assert_ne!(result, 0, "filesystem capacity query");
-        total_bytes
+        let allocation_unit_bytes = u64::from(sectors_per_cluster)
+            .checked_mul(u64::from(bytes_per_sector))
+            .expect("Windows filesystem allocation unit");
+        assert_ne!(
+            allocation_unit_bytes, 0,
+            "Windows filesystem allocation unit"
+        );
+        WindowsFilesystemSpace {
+            allocation_unit_bytes,
+            free_clusters,
+            total_bytes: u64::from(total_clusters)
+                .checked_mul(allocation_unit_bytes)
+                .expect("Windows filesystem capacity"),
+        }
     }
 
     #[cfg(target_os = "windows")]
-    fn fill_windows_filesystem(path: &Path) {
-        let mut filler = File::create(path).expect("filesystem filler");
-        let block = [0_u8; 1024 * 1024];
+    fn fill_windows_filesystem(filesystem_root: &Path, path: &Path) {
+        use std::{fs::OpenOptions, os::windows::fs::OpenOptionsExt};
+
+        use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_WRITE_THROUGH;
+
+        let mut filler = OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .custom_flags(FILE_FLAG_WRITE_THROUGH)
+            .open(path)
+            .expect("filesystem filler");
         loop {
-            match filler.write(&block) {
-                Ok(0) => panic!("filesystem filler made no progress"),
-                Ok(_) => match filler.sync_data() {
-                    Ok(()) => {}
-                    Err(error) if is_windows_disk_full_io_error(&error) => break,
-                    Err(error) => panic!("unexpected filesystem filler sync error: {error}"),
-                },
-                Err(error) if is_windows_disk_full_io_error(&error) => break,
-                Err(error) => panic!("unexpected filesystem filler error: {error}"),
+            let before = windows_filesystem_space(filesystem_root);
+            let Some(write_size) =
+                windows_filler_write_size(before.free_clusters, before.allocation_unit_bytes)
+            else {
+                break;
+            };
+            let block = vec![0_u8; write_size];
+            let write_result = filler.write_all(&block).and_then(|_| filler.sync_data());
+            let after = windows_filesystem_space(filesystem_root);
+            if let Err(error) = &write_result {
+                assert!(
+                    is_windows_disk_full_io_error(error),
+                    "unexpected filesystem filler error: {error}"
+                );
             }
+            assert!(
+                after.free_clusters < before.free_clusters,
+                "filesystem filler did not consume reported free clusters"
+            );
         }
     }
 
