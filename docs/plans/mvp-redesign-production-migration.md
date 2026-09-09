@@ -12,13 +12,14 @@ redesign.
 
 ### Current execution snapshot
 
-Updated 2026-09-06. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries remain
+Updated 2026-09-09. X4-P0, X5-R1 through X5-R10, and the original X7-R1 through X7-R7 automatable boundaries remain
 machine-complete historical evidence. The production-native reviews rejected those results and later X7-R8 candidates;
 no prior green campaign or audit overrides an observed product failure. X7-R8.0 through X7-R8.14 now retain complete
-machine evidence. Exact source `7583ca9` passes the complete local and hosted campaigns, repeated independent audit,
-immutable executable-input evidence, and revision-isolated native inspection. One bounded product-owner experience
-review remains open, so no current MVP candidate is accepted. Independent Linux and Windows parity engineering may
-continue without reinterpreting that human gate.
+machine evidence. Revision-isolated source `47a521e953e8e21003fe21755cb4462418288a90` retains the admitted executable
+inputs, passes native inspection and exact hosted checks, and was accepted by the product owner on 2026-09-09 as
+sufficient for the first FitFreed 0.1.0 product version. Six observations remain explicitly assigned to future
+iterations. X7-R8 and the D0–E6 product-experience objective are complete; signing, exact public-candidate admission,
+and publication remain separate later gates.
 
 The independent [X7 product-experience reaudit](../research/x7-product-experience-reaudit.md) closes its only material
 finding after an exact clean rebuild and accepts no additional critical or major finding. Exact [repository safety
@@ -31,17 +32,19 @@ boundaries, update replacement, deliberate rejection, and recovery for executabl
 `813ba487a1684f98d09b67cfa0dd635cc66ffbd862f0fe282d925abdbf8ce172`.
 
 The [production-native human evaluation](../research/x6-product-experience-human-evaluation.md) remains the
-authoritative rejection record for every reviewed source; automation does not reinterpret that result. Earlier
-corrections for planned-training compatibility and unrelated-package explanation retain their machine evidence, but
-the later bounded review exposed deeper causal gaps. In particular, the current sport-classification scope can absorb
+authoritative record for every rejected source and the accepted final source; automation does not reinterpret any
+human result. Earlier corrections for planned-training compatibility and unrelated-package explanation retain their
+machine evidence, while a later bounded review exposed deeper causal gaps. In particular, the earlier
+sport-classification scope could absorb
 stronger exact recognition, calendar discovery lacks individual session data, saved reports have no transient run
 parameter contract, and the report example journey delegates to a generic workspace instead of selecting an eligible
-subject. These are lower-layer defects, not isolated copy or CSS issues.
+subject. These were lower-layer defects, not isolated copy or CSS issues, and the completed sequence below records
+their corrections.
 
-X7-R8 begins with the completed causal analysis and a bounded participant-assisted Polar correlation gate. It then
-delivers small end-to-end corrections in dependency order, repeats an independent whole-product UX audit, and creates
-one new production-native candidate only after the complete exact campaign passes. The previous review application is
-not a candidate and must not be handed back for incremental spot checking.
+X7-R8 began with the completed causal analysis and a bounded participant-assisted Polar correlation gate. It then
+delivered small end-to-end corrections in dependency order, repeated an independent whole-product UX audit, and
+created one new production-native candidate only after the complete exact campaign passed. The previous review
+application was not reused for incremental spot checking.
 
 X7-R8.1 is machine-complete locally. It keeps exact recognized session collections separate from the unresolved
 source-profile remainder when a personal fallback classification is saved, and it adds explicit user-authored
@@ -115,8 +118,8 @@ public-candidate work remain outside X7.
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
 [X7-R7](#x7-r7--falsify-the-complete-corrected-product-before-handoff) defines the final independent audit and human
-handoff that was rejected. [X7-R8](#x7-r8--correct-the-paused-production-native-review) defines the active recovery
-sequence and its next human gate.
+handoff that was rejected. [X7-R8](#x7-r8--correct-the-paused-production-native-review) records the completed recovery
+sequence and accepted human gate.
 
 The [MVP experience specification](../design/experience-specification.md) owns screen, interaction,
 state, navigation, adaptive, localization, and accessibility behavior. The
@@ -126,8 +129,8 @@ and evidence history for D0 through E6; it is not edited into a fictional record
 This plan maps that implemented baseline into small production migrations without creating another
 executable or a second product path.
 
-The ordinary application now implements the accepted automatable experience contract. That machine-complete state
-does not constitute human acceptance or release authorization.
+The ordinary application now implements the accepted 0.1.0 experience contract. Product-owner acceptance of this
+contract does not constitute signing, exact public-candidate acceptance, or release authorization.
 
 Reports and personal range definition remain **Alpha UX** throughout this plan. Alpha permits
 substantial later interaction and composition refinement; it does not relax identity, persistence,
@@ -356,7 +359,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R5 | Machine-complete — the XH-24 unnamed-provider-phase correction retains exact clean, hosted, and private-reference evidence | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Machine-complete — built-in examples, independent duplication, exact clean-revision verification, and release-shaped gates passed | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Rejected by the paused production-native review — prior machine evidence remains historical, but the candidate failed the product gate | Exact local and hosted evidence plus independent falsification leave no material finding |
-| X7-R8 | Awaiting human evaluation — R8.0 through R8.14 retain machine evidence; exact source `7583ca9` passes every automatable product admission gate | The corrected product makes sport identity, discovery, analysis, routes, and reports genuinely useful before a new handoff |
+| X7-R8 | Complete — R8.0 through R8.14 retain machine evidence; revision-isolated source `47a521e953e8e21003fe21755cb4462418288a90` passed exact admission and the bounded product-owner review on 2026-09-09 | The accepted 0.1.0 product makes sport identity, discovery, analysis, routes, and reports genuinely useful; six non-blocking observations remain for future iterations |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2237,7 +2240,7 @@ acceptance assertion.
 | Concern | Current evidence | Remaining gate |
 |---|---|---|
 | Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if X6 or a later correction changes a public claim. |
-| Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven R10 correction slices, the complete live-surface inventory, the complete React suite, static contracts, and the renewed X6 inspection cover the current ordinary application. | Final human comprehension and usefulness review remains required. |
+| Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven R10 correction slices, the complete live-surface inventory, the complete React suite, static contracts, the renewed X6 inspection, and the accepted 2026-09-09 bounded review cover the current ordinary application. | Reopen only after a material experience change; sealed public-candidate review remains separate. |
 | Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Exact R10 journeys cover every named state. X6 then independently repeated active import, cancellation, rejection, exact repeat, extension, library preservation, partial-session adaptation, and stale-report refresh. It corrected repeated unavailable partial-session measurements instead of accepting fixed empty slots, and exact hosted source `246faed` passes the complete campaign. | No automatable X6 gate remains; eventual sealed-candidate evidence remains separate. |
 | Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. X6 independently preserved exact Home-origin focus across session depth and checked the focused route state. | Keep complete keyboard behavior in packaged automation; reserve only perceived navigation naturalness for the product-owner experience review. Repeat specialist evidence for an eventual exact candidate where automation is insufficient. |
 | Responsive layout, locale, appearance, zoom, contrast, and reduced motion | R10 matrices cover both locales, appearances, wide and compact geometry, and 100% through 200% zoom. The renewed audit adds 47 fresh application states without page-level horizontal overflow, including Spanish, dark, compact, 200% use. | Keep deterministic scaling, locale, appearance, and motion behavior in automation; reserve perceived visual quality for product-owner review and specialist contrast evaluation for the public-candidate gate. |
@@ -3730,6 +3733,15 @@ immutable marker records executable-input fingerprint
 `9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. The inspected revision-isolated application is
 therefore admitted to one bounded product-owner experience review. Machine evidence does not accept that experience
 or rehabilitate the rejected X7-R8.13 application retrospectively.
+
+**Product-owner acceptance checkpoint — 2026-09-09:** the bounded review used revision-isolated source
+`47a521e953e8e21003fe21755cb4462418288a90` and bundle identifier
+`org.fitfreed.desktop.x6-review.r47a521e953e8`. The source passes exact repository safety
+[`34342290451`](https://github.com/purnalica/fitfreed/actions/runs/34342290451), exact continuous integration
+[`34342290498`](https://github.com/purnalica/fitfreed/actions/runs/34342290498), and complete production-native bundle
+inspection. The product owner completed the review and accepted the result as sufficient for the first FitFreed
+0.1.0 product version. The six recorded observations are future improvements and do not change the goal. X7-R8 and
+the retained D0–E6 product-experience objective are complete; public-candidate and publication gates remain separate.
 
 The same exact gate exposed an independent unstable route-preview observation before the chart: WebDriver's
 accessible-name selector reported that the exact route preview was absent while the automatic failure screenshot

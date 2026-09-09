@@ -2,16 +2,14 @@
 
 ## Status
 
-Milestone 1 is complete. Milestone 2 retains substantial implemented capability and has completed machine admission for
-X7-R8.14 before a new bounded product-owner gate. The bundled automatic sport-identity correction, complete unchanged
-product regression, and private-reference predicate retain their evidence. The corrected analytical-range source now
-passes complete exact local verification, the repeated independent audit, revision-isolated native inspection, exact
-repository safety, the complete hosted campaign, and immutable executable-input evidence. The human experience verdict
-remains open; no current MVP candidate is accepted. The implemented
-Milestone 3 public-release engineering baseline remains available but cannot advance until Milestone 2 regains product
-acceptance. Apple Silicon on macOS 15.0 or later is the accepted macOS MVP platform boundary. The product owner opened
-Linux and Windows parity engineering on 2026-09-02 without accepting the current macOS candidate or authorizing any
-application publication. Platform engineering and automated evidence may therefore advance independently where their
+Milestone 1 is complete. Milestone 2 and the D0–E6 product-experience objective are complete. Revision-isolated source
+`47a521e953e8e21003fe21755cb4462418288a90` retains the admitted machine evidence and passed the bounded product-owner
+review on 2026-09-09. The product owner accepted the result as sufficient for the first FitFreed 0.1.0 product version
+and assigned six non-blocking observations to future iterations. The implemented Milestone 3 public-release
+engineering baseline remains available, but signing, exact public-candidate admission, and publication are not implied
+by product-experience acceptance. Apple Silicon on macOS 15.0 or later is the accepted macOS MVP platform boundary.
+The product owner opened Linux and Windows parity engineering on 2026-09-02 without accepting the macOS candidate at
+that time or authorizing any application publication. Platform engineering and automated evidence may therefore advance independently where their
 contracts do not depend on an open earlier-platform gate; per-platform acceptance and public promotion remain ordered
 macOS, Linux, then Windows. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
@@ -22,16 +20,16 @@ accepted dense-history gate and compact recoverable schema, but the 2026-08-21 p
 systemic experience-design failure that cannot be closed by treating the remaining findings as isolated presentation
 defects.
 
-The active stage is the production migration defined by the accepted [UI and UX redesign
+The completed production migration is defined by the accepted [UI and UX redesign
 plan](plans/ui-redesign.md) and [MVP redesign production migration
 plan](plans/mvp-redesign-production-migration.md). X3 is accepted, X4 converted the contract into functional vertical
 increments, X5-R1 through X5-R10 retain their engineering evidence, and X7-R1 through X7-R7 retain the machine evidence
 that admitted a production-native candidate. The product-owner review rejected and paused that candidate after finding
 material sport-identity, calendar-discovery, information-density, analytical-chart, route-interaction, and report-run
-defects that the prior machine audit did not detect. The active X7-R8 sequence traces and corrects those defects at
-their lowest contract, performs one bounded participant-assisted provider correlation, repeats the independent audit,
-and builds a new exact candidate only after the complete local and hosted campaign passes. X7-R8.0 through X7-R8.11
-reached machine completion. The reusable local sport-correlation rule, schema-37 migration, and documented
+defects that the prior machine audit did not detect. The X7-R8 sequence traced and corrected those defects at their
+lowest contract, performed one bounded participant-assisted provider correlation, repeated the independent audit,
+and built a new exact candidate only after the complete local and hosted campaign passed. X7-R8.0 through X7-R8.14
+reached completion. The reusable local sport-correlation rule, schema-37 migration, and documented
 provider-normalization boundary now pass their application, persistence, contract, and packaged regression evidence.
 Byte-distinct equivalent reimport now avoids redundant dense training reconstruction only under matching provenance,
 and desktop SQLite commands no longer block Tauri's main invoke path; dense concurrent Home and History evidence and
@@ -76,15 +74,17 @@ question-first audit closes with no unresolved critical or major product finding
 `d917882` passes local revision-isolated native inspection with unchanged executable inputs. Synchronized source
 `7583ca9` passes [repository safety `33554185450`](https://github.com/purnalica/fitfreed/actions/runs/33554185450), the
 complete [hosted campaign `33554185602`](https://github.com/purnalica/fitfreed/actions/runs/33554185602), and immutable
-executable-input fingerprint `9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. One new bounded
-product-owner review remains open.
+executable-input fingerprint `9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. The final
+revision-isolated source `47a521e953e8e21003fe21755cb4462418288a90` then passed native inspection, exact repository
+safety, exact continuous integration, and the bounded product-owner review on 2026-09-09. Its six observations remain
+future improvements, and the current 0.1.0 product experience is accepted.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
-rejection record; automation does not overrule it. External-tile cartography, additional providers, public-candidate
-preparation, and advanced personalization remain outside this loop. The production application remains the only
-implementation and the [MVP experience delivery plan](plans/mvp-experience-delivery.md) remains its engineering
-evidence baseline. Milestone 3 promotion remains blocked until X7-R8 and the repeated human gate accept the corrected
-experience; that gate does not block independent Linux or Windows parity engineering.
+record of the rejected predecessors and the accepted final experience; automation does not overrule either result.
+External-tile cartography, additional providers, public-candidate preparation, and advanced personalization remain
+outside this loop. The production application remains the only implementation and the [MVP experience delivery
+plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline. Milestone 3 promotion remains
+subject to its independent trust, exact-candidate, platform, approval, and publication gates.
 
 ## Purpose
 
@@ -92,7 +92,7 @@ This document is the canonical source for product sequencing and milestone bound
 
 Detailed execution plans will be created per milestone and linked from this roadmap. Implementation issues will derive from those plans rather than replacing them.
 
-The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The completed foundation plan is [`plans/milestone-1.md`](plans/milestone-1.md). The implemented MVP sequence is [`plans/milestone-2.md`](plans/milestone-2.md). The accepted product direction is recorded in [`plans/ui-redesign.md`](plans/ui-redesign.md), its active production migration is [`plans/mvp-redesign-production-migration.md`](plans/mvp-redesign-production-migration.md), and the earlier [`plans/mvp-experience-delivery.md`](plans/mvp-experience-delivery.md) remains the engineering evidence baseline. The public-release sequence remains [`plans/milestone-3.md`](plans/milestone-3.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
+The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The completed foundation plan is [`plans/milestone-1.md`](plans/milestone-1.md). The implemented MVP sequence is [`plans/milestone-2.md`](plans/milestone-2.md). The accepted product direction is recorded in [`plans/ui-redesign.md`](plans/ui-redesign.md), its completed production migration is [`plans/mvp-redesign-production-migration.md`](plans/mvp-redesign-production-migration.md), and the earlier [`plans/mvp-experience-delivery.md`](plans/mvp-experience-delivery.md) remains the engineering evidence baseline. The public-release sequence remains [`plans/milestone-3.md`](plans/milestone-3.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
 
 ## Planning principles
 
@@ -238,7 +238,7 @@ security, compatibility, platform-integration, distribution, accessibility-parit
 documentation changes continue because they protect the same baseline rather than expand it. Functional evolution
 resumes only after Milestone 5 is published.
 
-### Active MVP experience delivery stage
+### Completed MVP experience delivery stage
 
 **Outcome:** redesign the existing MVP into one coherent journey from product promise and import to recognizable history, visual session understanding, and a durable portable result.
 
@@ -248,7 +248,7 @@ resumes only after Milestone 5 is published.
 
 **Boundary:** FR-005, FR-025, FR-026, and FR-027 define the accepted MVP limits. Broader sample families, external cartography, a free-form publishing system, community report-template exchange, additional providers, connected APIs, MCP, advanced personalization, and new platforms remain outside this intervention. The product site may be published before the application, but it cannot expose a supported-download action until the Milestone 3 release gate passes.
 
-**Execution:** X0 through X3 produced and validated the accepted experience model and design contract. X4 derived the replacement increments and X5 implements them through the ordinary application with TDD and complete lower-layer, UI, test, documentation, and independent product-experience evidence. The implementation status and gates are canonical in the [MVP redesign production migration plan](plans/mvp-redesign-production-migration.md); the earlier E1 through E6 sequence remains the implementation and evidence baseline it supersedes for presentation direction.
+**Execution:** X0 through X3 produced and validated the accepted experience model and design contract. X4 derived the replacement increments; X5 and X7 implemented them through the ordinary application with TDD and complete lower-layer, UI, test, documentation, and independent product-experience evidence. The product owner accepted the resulting 0.1.0 experience on 2026-09-09. The implementation status and gates are canonical in the [MVP redesign production migration plan](plans/mvp-redesign-production-migration.md); the earlier E1 through E6 sequence remains the implementation and evidence baseline it supersedes for presentation direction.
 
 ### Horizon 1 — Broader insight coverage
 
@@ -315,6 +315,15 @@ first MVP evaluation closes. Post-MVP cartography must not become an implicit pr
 Every stage preserves readability, accessibility, localization, visual hierarchy, and cross-platform coherence. The
 system, light, and dark appearance remain the first-MVP contract; curated themes and advanced personalization are not
 first-MVP prerequisites.
+
+### Post-platform experience track
+
+The accepted 2026-09-09 review records six non-blocking outcomes for future iteration: automatic Settings persistence
+with contextual default restoration, user-owned session classification and retrieval, exact return to an originating
+exploration, saved searches, previous and next navigation within that result set, and report-result preview before
+save. The canonical observations and unresolved product questions are XH-12 and XH-31 through XH-35 in the
+[human evaluation](research/x6-product-experience-human-evaluation.md). Their ordering and detailed contracts remain
+open until planning resumes after the cross-platform scope lock; none reopens the accepted 0.1.0 experience.
 
 ### Horizon 2 — Mature personal analytics
 

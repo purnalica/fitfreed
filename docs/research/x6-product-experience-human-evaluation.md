@@ -36,9 +36,15 @@ experience failure that blocked the preceding reviews. Adjusting both boundaries
 pointer then made the chart unresponsive and blocked the application. The product owner declared this a no-go and
 closed the review. The review application is rejected.**
 
-**The X7-R8.14 correction now passes complete exact local and hosted verification, the repeated independent audit,
-revision-isolated native inspection, exact repository safety, and immutable executable-input admission. The corrected
-application is eligible for one new bounded product-owner review. It is not accepted before that review.**
+**Before the final 2026-09-09 review, the X7-R8.14 correction passed complete exact local and hosted verification, the
+repeated independent audit, revision-isolated native inspection, exact repository safety, and immutable
+executable-input admission. That evidence made the corrected application eligible for the bounded review recorded
+below; it did not constitute acceptance by itself.**
+
+**A bounded review of revision-isolated source `47a521e953e8e21003fe21755cb4462418288a90` started and ended on
+2026-09-09. The product owner explicitly assigned all six observations to future iterations without changing the
+current goal or the evaluated application, then accepted the current result as sufficient for the first FitFreed
+0.1.0 product version. Observation collection and the D0–E6 product-experience gate are closed.**
 
 This document is the canonical privacy-safe record of the human product-experience evaluation required by
 the [X6 profile](../testing/macos-candidate-manual-evaluation.md#x6-product-experience-profile). It records
@@ -108,6 +114,11 @@ product-owner review must not be requested until sport recognition is demonstrab
 The X7-R8.13 collection started and ended on 2026-09-01. The product owner confirmed that imported sport identity is
 now correct, then closed the review at the first acceptance-blocking chart failure. Observation collection is closed.
 Causal diagnosis, correction, and automated regression may proceed without participant reproduction.
+
+The revision-isolated `47a521e953e8e21003fe21755cb4462418288a90` collection started and ended on 2026-09-09. The
+product owner directed every observation to future iterations and explicitly preserved the current goal. Collection
+is closed. No implementation, diagnosis, prioritization, or scope change occurred during the review. The product
+owner then explicitly accepted the evaluated result as sufficient for FitFreed 0.1.0.
 
 ## Findings
 
@@ -532,6 +543,9 @@ Causal diagnosis, correction, and automated regression may proceed without parti
 - **X7 repeated-profile observation:** the three transaction actions remain permanently visible, including when they
   are disabled. Their behavior does not block the task, but the participant considers the persistent disabled action
   cluster a poor use of attention and space.
+- **2026-09-09 future-iteration observation:** settings should persist automatically as they change. `Restore
+  defaults` should be the only settings action, and it should appear only while the current values differ from the
+  defaults. This observation does not change the current goal or the application under review.
 
 ### XH-13 — Empty-library privacy copy describes data that does not yet exist
 
@@ -879,6 +893,64 @@ Causal diagnosis, correction, and automated regression may proceed without parti
   `9348e7b463ec58d600ec3c4cdcf335e2686827381d0496353c184b3e58f86302`. This does not accept the experience or prove
   the participant's exact internal path retrospectively.
 
+### XH-31 — Sessions need user-owned classification and retrieval
+
+- **Status:** recorded for a future iteration; outside the current goal and not yet designed or prioritized.
+- **Observed need:** a person should be able to mark and later retrieve personally significant sessions instead of
+  relying only on provider identity, sport, or dates.
+- **Representative uses:** mark a session as a favorite, classify completed competitions, and create other freely
+  chosen labels that reflect the person's own organization.
+- **Required outcome:** classifications remain user-owned, support direct inspection of all matching sessions, and do
+  not constrain the vocabulary to categories chosen by FitFreed or a provider.
+- **Open product question:** whether favorites are a distinct concept or a predefined view over the same tagging model
+  remains deliberately unresolved until the future iteration evaluates interaction, portability, export, and data
+  contracts together.
+- **Current boundary:** record the need without changing the application or the active D0–E6 goal during this review.
+
+### XH-32 — Session detail loses the originating exploration context
+
+- **Status:** recorded for a future iteration; outside the current goal and not yet analyzed or prioritized.
+- **Observed task:** open one session while reviewing a filtered set of related sessions for event preparation, then
+  continue reviewing that same set.
+- **Observed behavior:** the available return action leads to Home rather than to the place from which session detail
+  was opened.
+- **Expected behavior:** returning from session detail restores the exact originating workspace state, including its
+  lens, filters, sort, page or selected period, and useful viewport position. Home remains a separate explicit
+  destination rather than a substitute for contextual return.
+- **Participant impact:** losing the source context turns a sequence of related session inspections into repeated
+  navigation and filter reconstruction.
+- **Current boundary:** record the need without retaining the participant's event, dates, or history and without
+  changing the application or the active D0–E6 goal during this review.
+
+### XH-33 — Search criteria cannot be saved and recovered
+
+- **Status:** recorded for a future iteration; outside the current goal and not yet designed or prioritized.
+- **Observed need:** a person should be able to save useful search criteria and recover them later instead of
+  reconstructing the same exploration repeatedly.
+- **Required outcome:** a saved search restores the criteria needed to reproduce its intended result and remains an
+  explicit user-owned object rather than hidden interface state.
+- **Open product question:** its future relationship with tags, reports, navigation-state restoration, naming,
+  portability, and lifecycle remains deliberately unresolved until those contracts are designed together.
+- **Current boundary:** record the need without changing the application or the active D0–E6 goal during this review.
+
+### XH-34 — Session detail lacks previous and next navigation
+
+- **Status:** recorded for a future iteration; outside the current goal and not yet designed or prioritized.
+- **Observed need:** session detail should allow direct movement to the previous or next session without returning to
+  the enclosing list after every inspection.
+- **Required outcome:** previous and next follow the ordering and result set from which detail was opened, including
+  active filters or a recovered saved search, and communicate clearly when either boundary has been reached.
+- **Current boundary:** record the need without changing the application or the active D0–E6 goal during this review.
+
+### XH-35 — A report result cannot be previewed before saving
+
+- **Status:** recorded for a future iteration; outside the current goal and not yet analyzed or prioritized.
+- **Observed task:** define a report and assess whether its result answers the intended question before retaining it.
+- **Observed behavior:** the report must be saved before its resulting presentation can be inspected.
+- **Expected behavior:** the author can generate and inspect a representative result from the current definition and
+  run parameters before deciding whether to save the report.
+- **Current boundary:** record the need without changing the application or the active D0–E6 goal during this review.
+
 ## Passing observations
 
 ### XH-P01 — Import cancellation permits an immediate retry
@@ -922,7 +994,14 @@ Causal diagnosis, correction, and automated regression may proceed without parti
 - **Boundary:** this closes the product-owner experience failure that rejected the preceding sport-identity
   candidates. It does not accept the complete X7-R8.13 experience or override XH-30.
 
-## Interim human disposition
+## Human disposition
+
+The bounded 2026-09-09 review of exact source `47a521e953e8e21003fe21755cb4462418288a90` is complete. XH-31 through
+XH-35 record future-iteration needs; the updated XH-12 records the requested automatic-settings direction. The product
+owner stated that these observations do not change the current goal and explicitly accepted the evaluated result as
+sufficient for the first FitFreed 0.1.0 product version. The six observations are non-blocking future improvements;
+they do not qualify or defer this acceptance. This closes the D0–E6 product-experience gate without accepting signing,
+notarization, exact public-candidate behavior, or publication.
 
 The X7-R8.13 application from exact source `a4479100002c2229c51264fc8fd0dfe0a2cab73e` is rejected. Sport identity is
 finally recognizable, but pointer adjustment of a chart viewing range makes the chart and application unresponsive.
@@ -954,6 +1033,15 @@ source must correct and independently verify the systemic interaction-feedback, 
 and information-measure contracts before X6 restarts.
 
 ## Evaluation state
+
+The latest bounded profile ran on 2026-09-09 from revision-isolated source
+`47a521e953e8e21003fe21755cb4462418288a90` with bundle identifier
+`org.fitfreed.desktop.x6-review.r47a521e953e8`. Its production-native full-bundle inspection, exact repository safety
+[`34342290451`](https://github.com/purnalica/fitfreed/actions/runs/34342290451), and exact continuous integration
+[`34342290498`](https://github.com/purnalica/fitfreed/actions/runs/34342290498) pass. The product owner completed the
+bounded review and accepted its current result for FitFreed 0.1.0. XH-31 through XH-35 and the updated XH-12 remain
+future-iteration observations. This acceptance closes the current product-experience objective only; it provides no
+evidence for a later sealed or signed candidate and grants no publication authority.
 
 The invalid instrumented session is closed. A valid session was started from clean source
 `41ffad2eaec1862049c54c8a285277ac3f465abb` with bundle identifier

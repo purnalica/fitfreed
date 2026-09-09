@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-**Accepted X3 contract as of 2026-08-21; X7-R8 reopened after human rejection.** This
+**Accepted X3 contract as of 2026-08-21; completed and accepted for FitFreed 0.1.0 on 2026-09-09.** This
 document is the single source of truth for the screen, interaction, navigation, state, responsive, localization, and
 accessibility contract of the systemic MVP experience redesign. The production application implements X5-R1 through
 X5-R10 and the corrective X7-R1 through X7-R8 vertical slices.
@@ -11,17 +11,12 @@ rejected its reviewed X6 sources. Corrective X7-R1 through X7-R7 in the [product
 plan](../plans/mvp-redesign-production-migration.md) passed their independent audit, exact local and hosted
 campaigns, immutable marker, and production-native bundle scan, but the resulting candidate was rejected after the
 product-owner review exposed material lower-layer and experience defects. X7-R8 corrected those contracts, repeated
-the audit and exact automated campaign, and produced one scanned production-native review application. The bounded
-product-owner gate rejected that correction on 2026-08-30 after sport identity remained unusable, late reconciliation
-lost fluidity, and compact sport cards became unreadable. Those causal boundaries must be corrected and independently
-verified before another human gate or release preparation resumes. X7-R8.9 through X7-R8.11 now retain machine evidence
-for the reusable sport-correlation, documented provider-normalization, and responsive changed-package reconciliation
-boundaries plus complete compact sport-card composition. The later source `3e280ca` review nevertheless rejected the
-application because most represented sports and sessions remained unknown. X7-R8.13 now owns the missing bundled
-compatibility catalogue. Exact source `a447910` retains automatic-recognition evidence and passes the corrected local
-packaged campaign, complete hosted campaign, immutable evidence, and revision-isolated native inspection, so the
-bounded product-owner experience review is now eligible. Implementation and machine evidence do not accept that
-experience or authorize a release claim.
+the audit and exact automated campaign, and produced scanned production-native review applications. Subsequent human
+reviews exposed sport-identity, reconciliation, compact-layout, and pointer-range failures; X7-R8.9 through X7-R8.14
+corrected those causal boundaries and retain their exact machine evidence. The bounded 2026-09-09 review of
+revision-isolated source `47a521e953e8e21003fe21755cb4462418288a90` accepted the current result as sufficient for the
+first FitFreed 0.1.0 product version. Its six observations remain future improvements under the cross-platform scope
+lock and do not alter this accepted contract. Product-experience acceptance does not authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

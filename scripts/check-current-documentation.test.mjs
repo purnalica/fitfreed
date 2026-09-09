@@ -24,7 +24,7 @@ test("accepts current documentation derived from the release compatibility sourc
       releaseVersion: "0.1.0",
       currentLibrarySchemaVersion: 37,
       supportedLibrarySchemaVersions: Array.from({ length: 37 }, (_, index) => index + 1),
-      checkedDocuments: 17,
+      checkedDocuments: 18,
     },
   );
 });
@@ -207,7 +207,7 @@ test("rejects pre-migration status across current experience documents", () => {
   );
   candidate.sources["docs/plans/ui-redesign.md"] = replaceRequired(
     candidate.sources["docs/plans/ui-redesign.md"],
-    "X5-R1 through X5-R10 and X7-R1 through X7-R7 retain\ntheir engineering evidence",
+    "X5-R1 through X5-R10 and X7-R1 through X7-R8 retain their engineering evidence",
     "X4 derives the incremental production migration before X5 changes production",
   );
   candidate.sources["docs/roadmap.md"] = replaceRequired(
@@ -228,6 +228,47 @@ test("rejects pre-migration status across current experience documents", () => {
       assert.match(error.message, /redesign plan still presents X5 implementation as future/);
       assert.match(error.message, /roadmap still presents the implemented X5 increments as future/);
       assert.match(error.message, /readiness ledger still reports the pre-migration audit state/);
+      return true;
+    },
+  );
+});
+
+test("rejects divergence in the accepted MVP experience disposition", () => {
+  const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  candidate.sources["docs/design/experience-specification.md"] = replaceRequired(
+    candidate.sources["docs/design/experience-specification.md"],
+    "completed and accepted for FitFreed 0.1.0 on 2026-09-09",
+    "awaiting final FitFreed 0.1.0 acceptance",
+  );
+  candidate.sources["docs/plans/ui-redesign.md"] = replaceRequired(
+    candidate.sources["docs/plans/ui-redesign.md"],
+    "accepted the current result as sufficient for the first FitFreed 0.1.0 product version",
+    "left final product acceptance pending",
+  );
+  candidate.sources["docs/roadmap.md"] = replaceRequired(
+    candidate.sources["docs/roadmap.md"],
+    "Milestone 2 and the D0–E6 product-experience objective are complete",
+    "Milestone 2 product-experience acceptance remains open",
+  );
+  candidate.sources["docs/research/x6-product-experience-human-evaluation.md"] = replaceRequired(
+    candidate.sources["docs/research/x6-product-experience-human-evaluation.md"],
+    "Observation collection and the D0–E6 product-experience gate are closed",
+    "Observation collection and product-experience acceptance remain open",
+  );
+  candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
+    candidate.sources["docs/testing/public-release-readiness.md"],
+    "product experience is **accepted for the current MVP scope but is not publicly available**",
+    "product experience remains unaccepted and unavailable",
+  );
+
+  assert.throws(
+    () => validateCurrentDocumentation(candidate),
+    (error) => {
+      assert.match(error.message, /experience specification does not record the accepted 0\.1\.0 contract/);
+      assert.match(error.message, /redesign plan does not record the accepted final review/);
+      assert.match(error.message, /roadmap does not record the completed product-experience objective/);
+      assert.match(error.message, /human evaluation does not record the closed product-experience gate/);
+      assert.match(error.message, /release readiness does not separate accepted product experience from public availability/);
       return true;
     },
   );

@@ -23,6 +23,20 @@ test("accepts the complete version-matched public documentation set", () => {
   });
 });
 
+test("rejects readiness copy that conflates product acceptance with public availability", () => {
+  const candidate = bundle();
+  const readinessPath = "docs/testing/public-release-readiness.md";
+  candidate.documents[readinessPath] = candidate.documents[readinessPath].replace(
+    "accepted for the current MVP scope but is not publicly available",
+    "accepted and publicly available",
+  );
+
+  assert.throws(
+    () => validatePublicDocumentationBundle(candidate),
+    /readiness does not document separate product-acceptance and inactive-release decisions/,
+  );
+});
+
 test("rejects incomplete Windows contributor and release-operator guidance", () => {
   const candidate = bundle();
   const operationsPath = "docs/development/public-release-operations.md";

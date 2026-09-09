@@ -217,7 +217,10 @@ const documentContracts = Object.freeze({
     title: () => "Public macOS Release Readiness",
     headings: ["Decision status", "Readiness ledger", "Final acceptance rule"],
     evidence: () => [
-      [/not accepted or publicly available/, "inactive release decision"],
+      [
+        /product experience is \*\*accepted for the current MVP scope but is not publicly available\*\*/,
+        "separate product-acceptance and inactive-release decisions",
+      ],
       [/single current readiness ledger/, "single current readiness source"],
       [/Passed locally/, "local evidence state"],
       [/Pending hosted verification/, "hosted evidence state"],

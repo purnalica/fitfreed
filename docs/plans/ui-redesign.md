@@ -2,34 +2,22 @@
 
 ## Status
 
-X7-R8 corrective work reopened after the 2026-08-30 product-owner rejection. X2 selected History Desk with a
+The systemic redesign and its X7-R8 corrective sequence are complete. X2 selected History Desk with a
 bounded Answer Canvas pattern, and the product owner accepted the [X3 MVP experience
 specification](../design/experience-specification.md) on 2026-08-21 as the production redesign contract. X4 derived the
-delivery increments; X5-R1 through X5-R10 and X7-R1 through X7-R7 retain
-their engineering evidence. The product-owner review rejected and paused the production-native candidate admitted by
-that evidence after material sport-identity, calendar-discovery, information-density, analytical-chart,
-route-interaction, and report-run defects remained. The [production-native human
-evaluation](../research/x6-product-experience-human-evaluation.md) is the authoritative rejection record, and the
-[production migration plan](mvp-redesign-production-migration.md) owns the X7-R8 causal corrections, retained machine
-evidence, rejected review application, and reopened sport-identity, reconciliation-responsiveness, and compact-layout
-boundaries. X7-R8.9 through X7-R8.11 now retain machine evidence for reusable local sport correlation, documented provider
-normalization, evidence-gated changed-package reuse, and responsive desktop queries during late reconciliation;
-closed sport cards also retain complete identities and contained actions across the full adaptive matrix. The repeated
-independent audit, exact local and hosted campaign, and revision-isolated production-native bundle inspection retain
-historical evidence for source `f082725`. The later bounded product-owner review of source `3e280ca` rejected the
-application because most represented sports and sessions remained unknown. X7-R8.13 now owns the missing
-out-of-the-box Polar sport compatibility catalogue. Exact source `a447910` retains its deterministic and
-privacy-bounded recognition evidence and passes the corrected local packaged campaign, complete hosted campaign,
-immutable marker, and revision-isolated native inspection. Its bounded product-owner review accepted sport identity
-and rejected the application at XH-30 when pointer range adjustment blocked further use. X7-R8.14 now protects both
-ECharts zoom and exact route-range input, coalesces complete-route preview work, and must repeat the exact machine and
-human gates before acceptance. Reports and
+delivery increments; X5-R1 through X5-R10 and X7-R1 through X7-R8 retain their engineering evidence. The
+[production-native human evaluation](../research/x6-product-experience-human-evaluation.md) is the authoritative record
+of the rejected candidates and the accepted final source. X7-R8.9 through X7-R8.14 corrected sport identity,
+reconciliation responsiveness, compact layout, and both pointer-range systems at their causal boundaries. The repeated
+independent audit, exact local and hosted campaigns, and revision-isolated production-native inspection pass. The
+product owner completed the bounded review of source `47a521e953e8e21003fe21755cb4462418288a90` on 2026-09-09 and
+accepted the current result as sufficient for the first FitFreed 0.1.0 product version. Reports and
 personal range definition retain their explicit Alpha
 classification, and the compact-navigation amendment recorded by the pre-review audit remains mandatory. The original
 [independent product-experience audit](../research/mvp-product-experience-audit.md) remains the historical diagnosis
 that triggered this systemic intervention.
 
-Functional growth remains frozen outside FR-005, FR-025, FR-026, and FR-027 while this phase is active. Work may change lower-layer contracts only when necessary to make those accepted MVP journeys understandable and complete; it may not add providers, connected APIs, MCP access, external cartography, advanced personalization, or another roadmap capability. The [production migration plan](mvp-redesign-production-migration.md) owns current increment and evidence status.
+Functional growth remains frozen outside FR-005, FR-025, FR-026, and FR-027 under the cross-platform scope lock. Work may change lower-layer contracts only when necessary to preserve those accepted MVP journeys; it may not add providers, connected APIs, MCP access, external cartography, advanced personalization, or another roadmap capability before the lock ends. The [production migration plan](mvp-redesign-production-migration.md) owns completed increment and evidence status.
 
 Current product behavior remains canonical in [requirements](../requirements.md). The previous production sequence and its evidence remain in the [MVP experience delivery plan](mvp-experience-delivery.md); they are an engineering baseline, not the design specification for this intervention. No parallel executable will be created. Exploratory alternatives remain non-production design material until one direction is accepted.
 

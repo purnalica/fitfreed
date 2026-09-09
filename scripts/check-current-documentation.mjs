@@ -9,6 +9,7 @@ function documentationPaths(releaseVersion) {
     storage: "docs/architecture/storage.md",
     releaseDelivery: "docs/architecture/release-delivery.md",
     experienceSpecification: "docs/design/experience-specification.md",
+    humanEvaluation: "docs/research/x6-product-experience-human-evaluation.md",
     upgradeMatrix: "docs/data-formats/release/upgrade-matrix-v1.md",
     redesignPlan: "docs/plans/ui-redesign.md",
     roadmap: "docs/roadmap.md",
@@ -144,7 +145,38 @@ export function validateCurrentDocumentation({
     "roadmap still presents the implemented X5 increments as future",
   );
 
+  requirePattern(
+    errors,
+    sources[paths.experienceSpecification],
+    /completed and accepted for FitFreed 0\.1\.0 on 2026-09-09/,
+    "experience specification does not record the accepted 0.1.0 contract",
+  );
+  requirePattern(
+    errors,
+    sources[paths.redesignPlan],
+    /completed the bounded review of source[^.]*on 2026-09-09[\s\S]{0,220}accepted the current result as sufficient/,
+    "redesign plan does not record the accepted final review",
+  );
+  requirePattern(
+    errors,
+    sources[paths.roadmap],
+    /Milestone 2 and the D0[\u2013-]E6 product-experience objective are complete/,
+    "roadmap does not record the completed product-experience objective",
+  );
+  requirePattern(
+    errors,
+    sources[paths.humanEvaluation],
+    /Observation collection and the D0[\u2013-]E6 product-experience gate are closed/,
+    "human evaluation does not record the closed product-experience gate",
+  );
+
   const readiness = sources[paths.readiness];
+  requirePattern(
+    errors,
+    readiness,
+    /product experience is \*\*accepted for the current MVP scope but is not publicly available\*\*/,
+    "release readiness does not separate accepted product experience from public availability",
+  );
   rejectPattern(
     errors,
     readiness,
