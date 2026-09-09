@@ -102,6 +102,17 @@ test("gives the instrumented macOS application a stable isolated identity", () =
   assert.notEqual(e2eConfig.identifier, productionConfig.identifier);
 });
 
+test("keeps automatic CSP hashing enabled for the inline production startup entry", () => {
+  const productionConfig = JSON.parse(
+    readFileSync(path.resolve("src-tauri/tauri.conf.json"), "utf8"),
+  );
+  const security = productionConfig.app.security;
+
+  assert.match(security.csp, /script-src 'self'(?:;|$)/u);
+  assert.doesNotMatch(security.csp, /script-src[^;]*'unsafe-inline'/u);
+  assert.equal(security.dangerousDisableAssetCspModification, undefined);
+});
+
 test("binds the isolated E2E package to its exact source", () => {
   const revision = "a".repeat(40);
   const environment = e2eBuildEnvironment(

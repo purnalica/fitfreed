@@ -22,7 +22,7 @@
   "scripts": {
     "doctor": "node scripts/check-development-environment.mjs",
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && tsc --noEmit -p tsconfig.node.json && vite build",
     "audit:dependencies": "npm audit --audit-level=high",
     "benchmark:cold-launch": "node scripts/run-cold-launch-benchmark.mjs",
     "benchmark:dense-history": "node scripts/run-dense-history-benchmark.mjs",

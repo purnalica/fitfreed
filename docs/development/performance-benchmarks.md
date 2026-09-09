@@ -83,12 +83,16 @@ application data is removed. Output and diagnostics are bounded; their raw conte
 
 The initial renderer graph contains only the framework-independent startup bootstrap, imperative shell adapter,
 critical shell styles, and build-generated shell projections derived from the canonical English and Spanish
-catalogs. Persisted language, appearance, and zoom are applied before the localized shell can satisfy the signal.
+catalogs. The production HTML contains byte-identical inline copies of the entry and critical stylesheet, eliminating
+both separate startup asset requests while retaining their versioned files for deferred imports. A renderer-global
+claim admits only the inline entry's bootstrap. Tauri computes the exact inline-script CSP hash during host
+compilation; the strict policy does not admit arbitrary inline script. Persisted language, appearance, and zoom are applied before the localized shell can satisfy the signal.
 React, React DOM, Scheduler, the React shell, the complete application, complete selected catalog, application
 stylesheet, Library Home, Settings, Sources, import outcome, and their transitive presentation modules load after
 signal dispatch. Navigation remains active during that deferred load and the most recent explicit destination is
 authoritative when React takes ownership through the typed startup contract. The production build rejects a static
-entry closure that reaches any deferred framework, application, stylesheet, or complete-catalog module. This split is
+entry closure that reaches any deferred framework, application, stylesheet, or complete-catalog module. It also
+rejects an ambiguous, missing, source-mapped, or unsafe startup inlining boundary. This split is
 part of the measured production path rather than benchmark-only instrumentation; focused startup, locale,
 navigation, import, and preference tests protect the behavior on both sides of the boundary.
 

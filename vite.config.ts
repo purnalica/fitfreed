@@ -2,9 +2,11 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-// @ts-expect-error process is a Node.js global
+import { inlineStartupAssetsPlugin } from "./vite-plugins/inline-startup-assets";
+
 const host = process.env.TAURI_DEV_HOST;
 const repositoryRoot = path.dirname(fileURLToPath(import.meta.url));
 const startupCatalogModuleId = "virtual:fitfreed-startup-catalogs";
@@ -84,6 +86,9 @@ function startupBoundaryPlugin() {
       if (!eagerModules.some((module) => module.endsWith("/src/startup-shell.ts"))) {
         throw new Error("the interactive startup graph must contain the startup shell adapter");
       }
+      if (!eagerModules.some((module) => module.endsWith("/src/startup-claim.ts"))) {
+        throw new Error("the interactive startup graph must contain the one-shot startup claim");
+      }
       if (!eagerModules.includes(resolvedStartupCatalogModuleId)) {
         throw new Error("the interactive startup graph must use the generated locale projection");
       }
@@ -93,10 +98,10 @@ function startupBoundaryPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [startupCatalogPlugin(), startupBoundaryPlugin(), react()],
+  plugins: [startupCatalogPlugin(), startupBoundaryPlugin(), react(), inlineStartupAssetsPlugin()],
   test: {
     environment: "jsdom",
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "vite-plugins/**/*.test.ts"],
     setupFiles: ["./src/test-setup.ts"],
   },
 
@@ -104,6 +109,15 @@ export default defineConfig(async () => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: "startup-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
+      },
+    },
+  },
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,

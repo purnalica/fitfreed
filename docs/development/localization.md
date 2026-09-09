@@ -18,7 +18,9 @@ The selected locale is one member of the atomic `application_preference` set doc
 
 The framework-independent initial renderer graph contains shell-only projections generated from both canonical
 catalogs at build time. They let startup apply the selected locale and paint real localized navigation without
-loading React or either complete catalog. The projections are generated artifacts inside the bundle, never authored translation sources. Complete
+loading React or either complete catalog. The production document contains an exact copy of this generated entry and
+its critical stylesheet, so localization and the selected appearance do not wait on additional startup-resource
+requests. The projections are generated artifacts inside the bundle, never authored translation sources. Complete
 catalogs are separate production modules loaded after the first interactive shell and cached for later previews or
 navigation. Startup never presents that shell or reports locale readiness until the persisted or derived selected
 shell projection is available. Failure to load a selected complete catalog during preference recovery falls back

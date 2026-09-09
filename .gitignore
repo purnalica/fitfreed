@@ -11,6 +11,7 @@
 # Generated application and test output
 node_modules/
 dist/
+*.tsbuildinfo
 .artifacts/
 src-tauri/target/
 src-tauri/gen/

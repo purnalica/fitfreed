@@ -1,5 +1,6 @@
 import "./Startup.css";
 import { bootstrapApplication } from "./startup-bootstrap";
+import { claimApplicationStartup } from "./startup-claim";
 
 async function start() {
   if (import.meta.env.VITE_FITFREED_E2E === "true") {
@@ -11,4 +12,4 @@ async function start() {
   await bootstrapApplication(root);
 }
 
-void start();
+if (import.meta.env.DEV || claimApplicationStartup(window)) void start();

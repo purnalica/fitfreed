@@ -67,7 +67,10 @@ The framework-independent startup bootstrap owns only preference resolution, the
 temporary destination selection. Its imperative shell adapter and React's `ApplicationShell` consume the same typed
 navigation identities, labels, and icon paths. After the painted-shell signal, a deferred React root receives the
 resolved preferences and latest destination through the application-startup contract and replaces the adapter.
-Neither startup adapter owns a read model or product mutation.
+Neither startup adapter owns a read model or product mutation. `vite-plugins/inline-startup-assets.ts` owns the
+production-only composition of exact entry and critical-style copies into the HTML document. The external entry and
+stylesheet remain versioned build outputs for deferred dependency resolution, while `startup-claim.ts` prevents the
+retained entry from invoking the bootstrap a second time in the same renderer.
 
 `App` owns the cross-workspace projection of an active import and the refresh state of Library Home because neither
 state belongs to one mounted panel. `ApplicationShell` renders only that supplied projection: outside Sources it keeps

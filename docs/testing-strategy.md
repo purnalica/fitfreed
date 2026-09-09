@@ -62,7 +62,10 @@ Automated testing is the primary source of evidence that the product behaves cor
   painted shell, exposes real navigation while React and the complete application load, retains the latest explicit destination, never awaits the
   diagnostic transport, continues after one second without claiming evidence when no paint frame has arrived, and
   still reports one later frame exactly once. Production builds reject eager imports of React, React DOM, Scheduler,
-  the React shell, the complete application, application stylesheet, or complete locale catalogs.
+  the React shell, the complete application, application stylesheet, or complete locale catalogs. Build-plugin tests
+  require exact retained entry and stylesheet copies in the production HTML, no blocking external startup tag, no
+  source map or unsafe closing tag, and one renderer-global bootstrap claim across both module identities. Packaged
+  configuration tests preserve Tauri's exact asset-CSP hash injection without allowing arbitrary inline scripts.
 - Production presentation reachability, locale-message consumption, CSS ownership, automation entry points,
   and packaged-test registration, with explicit typed handling for dynamic dictionaries and generated class
   families. The same contract scan rejects production `Intl` constructors outside the named shared
