@@ -17,8 +17,10 @@ gates, not reasons to weaken or bypass an implemented publication workflow.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
-certificate bundle and separately supplied password are stored there as protected secrets. App Store Connect
-notarization authority is unavailable to the workflow.
+certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
+an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
+Apple's notarization service passes outside the workflow. The one-way certificate secrets cannot be tested together
+until the protected build imports them; no application has yet been signed or submitted with these authorities.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
