@@ -6,9 +6,6 @@ on:
 permissions:
   contents: read
 
-env:
-  FITFREED_RELEASE_VERSION: 0.1.0
-
 concurrency:
   group: linux-performance-${{ github.ref }}
   cancel-in-progress: true
@@ -53,6 +50,11 @@ jobs:
 
       - name: Install locked JavaScript dependencies
         run: npm ci
+
+      - name: Resolve the validated current release version
+        run: |
+          release_version="$(node scripts/check-release-contracts.mjs --version-only)"
+          printf 'FITFREED_RELEASE_VERSION=%s\n' "$release_version" >> "$GITHUB_ENV"
 
       - name: Build the source-bound Linux package
         run: npm run package:linux

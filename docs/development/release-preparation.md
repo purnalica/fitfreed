@@ -17,7 +17,7 @@ npm run install:release-tools
 npm run prepare:development-release -- 0.1.0
 ```
 
-Replace `0.1.0` with the explicitly reviewed version. Preparation stops unless that value matches npm, Tauri, and every FitFreed Cargo package. Continuous integration passes its reviewed release version through the same gate. `cargo-cyclonedx` is installed under ignored `.tools/`; no global installation is required.
+Replace `0.1.0` with the explicitly reviewed version. Preparation stops unless that value matches npm, Tauri, and every FitFreed Cargo package. Hosted workflows derive their current release version only from the validated release contract; they do not retain a second fixed version. Public release dispatch remains explicitly version-gated and verifies that input independently. `cargo-cyclonedx` is installed under ignored `.tools/`; no global installation is required.
 
 The reviewed release-note body must exist at `release/notes/<version>.md`. It contains exactly these non-empty level-two sections in order: Highlights, Compatibility, Privacy and data, Known limitations, Installation and recovery, and Support. It has no level-one heading because preparation generates the title and exact release identity. The shared body remains distribution-neutral: signing, notarization, private-package, public-release, and production-channel state belongs to the generated profile-specific preamble. Missing, reordered, duplicated, unexpected, unterminated, or delivery-specific sections block both the fast release-contract check and release preparation.
 

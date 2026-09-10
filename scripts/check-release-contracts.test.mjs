@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { validateReleaseMetadata } from "./check-release-contracts.mjs";
+
+const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
+const releaseContractScript = fileURLToPath(
+  new URL("./check-release-contracts.mjs", import.meta.url),
+);
 
 function validMetadata() {
   return {
@@ -129,6 +137,45 @@ test("accepts one consistent private development release identity", () => {
       command: "node",
     },
   });
+});
+
+test("exposes the validated current release version to hosted workflows", () => {
+  const packageMetadata = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  const result = spawnSync(process.execPath, [releaseContractScript, "--version-only"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `${packageMetadata.version}\n`);
+});
+
+test("keeps hosted release versions derived from the validated contract", () => {
+  const continuousIntegration = readFileSync(
+    new URL("../.github/workflows/ci.yml", import.meta.url),
+    "utf8",
+  );
+  const linuxPerformance = readFileSync(
+    new URL("../.github/workflows/linux-performance.yml", import.meta.url),
+    "utf8",
+  );
+  const resolutionCommand =
+    /release_version="\$\(node scripts\/check-release-contracts\.mjs --version-only\)"/g;
+
+  assert.doesNotMatch(
+    continuousIntegration,
+    /FITFREED_RELEASE_VERSION:\s*\d+\.\d+\.\d+/,
+  );
+  assert.doesNotMatch(linuxPerformance, /FITFREED_RELEASE_VERSION:\s*\d+\.\d+\.\d+/);
+  assert.equal(continuousIntegration.match(resolutionCommand)?.length, 2);
+  assert.equal(linuxPerformance.match(resolutionCommand)?.length, 1);
+  assert.match(
+    continuousIntegration,
+    /prepare:development-release -- "\$FITFREED_RELEASE_VERSION"/,
+  );
+  assert.match(linuxPerformance, /FitFreed_\$\{FITFREED_RELEASE_VERSION\}_amd64\.deb/);
 });
 
 test("reports every inconsistent release identity in one actionable failure", () => {

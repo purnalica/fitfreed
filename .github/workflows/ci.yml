@@ -26,9 +26,6 @@ on:
 permissions:
   contents: read
 
-env:
-  FITFREED_RELEASE_VERSION: 0.1.0
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -162,9 +159,11 @@ jobs:
         if: steps.decision.outputs.quality-verification == 'true'
         run: npm run check:data-contracts
 
-      - name: Verify release contracts
+      - name: Verify release contracts and resolve the current release version
         if: steps.decision.outputs.quality-verification == 'true'
-        run: npm run check:release-contracts -- "$FITFREED_RELEASE_VERSION"
+        run: |
+          release_version="$(node scripts/check-release-contracts.mjs --version-only)"
+          printf 'FITFREED_RELEASE_VERSION=%s\n' "$release_version" >> "$GITHUB_ENV"
 
       - name: Verify the release upgrade matrix
         if: steps.decision.outputs.quality-verification == 'true'
@@ -272,6 +271,11 @@ jobs:
         run: |
           npm run build:x6-review
           npm run check:x6-review-bundle
+
+      - name: Resolve the validated current release version
+        run: |
+          release_version="$(node scripts/check-release-contracts.mjs --version-only)"
+          printf 'FITFREED_RELEASE_VERSION=%s\n' "$release_version" >> "$GITHUB_ENV"
 
       - name: Prepare the private development release evidence
         run: npm run prepare:development-release -- "$FITFREED_RELEASE_VERSION"

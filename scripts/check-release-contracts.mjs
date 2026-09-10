@@ -221,6 +221,8 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const result = inspectReleaseContracts(repositoryRoot, process.argv[2]);
-  process.stdout.write(`${JSON.stringify(result)}\n`);
+  const argument = process.argv[2];
+  const versionOnly = argument === "--version-only";
+  const result = inspectReleaseContracts(repositoryRoot, versionOnly ? undefined : argument);
+  process.stdout.write(versionOnly ? `${result.version}\n` : `${JSON.stringify(result)}\n`);
 }
