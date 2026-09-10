@@ -562,7 +562,8 @@ and duration pairs. The source interval remains independently rendered and attri
 Exact route pages omit points without elapsed evidence, exact signal pages retain their returned elapsed values,
 and both construct a provisional interval from adjacent entries on the current page. While the exact-coordinate
 draft is active, either boundary can be replaced with the selected exact entry. The one session-level
-`TrainingRangeEvidenceEditor` appears before detail navigation and uses the shared reveal/focus boundary; tables
+`TrainingRangeEvidenceEditor` appears before detail navigation and uses the explicit start-aligned shared
+reveal/focus boundary, so opening it from evidence farther down the detail keeps the editor visible; tables
 do not mount another editor or add an action to every row. Page order is never treated as a coordinate when an
 elapsed value is absent, and no entry point infers a relationship between independent clocks.
 

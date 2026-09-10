@@ -13,6 +13,11 @@ import { TrainingRangeEvidencePicker } from "./TrainingRangeEvidencePicker";
 import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 
 const commands = vi.hoisted(() => ({ invoke: vi.fn() }));
+const scrollIntoView = vi.fn();
+const originalScrollIntoView = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "scrollIntoView",
+);
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: commands.invoke }));
 
@@ -115,6 +120,11 @@ function renderPicker(
 }
 
 beforeEach(() => {
+  scrollIntoView.mockReset();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: scrollIntoView,
+  });
   commands.invoke.mockReset();
   commands.invoke.mockImplementation((command) => {
     if (command === "query_training_session_ranges") return Promise.resolve(rangeContext());
@@ -123,7 +133,14 @@ beforeEach(() => {
   });
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  if (originalScrollIntoView) {
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", originalScrollIntoView);
+  } else {
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  }
+});
 
 describe("TrainingRangeEvidencePicker", () => {
   it("opens one exact-coordinate draft and reuses point evidence for either boundary", async () => {
@@ -137,6 +154,10 @@ describe("TrainingRangeEvidencePicker", () => {
 
     const editorHeading = screen.getByRole("heading", { name: "Create a personal range" });
     await waitFor(() => expect(editorHeading).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: "start",
+      inline: "nearest",
+    });
     expect(screen.queryByRole("combobox", { name: "Timeline" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Start")).toHaveValue("0:00:01");
     expect(screen.getByLabelText("End")).toHaveValue("0:00:02");

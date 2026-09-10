@@ -26,7 +26,7 @@ export function TrainingRangeEvidenceEditor({
     return restoreFocusAfterReveal(
       headingRef.current,
       null,
-      { forceInitialFocus: true },
+      { align: "start", forceInitialFocus: true },
     );
   }, [
     active,
