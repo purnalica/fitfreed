@@ -10,8 +10,18 @@ use fitfreed_lib::infrastructure::{
     prepare_update_recovery, verify_prepared_update_recovery, PlatformApplicationCopier,
     SqliteApplicationPreferences, UpdateRecoveryPreparation,
 };
+use semver::Version;
 use serde_json::json;
 use tempfile::tempdir;
+
+fn next_patch_version(installed_version: &str) -> Option<Version> {
+    let installed = Version::parse(installed_version).ok()?;
+    Some(Version::new(
+        installed.major,
+        installed.minor,
+        installed.patch.checked_add(1)?,
+    ))
+}
 
 fn main() -> ExitCode {
     let arguments = env::args().collect::<Vec<_>>();
@@ -39,8 +49,11 @@ fn main() -> ExitCode {
     let Ok(target) = current_update_target() else {
         return report_failure("target-unavailable");
     };
+    let Some(target_version) = next_patch_version(env!("CARGO_PKG_VERSION")) else {
+        return report_failure("target-version-unavailable");
+    };
     let authorization = UpdateInstallationAuthorization {
-        version: "0.1.1".to_owned(),
+        version: target_version.to_string(),
         trusted_sequence: 17,
         trusted_payload_sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
             .to_owned(),
@@ -48,7 +61,7 @@ fn main() -> ExitCode {
         target_library_schema_version: library_schema_version(),
         artifact: UpdateArtifact {
             target,
-            package_url: "https://updates.invalid/fitfreed-0.1.1.app.tar.gz".to_owned(),
+            package_url: format!("https://updates.invalid/fitfreed-{target_version}.app.tar.gz"),
             expected_size_bytes: 1024,
             expected_sha256: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
                 .to_owned(),
@@ -106,4 +119,24 @@ fn main() -> ExitCode {
 fn report_failure(code: &str) -> ExitCode {
     println!("{}", json!({ "accepted": false, "code": code }));
     ExitCode::FAILURE
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derives_a_strictly_newer_synthetic_target_from_the_installed_version() {
+        assert_eq!(next_patch_version("0.1.1"), Some(Version::new(0, 1, 2)));
+        assert_eq!(
+            next_patch_version("2.4.6-beta.1+candidate"),
+            Some(Version::new(2, 4, 7))
+        );
+    }
+
+    #[test]
+    fn rejects_an_invalid_or_unincrementable_installed_version() {
+        assert_eq!(next_patch_version("not-a-version"), None);
+        assert_eq!(next_patch_version("1.2.18446744073709551615"), None);
+    }
 }
