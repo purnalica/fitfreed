@@ -6,12 +6,14 @@ Public binary release automation is deliberately inactive. The checked-in update
 public `stable.primary-1` trust key, while release-checksum trust remains inactive. No private updater, Apple,
 release-checksum, or Windows Authenticode authority is available to a workflow. The protected environment contains the
 updater private key and its separately supplied password, but that authority has not yet passed a real sign-and-verify
-operation. The `public-macos-release` environment is configured with the bootstrap reviewer, initiator approval,
-disabled administrator bypass, and the single `v*` tag policy. The later Linux and Windows release authorities and
-environments remain unavailable. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at
-the canonical origin for the product site without an application download or signed update snapshot. The initial
-macOS, first Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are
-release gates, not reasons to weaken or bypass an implemented publication workflow.
+operation. It also contains the repository-scoped Administration-read token used only to verify immutable Releases;
+GitHub exposes the secret's presence but its permission check remains fail-closed at the start of the protected build.
+The `public-macos-release` environment is configured with the bootstrap reviewer, initiator approval, disabled
+administrator bypass, and the single `v*` tag policy. The later Linux and Windows release authorities and environments
+remain unavailable. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the
+canonical origin for the product site without an application download or signed update snapshot. The initial macOS,
+first Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are release
+gates, not reasons to weaken or bypass an implemented publication workflow.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
