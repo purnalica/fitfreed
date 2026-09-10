@@ -1,10 +1,10 @@
-# Public Windows 0.1.0 Guide
+# Public Windows 0.1.1 Guide
 
 ## Status
 
-This inactive pre-publication guide is rendered against the repository's current unreleased 0.1.0 development
+This inactive pre-publication guide is rendered against the repository's current unreleased 0.1.1 development
 version so its exact names, links, and documentation contracts can be verified. It does not announce or reserve a
-Windows 0.1.0 release. No public Windows binary is available while the
+Windows 0.1.1 release. No public Windows binary is available while the
 [Milestone 5 execution ledger](../plans/milestone-5.md) contains an open gate or before the public Linux release
 permits Windows promotion.
 
@@ -12,17 +12,17 @@ Under [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platf
 artifacts use the next unreleased semantic version after the first immutable public Linux Release and contain newly
 built macOS, Linux, and Windows targets for that exact version. Release preparation regenerates every
 version-specific name and piece of evidence together. This guide becomes operative only for Windows assets in an
-immutable `v0.1.0` GitHub Release from `purnalica/fitfreed` when that is the version assigned to the expansion; source
+immutable `v0.1.1` GitHub Release from `purnalica/fitfreed` when that is the version assigned to the expansion; source
 archives, development packages, Actions artifacts, forks, and third-party packages are not that release.
 
-FitFreed 0.1.0 will support x86-64 editions of Windows 11 that remain in Microsoft support when the exact candidate is
+FitFreed 0.1.1 will support x86-64 editions of Windows 11 that remain in Microsoft support when the exact candidate is
 issued, through one current-user NSIS setup. It is experimental GPL-3.0-or-later software provided without warranty
 and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
 
 ## Preserve the source data first
 
 Keep every original provider ZIP unchanged in an independently protected location. FitFreed does not replace the
-source export, and version 0.1.0 has no supported user-controlled library backup, restore, or portable normalized
+source export, and version 0.1.1 has no supported user-controlled library backup, restore, or portable normalized
 export workflow.
 
 Do not use FitFreed as the only copy of important information. Verify consequential values against their source, and
@@ -30,12 +30,12 @@ do not treat any view as medical, health, training, safety, or legal advice.
 
 ## Download and verify
 
-Download only from the immutable `FitFreed 0.1.0` Release in the
+Download only from the immutable `FitFreed 0.1.1` Release in the
 [canonical GitHub repository](https://github.com/purnalica/fitfreed/releases). The Windows release set must contain
 these regular assets:
 
-- `FitFreed_0.1.0_x64-setup.exe` and its updater signature `FitFreed_0.1.0_x64-setup.exe.sig`;
-- `FitFreed_0.1.0_x64-setup.exe.inventory.json` and `FitFreed_0.1.0_x64-setup.exe.build.json`;
+- `FitFreed_0.1.1_x64-setup.exe` and its updater signature `FitFreed_0.1.1_x64-setup.exe.sig`;
+- `FitFreed_0.1.1_x64-setup.exe.inventory.json` and `FitFreed_0.1.1_x64-setup.exe.build.json`;
 - `stable.json`, `supported-upgrades.json`, and `release-manifest.json`;
 - `RELEASE_NOTES.md`, `SHA256SUMS`, and `SHA256SUMS.minisig`; and
 - the npm and Cargo CycloneDX inventories named in the manifest.
@@ -49,7 +49,7 @@ command published in that Release. Then place the setup and authenticated checks
 the exact setup from PowerShell without changing either file:
 
 ```powershell
-$package = "FitFreed_0.1.0_x64-setup.exe"
+$package = "FitFreed_0.1.1_x64-setup.exe"
 $entries = @(Get-Content -LiteralPath ".\SHA256SUMS" |
   Where-Object { $_.EndsWith("  $package", [StringComparison]::Ordinal) })
 if ($entries.Count -ne 1 -or $entries[0] -notmatch '^([0-9a-f]{64})  (.+)$') {
@@ -62,14 +62,14 @@ if ($actual -ne $expected) { throw "The setup digest does not match SHA256SUMS."
 ```
 
 The command must print the single `OK` line. The manifest, setup inventory, build evidence, checksum entry,
-release-note version, setup filename, and GitHub tag must all identify 0.1.0. A mismatch is a hard stop; do not rename
+release-note version, setup filename, and GitHub tag must all identify 0.1.1. A mismatch is a hard stop; do not rename
 an asset or edit an inventory to make the check pass.
 
 Verify Windows Authenticode policy and calculate the signer's SHA-256 certificate fingerprint from the unchanged
 setup:
 
 ```powershell
-$signature = Get-AuthenticodeSignature -LiteralPath ".\FitFreed_0.1.0_x64-setup.exe"
+$signature = Get-AuthenticodeSignature -LiteralPath ".\FitFreed_0.1.1_x64-setup.exe"
 if ($signature.Status -ne "Valid" -or $null -eq $signature.SignerCertificate) {
   throw "The setup does not have a valid Windows Authenticode signature."
 }
@@ -94,18 +94,18 @@ GitHub CLI users can additionally verify that the immutable Release and setup ar
 attestations:
 
 ```powershell
-gh release verify v0.1.0 --repo purnalica/fitfreed
-gh release verify-asset v0.1.0 FitFreed_0.1.0_x64-setup.exe --repo purnalica/fitfreed
+gh release verify v0.1.1 --repo purnalica/fitfreed
+gh release verify-asset v0.1.1 FitFreed_0.1.1_x64-setup.exe --repo purnalica/fitfreed
 ```
 
 ## Install and first launch
 
-1. Double-click the verified `FitFreed_0.1.0_x64-setup.exe`.
+1. Double-click the verified `FitFreed_0.1.1_x64-setup.exe`.
 2. Confirm the file, version, and publisher agree with the exact Release evidence before permitting execution.
 3. Complete the current-user installation. Ordinary setup does not require administrator authority and does not
    install FitFreed for other users.
 4. Open FitFreed from the Start menu shortcut.
-5. Confirm **Settings → Updates** identifies version 0.1.0 before importing anything.
+5. Confirm **Settings → Updates** identifies version 0.1.1 before importing anything.
 6. Open **Settings → Windows help** to confirm the localized offline installation, recovery, removal, and data-lifecycle
    guidance is available from the installed application.
 
@@ -156,7 +156,7 @@ An exact reimport does not duplicate canonical history. The same bytes are reass
 mapping contract changes, and later compatible exports add or revise facts through documented source identities
 rather than ZIP order.
 
-Version 0.1.0 provides local activity, sleep, recovery, and longitudinal views; complete-history training exploration
+Version 0.1.1 provides local activity, sleep, recovery, and longitudinal views; complete-history training exploration
 with sport recognition and personal classification; exact session structure, signals, zones, route shapes, personal
 ranges, and source provenance where supported evidence exists; comparisons; durable reports; and privacy-reviewed
 self-contained HTML report export. Every visual retains an exact-value or table path. Missing evidence does not become
@@ -229,7 +229,7 @@ Deleting personal FitFreed state is a separate destructive choice:
 7. Empty the Recycle Bin only after confirming the exact targets. Backups or synchronized storage can retain other
    copies and require their own deletion controls.
 
-There is no in-application deletion command in 0.1.0. Never delete only the SQLite file, its sidecars, or selected
+There is no in-application deletion command in 0.1.1. Never delete only the SQLite file, its sidecars, or selected
 recovery files as a repair technique. Do not delete `%LOCALAPPDATA%\FitFreed` manually instead of using the registered
 uninstaller.
 

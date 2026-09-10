@@ -196,13 +196,13 @@ The [private development package guide](private-development-packages.md) explain
 
 The [private macOS alpha candidate guide](private-alpha-candidate.md) is the version-matched 0.1.0 installation, import, exploration, data, update, removal, diagnostics, and limitations draft. It becomes operative only when its listed release and human-authority gates close.
 
-The [public macOS 0.1.0 guide](public-macos-0.1.0.md) is the future signed-release download, verification, installation, import, exploration, update, recovery, removal, and support guide. It is conditional and does not announce a binary.
+The [public macOS 0.1.1 guide](public-macos-0.1.1.md) is the future signed-release download, verification, installation, import, exploration, update, recovery, removal, and support guide. It is conditional and does not announce a binary.
 
-The [public Linux 0.1.0 guide](public-linux-0.1.0.md) is the future Ubuntu x86-64 Debian-package download,
+The [public Linux 0.1.1 guide](public-linux-0.1.1.md) is the future Ubuntu x86-64 Debian-package download,
 verification, graphical installation, update, recovery, removal, local-data, and support guide. It is conditional and
 does not announce a Linux binary.
 
-The [public Windows 0.1.0 guide](public-windows-0.1.0.md) is the future Windows 11 x86-64 current-user NSIS download,
+The [public Windows 0.1.1 guide](public-windows-0.1.1.md) is the future Windows 11 x86-64 current-user NSIS download,
 verification, Authenticode and SmartScreen interpretation, installation, update, recovery, removal, local-data, and
 support guide. It is conditional and does not announce a Windows binary.
 

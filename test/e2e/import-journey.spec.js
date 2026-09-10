@@ -25,6 +25,9 @@ const english = JSON.parse(
 const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
 );
+const applicationVersion = JSON.parse(
+  fs.readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+).version;
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
 const restartIdentityPath = process.env.FITFREED_E2E_RESTART_IDENTITY_PATH;
@@ -2242,7 +2245,7 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining(english.updates.installedVersion),
     );
     await expect($(".update-installed-version")).toHaveText(
-      expect.stringContaining("0.1.0"),
+      expect.stringContaining(applicationVersion),
     );
     expect(await browser.execute(
       () => document.querySelector(".settings-panel .update-panel") !== null,

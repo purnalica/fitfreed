@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { validatePerformancePolicy } from "./check-performance-policy.mjs";
+import {
+  performancePolicyPaths,
+  validatePerformancePolicy,
+} from "./check-performance-policy.mjs";
 
 function validDocuments() {
   return new Map([
@@ -21,6 +24,11 @@ test("accepts environment-qualified performance evidence", () => {
     checkedDocuments: 2,
     model: "environment-qualified",
   });
+});
+
+test("derives the reviewed release notes from the current version", () => {
+  assert.ok(performancePolicyPaths("0.1.1").includes("release/notes/0.1.1.md"));
+  assert.ok(!performancePolicyPaths("0.1.1").includes("release/notes/0.1.0.md"));
 });
 
 test("rejects an unavailable fixed-memory acceptance gate", () => {

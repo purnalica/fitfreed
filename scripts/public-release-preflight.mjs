@@ -119,6 +119,21 @@ export function validatePublicPagesConfiguration(pages) {
   };
 }
 
+export function validatePublicRepositoryConfiguration(repository) {
+  const errors = [];
+  if (repository?.full_name !== repositoryName) {
+    errors.push("public release repository identity is invalid");
+  }
+  if (repository?.visibility !== "public") {
+    errors.push("public release repository must be public");
+  }
+  if (errors.length > 0) throw new Error(errors.join("\n"));
+  return {
+    repository: repositoryName,
+    visibility: "public",
+  };
+}
+
 export function validateRequiredWorkflowRuns(runsByWorkflow, sourceRevision) {
   const errors = [];
   for (const workflow of requiredWorkflows) {
@@ -238,9 +253,11 @@ export function validatePublicReleaseInvocation({
 }
 
 function readGithubReleasePlatform(sourceRevision) {
+  let repository;
   let pages;
   const runsByWorkflow = {};
   try {
+    repository = JSON.parse(run("gh", ["api", `repos/${repositoryName}`]));
     pages = JSON.parse(run("gh", ["api", `repos/${repositoryName}/pages`]));
     for (const workflow of requiredWorkflows) {
       runsByWorkflow[workflow] = JSON.parse(run("gh", [
@@ -262,6 +279,7 @@ function readGithubReleasePlatform(sourceRevision) {
     throw new Error("public release platform prerequisites are unavailable");
   }
   return {
+    repositoryVisibility: validatePublicRepositoryConfiguration(repository).visibility,
     protectedEnvironment: readProtectedReleaseEnvironment(releaseEnvironmentName),
     publicPages: validatePublicPagesConfiguration(pages),
     workflowEvidence: validateRequiredWorkflowRuns(runsByWorkflow, sourceRevision),
@@ -314,7 +332,6 @@ export function inspectPublicReleasePreflight({
     publicReleasePolicy,
     eventName: environment.GITHUB_EVENT_NAME,
     repository: environment.GITHUB_REPOSITORY,
-    repositoryVisibility: environment.GITHUB_REPOSITORY_VISIBILITY,
     ref: environment.GITHUB_REF,
     headRevision,
     tagRevision,

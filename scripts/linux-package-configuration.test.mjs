@@ -139,7 +139,7 @@ test("normalizes the external Debian artifact name after a successful build", ()
     ["normalize", {
       directory: path.resolve("src-tauri/target/release/bundle/deb"),
       signature: "optional",
-      version: "0.1.0",
+      version: packageJson.version,
     }],
   ]);
 });

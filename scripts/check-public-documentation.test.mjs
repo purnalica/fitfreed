@@ -15,8 +15,9 @@ function bundle() {
 }
 
 test("accepts the complete version-matched public documentation set", () => {
-  assert.deepEqual(validatePublicDocumentationBundle(bundle()), {
-    version: "0.1.0",
+  const candidate = bundle();
+  assert.deepEqual(validatePublicDocumentationBundle(candidate), {
+    version: candidate.version,
     documents: 11,
     locales: ["en-US", "es-ES"],
     catalogGuidanceKeys: 36,
@@ -78,10 +79,10 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
 
 test("rejects Linux guidance that weakens the exact support and package boundary", () => {
   const candidate = bundle();
-  const guidePath = "docs/user/public-linux-0.1.0.md";
+  const guidePath = `docs/user/public-linux-${candidate.version}.md`;
   candidate.documents[guidePath] = candidate.documents[guidePath]
     .replace("x86-64 Ubuntu Desktop 24.04 and 26.04 LTS", "Linux desktops")
-    .replaceAll("FitFreed_0.1.0_amd64.deb", "FitFreed.AppImage");
+    .replaceAll(`FitFreed_${candidate.version}_amd64.deb`, "FitFreed.AppImage");
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
@@ -95,10 +96,10 @@ test("rejects Linux guidance that weakens the exact support and package boundary
 
 test("rejects Windows guidance that weakens trust, installation, and support boundaries", () => {
   const candidate = bundle();
-  const guidePath = "docs/user/public-windows-0.1.0.md";
+  const guidePath = `docs/user/public-windows-${candidate.version}.md`;
   candidate.documents[guidePath] = candidate.documents[guidePath]
     .replace("x86-64 editions of Windows 11", "Windows computers")
-    .replaceAll("FitFreed_0.1.0_x64-setup.exe", "FitFreed.msi")
+    .replaceAll(`FitFreed_${candidate.version}_x64-setup.exe`, "FitFreed.msi")
     .replace("current-user installation", "system-wide installation")
     .replace("A SmartScreen reputation warning is not a trust result", "Choose Run anyway");
 
@@ -117,7 +118,7 @@ test("rejects Windows guidance that weakens trust, installation, and support bou
 test("rejects a support entry point that hides the Windows guide", () => {
   const candidate = bundle();
   candidate.documents["SUPPORT.md"] = candidate.documents["SUPPORT.md"].replace(
-    "docs/user/public-windows-0.1.0.md",
+    `docs/user/public-windows-${candidate.version}.md`,
     "docs/user/README.md",
   );
 
@@ -152,7 +153,7 @@ test("rejects missing locale guidance and distribution state in reviewed notes",
   delete candidate.catalogs["es-ES"].settings.windowsHelp.update.recovery;
   delete candidate.policy.update.releaseNotes["es-ES"];
   candidate.reviewedReleaseNotes = candidate.reviewedReleaseNotes.replace(
-    "FitFreed 0.1.0 supports Apple Silicon",
+    `FitFreed ${candidate.version} supports Apple Silicon`,
     "This public release supports Apple Silicon",
   );
 
@@ -174,7 +175,7 @@ test("rejects missing locale guidance and distribution state in reviewed notes",
 
 test("rejects guidance that no longer declares the inactive release boundary", () => {
   const candidate = bundle();
-  const guidePath = "docs/user/public-macos-0.1.0.md";
+  const guidePath = `docs/user/public-macos-${candidate.version}.md`;
   candidate.documents[guidePath] = candidate.documents[guidePath].replace(
     "No public binary is available while",
     "A public binary is available while",
@@ -188,7 +189,7 @@ test("rejects guidance that no longer declares the inactive release boundary", (
 
 test("rejects public guidance or evaluation that drops implemented MVP journeys", () => {
   const candidate = bundle();
-  const guidePath = "docs/user/public-macos-0.1.0.md";
+  const guidePath = `docs/user/public-macos-${candidate.version}.md`;
   const evaluationPath = "docs/testing/macos-candidate-manual-evaluation.md";
   candidate.documents[guidePath] = candidate.documents[guidePath]
     .replace("**Show me how**", "**Continue**")

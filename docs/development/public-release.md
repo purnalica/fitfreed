@@ -15,6 +15,12 @@ canonical origin for the product site without an application download or signed 
 first Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are release
 gates, not reasons to weaken or bypass an implemented publication workflow.
 
+The first `v0.1.0` dispatch on 2026-09-10 stopped in the secret-free preflight before any protected environment or
+credential was admitted. The preflight expected a runner environment variable for repository visibility that GitHub
+does not provide. Current source obtains the canonical repository identity and live visibility from GitHub's read-only
+repository API alongside the existing Pages, workflow, and environment evidence. The public `v0.1.0` tag remains
+fixed at the rejected source and is neither moved nor reused; the corrected first publishable candidate is 0.1.1.
+
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
@@ -37,7 +43,7 @@ The public workflow accepts only a manual dispatch whose selected ref is the exa
 - Actions-backed GitHub Pages at the canonical project URL with HTTPS enforced;
 - successful `push` executions of `ci.yml` and `repository-safety.yml` for the exact release revision;
 - the local and remote `v<version>` tag resolving to that exact revision; and
-- public repository visibility.
+- current public repository identity and visibility read from GitHub's repository API.
 
 The environment query returns only a sanitized reviewer count in preflight output. Reviewer identities and raw environment configuration are not retained as release evidence.
 

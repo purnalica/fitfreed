@@ -18,10 +18,11 @@ function replaceRequired(source, currentText, replacement) {
 }
 
 test("accepts current documentation derived from the release compatibility source", () => {
+  const current = loadCurrentDocumentation(repositoryRoot);
   assert.deepEqual(
-    validateCurrentDocumentation(loadCurrentDocumentation(repositoryRoot)),
+    validateCurrentDocumentation(current),
     {
-      releaseVersion: "0.1.0",
+      releaseVersion: current.releaseVersion,
       currentLibrarySchemaVersion: 37,
       supportedLibrarySchemaVersions: Array.from({ length: 37 }, (_, index) => index + 1),
       checkedDocuments: 18,
@@ -276,13 +277,14 @@ test("rejects divergence in the accepted MVP experience disposition", () => {
 
 test("rejects stale storage, report, and release-readiness claims together", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  const publicGuidePath = `docs/user/public-macos-${candidate.releaseVersion}.md`;
   candidate.sources["docs/architecture/storage.md"] = replaceRequired(
     candidate.sources["docs/architecture/storage.md"],
     "SQLite version 37",
     "SQLite version 33",
   );
-  candidate.sources["docs/user/public-macos-0.1.0.md"] = replaceRequired(
-    candidate.sources["docs/user/public-macos-0.1.0.md"],
+  candidate.sources[publicGuidePath] = replaceRequired(
+    candidate.sources[publicGuidePath],
     "question-, exploration-, session-, and blank-start reports",
     "session-start reports",
   );

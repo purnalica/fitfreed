@@ -81,7 +81,7 @@ test("normalizes the signed external Debian names only after the public build", 
   assert.deepEqual(calls[1], ["normalize", {
     directory: path.resolve("src-tauri/target/release/bundle/deb"),
     signature: "required",
-    version: "0.1.0",
+    version: packageJson.version,
   }]);
 });
 

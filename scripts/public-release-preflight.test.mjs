@@ -5,6 +5,7 @@ import { publicOrigin } from "./public-origin.mjs";
 import {
   validateProtectedReleaseEnvironment,
   validatePublicPagesConfiguration,
+  validatePublicRepositoryConfiguration,
   validatePublicReleaseInvocation,
   validateRequiredWorkflowRuns,
   resolveRemoteTagRevision,
@@ -166,6 +167,27 @@ test("accepts only the verified HTTPS Actions-backed custom Pages origin", () =>
     };
     mutate(pages);
     assert.throws(() => validatePublicPagesConfiguration(pages), expected);
+  }
+});
+
+test("accepts only current public repository metadata from the GitHub API", () => {
+  assert.deepEqual(validatePublicRepositoryConfiguration({
+    full_name: "purnalica/fitfreed",
+    visibility: "public",
+  }), {
+    repository: "purnalica/fitfreed",
+    visibility: "public",
+  });
+
+  for (const repository of [
+    undefined,
+    { full_name: "purnalica/fitfreed", visibility: "private" },
+    { full_name: "another-owner/fitfreed", visibility: "public" },
+  ]) {
+    assert.throws(
+      () => validatePublicRepositoryConfiguration(repository),
+      /public release repository/,
+    );
   }
 });
 

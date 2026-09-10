@@ -1,7 +1,7 @@
 {
   "name": "fitfreed",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A local-first open-source fitness data explorer",
   "license": "GPL-3.0-or-later",
   "repository": {

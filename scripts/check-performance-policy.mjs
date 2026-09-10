@@ -12,8 +12,11 @@ const currentPolicyPaths = [
   "docs/roadmap.md",
   "docs/testing/private-alpha-readiness.md",
   "docs/user/private-alpha-candidate.md",
-  "release/notes/0.1.0.md",
 ];
+
+export function performancePolicyPaths(releaseVersion) {
+  return [...currentPolicyPaths, `release/notes/${releaseVersion}.md`];
+}
 
 const fixedMemoryGate =
   /(?:\b8\s+(?:GB|GiB)\b[\s\S]{0,80}\b(?:acceptance|minimum|reference)\b|\b(?:acceptance|minimum|reference)\b[\s\S]{0,80}\b8\s+(?:GB|GiB)\b)/i;
@@ -57,9 +60,13 @@ export function validatePerformancePolicy(documents) {
 }
 
 export function inspectPerformancePolicy(repositoryRoot) {
+  const releaseVersion = JSON.parse(readFileSync(
+    path.join(repositoryRoot, "package.json"),
+    "utf8",
+  )).version;
   return validatePerformancePolicy(
     new Map(
-      currentPolicyPaths.map((relativePath) => [
+      performancePolicyPaths(releaseVersion).map((relativePath) => [
         relativePath,
         readFileSync(path.join(repositoryRoot, relativePath), "utf8"),
       ]),
