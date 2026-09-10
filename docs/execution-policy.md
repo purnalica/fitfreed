@@ -43,6 +43,13 @@ Every implementation loop must:
 8. Stop or avoid superseded work whose result cannot change the current decision. Record genuinely useful partial
    evidence, but do not keep a campaign alive merely because it has already consumed resources.
 
+A release-workflow, release-policy, documentation, or semantic-version-only correction does not by itself invalidate
+functional, performance, packaged-E2E, installation, update-recovery, or platform evidence for otherwise unchanged
+application behavior. Verify the changed release contract at its owning boundary and reuse existing fingerprint-bound
+product evidence. Run a complete product campaign only when product behavior or a target-native artifact property has
+changed, or when the final sealed candidate must prove the exact bytes that earlier evidence could not cover. Never
+run the same complete E2E journey both before and after a metadata-only commit.
+
 The complete acceptance matrix remains mandatory. This policy changes when evidence is gathered, not which product,
 security, recovery, accessibility, localization, performance, or documentation requirements must pass.
 
@@ -154,10 +161,13 @@ A necessary pause reports:
 - Private reference exports may be read only when they have been explicitly supplied for local analysis. They may not be modified, copied into the workspace, committed, or published.
 - Project files and non-destructive local verification may be created or changed within the active task and confirmed scope.
 - The project owner has authorized focused local commits throughout autonomous execution. Each commit must contain one coherent verified increment, use public-safe identity metadata, and pass the repository publication safeguards before creation.
-- Run the dirty-tree-compatible `npm run verify:precommit` gate before creating an executable candidate commit. Then
-  run `npm run verify:full` from that exact clean revision so startup identity, production bundle, and recovery evidence
-  remain source-bound. A failed clean-revision gate keeps the candidate local and requires a corrective focused commit
-  plus a complete rerun before push.
+- Run impact-mapped focused checks before creating a commit. `npm run verify:precommit` is the broad portable source
+  gate and deliberately excludes benchmarks, packaged E2E, update recovery, and packaging. Run `npm run verify:full`
+  once from an exact clean revision only when changed product behavior or a target-native artifact property requires
+  candidate admission. A release-workflow, release-policy, documentation, or semantic-version-only correction uses
+  its focused contracts and the protected exact-artifact pipeline instead of a local product campaign. A failed
+  clean-revision gate requires a focused causal correction followed by one new complete run; it does not authorize a
+  dirty-tree rehearsal of that same campaign.
 - The project owner has authorized a normal push to `origin/main` after every verified commit. The complete outgoing range must pass content, secret, and identity checks immediately before each push.
 - Creating tags, force-pushing, pushing another target, publishing releases or packages, or changing remote settings remains a separate action that requires explicit authority. The project owner authorized the GitHub Pages product-site setting and deployment on 2026-08-18; this does not authorize an application release or update channel.
 - Creating or changing external repositories, packages, releases, update channels, or public communications requires explicit authority for the exact target and action.

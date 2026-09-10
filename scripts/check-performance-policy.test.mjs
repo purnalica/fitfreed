@@ -27,8 +27,8 @@ test("accepts environment-qualified performance evidence", () => {
 });
 
 test("derives the reviewed release notes from the current version", () => {
-  assert.ok(performancePolicyPaths("0.1.1").includes("release/notes/0.1.1.md"));
-  assert.ok(!performancePolicyPaths("0.1.1").includes("release/notes/0.1.0.md"));
+  assert.ok(performancePolicyPaths("0.1.2").includes("release/notes/0.1.2.md"));
+  assert.ok(!performancePolicyPaths("0.1.2").includes("release/notes/0.1.0.md"));
 });
 
 test("rejects an unavailable fixed-memory acceptance gate", () => {

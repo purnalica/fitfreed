@@ -214,10 +214,10 @@ test("wires the dense-history gate into local and hosted complete verification",
     "node scripts/run-dense-history-benchmark.mjs",
   );
   assert.match(
-    packageMetadata.scripts["verify:precommit"],
+    packageMetadata.scripts["verify:candidate"],
     /benchmark:import.*benchmark:dense-history.*benchmark:insights/,
   );
-  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:precommit/);
+  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:candidate/);
   assert.match(
     workflow,
     /name: Verify dense training-history budgets\n\s+run: npm run benchmark:dense-history/,

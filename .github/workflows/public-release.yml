@@ -118,6 +118,7 @@ jobs:
 
       - name: Build and verify the signed notarized public candidate
         env:
+          GH_TOKEN: ${{ github.token }}
           FITFREED_VERSION: ${{ inputs.version }}
           FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
           FITFREED_ISSUED_AT: ${{ steps.issuance.outputs.issued_at }}

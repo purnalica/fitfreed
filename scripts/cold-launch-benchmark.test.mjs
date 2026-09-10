@@ -808,17 +808,16 @@ test("wires production identity and cold launch into local and hosted gates", ()
     packageMetadata.scripts["benchmark:cold-launch"],
     "node scripts/run-cold-launch-benchmark.mjs",
   );
-  assert.match(
-    packageMetadata.scripts["verify:precommit"],
-    /doctor.*package$/,
-  );
+  assert.match(packageMetadata.scripts["verify:precommit"], /doctor.*format:check$/);
   assert.doesNotMatch(
     packageMetadata.scripts["verify:precommit"],
-    /benchmark:cold-launch|check:production-bundle|verify:update-recovery-preparation/,
+    /benchmark:|verify:e2e|verify:update-e2e|package|check:production-bundle|verify:update-recovery-preparation/,
   );
+  assert.match(packageMetadata.scripts["verify:candidate"], /^npm run verify:precommit/);
+  assert.match(packageMetadata.scripts["verify:candidate"], /verify:e2e.*verify:update-e2e.*package$/);
   assert.equal(
     packageMetadata.scripts["verify:full"],
-    "npm run verify:precommit && npm run benchmark:cold-launch && npm run check:production-bundle && npm run verify:update-recovery-preparation",
+    "npm run verify:candidate && npm run benchmark:cold-launch && npm run check:production-bundle && npm run verify:update-recovery-preparation",
   );
   assert.match(
     workflow,

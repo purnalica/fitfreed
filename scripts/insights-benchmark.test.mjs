@@ -55,6 +55,6 @@ test("wires the isolated benchmark into complete local verification", () => {
     packageMetadata.scripts["benchmark:insights"],
     "node scripts/run-insights-benchmark.mjs",
   );
-  assert.match(packageMetadata.scripts["verify:precommit"], /benchmark:insights/);
-  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:precommit/);
+  assert.match(packageMetadata.scripts["verify:candidate"], /benchmark:insights/);
+  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:candidate/);
 });

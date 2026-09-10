@@ -2,31 +2,42 @@
 
 ## Current boundary
 
-Public binary release automation is deliberately inactive. The checked-in update configuration contains the reviewed
-public `stable.primary-1` trust key, while release-checksum trust remains inactive. No private updater, Apple,
-release-checksum, or Windows Authenticode authority is available to a workflow. The protected environment contains the
-updater private key and its separately supplied password, but that authority has not yet passed a real sign-and-verify
-operation. It also contains the repository-scoped Administration-read token used only to verify immutable Releases;
-GitHub exposes the secret's presence but its permission check remains fail-closed at the start of the protected build.
+Public binary release automation remains gated and has not published an application. The checked-in update
+configuration contains the reviewed public `stable.primary-1` trust key, while release-checksum trust remains
+inactive. No private updater, Apple, release-checksum, or Windows Authenticode authority is present in source or
+ordinary continuous integration. The protected environment contains the updater and Apple authority required for the
+initial macOS candidate, but the updater authority has not yet passed a real artifact sign-and-verify operation. It
+also contains the repository-scoped Administration-read token used only to verify immutable Releases; that permission
+check passed inside the first protected execution.
 The `public-macos-release` environment is configured with the bootstrap reviewer, initiator approval, disabled
 administrator bypass, and the single `v*` tag policy. The later Linux and Windows release authorities and environments
 remain unavailable. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the
-canonical origin for the product site without an application download or signed update snapshot. The initial macOS,
-first Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are release
-gates, not reasons to weaken or bypass an implemented publication workflow.
+canonical origin for the product site without an application download or signed update snapshot. The initial macOS
+workflow is active only through explicit dispatch and two protected approvals. The first Linux-expansion and
+complete-platform Windows-expansion workflows exist but remain inactive. These are release gates, not reasons to weaken or
+bypass an implemented publication workflow.
 
 The first `v0.1.0` dispatch on 2026-09-10 stopped in the secret-free preflight before any protected environment or
 credential was admitted. The preflight expected a runner environment variable for repository visibility that GitHub
 does not provide. Current source obtains the canonical repository identity and live visibility from GitHub's read-only
 repository API alongside the existing Pages, workflow, and environment evidence. The public `v0.1.0` tag remains
-fixed at the rejected source and is neither moved nor reused; the corrected first publishable candidate is 0.1.1.
+fixed at the rejected source and is neither moved nor reused.
+
+The `v0.1.1` dispatch on 2026-09-11 passed the secret-free preflight, the first protected approval, immutable-Release
+permission verification, and ephemeral Apple and updater authority installation. Candidate preparation then repeated
+the live preflight without receiving the job-scoped read-only GitHub token and stopped before building, signing,
+notarizing, sealing, or publishing any artifact. The protected authority cleanup passed. Current source makes that
+read-only token an explicit preparation input and verifies the boundary through the workflow contract. The public
+`v0.1.1` tag remains fixed at the rejected source and is neither moved nor reused; the corrected first publishable
+candidate is 0.1.2.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
 an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
-Apple's notarization service passes outside the workflow. The one-way certificate secrets cannot be tested together
-until the protected build imports them; no application has yet been signed or submitted with these authorities.
+Apple's notarization service passes outside the workflow. The first protected execution imported and jointly validated
+the certificate, private key, expected team, and App Store Connect credential before removing them in its unconditional
+cleanup step; no application has yet been signed or submitted with these authorities.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -96,7 +107,7 @@ Synthetic tests prove orchestration and failure behavior but cannot claim Apple 
 
 ## Protected preparation
 
-After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job, requires Apple Silicon macOS, and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The updater password remains an environment secret and is never passed as a command-line argument.
+After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job with only the job-scoped read-only GitHub token needed to reopen repository, Pages, workflow, and environment evidence. It requires Apple Silicon macOS and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The updater password remains an environment secret and is never passed as a command-line argument.
 
 Preparation deletes only the generated Tauri bundle directory before building, preventing stale private or test artifacts from satisfying a public check. Tauri creates the signed, notarized application, DMG, updater archive, and updater signature. The objective Apple trust inspector runs before evidence is assembled.
 

@@ -63,3 +63,15 @@ test("rejects a bypassed approval, candidate transport, publication order, clean
     assert.throws(() => validatePublicReleaseWorkflow(mutate(workflow)), expected);
   }
 });
+
+test("requires the protected preparation boundary to retain read-only GitHub evidence access", () => {
+  const withoutPreparationToken = workflow.replace(
+    "      - name: Build and verify the signed notarized public candidate\n        env:\n          GH_TOKEN: ${{ github.token }}\n",
+    "      - name: Build and verify the signed notarized public candidate\n        env:\n",
+  );
+
+  assert.throws(
+    () => validatePublicReleaseWorkflow(withoutPreparationToken),
+    /preparation requires the read-only GitHub token/u,
+  );
+});

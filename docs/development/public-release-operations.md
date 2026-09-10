@@ -243,7 +243,7 @@ digest-bound input or candidate, because a new timestamp can produce different b
 
 ## Build approval and sealed candidate
 
-The first protected approval admits `build-candidate` to the Apple, updater, and limited administrative read authority. The job repeats preflight, verifies immutable-release configuration, creates an ephemeral keychain, builds and notarizes the application, staples and inspects the application and DMG, generates the update snapshot and evidence, and verifies the complete candidate.
+The first protected approval admits `build-candidate` to the Apple, updater, and limited administrative read authority. The job repeats preflight with only its job-scoped read-only GitHub token, verifies immutable-release configuration, creates an ephemeral keychain, builds and notarizes the application, staples and inspects the application and DMG, generates the update snapshot and evidence, and verifies the complete candidate.
 
 It then creates `candidate.tar.gz`, records its SHA-256 digest as a job output, uploads one Actions artifact named `public-macos-candidate-<version>-<revision>`, and removes all release authority. The artifact contains only the public-shaped `release/` and `pages/` trees. It is retained for seven days and is not a GitHub Release or update-channel deployment.
 

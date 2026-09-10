@@ -208,10 +208,10 @@ test("wires the same full-scale import gate into local and hosted verification",
     "node scripts/run-import-benchmark.mjs",
   );
   assert.match(
-    packageMetadata.scripts["verify:precommit"],
+    packageMetadata.scripts["verify:candidate"],
     /benchmark:import.*benchmark:insights/,
   );
-  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:precommit/);
+  assert.match(packageMetadata.scripts["verify:full"], /^npm run verify:candidate/);
   assert.match(
     workflow,
     /name: Verify full-scale import budgets\n\s+run: npm run benchmark:import/,

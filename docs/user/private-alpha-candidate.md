@@ -137,7 +137,7 @@ Do not include personal values, archive or library names, filesystem paths, prov
 
 ## Known acceptance gates
 
-The [private alpha readiness ledger](../testing/private-alpha-readiness.md) records why this proposed private profile was not accepted. The consolidated [public-release ledger](../testing/public-release-readiness.md) is the canonical current status, and the [public macOS guide](public-macos-0.1.1.md) owns the intended release journey. This private guide would have become active only if all of the following had been true for one exact private candidate:
+The [private alpha readiness ledger](../testing/private-alpha-readiness.md) records why this proposed private profile was not accepted. The consolidated [public-release ledger](../testing/public-release-readiness.md) is the canonical current status, and the [public macOS guide](public-macos-0.1.2.md) owns the intended release journey. This private guide would have become active only if all of the following had been true for one exact private candidate:
 
 - the complete local and hosted release gates pass from its clean source revision;
 - the complete hosted macOS and clean local Apple Silicon campaigns pass the required import, query, rendering, migration, and recovery budgets;

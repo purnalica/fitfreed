@@ -40,7 +40,7 @@ privacy-safe recording boundary below.
 The same bounded experience review may be repeated against an exact private or public macOS candidate after all
 applicable automated candidate gates pass. The evaluated bytes and trust behavior must match the selected
 [private alpha candidate guide](../user/private-alpha-candidate.md) or
-[public macOS guide](../user/public-macos-0.1.1.md). A public candidate must be the sealed Actions artifact awaiting
+[public macOS guide](../user/public-macos-0.1.2.md). A public candidate must be the sealed Actions artifact awaiting
 promotion.
 
 This review does not prove signing, notarization, Gatekeeper, installation, update, recovery, data preservation,

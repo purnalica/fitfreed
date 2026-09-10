@@ -123,6 +123,12 @@ export function validatePublicReleaseWorkflow(source) {
     "Remove ephemeral release authority",
   ]);
   requireWorkflowMatch(errors, build, /outputs:\n      candidate-sha256:/, "candidate build must expose its sealed digest");
+  requireWorkflowMatch(
+    errors,
+    build,
+    /- name: Build and verify the signed notarized public candidate\n        env:\n          GH_TOKEN: \$\{\{ github\.token \}\}/,
+    "public candidate preparation requires the read-only GitHub token",
+  );
   requireWorkflowMatch(errors, build, /uses: actions\/upload-artifact@/, "candidate build must retain evaluation evidence");
   requireWorkflowMatch(errors, build, /- name: Remove ephemeral release authority\n        if: always\(\)/, "release authority cleanup must always execute");
 
