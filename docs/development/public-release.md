@@ -15,6 +15,10 @@ canonical origin for the product site without an application download or signed 
 first Linux-expansion, and complete-platform Windows-expansion workflows exist but remain inactive. These are release
 gates, not reasons to weaken or bypass an implemented publication workflow.
 
+An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
+certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
+certificate bundle and password are not. App Store Connect notarization authority is also unavailable to the workflow.
+
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
 ## Secret-free preflight
