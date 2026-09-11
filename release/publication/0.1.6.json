@@ -1,10 +1,10 @@
 {
   "format": "org.fitfreed.public-release-policy",
   "schemaVersion": 1,
-  "releaseVersion": "0.1.5",
+  "releaseVersion": "0.1.6",
   "update": {
-    "sequence": 6,
-    "minimumSupportedVersion": "0.1.5",
+    "sequence": 7,
+    "minimumSupportedVersion": "0.1.6",
     "releaseNotes": {
       "en-US": "First public FitFreed release for importing and exploring Polar Flow takeout data locally.",
       "es-ES": "Primera versión pública de FitFreed para importar y explorar localmente los datos exportados de Polar Flow."

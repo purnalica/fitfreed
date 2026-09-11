@@ -61,8 +61,10 @@ test("checks the complete application, disk image, notarization, and Gatekeeper 
   const invocations = [];
   const runCommand = (stage, command, args) => {
     invocations.push([stage, command, ...args]);
-    if (command === "codesign" && args.includes("--extract-certificates")) {
-      const prefix = args[args.indexOf("--extract-certificates") + 1];
+    const extractCertificates = args.find((argument) =>
+      argument.startsWith("--extract-certificates="));
+    if (command === "codesign" && extractCertificates) {
+      const prefix = extractCertificates.slice("--extract-certificates=".length);
       writeFileSync(`${prefix}0`, "same synthetic leaf certificate");
       return "";
     }
@@ -103,6 +105,12 @@ test("checks the complete application, disk image, notarization, and Gatekeeper 
       command === "xcrun" && args[0] === "stapler").length,
     2,
   );
+  assert.equal(
+    invocations.filter(([, command, ...args]) =>
+      command === "codesign"
+      && args.some((argument) => argument.startsWith("--extract-certificates="))).length,
+    2,
+  );
   assert.deepEqual(invocations.map(([stage]) => stage), [
     "application-signature-verification",
     "application-signature-details",
@@ -132,8 +140,10 @@ test("rejects application and disk image certificates that do not match", () => 
   writeFileSync(executable, "synthetic executable");
   writeFileSync(diskImagePath, "synthetic disk image");
   const runCommand = (stage, command, args) => {
-    if (command === "codesign" && args.includes("--extract-certificates")) {
-      const prefix = args[args.indexOf("--extract-certificates") + 1];
+    const extractCertificates = args.find((argument) =>
+      argument.startsWith("--extract-certificates="));
+    if (command === "codesign" && extractCertificates) {
+      const prefix = extractCertificates.slice("--extract-certificates=".length);
       writeFileSync(`${prefix}0`, prefix.includes("application-") ? "application" : "disk image");
       return "";
     }

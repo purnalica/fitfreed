@@ -61,17 +61,29 @@ contract for the final distributable container. Current source explicitly verifi
 and secure timestamp, notarizes, checks the notarization log, and staples the final DMG before objective trust
 inspection. Every command failure now identifies its exact stage without emitting raw signing diagnostics. Cleanup
 passed; no candidate was sealed, retained, or published. The public `v0.1.4` tag remains fixed at the rejected source
-and is neither moved nor reused; the next candidate is 0.1.5.
+and is neither moved nor reused; its corrected successor was 0.1.5.
+
+The `v0.1.5` [dispatch `34628632360`](https://github.com/purnalica/fitfreed/actions/runs/34628632360) passed
+preflight and independently signed, notarized, inspected, and stapled the final DMG after Tauri completed the same
+application boundary and emitted the updater archive and signature. Stage-specific objective trust then stopped while
+extracting the application's leaf signing certificate. A local reproduction against an existing signed application
+established the command-contract defect: macOS `codesign` requires the output prefix in the single
+`--extract-certificates=<prefix>` argument form; when supplied as a following argument, it treats that prefix as
+another candidate path. The synthetic command mock had accepted the non-operational form. Current source encodes the
+actual command shape in both implementation and contract test. Cleanup passed; no candidate was sealed, retained, or
+published. The public `v0.1.5` tag remains fixed at the rejected source and is neither moved nor reused; the next
+candidate is 0.1.6.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
 an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
-Apple's notarization service passes outside the workflow. The protected 0.1.2 through 0.1.4 executions imported the
+Apple's notarization service passes outside the workflow. The protected 0.1.2 through 0.1.5 executions imported the
 certificate and private key, signed the application and DMG, submitted the application, received Apple's accepted
-notarization result, and stapled the application before independent updater configuration failures stopped candidate
-preparation or objective trust rejected the result. Version 0.1.4 additionally proved updater artifact signing. No
-unsealed runner-local output was retained or published, and unconditional authority cleanup passed.
+notarization result, and stapled the application. Version 0.1.4 proved updater artifact signing; version 0.1.5 also
+proved independent final-DMG signing, notarization, log inspection, and stapling before objective certificate
+inspection exposed the command-shape defect. No unsealed runner-local output was retained or published, and
+unconditional authority cleanup passed.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 

@@ -86,8 +86,7 @@ function assertCandidatePaths(applicationPath, diskImagePath) {
 function leafCertificateSha256(runCommand, stage, candidatePath, prefix) {
   runCommand(stage, "codesign", [
     "--display",
-    "--extract-certificates",
-    prefix,
+    `--extract-certificates=${prefix}`,
     candidatePath,
   ]);
   const certificatePath = `${prefix}0`;

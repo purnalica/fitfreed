@@ -1,6 +1,6 @@
 [package]
 name = "fitfreed"
-version = "0.1.5"
+version = "0.1.6"
 description = "A local-first open-source fitness data explorer"
 authors = ["FitFreed contributors"]
 license = "GPL-3.0-or-later"

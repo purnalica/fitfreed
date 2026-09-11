@@ -8,7 +8,7 @@ import { finalizePublicMacosDiskImage } from "./finalize-public-macos-disk-image
 
 function fixture() {
   const directory = mkdtempSync(path.join(tmpdir(), "fitfreed-public-dmg-test-"));
-  const diskImagePath = path.join(directory, "FitFreed_0.1.5_aarch64.dmg");
+  const diskImagePath = path.join(directory, "FitFreed_0.1.6_aarch64.dmg");
   const apiKeyPath = path.join(directory, "AuthKey_A1B2C3D4E5.p8");
   writeFileSync(diskImagePath, "synthetic disk image");
   writeFileSync(apiKeyPath, "synthetic API key");
