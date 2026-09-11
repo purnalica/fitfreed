@@ -2,12 +2,15 @@
 
 ## Purpose
 
-[`public-update-configuration-v1.schema.json`](../../../schemas/public-update-configuration-v1.schema.json) defines the versioned, public, non-secret inputs that distinguish an ordinary build from a public stable-channel build. The current instance is [`release/public-update-channel.json`](../../../release/public-update-channel.json).
+[`public-update-configuration-v1.schema.json`](../../../schemas/public-update-configuration-v1.schema.json) defines the
+closed version 1 public, non-secret inputs that distinguished an ordinary build from a public stable-channel build.
+The current [`release/public-update-channel.json`](../../../release/public-update-channel.json) instance uses the
+recovery-capable [version 2 contract](public-update-configuration-v2.md).
 
 This configuration does not contain or name environment secrets, private keys, Apple credentials, generated
-signatures, packages, or publication authority. The current instance is active with the reviewed public
-`stable.primary-1` key after the accountable external key ceremony. Activation supplies public trust to future release
-builds; it does not make private signing authority or a signed update snapshot available.
+signatures, packages, or publication authority. The final version 1 instance was active with the reviewed public
+`stable.primary-1` key after the accountable external key ceremony. That key remains in the successor configuration;
+public trust does not make private signing authority or a signed update snapshot available.
 
 ## Fields
 

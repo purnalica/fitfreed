@@ -6939,22 +6939,20 @@ const validateRecoverablePublicUpdateConfiguration = ajv.compile(
 const canonicalPublicUpdateConfiguration = JSON.parse(
   read("release/public-update-channel.json"),
 );
-const syntheticRecoverablePublicUpdateConfiguration = {
+const syntheticLegacyPublicUpdateConfiguration = {
   ...canonicalPublicUpdateConfiguration,
-  schemaVersion: 2,
-  contract: "stable-v3",
+  schemaVersion: 1,
+  contract: "stable-v2",
 };
 if (
-  !validatePublicUpdateConfiguration(canonicalPublicUpdateConfiguration)
-  || !validateRecoverablePublicUpdateConfiguration(
-    syntheticRecoverablePublicUpdateConfiguration,
-  )
+  !validatePublicUpdateConfiguration(syntheticLegacyPublicUpdateConfiguration)
+  || !validateRecoverablePublicUpdateConfiguration(canonicalPublicUpdateConfiguration)
 ) {
   throw new Error("a public update configuration schema rejected its own contract");
 }
 if (
-  validatePublicUpdateConfiguration(syntheticRecoverablePublicUpdateConfiguration)
-  || validateRecoverablePublicUpdateConfiguration(canonicalPublicUpdateConfiguration)
+  validatePublicUpdateConfiguration(canonicalPublicUpdateConfiguration)
+  || validateRecoverablePublicUpdateConfiguration(syntheticLegacyPublicUpdateConfiguration)
 ) {
   throw new Error("public update configuration schemas accepted another contract version");
 }
