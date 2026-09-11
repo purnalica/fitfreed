@@ -14,6 +14,8 @@ remain in the ordered complete-platform release path.
 - Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
 - Read the [private alpha candidate guide](user/private-alpha-candidate.md) for the version-matched 0.1.0 user journey and the gates that keep it inactive.
 - Read the [public macOS 0.1.7 guide](user/public-macos-0.1.7.md) for verified download, installation, import, update, recovery, privacy, and removal.
+- Read the proposed [public macOS 0.1.8 guide](user/public-macos-0.1.8.md) and [public Linux 0.1.8 guide](user/public-linux-0.1.8.md) for the inactive complete-platform expansion boundary.
+- Read the inactive [public Windows 0.1.8 guide](user/public-windows-0.1.8.md) for the future-platform documentation contract; it does not announce or assign a Windows release.
 - Check the [public-release readiness ledger](testing/public-release-readiness.md) for the exact passed, pending, open, and unauthorized boundaries.
 - Read the [user-documentation status](user/README.md) before opening any build.
 - Read the project [disclaimer](../DISCLAIMER.md) and [support boundary](../SUPPORT.md).

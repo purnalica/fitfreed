@@ -1,8 +1,8 @@
 {
   "format": "org.fitfreed.public-update-configuration",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "active",
-  "contract": "stable-v2",
+  "contract": "stable-v3",
   "metadataEndpoint": "https://fitfreed.org/updates/stable.json",
   "keys": [
     {

@@ -9,9 +9,14 @@ const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const packageJson = JSON.parse(
   readFileSync(path.join(repositoryRoot, "package.json"), "utf8"),
 );
-const inactiveUpdateConfiguration = JSON.parse(
+const publicUpdateConfiguration = JSON.parse(
   readFileSync(path.join(repositoryRoot, "release/public-update-channel.json"), "utf8"),
 );
+const inactiveUpdateConfiguration = {
+  ...publicUpdateConfiguration,
+  status: "inactive",
+  keys: [],
+};
 const prepareLinuxExpansionInputSource = readFileSync(
   path.join(repositoryRoot, "scripts/prepare-linux-expansion-input.mjs"),
   "utf8",
@@ -52,7 +57,7 @@ test("builds the secret-free Linux expansion input with public update trust", ()
   );
   assert.equal(
     calls[0].publicUpdateEnvironment.FITFREED_PUBLIC_UPDATE_ENDPOINT,
-    inactiveUpdateConfiguration.metadataEndpoint,
+    publicUpdateConfiguration.metadataEndpoint,
   );
   assert.doesNotMatch(JSON.stringify(calls[0]), /PRIVATE|PASSWORD/u);
   assert.match(

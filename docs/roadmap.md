@@ -8,7 +8,8 @@ Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.7) for Apple Si
 workflow [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the
 admitted signed and notarized candidate and passed Pages, provenance, stable-channel, and remote-byte verification.
 Milestone 4 is now the active public Linux expansion; Milestone 5 follows for Windows. Platform acceptance and public
-promotion remain ordered macOS, Linux, then Windows. D0
+promotion remain ordered macOS, Linux, then Windows. Version 0.1.8 is assigned to the complete macOS-plus-Linux
+release; its independent release-checksum authority, exact candidate, native admission, and promotion remain open. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
 capability boundaries; P1 published the truthful canonical product site; E1 through E5 and the previously planned E6
 corrections retain complete local and hosted engineering evidence. The subsequent [independent product-experience

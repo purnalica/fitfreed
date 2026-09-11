@@ -2,8 +2,8 @@
 
 ## Current availability
 
-FitFreed has an executable development preview and a complete public-release engineering path, but no
-supported public release. It is not ready for general use with real personal exports. An empty library opens
+FitFreed 0.1.7 is the supported public release for Apple Silicon on macOS 15.0 or later. Linux and Windows remain in
+the ordered complete-platform release path. An empty library opens
 a value-first Home that demonstrates the supported outcome and offers both choosing an existing archive and
 learning how to obtain one. The latter path opens Sources, where a versioned offline guide explains how to
 obtain a Polar Flow ZIP through explicit allowlisted official links. Sources replaces acquisition choices
@@ -199,19 +199,21 @@ The [private macOS alpha candidate guide](private-alpha-candidate.md) is the ver
 The [public macOS 0.1.7 guide](public-macos-0.1.7.md) is the operative signed-release download, verification,
 installation, import, exploration, update, recovery, removal, and support guide.
 
-The [public Linux 0.1.7 guide](public-linux-0.1.7.md) is the future Ubuntu x86-64 Debian-package download,
-verification, graphical installation, update, recovery, removal, local-data, and support guide. It is conditional and
-does not announce a Linux binary.
+The [proposed public macOS 0.1.8 guide](public-macos-0.1.8.md) and [proposed public Linux 0.1.8
+guide](public-linux-0.1.8.md) describe the complete macOS-plus-Linux expansion. Both remain inactive until the
+independent release-checksum authority, exact candidate, native admission, and public-promotion gates close.
 
-The [public Windows 0.1.7 guide](public-windows-0.1.7.md) is the future Windows 11 x86-64 current-user NSIS download,
-verification, Authenticode and SmartScreen interpretation, installation, update, recovery, removal, local-data, and
-support guide. It is conditional and does not announce a Windows binary.
+The [public Linux 0.1.7 guide](public-linux-0.1.7.md) is retained as historical preparation. Version 0.1.7 never
+published a Linux binary.
+
+The [public Windows 0.1.8 guide](public-windows-0.1.8.md) is inactive preparation tied to the repository version. It
+does not assign or announce a Windows release; a later version will replace it before any Windows binary is published.
 
 The [public macOS readiness ledger](../testing/public-release-readiness.md),
 [Milestone 4 Linux execution ledger](../plans/milestone-4.md), and
 [Milestone 5 Windows execution ledger](../plans/milestone-5.md) record which gates have passed and which still prevent
-their respective guides from becoming operative. FitFreed 0.1.0 is not accepted on a platform while any applicable
-gate remains pending, open, awaiting a candidate, or unauthorized.
+their respective guides from becoming operative. A platform expansion is not supported while any applicable gate
+remains pending, open, awaiting a candidate, or unauthorized.
 
 ## Safety boundary
 

@@ -211,8 +211,8 @@ for (const [outputFile, expected] of [
 }
 
 assert.doesNotMatch(source, /download (fitfreed|for macos)|get fitfreed/iu);
-assert.match(source, /No supported download yet/u);
-assert.match(sourceDocument.querySelector("#status .section-heading").textContent, /There is no supported public download yet/u);
+assert.match(source, /Public macOS release available/u);
+assert.match(sourceDocument.querySelector("#status .section-heading").textContent, /supported public macOS release/u);
 
 const styles = readFileSync(resolve(pageDirectory, "styles.css"), "utf8");
 assert.doesNotMatch(styles, /url\(\s*["']?https?:/u, "product-page styles must not load remote assets");

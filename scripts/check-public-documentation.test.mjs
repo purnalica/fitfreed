@@ -24,17 +24,17 @@ test("accepts the complete version-matched public documentation set", () => {
   });
 });
 
-test("rejects readiness copy that conflates product acceptance with public availability", () => {
+test("rejects readiness copy that loses the public macOS availability decision", () => {
   const candidate = bundle();
   const readinessPath = "docs/testing/public-release-readiness.md";
   candidate.documents[readinessPath] = candidate.documents[readinessPath].replace(
-    "accepted for the current MVP scope but is not publicly available",
-    "accepted and publicly available",
+    "first supported public release for Apple Silicon on macOS 15.0 or later",
+    "accepted product baseline for macOS",
   );
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
-    /readiness does not document separate product-acceptance and inactive-release decisions/,
+    /readiness does not document supported public macOS decision/,
   );
 });
 
@@ -52,8 +52,8 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
     .replaceAll("manifest version 7", "the complete manifest")
     .replaceAll("Windows Authenticode authority", "Windows build authority")
     .replaceAll(
-      "Windows-expansion workflows exist but remain inactive",
-      "Windows-expansion workflow is active",
+      "Windows release authorities remain separate later gates",
+      "Windows release authority is active",
     )
     .replace(
       /never\s+rebuilt as a substitute for the sealed bytes/i,
@@ -173,17 +173,17 @@ test("rejects missing locale guidance and distribution state in reviewed notes",
   );
 });
 
-test("rejects guidance that no longer declares the inactive release boundary", () => {
+test("rejects a macOS guide that loses its conditional operative boundary", () => {
   const candidate = bundle();
   const guidePath = `docs/user/public-macos-${candidate.version}.md`;
   candidate.documents[guidePath] = candidate.documents[guidePath].replace(
-    "No public binary is available while",
-    "A public binary is available while",
+    "operative version-matched guide",
+    "general guide",
   );
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
-    /userGuide does not document inactive public-release status/,
+    /userGuide does not document supported public-release status/,
   );
 });
 

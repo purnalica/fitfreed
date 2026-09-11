@@ -12,14 +12,14 @@ const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const packageJson = JSON.parse(
   readFileSync(path.join(repositoryRoot, "package.json"), "utf8"),
 );
-const inactiveUpdateConfiguration = JSON.parse(
+const publicUpdateConfiguration = JSON.parse(
   readFileSync(path.join(repositoryRoot, "release/public-update-channel.json"), "utf8"),
 );
-const updaterPublicKey = inactiveUpdateConfiguration.keys[0].publicKey;
+const updaterPublicKey = publicUpdateConfiguration.keys[0].publicKey;
 
 test("builds one Linux public candidate with mandatory updater artifacts", () => {
   const configuration = {
-    ...inactiveUpdateConfiguration,
+    ...publicUpdateConfiguration,
     contract: "stable-v3",
     schemaVersion: 2,
   };
@@ -49,7 +49,7 @@ test("builds one Linux public candidate with mandatory updater artifacts", () =>
 
 test("rejects another host or unreviewed build arguments", () => {
   const configuration = {
-    ...inactiveUpdateConfiguration,
+    ...publicUpdateConfiguration,
     contract: "stable-v3",
     schemaVersion: 2,
   };
@@ -76,7 +76,7 @@ test("rejects another host or unreviewed build arguments", () => {
 test("normalizes the signed external Debian names only after the public build", () => {
   const calls = [];
   const configuration = {
-    ...inactiveUpdateConfiguration,
+    ...publicUpdateConfiguration,
     contract: "stable-v3",
     schemaVersion: 2,
     status: "active",
@@ -127,8 +127,10 @@ test("rejects legacy update trust before building a Linux public candidate", () 
         built = true;
       },
       configuration: {
-        ...inactiveUpdateConfiguration,
+        ...publicUpdateConfiguration,
+        schemaVersion: 1,
         status: "active",
+        contract: "stable-v2",
         keys: [{
           id: "stable.synthetic",
           publicKey: updaterPublicKey,

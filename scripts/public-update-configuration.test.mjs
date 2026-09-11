@@ -22,7 +22,9 @@ const inactiveConfiguration = {
 
 const activeConfiguration = {
   ...inactiveConfiguration,
+  schemaVersion: 1,
   status: "active",
+  contract: "stable-v2",
   keys: [
     {
       id: "stable.synthetic-1",
@@ -57,7 +59,7 @@ test("activates the reviewed primary public updater trust", () => {
   assert.deepEqual(configuration.keys.map(({ id }) => id), ["stable.primary-1"]);
   decodeReleasePublicKey(configuration.keys[0].publicKey);
   assert.deepEqual(publicUpdateBuildEnvironment(configuration, true), {
-    FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v2",
+    FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v3",
     FITFREED_PUBLIC_UPDATE_ENDPOINT: publicUpdateEndpoint,
     FITFREED_PUBLIC_UPDATE_TRUST: JSON.stringify({
       "stable.primary-1": configuration.keys[0].publicKey,

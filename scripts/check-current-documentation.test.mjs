@@ -248,7 +248,7 @@ test("rejects divergence in the accepted MVP experience disposition", () => {
   );
   candidate.sources["docs/roadmap.md"] = replaceRequired(
     candidate.sources["docs/roadmap.md"],
-    "Milestone 2 and the D0–E6 product-experience objective are complete",
+    "Milestones 1 through 3, Milestone 2's D0–E6 product-experience objective, and the public macOS release are complete",
     "Milestone 2 product-experience acceptance remains open",
   );
   candidate.sources["docs/research/x6-product-experience-human-evaluation.md"] = replaceRequired(
@@ -258,8 +258,8 @@ test("rejects divergence in the accepted MVP experience disposition", () => {
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "product experience is **accepted for the current MVP scope but is not publicly available**",
-    "product experience remains unaccepted and unavailable",
+    "FitFreed 0.1.7 is the first supported public release for Apple Silicon on macOS 15.0 or later",
+    "FitFreed remains unavailable on macOS",
   );
 
   assert.throws(
@@ -269,7 +269,7 @@ test("rejects divergence in the accepted MVP experience disposition", () => {
       assert.match(error.message, /redesign plan does not record the accepted final review/);
       assert.match(error.message, /roadmap does not record the completed product-experience objective/);
       assert.match(error.message, /human evaluation does not record the closed product-experience gate/);
-      assert.match(error.message, /release readiness does not separate accepted product experience from public availability/);
+      assert.match(error.message, /release readiness does not record public macOS availability/);
       return true;
     },
   );

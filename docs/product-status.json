@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-09-03",
+  "updated": "2026-09-12",
   "statuses": [
     {
       "key": "available",
@@ -46,8 +46,8 @@
       "label": "Work in progress",
       "title": "Cross-platform MVP delivery",
       "items": [
-        { "key": "macosRelease", "text": "The admitted macOS baseline still requires exact-candidate experience acceptance, production signing and notarization, and explicit publication" },
-        { "key": "linuxParity", "text": "Ubuntu 24.04 and 26.04 x86-64 Debian-package parity engineering is active; no public Linux binary exists" },
+        { "key": "macosRelease", "text": "FitFreed 0.1.7 is the supported public Apple Silicon macOS baseline; version 0.1.8 is assigned to the complete macOS-plus-Linux expansion" },
+        { "key": "linuxParity", "text": "The Ubuntu Desktop 24.04 and 26.04 x86-64 Debian package is implemented; public 0.1.8 still requires production checksum authority and exact-candidate admission" },
         { "key": "windowsParity", "text": "Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists" }
       ],
       "source": {

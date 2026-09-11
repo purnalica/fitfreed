@@ -11,11 +11,9 @@ results outside the platform that recorded them.
 [Visit the product site](https://fitfreed.org/) · [Review the roadmap](docs/roadmap.md) ·
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
-> **No supported release is available yet.** The current source contains the tested macOS engineering
-> baseline and the implemented MVP experience. The independent machine-assisted audit has passed; production-native
-> human evaluation and exact-candidate acceptance remain in progress. Real
-> personal exports remain outside the public-evaluation boundary until an exact release candidate
-> passes its privacy, installation, update, and usability gates.
+> **FitFreed 0.1.7 is available for Apple Silicon on macOS 15.0 or later.** Its immutable public Release contains the
+> admitted Developer ID-signed and Apple-notarized package. Linux and Windows remain in the ordered
+> complete-platform release path. Follow only the version-matched public guide before importing personal data.
 
 ## A downloaded archive is not practical freedom
 
@@ -100,8 +98,8 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <details data-status="active" open>
 <summary><strong>Work in progress — Cross-platform MVP delivery</strong></summary>
 <ul>
-<li>The admitted macOS baseline still requires exact-candidate experience acceptance, production signing and notarization, and explicit publication</li>
-<li>Ubuntu 24.04 and 26.04 x86-64 Debian-package parity engineering is active; no public Linux binary exists</li>
+<li>FitFreed 0.1.7 is the supported public Apple Silicon macOS baseline; version 0.1.8 is assigned to the complete macOS-plus-Linux expansion</li>
+<li>The Ubuntu Desktop 24.04 and 26.04 x86-64 Debian package is implemented; public 0.1.8 still requires production checksum authority and exact-candidate admission</li>
 <li>Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists</li>
 </ul>
 <p><a href="docs/roadmap.md#milestone-map">Cross-platform delivery roadmap →</a></p>

@@ -1,0 +1,14 @@
+{
+  "format": "org.fitfreed.public-release-policy",
+  "schemaVersion": 1,
+  "releaseVersion": "0.1.8",
+  "update": {
+    "sequence": 9,
+    "minimumSupportedVersion": "0.1.7",
+    "releaseNotes": {
+      "en-US": "Adds supported x86-64 Ubuntu Desktop 24.04 and 26.04 distribution alongside Apple Silicon macOS without changing the accepted MVP feature set.",
+      "es-ES": "Añade distribución compatible para Ubuntu Desktop 24.04 y 26.04 x86-64 junto a macOS con Apple Silicon, sin cambiar el conjunto de funciones aceptado para el MVP."
+    },
+    "withdrawnVersions": []
+  }
+}

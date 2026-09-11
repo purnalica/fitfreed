@@ -6,9 +6,10 @@ FitFreed 0.1.7 is the first immutable public release. Protected workflow
 [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the exact admitted
 Developer ID-signed and Apple-notarized macOS candidate, source-bound evidence, localized product site, and signed
 stable update snapshot, then remotely verified every public byte and provenance boundary. The checked-in update
-configuration contains the active `stable.primary-1` trust key; release-checksum trust remains inactive until the
-Linux expansion. No private updater, Apple, release-checksum, or Windows Authenticode authority is present in source
-or ordinary continuous integration.
+configuration contains the active `stable.primary-1` trust key. The proposed 0.1.8 Linux expansion advances that
+configuration to recovery-capable stable-v3 and assigns the exact 0.1.7 macOS predecessor; independent
+release-checksum trust remains inactive until its public key is reviewed. No private updater, Apple, release-checksum,
+or Windows Authenticode authority is present in source or ordinary continuous integration.
 
 The `public-macos-release` environment admits `v*` tags under the bootstrap review policy. The `github-pages`
 environment admits both `main` product-site deployments and `v*` release deployments. The first 0.1.7 Pages attempt

@@ -2,9 +2,9 @@
 
 ## Status
 
-Active as of 2026-09-03. The frozen first-MVP capability baseline has macOS machine-admission evidence, while its human
-acceptance and public-promotion gates remain open. ADR 0039 authorizes independent Linux parity engineering without
-changing either macOS status or public promotion order.
+Active as of 2026-09-12. FitFreed 0.1.7 is the immutable supported public macOS baseline. Version 0.1.8 is assigned to
+the first complete macOS-plus-Linux expansion. Linux parity engineering and its hosted package campaigns are complete;
+production checksum authority, the exact candidate, native admission, and promotion remain open.
 
 ## Objective
 
@@ -30,13 +30,12 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 
 - The accepted product behavior is the source, application, domain, presentation, and data-contract baseline inherited
   from Milestones 1 and 2 plus the completed X7 corrective increments.
-- macOS machine admission does not prove Linux parity and an open macOS human gate does not block Linux engineering.
-- Linux public promotion remains blocked until the public macOS release exists and the exact Linux candidate passes
-  its own gate.
+- The immutable public macOS 0.1.7 Release satisfies the Linux publication dependency but does not prove Linux parity.
+- Linux public promotion remains blocked until the exact 0.1.8 Linux candidate passes its own gates.
 - The Linux expansion uses the next unreleased semantic version after that immutable macOS Release and contains newly
   built, exact-version macOS and Linux targets as required by
   [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md). The current repository version
-  supports engineering evidence but does not reserve a Linux public version while the macOS release is absent.
+  is 0.1.8; its release policy advances the stable sequence to 9 and retains 0.1.7 as the exact macOS predecessor.
 - Signing authority, exact candidate creation, clean Ubuntu 26.04 access, and public publication are human or protected
   environment gates. Ordinary engineering continues without them.
 
@@ -50,7 +49,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | The manual expansion workflow now places secret-free exact-candidate admission between protected composition and promotion. Its hosted x86-64 Ubuntu 24.04 and 26.04 matrix reopens the digest-bound manifest version 6 candidate, installs and graphically launches only its declared Debian artifact, enforces native identity, resource, dynamic-linking, private-library, cold-launch, purge, and retained-library checks, and performs unconditional residual package cleanup. Contract tests reject a missing distribution, unsealed candidate, privileged admission job, skipped matrix dependency, or optional cleanup. Protected production authority, a version assigned after the immutable macOS release, exact hosted execution, the bounded human verdict, and explicit promotion remain gates. |
+| M4.6 | In progress | Version 0.1.8, stable sequence 9, stable-v3 trust, and the exact 0.1.7 macOS predecessor are assigned. The workflow places secret-free exact-candidate admission between protected composition and promotion. Its hosted x86-64 Ubuntu 24.04 and 26.04 matrix reopens the digest-bound manifest version 6 candidate, installs and graphically launches only its declared Debian artifact, enforces native identity, resource, dynamic-linking, private-library, cold-launch, purge, and retained-library checks, and performs unconditional residual package cleanup. The independent `release.primary-1` public key and protected private authority, exact hosted execution, and explicit promotion remain gates. The accepted product baseline makes another subjective product-owner session inapplicable unless exact candidate evidence identifies a material experience change. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,

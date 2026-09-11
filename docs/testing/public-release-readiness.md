@@ -63,8 +63,8 @@ packaged E2E. The protected build in [dispatch `34650206971`](https://github.com
 completed application and final-DMG signing, notarization, stapling, objective trust inspection, updater and stable
 metadata signing, complete candidate reopening, and digest-bound sealing. It retained Actions artifact `10283667124`
 under the exact candidate name with transport SHA-256
-`6fee894364db633ee08b5ba61e43caef00e0184881fddca839cadab7531e87cc`; promotion remains waiting and has not been
-approved. Independent local reopening on 2026-09-11 authenticated the same digest, version, revision, complete
+`6fee894364db633ee08b5ba61e43caef00e0184881fddca839cadab7531e87cc`. Protected promotion and final remote
+verification subsequently passed in workflow attempt 2. Independent local reopening on 2026-09-11 authenticated the same digest, version, revision, complete
 manifest, stable update signature, and Pages staging. Native admission of the downloaded bytes then passed the exact
 DMG-to-application identity, Developer ID, notarization, stapling, Gatekeeper, isolated first-launch, restart, private
 schema-37 library, removal, and retained-library boundaries. The current automation-only descendant adds the
@@ -189,11 +189,14 @@ Revision-isolated source `47a521e953e8e21003fe21755cb4462418288a90` subsequently
 [repository safety `34342290451`](https://github.com/purnalica/fitfreed/actions/runs/34342290451), and exact
 [continuous integration `34342290498`](https://github.com/purnalica/fitfreed/actions/runs/34342290498). The bounded
 product-owner review ended on 2026-09-09 with explicit acceptance of the current result as sufficient for the first
-FitFreed 0.1.0 product version. Its six observations are future improvements, not acceptance blockers. Production
-updater authority, Apple authority, protected GitHub release controls, an exact sealed public candidate, and explicit
-application-publication authority do not yet exist.
+FitFreed public product version. Its six observations are future improvements, not acceptance blockers. The later
+0.1.7 release established production updater and Apple authority, protected GitHub controls, an exact sealed
+candidate, and immutable public bytes. The 0.1.8 Linux expansion must establish its separate checksum authority and
+exact-candidate evidence.
 
-This is the single current readiness ledger for the first public macOS release. The former [private-alpha ledger](private-alpha-readiness.md) remains the detailed source for its completed and deferred Milestone 2 evidence; it no longer owns the current release decision.
+This is the single current readiness ledger for public macOS evidence and the active Linux expansion. The former
+[private-alpha ledger](private-alpha-readiness.md) remains the detailed source for its completed and deferred
+Milestone 2 evidence; it no longer owns the current release decision.
 
 The 2026-09-09 completion audit retains D0 and E1 through E5 as implemented engineering evidence. Historical E6
 experience acceptance remains invalid because its independent audit failed; X7-R8.14 is the verified replacement and
@@ -264,6 +267,9 @@ The objective's transversal delivery obligations have separate evidence and do n
 | Exact-candidate product experience | Passed through the accepted baseline | Revision-isolated source `47a521e` passed native inspection, exact hosted checks, and the bounded product-owner profile on 2026-09-09. Candidate source adds only the tested start-aligned application of the existing reveal-and-focus contract for the personal-range editor; it changes no content, task, control, data, hierarchy, or layout. All other later executable changes belong to versioning, release trust, or update-recovery acceptance. A repeated subjective session is therefore not applicable. Functional correctness, keyboard behavior, scaling, appearance, localized update, recovery, and automatable accessibility remain exact-candidate automation responsibilities. | Reopen only after a material experience change; never repeat the functional matrix manually. |
 | Public tag, immutable GitHub Release, Pages deployment, and binary availability | Passed for 0.1.7 | `v0.1.7` is fixed at `e610d7e`; the immutable [FitFreed 0.1.7 Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.7), signed DMG, release evidence, and complete Pages snapshot are public. Earlier tags remain rejected and immutable. | A later platform expansion uses a new version and tag. |
 | Public Release, build provenance, release-linked assets, stable endpoint, and updater bytes | Passed for 0.1.7 | Workflow `34650206971`, attempt 2, verified the immutable Release, source-bound attestations, exact linked assets, direct stable endpoint, current updater bytes, and complete localized Pages snapshot after publication. | Reopen for every later public version. |
+| Assigned complete macOS-plus-Linux version and predecessor contract | Passed for proposed 0.1.8 | Publication metadata assigns stable sequence 9 to version 0.1.8. Upgrade-matrix version 2 declares 0.1.7 on `darwin-aarch64` with library schema 37 as the exact recovery baseline. Stable-v3 retains the active `stable.primary-1` updater trust. | Keep the version, target set, predecessor, release notes, guides, manifest, and public snapshot identical in the exact candidate. |
+| Independent release-checksum authority | Open external gate for 0.1.8 | The versioned release-signing configuration is deliberately inactive and contains no public key. No checksum signature can be admitted until the separately held public key is reviewed and activated. | Generate and preserve the independent key outside the repository, activate its public key as `release.primary-1`, and install the private authority only in the protected release environment. |
+| Exact 0.1.8 macOS-plus-Linux candidate, native admission, and publication | Awaiting exact candidate | Linux package and complete-platform composition engineering pass for the frozen product baseline. No immutable 0.1.8 tag, sealed candidate, Ubuntu 24.04 and 26.04 admission record, GitHub Release, or stable sequence 9 snapshot exists. | Build once from the authorized tag, admit the sealed bytes on both Ubuntu versions, then explicitly promote and remotely verify the same candidate. |
 
 ## Final acceptance rule
 

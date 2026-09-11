@@ -2,12 +2,14 @@
 
 ## Current availability
 
-FitFreed 0.1.7 is the supported public release for Apple Silicon on macOS 15.0 or later. Use the [public macOS
+FitFreed 0.1.7 is the supported public release for Apple Silicon on macOS 15.0 or later. FitFreed 0.1.8 is the supported public release only after its inactive complete-platform guide and exact candidate become operative. Use the [public macOS
 0.1.7 guide](docs/user/public-macos-0.1.7.md) for download, verification, installation, update, recovery, privacy, and
 removal. The [public Linux 0.1.7 guide](docs/user/public-linux-0.1.7.md) remains inactive and historical; Linux will
-enter a new immutable complete-platform release only after the [Milestone 4 ledger](docs/plans/milestone-4.md) closes
-its package, exact-candidate, clean Ubuntu, predecessor, and release-signing gates. The [public Windows 0.1.7
-guide](docs/user/public-windows-0.1.7.md) is likewise inactive and historical until the [Milestone 5
+enter the proposed 0.1.8 complete-platform release only after the independent release-checksum authority,
+exact-candidate, native admission, and promotion gates in the [Milestone 4 ledger](docs/plans/milestone-4.md) close.
+The proposed [macOS 0.1.8 guide](docs/user/public-macos-0.1.8.md) and [Linux 0.1.8
+guide](docs/user/public-linux-0.1.8.md) remain inactive until then. The [public Windows 0.1.8
+guide](docs/user/public-windows-0.1.8.md) is likewise inactive and does not assign a Windows release while the [Milestone 5
 ledger](docs/plans/milestone-5.md) closes Authenticode, exact-candidate, clean Windows 11, and Linux-publication gates
 for a later version.
 
