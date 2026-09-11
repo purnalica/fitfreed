@@ -160,7 +160,7 @@ export function validateCurrentDocumentation({
   requirePattern(
     errors,
     sources[paths.roadmap],
-    /Milestone 2 and the D0[\u2013-]E6 product-experience objective are complete/,
+    /Milestones 1 through 3, Milestone 2's D0[\u2013-]E6 product-experience objective,[\s\S]{0,120}are complete/,
     "roadmap does not record the completed product-experience objective",
   );
   requirePattern(
@@ -174,8 +174,8 @@ export function validateCurrentDocumentation({
   requirePattern(
     errors,
     readiness,
-    /product experience is \*\*accepted for the current MVP scope but is not publicly available\*\*/,
-    "release readiness does not separate accepted product experience from public availability",
+    /first supported public release for Apple Silicon on macOS 15\.0 or later/,
+    "release readiness does not record public macOS availability",
   );
   rejectPattern(
     errors,

@@ -2,7 +2,10 @@
 
 ## Status
 
-This is the version-matched guide for a future FitFreed 0.1.7 public macOS release. No public binary is available while the [public-release readiness ledger](../testing/public-release-readiness.md) contains an open gate. This guide becomes operative only for an immutable `v0.1.7` GitHub Release published by `purnalica/fitfreed`; source archives, development packages, Actions artifacts, forks, and third-party packages are not that release.
+This is the operative version-matched guide for the immutable `v0.1.7` [FitFreed 0.1.7 public macOS
+Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.7) published by `purnalica/fitfreed`. Source archives,
+development packages, Actions artifacts, forks, and third-party packages are not that release. The
+[public-release readiness ledger](../testing/public-release-readiness.md) records its exact acceptance evidence.
 
 FitFreed 0.1.7 supports Apple Silicon on macOS 15.0 or later. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
 

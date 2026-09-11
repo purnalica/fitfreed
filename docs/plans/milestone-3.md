@@ -2,7 +2,13 @@
 
 ## Status
 
-Active as of 2026-08-18. The pre-intervention Milestone 2 capability and Milestone 3 engineering baselines are complete. Source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe` passed the complete local campaign, [hosted continuous integration](https://github.com/purnalica/fitfreed/actions/runs/32084588520), and [repository safety](https://github.com/purnalica/fitfreed/actions/runs/32084588507) with production trust deliberately inactive. The accepted E1–E6 experience scope and ADR 0020 Pages compositor reopen final release readiness without invalidating that historical evidence. The milestone also remains open for production authority, protected GitHub configuration, the exact signed and notarized candidate, human evaluation, and public publication.
+Complete as of 2026-09-12. FitFreed 0.1.7 is available from the immutable [public GitHub
+Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.7). Exact workflow
+[`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the admitted
+Developer ID-signed and Apple-notarized candidate, deployed the complete product and update snapshot, and passed
+remote byte, provenance, Release, and stable-endpoint verification. The source revision remains
+`e610d7e89f97dcade9384241847233b2bb78733d`; the release-manifest SHA-256 is
+`7bd4fd147f1fe5eefb4b563d5da580c3a3e399afbe6daf97e22a67fddbf34eea`.
 
 ## Objective
 
@@ -78,7 +84,9 @@ Hosted evidence on 2026-08-18: source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe`
 
 ## Increment M3.4 — Public operation, user guidance, and readiness
 
-**Status:** engineering preparation, local regression, hosted documentation acceptance, sealed candidate creation, and local and hosted exact-byte native admission are complete for 0.1.7. Version-matched public user guidance, a shared candidate-evaluation procedure, maintainer operations and incident recovery, secret-free hosted candidate admission, and the consolidated readiness ledger are implemented. The bounded human delta decision, explicit promotion authority, and remote public operation remain acceptance gates.
+**Status:** complete for 0.1.7. Version-matched public user guidance, candidate evaluation, maintainer operations,
+incident recovery, exact-byte native admission, protected promotion, Pages deployment, and remote verification all
+passed for the same immutable candidate.
 
 **Outcome:** users and maintainers can install, verify, update, recover, remove, support, and withdraw a public FitFreed release without hidden project knowledge.
 
@@ -94,16 +102,19 @@ Hosted evidence on 2026-08-18: source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe`
 
 ## Human intervention boundary
 
-Engineering continues without an Apple account or production release key. Final acceptance alone requires:
+The following human gates were required and passed for 0.1.7:
 
 - Apple Developer membership, an authorized Developer ID Application identity, and an App Store Connect notarization credential;
 - accountable creation and custody of the production Minisign key;
 - protected GitHub environment and Pages source configuration;
 - immutable GitHub Releases and its protected read-only configuration check;
 - explicit authority to create the tag, GitHub Release, Pages deployment, and public binary publication; and
-- completion of the exact-candidate human accessibility and usability evaluation.
+- completion of the bounded product-owner experience evaluation when the exact candidate contains an applicable
+  experience change under the canonical release procedure.
 
-Until those gates close, automation must report the public release as inactive rather than substituting an unsigned package, synthetic identity, unprotected secret, or unverified manual claim.
+Later releases must close these gates again for their exact source, candidate, supported predecessors, and platform
+set. Automation must report an incomplete release as inactive rather than substituting an unsigned package,
+synthetic identity, unprotected secret, or unverified manual claim.
 
 Approval identity follows the bootstrap policy in [governance](../../GOVERNANCE.md); a second maintainer is not a
 prerequisite while that policy remains active.

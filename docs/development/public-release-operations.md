@@ -2,7 +2,11 @@
 
 ## Status and authority
 
-This is the maintainer runbook for the initial FitFreed public macOS channel and each later complete-platform expansion. The macOS, Linux-expansion, and Windows-expansion workflows are implemented but deliberately inactive. A workflow becomes operative only after the applicable readiness ledger records its production trust roots, native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes one exact version, tag, and publication.
+This is the maintainer runbook for the active FitFreed public macOS channel and each later complete-platform
+expansion. The macOS workflow published 0.1.7; Linux-expansion and Windows-expansion workflows remain gated. A
+workflow becomes operative only after the applicable readiness ledger records its production trust roots,
+native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes
+one exact version, tag, and publication.
 
 Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
 

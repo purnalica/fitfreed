@@ -2,16 +2,13 @@
 
 ## Status
 
-Milestone 1 is complete. Milestone 2 and the D0–E6 product-experience objective are complete. Revision-isolated source
-`47a521e953e8e21003fe21755cb4462418288a90` retains the admitted machine evidence and passed the bounded product-owner
-review on 2026-09-09. The product owner accepted the result as sufficient for the first FitFreed 0.1.0 product version
-and assigned six non-blocking observations to future iterations. The implemented Milestone 3 public-release
-engineering baseline remains available, but signing, exact public-candidate admission, and publication are not implied
-by product-experience acceptance. Apple Silicon on macOS 15.0 or later is the accepted macOS MVP platform boundary.
-The product owner opened Linux and Windows parity engineering on 2026-09-02 without accepting the macOS candidate at
-that time or authorizing any application publication. Platform engineering and automated evidence may therefore advance independently where their
-contracts do not depend on an open earlier-platform gate; per-platform acceptance and public promotion remain ordered
-macOS, Linux, then Windows. D0
+Milestones 1 through 3, Milestone 2's D0–E6 product-experience objective, and the public macOS release are complete.
+FitFreed 0.1.7 is available from its immutable [GitHub
+Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.7) for Apple Silicon on macOS 15.0 or later. Exact
+workflow [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the
+admitted signed and notarized candidate and passed Pages, provenance, stable-channel, and remote-byte verification.
+Milestone 4 is now the active public Linux expansion; Milestone 5 follows for Windows. Platform acceptance and public
+promotion remain ordered macOS, Linux, then Windows. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
 capability boundaries; P1 published the truthful canonical product site; E1 through E5 and the previously planned E6
 corrections retain complete local and hosted engineering evidence. The subsequent [independent product-experience
@@ -81,10 +78,10 @@ future improvements, and the current 0.1.0 product experience is accepted.
 
 The [production-native human evaluation](research/x6-product-experience-human-evaluation.md) is the authoritative
 record of the rejected predecessors and the accepted final experience; automation does not overrule either result.
-External-tile cartography, additional providers, public-candidate preparation, and advanced personalization remain
-outside this loop. The production application remains the only implementation and the [MVP experience delivery
-plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline. Milestone 3 promotion remains
-subject to its independent trust, exact-candidate, platform, approval, and publication gates.
+External-tile cartography, additional providers, and advanced personalization remain outside this loop. The
+production application remains the only implementation and the [MVP experience delivery
+plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline. Milestone 3's exact-candidate,
+trust, approval, and publication gates passed for 0.1.7; later platform expansions must establish their own evidence.
 
 ## Purpose
 
@@ -185,6 +182,8 @@ verification of private alpha updates.
 
 ### Milestone 3 — Public macOS release
 
+**Status:** complete with public version 0.1.7.
+
 **Outcome:** the evaluated MVP journey is available to macOS users through a trusted, documented, and supportable public distribution path.
 
 **Dependency:** completed MVP capability implementation and its automated evidence. Update-authority, controlled-distribution, and participant-evaluation work may close during the consolidated Milestone 3 release-readiness audit rather than blocking Milestone 3 engineering.
@@ -200,6 +199,8 @@ verification of private alpha updates.
 **Exit criteria:** Gatekeeper recognizes the application as signed and notarized, every public release gate passes, and no unsigned binary is exposed through the public release channel.
 
 ### Milestone 4 — Public Linux MVP parity
+
+**Status:** active.
 
 **Outcome:** the accepted first-MVP capability baseline is available to Linux users through a native, documented,
 updateable, recoverable, and supportable public distribution path without changing product functionality.

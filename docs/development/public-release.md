@@ -2,21 +2,18 @@
 
 ## Current boundary
 
-Public binary release automation remains gated and has not published an application. The checked-in update
-configuration contains the reviewed public `stable.primary-1` trust key, while release-checksum trust remains
-inactive. No private updater, Apple, release-checksum, or Windows Authenticode authority is present in source or
-ordinary continuous integration. The protected environment contains the updater and Apple authority required for the
-initial macOS candidate. Protected runs have signed updater artifacts, but the standalone stable-metadata signature
-has not yet completed inside a sealed candidate. The environment also contains the repository-scoped
-Administration-read token used only to verify immutable Releases; that permission
-check passed inside the first protected execution.
-The `public-macos-release` environment is configured with the bootstrap reviewer, initiator approval, disabled
-administrator bypass, and the single `v*` tag policy. The later Linux and Windows release authorities and environments
-remain unavailable. Repository-level immutable Releases are enabled, and Actions-backed Pages is live at the
-canonical origin for the product site without an application download or signed update snapshot. The initial macOS
-workflow is active only through explicit dispatch and two protected approvals. The first Linux-expansion and
-complete-platform Windows-expansion workflows exist but remain inactive. These are release gates, not reasons to weaken or
-bypass an implemented publication workflow.
+FitFreed 0.1.7 is the first immutable public release. Protected workflow
+[`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the exact admitted
+Developer ID-signed and Apple-notarized macOS candidate, source-bound evidence, localized product site, and signed
+stable update snapshot, then remotely verified every public byte and provenance boundary. The checked-in update
+configuration contains the active `stable.primary-1` trust key; release-checksum trust remains inactive until the
+Linux expansion. No private updater, Apple, release-checksum, or Windows Authenticode authority is present in source
+or ordinary continuous integration.
+
+The `public-macos-release` environment admits `v*` tags under the bootstrap review policy. The `github-pages`
+environment admits both `main` product-site deployments and `v*` release deployments. The first 0.1.7 Pages attempt
+exposed the missing tag policy and stopped before runner allocation; adding the policy and re-running only failed jobs
+completed deployment and remote verification. Linux and Windows release authorities remain separate later gates.
 
 The first `v0.1.0` dispatch on 2026-09-10 stopped in the secret-free preflight before any protected environment or
 credential was admitted. The preflight expected a runner environment variable for repository visibility that GitHub
@@ -84,8 +81,8 @@ standalone signer consumers, but the standalone command maps them to mutually ex
 invocation before signing stable metadata. Current source removes the bundle-only variable from that one child
 process while retaining the path and password inputs. A focused contract test preserves the exact path-only child
 environment without mutating the protected parent environment. Cleanup passed; no candidate was sealed, retained,
-or published. The public `v0.1.6` tag remains fixed at the rejected source and is neither moved nor reused; the next
-candidate is 0.1.7.
+or published. The public `v0.1.6` tag remains fixed at the rejected source and is neither moved nor reused; its
+corrected successor is the published 0.1.7 release.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable

@@ -27,7 +27,7 @@ const documentContracts = Object.freeze({
       "Safe support and security reports",
     ],
     evidence: (version) => [
-      [/No public binary is available while/, "inactive public-release status"],
+      [/operative version-matched guide/, "supported public-release status"],
       [new RegExp("immutable `v" + escapeRegExp(version) + "`"), "exact immutable release tag"],
       [/Apple Silicon on macOS 15\.0 or later/, "supported platform boundary"],
       [/English \(United States\) and Spanish \(Spain\)/, "initial locale boundary"],
@@ -169,7 +169,7 @@ const documentContracts = Object.freeze({
     evidence: () => [
       [/manifest version 7/i, "complete Windows manifest"],
       [/Windows Authenticode authority/i, "separate Windows signing authority"],
-      [/Windows-expansion workflows exist but remain inactive/i, "inactive Windows workflow boundary"],
+      [/Windows release authorities remain separate later gates/i, "inactive Windows workflow boundary"],
       [/never\s+rebuilt as a substitute for the sealed bytes/i, "exact Windows candidate preservation"],
     ],
   },
@@ -221,8 +221,8 @@ const documentContracts = Object.freeze({
     headings: ["Decision status", "Readiness ledger", "Final acceptance rule"],
     evidence: () => [
       [
-        /product experience is \*\*accepted for the current MVP scope but is not publicly available\*\*/,
-        "separate product-acceptance and inactive-release decisions",
+        /first supported public release for Apple Silicon on macOS 15\.0 or later/,
+        "supported public macOS decision",
       ],
       [/single current readiness ledger/, "single current readiness source"],
       [/Passed locally/, "local evidence state"],
@@ -248,14 +248,14 @@ const supportingDocumentEvidence = Object.freeze({
     /No legal or regulatory advice/,
   ],
   "SUPPORT.md": (version) => [
-    /no supported release/i,
+    new RegExp(`FitFreed ${escapeRegExp(version)} is the supported public release`),
     new RegExp(`public-macos-${escapeRegExp(version)}\\.md`),
     new RegExp(`public-linux-${escapeRegExp(version)}\\.md`),
     new RegExp(`public-windows-${escapeRegExp(version)}\\.md`),
     /Never attach a real provider export/,
   ],
   "SECURITY.md": () => [
-    /no released or supported version/i,
+    /supported public version for Apple Silicon on macOS 15\.0 or later/i,
     /private vulnerability reporting/,
     /synthetic data/,
   ],

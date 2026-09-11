@@ -4,7 +4,8 @@
 
 ### Evaluating the current application
 
-FitFreed does not have a supported public release yet. The implemented application accepts independently constructed synthetic data for open evaluation; use with personal exports remains gated by the exact public candidate and release decision.
+FitFreed 0.1.7 is the supported public release for Apple Silicon on macOS 15.0 or later. Linux and Windows packages
+remain in the ordered complete-platform release path.
 
 - Read the [development preview guide](user/development-preview.md) for the complete runnable journey.
 - Read [session reports](user/reports.md) for creation, durable editing, privacy review, stale-source handling, and local HTML export.
@@ -12,7 +13,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - Read [personal session ranges](user/session-ranges.md) for exact timeline selection, durable editing, reimport review, and revision-coherent results.
 - Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
 - Read the [private alpha candidate guide](user/private-alpha-candidate.md) for the version-matched 0.1.0 user journey and the gates that keep it inactive.
-- Read the [public macOS 0.1.7 guide](user/public-macos-0.1.7.md) for the future verified download, installation, import, update, recovery, privacy, and removal journey.
+- Read the [public macOS 0.1.7 guide](user/public-macos-0.1.7.md) for verified download, installation, import, update, recovery, privacy, and removal.
 - Check the [public-release readiness ledger](testing/public-release-readiness.md) for the exact passed, pending, open, and unauthorized boundaries.
 - Read the [user-documentation status](user/README.md) before opening any build.
 - Read the project [disclaimer](../DISCLAIMER.md) and [support boundary](../SUPPORT.md).
@@ -20,9 +21,9 @@ FitFreed does not have a supported public release yet. The implemented applicati
 ### Contributing
 
 - Start with the [contributor setup](development/getting-started.md).
-- Follow the active [MVP redesign production migration](plans/mvp-redesign-production-migration.md) for current increment and acceptance status. The [Milestone 3 public-release plan](plans/milestone-3.md) remains the later distribution sequence.
+- Follow the [roadmap](roadmap.md) and active platform milestone for current delivery status. The [Milestone 3 public-release plan](plans/milestone-3.md) records the completed macOS sequence.
 - Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
-- Use [public macOS release](development/public-release.md) for the inactive trust boundary, protected preflight, and future publication path.
+- Use [public release architecture](development/public-release.md) for the active macOS trust boundary and later complete-platform publication paths.
 - Use [public release operations](development/public-release-operations.md) for candidate evaluation, promotion, partial-publication recovery, withdrawal, key rotation, and incidents.
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
 - Use the [performance benchmark guide](development/performance-benchmarks.md) for synthetic scales, timed boundaries, budgets, and regression evidence.

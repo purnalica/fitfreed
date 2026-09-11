@@ -2,7 +2,12 @@
 
 ## Status
 
-Current private-development preparation under [ADR 0003](decisions/0003-stage-verifiable-macos-development-releases.md), extended by the private-alpha [update trust boundary](update-trust.md) under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). [ADR 0020](decisions/0020-compose-product-and-update-pages.md) selects the public delivery topology, [ADR 0023](decisions/0023-use-fitfreed-org-as-the-public-origin.md) assigns its canonical origin to `https://fitfreed.org/`, and [ADR 0024](decisions/0024-generate-localized-product-pages.md) defines its generated locale surfaces. The English fallback and deterministic Spanish product surfaces are live and byte-accepted at that HTTPS origin with verified organization ownership. No real update endpoint, production signing key, uploaded package, or public release exists.
+[ADR 0020](decisions/0020-compose-product-and-update-pages.md) selects the public delivery topology, [ADR
+0023](decisions/0023-use-fitfreed-org-as-the-public-origin.md) assigns its canonical origin to
+`https://fitfreed.org/`, and [ADR 0024](decisions/0024-generate-localized-product-pages.md) defines its generated
+locale surfaces. FitFreed 0.1.7 is the first immutable public release: its Developer ID-signed and Apple-notarized
+macOS package, source-bound evidence, English fallback, deterministic Spanish surface, and signed stable update
+snapshot are live and remotely byte-verified. Linux and Windows remain later complete-platform expansions.
 
 ## Stages and authority boundaries
 
