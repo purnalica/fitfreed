@@ -109,6 +109,7 @@ The public workflow accepts only a manual dispatch whose selected ref is the exa
 - the project owner as a required environment reviewer, initiator approval allowed under bootstrap governance,
   disabled administrator bypass, custom deployment policies, and the single `v*` tag policy;
 - Actions-backed GitHub Pages at the canonical project URL with HTTPS enforced;
+- the `github-pages` deployment environment with custom policies admitting only the `main` branch and `v*` tags;
 - successful `push` executions of `ci.yml` and `repository-safety.yml` for the exact release revision;
 - the local and remote `v<version>` tag resolving to that exact revision; and
 - current public repository identity and visibility read from GitHub's repository API.

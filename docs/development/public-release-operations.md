@@ -108,8 +108,10 @@ An accountable maintainer configures these prerequisites before the first releas
 4. Create `public-macos-release` with the project owner as a required reviewer, leave `prevent_self_review` disabled
    so the initiating owner can approve, disable administrator bypass, and admit only tags matching the single `v*`
    tag policy.
-5. Add the exact protected secrets and non-secret variables documented in [public release preparation](public-release.md).
-6. Confirm private vulnerability reporting, Issues, and the documented support routes are available.
+5. Configure the `github-pages` deployment environment with custom policies that admit only the `main` branch and
+   `v*` tags. Product-site runs use `main`; release workflows run from immutable version tags.
+6. Add the exact protected secrets and non-secret variables documented in [public release preparation](public-release.md).
+7. Confirm private vulnerability reporting, Issues, and the documented support routes are available.
 
 Before Windows expansion, create two additional environments with the same required-reviewer, initiator-approval,
 administrator-bypass, and `v*` tag policies:

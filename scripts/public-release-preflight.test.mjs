@@ -4,6 +4,7 @@ import test from "node:test";
 import { publicOrigin } from "./public-origin.mjs";
 import {
   validateProtectedReleaseEnvironment,
+  validatePublicPagesDeploymentEnvironment,
   validatePublicPagesConfiguration,
   validatePublicRepositoryConfiguration,
   validatePublicReleaseInvocation,
@@ -65,12 +66,54 @@ function invocation() {
       url: publicOrigin,
       verifiedDomain: true,
     },
+    publicPagesEnvironment: {
+      environment: "github-pages",
+      branchPolicy: "main",
+      tagPolicy: "v*",
+    },
     workflowEvidence: {
       requiredWorkflows: ["ci.yml", "repository-safety.yml"],
       revision,
     },
   };
 }
+
+test("accepts the Pages deployment environment only for main and version tags", () => {
+  const environment = {
+    name: "github-pages",
+    deployment_branch_policy: {
+      protected_branches: false,
+      custom_branch_policies: true,
+    },
+  };
+  assert.deepEqual(validatePublicPagesDeploymentEnvironment(environment, {
+    branch_policies: [
+      { name: "v*", type: "tag" },
+      { name: "main", type: "branch" },
+    ],
+  }), {
+    environment: "github-pages",
+    branchPolicy: "main",
+    tagPolicy: "v*",
+  });
+
+  for (const policies of [
+    [{ name: "main", type: "branch" }],
+    [{ name: "v*", type: "tag" }],
+    [
+      { name: "main", type: "branch" },
+      { name: "v*", type: "tag" },
+      { name: "release/*", type: "branch" },
+    ],
+  ]) {
+    assert.throws(
+      () => validatePublicPagesDeploymentEnvironment(environment, {
+        branch_policies: policies,
+      }),
+      /Pages deployment environment/,
+    );
+  }
+});
 
 test("accepts a solo-maintainer protected environment limited to version tags", () => {
   assert.deepEqual(
@@ -280,6 +323,8 @@ test("rejects every route that bypasses exact source, active trust, or manual au
     [(input) => { input.protectedEnvironment.administratorBypass = true; }, /environment evidence/],
     [(input) => { input.publicPages = undefined; }, /Pages evidence is invalid/],
     [(input) => { input.publicPages.httpsEnforced = false; }, /Pages evidence/],
+    [(input) => { input.publicPagesEnvironment = undefined; }, /Pages environment evidence/],
+    [(input) => { input.publicPagesEnvironment.tagPolicy = "release/*"; }, /Pages environment evidence/],
     [(input) => { input.workflowEvidence.revision = "b".repeat(40); }, /workflow evidence/],
   ]) {
     const input = invocation();

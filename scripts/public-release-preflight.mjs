@@ -12,6 +12,7 @@ import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const revisionPattern = /^[0-9a-f]{40,64}$/;
 const releaseEnvironmentName = "public-macos-release";
+const pagesEnvironmentName = "github-pages";
 const repositoryName = "purnalica/fitfreed";
 const pagesUrl = publicOrigin;
 const pagesDomain = new URL(pagesUrl).hostname;
@@ -91,6 +92,47 @@ export function readProtectedReleaseEnvironment(environmentName) {
     );
   } catch {
     throw new Error(`protected environment ${environmentName} is unavailable or invalid`);
+  }
+}
+
+export function validatePublicPagesDeploymentEnvironment(environment, branchPolicies) {
+  const errors = [];
+  if (environment?.name !== pagesEnvironmentName) {
+    errors.push(`Pages deployment environment must be named ${pagesEnvironmentName}`);
+  }
+  if (
+    environment?.deployment_branch_policy?.protected_branches !== false
+    || environment?.deployment_branch_policy?.custom_branch_policies !== true
+  ) {
+    errors.push("Pages deployment environment must use custom deployment policies");
+  }
+  const policies = branchPolicies?.branch_policies;
+  const expectedPolicies = ["branch:main", "tag:v*"];
+  const actualPolicies = Array.isArray(policies)
+    ? policies
+      .map(({ name, type }) => `${type}:${name}`)
+      .sort((left, right) => left.localeCompare(right, "en"))
+    : [];
+  if (JSON.stringify(actualPolicies) !== JSON.stringify(expectedPolicies)) {
+    errors.push("Pages deployment environment must admit only main and v* tags");
+  }
+  if (errors.length > 0) throw new Error(errors.join("\n"));
+  return {
+    environment: pagesEnvironmentName,
+    branchPolicy: "main",
+    tagPolicy: "v*",
+  };
+}
+
+function readPublicPagesDeploymentEnvironment() {
+  const base = `repos/${repositoryName}/environments/${pagesEnvironmentName}`;
+  try {
+    return validatePublicPagesDeploymentEnvironment(
+      JSON.parse(run("gh", ["api", base])),
+      JSON.parse(run("gh", ["api", `${base}/deployment-branch-policies`])),
+    );
+  } catch {
+    throw new Error("Pages deployment environment is unavailable or invalid");
   }
 }
 
@@ -188,6 +230,7 @@ export function validatePublicReleaseInvocation({
   onMain,
   protectedEnvironment,
   publicPages,
+  publicPagesEnvironment,
   workflowEvidence,
 }) {
   const errors = [];
@@ -236,6 +279,13 @@ export function validatePublicReleaseInvocation({
     errors.push("public Pages evidence is invalid");
   }
   if (
+    publicPagesEnvironment?.environment !== pagesEnvironmentName
+    || publicPagesEnvironment?.branchPolicy !== "main"
+    || publicPagesEnvironment?.tagPolicy !== "v*"
+  ) {
+    errors.push("public Pages environment evidence is invalid");
+  }
+  if (
     workflowEvidence?.revision !== headRevision
     || JSON.stringify(workflowEvidence?.requiredWorkflows) !== JSON.stringify(requiredWorkflows)
   ) {
@@ -282,6 +332,7 @@ function readGithubReleasePlatform(sourceRevision) {
     repositoryVisibility: validatePublicRepositoryConfiguration(repository).visibility,
     protectedEnvironment: readProtectedReleaseEnvironment(releaseEnvironmentName),
     publicPages: validatePublicPagesConfiguration(pages),
+    publicPagesEnvironment: readPublicPagesDeploymentEnvironment(),
     workflowEvidence: validateRequiredWorkflowRuns(runsByWorkflow, sourceRevision),
   };
 }
@@ -343,6 +394,7 @@ export function inspectPublicReleasePreflight({
   return {
     ...result,
     ...platform.protectedEnvironment,
+    pagesDeploymentEnvironment: platform.publicPagesEnvironment.environment,
     pagesSource: platform.publicPages.source,
     requiredWorkflows: platform.workflowEvidence.requiredWorkflows,
     workflow: workflow.workflow,
