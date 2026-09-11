@@ -56,8 +56,16 @@ function run(command, args, options = {}) {
     cwd: repositoryRoot,
     encoding: "utf8",
     stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
-    env: { ...process.env, ...options.environment },
+    env: options.inheritEnvironment === false
+      ? options.environment
+      : { ...process.env, ...options.environment },
   })?.trim();
+}
+
+export function updaterSignerEnvironment(environment) {
+  const signerEnvironment = { ...environment };
+  delete signerEnvironment.TAURI_SIGNING_PRIVATE_KEY;
+  return signerEnvironment;
 }
 
 export function outsideRepositoryFile(candidatePath, repositoryPath, label) {
@@ -229,7 +237,11 @@ function signChannelPayload(payloadBytes, temporaryDirectory) {
       "signer",
       "sign",
       payloadPath,
-    ], { capture: true });
+    ], {
+      capture: true,
+      environment: updaterSignerEnvironment(process.env),
+      inheritEnvironment: false,
+    });
     if (!existsSync(signaturePath)) throw new Error("stable metadata signature is unavailable");
     return readFileSync(signaturePath, "utf8").trim();
   } finally {

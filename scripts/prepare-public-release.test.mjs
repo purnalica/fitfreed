@@ -8,6 +8,7 @@ import {
   assertPublicSigningEnvironment,
   publicArtifactNames,
   publicChannelTimes,
+  updaterSignerEnvironment,
 } from "./prepare-public-release.mjs";
 
 function signingFixture() {
@@ -49,6 +50,22 @@ test("accepts path-based updater and App Store Connect release authority", () =>
       apiKeyPath: fixture.environment.APPLE_API_KEY_PATH,
     },
   );
+});
+
+test("gives standalone updater signing exactly one private-key input", () => {
+  const environment = {
+    PATH: "/synthetic/bin",
+    TAURI_SIGNING_PRIVATE_KEY: "/synthetic/updater.key",
+    TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key",
+    TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "synthetic password",
+  };
+
+  assert.deepEqual(updaterSignerEnvironment(environment), {
+    PATH: "/synthetic/bin",
+    TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key",
+    TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "synthetic password",
+  });
+  assert.equal(environment.TAURI_SIGNING_PRIVATE_KEY, "/synthetic/updater.key");
 });
 
 test("rejects inline, repository-contained, broadly readable, or ambiguous private inputs", () => {
