@@ -335,6 +335,14 @@ invoke this same boundary before trust inspection, copying, hashing, manifest co
 
 Public trust inspection is privacy-minimizing and fail-closed. It verifies the complete nested application signature and disk-image signature, requires the Developer ID Application trust class, hardened runtime, secure timestamp, one matching leaf-certificate fingerprint, the explicitly expected team identifier, exact bundle identity and version, Apple Silicon executable, macOS 15.0 deployment target, stapled tickets on both distributable forms, and Gatekeeper acceptance. Generated evidence records the public certificate fingerprint and team identifier needed for independent verification, but never copies the certificate subject name or signing-account address into project evidence. Command failures report the failed trust stage without echoing raw signing output.
 
+Initial macOS candidate admission is a later secret-free boundary over the sealed transport, not another build. It
+authenticates the Actions artifact against the successful protected run while promotion is still waiting, reopens its
+transport digest and complete manifest, and copies the manifest-bound application from the DMG into an isolated
+destination. Trust inspection repeats against that installed copy. Two production-process launches use one temporary
+home and the embedded source revision to prove first launch, restart, and private library initialization; removing the
+temporary application must preserve the same integral library. The admission workflow has only read access and no
+protected environment, signing authority, attestation permission, Pages permission, or release permission.
+
 Secret-free preflight verifies the exact manual version tag and source revision, canonical public repository, release contracts, active stable key, and GitHub environment before any protected runner starts. The environment must require the project owner as a reviewer, allow initiator approval during bootstrap governance, disallow administrator bypass, and admit only `v*` tags through a custom deployment policy. This explicit query prevents a workflow reference from silently creating and using an environment without the intended controls. [ADR 0047](decisions/0047-permit-bootstrap-solo-release-approval.md)
 
 Each version has one reviewed [public release policy](../data-formats/release/public-release-policy-v1.md). It owns the monotonic channel sequence, matrix-derived minimum application version, localized update notes, and withdrawals. Issuance time, bounded expiry, and the selected key are supplied only by the protected release execution, so time-sensitive state and key rotation do not turn private credentials into versioned inputs.

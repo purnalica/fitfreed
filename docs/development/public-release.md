@@ -303,12 +303,14 @@ retained transport and repeats only the failed authority-free admission or publi
 
 ## Sealed evaluation and protected publication
 
-`.github/workflows/public-release.yml` is the initial macOS publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. The later `.github/workflows/public-linux-expansion.yml` entry point additionally accepts the public release-checksum key identifier and constructs the complete macOS-plus-Linux set described above. `.github/workflows/public-windows-expansion.yml` accepts those same three public selectors and constructs the complete macOS-plus-Linux-plus-Windows set; protected configuration, not dispatch, selects every private authority and the public Windows certificate fingerprint. All three share one non-cancelling publication concurrency group.
+`.github/workflows/public-release.yml` is the initial macOS publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. While its promotion job waits, `.github/workflows/public-macos-candidate-admission.yml` authenticates and admits the exact retained artifact without secrets or publication authority. The later `.github/workflows/public-linux-expansion.yml` entry point additionally accepts the public release-checksum key identifier and constructs the complete macOS-plus-Linux set described above. `.github/workflows/public-windows-expansion.yml` accepts those same three public selectors and constructs the complete macOS-plus-Linux-plus-Windows set; protected configuration, not dispatch, selects every private authority and the public Windows certificate fingerprint. The three publication workflows share one non-cancelling publication concurrency group; the read-only macOS admission workflow serializes each exact version and revision independently.
 
 The first protected job has read-only repository permission. After local verification it seals only `release/` and `pages/` into one transport archive, records its SHA-256 digest, retains it for seven days as a private Actions artifact, and unconditionally removes Apple and updater authority. `npm run pack:public-release -- <candidate> <archive>` and `npm run unpack:public-release -- <archive> <sha256> <candidate>` verify the complete candidate on both sides of this boundary and reject mutation, additional roots, unsafe paths, partial extraction, or evidence drift.
 
-Every platform-specific exact-candidate job must pass before the publication job can wait for its product and
-promotion approvals. While it waits, automation verifies the sealed candidate's functional and distribution behavior.
+Every platform-specific exact-candidate boundary must pass before its waiting publication job receives product and
+promotion approval. For the initial macOS release, the separate read-only admission workflow runs while promotion
+waits; later expansion workflows keep their native admission jobs inside the originating run. Automation verifies the
+sealed candidate's applicable functional and distribution behavior without rebuilding it.
 The product owner follows the bounded [canonical product-experience procedure](../testing/macos-candidate-manual-evaluation.md)
 and, for the complete-platform candidate, its [Windows entry supplement](../testing/windows-candidate-manual-evaluation.md)
 against the same sealed artifact. Promotion is rejected when the exact bytes did not pass, a serious finding remains open, or the

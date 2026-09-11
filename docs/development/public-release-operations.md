@@ -266,9 +266,18 @@ While `publish-candidate` waits at the second `public-macos-release` environment
 1. Download the candidate artifact from that exact workflow run.
 2. Confirm its name, version, source revision, and recorded transport digest.
 3. From the exact tagged source, run `npm run unpack:public-release -- <archive> <sha256> <candidate-directory>`. This validates the transport digest, rejects unsafe archive entries, extracts into a new isolated directory, and reopens the complete candidate. A separate `npm run verify:public-release -- <candidate-directory>` may repeat the evidence check but cannot replace the digest-bound extraction.
-4. After the candidate's automated functional, installation, update, recovery, accessibility, and performance evidence passes, perform the public profile of the bounded [product-owner experience evaluation](../testing/macos-candidate-manual-evaluation.md) against the DMG and application inside that sealed candidate.
-5. Record only the privacy-safe experience result defined by the procedure and dispose every serious finding before promotion.
-6. Confirm that the signed stable envelope is still within its seven-day validity window.
+4. Run `npm run verify:macos-public-candidate -- <candidate-directory> <version> <revision>` on a supported Apple Silicon Mac. The secret-free command requires manifest version 3 and the exact version and revision, verifies the application copied from the DMG against the sealed application digest, repeats Developer ID, notarization, stapling, and Gatekeeper inspection after installation, and uses two short production-process launches against an isolated home to prove first launch, restart, private SQLite initialization, removal, and retained library integrity. It removes only its temporary installation and never reads an existing FitFreed library.
+5. Preserve the fingerprint-bound functional, import, exploration, accessibility, update-recovery, and performance evidence when executable inputs are unchanged. The first public release has no supported application-version predecessor, so no exact candidate update path exists; the signed update payload and embedded trust are nevertheless authenticated during complete-candidate reopening. A later release must exercise every predecessor declared by its upgrade matrix.
+6. Prefer the secret-free **Public macOS candidate admission** workflow for the durable native record. Dispatch it from `main` with the exact release-run ID, Actions artifact ID, transport SHA-256, version, and revision. It authenticates the artifact's originating protected build and requires the promotion job to remain waiting before downloading and admitting those same bytes. The workflow has read-only repository and Actions permissions, receives no environment or secret, and cannot publish.
+7. After every automated gate passes, perform the public profile of the bounded [product-owner experience evaluation](../testing/macos-candidate-manual-evaluation.md) against the DMG and application inside that sealed candidate only when the candidate contains an experience-affecting executable change not covered by the accepted product-owner baseline.
+8. Record only the privacy-safe experience result defined by the procedure and dispose every serious finding before promotion.
+9. Confirm that the signed stable envelope is still within its seven-day validity window.
+
+The `v0.1.7` candidate predates the native admission command by one automation-only commit. Its admissible exception is
+the versioned read-only workflow above: the workflow records its own source revision, authenticates `v0.1.7`'s
+originating run and exact sealed digest, and runs the later verifier against the unchanged candidate. It does not
+rebuild, modify, sign, or repackage the candidate. Future candidate tags include this admission tooling before they
+are sealed.
 
 Do not approve promotion when the artifact is unavailable, its digest or evidence fails, evaluation used different bytes, an applicable scenario is blocked, a serious finding remains open, or channel metadata has expired. Cancel the waiting run and prepare a fresh candidate after correcting the cause. Never edit, replace, re-sign, or repackage the sealed candidate.
 

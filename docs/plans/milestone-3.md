@@ -78,7 +78,7 @@ Hosted evidence on 2026-08-18: source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe`
 
 ## Increment M3.4 — Public operation, user guidance, and readiness
 
-**Status:** engineering preparation, local regression, and hosted documentation acceptance are complete. Version-matched public user guidance, a shared candidate-evaluation procedure, maintainer operations and incident recovery, sealed pre-publication evaluation, and the consolidated readiness ledger are implemented. Exact-candidate automated and human evaluation plus public operation remain acceptance gates.
+**Status:** engineering preparation, local regression, hosted documentation acceptance, sealed candidate creation, and local exact-byte native admission are complete for 0.1.7. Version-matched public user guidance, a shared candidate-evaluation procedure, maintainer operations and incident recovery, secret-free hosted candidate admission, and the consolidated readiness ledger are implemented. The hosted admission record, any required bounded human delta evaluation, explicit promotion authority, and remote public operation remain acceptance gates.
 
 **Outcome:** users and maintainers can install, verify, update, recover, remove, support, and withdraw a public FitFreed release without hidden project knowledge.
 

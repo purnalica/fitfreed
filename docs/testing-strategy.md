@@ -632,6 +632,15 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 - Verify that every failed update leaves a usable previous version or completes the documented automated recovery path without data loss.
 - Keep unsigned macOS MVP alpha artifacts out of public release tests and channels; validate the first public macOS release with Developer ID, notarization, Gatekeeper, installation, and update E2E paths.
 
+The exact initial public macOS candidate reuses fingerprint-bound functional, import, exploration, accessibility,
+update-recovery, and performance evidence only when its executable behavior is unchanged. Its separate secret-free
+admission authenticates the originating protected run and sealed transport, copies the manifest-bound application
+from the DMG, repeats Developer ID, notarization, stapling, and Gatekeeper inspection, launches the production process
+twice against one isolated private library, removes the temporary application, and proves that the library remains
+integral. This is exact-byte distribution evidence, not packaged E2E and not a rebuild. The first release declares no
+application-version predecessor; later candidates must additionally exercise every predecessor in their upgrade
+matrix.
+
 ## Pending decisions
 
 - Reassess the hosted Ubuntu 26.04 public-preview runner before each exact candidate. If its image is unavailable or no

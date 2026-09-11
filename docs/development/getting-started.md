@@ -181,6 +181,7 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
 | Verify macOS installation and failure boundaries | `npm run verify:development-release` |
+| Admit one digest-reopened initial public macOS candidate | `npm run verify:macos-public-candidate -- <candidate-directory> <version> <revision>` |
 | Verify recovery-pair preparation against the production app | `npm run verify:update-recovery-preparation` |
 | Build and run the instrumented functional, real-process restart, and performance E2E campaigns | `npm run verify:e2e` |
 | Build, inspect, and launch the revision-isolated native X6 human-review application | `npm run review:x6` |
