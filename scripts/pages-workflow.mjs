@@ -30,14 +30,19 @@ export function validatePagesWorkflows({ pages, release }) {
   requirePattern(
     errors,
     pages,
-    /permissions:\n      contents: read\n      id-token: write\n      pages: write/u,
+    /permissions:\n      artifact-metadata: read\n      attestations: read\n      contents: read\n      id-token: write\n      pages: write/u,
     "Pages job permissions must be minimal",
   );
   requirePattern(errors, pages, /environment:\n      name: github-pages/u, "Pages must use the github-pages environment");
   requirePattern(errors, pages, /npm run check:product-surfaces/u, "Pages must verify product claims");
   requirePattern(errors, pages, /npm run check:site/u, "Pages must verify the source page");
   requirePattern(errors, pages, /npm run test:product-site/u, "Pages must test publication automation");
-  requirePattern(errors, pages, /npm run build:pages/u, "Pages must use the canonical compositor");
+  requirePattern(
+    errors,
+    pages,
+    /GH_TOKEN: \$\{\{ github\.token \}\}\n        run: npm run prepare:product-pages/u,
+    "Pages must preserve the authenticated public release before composition",
+  );
   requirePattern(errors, pages, /npm run verify:pages:preflight/u, "Pages must run the update-preservation preflight");
   requirePattern(errors, pages, /npm run verify:pages:remote/u, "Pages must verify exact remote bytes");
 
@@ -55,7 +60,7 @@ export function validatePagesWorkflows({ pages, release }) {
     "npm run check:product-surfaces",
     "npm run check:site",
     "npm run test:product-site",
-    "npm run build:pages",
+    "npm run prepare:product-pages",
     "npm run verify:pages:preflight",
     "actions/upload-pages-artifact@",
     "actions/deploy-pages@",

@@ -11,7 +11,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { composePagesArtifact, relativeFiles } from "./pages-artifact.mjs";
+import {
+  composePagesArtifact,
+  relativeFiles,
+  verifyPagesArtifact,
+} from "./pages-artifact.mjs";
 import { publicOrigin, publicUpdateUrl } from "./public-origin.mjs";
 import {
   publicReleaseAssetNames,
@@ -34,6 +38,7 @@ import { publicUpdatePackageName } from "./public-update-staging.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryName = "purnalica/fitfreed";
+const repositoryGitUrl = `https://github.com/${repositoryName}.git`;
 const semanticVersion =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const revisionPattern = /^[0-9a-f]{40,64}$/;
@@ -115,6 +120,7 @@ export async function downloadVerifiedPagesSnapshot({
   fetchImplementation = fetch,
   attempts = 24,
   intervalMilliseconds = 5_000,
+  verifyDeployedProductPages = true,
   wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration)),
 }) {
   if (!Number.isSafeInteger(attempts) || attempts < 1 || attempts > 60) {
@@ -189,10 +195,12 @@ export async function downloadVerifiedPagesSnapshot({
           releaseManifest: manifest,
           updateDirectory,
         });
-        const productFileCount = await verifyProductPages(
-          pagesDirectory,
-          fetchImplementation,
-        );
+        const productFileCount = verifyDeployedProductPages
+          ? await verifyProductPages(pagesDirectory, fetchImplementation)
+          : relativeFiles(pagesDirectory).filter(
+            (filename) => filename !== ".nojekyll"
+              && !filename.startsWith(`updates${path.sep}`),
+          ).length;
         return {
           attempts: attempt,
           fileCount: productFileCount + targets.length + 1,
@@ -213,15 +221,122 @@ export async function downloadVerifiedPagesSnapshot({
 }
 
 function readRelease(runCommand, tag) {
-  return JSON.parse(runCommand("gh", [
+  const args = [
     "release",
     "view",
-    tag,
+    ...(tag ? [tag] : []),
     "--repo",
     repositoryName,
     "--json",
     "tagName,name,body,isDraft,isPrerelease,isImmutable,publishedAt,assets",
-  ]).output);
+  ];
+  return JSON.parse(runCommand("gh", args).output);
+}
+
+export async function prepareCurrentPublicPages({
+  pagesDirectory,
+  runCommand = defaultRun,
+  fetchImplementation = fetch,
+  attempts = 3,
+  intervalMilliseconds = 5_000,
+  wait,
+}) {
+  const release = readRelease(runCommand);
+  const tag = release?.tagName;
+  const version = typeof tag === "string" && tag.startsWith("v") ? tag.slice(1) : "";
+  if (!semanticVersion.test(version)) {
+    throw new Error("current public release tag is invalid");
+  }
+
+  const temporaryRoot = mkdtempSync(path.join(tmpdir(), "fitfreed-current-public-pages-"));
+  const releaseDirectory = path.join(temporaryRoot, "release");
+  mkdirSync(releaseDirectory);
+  try {
+    runCommand("gh", [
+      "release",
+      "download",
+      tag,
+      "--repo",
+      repositoryName,
+      "--dir",
+      releaseDirectory,
+      "--pattern",
+      "release-manifest.json",
+    ]);
+    const manifest = readSupportedPublicReleaseManifest(releaseDirectory);
+    if (
+      manifest.release.version !== version
+      || !revisionPattern.test(manifest.release.revision)
+    ) {
+      throw new Error("current public release manifest identity is invalid");
+    }
+    verifyOriginReleaseTag(
+      runCommand,
+      tag,
+      version,
+      manifest.release.revision,
+      repositoryGitUrl,
+    );
+    const assetNames = publicReleaseAssetNames(manifest);
+    runCommand("gh", [
+      "release",
+      "download",
+      tag,
+      "--repo",
+      repositoryName,
+      "--dir",
+      releaseDirectory,
+      "--clobber",
+      ...assetNames.flatMap((name) => ["--pattern", name]),
+    ]);
+    const assets = publicReleaseAssets(releaseDirectory, manifest);
+    const releaseEvidence = validateGithubRelease(release, {
+      version,
+      notes: readFileSync(path.join(releaseDirectory, "RELEASE_NOTES.md"), "utf8"),
+      assets,
+      draft: false,
+    });
+    verifyPublicAssetProvenance(
+      runCommand,
+      tag,
+      manifest.release.revision,
+      assets,
+      publicReleaseSignerWorkflow(manifest),
+    );
+    verifyGithubReleaseAssetLinks(runCommand, tag, assets);
+    const pagesEvidence = await downloadVerifiedPagesSnapshot({
+      pagesDirectory,
+      manifest,
+      fetchImplementation,
+      attempts,
+      intervalMilliseconds,
+      verifyDeployedProductPages: false,
+      ...(wait === undefined ? {} : { wait }),
+    });
+    const pages = verifyPagesArtifact({
+      repositoryRoot,
+      pagesDirectory,
+      releaseManifest: manifest,
+    });
+    verifyOriginReleaseTag(
+      runCommand,
+      tag,
+      version,
+      manifest.release.revision,
+      repositoryGitUrl,
+    );
+    return {
+      version,
+      revision: manifest.release.revision,
+      immutableRelease: releaseEvidence.immutable,
+      attestedAssetCount: releaseEvidence.assetCount,
+      pagesFileCount: pagesEvidence.fileCount,
+      productFileCount: pages.productFileCount,
+      updateFileCount: pages.updateFileCount,
+    };
+  } finally {
+    rmSync(temporaryRoot, { force: true, recursive: true });
+  }
 }
 
 export async function verifyRemotePublicRelease({

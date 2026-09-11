@@ -159,10 +159,10 @@ export function verifyPublicAssetProvenance(
   }
 }
 
-export function verifyOriginReleaseTag(runCommand, tag, version, revision) {
+export function verifyOriginReleaseTag(runCommand, tag, version, revision, remote = "origin") {
   const result = runCommand("git", [
     "ls-remote",
-    "origin",
+    remote,
     `refs/tags/${tag}`,
     `refs/tags/${tag}^{}`,
   ]);

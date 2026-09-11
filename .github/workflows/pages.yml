@@ -15,6 +15,8 @@ on:
       - scripts/pages-publication.mjs
       - scripts/product-page-localization.mjs
       - scripts/public-origin.mjs
+      - scripts/public-release-remote.mjs
+      - scripts/prepare-public-pages.mjs
       - scripts/render-product-surfaces.mjs
       - scripts/check-product-page.mjs
       - site/**
@@ -34,6 +36,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      artifact-metadata: read
+      attestations: read
       contents: read
       id-token: write
       pages: write
@@ -64,8 +68,10 @@ jobs:
       - name: Verify the product publication automation
         run: npm run test:product-site
 
-      - name: Compose the complete Pages artifact
-        run: npm run build:pages
+      - name: Preserve the verified public release and compose the complete Pages artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run prepare:product-pages
 
       - name: Refuse to erase an active update snapshot
         run: npm run verify:pages:preflight
