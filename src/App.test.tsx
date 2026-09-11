@@ -1082,7 +1082,7 @@ async function changeLanguageToSpanish(
 ) {
   await user.click(screen.getByRole("button", { name: "Settings" }));
   await user.selectOptions(screen.getByLabelText("Interface language"), "es-ES");
-  await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+  await user.click(await screen.findByRole("button", { name: "Guardar cambios" }));
   const destinationName = destination === "explore"
     ? "Historial"
     : destination === "home"
