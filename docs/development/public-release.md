@@ -49,17 +49,29 @@ application trust set, but candidate construction had not selected that public k
 signer. Cleanup passed; no candidate was sealed, retained, or published. Current source derives a final public Tauri
 configuration from the exact selected key in the canonical trust set and rejects an inactive or unknown selection
 before packaging. The public `v0.1.3` tag remains fixed at the rejected source and is neither moved nor reused; the
-next candidate is 0.1.4.
+corrected successor was 0.1.4.
+
+The `v0.1.4` [dispatch `34623724477`](https://github.com/purnalica/fitfreed/actions/runs/34623724477) passed both
+preflights, built and Developer ID-signed the application, received Apple's accepted notarization result, stapled the
+application, built and signed the DMG, and emitted the updater archive and its signature. This proved the selected
+public-key handoff. The objective trust pass then stopped at a generic code-signing failure before candidate sealing.
+Source inspection established a separate structural gap: Tauri 2.11.4 finalizes the application through notarization
+and stapling, but creates the subsequent DMG with only its generic signing step. That does not satisfy FitFreed's
+contract for the final distributable container. Current source explicitly verifies, signs with a stable identifier
+and secure timestamp, notarizes, checks the notarization log, and staples the final DMG before objective trust
+inspection. Every command failure now identifies its exact stage without emitting raw signing diagnostics. Cleanup
+passed; no candidate was sealed, retained, or published. The public `v0.1.4` tag remains fixed at the rejected source
+and is neither moved nor reused; the next candidate is 0.1.5.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
 an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
-Apple's notarization service passes outside the workflow. The protected 0.1.2 and 0.1.3 executions imported the
+Apple's notarization service passes outside the workflow. The protected 0.1.2 through 0.1.4 executions imported the
 certificate and private key, signed the application and DMG, submitted the application, received Apple's accepted
 notarization result, and stapled the application before independent updater configuration failures stopped candidate
-preparation. Neither unsealed runner-local output was retained or published, and unconditional authority cleanup
-passed.
+preparation or objective trust rejected the result. Version 0.1.4 additionally proved updater artifact signing. No
+unsealed runner-local output was retained or published, and unconditional authority cleanup passed.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -123,7 +135,7 @@ custody, activation, rotation, compromise, withdrawal, and partial-publication r
 
 ## Objective trust gate
 
-After the protected build, `npm run check:public-macos-trust -- <application> <disk-image> <version> <team-id>` verifies Developer ID, hardened runtime, secure timestamp, matching leaf certificate, application identity, Apple Silicon and macOS 15.0 boundaries, stapled tickets, and Gatekeeper acceptance. It emits only the public fingerprint, team identifier, and Boolean trust results needed by the [public release manifest](../data-formats/release/release-manifest-v3.md).
+After the protected build and explicit final-DMG notarization, `npm run check:public-macos-trust -- <application> <disk-image> <version> <team-id>` verifies Developer ID, hardened runtime, secure timestamp, matching leaf certificate, application identity, Apple Silicon and macOS 15.0 boundaries, stapled tickets, and Gatekeeper acceptance. It emits only the public fingerprint, team identifier, and Boolean trust results needed by the [public release manifest](../data-formats/release/release-manifest-v3.md). Command failures identify the exact trust stage without copying raw tool output into logs.
 
 Synthetic tests prove orchestration and failure behavior but cannot claim Apple trust. A public candidate remains blocked until the same inspector succeeds against the exact final Developer ID-signed and Apple-notarized bytes.
 
@@ -131,7 +143,7 @@ Synthetic tests prove orchestration and failure behavior but cannot claim Apple 
 
 After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job with only the job-scoped read-only GitHub token needed to reopen repository, Pages, workflow, and environment evidence. It requires Apple Silicon macOS and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The authority installer maps the same updater file path to FitFreed's path input and Tauri's bundle input because the pinned Tauri bundle command reads `TAURI_SIGNING_PRIVATE_KEY`, while its signer subcommand also supports `TAURI_SIGNING_PRIVATE_KEY_PATH`. The two updater values must be identical paths and never key contents. Candidate construction also selects the requested public key from the canonical active trust set and supplies its unchanged Base64-wrapped Tauri value through a final command-scoped configuration merge. Missing, inactive, malformed, or unknown public trust fails before native packaging. The updater password remains an environment secret and is never passed as a command-line argument.
 
-Preparation deletes only the generated Tauri bundle directory before building, preventing stale private or test artifacts from satisfying a public check. Tauri creates the signed, notarized application, DMG, updater archive, and updater signature. The objective Apple trust inspector runs before evidence is assembled.
+Preparation deletes only the generated Tauri bundle directory before building, preventing stale private or test artifacts from satisfying a public check. Tauri creates the signed and notarized application, the initial DMG, the updater archive, and the updater signature. FitFreed then treats the exact DMG as an independent final distribution container: it verifies the image, signs it with the admitted Developer ID fingerprint, secure timestamp, and `org.fitfreed.desktop.dmg` identifier, submits that final image to Apple, requires an accepted issue-free notarization log, and staples and validates its ticket. The objective Apple trust inspector runs only after this finalization and before evidence is assembled. The same boundary is shared by the macOS-only, Linux-expansion, and complete-platform composers.
 
 The command creates one ignored atomic directory at `.artifacts/public-releases/<version>/` with two children:
 

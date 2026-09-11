@@ -50,6 +50,10 @@ FitFreed's path variable and Tauri's bundle variable, with the same absolute pat
 contents never enter either environment variable. Candidate packaging resolves the dispatch's updater-key identifier
 against `release/public-update-channel.json` and supplies that entry's exact public value through the final Tauri
 configuration merge. An unknown key, an inactive trust set, or a malformed public key stops before packaging.
+After Tauri finalizes the application and creates the DMG, preparation independently verifies and finalizes that exact
+DMG with the admitted Developer ID fingerprint and App Store Connect authority. It requires a secure timestamp, the
+stable `org.fitfreed.desktop.dmg` identifier, an accepted issue-free notarization log, and a valid stapled ticket before
+objective trust inspection. The same finalizer is used by every public macOS-containing compositor.
 
 The Windows native-builder environment defines `FITFREED_WINDOWS_CERTIFICATE_BASE64` and
 `FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as protected secrets. It defines the independently derived lowercase
@@ -249,7 +253,7 @@ digest-bound input or candidate, because a new timestamp can produce different b
 
 ## Build approval and sealed candidate
 
-The first protected approval admits `build-candidate` to the Apple, updater, and limited administrative read authority. The job repeats preflight with only its job-scoped read-only GitHub token, verifies immutable-release configuration, creates an ephemeral keychain, builds and notarizes the application, staples and inspects the application and DMG, generates the update snapshot and evidence, and verifies the complete candidate.
+The first protected approval admits `build-candidate` to the Apple, updater, and limited administrative read authority. The job repeats preflight with only its job-scoped read-only GitHub token, verifies immutable-release configuration, creates an ephemeral keychain, builds and notarizes the application, independently notarizes and staples the final DMG, inspects both distributable forms, generates the update snapshot and evidence, and verifies the complete candidate.
 
 It then creates `candidate.tar.gz`, records its SHA-256 digest as a job output, uploads one Actions artifact named `public-macos-candidate-<version>-<revision>`, and removes all release authority. The artifact contains only the public-shaped `release/` and `pages/` trees. It is retained for seven days and is not a GitHub Release or update-channel deployment.
 

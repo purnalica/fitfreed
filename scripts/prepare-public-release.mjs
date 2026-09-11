@@ -13,6 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
+import { finalizePublicMacosDiskImage } from "./finalize-public-macos-disk-image.mjs";
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
 import { nodePackageScriptPath } from "./node-package-script.mjs";
 import { composePagesArtifact } from "./pages-artifact.mjs";
@@ -284,6 +285,11 @@ function preparePublicRelease() {
     run("npm", ["run", "audit:dependencies"]);
     buildPublicCandidate(updateKeyId);
     const built = builtArtifactPaths(version);
+    finalizePublicMacosDiskImage({
+      diskImagePath: built.paths.diskImage,
+      environment: process.env,
+      signing,
+    });
     const trust = inspectPublicMacosTrust({
       applicationPath: built.paths.application,
       diskImagePath: built.paths.diskImage,

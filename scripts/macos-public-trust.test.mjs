@@ -59,8 +59,8 @@ test("checks the complete application, disk image, notarization, and Gatekeeper 
   writeFileSync(executable, "synthetic executable");
   writeFileSync(diskImagePath, "synthetic disk image");
   const invocations = [];
-  const runCommand = (command, args) => {
-    invocations.push([command, ...args]);
+  const runCommand = (stage, command, args) => {
+    invocations.push([stage, command, ...args]);
     if (command === "codesign" && args.includes("--extract-certificates")) {
       const prefix = args[args.indexOf("--extract-certificates") + 1];
       writeFileSync(`${prefix}0`, "same synthetic leaf certificate");
@@ -89,19 +89,36 @@ test("checks the complete application, disk image, notarization, and Gatekeeper 
   assert.equal(evidence.notarization.diskImageStapled, true);
   assert.equal(evidence.notarization.gatekeeperAccepted, true);
   assert.equal(
-    invocations.some(([command, ...args]) =>
+    invocations.some(([, command, ...args]) =>
       command === "spctl" && args.includes("execute")),
     true,
   );
   assert.equal(
-    invocations.some(([command, ...args]) =>
+    invocations.some(([, command, ...args]) =>
       command === "spctl" && args.includes("context:primary-signature")),
     true,
   );
   assert.equal(
-    invocations.filter(([command, ...args]) => command === "xcrun" && args[0] === "stapler").length,
+    invocations.filter(([, command, ...args]) =>
+      command === "xcrun" && args[0] === "stapler").length,
     2,
   );
+  assert.deepEqual(invocations.map(([stage]) => stage), [
+    "application-signature-verification",
+    "application-signature-details",
+    "disk-image-signature-verification",
+    "bundle-identifier",
+    "bundle-version",
+    "minimum-system-version",
+    "executable-architecture",
+    "executable-deployment-target",
+    "application-certificate-extraction",
+    "disk-image-certificate-extraction",
+    "application-ticket-validation",
+    "disk-image-ticket-validation",
+    "application-gatekeeper-assessment",
+    "disk-image-gatekeeper-assessment",
+  ]);
 });
 
 test("rejects application and disk image certificates that do not match", () => {
@@ -114,7 +131,7 @@ test("rejects application and disk image certificates that do not match", () => 
   writeFileSync(infoPlist, "synthetic plist");
   writeFileSync(executable, "synthetic executable");
   writeFileSync(diskImagePath, "synthetic disk image");
-  const runCommand = (command, args) => {
+  const runCommand = (stage, command, args) => {
     if (command === "codesign" && args.includes("--extract-certificates")) {
       const prefix = args[args.indexOf("--extract-certificates") + 1];
       writeFileSync(`${prefix}0`, prefix.includes("application-") ? "application" : "disk image");
@@ -151,7 +168,7 @@ test("rejects a valid Developer ID signature from an unexpected Apple team", () 
   writeFileSync(infoPlist, "synthetic plist");
   writeFileSync(executable, "synthetic executable");
   writeFileSync(diskImagePath, "synthetic disk image");
-  const runCommand = (command, args) => {
+  const runCommand = (stage, command, args) => {
     if (command === "codesign" && args.includes("--verbose=4")) return validCodesignDetails;
     return "";
   };

@@ -117,6 +117,14 @@ function operations(candidate, events) {
         updaterSignaturePath: `/build/${version}/FitFreed.app.tar.gz.sig`,
       };
     },
+    finalizeMacosDiskImage({ diskImagePath, signing }) {
+      events.push("finalize-macos-disk-image");
+      assert.equal(
+        diskImagePath,
+        `/build/${candidate.input.version}/FitFreed_${candidate.input.version}_aarch64.dmg`,
+      );
+      assert.equal(signing.expectedTeamIdentifier, "A1B2C3D4E5");
+    },
     composeCompletePlatformCandidate(input) {
       events.push("compose");
       assert.equal(input.windowsTrust.certificateSha256, "c".repeat(64));
@@ -283,6 +291,7 @@ test("authenticates both native inputs and predecessor bytes before composition"
     "recovery",
     "audit",
     "build-macos",
+    "finalize-macos-disk-image",
     "macos-trust",
     "npm-sbom",
     "cargo-sboms",

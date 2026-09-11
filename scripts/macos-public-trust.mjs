@@ -13,14 +13,14 @@ import { fileURLToPath } from "node:url";
 
 const teamIdentifierPattern = /^[A-Z0-9]{10}$/;
 
-function execute(command, args) {
+function execute(stage, command, args) {
   const result = spawnSync(command, args, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
   if (result.error || result.status !== 0) {
     const status = Number.isInteger(result.status) ? result.status : "unknown";
-    throw new Error(`${path.basename(command)} trust check failed with exit status ${status}`);
+    throw new Error(`${stage} failed with exit status ${status}`);
   }
   return `${result.stdout ?? ""}${result.stderr ?? ""}`;
 }
@@ -83,8 +83,13 @@ function assertCandidatePaths(applicationPath, diskImagePath) {
   }
 }
 
-function leafCertificateSha256(runCommand, candidatePath, prefix) {
-  runCommand("codesign", ["--display", "--extract-certificates", prefix, candidatePath]);
+function leafCertificateSha256(runCommand, stage, candidatePath, prefix) {
+  runCommand(stage, "codesign", [
+    "--display",
+    "--extract-certificates",
+    prefix,
+    candidatePath,
+  ]);
   const certificatePath = `${prefix}0`;
   if (!existsSync(certificatePath) || !lstatSync(certificatePath).isFile()) {
     throw new Error("Developer ID leaf certificate extraction failed");
@@ -112,15 +117,28 @@ export function inspectPublicMacosTrust({
     throw new Error("public application bundle is incomplete");
   }
 
-  runCommand("codesign", ["--verify", "--deep", "--strict", applicationPath]);
-  const signatureDetails = runCommand("codesign", ["--display", "--verbose=4", applicationPath]);
+  runCommand("application-signature-verification", "codesign", [
+    "--verify",
+    "--deep",
+    "--strict",
+    applicationPath,
+  ]);
+  const signatureDetails = runCommand("application-signature-details", "codesign", [
+    "--display",
+    "--verbose=4",
+    applicationPath,
+  ]);
   const signing = parseCodesignDetails(signatureDetails);
   if (signing.teamIdentifier !== expectedTeamIdentifier) {
     throw new Error("application signature uses an unexpected Apple team identifier");
   }
-  runCommand("codesign", ["--verify", "--strict", diskImagePath]);
+  runCommand("disk-image-signature-verification", "codesign", [
+    "--verify",
+    "--strict",
+    diskImagePath,
+  ]);
 
-  const bundleIdentifier = runCommand("plutil", [
+  const bundleIdentifier = runCommand("bundle-identifier", "plutil", [
     "-extract",
     "CFBundleIdentifier",
     "raw",
@@ -131,7 +149,7 @@ export function inspectPublicMacosTrust({
   if (bundleIdentifier !== "org.fitfreed.desktop") {
     throw new Error("public application bundle identifier is invalid");
   }
-  const bundleVersion = runCommand("plutil", [
+  const bundleVersion = runCommand("bundle-version", "plutil", [
     "-extract",
     "CFBundleShortVersionString",
     "raw",
@@ -142,7 +160,7 @@ export function inspectPublicMacosTrust({
   if (bundleVersion !== expectedVersion) {
     throw new Error(`public application version must be ${expectedVersion}`);
   }
-  const plistMinimumVersion = runCommand("plutil", [
+  const plistMinimumVersion = runCommand("minimum-system-version", "plutil", [
     "-extract",
     "LSMinimumSystemVersion",
     "raw",
@@ -153,12 +171,16 @@ export function inspectPublicMacosTrust({
   if (plistMinimumVersion !== "15.0") {
     throw new Error("public application minimum system version must be 15.0");
   }
-  const architectures = runCommand("lipo", ["-archs", executable]).trim().split(/\s+/);
+  const architectures = runCommand(
+    "executable-architecture",
+    "lipo",
+    ["-archs", executable],
+  ).trim().split(/\s+/);
   if (architectures.length !== 1 || architectures[0] !== "arm64") {
     throw new Error("public application executable must contain only arm64");
   }
   const minimumSystemVersion = parseMinimumSystemVersion(
-    runCommand("vtool", ["-show-build", executable]),
+    runCommand("executable-deployment-target", "vtool", ["-show-build", executable]),
   );
 
   const certificateDirectory = mkdtempSync(
@@ -167,11 +189,13 @@ export function inspectPublicMacosTrust({
   try {
     const applicationCertificate = leafCertificateSha256(
       runCommand,
+      "application-certificate-extraction",
       applicationPath,
       path.join(certificateDirectory, "application-"),
     );
     const diskImageCertificate = leafCertificateSha256(
       runCommand,
+      "disk-image-certificate-extraction",
       diskImagePath,
       path.join(certificateDirectory, "disk-image-"),
     );
@@ -179,10 +203,23 @@ export function inspectPublicMacosTrust({
       throw new Error("application and disk image use different signing certificates");
     }
 
-    runCommand("xcrun", ["stapler", "validate", applicationPath]);
-    runCommand("xcrun", ["stapler", "validate", diskImagePath]);
-    runCommand("spctl", ["--assess", "--type", "execute", applicationPath]);
-    runCommand("spctl", [
+    runCommand("application-ticket-validation", "xcrun", [
+      "stapler",
+      "validate",
+      applicationPath,
+    ]);
+    runCommand("disk-image-ticket-validation", "xcrun", [
+      "stapler",
+      "validate",
+      diskImagePath,
+    ]);
+    runCommand("application-gatekeeper-assessment", "spctl", [
+      "--assess",
+      "--type",
+      "execute",
+      applicationPath,
+    ]);
+    runCommand("disk-image-gatekeeper-assessment", "spctl", [
       "--assess",
       "--type",
       "open",

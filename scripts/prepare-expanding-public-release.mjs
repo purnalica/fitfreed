@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
 import { composeLinuxExpansionCandidate } from "./expanding-public-release-composition.mjs";
 import { renderLinuxExpansionReleaseNotes } from "./expanding-public-release-evidence.mjs";
+import { finalizePublicMacosDiskImage } from "./finalize-public-macos-disk-image.mjs";
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
 import {
   assertCleanRevision,
@@ -209,6 +210,11 @@ export function prepareExpandingPublicRelease({
   try {
     run("npm", ["run", "audit:dependencies"]);
     const macos = buildMacosCandidate(version, updateKeyId);
+    finalizePublicMacosDiskImage({
+      diskImagePath: macos.diskImagePath,
+      environment,
+      signing,
+    });
     const trust = inspectPublicMacosTrust({
       applicationPath: macos.applicationPath,
       diskImagePath: macos.diskImagePath,

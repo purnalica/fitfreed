@@ -15,6 +15,7 @@ import { inspectReleaseContracts } from "./check-release-contracts.mjs";
 import { composeCompletePlatformCandidate } from "./complete-platform-release-composition.mjs";
 import { renderCompletePlatformReleaseNotes } from "./complete-platform-release-evidence.mjs";
 import { discoverCompletePlatformRecoveryPackages } from "./complete-platform-recovery-discovery.mjs";
+import { finalizePublicMacosDiskImage } from "./finalize-public-macos-disk-image.mjs";
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
 import { nodePackageScriptPath } from "./node-package-script.mjs";
 import {
@@ -126,6 +127,7 @@ const defaultOperations = Object.freeze({
   createCargoSboms,
   createNpmSbom,
   discoverRecoveryPackages: discoverCompletePlatformRecoveryPackages,
+  finalizeMacosDiskImage: finalizePublicMacosDiskImage,
   generatedAt,
   generatorVersions,
   inspectMacosTrust: inspectPublicMacosTrust,
@@ -248,6 +250,11 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
   try {
     operations.runDependencyAudit();
     const macos = operations.buildMacosCandidate(version, updateKeyId);
+    operations.finalizeMacosDiskImage({
+      diskImagePath: macos.diskImagePath,
+      environment,
+      signing,
+    });
     const macosTrust = operations.inspectMacosTrust({
       applicationPath: macos.applicationPath,
       diskImagePath: macos.diskImagePath,
