@@ -31,13 +31,23 @@ read-only token an explicit preparation input and verifies the boundary through 
 `v0.1.1` tag remains fixed at the rejected source and is neither moved nor reused; the corrected first publishable
 candidate is 0.1.2.
 
+The `v0.1.2` dispatch on 2026-09-11 passed both preflights and every protected prerequisite. It built and Developer
+ID-signed the application, Apple accepted notarization, the workflow stapled the application, and it built and signed
+the DMG. Tauri then refused to create the updater signature because its 2.11.4 bundle path reads
+`TAURI_SIGNING_PRIVATE_KEY`, while the protected installer exposed only `TAURI_SIGNING_PRIVATE_KEY_PATH`. The latter
+is accepted by Tauri's signer subcommand but is not the bundle command's private-key input. Cleanup passed, and no
+candidate was sealed, retained, or published. Current source exposes both names as the same private absolute file path,
+never as key contents, and rejects a missing, inline, or mismatched value before packaging. The public `v0.1.2` tag
+remains fixed at the rejected source and is neither moved nor reused; the next candidate is 0.1.3.
+
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
 an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
-Apple's notarization service passes outside the workflow. The first protected execution imported and jointly validated
-the certificate, private key, expected team, and App Store Connect credential before removing them in its unconditional
-cleanup step; no application has yet been signed or submitted with these authorities.
+Apple's notarization service passes outside the workflow. The protected 0.1.2 execution imported the certificate and
+private key, signed the application and DMG, submitted the application, received Apple's accepted notarization result,
+and stapled the application before the independent updater-signature failure stopped candidate preparation. The
+unsealed runner-local output was not retained or published, and unconditional authority cleanup passed.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -107,7 +117,7 @@ Synthetic tests prove orchestration and failure behavior but cannot claim Apple 
 
 ## Protected preparation
 
-After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job with only the job-scoped read-only GitHub token needed to reopen repository, Pages, workflow, and environment evidence. It requires Apple Silicon macOS and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The updater password remains an environment secret and is never passed as a command-line argument.
+After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job with only the job-scoped read-only GitHub token needed to reopen repository, Pages, workflow, and environment evidence. It requires Apple Silicon macOS and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The authority installer maps the same updater file path to FitFreed's path input and Tauri's bundle input because the pinned Tauri bundle command reads `TAURI_SIGNING_PRIVATE_KEY`, while its signer subcommand also supports `TAURI_SIGNING_PRIVATE_KEY_PATH`. The two updater values must be identical paths and never key contents. The updater password remains an environment secret and is never passed as a command-line argument.
 
 Preparation deletes only the generated Tauri bundle directory before building, preventing stale private or test artifacts from satisfying a public check. Tauri creates the signed, notarized application, DMG, updater archive, and updater signature. The objective Apple trust inspector runs before evidence is assembled.
 

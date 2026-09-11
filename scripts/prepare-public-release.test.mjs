@@ -27,6 +27,7 @@ function signingFixture() {
     environment: {
       APPLE_SIGNING_IDENTITY: "a".repeat(40),
       FITFREED_EXPECTED_APPLE_TEAM_ID: "A1B2C3D4E5",
+      TAURI_SIGNING_PRIVATE_KEY: updaterKey,
       TAURI_SIGNING_PRIVATE_KEY_PATH: updaterKey,
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "synthetic password",
       APPLE_API_ISSUER: "11111111-2222-3333-4444-555555555555",

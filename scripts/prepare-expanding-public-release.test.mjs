@@ -39,6 +39,7 @@ function fixture(context) {
       FITFREED_EXPECTED_APPLE_TEAM_ID: "A1B2C3D4E5",
       FITFREED_RELEASE_PRIVATE_KEY_PASSWORD: "release password",
       FITFREED_RELEASE_PRIVATE_KEY_PATH: files.release,
+      TAURI_SIGNING_PRIVATE_KEY: files.updater,
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "updater password",
       TAURI_SIGNING_PRIVATE_KEY_PATH: files.updater,
     },

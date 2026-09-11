@@ -91,8 +91,16 @@ test("materializes protected inputs only in a private runner directory", () => {
   const githubEnvironment = readFileSync(input.githubEnvironmentPath, "utf8");
   assert.match(githubEnvironment, new RegExp(`APPLE_SIGNING_IDENTITY=${input.signingIdentity}`));
   assert.match(githubEnvironment, /APPLE_API_KEY_PATH=.*AuthKey_A1B2C3D4E5\.p8/);
+  assert.match(githubEnvironment, /^TAURI_SIGNING_PRIVATE_KEY=.*updater\.key$/m);
   assert.match(githubEnvironment, /TAURI_SIGNING_PRIVATE_KEY_PATH=.*updater\.key/);
   assert.match(githubEnvironment, /FITFREED_RELEASE_PRIVATE_KEY_PATH=.*release\.key/);
+  const exposedEnvironment = Object.fromEntries(
+    githubEnvironment.trim().split("\n").map((line) => line.split(/=(.*)/s, 2)),
+  );
+  assert.equal(
+    exposedEnvironment.TAURI_SIGNING_PRIVATE_KEY,
+    exposedEnvironment.TAURI_SIGNING_PRIVATE_KEY_PATH,
+  );
   for (const secret of [
     input.environment.FITFREED_APPLE_CERTIFICATE_PASSWORD,
     input.environment.FITFREED_APPLE_API_PRIVATE_KEY,

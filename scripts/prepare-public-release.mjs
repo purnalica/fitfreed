@@ -91,10 +91,6 @@ export function assertPublicSigningEnvironment(environment, repositoryPath = rep
     "expected Apple team identifier is invalid",
   );
   requireValue(
-    environment.TAURI_SIGNING_PRIVATE_KEY === undefined,
-    "inline updater private keys are forbidden for public releases",
-  );
-  requireValue(
     typeof environment.TAURI_SIGNING_PRIVATE_KEY_PASSWORD === "string"
       && environment.TAURI_SIGNING_PRIVATE_KEY_PASSWORD.length > 0,
     "updater signing password is unavailable",
@@ -111,6 +107,10 @@ export function assertPublicSigningEnvironment(environment, repositoryPath = rep
   } catch (error) {
     errors.push(error.message);
   }
+  requireValue(
+    environment.TAURI_SIGNING_PRIVATE_KEY === updaterKeyPath,
+    "TAURI_SIGNING_PRIVATE_KEY must equal the protected updater-key path; inline updater private keys are forbidden for public releases",
+  );
 
   const apiFields = ["APPLE_API_ISSUER", "APPLE_API_KEY", "APPLE_API_KEY_PATH"];
   const appleIdFields = ["APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID"];

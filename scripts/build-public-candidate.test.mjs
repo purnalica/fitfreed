@@ -15,12 +15,31 @@ test("always applies updater-artifact configuration to a public candidate build"
   ]);
 });
 
-test("requires updater signing authority without inspecting or returning its value", () => {
+test("requires Tauri to receive the exact protected updater-key path", () => {
   assert.throws(() => assertUpdaterSigningAuthority({}), /signing authority is unavailable/);
-  assert.doesNotThrow(() =>
-    assertUpdaterSigningAuthority({ TAURI_SIGNING_PRIVATE_KEY: "synthetic-private-input" }),
+  assert.throws(
+    () => assertUpdaterSigningAuthority({
+      TAURI_SIGNING_PRIVATE_KEY: "synthetic-private-input",
+    }),
+    /protected updater-key path/,
+  );
+  assert.throws(
+    () => assertUpdaterSigningAuthority({
+      TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/key/path",
+    }),
+    /protected updater-key path/,
+  );
+  assert.throws(
+    () => assertUpdaterSigningAuthority({
+      TAURI_SIGNING_PRIVATE_KEY: "/synthetic/other/path",
+      TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/key/path",
+    }),
+    /protected updater-key path/,
   );
   assert.doesNotThrow(() =>
-    assertUpdaterSigningAuthority({ TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/key/path" }),
+    assertUpdaterSigningAuthority({
+      TAURI_SIGNING_PRIVATE_KEY: "/synthetic/key/path",
+      TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/key/path",
+    }),
   );
 });

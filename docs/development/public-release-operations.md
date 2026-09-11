@@ -45,7 +45,9 @@ later composer never receives the Windows certificate or its store selector.
 
 The macOS ephemeral authority installer writes private material only under the hosted runner's temporary directory with
 private permissions, imports the exact certificate fingerprint into a temporary keychain, and restores the prior
-keychain state in an unconditional cleanup step.
+keychain state in an unconditional cleanup step. It exposes the updater file to the protected process through both
+FitFreed's path variable and Tauri's bundle variable, with the same absolute path as both values. The private-key
+contents never enter either environment variable.
 
 The Windows native-builder environment defines `FITFREED_WINDOWS_CERTIFICATE_BASE64` and
 `FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as protected secrets. It defines the independently derived lowercase
@@ -122,7 +124,9 @@ Before creating a release tag:
 2. Keep `release/notes/<version>.md` distribution-neutral. Generated private and public preambles own signing, notarization, and channel state.
 3. Give the public release policy a sequence greater than every previously accepted stable-channel sequence. Never reuse a sequence for different bytes or policy.
 4. Declare every supported prior application baseline and library schema in `release/upgrade-matrix.json` from direct evidence.
-5. Run the complete local gates and wait for successful `push` runs of both `ci.yml` and `repository-safety.yml` on the exact source revision.
+5. Run the impact-mapped local gates required by the [execution policy](../execution-policy.md), reuse unchanged product
+   evidence, and wait for successful `push` runs of both `ci.yml` and `repository-safety.yml` on the exact source
+   revision. Do not precede release-only corrections with unchanged E2E or performance campaigns.
 6. Create and push the exact `v<version>` tag only with separate authorization and public-safe Git metadata. Do not move or reuse a published release tag.
 
 The workflow must be dispatched while the selected GitHub ref is that tag. The initial macOS workflow inputs are only

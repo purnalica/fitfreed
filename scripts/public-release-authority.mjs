@@ -240,6 +240,7 @@ export function installPublicReleaseAuthority(environment, options = {}) {
       ["APPLE_API_ISSUER", apiIssuer],
       ["APPLE_API_KEY", apiKey],
       ["APPLE_API_KEY_PATH", apiKeyPath],
+      ["TAURI_SIGNING_PRIVATE_KEY", updaterKeyPath],
       ["TAURI_SIGNING_PRIVATE_KEY_PATH", updaterKeyPath],
       ...(releasePrivateKey === undefined
         ? []

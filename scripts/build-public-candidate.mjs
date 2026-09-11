@@ -26,6 +26,11 @@ export function assertUpdaterSigningAuthority(environment) {
   ) {
     throw new Error("updater signing authority is unavailable");
   }
+  if (!path.isAbsolute(keyPath ?? "") || inlineKey !== keyPath) {
+    throw new Error(
+      "TAURI_SIGNING_PRIVATE_KEY must equal the protected updater-key path",
+    );
+  }
 }
 
 function buildPublicCandidate() {

@@ -64,7 +64,10 @@ test("normalizes the signed external Debian names only after the public build", 
     arguments_: ["--verbose"],
     build: (options) => calls.push(["build", options]),
     configuration,
-    environment: { TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key" },
+    environment: {
+      TAURI_SIGNING_PRIVATE_KEY: "/synthetic/updater.key",
+      TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key",
+    },
     normalize: (options) => calls.push(["normalize", options]),
     platform: "linux",
   });
@@ -100,7 +103,10 @@ test("rejects legacy update trust before building a Linux public candidate", () 
           publicKey: "U3ludGhldGljIHB1YmxpYyBrZXkgZm9yIGNvbnRyYWN0IHRlc3RzLg==",
         }],
       },
-      environment: { TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key" },
+      environment: {
+        TAURI_SIGNING_PRIVATE_KEY: "/synthetic/updater.key",
+        TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key",
+      },
       normalize: () => {},
       platform: "linux",
     }),
