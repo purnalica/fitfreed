@@ -345,7 +345,10 @@ test("wires the fail-closed classifier into every hosted verification lane", () 
   assert.match(workflow, /npm run check:product-surfaces/);
   assert.match(workflow, /npm run check:site/);
   assert.match(workflow, /npm run test:product-site/);
-  assert.match(workflow, /npm run build:pages/);
+  assert.match(
+    workflow,
+    /GH_TOKEN: \$\{\{ github\.token \}\}[\s\S]*npm run prepare:product-pages/,
+  );
   assert.match(workflow, /npm run verify:pages:preflight/);
   assert.match(workflow, /steps\.impact\.outputs\.automation-verification == 'true'/);
   assert.match(workflow, /node --test scripts\/classify-ci-impact\.test\.mjs/);

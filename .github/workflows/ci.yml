@@ -35,6 +35,10 @@ jobs:
     name: Portable quality and Linux host checks
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      artifact-metadata: read
+      attestations: read
+      contents: read
     outputs:
       executable-fingerprint: ${{ steps.impact.outputs.executable-fingerprint }}
       focused-verification: ${{ steps.impact.outputs.focused-verification }}
@@ -124,10 +128,12 @@ jobs:
         if: >-
           steps.decision.outputs.quality-verification == 'true' ||
           steps.impact.outputs.product-surface-verification == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           npm run test:product-site
           npm run check:pages-workflow
-          npm run build:pages
+          npm run prepare:product-pages
           npm run verify:pages:preflight
 
       - name: Verify documentation and CI automation
