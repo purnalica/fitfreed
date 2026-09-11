@@ -4,15 +4,22 @@ import { fileURLToPath } from "node:url";
 import { buildProductionPackage } from "./build-production.mjs";
 import {
   loadPublicUpdateConfiguration,
+  publicUpdaterArtifactConfiguration,
   publicUpdateBuildEnvironment,
 } from "./public-update-configuration.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-export function publicCandidateBuildArguments(additionalArguments = []) {
+export function publicCandidateBuildArguments(
+  configuration,
+  updateKeyId,
+  additionalArguments = [],
+) {
   return [
     "--config",
     "src-tauri/tauri.public.conf.json",
+    "--config",
+    JSON.stringify(publicUpdaterArtifactConfiguration(configuration, updateKeyId)),
     ...additionalArguments,
   ];
 }
@@ -38,7 +45,11 @@ function buildPublicCandidate() {
   const publicUpdateEnvironment = publicUpdateBuildEnvironment(configuration, true);
   assertUpdaterSigningAuthority(process.env);
   buildProductionPackage({
-    arguments_: publicCandidateBuildArguments(process.argv.slice(2)),
+    arguments_: publicCandidateBuildArguments(
+      configuration,
+      process.env.FITFREED_UPDATE_KEY_ID,
+      process.argv.slice(2),
+    ),
     publicUpdateEnvironment,
   });
 }

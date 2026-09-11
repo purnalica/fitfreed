@@ -181,10 +181,12 @@ export function publicChannelTimes(issuedAt, currentTime = Date.now()) {
   };
 }
 
-function buildPublicCandidate() {
+function buildPublicCandidate(updateKeyId) {
   const bundleRoot = path.join(repositoryRoot, "src-tauri", "target", "release", "bundle");
   rmSync(bundleRoot, { recursive: true, force: true });
-  run("npm", ["run", "package:public-candidate"]);
+  run("npm", ["run", "package:public-candidate"], {
+    environment: { FITFREED_UPDATE_KEY_ID: updateKeyId },
+  });
   run("npm", ["run", "check:production-bundle"]);
 }
 
@@ -280,7 +282,7 @@ function preparePublicRelease() {
 
   try {
     run("npm", ["run", "audit:dependencies"]);
-    buildPublicCandidate();
+    buildPublicCandidate(updateKeyId);
     const built = builtArtifactPaths(version);
     const trust = inspectPublicMacosTrust({
       applicationPath: built.paths.application,

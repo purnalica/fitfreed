@@ -38,16 +38,28 @@ the DMG. Tauri then refused to create the updater signature because its 2.11.4 b
 is accepted by Tauri's signer subcommand but is not the bundle command's private-key input. Cleanup passed, and no
 candidate was sealed, retained, or published. Current source exposes both names as the same private absolute file path,
 never as key contents, and rejects a missing, inline, or mismatched value before packaging. The public `v0.1.2` tag
-remains fixed at the rejected source and is neither moved nor reused; the next candidate is 0.1.3.
+remains fixed at the rejected source and is neither moved nor reused; its corrected successor was 0.1.3.
+
+The `v0.1.3` [dispatch `34619731032`](https://github.com/purnalica/fitfreed/actions/runs/34619731032) proved that
+private-key correction, passed both preflights, compiled the application, completed Developer ID signing, received an
+accepted Apple notarization result, stapled the application, and built and signed the DMG. Updater signing then stopped
+because updater-artifact generation still read the empty ordinary Tauri `plugins.updater.pubkey` value. The canonical
+public update configuration held the complete reviewed Base64-wrapped Minisign public key and embedded it in the
+application trust set, but candidate construction had not selected that public key for Tauri's separate artifact
+signer. Cleanup passed; no candidate was sealed, retained, or published. Current source derives a final public Tauri
+configuration from the exact selected key in the canonical trust set and rejects an inactive or unknown selection
+before packaging. The public `v0.1.3` tag remains fixed at the rejected source and is neither moved nor reused; the
+next candidate is 0.1.4.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
 an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
-Apple's notarization service passes outside the workflow. The protected 0.1.2 execution imported the certificate and
-private key, signed the application and DMG, submitted the application, received Apple's accepted notarization result,
-and stapled the application before the independent updater-signature failure stopped candidate preparation. The
-unsealed runner-local output was not retained or published, and unconditional authority cleanup passed.
+Apple's notarization service passes outside the workflow. The protected 0.1.2 and 0.1.3 executions imported the
+certificate and private key, signed the application and DMG, submitted the application, received Apple's accepted
+notarization result, and stapled the application before independent updater configuration failures stopped candidate
+preparation. Neither unsealed runner-local output was retained or published, and unconditional authority cleanup
+passed.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
@@ -117,7 +129,7 @@ Synthetic tests prove orchestration and failure behavior but cannot claim Apple 
 
 ## Protected preparation
 
-After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job with only the job-scoped read-only GitHub token needed to reopen repository, Pages, workflow, and environment evidence. It requires Apple Silicon macOS and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The authority installer maps the same updater file path to FitFreed's path input and Tauri's bundle input because the pinned Tauri bundle command reads `TAURI_SIGNING_PRIVATE_KEY`, while its signer subcommand also supports `TAURI_SIGNING_PRIVATE_KEY_PATH`. The two updater values must be identical paths and never key contents. The updater password remains an environment secret and is never passed as a command-line argument.
+After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job with only the job-scoped read-only GitHub token needed to reopen repository, Pages, workflow, and environment evidence. It requires Apple Silicon macOS and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The authority installer maps the same updater file path to FitFreed's path input and Tauri's bundle input because the pinned Tauri bundle command reads `TAURI_SIGNING_PRIVATE_KEY`, while its signer subcommand also supports `TAURI_SIGNING_PRIVATE_KEY_PATH`. The two updater values must be identical paths and never key contents. Candidate construction also selects the requested public key from the canonical active trust set and supplies its unchanged Base64-wrapped Tauri value through a final command-scoped configuration merge. Missing, inactive, malformed, or unknown public trust fails before native packaging. The updater password remains an environment secret and is never passed as a command-line argument.
 
 Preparation deletes only the generated Tauri bundle directory before building, preventing stale private or test artifacts from satisfying a public check. Tauri creates the signed, notarized application, DMG, updater archive, and updater signature. The objective Apple trust inspector runs before evidence is assembled.
 

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  publicUpdaterArtifactConfiguration,
   publicUpdateBuildEnvironment,
   validatePublicUpdateConfiguration,
 } from "./public-update-configuration.mjs";
@@ -62,6 +63,30 @@ test("activates the reviewed primary public updater trust", () => {
       "stable.primary-1": configuration.keys[0].publicKey,
     }),
   });
+});
+
+test("derives Tauri updater artifact trust from the explicitly selected public key", () => {
+  const configuration = validatePublicUpdateConfiguration(canonicalConfiguration);
+  const selectedKey = configuration.keys[0];
+
+  assert.deepEqual(
+    publicUpdaterArtifactConfiguration(configuration, selectedKey.id),
+    {
+      plugins: {
+        updater: {
+          pubkey: selectedKey.publicKey,
+        },
+      },
+    },
+  );
+  assert.throws(
+    () => publicUpdaterArtifactConfiguration(configuration, "stable.unknown"),
+    /outside the active public trust set/,
+  );
+  assert.throws(
+    () => publicUpdaterArtifactConfiguration(inactiveConfiguration, selectedKey.id),
+    /inactive/,
+  );
 });
 
 test("maps complete active public trust to compile-time inputs without private material", () => {

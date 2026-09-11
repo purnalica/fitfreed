@@ -12,7 +12,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - Read [personal session ranges](user/session-ranges.md) for exact timeline selection, durable editing, reimport review, and revision-coherent results.
 - Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
 - Read the [private alpha candidate guide](user/private-alpha-candidate.md) for the version-matched 0.1.0 user journey and the gates that keep it inactive.
-- Read the [public macOS 0.1.3 guide](user/public-macos-0.1.3.md) for the future verified download, installation, import, update, recovery, privacy, and removal journey.
+- Read the [public macOS 0.1.4 guide](user/public-macos-0.1.4.md) for the future verified download, installation, import, update, recovery, privacy, and removal journey.
 - Check the [public-release readiness ledger](testing/public-release-readiness.md) for the exact passed, pending, open, and unauthorized boundaries.
 - Read the [user-documentation status](user/README.md) before opening any build.
 - Read the project [disclaimer](../DISCLAIMER.md) and [support boundary](../SUPPORT.md).

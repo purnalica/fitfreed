@@ -107,8 +107,9 @@ function operations(candidate, events) {
         updaterKeyPath: "/protected/updater.key",
       };
     },
-    buildMacosCandidate(version) {
+    buildMacosCandidate(version, updateKeyId) {
       events.push("build-macos");
+      assert.equal(updateKeyId, "update.synthetic-1");
       return {
         applicationPath: `/build/${version}/FitFreed.app`,
         diskImagePath: `/build/${version}/FitFreed_${version}_aarch64.dmg`,

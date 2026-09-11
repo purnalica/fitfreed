@@ -47,7 +47,9 @@ The macOS ephemeral authority installer writes private material only under the h
 private permissions, imports the exact certificate fingerprint into a temporary keychain, and restores the prior
 keychain state in an unconditional cleanup step. It exposes the updater file to the protected process through both
 FitFreed's path variable and Tauri's bundle variable, with the same absolute path as both values. The private-key
-contents never enter either environment variable.
+contents never enter either environment variable. Candidate packaging resolves the dispatch's updater-key identifier
+against `release/public-update-channel.json` and supplies that entry's exact public value through the final Tauri
+configuration merge. An unknown key, an inactive trust set, or a malformed public key stops before packaging.
 
 The Windows native-builder environment defines `FITFREED_WINDOWS_CERTIFICATE_BASE64` and
 `FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as protected secrets. It defines the independently derived lowercase

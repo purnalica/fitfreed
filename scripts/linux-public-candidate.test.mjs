@@ -15,20 +15,31 @@ const packageJson = JSON.parse(
 const inactiveUpdateConfiguration = JSON.parse(
   readFileSync(path.join(repositoryRoot, "release/public-update-channel.json"), "utf8"),
 );
+const updaterPublicKey = inactiveUpdateConfiguration.keys[0].publicKey;
 
 test("builds one Linux public candidate with mandatory updater artifacts", () => {
-  assert.deepEqual(linuxPublicCandidateBuildArguments([], "linux"), [
+  const configuration = {
+    ...inactiveUpdateConfiguration,
+    contract: "stable-v3",
+    schemaVersion: 2,
+  };
+  const arguments_ = linuxPublicCandidateBuildArguments(
+    configuration,
+    "stable.primary-1",
+    [],
+    "linux",
+  );
+  assert.deepEqual(arguments_.slice(0, 3), [
     "--config",
     "src-tauri/tauri.public.conf.json",
-    "--bundles",
-    "deb",
+    "--config",
   ]);
-  assert.deepEqual(linuxPublicCandidateBuildArguments(["--verbose"], "linux"), [
-    "--config",
-    "src-tauri/tauri.public.conf.json",
+  assert.deepEqual(JSON.parse(arguments_[3]), {
+    plugins: { updater: { pubkey: updaterPublicKey } },
+  });
+  assert.deepEqual(arguments_.slice(4), [
     "--bundles",
     "deb",
-    "--verbose",
   ]);
   assert.equal(
     packageJson.scripts["package:linux-public-candidate"],
@@ -37,12 +48,27 @@ test("builds one Linux public candidate with mandatory updater artifacts", () =>
 });
 
 test("rejects another host or unreviewed build arguments", () => {
+  const configuration = {
+    ...inactiveUpdateConfiguration,
+    contract: "stable-v3",
+    schemaVersion: 2,
+  };
   assert.throws(
-    () => linuxPublicCandidateBuildArguments([], "darwin"),
+    () => linuxPublicCandidateBuildArguments(
+      configuration,
+      "stable.primary-1",
+      [],
+      "darwin",
+    ),
     /requires Linux/,
   );
   assert.throws(
-    () => linuxPublicCandidateBuildArguments(["--config", "another.json"], "linux"),
+    () => linuxPublicCandidateBuildArguments(
+      configuration,
+      "stable.primary-1",
+      ["--config", "another.json"],
+      "linux",
+    ),
     /only accepts --verbose/,
   );
 });
@@ -56,7 +82,7 @@ test("normalizes the signed external Debian names only after the public build", 
     status: "active",
     keys: [{
       id: "stable.synthetic",
-      publicKey: "U3ludGhldGljIHB1YmxpYyBrZXkgZm9yIGNvbnRyYWN0IHRlc3RzLg==",
+      publicKey: updaterPublicKey,
     }],
   };
 
@@ -65,6 +91,7 @@ test("normalizes the signed external Debian names only after the public build", 
     build: (options) => calls.push(["build", options]),
     configuration,
     environment: {
+      FITFREED_UPDATE_KEY_ID: "stable.synthetic",
       TAURI_SIGNING_PRIVATE_KEY: "/synthetic/updater.key",
       TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key",
     },
@@ -76,6 +103,10 @@ test("normalizes the signed external Debian names only after the public build", 
   assert.deepEqual(calls[0][1].arguments_, [
     "--config",
     "src-tauri/tauri.public.conf.json",
+    "--config",
+    JSON.stringify({
+      plugins: { updater: { pubkey: updaterPublicKey } },
+    }),
     "--bundles",
     "deb",
     "--verbose",
@@ -100,10 +131,11 @@ test("rejects legacy update trust before building a Linux public candidate", () 
         status: "active",
         keys: [{
           id: "stable.synthetic",
-          publicKey: "U3ludGhldGljIHB1YmxpYyBrZXkgZm9yIGNvbnRyYWN0IHRlc3RzLg==",
+          publicKey: updaterPublicKey,
         }],
       },
       environment: {
+        FITFREED_UPDATE_KEY_ID: "stable.synthetic",
         TAURI_SIGNING_PRIVATE_KEY: "/synthetic/updater.key",
         TAURI_SIGNING_PRIVATE_KEY_PATH: "/synthetic/updater.key",
       },

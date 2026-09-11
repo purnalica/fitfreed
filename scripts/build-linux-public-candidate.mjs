@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { assertUpdaterSigningAuthority } from "./build-public-candidate.mjs";
+import {
+  assertUpdaterSigningAuthority,
+  publicCandidateBuildArguments,
+} from "./build-public-candidate.mjs";
 import { linuxPackageBuildArguments } from "./build-linux-package.mjs";
 import { buildProductionPackage } from "./build-production.mjs";
 import { normalizeLinuxDebianArtifactNames } from "./linux-debian-artifact-identity.mjs";
@@ -22,14 +25,16 @@ const packageDirectory = path.join(
 );
 
 export function linuxPublicCandidateBuildArguments(
+  configuration,
+  updateKeyId,
   arguments_ = [],
   platform = process.platform,
 ) {
-  return [
-    "--config",
-    "src-tauri/tauri.public.conf.json",
-    ...linuxPackageBuildArguments(arguments_, platform),
-  ];
+  return publicCandidateBuildArguments(
+    configuration,
+    updateKeyId,
+    linuxPackageBuildArguments(arguments_, platform),
+  );
 }
 
 export function buildLinuxPublicCandidate({
@@ -59,7 +64,12 @@ export function buildLinuxPublicCandidate({
   const publicUpdateEnvironment = publicUpdateBuildEnvironment(updateConfiguration, true);
   assertUpdaterSigningAuthority(environment);
   build({
-    arguments_: linuxPublicCandidateBuildArguments(arguments_, platform),
+    arguments_: linuxPublicCandidateBuildArguments(
+      updateConfiguration,
+      environment.FITFREED_UPDATE_KEY_ID,
+      arguments_,
+      platform,
+    ),
     publicUpdateEnvironment,
   });
   normalize({

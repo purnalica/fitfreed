@@ -1,34 +1,34 @@
-# Public Linux 0.1.3 Guide
+# Public Linux 0.1.4 Guide
 
 ## Status
 
-This inactive pre-publication guide is rendered against the repository's current unreleased 0.1.3 development
+This inactive pre-publication guide is rendered against the repository's current unreleased 0.1.4 development
 version so its exact names, commands, links, and documentation contracts can be verified. It does not announce or
-reserve a Linux 0.1.3 release. No public Linux binary is available while the
+reserve a Linux 0.1.4 release. No public Linux binary is available while the
 [Milestone 4 execution ledger](../plans/milestone-4.md) contains an open gate or before the public macOS release
 permits Linux promotion.
 
 Under [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md), the operative guide and
 artifacts use the next unreleased semantic version after the first immutable public macOS Release and contain newly
 built macOS and Linux targets for that exact version. Release preparation regenerates every version-specific name and
-piece of evidence together. This guide becomes operative only for Linux assets in an immutable `v0.1.3` GitHub
+piece of evidence together. This guide becomes operative only for Linux assets in an immutable `v0.1.4` GitHub
 Release from `purnalica/fitfreed` when that is the version assigned to the expansion; source archives, development
 packages, Actions artifacts, forks, and third-party packages are not that release.
 
-FitFreed 0.1.3 will support x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through one Debian package only after the exact candidate passes both clean-desktop matrices. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
+FitFreed 0.1.4 will support x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through one Debian package only after the exact candidate passes both clean-desktop matrices. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
 
 ## Preserve the source data first
 
-Keep every original provider ZIP unchanged in an independently protected location. FitFreed does not replace the source export, and version 0.1.3 has no supported user-controlled library backup, restore, or portable normalized export workflow.
+Keep every original provider ZIP unchanged in an independently protected location. FitFreed does not replace the source export, and version 0.1.4 has no supported user-controlled library backup, restore, or portable normalized export workflow.
 
 Do not use FitFreed as the only copy of important information. Verify consequential values against their source, and do not treat any view as medical, health, training, safety, or legal advice.
 
 ## Download and verify
 
-Download only from the immutable `FitFreed 0.1.3` Release in the [canonical GitHub repository](https://github.com/purnalica/fitfreed/releases). The Linux release set must contain these regular assets:
+Download only from the immutable `FitFreed 0.1.4` Release in the [canonical GitHub repository](https://github.com/purnalica/fitfreed/releases). The Linux release set must contain these regular assets:
 
-- `FitFreed_0.1.3_amd64.deb` and its updater signature `FitFreed_0.1.3_amd64.deb.sig`;
-- `FitFreed_0.1.3_amd64.deb.inventory.json`;
+- `FitFreed_0.1.4_amd64.deb` and its updater signature `FitFreed_0.1.4_amd64.deb.sig`;
+- `FitFreed_0.1.4_amd64.deb.inventory.json`;
 - `stable.json`, `supported-upgrades.json`, and `release-manifest.json`;
 - `RELEASE_NOTES.md`, `SHA256SUMS`, and `SHA256SUMS.minisig`; and
 - the npm and Cargo CycloneDX inventories named in the manifest.
@@ -41,13 +41,13 @@ After downloading every regular asset into one otherwise empty directory, first 
 sha256sum --check SHA256SUMS
 ```
 
-Every line must report `OK`. The manifest, package inventory, checksum file, release-note version, Debian filename, and GitHub tag must all identify 0.1.3. A mismatch is a hard stop; do not rename an asset or edit the inventory to make the check pass.
+Every line must report `OK`. The manifest, package inventory, checksum file, release-note version, Debian filename, and GitHub tag must all identify 0.1.4. A mismatch is a hard stop; do not rename an asset or edit the inventory to make the check pass.
 
 GitHub CLI users can additionally verify that the immutable Release and the Debian package are linked to GitHub's release attestations:
 
 ```sh
-gh release verify v0.1.3 --repo purnalica/fitfreed
-gh release verify-asset v0.1.3 FitFreed_0.1.3_amd64.deb \
+gh release verify v0.1.4 --repo purnalica/fitfreed
+gh release verify-asset v0.1.4 FitFreed_0.1.4_amd64.deb \
   --repo purnalica/fitfreed
 ```
 
@@ -55,11 +55,11 @@ The published release notes identify the exact source revision and explain the s
 
 ## Install and first launch
 
-1. Open the verified `FitFreed_0.1.3_amd64.deb` in Ubuntu App Center or the graphical software installer.
-2. Confirm the proposed application is named FitFreed, identifies version 0.1.3, and comes from the package just verified.
+1. Open the verified `FitFreed_0.1.4_amd64.deb` in Ubuntu App Center or the graphical software installer.
+2. Confirm the proposed application is named FitFreed, identifies version 0.1.4, and comes from the package just verified.
 3. Choose **Install**. Ubuntu may request administrator authorization for this native package operation.
 4. Open FitFreed from the desktop application launcher.
-5. Confirm **Settings → Updates** identifies version 0.1.3 before importing anything.
+5. Confirm **Settings → Updates** identifies version 0.1.4 before importing anything.
 
 The package installs the technical executable at `/usr/bin/fitfreed` and exposes the visible application name FitFreed. No development toolchain, npm, Rust, project checkout, database editor, or project-authored installation script belongs in the user procedure.
 
@@ -79,7 +79,7 @@ Choose the original ZIP itself. Do not unpack it, repack it, rename its members,
 
 An exact reimport does not duplicate canonical history. The same bytes are reassessed after a relevant importer or mapping contract changes, and later compatible exports add or revise facts through documented source identities rather than ZIP order.
 
-Version 0.1.3 provides local activity, sleep, recovery, and longitudinal views; complete-history training exploration with sport recognition and personal classification; exact session structure, signals, zones, route shapes, and personal ranges where the source contains supported evidence; comparisons; durable reports; and privacy-reviewed self-contained HTML report export. Every visual retains an exact-value or table path. Missing evidence does not become zero, and recorded co-occurrence does not become diagnosis, readiness, causation, or training advice.
+Version 0.1.4 provides local activity, sleep, recovery, and longitudinal views; complete-history training exploration with sport recognition and personal classification; exact session structure, signals, zones, route shapes, and personal ranges where the source contains supported evidence; comparisons; durable reports; and privacy-reviewed self-contained HTML report export. Every visual retains an exact-value or table path. Missing evidence does not become zero, and recorded co-occurrence does not become diagnosis, readiness, causation, or training advice.
 
 The [development preview guide](development-preview.md), [route guide](session-routes.md), [personal-range guide](session-ranges.md), and [report guide](reports.md) document the shared application behavior in detail.
 
@@ -121,7 +121,7 @@ Deleting personal FitFreed state is a separate destructive choice:
 5. Move that complete directory to the desktop trash only when permanent loss of the library, preferences, provenance, and recovery state is intended.
 6. Empty the trash only after confirming the exact target. Backups or synchronized storage can retain other copies and require their own deletion controls.
 
-There is no in-application deletion command in 0.1.3. Never delete only the SQLite file, its sidecars, or selected recovery files as a repair technique.
+There is no in-application deletion command in 0.1.4. Never delete only the SQLite file, its sidecars, or selected recovery files as a repair technique.
 
 ## Unsupported systems
 

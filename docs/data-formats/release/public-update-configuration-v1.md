@@ -26,7 +26,7 @@ An `inactive` configuration has no keys and produces no build inputs. An `active
 
 ## Build mapping and failure behavior
 
-Public candidate preparation validates the complete document and maps an active configuration to the compile-time `FITFREED_PUBLIC_UPDATE_CONTRACT`, `FITFREED_PUBLIC_UPDATE_ENDPOINT`, and `FITFREED_PUBLIC_UPDATE_TRUST` values. Trust is a closed JSON object from key identifier to public key. These values are public even though they are provided through the build environment.
+Public candidate preparation validates the complete document and maps an active configuration to the compile-time `FITFREED_PUBLIC_UPDATE_CONTRACT`, `FITFREED_PUBLIC_UPDATE_ENDPOINT`, and `FITFREED_PUBLIC_UPDATE_TRUST` values. Trust is a closed JSON object from key identifier to public key. The explicitly selected signing-key identifier must resolve inside that same active set; candidate packaging supplies the selected entry's exact Base64-wrapped public key as Tauri's updater-artifact `pubkey` through a command-scoped configuration merge. Ordinary Tauri configuration remains empty, and a missing, inactive, malformed, or unknown selection fails before packaging. These values are public even though the complete trust set is provided through the build environment.
 
 An ordinary production build supplies none of them and remains unconfigured. If any compile-time value is present without all others, the contract is not `stable-v2`, the endpoint differs, the trust JSON is malformed, a key is invalid, or the host target is unsupported, the application fails closed before making a request. E2E transport configuration and public configuration cannot coexist.
 

@@ -6,6 +6,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 import { publicUpdateEndpoint } from "./public-origin.mjs";
+import { decodeReleasePublicKey } from "./release-signature.mjs";
 
 const expectedMetadataEndpoint = publicUpdateEndpoint;
 const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -58,6 +59,25 @@ export function publicUpdateBuildEnvironment(configuration, requireActive = true
     FITFREED_PUBLIC_UPDATE_CONTRACT: validated.contract,
     FITFREED_PUBLIC_UPDATE_ENDPOINT: validated.metadataEndpoint,
     FITFREED_PUBLIC_UPDATE_TRUST: JSON.stringify(trust),
+  };
+}
+
+export function publicUpdaterArtifactConfiguration(configuration, keyId) {
+  const validated = validatePublicUpdateConfiguration(configuration);
+  if (validated.status !== "active") {
+    throw new Error("public update channel is inactive");
+  }
+  const selectedKey = validated.keys.find(({ id }) => id === keyId);
+  if (!selectedKey) {
+    throw new Error("selected update signing key is outside the active public trust set");
+  }
+  decodeReleasePublicKey(selectedKey.publicKey);
+  return {
+    plugins: {
+      updater: {
+        pubkey: selectedKey.publicKey,
+      },
+    },
   };
 }
 

@@ -127,10 +127,12 @@ function signWithTauri(bytes, filename, keyPath, password) {
   }
 }
 
-function buildMacosCandidate(version) {
+function buildMacosCandidate(version, updateKeyId) {
   const bundleRoot = path.join(repositoryRoot, "src-tauri/target/release/bundle");
   rmSync(bundleRoot, { force: true, recursive: true });
-  run("npm", ["run", "package:public-candidate"]);
+  run("npm", ["run", "package:public-candidate"], {
+    environment: { FITFREED_UPDATE_KEY_ID: updateKeyId },
+  });
   run("npm", ["run", "check:production-bundle"]);
   const names = publicArtifactNames(version);
   const macos = {
@@ -206,7 +208,7 @@ export function prepareExpandingPublicRelease({
   mkdirSync(evidenceDirectory, { recursive: true });
   try {
     run("npm", ["run", "audit:dependencies"]);
-    const macos = buildMacosCandidate(version);
+    const macos = buildMacosCandidate(version, updateKeyId);
     const trust = inspectPublicMacosTrust({
       applicationPath: macos.applicationPath,
       diskImagePath: macos.diskImagePath,
