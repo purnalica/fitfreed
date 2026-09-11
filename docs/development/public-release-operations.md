@@ -98,6 +98,27 @@ embedded in a future public candidate and invalidates earlier public-candidate e
 the private key, sign an artifact, publish update metadata, create a release, or make an ordinary development build
 update-aware.
 
+Generate the independent platform-neutral release-checksum key pair in a separate protected external path, using a
+different password from the updater key:
+
+```sh
+npm run tauri -- signer generate -w "/secure/external/path/fitfreed-release-checksum.key"
+```
+
+Keep its private key, encrypted recovery copy, and password outside the repository. Activate only its generated
+public file:
+
+```sh
+npm run activate:public-release-key -- release.primary-1 \
+  "/secure/external/path/fitfreed-release-checksum.key.pub"
+```
+
+The command validates the external regular file, canonical Tauri/Minisign representation, distinct updater and
+release-checksum key material, inactive version 2 configuration, and atomic public-only write. Review the resulting
+diff and run `npm run check:public-release-signing-config`. Then store the private key and password separately as
+`FITFREED_RELEASE_PRIVATE_KEY` and `FITFREED_RELEASE_PRIVATE_KEY_PASSWORD` in `public-macos-release`; neither value
+belongs in source, logs, dispatch inputs, or retained artifacts.
+
 ## One-time GitHub configuration
 
 An accountable maintainer configures these prerequisites before the first release dispatch:

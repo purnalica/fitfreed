@@ -27,18 +27,22 @@ function isInside(root, candidate) {
   return relative === "" || (!relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
 }
 
-function validatedPublicKey(publicKeyPath, repositoryRoot) {
+export function validatedExternalPublicKey(
+  publicKeyPath,
+  repositoryRoot,
+  description = "public updater key",
+) {
   if (!path.isAbsolute(publicKeyPath)) {
-    throw new Error("public updater key path must be absolute");
+    throw new Error(`${description} path must be absolute`);
   }
   const keyMetadata = lstatSync(publicKeyPath);
   if (keyMetadata.isSymbolicLink() || !keyMetadata.isFile()) {
-    throw new Error("public updater key must be a non-symbolic regular file");
+    throw new Error(`${description} must be a non-symbolic regular file`);
   }
   const resolvedKeyPath = realpathSync(publicKeyPath);
   const resolvedRepositoryRoot = realpathSync(repositoryRoot);
   if (isInside(resolvedRepositoryRoot, resolvedKeyPath)) {
-    throw new Error("public updater key source must remain outside the repository");
+    throw new Error(`${description} source must remain outside the repository`);
   }
 
   const rawKey = readFileSync(resolvedKeyPath, "utf8");
@@ -49,17 +53,17 @@ function validatedPublicKey(publicKeyPath, repositoryRoot) {
     || encodedKey.includes("\r")
     || encodedKey.trim() !== encodedKey
   ) {
-    throw new Error("public updater key file is not canonical Base64 text");
+    throw new Error(`${description} file is not canonical Base64 text`);
   }
   try {
     decodeReleasePublicKey(encodedKey);
   } catch (error) {
-    throw new Error(`public updater key is invalid: ${error.message}`);
+    throw new Error(`${description} is invalid: ${error.message}`);
   }
   return encodedKey;
 }
 
-function writeConfigurationAtomically(configurationPath, configuration) {
+export function writeConfigurationAtomically(configurationPath, configuration) {
   const temporaryPath = `${configurationPath}.${process.pid}.${randomUUID()}.tmp`;
   const mode = statSync(configurationPath).mode & 0o777;
   try {
@@ -92,7 +96,7 @@ export function activatePublicUpdateKey({
   ) {
     throw new Error("public updater key identifier is invalid");
   }
-  const publicKey = validatedPublicKey(publicKeyPath, repositoryRoot);
+  const publicKey = validatedExternalPublicKey(publicKeyPath, repositoryRoot);
   const configuration = validatePublicUpdateConfiguration(
     JSON.parse(readFileSync(configurationPath, "utf8")),
   );

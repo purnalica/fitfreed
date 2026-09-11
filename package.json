@@ -25,6 +25,7 @@
   },
   "scripts": {
     "activate:public-update-key": "node scripts/activate-public-update-key.mjs",
+    "activate:public-release-key": "node scripts/activate-public-release-key.mjs",
     "doctor": "node scripts/check-development-environment.mjs",
     "dev": "vite",
     "build": "tsc && tsc --noEmit -p tsconfig.node.json && vite build",
