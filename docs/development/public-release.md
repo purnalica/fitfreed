@@ -6,7 +6,7 @@ FitFreed 0.1.7 is the first immutable public release. Protected workflow
 [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the exact admitted
 Developer ID-signed and Apple-notarized macOS candidate, source-bound evidence, localized product site, and signed
 stable update snapshot, then remotely verified every public byte and provenance boundary. The checked-in update
-configuration contains the active `stable.primary-1` trust key. The proposed 0.1.10 Linux expansion advances that
+configuration contains the active `stable.primary-1` trust key. The proposed 0.1.11 Linux expansion advances that
 configuration to recovery-capable stable-v3 and assigns the exact 0.1.7 macOS predecessor. Its independent
 `release.primary-1` release-checksum public trust is active after the external key ceremony; the private authority
 and its separately held password remain confined to the protected release environment. No private updater, Apple,
@@ -111,6 +111,17 @@ confirmed its interactive shell in a bounded Ubuntu Desktop session. The failure
 harness, which had no session bus or window manager. Current source applies the confirmed bounded session to both
 graphical admission gates. The public `v0.1.9` tag remains fixed at the rejected source and is neither moved nor reused;
 source-bound provenance requires its corrected successor to be 0.1.10.
+
+The `v0.1.10` [dispatch `34783484547`](https://github.com/purnalica/fitfreed/actions/runs/34783484547) passed preflight,
+native Linux input construction, protected complete-platform composition, Developer ID signing, Apple notarization,
+detached updater and release signing, candidate reopening, and sealing. Ubuntu 26.04 passed exact installation,
+launch, the 100-process cold-launch budget, removal, and retained-library integrity. Ubuntu 24.04 stopped before
+package installation because the live Fluxbox process did not publish its readiness property inside the harness's
+fixed five-second allowance. Read-only diagnostic run
+[`34787849501`](https://github.com/purnalica/fitfreed/actions/runs/34787849501) reopened the exact retained 0.1.10 bytes
+and observed their version-and-revision-bound shell after the bounded readiness allowance was raised to thirty
+seconds. The product launch budget remains unchanged. The public `v0.1.10` tag remains fixed at the rejected source
+and is neither moved nor reused; source-bound provenance requires its corrected successor to be 0.1.11.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable

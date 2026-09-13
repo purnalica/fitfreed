@@ -8,7 +8,7 @@
 locale surfaces. FitFreed 0.1.7 is the first immutable public release: its Developer ID-signed and Apple-notarized
 macOS package, source-bound evidence, English fallback, deterministic Spanish surface, and signed stable update
 snapshot are live and remotely byte-verified. Linux and Windows remain later complete-platform expansions.
-Version 0.1.10 is assigned to the proposed macOS-plus-Linux expansion; its stable-v3 predecessor contract and
+Version 0.1.11 is assigned to the proposed macOS-plus-Linux expansion; its stable-v3 predecessor contract and
 independent checksum authority are active, while exact candidate admission and promotion remain open.
 
 ## Stages and authority boundaries

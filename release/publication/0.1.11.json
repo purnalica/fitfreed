@@ -1,9 +1,9 @@
 {
   "format": "org.fitfreed.public-release-policy",
   "schemaVersion": 1,
-  "releaseVersion": "0.1.10",
+  "releaseVersion": "0.1.11",
   "update": {
-    "sequence": 10,
+    "sequence": 11,
     "minimumSupportedVersion": "0.1.7",
     "releaseNotes": {
       "en-US": "Adds supported x86-64 Ubuntu Desktop 24.04 and 26.04 distribution alongside Apple Silicon macOS without changing the accepted MVP feature set.",
