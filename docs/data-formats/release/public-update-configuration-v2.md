@@ -8,7 +8,7 @@ key rotation, build mapping, privacy, and failure behavior of closed [version 1]
 changes `schemaVersion` to `2`, and changes `contract` to `stable-v3`.
 
 This contract does not create signing authority or publish an application. The checked-in instance first selects
-version 2 for the proposed 0.1.9 macOS-plus-Linux expansion, retaining the existing updater public key while adding
+version 2 for the proposed 0.1.10 macOS-plus-Linux expansion, retaining the existing updater public key while adding
 recovery-capable stable channel version 3.
 
 ## Fields

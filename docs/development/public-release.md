@@ -6,7 +6,7 @@ FitFreed 0.1.7 is the first immutable public release. Protected workflow
 [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the exact admitted
 Developer ID-signed and Apple-notarized macOS candidate, source-bound evidence, localized product site, and signed
 stable update snapshot, then remotely verified every public byte and provenance boundary. The checked-in update
-configuration contains the active `stable.primary-1` trust key. The proposed 0.1.9 Linux expansion advances that
+configuration contains the active `stable.primary-1` trust key. The proposed 0.1.10 Linux expansion advances that
 configuration to recovery-capable stable-v3 and assigns the exact 0.1.7 macOS predecessor. Its independent
 `release.primary-1` release-checksum public trust is active after the external key ceremony; the private authority
 and its separately held password remain confined to the protected release environment. No private updater, Apple,
@@ -105,22 +105,26 @@ installed and validated the manifest-declared Debian package but timed out befor
 signal. The retained message incorrectly referred to a startup channel on Linux and omitted the bounded process
 diagnostics needed to assign the failure. The exact sealed Debian bytes subsequently reported their expected
 version-and-revision-bound shell in bounded disposable Ubuntu 24.04 x86-64 reproductions as both a superuser and a
-normal user. A read-only manual diagnostic lane now reuses that exact artifact once on Ubuntu 24.04 with bounded,
-path-redacted standard output and error; it neither rebuilds nor promotes the candidate. Publication remains blocked
-until this diagnostic identifies the owning layer and both required admission rows pass.
+normal user. Read-only hosted diagnostic run
+[`34781734823`](https://github.com/purnalica/fitfreed/actions/runs/34781734823) then reopened that exact artifact and
+confirmed its interactive shell in a bounded Ubuntu Desktop session. The failure owner was the bare Xvfb admission
+harness, which had no session bus or window manager. Current source applies the confirmed bounded session to both
+graphical admission gates. The public `v0.1.9` tag remains fixed at the rejected source and is neither moved nor reused;
+source-bound provenance requires its corrected successor to be 0.1.10.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
 an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
-Apple's notarization service passes outside the workflow. The protected 0.1.2 through 0.1.6 and 0.1.8 executions
+Apple's notarization service passes outside the workflow. The protected 0.1.2 through 0.1.6, 0.1.8, and 0.1.9 executions
 imported the certificate and private key, signed the application and DMG, submitted the application, received Apple's
 accepted notarization result, and stapled the application. Version 0.1.4 proved updater artifact signing; version 0.1.5 also
 proved independent final-DMG signing, notarization, log inspection, and stapling before objective certificate
 inspection exposed the command-shape defect. Version 0.1.6 passed that corrected inspection and exposed the distinct
 standalone metadata-signer environment boundary. Version 0.1.8 exposed the same missing isolation in the later
-complete-platform compositor before candidate sealing. No unsealed runner-local output was retained or published, and
-unconditional authority cleanup passed.
+complete-platform compositor before candidate sealing. Version 0.1.9 passed the corrected signer and sealed a complete
+candidate before its incomplete graphical admission harness blocked publication. No unsealed runner-local output was
+retained or published, and unconditional authority cleanup passed.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 
