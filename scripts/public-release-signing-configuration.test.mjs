@@ -31,14 +31,23 @@ function activeConfiguration() {
   };
 }
 
-test("keeps the canonical public release-signing authority inactive", () => {
-  assert.deepEqual(loadPublicReleaseSigningConfiguration(repositoryRoot), {
+test("binds canonical public release-signing trust to the approved independent key", () => {
+  const configuration = loadPublicReleaseSigningConfiguration(repositoryRoot);
+  assert.equal(validatePublicReleaseSigningConfiguration(configuration), configuration);
+  assert.deepEqual({
+    format: configuration.format,
+    schemaVersion: configuration.schemaVersion,
+    status: configuration.status,
+    purpose: configuration.purpose,
+    algorithm: configuration.algorithm,
+    keyIds: configuration.keys.map(({ id }) => id),
+  }, {
     format: "org.fitfreed.release-signing-configuration",
     schemaVersion: 2,
-    status: "inactive",
+    status: "active",
     purpose: "public-release-checksums",
     algorithm: "minisign-ed25519",
-    keys: [],
+    keyIds: ["release.primary-1"],
   });
   assert.equal(
     packageJson.scripts["check:public-release-signing-config"],

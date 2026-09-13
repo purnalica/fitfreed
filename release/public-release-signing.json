@@ -1,8 +1,13 @@
 {
   "format": "org.fitfreed.release-signing-configuration",
   "schemaVersion": 2,
-  "status": "inactive",
+  "status": "active",
   "purpose": "public-release-checksums",
   "algorithm": "minisign-ed25519",
-  "keys": []
+  "keys": [
+    {
+      "id": "release.primary-1",
+      "publicKey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUzOTk3QTNFQkQ3NTk3MEYKUldRUGwzVzlQbnFaNDZzV21BbnBNZ1Y4dVBtck5kckdsajhKM1paZFVXWklnWjNEMjRtb2RhalQK"
+    }
+  ]
 }
