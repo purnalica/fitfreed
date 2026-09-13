@@ -33,7 +33,7 @@ function fixture() {
       + "trap 'exit 0' TERM INT\n"
       + "while true; do sleep 0.05; done",
   );
-  executable(root, "xprop", 'printf "_NET_SUPPORTING_WM_CHECK(WINDOW) = window id # 0x1\\n"');
+  executable(root, "xprop", 'printf "_NET_SUPPORTING_WM_CHECK(WINDOW): window id # 0x1\\n"');
   const payload = executable(
     root,
     "payload",

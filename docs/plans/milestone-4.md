@@ -259,6 +259,12 @@ converge on those exact bytes.
   added only `WEBKIT_DISABLE_COMPOSITING_MODE=1`. The exact process again remained live for ten seconds with no
   standard output and only the already disproved accessibility-service warning. Software compositing alone is
   therefore insufficient in the runner's incomplete graphical session.
+- **Harness rejection:** run
+  [`34781301483`](https://github.com/purnalica/fitfreed/actions/runs/34781301483) established the bounded session but
+  stopped before launching the candidate because the Fluxbox readiness parser expected an equals sign where Ubuntu
+  24.04 `xprop` emits a colon. A disposable Ubuntu 24.04 reproduction confirmed the real property representation. The
+  run is evidence about the harness only. The correction is limited to that verified representation; the structural
+  experiment remains unexecuted.
 - **Root-cause evidence:** the last accepted hosted cold-launch campaign predates the current deferred shell bootstrap,
   while the exact candidate succeeds in a disposable local Xvfb boundary and fails on the current hosted boundary.
   Tauri issue [#15936](https://github.com/tauri-apps/tauri/issues/15936) independently reproduces the same Tauri 2.11,

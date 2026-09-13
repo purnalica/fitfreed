@@ -34,7 +34,7 @@ trap 'exit 143' TERM
 
 window_manager_ready=false
 for _ in {1..20}; do
-  if xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -q '= window id #'; then
+  if xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -Eq ': window id # 0x[[:xdigit:]]+$'; then
     window_manager_ready=true
     break
   fi
