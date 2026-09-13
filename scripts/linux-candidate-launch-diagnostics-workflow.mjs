@@ -60,8 +60,8 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
   requireWorkflowMatch(
     errors,
     diagnostic,
-    /apt-get install --yes --no-install-recommends at-spi2-core sqlite3 xauth xvfb/,
-    "diagnostics must model the supported Ubuntu Desktop accessibility service",
+    /WEBKIT_DISABLE_COMPOSITING_MODE: "1"/,
+    "diagnostics must isolate the hosted Xvfb software-compositing boundary",
   );
   requireWorkflowOrder(errors, diagnostic, [
     "Download only the exact sealed candidate artifact",
