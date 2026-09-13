@@ -2,10 +2,11 @@
 
 ## Status
 
-Active as of 2026-09-13. FitFreed 0.1.7 is the immutable supported public macOS baseline. Version 0.1.10 is the next
-complete macOS-plus-Linux candidate source after immutable 0.1.9 identified an admission-harness defect. Linux parity
-engineering and the corrected hosted admission boundary are complete; exact candidate construction, two-row native
-admission, and promotion remain.
+Active as of 2026-09-14. FitFreed 0.1.7 is the immutable supported public macOS baseline. Immutable version 0.1.10
+confirmed the complete protected composition and Ubuntu 26.04 admission, but Ubuntu 24.04 exposed an independently
+variable Fluxbox-startup interval beyond the harness's five-second readiness bound. Linux parity engineering remains
+complete; the corrected hosted readiness boundary, one exact-candidate diagnostic, a new patch candidate, two-row
+native admission, and promotion remain.
 
 ## Objective
 
@@ -32,7 +33,8 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 - The accepted product behavior is the source, application, domain, presentation, and data-contract baseline inherited
   from Milestones 1 and 2 plus the completed X7 corrective increments.
 - The immutable public macOS 0.1.7 Release satisfies the Linux publication dependency but does not prove Linux parity.
-- Linux public promotion remains blocked until the exact 0.1.10 Linux candidate passes its own gates.
+- Linux public promotion remains blocked until a new exact Linux candidate passes its own gates. Immutable 0.1.10 is
+  rejected without publication and cannot be rebuilt or promoted.
 - The Linux expansion uses the next unreleased semantic version after that immutable macOS Release and contains newly
   built, exact-version macOS and Linux targets as required by
   [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md). The current repository version
@@ -50,7 +52,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | Immutable version 0.1.9 at `909eccf477870f4c607f93b8240556d78aee8729` passed native Linux input construction and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34748270550`. Both admission rows installed and validated the exact Debian member but did not observe its interactive-shell signal. Focused exact-candidate run `34781734823` subsequently confirmed that the unchanged package paints its shell when the hosted Xvfb display supplies the bounded Ubuntu Desktop session that the original admission harness omitted. The product and package are not the failure owner. Because source-bound attestations require promotion from an immutable tag, the corrected admission workflow enters the 0.1.10 patch candidate rather than attempting to promote 0.1.9 from mutable `main`. Previously accepted product, update, recovery, performance, and experience evidence is not repeated. The corrected two-row admission and explicit promotion remain gates. |
+| M4.6 | In progress | Immutable version 0.1.10 at `6ecf3753c3fe7f2dbbd357e986035e95172da61f` passed exact-source CI and safety, native Linux input construction, and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34783484547`. Ubuntu 26.04 then passed exact installation, launch, 100-process cold-start measurement, removal, and library retention. Ubuntu 24.04 stopped before package installation because the live Fluxbox process did not publish its readiness property within the harness's fixed five-second allowance. This is an admission-harness timing failure, not product or package evidence. The readiness allowance is corrected to thirty seconds and receives one focused diagnostic against the retained exact 0.1.10 candidate before another immutable patch candidate is assigned. Previously accepted product, update, recovery, performance, and experience evidence is not repeated. The corrected two-row admission and explicit promotion remain gates. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,
@@ -281,6 +283,15 @@ converge on those exact bytes.
   Xvfb, D-Bus, Fluxbox, accessibility-service, and WebKit software-rendering contract. The immutable 0.1.9 tag cannot
   acquire that correction, and its source-bound provenance cannot be recreated from `main`; version 0.1.10 must carry
   it through the existing exact-tag publication pipeline.
+- **Hosted readiness variance:** immutable 0.1.10 workflow
+  [`34783484547`](https://github.com/purnalica/fitfreed/actions/runs/34783484547) completed protected composition and
+  passed the complete Ubuntu 26.04 admission row. The Ubuntu 24.04 row stopped before package installation because
+  Fluxbox remained alive without publishing `_NET_SUPPORTING_WM_CHECK` inside five seconds. The same runner class and
+  wrapper had published that property inside the earlier exact-candidate diagnostic. The product process had not
+  started, so changing product bytes or repeating product E2E cannot address this result. The bounded allowance is
+  raised to thirty seconds, with focused coverage for readiness after more than 100 polls; the ten-second product
+  first-launch observation remains separate and unchanged. One read-only diagnostic must reopen the retained 0.1.10
+  bytes and pass on Ubuntu 24.04 before another patch candidate is prepared.
 - **Root-cause evidence:** the last accepted hosted cold-launch campaign predates the current deferred shell bootstrap,
   while the exact candidate succeeds in a disposable local Xvfb boundary and fails on the current hosted boundary.
   Tauri issue [#15936](https://github.com/tauri-apps/tauri/issues/15936) independently reproduces the same Tauri 2.11,

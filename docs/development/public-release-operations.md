@@ -199,10 +199,11 @@ x86-64 `ubuntu-24.04` and `ubuntu-26.04` matrix. Both rows use the generic manif
 its returned Debian path. A passing row requires package-manager identity, installed executable and resources, complete
 dynamic linking, graphical first launch into an isolated private library, the production cold-launch budget, package
 purge, and retained-library integrity. Xvfb supplies the display inside a bounded D-Bus and Fluxbox desktop session;
-the hosted no-GPU boundary uses WebKit software rendering and waits for the window manager before either graphical
-gate starts. Neither row receives a protected environment, secret, signing key, nor publication permission. The
-unconditional package finalizer is cleanup, not acceptance evidence; a failed preceding check keeps promotion blocked
-even when cleanup succeeds.
+the hosted no-GPU boundary uses WebKit software rendering and allows the live window manager up to thirty seconds to
+publish its readiness property before either graphical gate starts. That harness allowance is distinct from the
+unchanged ten-second product first-launch observation. Neither row receives a protected environment, secret, signing
+key, nor publication permission. The unconditional package finalizer is cleanup, not acceptance evidence; a failed
+preceding check keeps promotion blocked even when cleanup succeeds.
 
 ### Windows expansion input and authority
 

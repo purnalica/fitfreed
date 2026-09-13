@@ -21,7 +21,7 @@ function executable(directory, name, source) {
   return target;
 }
 
-function fixture() {
+function fixture({ readyAfter = 3, skipReadinessDelay = false } = {}) {
   const root = mkdtempSync(path.join(os.tmpdir(), "fitfreed-desktop-session-"));
   const fluxboxPid = path.join(root, "fluxbox.pid");
   const payloadResult = path.join(root, "payload.txt");
@@ -32,8 +32,11 @@ function fixture() {
     "fluxbox",
     'printf "%s" "$$" >"$FITFREED_TEST_FLUXBOX_PID"\n'
       + "trap 'exit 0' TERM INT\n"
-      + "while true; do sleep 0.05; done",
+      + "while true; do /bin/sleep 0.05; done",
   );
+  if (skipReadinessDelay) {
+    executable(root, "sleep", "exit 0");
+  }
   executable(
     root,
     "xprop",
@@ -41,7 +44,7 @@ function fixture() {
       + 'if [[ -f "$FITFREED_TEST_XPROP_CALLS" ]]; then calls="$(cat "$FITFREED_TEST_XPROP_CALLS")"; fi\n'
       + 'calls=$((calls + 1))\n'
       + 'printf "%s" "$calls" >"$FITFREED_TEST_XPROP_CALLS"\n'
-      + 'if (( calls < 3 )); then printf "_NET_SUPPORTING_WM_CHECK: not found.\\n"; exit 0; fi\n'
+      + `if (( calls < ${readyAfter} )); then printf "_NET_SUPPORTING_WM_CHECK: not found.\\n"; exit 0; fi\n`
       + 'printf "_NET_SUPPORTING_WM_CHECK(WINDOW): window id # 0x1\\n"',
   );
   const payload = executable(
@@ -72,6 +75,29 @@ test("runs one command after the bounded desktop session becomes ready and stops
     assert.equal(readFileSync(state.xpropCalls, "utf8"), "3");
     const pid = Number.parseInt(readFileSync(state.fluxboxPid, "utf8"), 10);
     assert.throws(() => process.kill(pid, 0), { code: "ESRCH" });
+  } finally {
+    rmSync(state.root, { force: true, recursive: true });
+  }
+});
+
+test("allows a live window manager the hosted cold-start readiness budget", () => {
+  const state = fixture({ readyAfter: 101, skipReadinessDelay: true });
+  try {
+    const result = spawnSync("bash", [wrapper, state.payload, "ready"], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/tmp/fitfreed-test-bus",
+        DISPLAY: ":99",
+        FITFREED_TEST_FLUXBOX_PID: state.fluxboxPid,
+        FITFREED_TEST_PAYLOAD_RESULT: state.payloadResult,
+        FITFREED_TEST_XPROP_CALLS: state.xpropCalls,
+        PATH: `${state.root}:${process.env.PATH}`,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(state.payloadResult, "utf8"), "ready\n");
+    assert.equal(readFileSync(state.xpropCalls, "utf8"), "101");
   } finally {
     rmSync(state.root, { force: true, recursive: true });
   }
