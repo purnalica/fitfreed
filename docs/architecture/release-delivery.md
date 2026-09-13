@@ -100,7 +100,9 @@ stable-v3 targets, recovery packages, and Pages paths must be identical. The com
 the separate promotion approval. A secret-free hosted matrix reopens that sealed candidate by its transport digest
 on x86-64 Ubuntu 24.04 and 26.04, validates the complete manifest version 6 set, installs the exact manifest-declared
 Debian artifact, verifies native identity and dynamic linking, performs a graphical first launch into an isolated
-private library whose schema matches the manifest, applies the production cold-launch budget, purges package-owned
+private library whose schema matches the manifest, and applies the production cold-launch budget. The graphical gates
+use a bounded Xvfb display with a D-Bus session bus, a ready Fluxbox window manager, the Ubuntu accessibility service,
+and WebKit software rendering for the hosted no-GPU environment. Each row then purges package-owned
 paths, and proves that the library remains private and integral. Residual package state is removed unconditionally
 after either result. Promotion depends on both matrix rows, has no signing authority, and derives its expected GitHub
 provenance workflow from the immutable manifest version.

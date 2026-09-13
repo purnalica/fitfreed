@@ -248,9 +248,11 @@ The composer then seals that complete candidate before independent Linux admissi
 `admit-linux-candidate` matrix downloads only that run's digest-bound archive on x86-64 Ubuntu 24.04 and 26.04,
 reopens the generic manifest version 6 candidate, and installs the exact Debian path returned by that verifier. Each
 row verifies installed identity, executable and resource paths, dynamic linking, graphical first launch into an
-isolated private library, the production cold-launch budget, native purge, and retained-library integrity. A finalizer
-removes residual package state after any result. `publish-candidate` cannot enter its second protected approval until
-both rows pass; rebuilding or substituting a package is not an admission path.
+isolated private library, the production cold-launch budget, native purge, and retained-library integrity. The hosted
+graphical gates run inside a bounded Xvfb desktop session with a D-Bus session bus, Fluxbox readiness, the Ubuntu
+accessibility service, and WebKit software compositing disabled because the hosted runner has no GPU-backed desktop.
+A finalizer removes residual package state after any result. `publish-candidate` cannot enter its second protected
+approval until both rows pass; rebuilding or substituting a package is not an admission path.
 
 The later Windows publication is another new complete-platform release after an immutable macOS-plus-Linux
 predecessor. It does not append a Windows file to that Release. The implemented Windows native input boundary runs

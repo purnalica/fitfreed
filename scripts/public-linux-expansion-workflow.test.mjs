@@ -76,6 +76,9 @@ test("rejects incomplete, privileged, or bypassed exact Linux candidate admissio
       '          - "26.04"\n          - "28.04"\n',
     ), /Ubuntu 24.04 and 26.04/],
     [(source) => source.replace("      fail-fast: false", "      fail-fast: true"), /both Ubuntu rows/],
+    [(source) => source.replace("            fluxbox \\\n", ""), /session tools/],
+    [(source) => source.replace('          WEBKIT_DISABLE_COMPOSITING_MODE: "1"\n', ""), /software-rendering/],
+    [(source) => source.replace("scripts/run-linux-desktop-session.sh", "true"), /bounded desktop session/],
     [(source) => source.replace(
       "    needs: build-candidate\n    strategy:",
       "    needs: preflight\n    strategy:",

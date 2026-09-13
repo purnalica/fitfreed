@@ -300,9 +300,10 @@ that transport digest and source/schema identity before installing
 ephemeral Apple, updater, and checksum authority; it creates and seals one same-version macOS-plus-Linux candidate.
 Before the second approval, a secret-free x86-64 matrix on `ubuntu-24.04` and `ubuntu-26.04` verifies the sealed
 transport digest and complete manifest version 6 candidate, installs and graphically launches the exact
-manifest-declared Debian package under Xvfb, verifies native package identity, dynamic linking, private-library
-creation, and the production cold-launch budget, then purges package-owned files while retaining the integral private
-library. An unconditional finalizer removes residual package state after a failed admission. The second protected job
+manifest-declared Debian package under a bounded Xvfb, D-Bus, and Fluxbox desktop session, with the hosted no-GPU
+WebKit software-rendering boundary applied only to the graphical checks. It verifies native package identity, dynamic
+linking, private-library creation, and the production cold-launch budget, then purges package-owned files while
+retaining the integral private library. An unconditional finalizer removes residual package state after a failed admission. The second protected job
 depends on both matrix rows, has no signing credentials, reopens only those exact bytes, attests the manifest-derived
 checksum subjects, checksum inventory, and detached checksum signature, publishes the immutable Release, and supplies the exact complete Pages snapshot. Remote verification derives
 the expected provenance workflow and direct download set from the immutable manifest version, so the initial macOS
@@ -313,7 +314,9 @@ for an already sealed candidate whose hosted graphical launch failed without a c
 one artifact by exact workflow-run and artifact identifiers, rejects GitHub or candidate-transport digest drift,
 reopens the signed candidate, installs only its manifest-declared Debian member on Ubuntu 24.04, and observes one
 first launch under Xvfb. The observer retains at most 4 KiB from each fresh-home process stream, removes repository
-and isolated-home paths, and distinguishes Unix standard-output signaling from the Windows named channel. The job has
+and isolated-home paths, and distinguishes Unix standard-output signaling from the Windows named channel. Its Xvfb
+display uses the same bounded D-Bus, Fluxbox-readiness, accessibility-service, and hosted software-rendering contract
+as candidate admission. The job has
 read-only repository and Actions permissions, receives no environment or secret, never rebuilds or promotes a
 candidate, and always purges the package. It is diagnostic evidence only and cannot replace either supported Ubuntu
 admission row or the 100-process cold-launch distribution.

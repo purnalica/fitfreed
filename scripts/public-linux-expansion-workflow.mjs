@@ -178,6 +178,18 @@ export function validatePublicLinuxExpansionWorkflow(source) {
   requireWorkflowMatch(
     errors,
     admission,
+    /at-spi2-core \\\n            dbus-daemon \\\n            fluxbox \\\n            sqlite3 \\\n            x11-utils \\\n            xauth \\\n            xvfb/,
+    "exact Linux candidate admission must install the bounded Ubuntu Desktop session tools",
+  );
+  if ([...admission.matchAll(/WEBKIT_DISABLE_COMPOSITING_MODE: "1"/g)].length !== 2) {
+    errors.push("both graphical Linux candidate gates must use the hosted software-rendering boundary");
+  }
+  if ([...admission.matchAll(/xvfb-run -a dbus-run-session --\n          scripts\/run-linux-desktop-session\.sh/g)].length !== 2) {
+    errors.push("both graphical Linux candidate gates must establish a bounded desktop session");
+  }
+  requireWorkflowMatch(
+    errors,
+    admission,
     /runs-on: ubuntu-\$\{\{ matrix\.ubuntu-version \}\}/,
     "exact Linux candidate admission runner does not match its declared Ubuntu version",
   );

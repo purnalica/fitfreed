@@ -381,14 +381,16 @@ Local and continuous-integration workflows will invoke the same underlying comma
   candidate on hosted x86-64 Ubuntu 24.04 and 26.04 before promotion can reach its second approval. Each secret-free
   row verifies the transport digest and complete candidate, installs only the manifest-declared Debian artifact,
   verifies package identity, executable and resource paths, dynamic linking, graphical first launch into an isolated
-  `0700`/`0600` library with the manifest-declared schema, and the production cold-launch budget, then purges
+  `0700`/`0600` library with the manifest-declared schema, and the production cold-launch budget. Both graphical gates
+  execute only after a bounded D-Bus and Fluxbox desktop session is ready under Xvfb; WebKit software compositing is
+  disabled for the hosted no-GPU boundary. Each row then purges
   package-owned paths while retaining an integral library. Unconditional cleanup removes residual package state after
   failures but cannot convert a failed row into acceptance. These exact-candidate checks complement, rather than
   replace, the same-revision instrumented
   capability, update/recovery, accessibility, localization, and data-performance evidence.
 - A separate manual Linux launch-diagnostic workflow may reuse one failed, already sealed candidate on a single
   Ubuntu 24.04 runner. It verifies both artifact transport layers and the signed manifest, installs the exact Debian
-  member, and observes one Xvfb launch with bounded path-redacted process streams. It has no secret, protected
+  member, and observes one launch in the same bounded hosted desktop session with path-redacted process streams. It has no secret, protected
   environment, build, E2E, repeated-launch distribution, promotion, or publication capability. Its evidence can
   identify the owning layer of an otherwise opaque launch failure, but cannot satisfy or bypass candidate admission.
 - Complete-platform preparation tests require both sealed native inputs and every package-bearing predecessor to be
