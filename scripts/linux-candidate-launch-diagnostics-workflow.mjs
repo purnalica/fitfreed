@@ -63,6 +63,12 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
     /WEBKIT_DISABLE_COMPOSITING_MODE: "1"/,
     "diagnostics must isolate the hosted Xvfb software-compositing boundary",
   );
+  requireWorkflowMatch(
+    errors,
+    diagnostic,
+    /at-spi2-core \\\n            dbus-daemon \\\n            fluxbox \\\n            sqlite3 \\\n            x11-utils \\\n            xauth \\\n            xvfb/,
+    "diagnostics must install the bounded Ubuntu Desktop session tools",
+  );
   requireWorkflowOrder(errors, diagnostic, [
     "Download only the exact sealed candidate artifact",
     "Reopen the digest-bound candidate",
@@ -103,7 +109,13 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
   requireWorkflowMatch(
     errors,
     diagnostic,
-    /xvfb-run -a npm run diagnose:linux-candidate-launch --/,
+    /xvfb-run -a dbus-run-session --\n          scripts\/run-linux-desktop-session\.sh/,
+    "diagnostics must establish one bounded desktop session",
+  );
+  requireWorkflowMatch(
+    errors,
+    diagnostic,
+    /npm run diagnose:linux-candidate-launch --/,
     "diagnostics must observe only one exact installed launch",
   );
   requireWorkflowMatch(

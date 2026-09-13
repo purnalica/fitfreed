@@ -60,7 +60,14 @@ jobs:
       - name: Install candidate diagnostic runtime tools
         run: |
           sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends sqlite3 xauth xvfb
+          sudo apt-get install --yes --no-install-recommends \
+            at-spi2-core \
+            dbus-daemon \
+            fluxbox \
+            sqlite3 \
+            x11-utils \
+            xauth \
+            xvfb
 
       - name: Download only the exact sealed candidate artifact
         uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
@@ -96,7 +103,9 @@ jobs:
           FITFREED_VERSION: ${{ inputs.version }}
           WEBKIT_DISABLE_COMPOSITING_MODE: "1"
         run: >-
-          xvfb-run -a npm run diagnose:linux-candidate-launch --
+          xvfb-run -a dbus-run-session --
+          scripts/run-linux-desktop-session.sh
+          npm run diagnose:linux-candidate-launch --
           "$FITFREED_CANDIDATE"
           "$FITFREED_VERSION"
           "$FITFREED_REVISION"

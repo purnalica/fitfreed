@@ -49,7 +49,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | Immutable version 0.1.9 at `909eccf477870f4c607f93b8240556d78aee8729` passed native Linux input construction and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34748270550`. Both admission rows installed and validated the exact Debian member but did not observe its interactive-shell signal. Focused runs `34779542150` and `34780144942` reduced the hosted failure to an unpainted WebKitGTK window under Xvfb and disproved the accessibility-service warning as causal. An upstream Tauri reproduction identifies software-GL compositing under Xvfb as the matching owner. One exact-candidate check with only that test-environment mode disabled remains before correcting admission. No candidate bytes or accepted product, package, recovery, performance, or experience evidence are rebuilt or repeated. Both hosted admission rows and explicit promotion remain gates. |
+| M4.6 | In progress | Immutable version 0.1.9 at `909eccf477870f4c607f93b8240556d78aee8729` passed native Linux input construction and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34748270550`. Both admission rows installed and validated the exact Debian member but did not observe its interactive-shell signal. Focused runs `34779542150`, `34780144942`, and `34780553486` reduced the hosted failure to the incomplete Xvfb session: neither its missing accessibility service nor software-GL compositing alone explains the unpainted WebKitGTK window. The admission target is Ubuntu Desktop, while the failed harness supplied no session bus or window manager. One exact-candidate run in a bounded minimal desktop session remains before correcting admission. No candidate bytes or accepted product, package, recovery, performance, or experience evidence are rebuilt or repeated. Both hosted admission rows and explicit promotion remain gates. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,
@@ -254,16 +254,23 @@ converge on those exact bytes.
   disappeared, but the exact process again remained live for ten seconds with no standard output or standard error.
   The missing accessibility service is therefore incidental and must not become either a package or admission
   prerequisite.
+- **Second disproof:** run
+  [`34780553486`](https://github.com/purnalica/fitfreed/actions/runs/34780553486) returned to the original package set and
+  added only `WEBKIT_DISABLE_COMPOSITING_MODE=1`. The exact process again remained live for ten seconds with no
+  standard output and only the already disproved accessibility-service warning. Software compositing alone is
+  therefore insufficient in the runner's incomplete graphical session.
 - **Root-cause evidence:** the last accepted hosted cold-launch campaign predates the current deferred shell bootstrap,
-  while the exact candidate succeeds in a disposable local Xvfb boundary and fails on the current hosted software-GL
-  boundary. Tauri issue [#15936](https://github.com/tauri-apps/tauri/issues/15936) independently reproduces the same
-  Tauri 2.11, WebKitGTK 2.52, x86-64 Xvfb, no-GPU condition: the process and DOM remain live, the window paints nothing,
-  and no diagnostic is emitted until WebKit compositing is disabled for that headless session.
-- **Smallest confirming experiment:** return the diagnostic runner to its original runtime packages and add only
-  `WEBKIT_DISABLE_COMPOSITING_MODE=1` to the exact Xvfb launch. Reuse the same candidate, observer, isolated library,
-  ten-second budget, and cleanup. A reported painted shell confirms the hosted headless-compositing boundary; another
-  failure disproves the match and stops the experiment. Do not rebuild, sign, notarize, run packaged E2E, execute the
-  100-process distribution, or repeat the two-row admission matrix.
+  while the exact candidate succeeds in a disposable local Xvfb boundary and fails on the current hosted boundary.
+  Tauri issue [#15936](https://github.com/tauri-apps/tauri/issues/15936) independently reproduces the same Tauri 2.11,
+  WebKitGTK 2.52, x86-64 Xvfb, no-GPU condition in a Fluxbox session. FitFreed's failed harness provided Xvfb alone,
+  even though the declared target is Ubuntu Desktop. A session bus, window manager, accessibility service, and
+  software-rendering boundary are one coherent test-environment contract rather than FitFreed package dependencies.
+- **Smallest structural experiment:** reuse the same candidate, observer, isolated library, ten-second budget, and
+  cleanup inside one bounded Xvfb session with `dbus-run-session`, Fluxbox readiness, `at-spi2-core`, and
+  `WEBKIT_DISABLE_COMPOSITING_MODE=1`. This matches the independently reproduced environment and the supported desktop
+  class without changing product bytes. A reported painted shell confirms the incomplete hosted-session cause;
+  another failure stops the experiment. Do not rebuild, sign, notarize, run packaged E2E, execute the 100-process
+  distribution, or repeat the two-row admission matrix.
 - **Allowed change:** bounded cold-launch diagnostics, their focused tests, one manually dispatched read-only
   exact-candidate diagnostic lane, its workflow contract, and the canonical automation, testing, troubleshooting,
   readiness, and execution records. Product behavior, package contents, performance budgets, release authority,
@@ -271,9 +278,9 @@ converge on those exact bytes.
 - **Retained evidence:** the native Linux input, complete candidate composition, Developer ID signature, Apple
   notarization, detached updater and release signatures, manifest reopening, and all previously accepted product,
   package, update, recovery, performance, and experience evidence remain valid and must not run again.
-- **Exit and stop conditions:** the controlled compositing-mode job either confirms the independently reproduced Xvfb
-  cause or disproves it. No corrective candidate or broad campaign starts until that result identifies the owning
-  layer; a failure stops this experiment rather than authorizing another speculative correction.
+- **Exit and stop conditions:** the bounded minimal-desktop job either confirms the incomplete Xvfb session as owner or
+  disproves it. No corrective candidate or broad campaign starts until that result identifies the owning layer; a
+  failure stops this experiment rather than authorizing another speculative correction.
 
 ## Human intervention boundary
 

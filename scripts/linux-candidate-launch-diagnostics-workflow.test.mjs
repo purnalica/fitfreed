@@ -44,10 +44,13 @@ test("requires exact transport, signed-candidate, single-launch, and cleanup bou
       ),
       /software-compositing/,
     ],
+    [(source) => source.replace("            fluxbox \\\n", ""), /session tools/],
+    [(source) => source.replace("dbus-run-session --\n", ""), /bounded desktop session/],
+    [(source) => source.replace("scripts/run-linux-desktop-session.sh", "true"), /bounded desktop session/],
     [(source) => source.replace("artifact-ids: ${{ inputs.artifact_id }}", "name: candidate"), /artifact ID/],
     [(source) => source.replace("digest-mismatch: error", "digest-mismatch: warn"), /digest mismatch/],
     [(source) => source.replace("unpack:public-release", "verify:public-release"), /transport digest/],
-    [(source) => source.replace("xvfb-run -a npm run diagnose:linux-candidate-launch --", "npm run benchmark:cold-launch"), /one exact installed launch/],
+    [(source) => source.replace("npm run diagnose:linux-candidate-launch --", "npm run benchmark:cold-launch"), /one exact installed launch/],
     [(source) => source.replace("        if: always()", "        if: success()"), /cleanup/],
   ]) {
     assert.throws(() => validateLinuxCandidateLaunchDiagnosticsWorkflow(mutate(workflow)), expected);
