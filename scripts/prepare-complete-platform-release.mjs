@@ -2,12 +2,10 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,7 +15,6 @@ import { renderCompletePlatformReleaseNotes } from "./complete-platform-release-
 import { discoverCompletePlatformRecoveryPackages } from "./complete-platform-recovery-discovery.mjs";
 import { finalizePublicMacosDiskImage } from "./finalize-public-macos-disk-image.mjs";
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
-import { nodePackageScriptPath } from "./node-package-script.mjs";
 import {
   assertCleanRevision,
   copyUpgradeMatrix,
@@ -40,6 +37,7 @@ import {
 } from "./public-release-signing-configuration.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { decodeTauriSignatureText } from "./release-signature.mjs";
+import { signBytesWithTauri } from "./tauri-detached-signature.mjs";
 import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
@@ -67,31 +65,6 @@ function assertReleaseSigningTrust(configuration, releaseKeyId) {
     throw new Error("release checksum signing key is outside the active trust set");
   }
   return validated;
-}
-
-function signWithTauri(bytes, filename, keyPath, password) {
-  const directory = mkdtempSync(path.join(tmpdir(), "fitfreed-complete-signing-"));
-  const payloadPath = path.join(directory, filename);
-  const signaturePath = `${payloadPath}.sig`;
-  try {
-    writeFileSync(payloadPath, bytes, { mode: 0o600 });
-    run(process.execPath, [
-      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
-      "signer",
-      "sign",
-      payloadPath,
-    ], {
-      capture: true,
-      environment: {
-        TAURI_SIGNING_PRIVATE_KEY_PATH: keyPath,
-        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: password,
-      },
-    });
-    if (!existsSync(signaturePath)) throw new Error("detached signature is unavailable");
-    return readFileSync(signaturePath, "utf8").trim();
-  } finally {
-    rmSync(directory, { force: true, recursive: true });
-  }
 }
 
 function buildMacosCandidate(version, updateKeyId) {
@@ -307,30 +280,30 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
       revision: source.revision,
       sbomPaths: [npmSbom, ...cargoSboms].map((name) =>
         path.join(evidenceDirectory, name)),
-      signLinuxPackage: (bytes, filename) => signWithTauri(
+      signLinuxPackage: (bytes, filename) => signBytesWithTauri({
         bytes,
         filename,
-        signing.updaterKeyPath,
-        updaterPassword,
-      ),
-      signReleaseChecksums: (bytes) => decodeTauriSignatureText(signWithTauri(
+        keyPath: signing.updaterKeyPath,
+        password: updaterPassword,
+      }),
+      signReleaseChecksums: (bytes) => decodeTauriSignatureText(signBytesWithTauri({
         bytes,
-        "SHA256SUMS",
-        signing.releaseKeyPath,
-        releasePassword,
-      )),
-      signUpdatePayload: (bytes) => signWithTauri(
+        filename: "SHA256SUMS",
+        keyPath: signing.releaseKeyPath,
+        password: releasePassword,
+      })),
+      signUpdatePayload: (bytes) => signBytesWithTauri({
         bytes,
-        "stable-payload.json",
-        signing.updaterKeyPath,
-        updaterPassword,
-      ),
-      signWindowsPackage: (bytes, filename) => signWithTauri(
+        filename: "stable-payload.json",
+        keyPath: signing.updaterKeyPath,
+        password: updaterPassword,
+      }),
+      signWindowsPackage: (bytes, filename) => signBytesWithTauri({
         bytes,
         filename,
-        signing.updaterKeyPath,
-        updaterPassword,
-      ),
+        keyPath: signing.updaterKeyPath,
+        password: updaterPassword,
+      }),
       storageSchemaVersion,
       times,
       updateConfiguration,

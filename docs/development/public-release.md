@@ -6,11 +6,11 @@ FitFreed 0.1.7 is the first immutable public release. Protected workflow
 [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the exact admitted
 Developer ID-signed and Apple-notarized macOS candidate, source-bound evidence, localized product site, and signed
 stable update snapshot, then remotely verified every public byte and provenance boundary. The checked-in update
-configuration contains the active `stable.primary-1` trust key. The proposed 0.1.8 Linux expansion advances that
+configuration contains the active `stable.primary-1` trust key. The proposed 0.1.9 Linux expansion advances that
 configuration to recovery-capable stable-v3 and assigns the exact 0.1.7 macOS predecessor. Its independent
 `release.primary-1` release-checksum public trust is active after the external key ceremony; the private authority
-remains confined to the protected release environment. No private updater, Apple, release-checksum, or Windows
-Authenticode authority is present in source or ordinary continuous integration.
+and its separately held password remain confined to the protected release environment. No private updater, Apple,
+release-checksum, or Windows Authenticode authority is present in source or ordinary continuous integration.
 
 The `public-macos-release` environment admits `v*` tags under the bootstrap review policy. The `github-pages`
 environment admits both `main` product-site deployments and `v*` release deployments. The first 0.1.7 Pages attempt
@@ -86,16 +86,29 @@ environment without mutating the protected parent environment. Cleanup passed; n
 or published. The public `v0.1.6` tag remains fixed at the rejected source and is neither moved nor reused; its
 corrected successor is the published 0.1.7 release.
 
+The `v0.1.8` [dispatch `34746306839`](https://github.com/purnalica/fitfreed/actions/runs/34746306839) passed secret-free
+preflight, created and admitted the native Linux input, entered the protected environment, rebuilt and notarized the
+macOS member, and reached detached Linux-package signing. The Linux and complete-platform composers had copied the
+standalone signing implementation that predated the 0.1.6 correction. Their child processes therefore inherited
+`TAURI_SIGNING_PRIVATE_KEY` from the bundle-signing parent while also supplying
+`TAURI_SIGNING_PRIVATE_KEY_PATH`. Tauri maps those names to mutually exclusive command options and rejected the
+invocation before creating a candidate. Current source routes Linux and complete-platform detached signatures through
+one shared signer that removes the bundle-only variable from the exact child environment. Its behavioral contract
+reproduces the dual-input protected parent and verifies that the child receives only the selected path and password.
+Cleanup passed, and no candidate, Release, or Pages update was retained or published. The public `v0.1.8` tag remains
+fixed at rejected source `bb28ee6` and is neither moved nor reused; the corrected successor is 0.1.9.
+
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
 an App Store Connect team API private key and its exact non-secret issuer and key identifiers. Authentication against
-Apple's notarization service passes outside the workflow. The protected 0.1.2 through 0.1.6 executions imported the
-certificate and private key, signed the application and DMG, submitted the application, received Apple's accepted
-notarization result, and stapled the application. Version 0.1.4 proved updater artifact signing; version 0.1.5 also
+Apple's notarization service passes outside the workflow. The protected 0.1.2 through 0.1.6 and 0.1.8 executions
+imported the certificate and private key, signed the application and DMG, submitted the application, received Apple's
+accepted notarization result, and stapled the application. Version 0.1.4 proved updater artifact signing; version 0.1.5 also
 proved independent final-DMG signing, notarization, log inspection, and stapling before objective certificate
 inspection exposed the command-shape defect. Version 0.1.6 passed that corrected inspection and exposed the distinct
-standalone metadata-signer environment boundary. No unsealed runner-local output was retained or published, and
+standalone metadata-signer environment boundary. Version 0.1.8 exposed the same missing isolation in the later
+complete-platform compositor before candidate sealing. No unsealed runner-local output was retained or published, and
 unconditional authority cleanup passed.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.

@@ -2,12 +2,10 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,8 +39,8 @@ import {
 } from "./public-release-signing-configuration.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { decodeTauriSignatureText } from "./release-signature.mjs";
+import { signBytesWithTauri } from "./tauri-detached-signature.mjs";
 import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
-import { nodePackageScriptPath } from "./node-package-script.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 
@@ -102,31 +100,6 @@ function assertReleaseSigningTrust(configuration, releaseKeyId) {
 }
 
 export { assertIndependentPublicSigningKeys as assertIndependentExpansionSigningTrust };
-
-function signWithTauri(bytes, filename, keyPath, password) {
-  const directory = mkdtempSync(path.join(tmpdir(), "fitfreed-public-signing-"));
-  const payloadPath = path.join(directory, filename);
-  const signaturePath = `${payloadPath}.sig`;
-  try {
-    writeFileSync(payloadPath, bytes, { mode: 0o600 });
-    run(process.execPath, [
-      nodePackageScriptPath("@tauri-apps/cli", "tauri"),
-      "signer",
-      "sign",
-      payloadPath,
-    ], {
-      capture: true,
-      environment: {
-        TAURI_SIGNING_PRIVATE_KEY_PATH: keyPath,
-        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: password,
-      },
-    });
-    if (!existsSync(signaturePath)) throw new Error("detached signature is unavailable");
-    return readFileSync(signaturePath, "utf8").trim();
-  } finally {
-    rmSync(directory, { force: true, recursive: true });
-  }
-}
 
 function buildMacosCandidate(version, updateKeyId) {
   const bundleRoot = path.join(repositoryRoot, "src-tauri/target/release/bundle");
@@ -262,24 +235,24 @@ export function prepareExpandingPublicRelease({
       releaseSigningConfiguration,
       revision: source.revision,
       sbomPaths: [npmSbom, ...cargoSboms].map((name) => path.join(evidenceDirectory, name)),
-      signLinuxPackage: (bytes, filename) => signWithTauri(
+      signLinuxPackage: (bytes, filename) => signBytesWithTauri({
         bytes,
         filename,
-        updaterKeyPath,
-        updaterPassword,
-      ),
-      signReleaseChecksums: (bytes) => decodeTauriSignatureText(signWithTauri(
+        keyPath: updaterKeyPath,
+        password: updaterPassword,
+      }),
+      signReleaseChecksums: (bytes) => decodeTauriSignatureText(signBytesWithTauri({
         bytes,
-        "SHA256SUMS",
-        signing.releaseKeyPath,
-        releasePassword,
-      )),
-      signUpdatePayload: (bytes) => signWithTauri(
+        filename: "SHA256SUMS",
+        keyPath: signing.releaseKeyPath,
+        password: releasePassword,
+      })),
+      signUpdatePayload: (bytes) => signBytesWithTauri({
         bytes,
-        "stable-payload.json",
-        updaterKeyPath,
-        updaterPassword,
-      ),
+        filename: "stable-payload.json",
+        keyPath: updaterKeyPath,
+        password: updaterPassword,
+      }),
       storageSchemaVersion,
       times,
       updateConfiguration,

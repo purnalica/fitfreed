@@ -1,27 +1,27 @@
-# Public macOS 0.1.8 Guide
+# Public macOS 0.1.9 Guide
 
 ## Status
 
-This pre-publication guide describes the macOS member of the proposed 0.1.8 macOS-plus-Linux release. It becomes the
-operative version-matched guide only if an immutable `v0.1.8` [FitFreed public Release](https://github.com/purnalica/fitfreed/releases)
+This pre-publication guide describes the macOS member of the proposed 0.1.9 macOS-plus-Linux release. It becomes the
+operative version-matched guide only if an immutable `v0.1.9` [FitFreed public Release](https://github.com/purnalica/fitfreed/releases)
 contains the exact admitted complete-platform candidate. Source archives, development packages, Actions artifacts,
 forks, and third-party packages are not that release. FitFreed 0.1.7 remains the supported public macOS version while
 the [Milestone 4 execution ledger](../plans/milestone-4.md) contains an open gate.
 
-FitFreed 0.1.8 supports Apple Silicon on macOS 15.0 or later. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
+FitFreed 0.1.9 supports Apple Silicon on macOS 15.0 or later. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
 
 ## Preserve the source data first
 
-Keep every original provider ZIP unchanged in an independently protected location. FitFreed does not replace the source export, and version 0.1.8 has no supported user-controlled library backup, restore, or portable normalized export workflow.
+Keep every original provider ZIP unchanged in an independently protected location. FitFreed does not replace the source export, and version 0.1.9 has no supported user-controlled library backup, restore, or portable normalized export workflow.
 
 Do not use FitFreed as the only copy of important information. Verify consequential values against their source, and do not treat any view as medical, health, training, safety, or legal advice.
 
 ## Download and verify
 
-Download only from the immutable `FitFreed 0.1.8` Release in the [canonical GitHub repository](https://github.com/purnalica/fitfreed/releases). The release must contain these regular assets:
+Download only from the immutable `FitFreed 0.1.9` Release in the [canonical GitHub repository](https://github.com/purnalica/fitfreed/releases). The release must contain these regular assets:
 
-- `FitFreed_0.1.8_aarch64.dmg`;
-- `FitFreed_0.1.8_aarch64.app.tar.gz` and its `.sig` file;
+- `FitFreed_0.1.9_aarch64.dmg`;
+- `FitFreed_0.1.9_aarch64.app.tar.gz` and its `.sig` file;
 - `stable.json`, `supported-upgrades.json`, and `release-manifest.json`;
 - `RELEASE_NOTES.md`, `SHA256SUMS`, and `SHA256SUMS.minisig`; and
 - the npm and Cargo CycloneDX inventories named in the manifest.
@@ -36,13 +36,13 @@ the files listed by the authenticated inventory:
 shasum -a 256 -c SHA256SUMS
 ```
 
-Every line must report `OK`. The manifest, checksum file, release-note version, DMG name, and GitHub tag must all identify 0.1.8. A mismatch is a hard stop; do not rename an asset or edit the inventory to make the check pass.
+Every line must report `OK`. The manifest, checksum file, release-note version, DMG name, and GitHub tag must all identify 0.1.9. A mismatch is a hard stop; do not rename an asset or edit the inventory to make the check pass.
 
 GitHub CLI users can additionally verify that the immutable Release and a selected asset are linked to GitHub's release attestations:
 
 ```sh
-gh release verify v0.1.8 --repo purnalica/fitfreed
-gh release verify-asset v0.1.8 FitFreed_0.1.8_aarch64.dmg \
+gh release verify v0.1.9 --repo purnalica/fitfreed
+gh release verify-asset v0.1.9 FitFreed_0.1.9_aarch64.dmg \
   --repo purnalica/fitfreed
 ```
 
@@ -50,11 +50,11 @@ The published release notes contain the exact source revision and explain how to
 
 ## Install and launch
 
-1. Open the verified `FitFreed_0.1.8_aarch64.dmg`.
+1. Open the verified `FitFreed_0.1.9_aarch64.dmg`.
 2. Drag `FitFreed.app` to the Applications destination shown by the disk image.
 3. Eject the disk image.
 4. Open FitFreed from Applications.
-5. Confirm the interface identifies version 0.1.8 before importing anything.
+5. Confirm the interface identifies version 0.1.9 before importing anything.
 
 The public package must open through the ordinary macOS path because it is Developer ID signed and Apple notarized. If macOS reports an unidentified developer, a damaged application, or another trust failure, stop. Never disable Gatekeeper globally, remove quarantine attributes, apply an ad-hoc signature, or use a terminal bypass.
 
@@ -92,7 +92,7 @@ The [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md
 
 ## Explore the local history
 
-Version 0.1.8 provides provider-neutral views for:
+Version 0.1.9 provides provider-neutral views for:
 
 - daily activity overview, range, exact day detail, and period comparison;
 - complete-history training sport discovery, user classification, explicit reversible relationships between
@@ -115,7 +115,7 @@ Version 0.1.8 provides provider-neutral views for:
 
 Every visual has exact values or a table alternative. Missing and unavailable observations do not become zero. Histories from different opaque origins stay separate. Aligned observations establish recorded co-occurrence only; FitFreed does not infer causation, readiness, diagnosis, or advice.
 
-Native PDF and spreadsheet output, free-form report layout, exact-sample and lap report blocks, external route maps, unsupported provider-defined zone kinds, unsupported training-signal types, undated recovery samples, other providers, portable normalized export, and user-controlled backup and restore are outside 0.1.8. The [report guide](reports.md) defines the implemented authoring, refresh, navigation, privacy-review, and HTML-export boundary.
+Native PDF and spreadsheet output, free-form report layout, exact-sample and lap report blocks, external route maps, unsupported provider-defined zone kinds, unsupported training-signal types, undated recovery samples, other providers, portable normalized export, and user-controlled backup and restore are outside 0.1.9. The [report guide](reports.md) defines the implemented authoring, refresh, navigation, privacy-review, and HTML-export boundary.
 
 ## Local data and privacy
 
@@ -152,7 +152,7 @@ Deleting personal FitFreed state is a separate destructive choice:
 5. Move that complete directory to the Trash only when permanent loss of the library, preferences, provenance, and recovery state is intended.
 6. Empty the Trash only after confirming the exact target. macOS backups or synchronized storage can retain other copies and require their own deletion controls.
 
-There is no in-application deletion command in 0.1.8. Never delete only the SQLite file, its sidecars, or selected recovery files as a repair technique.
+There is no in-application deletion command in 0.1.9. Never delete only the SQLite file, its sidecars, or selected recovery files as a repair technique.
 
 ## Safe support and security reports
 

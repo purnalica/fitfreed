@@ -199,14 +199,14 @@ The [private macOS alpha candidate guide](private-alpha-candidate.md) is the ver
 The [public macOS 0.1.7 guide](public-macos-0.1.7.md) is the operative signed-release download, verification,
 installation, import, exploration, update, recovery, removal, and support guide.
 
-The [proposed public macOS 0.1.8 guide](public-macos-0.1.8.md) and [proposed public Linux 0.1.8
-guide](public-linux-0.1.8.md) describe the complete macOS-plus-Linux expansion. Both remain inactive until the
-independent release-checksum authority, exact candidate, native admission, and public-promotion gates close.
+The [proposed public macOS 0.1.9 guide](public-macos-0.1.9.md) and [proposed public Linux 0.1.9
+guide](public-linux-0.1.9.md) describe the complete macOS-plus-Linux expansion. Both remain inactive until the
+exact candidate, native admission, and public-promotion gates close.
 
 The [public Linux 0.1.7 guide](public-linux-0.1.7.md) is retained as historical preparation. Version 0.1.7 never
 published a Linux binary.
 
-The [public Windows 0.1.8 guide](public-windows-0.1.8.md) is inactive preparation tied to the repository version. It
+The [public Windows 0.1.9 guide](public-windows-0.1.9.md) is inactive preparation tied to the repository version. It
 does not assign or announce a Windows release; a later version will replace it before any Windows binary is published.
 
 The [public macOS readiness ledger](../testing/public-release-readiness.md),
