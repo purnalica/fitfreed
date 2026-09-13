@@ -57,6 +57,12 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
   );
   requireWorkflowMatch(errors, diagnostic, /runs-on: ubuntu-24\.04/, "diagnostics must use Ubuntu 24.04");
   requireWorkflowMatch(errors, diagnostic, /timeout-minutes: 15/, "diagnostics must remain bounded");
+  requireWorkflowMatch(
+    errors,
+    diagnostic,
+    /apt-get install --yes --no-install-recommends at-spi2-core sqlite3 xauth xvfb/,
+    "diagnostics must model the supported Ubuntu Desktop accessibility service",
+  );
   requireWorkflowOrder(errors, diagnostic, [
     "Download only the exact sealed candidate artifact",
     "Reopen the digest-bound candidate",

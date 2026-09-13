@@ -49,7 +49,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | Immutable version 0.1.9 at `909eccf477870f4c607f93b8240556d78aee8729` passed native Linux input construction and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34748270550`. Both admission rows installed and validated the exact Debian member but did not observe its interactive-shell signal. The same bytes launch correctly in bounded disposable Ubuntu 24.04 x86-64 reproductions; a single secret-free Ubuntu 24.04 exact-artifact diagnostic now owns the remaining graphical-session or observation uncertainty. No accepted product, package, recovery, performance, or experience campaign is repeated. Both hosted admission rows and explicit promotion remain gates. |
+| M4.6 | In progress | Immutable version 0.1.9 at `909eccf477870f4c607f93b8240556d78aee8729` passed native Linux input construction and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34748270550`. Both admission rows installed and validated the exact Debian member but did not observe its interactive-shell signal. Focused run `34779542150` reopened and installed the same candidate and reduced the hosted failure to a live process with no standard-output signal and one missing `org.a11y.Bus` desktop-service warning. One controlled desktop-session prerequisite check now owns that concrete hypothesis. No candidate bytes or accepted product, package, recovery, performance, or experience evidence are rebuilt or repeated. Both hosted admission rows and explicit promotion remain gates. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,
@@ -239,14 +239,21 @@ converge on those exact bytes.
   Debian bytes as both the superuser and a normal user, with the admission data-directory shape, and received the
   correct version-and-revision-bound signal. The package and the general Linux startup path are therefore not the
   unresolved variable.
-- **Causal hypothesis:** the remaining uncertainty belongs to the hosted graphical-session boundary or to the
-  observation harness. The failed harness discarded bounded standard-error content and described every non-Windows
-  timeout as a missing startup channel, so that run could not distinguish a WebKit/Xvfb runner condition from an
-  observation defect. The diagnostic observer now preserves only bounded path-redacted fresh-home output and names
-  the platform-specific signal transport accurately.
-- **Smallest falsifying experiment:** reuse the already sealed candidate from run `34748270550` in one secret-free
-  Ubuntu 24.04 diagnostic job, preserve its exact digest and signed manifest checks, and capture only bounded fresh-home
-  process output. Do not rebuild, sign, notarize, run packaged E2E, execute the 100-process distribution, or repeat the
+- **First focused result:** secret-free run
+  [`34779542150`](https://github.com/purnalica/fitfreed/actions/runs/34779542150) authenticated both candidate transport
+  layers, reopened the signed manifest, installed and inspected the exact Debian member, and observed one launch. The
+  process remained live, emitted no standard output, and emitted only a D-Bus warning that `org.a11y.Bus` had no
+  service file. This proves that the renderer did not invoke the application-owned standard-output signal; it does not
+  by itself prove that the accessibility warning prevented the first painted frame.
+- **Causal hypothesis:** the hosted runner provides Xvfb but not the complete supported Ubuntu Desktop session
+  prerequisite represented by `at-spi2-core`. Ubuntu package metadata confirms that this package owns
+  `org.a11y.Bus.service` and belongs to both `ubuntu-desktop` and `ubuntu-desktop-minimal`. The package is a harness
+  prerequisite to test, not a proposed FitFreed Debian dependency.
+- **Smallest falsifying experiment:** reuse the same sealed candidate on the same Ubuntu 24.04 runner with the same
+  Xvfb command, process observer, isolated library, ten-second budget, and cleanup. Add only `at-spi2-core` to the
+  diagnostic runner. If the exact launch reports its shell, the admission harness must model that supported desktop
+  service explicitly. If it still does not report its shell, discard this hypothesis and stop before changing another
+  variable. Do not rebuild, sign, notarize, run packaged E2E, execute the 100-process distribution, or repeat the
   two-row admission matrix.
 - **Allowed change:** bounded cold-launch diagnostics, their focused tests, one manually dispatched read-only
   exact-candidate diagnostic lane, its workflow contract, and the canonical automation, testing, troubleshooting,
@@ -255,9 +262,9 @@ converge on those exact bytes.
 - **Retained evidence:** the native Linux input, complete candidate composition, Developer ID signature, Apple
   notarization, detached updater and release signatures, manifest reopening, and all previously accepted product,
   package, update, recovery, performance, and experience evidence remain valid and must not run again.
-- **Exit and stop conditions:** the focused job must either expose a concrete first causal error or prove that the same
-  candidate now reports its shell on the hosted boundary. No corrective candidate or broad campaign starts until that
-  result identifies the owning layer; an inconclusive result stops this experiment rather than authorizing another
+- **Exit and stop conditions:** the controlled service-prerequisite job either proves the missing supported-desktop
+  service causal or disproves that concrete hypothesis. No corrective candidate or broad campaign starts until the
+  result identifies the owning layer; a second failure stops this experiment rather than authorizing another
   speculative correction.
 
 ## Human intervention boundary

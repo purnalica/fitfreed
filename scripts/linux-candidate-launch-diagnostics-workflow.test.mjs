@@ -37,6 +37,7 @@ test("rejects automatic execution, mutable actions, protected authority, or publ
 
 test("requires exact transport, signed-candidate, single-launch, and cleanup boundaries", () => {
   for (const [mutate, expected] of [
+    [(source) => source.replace("at-spi2-core ", ""), /accessibility service/],
     [(source) => source.replace("artifact-ids: ${{ inputs.artifact_id }}", "name: candidate"), /artifact ID/],
     [(source) => source.replace("digest-mismatch: error", "digest-mismatch: warn"), /digest mismatch/],
     [(source) => source.replace("unpack:public-release", "verify:public-release"), /transport digest/],
