@@ -386,6 +386,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   failures but cannot convert a failed row into acceptance. These exact-candidate checks complement, rather than
   replace, the same-revision instrumented
   capability, update/recovery, accessibility, localization, and data-performance evidence.
+- A separate manual Linux launch-diagnostic workflow may reuse one failed, already sealed candidate on a single
+  Ubuntu 24.04 runner. It verifies both artifact transport layers and the signed manifest, installs the exact Debian
+  member, and observes one Xvfb launch with bounded path-redacted process streams. It has no secret, protected
+  environment, build, E2E, repeated-launch distribution, promotion, or publication capability. Its evidence can
+  identify the owning layer of an otherwise opaque launch failure, but cannot satisfy or bypass candidate admission.
 - Complete-platform preparation tests require both sealed native inputs and every package-bearing predecessor to be
   authenticated before dependency audit, macOS build, or composition. Predecessor discovery reopens the complete
   immutable manifest version 6 or 7 Release evidence, accepts only matrix-declared versions and Linux or Windows

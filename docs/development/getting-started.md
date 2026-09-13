@@ -127,7 +127,7 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Verify live presentation, locale, style, test, and script ownership | `npm run check:presentation-inventory` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Verify pinned updater source and provenance | `npm run check:vendored-updater` |
-| Verify GitHub workflow syntax and all public-release policies | `npm run check:workflows && npm run check:public-release-workflow && npm run check:public-linux-expansion-workflow && npm run check:public-windows-expansion-workflow` |
+| Verify GitHub workflow syntax and all public-release policies | `npm run check:workflows && npm run check:public-release-workflow && npm run check:public-linux-expansion-workflow && npm run check:linux-candidate-launch-diagnostics-workflow && npm run check:public-windows-expansion-workflow` |
 | Build the unsigned update-capable Debian input on x86-64 Linux | `npm run package:linux-expansion-input` |
 | Build the exact secret-free Linux expansion input | `npm run prepare:linux-expansion-input -- <version> <directory>` |
 | Seal an exact Linux expansion input | `npm run pack:linux-expansion-input -- <input> <archive> <version> <revision> <schema>` |
@@ -176,6 +176,7 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Build, install, drive, and remove the isolated Debian capability-test package | `npm run verify:linux-e2e` |
 | Verify Linux disk-exhaustion recovery on an isolated filesystem | `npm run verify:linux-filesystem-reliability` |
 | Verify a complete signed Linux public candidate | `npm run verify:linux-public-release -- <candidate-directory>` |
+| Diagnose one already-sealed Debian candidate launch on Ubuntu | `npm run diagnose:linux-candidate-launch -- <candidate-directory> <version> <revision> <ubuntu-version>` |
 | Install or remove an exact complete-platform candidate on its hosted Ubuntu admission row | `npm run verify:linux-candidate-installation -- <install\|remove> <candidate-directory> <version> <ubuntu-version>` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Install the pinned local workflow validator | `npm run install:workflow-tools` |

@@ -2,9 +2,9 @@
 
 ## Status
 
-Active as of 2026-09-13. FitFreed 0.1.7 is the immutable supported public macOS baseline. Version 0.1.9 is assigned to
-the first complete macOS-plus-Linux expansion. Linux parity engineering and its hosted package campaigns are complete;
-production checksum authority is active, while the exact candidate, native admission, and promotion remain open.
+Active as of 2026-09-13. FitFreed 0.1.7 is the immutable supported public macOS baseline. Version 0.1.9 is the sealed
+first complete macOS-plus-Linux expansion candidate. Linux parity engineering and protected candidate composition are
+complete; native admission is under focused hosted diagnosis, while promotion remains blocked.
 
 ## Objective
 
@@ -49,7 +49,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | Version 0.1.9, stable sequence 9, stable-v3 trust, and the exact 0.1.7 macOS predecessor are assigned. The workflow places secret-free exact-candidate admission between protected composition and promotion. Its hosted x86-64 Ubuntu 24.04 and 26.04 matrix reopens the digest-bound manifest version 6 candidate, installs and graphically launches only its declared Debian artifact, enforces native identity, resource, dynamic-linking, private-library, cold-launch, purge, and retained-library checks, and performs unconditional residual package cleanup. Independent `release.primary-1` public and protected private authority are active. The rejected 0.1.8 run reached real detached Linux-package signing but exposed that the platform-expansion compositor had not inherited the standalone-signer environment isolation already proven by public macOS 0.1.7. Version 0.1.9 uses one shared path-only detached signer with a focused reproduction of that dual-input parent boundary. Exact hosted execution and explicit promotion remain gates. The accepted product baseline makes another subjective product-owner session inapplicable unless exact candidate evidence identifies a material experience change. |
+| M4.6 | In progress | Immutable version 0.1.9 at `909eccf477870f4c607f93b8240556d78aee8729` passed native Linux input construction and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34748270550`. Both admission rows installed and validated the exact Debian member but did not observe its interactive-shell signal. The same bytes launch correctly in bounded disposable Ubuntu 24.04 x86-64 reproductions; a single secret-free Ubuntu 24.04 exact-artifact diagnostic now owns the remaining graphical-session or observation uncertainty. No accepted product, package, recovery, performance, or experience campaign is repeated. Both hosted admission rows and explicit promotion remain gates. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,
@@ -225,6 +225,40 @@ publication, promoted.
 **Acceptance evidence:** every row in the Linux readiness ledger passes for one revision and the complete target-set
 digests; the public download, update channel, GitHub Release, Pages links, signatures, provenance, and documentation
 converge on those exact bytes.
+
+### Current M4.6 iteration — Hosted first-launch diagnosis
+
+- **Acceptance boundary:** the exact sealed Debian member of candidate 0.1.9 at revision
+  `909eccf477870f4c607f93b8240556d78aee8729` must install and report its first painted interactive shell on the
+  supported hosted Ubuntu admission rows before the separate cold-launch distribution can run.
+- **Observed failure:** workflow
+  [`34748270550`](https://github.com/purnalica/fitfreed/actions/runs/34748270550) built, signed, notarized, reopened, and
+  sealed the complete candidate. Both Ubuntu 24.04 and 26.04 then installed the exact manifest-declared Debian package,
+  admitted its identity and dynamic libraries, and retained a live application process for ten seconds without
+  observing the interactive-shell signal. A bounded disposable Ubuntu 24.04 x86-64 reproduction launched the same
+  Debian bytes as both the superuser and a normal user, with the admission data-directory shape, and received the
+  correct version-and-revision-bound signal. The package and the general Linux startup path are therefore not the
+  unresolved variable.
+- **Causal hypothesis:** the remaining uncertainty belongs to the hosted graphical-session boundary or to the
+  observation harness. The failed harness discarded bounded standard-error content and described every non-Windows
+  timeout as a missing startup channel, so that run could not distinguish a WebKit/Xvfb runner condition from an
+  observation defect. The diagnostic observer now preserves only bounded path-redacted fresh-home output and names
+  the platform-specific signal transport accurately.
+- **Smallest falsifying experiment:** reuse the already sealed candidate from run `34748270550` in one secret-free
+  Ubuntu 24.04 diagnostic job, preserve its exact digest and signed manifest checks, and capture only bounded fresh-home
+  process output. Do not rebuild, sign, notarize, run packaged E2E, execute the 100-process distribution, or repeat the
+  two-row admission matrix.
+- **Allowed change:** bounded cold-launch diagnostics, their focused tests, one manually dispatched read-only
+  exact-candidate diagnostic lane, its workflow contract, and the canonical automation, testing, troubleshooting,
+  readiness, and execution records. Product behavior, package contents, performance budgets, release authority,
+  candidate bytes, promotion, and update metadata remain unchanged.
+- **Retained evidence:** the native Linux input, complete candidate composition, Developer ID signature, Apple
+  notarization, detached updater and release signatures, manifest reopening, and all previously accepted product,
+  package, update, recovery, performance, and experience evidence remain valid and must not run again.
+- **Exit and stop conditions:** the focused job must either expose a concrete first causal error or prove that the same
+  candidate now reports its shell on the hosted boundary. No corrective candidate or broad campaign starts until that
+  result identifies the owning layer; an inconclusive result stops this experiment rather than authorizing another
+  speculative correction.
 
 ## Human intervention boundary
 

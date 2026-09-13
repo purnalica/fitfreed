@@ -98,6 +98,17 @@ reproduces the dual-input protected parent and verifies that the child receives 
 Cleanup passed, and no candidate, Release, or Pages update was retained or published. The public `v0.1.8` tag remains
 fixed at rejected source `bb28ee6` and is neither moved nor reused; the corrected successor is 0.1.9.
 
+The `v0.1.9` [dispatch `34748270550`](https://github.com/purnalica/fitfreed/actions/runs/34748270550) passed preflight,
+native Linux input construction, protected complete-platform composition, Developer ID signing, Apple notarization,
+detached updater and release signing, candidate reopening, and sealing. Both exact-candidate Ubuntu admission rows then
+installed and validated the manifest-declared Debian package but timed out before observing its interactive-shell
+signal. The retained message incorrectly referred to a startup channel on Linux and omitted the bounded process
+diagnostics needed to assign the failure. The exact sealed Debian bytes subsequently reported their expected
+version-and-revision-bound shell in bounded disposable Ubuntu 24.04 x86-64 reproductions as both a superuser and a
+normal user. A read-only manual diagnostic lane now reuses that exact artifact once on Ubuntu 24.04 with bounded,
+path-redacted standard output and error; it neither rebuilds nor promotes the candidate. Publication remains blocked
+until this diagnostic identifies the owning layer and both required admission rows pass.
+
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds

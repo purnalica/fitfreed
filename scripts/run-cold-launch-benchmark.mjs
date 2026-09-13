@@ -39,6 +39,7 @@ const macosActivationRetryMilliseconds = 25;
 const macosActivationTimeoutMilliseconds = 250;
 const windowsStartupSignalEnvironmentVariable = "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
 const windowsStartupSignalPipePrefix = "\\\\.\\pipe\\fitfreed-startup-";
+const maximumDiagnosticTailBytes = 4 * 1_024;
 
 function percentile(values, requested) {
   const sorted = [...values].sort((left, right) => left - right);
@@ -62,6 +63,54 @@ function requireDuration(value, description) {
   if (!Number.isFinite(value) || value < 0) {
     throw new Error(`${description} requires non-negative finite durations`);
   }
+}
+
+function boundedDiagnosticTail(value, redactions = []) {
+  let normalized = value
+    .replaceAll("\r\n", "\n")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/gu, "?");
+  for (const [privateValue, replacement] of redactions) {
+    if (privateValue) normalized = normalized.replaceAll(privateValue, replacement);
+  }
+  const bytes = Buffer.from(normalized, "utf8");
+  return bytes.length <= maximumDiagnosticTailBytes
+    ? normalized.trim()
+    : bytes.subarray(bytes.length - maximumDiagnosticTailBytes).toString("utf8").trim();
+}
+
+export function coldLaunchTimeoutMessage(platform, windowsChannelConnected = false) {
+  if (platform !== "win32") {
+    return "application did not report an interactive shell within 10 seconds";
+  }
+  return windowsChannelConnected
+    ? "application connected its startup channel but did not report an interactive shell within 10 seconds"
+    : "application did not connect its startup channel within 10 seconds";
+}
+
+export function coldLaunchTransportClosedMessage(platform) {
+  return platform === "win32"
+    ? "application closed its startup channel before reporting an interactive shell"
+    : "application closed its standard output before reporting an interactive shell";
+}
+
+export function coldLaunchFailureMessage(
+  message,
+  { home, platform, repository = repositoryRoot, standardError = "", standardOutput = "" },
+) {
+  const redactions = [
+    [home, "<isolated-home>"],
+    [repository, "<repository>"],
+  ];
+  const diagnostics = {
+    platform,
+    standardErrorBytes: Buffer.byteLength(standardError),
+    standardOutputBytes: Buffer.byteLength(standardOutput),
+  };
+  const standardErrorTail = boundedDiagnosticTail(standardError, redactions);
+  const standardOutputTail = boundedDiagnosticTail(standardOutput, redactions);
+  if (standardErrorTail) diagnostics.standardErrorTail = standardErrorTail;
+  if (standardOutputTail) diagnostics.standardOutputTail = standardOutputTail;
+  return `${message}; bounded fresh-home diagnostics: ${JSON.stringify(diagnostics)}`;
 }
 
 function summarize(values) {
@@ -512,6 +561,9 @@ export async function measureFreshProcess(
     throw new Error("application process could not be started");
   }
   let standardOutput = "";
+  let standardOutputDiagnostics = "";
+  let standardOutputBytes = 0;
+  let standardError = "";
   let standardErrorBytes = 0;
   let settled = false;
 
@@ -519,14 +571,15 @@ export async function measureFreshProcess(
     const fail = (message) => {
       if (settled) return;
       settled = true;
-      reject(new Error(message));
+      reject(new Error(coldLaunchFailureMessage(message, {
+        home,
+        platform,
+        standardError,
+        standardOutput: standardOutputDiagnostics,
+      })));
     };
     const timeout = setTimeout(
-      () => fail(
-        windowsSignalChannel?.isConnected()
-          ? "application connected its startup channel but did not report an interactive shell within 10 seconds"
-          : "application did not connect its startup channel within 10 seconds",
-      ),
+      () => fail(coldLaunchTimeoutMessage(platform, windowsSignalChannel?.isConnected())),
       launchTimeoutMilliseconds,
     );
     const succeed = (signal) => {
@@ -556,6 +609,7 @@ export async function measureFreshProcess(
       fail(`application exited before the interactive shell signal (${code ?? signal ?? "unknown"})`);
     });
     child.stderr.on("data", (chunk) => {
+      standardError += chunk.toString("utf8");
       standardErrorBytes += chunk.length;
       if (standardErrorBytes > maximumOutputBytes) {
         clearTimeout(timeout);
@@ -569,11 +623,14 @@ export async function measureFreshProcess(
     });
     signalOutput.once("end", () => {
       clearTimeout(timeout);
-      fail("application closed its startup channel before reporting an interactive shell");
+      fail(coldLaunchTransportClosedMessage(platform));
     });
     signalOutput.on("data", (chunk) => {
-      standardOutput += chunk.toString("utf8");
-      if (Buffer.byteLength(standardOutput) > maximumOutputBytes) {
+      const decoded = chunk.toString("utf8");
+      standardOutput += decoded;
+      standardOutputDiagnostics += decoded;
+      standardOutputBytes += chunk.length;
+      if (standardOutputBytes > maximumOutputBytes) {
         clearTimeout(timeout);
         fail("application output exceeded the benchmark bound");
         return;

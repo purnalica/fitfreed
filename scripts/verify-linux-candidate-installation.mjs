@@ -20,6 +20,7 @@ import { measureFreshProcess } from "./run-cold-launch-benchmark.mjs";
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const supportedUbuntuVersions = new Set(["24.04", "26.04"]);
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const revisionPattern = /^[0-9a-f]{40}$/;
 
 export function parseLinuxOsRelease(source) {
   const values = {};
@@ -228,19 +229,26 @@ function removalFacts() {
   };
 }
 
-function exactCandidate(candidateDirectory, version) {
+function verifiedCandidate(candidateDirectory, version, revision) {
+  if (!semanticVersion.test(version ?? "") || !revisionPattern.test(revision ?? "")) {
+    throw new Error("Linux candidate verification requires an exact version and revision");
+  }
   const candidate = verifySupportedPublicReleaseCandidate({
     candidateDirectory,
     publicReleaseSigningConfiguration:
       loadPublicReleaseSigningConfiguration(repositoryRoot),
     publicUpdateConfiguration: loadPublicUpdateConfiguration(repositoryRoot),
   });
+  return validateExactLinuxCandidate(candidate, version, revision);
+}
+
+function exactCandidate(candidateDirectory, version) {
   const revision = execute("git", ["rev-parse", "HEAD"]);
   const dirty = execute("git", ["status", "--porcelain=v1", "--untracked-files=all"]);
-  if (!semanticVersion.test(version ?? "") || dirty.length !== 0) {
+  if (dirty.length !== 0) {
     throw new Error("Linux candidate admission requires the exact clean tagged source and candidate");
   }
-  return validateExactLinuxCandidate(candidate, version, revision);
+  return verifiedCandidate(candidateDirectory, version, revision);
 }
 
 function admissionPaths(version, ubuntuVersion) {
@@ -300,6 +308,49 @@ async function installCandidate(candidateDirectory, version, ubuntuVersion) {
   };
 }
 
+export async function diagnoseCandidateLaunch(
+  candidateDirectory,
+  version,
+  revision,
+  ubuntuVersion,
+) {
+  const host = validateLinuxCandidateAdmissionHost({
+    architecture: process.arch,
+    expectedUbuntuVersion: ubuntuVersion,
+    osRelease: readFileSync("/etc/os-release", "utf8"),
+    platform: process.platform,
+  });
+  const candidate = verifiedCandidate(candidateDirectory, version, revision);
+  const paths = admissionPaths(version, ubuntuVersion);
+  validateRemovedLinuxCandidate(removalFacts());
+  rmSync(paths.root, { recursive: true, force: true });
+  mkdirSync(paths.home, { recursive: true, mode: 0o700 });
+  execute("/usr/bin/sudo", [
+    "/usr/bin/apt-get",
+    "install",
+    "--yes",
+    candidate.debianPackage,
+  ], { capture: false });
+  const installed = validateInstalledLinuxCandidate(installedFacts(), version);
+  const launch = await measureFreshProcess(
+    `/${linuxPackageContract.executablePath}`,
+    paths.home,
+    { applicationVersion: version, sourceRevision: revision },
+  );
+  const library = validateRetainedLinuxCandidateLibrary(
+    libraryFacts(paths.library),
+    candidate.storageSchemaVersion,
+  );
+  return {
+    host,
+    installed,
+    launch,
+    library,
+    revision,
+    phase: "diagnosed-installed-launch",
+  };
+}
+
 function removeCandidate(candidateDirectory, version, ubuntuVersion) {
   const host = validateLinuxCandidateAdmissionHost({
     architecture: process.arch,
@@ -334,10 +385,21 @@ function removeCandidate(candidateDirectory, version, ubuntuVersion) {
 }
 
 async function main() {
-  const [phase, candidateDirectory, version, ubuntuVersion] = process.argv.slice(2);
+  const [phase, candidateDirectory, version, fourthArgument, fifthArgument] = process.argv.slice(2);
+  if (phase === "diagnose" && candidateDirectory && version && fourthArgument && fifthArgument) {
+    const evidence = await diagnoseCandidateLaunch(
+      candidateDirectory,
+      version,
+      fourthArgument,
+      fifthArgument,
+    );
+    process.stdout.write(`${JSON.stringify(evidence)}\n`);
+    return;
+  }
+  const ubuntuVersion = fourthArgument;
   if (!candidateDirectory || !version || !ubuntuVersion || !["install", "remove"].includes(phase)) {
     throw new Error(
-      "usage: node scripts/verify-linux-candidate-installation.mjs <install|remove> <candidate-directory> <version> <ubuntu-version>",
+      "usage: node scripts/verify-linux-candidate-installation.mjs <install|remove> <candidate-directory> <version> <ubuntu-version> | diagnose <candidate-directory> <version> <revision> <ubuntu-version>",
     );
   }
   const evidence = phase === "install"

@@ -13,6 +13,9 @@ import {
 import {
   activateMacosApplication,
   coldLaunchEnvironment,
+  coldLaunchFailureMessage,
+  coldLaunchTimeoutMessage,
+  coldLaunchTransportClosedMessage,
   createWindowsStartupSignalChannel,
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
@@ -25,6 +28,46 @@ import {
 
 const revision = "a".repeat(40);
 const syntheticBuildHome = `/${["Users", "synthetic-builder"].join("/")}`;
+
+test("describes platform-specific startup timeouts without inventing a Linux channel", () => {
+  assert.equal(
+    coldLaunchTimeoutMessage("linux"),
+    "application did not report an interactive shell within 10 seconds",
+  );
+  assert.equal(
+    coldLaunchTimeoutMessage("win32", false),
+    "application did not connect its startup channel within 10 seconds",
+  );
+  assert.equal(
+    coldLaunchTimeoutMessage("win32", true),
+    "application connected its startup channel but did not report an interactive shell within 10 seconds",
+  );
+  assert.equal(
+    coldLaunchTransportClosedMessage("linux"),
+    "application closed its standard output before reporting an interactive shell",
+  );
+  assert.equal(
+    coldLaunchTransportClosedMessage("win32"),
+    "application closed its startup channel before reporting an interactive shell",
+  );
+});
+
+test("bounds fresh-home diagnostics and redacts local execution roots", () => {
+  const message = coldLaunchFailureMessage("synthetic launch failure", {
+    home: "/private/admission/home",
+    platform: "linux",
+    repository: "/private/repository",
+    standardError: `WebKit failed below /private/admission/home in /private/repository\n${"x".repeat(5_000)}`,
+    standardOutput: "partial startup output",
+  });
+
+  assert.match(message, /synthetic launch failure/);
+  assert.match(message, /bounded fresh-home diagnostics/);
+  assert.match(message, /standardErrorBytes/);
+  assert.match(message, /standardOutputTail/);
+  assert.doesNotMatch(message, /\/private\/admission\/home|\/private\/repository/);
+  assert.ok(Buffer.byteLength(message) < 5_000);
+});
 
 test("binds a production build to its exact revision and clean-tree state", () => {
   assert.deepEqual(productionBuildIdentity(revision, ""), {
