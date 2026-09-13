@@ -265,6 +265,11 @@ converge on those exact bytes.
   24.04 `xprop` emits a colon. A disposable Ubuntu 24.04 reproduction confirmed the real property representation. The
   run is evidence about the harness only. The correction is limited to that verified representation; the structural
   experiment remains unexecuted.
+- **Readiness-budget rejection:** run
+  [`34781554091`](https://github.com/purnalica/fitfreed/actions/runs/34781554091) accepted the corrected property format but
+  did not observe Fluxbox readiness within the harness's one-second cold-start budget, so it also stopped before the
+  candidate launch. The bounded wait is raised to five seconds and now distinguishes a slow live window manager from
+  an early exit. This corrects the harness boundary without changing the candidate or its ten-second product budget.
 - **Root-cause evidence:** the last accepted hosted cold-launch campaign predates the current deferred shell bootstrap,
   while the exact candidate succeeds in a disposable local Xvfb boundary and fails on the current hosted boundary.
   Tauri issue [#15936](https://github.com/tauri-apps/tauri/issues/15936) independently reproduces the same Tauri 2.11,

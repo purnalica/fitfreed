@@ -33,7 +33,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 window_manager_ready=false
-for _ in {1..20}; do
+for _ in {1..100}; do
   if xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -Eq ': window id # 0x[[:xdigit:]]+$'; then
     window_manager_ready=true
     break
@@ -44,7 +44,11 @@ for _ in {1..20}; do
   sleep 0.05
 done
 if [[ "$window_manager_ready" != true ]]; then
-  echo "The bounded desktop-session window manager did not become ready" >&2
+  if kill -0 "$window_manager_pid" >/dev/null 2>&1; then
+    echo "The bounded desktop-session window manager did not become ready within five seconds" >&2
+  else
+    echo "The bounded desktop-session window manager exited before becoming ready" >&2
+  fi
   exit 1
 fi
 
