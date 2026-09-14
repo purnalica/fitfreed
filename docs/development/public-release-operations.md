@@ -201,8 +201,10 @@ dynamic linking, graphical first launch into an isolated private library, the pr
 purge, and retained-library integrity. Xvfb supplies the display inside a bounded D-Bus and Fluxbox desktop session;
 the hosted no-GPU boundary uses WebKit software rendering and allows the live window manager up to thirty seconds to
 publish its readiness property before either graphical gate starts. That harness allowance is distinct from the
-unchanged ten-second product first-launch observation. Neither row receives a protected environment, secret, signing
-key, nor publication permission. The unconditional package finalizer is cleanup, not acceptance evidence; a failed
+thirty-second installed first-launch availability observation. Neither allowance changes the production cold-launch
+contract: 100 fresh processes must remain at or below p95 `2,500 ms`, and every measured process retains its
+ten-second failure bound. Neither row receives a protected environment, secret, signing key, nor publication
+permission. The unconditional package finalizer is cleanup, not acceptance evidence; a failed
 preceding check keeps promotion blocked even when cleanup succeeds.
 
 ### Windows expansion input and authority

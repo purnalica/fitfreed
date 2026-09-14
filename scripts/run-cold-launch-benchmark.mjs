@@ -78,13 +78,18 @@ function boundedDiagnosticTail(value, redactions = []) {
     : bytes.subarray(bytes.length - maximumDiagnosticTailBytes).toString("utf8").trim();
 }
 
-export function coldLaunchTimeoutMessage(platform, windowsChannelConnected = false) {
+export function coldLaunchTimeoutMessage(
+  platform,
+  windowsChannelConnected = false,
+  observationTimeoutMilliseconds = launchTimeoutMilliseconds,
+) {
+  const observationTimeoutSeconds = observationTimeoutMilliseconds / 1_000;
   if (platform !== "win32") {
-    return "application did not report an interactive shell within 10 seconds";
+    return `application did not report an interactive shell within ${observationTimeoutSeconds} seconds`;
   }
   return windowsChannelConnected
-    ? "application connected its startup channel but did not report an interactive shell within 10 seconds"
-    : "application did not connect its startup channel within 10 seconds";
+    ? `application connected its startup channel but did not report an interactive shell within ${observationTimeoutSeconds} seconds`
+    : `application did not connect its startup channel within ${observationTimeoutSeconds} seconds`;
 }
 
 export function coldLaunchTransportClosedMessage(platform) {
@@ -532,10 +537,19 @@ export async function measureFreshProcess(
     platform = process.platform,
     activateApplication = activateMacosApplication,
     createWindowsSignalChannel = createWindowsStartupSignalChannel,
+    cancelTimeout = clearTimeout,
+    observationTimeoutMilliseconds = launchTimeoutMilliseconds,
     prepareApplicationData = resetInstalledWindowsApplicationData,
+    scheduleTimeout = setTimeout,
     spawnApplication = spawn,
   } = {},
 ) {
+  if (
+    !Number.isSafeInteger(observationTimeoutMilliseconds)
+    || observationTimeoutMilliseconds <= 0
+  ) {
+    throw new Error("cold launch observation requires a positive integer millisecond bound");
+  }
   if (platform !== "win32") mkdirSync(home, { recursive: true });
   const environment = coldLaunchEnvironment(home, inheritedEnvironment, platform);
   if (platform === "win32") {
@@ -578,13 +592,17 @@ export async function measureFreshProcess(
         standardOutput: standardOutputDiagnostics,
       })));
     };
-    const timeout = setTimeout(
-      () => fail(coldLaunchTimeoutMessage(platform, windowsSignalChannel?.isConnected())),
-      launchTimeoutMilliseconds,
+    const timeout = scheduleTimeout(
+      () => fail(coldLaunchTimeoutMessage(
+        platform,
+        windowsSignalChannel?.isConnected(),
+        observationTimeoutMilliseconds,
+      )),
+      observationTimeoutMilliseconds,
     );
     const succeed = (signal) => {
       if (settled) return;
-      clearTimeout(timeout);
+      cancelTimeout(timeout);
       settled = true;
       try {
         validateInteractiveShellSignal(signal, expected);
@@ -595,7 +613,7 @@ export async function measureFreshProcess(
     };
 
     child.once("error", () => {
-      clearTimeout(timeout);
+      cancelTimeout(timeout);
       fail("application process could not be started");
     });
     child.once("spawn", () => {
@@ -605,24 +623,24 @@ export async function measureFreshProcess(
       });
     });
     child.once("exit", (code, signal) => {
-      clearTimeout(timeout);
+      cancelTimeout(timeout);
       fail(`application exited before the interactive shell signal (${code ?? signal ?? "unknown"})`);
     });
     child.stderr.on("data", (chunk) => {
       standardError += chunk.toString("utf8");
       standardErrorBytes += chunk.length;
       if (standardErrorBytes > maximumOutputBytes) {
-        clearTimeout(timeout);
+        cancelTimeout(timeout);
         fail("application diagnostics exceeded the benchmark bound");
       }
     });
     const signalOutput = windowsSignalChannel?.output ?? child.stdout;
     signalOutput.once("error", () => {
-      clearTimeout(timeout);
+      cancelTimeout(timeout);
       fail("application startup signal transport failed");
     });
     signalOutput.once("end", () => {
-      clearTimeout(timeout);
+      cancelTimeout(timeout);
       fail(coldLaunchTransportClosedMessage(platform));
     });
     signalOutput.on("data", (chunk) => {
@@ -631,7 +649,7 @@ export async function measureFreshProcess(
       standardOutputDiagnostics += decoded;
       standardOutputBytes += chunk.length;
       if (standardOutputBytes > maximumOutputBytes) {
-        clearTimeout(timeout);
+        cancelTimeout(timeout);
         fail("application output exceeded the benchmark bound");
         return;
       }

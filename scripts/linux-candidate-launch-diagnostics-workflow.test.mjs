@@ -18,7 +18,7 @@ test("accepts one exact secret-free Linux candidate launch diagnostic", () => {
     candidateBoundary: "downloaded-sealed-linux-candidate",
     launchCount: 1,
     publicationAuthority: false,
-    runner: "ubuntu-24.04",
+    runner: "selected-supported-ubuntu",
     trigger: "workflow_dispatch",
   });
 });
@@ -30,6 +30,7 @@ test("rejects automatic execution, mutable actions, protected authority, or publ
     [(source) => source.replace("  contents: read\n\nconcurrency:", "  contents: write\n\nconcurrency:"), /default/],
     [(source) => `${source}\n    environment: public-macos-release\n`, /protected authority/],
     [(source) => source.replace("      contents: read", "      contents: write"), /job permissions/],
+    [(source) => source.replace('          - "26.04"\n', '          - "25.10"\n'), /Ubuntu selector/],
   ]) {
     assert.throws(() => validateLinuxCandidateLaunchDiagnosticsWorkflow(mutate(workflow)), expected);
   }
@@ -52,6 +53,7 @@ test("requires exact transport, signed-candidate, single-launch, and cleanup bou
     [(source) => source.replace("unpack:public-release", "verify:public-release"), /transport digest/],
     [(source) => source.replace("npm run diagnose:linux-candidate-launch --", "npm run benchmark:cold-launch"), /one exact installed launch/],
     [(source) => source.replace("        if: always()", "        if: success()"), /cleanup/],
+    [(source) => source.replace('"$FITFREED_UBUNTU_VERSION"', '"24.04"'), /Ubuntu boundary/],
   ]) {
     assert.throws(() => validateLinuxCandidateLaunchDiagnosticsWorkflow(mutate(workflow)), expected);
   }

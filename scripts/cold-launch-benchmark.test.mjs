@@ -43,6 +43,10 @@ test("describes platform-specific startup timeouts without inventing a Linux cha
     "application connected its startup channel but did not report an interactive shell within 10 seconds",
   );
   assert.equal(
+    coldLaunchTimeoutMessage("linux", false, 30_000),
+    "application did not report an interactive shell within 30 seconds",
+  );
+  assert.equal(
     coldLaunchTransportClosedMessage("linux"),
     "application closed its standard output before reporting an interactive shell",
   );
@@ -503,6 +507,59 @@ test("activates the spawned macOS process before accepting its painted shell", a
     );
 
     assert.deepEqual(activated, [7_654]);
+    assert.ok(measurement.totalMilliseconds >= 0);
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+});
+
+test("uses an explicitly selected launch observation bound", async () => {
+  const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-test-"));
+  const scheduledDelays = [];
+  const child = new EventEmitter();
+  child.pid = 7_655;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+  try {
+    const measurement = await measureFreshProcess(
+      "/synthetic/fitfreed",
+      path.join(temporaryDirectory, "home"),
+      { applicationVersion: "0.1.0", sourceRevision: revision },
+      {
+        cancelTimeout() {},
+        inheritedEnvironment: {},
+        observationTimeoutMilliseconds: 30_000,
+        platform: "linux",
+        scheduleTimeout(_callback, delay) {
+          scheduledDelays.push(delay);
+          return Symbol("synthetic-timeout");
+        },
+        spawnApplication() {
+          queueMicrotask(() => {
+            child.emit("spawn");
+            child.stdout.write(`${JSON.stringify({
+              format: "org.fitfreed.startup-signal",
+              schemaVersion: 2,
+              event: "interactive-shell",
+              applicationVersion: "0.1.0",
+              sourceRevision: revision,
+              sourceTreeClean: true,
+              hostStartupMilliseconds: { setupComplete: 0, signal: 0 },
+              rendererStartupMilliseconds: { localeReady: 0, signal: 0 },
+            })}\n`);
+          });
+          return child;
+        },
+      },
+    );
+
+    assert.deepEqual(scheduledDelays, [30_000]);
     assert.ok(measurement.totalMilliseconds >= 0);
   } finally {
     rmSync(temporaryDirectory, { recursive: true, force: true });

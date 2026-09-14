@@ -22,6 +22,12 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
     /^on:\n  workflow_dispatch:\n/m,
     "Linux launch diagnostics must be manually dispatched",
   );
+  requireWorkflowMatch(
+    errors,
+    trigger,
+    /ubuntu_version:\n        description: Supported Ubuntu boundary to diagnose\n        required: true\n        type: choice\n        options:\n          - "24\.04"\n          - "26\.04"/,
+    "Linux launch diagnostics must expose only the supported Ubuntu selector",
+  );
   if (/^  (push|pull_request|pull_request_target|release|schedule):/m.test(trigger)) {
     errors.push("Linux launch diagnostics has an automatic or untrusted trigger");
   }
@@ -29,7 +35,7 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
   requireWorkflowMatch(
     errors,
     source,
-    /concurrency:\n  group: fitfreed-linux-launch-diagnostics-\$\{\{ inputs\.version \}\}-\$\{\{ inputs\.revision \}\}\n  cancel-in-progress: false/,
+    /concurrency:\n  group: fitfreed-linux-launch-diagnostics-\$\{\{ inputs\.version \}\}-\$\{\{ inputs\.revision \}\}-\$\{\{ inputs\.ubuntu_version \}\}\n  cancel-in-progress: false/,
     "Linux launch diagnostics must serialize one exact candidate without cancellation",
   );
   if (/continue-on-error:|self-hosted|pull_request_target|\$\{\{\s*(secrets|vars)\.|environment:/.test(source)) {
@@ -55,7 +61,12 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
     ["actions: read", "contents: read"],
     "Linux launch diagnostic job",
   );
-  requireWorkflowMatch(errors, diagnostic, /runs-on: ubuntu-24\.04/, "diagnostics must use Ubuntu 24.04");
+  requireWorkflowMatch(
+    errors,
+    diagnostic,
+    /runs-on: ubuntu-\$\{\{ inputs\.ubuntu_version \}\}/,
+    "diagnostics must use the selected supported Ubuntu boundary",
+  );
   requireWorkflowMatch(errors, diagnostic, /timeout-minutes: 15/, "diagnostics must remain bounded");
   requireWorkflowMatch(
     errors,
@@ -121,7 +132,7 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
   requireWorkflowMatch(
     errors,
     diagnostic,
-    /"\$FITFREED_REVISION"\n          "24\.04"/,
+    /FITFREED_UBUNTU_VERSION: \$\{\{ inputs\.ubuntu_version \}\}[\s\S]*"\$FITFREED_REVISION"\n          "\$FITFREED_UBUNTU_VERSION"/,
     "diagnostics must bind the launch to its revision and Ubuntu boundary",
   );
   requireWorkflowMatch(
@@ -140,7 +151,7 @@ export function validateLinuxCandidateLaunchDiagnosticsWorkflow(source) {
     candidateBoundary: "downloaded-sealed-linux-candidate",
     launchCount: 1,
     publicationAuthority: false,
-    runner: "ubuntu-24.04",
+    runner: "selected-supported-ubuntu",
     trigger: "workflow_dispatch",
   };
 }

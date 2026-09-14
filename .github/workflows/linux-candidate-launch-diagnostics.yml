@@ -23,18 +23,25 @@ on:
         description: SHA-256 emitted when the candidate transport was sealed
         required: true
         type: string
+      ubuntu_version:
+        description: Supported Ubuntu boundary to diagnose
+        required: true
+        type: choice
+        options:
+          - "24.04"
+          - "26.04"
 
 permissions:
   contents: read
 
 concurrency:
-  group: fitfreed-linux-launch-diagnostics-${{ inputs.version }}-${{ inputs.revision }}
+  group: fitfreed-linux-launch-diagnostics-${{ inputs.version }}-${{ inputs.revision }}-${{ inputs.ubuntu_version }}
   cancel-in-progress: false
 
 jobs:
   diagnose-candidate:
-    name: Diagnose one exact Ubuntu 24.04 candidate launch
-    runs-on: ubuntu-24.04
+    name: Diagnose one exact Ubuntu ${{ inputs.ubuntu_version }} candidate launch
+    runs-on: ubuntu-${{ inputs.ubuntu_version }}
     timeout-minutes: 15
     permissions:
       actions: read
@@ -100,6 +107,7 @@ jobs:
         env:
           FITFREED_CANDIDATE: .artifacts/linux-candidate-diagnostics/${{ inputs.version }}
           FITFREED_REVISION: ${{ inputs.revision }}
+          FITFREED_UBUNTU_VERSION: ${{ inputs.ubuntu_version }}
           FITFREED_VERSION: ${{ inputs.version }}
           WEBKIT_DISABLE_COMPOSITING_MODE: "1"
         run: >-
@@ -109,7 +117,7 @@ jobs:
           "$FITFREED_CANDIDATE"
           "$FITFREED_VERSION"
           "$FITFREED_REVISION"
-          "24.04"
+          "$FITFREED_UBUNTU_VERSION"
 
       - name: Remove residual candidate package after diagnosis
         if: always()

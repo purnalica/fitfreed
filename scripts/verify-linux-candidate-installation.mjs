@@ -21,6 +21,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const supportedUbuntuVersions = new Set(["24.04", "26.04"]);
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const revisionPattern = /^[0-9a-f]{40}$/;
+const installedFirstLaunchObservationTimeoutMilliseconds = 30_000;
 
 export function parseLinuxOsRelease(source) {
   const values = {};
@@ -147,6 +148,17 @@ export function normalizeCandidateCommandOutput(output) {
     throw new Error("Linux candidate command output has an unsupported representation");
   }
   return output.trim();
+}
+
+export async function measureInstalledLinuxFirstLaunch(
+  applicationBinary,
+  home,
+  expected,
+  measure = measureFreshProcess,
+) {
+  return measure(applicationBinary, home, expected, {
+    observationTimeoutMilliseconds: installedFirstLaunchObservationTimeoutMilliseconds,
+  });
 }
 
 function execute(program, arguments_, options = {}) {
@@ -290,7 +302,7 @@ async function installCandidate(candidateDirectory, version, ubuntuVersion) {
     candidate.debianPackage,
   ], { capture: false });
   const installed = validateInstalledLinuxCandidate(installedFacts(), version);
-  await measureFreshProcess(
+  await measureInstalledLinuxFirstLaunch(
     `/${linuxPackageContract.executablePath}`,
     paths.home,
     { applicationVersion: version, sourceRevision: candidate.revision },
@@ -332,7 +344,7 @@ export async function diagnoseCandidateLaunch(
     candidate.debianPackage,
   ], { capture: false });
   const installed = validateInstalledLinuxCandidate(installedFacts(), version);
-  const launch = await measureFreshProcess(
+  const launch = await measureInstalledLinuxFirstLaunch(
     `/${linuxPackageContract.executablePath}`,
     paths.home,
     { applicationVersion: version, sourceRevision: revision },

@@ -6,8 +6,11 @@ Active as of 2026-09-14. FitFreed 0.1.7 is the immutable supported public macOS 
 confirmed complete protected composition and Ubuntu 26.04 admission before Ubuntu 24.04 exposed an independently
 variable Fluxbox-startup interval beyond the harness's five-second readiness bound. Focused run `34787849501`
 subsequently reopened the exact 0.1.10 candidate and passed on Ubuntu 24.04 with the corrected bounded allowance.
-Version 0.1.11 is assigned to the next complete macOS-plus-Linux candidate; two-row native admission and promotion
-remain.
+Version 0.1.11 completed protected composition in workflow `34788907954`. Ubuntu 24.04 passed exact admission, while
+Ubuntu 26.04 installed and started the same Debian package but reached the painted-shell observer just beyond its
+fixed ten-second availability window. The separate 100-process performance budget did not run in that row. The
+availability observation is now separated from the unchanged p95 performance contract; exact-byte Ubuntu 26.04
+diagnosis remains the next gate before a successor candidate.
 
 ## Objective
 
@@ -54,7 +57,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | Immutable version 0.1.10 at `6ecf3753c3fe7f2dbbd357e986035e95172da61f` passed exact-source CI and safety, native Linux input construction, and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34783484547`. Ubuntu 26.04 passed exact installation, launch, 100-process cold-start measurement, removal, and library retention. Ubuntu 24.04 stopped before package installation because the live Fluxbox process did not publish its readiness property within the harness's fixed five-second allowance. Focused run `34787849501` reopened the retained exact 0.1.10 bytes and passed the Ubuntu 24.04 launch under the thirty-second bounded allowance, confirming the harness as failure owner without rebuilding the application. Version 0.1.11 is assigned to the corrected immutable candidate. Previously accepted product, update, recovery, performance, and experience evidence is not repeated. Exact-source controls, protected composition, corrected two-row admission, and explicit promotion remain gates. |
+| M4.6 | In progress | Immutable 0.1.11 at `2172070c6210304bc70f8f46a5453b87cd6058f1` passed exact-source CI and safety, native Linux construction, and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34788907954`. Ubuntu 24.04 passed exact installation, launch, p95 `906.854 ms` across 100 fresh processes, removal, and retained-library integrity. Ubuntu 26.04 installed and started the same exact Debian package, then timed out at ten seconds while its desktop services were activating; prior exact 0.1.10 evidence on that host class passed, so this is variable hosted first-launch availability rather than changed application code. The installation smoke observation now has a thirty-second liveness bound while the separate p95 `2,500 ms` product-performance budget remains unchanged. A read-only exact-byte Ubuntu 26.04 diagnostic must pass before preparing a successor candidate; 0.1.11 remains fixed and unpublished. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,
@@ -296,6 +299,17 @@ converge on those exact bytes.
   [`34787849501`](https://github.com/purnalica/fitfreed/actions/runs/34787849501) reopened the retained exact 0.1.10 bytes
   and passed on Ubuntu 24.04. This admits the correction for the 0.1.11 patch candidate without changing or rebuilding
   the rejected 0.1.10 source-bound artifact.
+- **Installed first-launch variance:** immutable 0.1.11 workflow
+  [`34788907954`](https://github.com/purnalica/fitfreed/actions/runs/34788907954) passed exact-source controls, protected
+  complete-platform composition, and Ubuntu 24.04 admission. Ubuntu 26.04 installed the exact Debian member and
+  started a live process; after roughly nine seconds its WebKit desktop services began activation, but the fixed
+  ten-second observer expired before the ordinary painted-shell signal could arrive. The same source has no product
+  change from the 0.1.10 package that passed Ubuntu 26.04, and the 0.1.11 Ubuntu 24.04 row measured p95 `906.854 ms`
+  over 100 fresh processes. Installation availability and the performance distribution are therefore distinct
+  contracts. The former now permits thirty bounded seconds after immediate package installation; the latter still
+  requires 100 fresh processes at p95 no greater than `2,500 ms`, with its own ten-second per-process failure bound.
+  The read-only candidate diagnostic accepts either supported Ubuntu selector so the retained 0.1.11 bytes can prove
+  this correction on Ubuntu 26.04 without rebuilding or acquiring publication authority.
 - **Root-cause evidence:** the last accepted hosted cold-launch campaign predates the current deferred shell bootstrap,
   while the exact candidate succeeds in a disposable local Xvfb boundary and fails on the current hosted boundary.
   Tauri issue [#15936](https://github.com/tauri-apps/tauri/issues/15936) independently reproduces the same Tauri 2.11,

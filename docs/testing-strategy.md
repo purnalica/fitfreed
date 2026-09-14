@@ -381,9 +381,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   candidate on hosted x86-64 Ubuntu 24.04 and 26.04 before promotion can reach its second approval. Each secret-free
   row verifies the transport digest and complete candidate, installs only the manifest-declared Debian artifact,
   verifies package identity, executable and resource paths, dynamic linking, graphical first launch into an isolated
-  `0700`/`0600` library with the manifest-declared schema, and the production cold-launch budget. Both graphical gates
-  execute only after a bounded D-Bus and Fluxbox desktop session is ready under Xvfb; WebKit software compositing is
-  disabled for the hosted no-GPU boundary. Each row then purges
+  `0700`/`0600` library with the manifest-declared schema, and the production cold-launch budget. The immediate
+  post-install smoke has a thirty-second availability observation; the independent performance distribution remains
+  100 fresh processes at p95 no greater than `2,500 ms`, with a ten-second bound on every measured process. Both
+  graphical gates execute only after a bounded D-Bus and Fluxbox desktop session is ready under Xvfb; WebKit software
+  compositing is disabled for the hosted no-GPU boundary. Each row then purges
   package-owned paths while retaining an integral library. Unconditional cleanup removes residual package state after
   failures but cannot convert a failed row into acceptance. These exact-candidate checks complement, rather than
   replace, the same-revision instrumented

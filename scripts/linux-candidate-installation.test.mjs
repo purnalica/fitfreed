@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  measureInstalledLinuxFirstLaunch,
   normalizeCandidateCommandOutput,
   parseLinuxOsRelease,
   validateExactLinuxCandidate,
@@ -22,6 +23,31 @@ test("normalizes captured output and accepts inherited command output", () => {
   assert.equal(normalizeCandidateCommandOutput("  installed\n"), "installed");
   assert.equal(normalizeCandidateCommandOutput(null), "");
   assert.throws(() => normalizeCandidateCommandOutput(Buffer.from("unexpected")), /command output/);
+});
+
+test("gives installed first-launch availability a separate bounded observation window", async () => {
+  const calls = [];
+  const expected = { applicationVersion: "0.2.0", sourceRevision: "a".repeat(40) };
+  const measurement = { totalMilliseconds: 11_200 };
+
+  assert.equal(
+    await measureInstalledLinuxFirstLaunch(
+      "/usr/bin/fitfreed",
+      "/isolated/home",
+      expected,
+      async (...arguments_) => {
+        calls.push(arguments_);
+        return measurement;
+      },
+    ),
+    measurement,
+  );
+  assert.deepEqual(calls, [[
+    "/usr/bin/fitfreed",
+    "/isolated/home",
+    expected,
+    { observationTimeoutMilliseconds: 30_000 },
+  ]]);
 });
 
 test("admits only the declared x86-64 Ubuntu candidate host", () => {

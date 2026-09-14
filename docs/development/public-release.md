@@ -123,6 +123,15 @@ and observed their version-and-revision-bound shell after the bounded readiness 
 seconds. The product launch budget remains unchanged. The public `v0.1.10` tag remains fixed at the rejected source
 and is neither moved nor reused; source-bound provenance requires its corrected successor to be 0.1.11.
 
+The `v0.1.11` [dispatch `34788907954`](https://github.com/purnalica/fitfreed/actions/runs/34788907954) passed preflight,
+native Linux construction, protected signing and notarization, candidate reopening and sealing, and complete Ubuntu
+24.04 admission. Its Ubuntu 26.04 row installed and started the exact Debian member, but the fixed ten-second
+installation smoke observer expired while the hosted desktop services were still activating. That observer checks
+bounded availability; the following 100-process p95 budget checks product performance. Current source gives the
+former thirty seconds while preserving the latter at p95 `2,500 ms` and ten seconds per measured process. A
+secret-free diagnostic can select Ubuntu 24.04 or 26.04 and reopen the exact retained candidate before any successor
+is prepared. The public `v0.1.11` tag remains fixed and unpublished.
+
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds
@@ -266,9 +275,11 @@ row verifies installed identity, executable and resource paths, dynamic linking,
 isolated private library, the production cold-launch budget, native purge, and retained-library integrity. The hosted
 graphical gates run inside a bounded Xvfb desktop session with a D-Bus session bus, Fluxbox readiness, the Ubuntu
 accessibility service, and WebKit software compositing disabled because the hosted runner has no GPU-backed desktop.
-The harness allows a live Fluxbox process up to thirty seconds to publish its readiness property; this does not change
-the separate ten-second first-launch observation applied to FitFreed. A finalizer removes residual package state after
-any result. `publish-candidate` cannot enter its second protected
+The harness allows a live Fluxbox process up to thirty seconds to publish its readiness property. The installed-package
+availability smoke then allows thirty seconds for one first painted shell immediately after package installation.
+This is separate from the unchanged production performance gate: 100 fresh processes must still satisfy p95
+`2,500 ms`, and each measured process retains its ten-second failure bound. A finalizer removes residual package state
+after any result. `publish-candidate` cannot enter its second protected
 approval until both rows pass; rebuilding or substituting a package is not an admission path.
 
 The later Windows publication is another new complete-platform release after an immutable macOS-plus-Linux
