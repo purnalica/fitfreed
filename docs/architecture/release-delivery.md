@@ -179,26 +179,32 @@ the silent bundled offline installer. It retains the visible `FitFreed` identity
 GPL license, and vendor-neutral descriptions without claiming the generic ZIP association. Authenticated predecessor
 recovery requires the NSIS installer to permit a deliberate older-version reinstall; update metadata and exact
 predecessor verification, rather than the package version alone, grant that authority. The ordinary overlay contains
-no certificate selection, signer command, timestamp service, account identity, or protected path. The separate
-versioned `tauri.windows.public-signing.conf.json` overlay contains only the reviewed Node.js signing adapter and
-Tauri's `%1` binary placeholder. The protected Windows builder selects it explicitly and provides all authority
-through the protected process boundary; its presence cannot make the ordinary package signed or public.
+no certificate selection, signer command, timestamp service, account identity, or protected path. SignPath signing is
+deliberately outside Tauri's synchronous signer command: the trusted GitHub workflow submits closed artifacts and
+later imports only independently verified signed bytes. The retained `tauri.windows.public-signing.conf.json` overlay
+and local authority adapters belong to the superseded PFX design and cannot produce an accepted public candidate
+while the SignPath transition is in progress.
 
-Under [ADR 0045](decisions/0045-separate-windows-native-and-updater-signing-authority.md), the distinct
-`npm run package:windows-expansion-input` entry point requires active recoverable `stable-v3` public
-update trust and the public timestamped Authenticode profile before it changes the NSIS output directory. It rejects
-all updater private-key inputs, selects only the Authenticode overlay, embeds the public channel endpoint and trust set,
-accepts only diagnostic verbosity, and builds only NSIS. The resulting directory must contain exactly the
-version-derived setup as one non-empty regular singly linked file. An independent post-package trust pass binds its
-final digest, x86-64 product identity, version, admitted leaf-certificate fingerprint, Windows application policy, and
-timestamp after Tauri has finished writing the package. The later complete-platform compositor uses separate updater
-authority to sign these sealed bytes and create stable channel metadata.
+Under [ADR 0045](decisions/0045-separate-windows-native-and-updater-signing-authority.md) and
+[ADR 0049](decisions/0049-use-signpath-for-windows-authenticode.md), the Windows input is built on GitHub-hosted
+x86-64 Windows and submitted to SignPath through its trusted GitHub connector. The build first emits the unsigned
+application and exports the generated NSIS uninstaller. One closed GitHub artifact carries only those two PE files to
+an inner-binary signing request. Independent verification admits the returned certificate, timestamp, product
+metadata, version, architecture where applicable, filenames, and digests before final NSIS compilation imports both
+signed files without rebuilding them. A second request signs the exact final setup. The package then passes the
+existing setup, installation, and removal inspector before the native input is sealed. Every SignPath request requires
+manual approval, while project, policy, and artifact-configuration slugs remain non-dispatch workflow configuration.
+The certificate private key never enters GitHub.
 
-`npm run prepare:windows-expansion-input -- <version> <directory>` admits one clean source revision and the protected
-public Authenticode authority before running the dependency audit and that build. It then performs the public-profile
-native installation cycle, hashes the complete installed layout, verifies data-preserving removal, and atomically
-stages only the setup, its [Windows package inventory](../data-formats/release/windows-package-inventory-v1.md), and
-the source-bound [Windows public build evidence](../data-formats/release/windows-public-build-evidence-v1.md). The
+This Authenticode topology retains active recoverable `stable-v3` public update trust in the application but rejects
+all updater private-key inputs. The later complete-platform compositor uses separate updater authority to sign the
+unchanged SignPath-returned setup and create stable channel metadata.
+
+`npm run prepare:windows-expansion-input -- <version> <directory>` admits one clean source revision and the verified
+SignPath-returned setup before running the public-profile native installation cycle. It hashes the complete installed
+layout, verifies data-preserving removal, and atomically stages only the setup, its
+[Windows package inventory](../data-formats/release/windows-package-inventory-v1.md), and the source-bound
+[Windows public build evidence](../data-formats/release/windows-public-build-evidence-v1.md). The
 closed evidence binds version, revision, storage schema, setup and inventory digests, certificate fingerprint, and the
 ordered public updater trust identifiers embedded by the build. It contains no updater signature, private key,
 certificate selector, SignTool path, machine identity, or publication authority. Every file must be regular, non-empty,
@@ -241,31 +247,16 @@ Temporary installed-file records are `PSCustomObject` values so the deliberately
 runtime can observe their hexadecimal UTF-8 sort keys. The inventory validator remains the independent authority for
 unique byte-ordered paths; native enumeration order is never evidence.
 
-The public signing adapter accepts only an explicit public or synthetic-test profile, an absolute `signtool.exe`, a
-SHA-1 certificate-store selector, an independently calculated lowercase SHA-256 leaf-certificate fingerprint, and—only
-for the public profile—a credential-free HTTPS RFC 3161 endpoint. SignTool signs with SHA-256; raw tool output is never
-retained. The independent inspector then runs SignTool's Windows application policy over every signature, requires an
-RFC 3161 timestamp for public evidence, compares the SHA-256 fingerprint from the actual signer certificate, verifies
-that inspection did not change the file digest, and closes product-binary evidence to x86-64 plus the expected name and
-version. Certificate subjects, store paths, account identity, and timestamp-service details are not evidence fields.
+SignPath owns signing and RFC 3161 timestamping in its HSM-backed service. FitFreed independently reopens every returned
+file and runs Windows application policy over its signature, compares the observed SHA-256 leaf-certificate
+fingerprint with the admitted public value, verifies that inspection does not change the file digest, and closes
+product-binary evidence to x86-64 plus the expected name and version. Certificate-store selectors, private keys,
+service credentials, account identity, and timestamp-service details never enter retained evidence.
 
-The protected Windows authority installer admits one password-protected PFX only from a protected process on x86-64
-Windows. It decodes that private input outside the checkout, imports exactly one currently valid code-signing
-certificate into the current user's personal store without making its private key exportable, refuses to replace or
-later remove a matching identity that already existed in that store, verifies the
-independently configured SHA-256 fingerprint, discovers the x86-64 Windows SDK SignTool, and deletes the PFX
-immediately. Only the public signing profile, store selector, public fingerprint, SignTool path, and credential-free
-timestamp endpoint enter the subsequent process contract. The authority state remains in the runner's private
-temporary directory solely so an unconditional cleanup can remove the exact certificate and private key. A
-post-import failure invokes that cleanup immediately; a cleanup failure clears the signing process contract but
-retains the minimum state needed to retry and blocks acceptance.
-
-The pinned hosted lane exercises this machinery with a fresh non-exportable self-signed certificate and a temporary
-copy of the unsigned release executable. It removes the certificate from the current user's personal, Root, and
-TrustedPublisher stores, deletes its private key and all temporary files, restores the process environment, and proves
-the source executable is unchanged before recording success. An untimestamped synthetic signature establishes adapter
-and cleanup behavior only. Public admission still requires the exact setup and installed binaries to pass the real
-trusted-chain, timestamp, digest, identity, package-inventory, and clean supported-Windows-11 gates.
+The ordinary hosted Windows lane remains unsigned engineering evidence. It can prove package construction,
+installation, removal, and inspector failure behavior, but it cannot represent SignPath trust. Public admission still
+requires exact SignPath-returned bytes and all three installed trust surfaces to pass the trusted-chain, timestamp,
+digest, identity, package-inventory, and clean supported-Windows-11 gates.
 
 Linux and Windows use the authenticated predecessor recovery architecture in
 [ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and

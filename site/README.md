@@ -38,6 +38,10 @@ billboard-scale promises, manufactured urgency, promotional superlatives and cal
 suggest an unavailable release are not. Progressive disclosure keeps the full account accessible
 without turning the first viewport into either a campaign or a warning ledger.
 
+The footer links to the canonical [`CODE_SIGNING.md`](../CODE_SIGNING.md) policy. That link must remain present in
+both product-only and release-candidate output so the product home and download surface expose the same signing
+authority, privacy boundary, and team roles without duplicating them in localized page copy.
+
 The current-source illustration must preserve five visible workspace labels and a dominant route
 surface. It depicts only implemented capability with independently invented data; it is not a literal
 application screenshot. The release-readiness boundary therefore stays next to the illustration.

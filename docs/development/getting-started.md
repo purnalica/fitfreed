@@ -144,13 +144,13 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
 | Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
-| Install or remove the temporary Authenticode identity on a protected Windows release builder | `npm run authority:windows-public-release -- install` or `npm run authority:windows-public-release -- cleanup` |
+| Review the selected Windows signing authority and its inactive external gate | [`CODE_SIGNING.md`](../../CODE_SIGNING.md) and [public release operations](public-release-operations.md#windows-expansion-input-and-authority) |
 | Build, install, drive, and remove the isolated NSIS capability-test package | `npm run verify:windows-e2e` |
 | Verify production-identity NSIS replacement, candidate rollback, and restart resumption | `npm run verify:windows-update-e2e` |
 | Measure the installed production NSIS cold-launch boundary and remove it | `npm run verify:windows-cold-launch` |
 | Verify Windows library protection and disk-exhaustion recovery on an isolated NTFS volume | `npm run verify:windows-filesystem-reliability` |
-| Build the Authenticode-signed update-capable Windows input under protected authority | `npm run package:windows-expansion-input` |
-| Build the exact authority-free Windows expansion handoff | `npm run prepare:windows-expansion-input -- <version> <directory>` |
+| Build the Authenticode-signed update-capable Windows input through SignPath | The protected Windows workflow after SignPath activation; no local command can create this evidence |
+| Build the exact authority-free Windows expansion handoff from verified SignPath output | `npm run prepare:windows-expansion-input -- <version> <directory>` |
 | Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
 | Reopen a digest-bound Windows expansion input | `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>` |
 | Download and reopen every immutable predecessor required by a complete-platform candidate | `npm run download:complete-platform-predecessors -- <destination>` |

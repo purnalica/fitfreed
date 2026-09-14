@@ -249,16 +249,15 @@ Local and continuous-integration workflows will invoke the same underlying comma
   deliberately unsigned engineering signatures. It rejects reparse points, hashes every installed file under a safe
   relative path, validates the complete versioned inventory, and writes it atomically beside the exact setup. Real
   removal must erase package-owned state while retaining canonical application data. This evidence does not claim
-  public trust. The separate public signing overlay contains no authority and must be explicitly selected only inside a
-  protected candidate build. Its adapter accepts authority solely through the process environment, signs with SHA-256,
-  suppresses native output, and invokes an independent inspector that requires exact signer fingerprint, public
-  timestamp, Windows application-policy trust, unchanged digest, x86-64 architecture, and exact FitFreed identity.
-  The protected expansion-input contract requires public Authenticode authority, rejects updater private-key authority,
-  embeds only active public updater trust, rejects stale or extra NSIS output, and reinspects the final setup after
-  packaging. Preparation then proves the public-profile native installation and data-preserving removal, atomically
-  stages only the exact setup, inventory, and source-bound build evidence, and rejects extra entries, links, identity or
-  digest drift, mismatched certificate trust, and changed updater trust. The later compositor independently signs those
-  sealed bytes for the updater. Transport tests use the real compressed-tar adapter to prove the closed three-entry
+  public trust. SignPath workflow tests require GitHub-hosted build ancestry, immutable action pins, closed uploaded
+  artifacts, fixed project and policy identifiers, protected request authority, and two separately approved signing
+  stages. Package tests prove deterministic NSIS uninstaller export and signed-file import without rebuilding either
+  inner binary. The protected expansion-input contract requires independently verified SignPath output, rejects
+  updater private-key authority, embeds only active public updater trust, rejects stale or extra NSIS output, and
+  reinspects the final setup after signing. Preparation then proves the public-profile native installation and
+  data-preserving removal, atomically stages only the exact setup, inventory, and source-bound build evidence, and
+  rejects extra entries, links, identity or digest drift, mismatched certificate trust, and changed updater trust. The
+  later compositor independently signs those sealed bytes for the updater. Transport tests use the real compressed-tar adapter to prove the closed three-entry
   set, native line-ending handling, exact digest reopening, atomic visibility, mutation rejection, and cleanup after a
   certificate mismatch.
   Release-contract tests require manifest version 7 to contain newly built macOS, Linux, and Windows targets in order;
@@ -274,14 +273,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.
-  Protected-authority contract tests require strict base64 and fingerprint inputs, a credential-free HTTPS timestamp
-  endpoint, an x86-64 Windows host, private temporary storage outside the checkout, exactly one non-exportable
-  code-signing certificate, refusal to reuse a pre-existing store identity, no private input in the exported process
-  contract, immediate PFX deletion, and exact
-  certificate-plus-private-key removal. They also prove immediate removal after a post-import validation failure and
-  require a failed cleanup to clear signing values while preserving the minimum state needed for an unconditional retry.
-  Native PowerShell execution in the future protected workflow remains authoritative for the certificate-store and
-  private-key deletion result; portable contract tests cannot claim that operating-system outcome.
+  SignPath-boundary tests require strict organization and certificate-fingerprint inputs, reject those values outside
+  the protected request jobs, and prove that certificate material, local SignTool selectors, and timestamp authority
+  never enter the workflow. Portable contracts cannot claim external SignPath approval or Windows trust; one real
+  returned artifact and native Windows inspection remain authoritative for those outcomes.
 - Windows recovery-adapter unit tests run on the portable Rust test path with synthetic native ports. They require the
   fixed current-user NSIS registration and critical-file identity, fixed recovery-owned candidate and predecessor
   package paths, silent installer invocation, and distinct failures for an installer that fails and an installer that

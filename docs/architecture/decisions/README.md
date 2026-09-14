@@ -58,8 +58,9 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0043: Separate Linux package and display identities](0043-separate-linux-package-and-display-identities.md) — Accepted on 2026-09-03.
 - [ADR 0044: Publish expanding complete platform sets](0044-publish-expanding-complete-platform-sets.md) — Accepted on 2026-09-03.
 - [ADR 0045: Separate Windows native and updater signing authority](0045-separate-windows-native-and-updater-signing-authority.md) — Accepted on 2026-09-04.
-- [ADR 0046: Separate Windows candidate build and admission hosts](0046-separate-windows-candidate-build-and-admission-hosts.md) — Accepted on 2026-09-04.
+- [ADR 0046: Separate Windows candidate build and admission hosts](0046-separate-windows-candidate-build-and-admission-hosts.md) — Superseded by ADR 0049 on 2026-09-14.
 - [ADR 0047: Permit solo-maintainer release approval during bootstrap governance](0047-permit-bootstrap-solo-release-approval.md) — Accepted on 2026-09-09.
 - [ADR 0048: Reserve unreleased revisions for exact release Pages deployment](0048-reserve-unreleased-pages-revisions.md) — Accepted on 2026-09-14.
+- [ADR 0049: Use SignPath for Windows Authenticode](0049-use-signpath-for-windows-authenticode.md) — Accepted on 2026-09-14; supersedes ADR 0046.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

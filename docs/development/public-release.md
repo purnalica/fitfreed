@@ -209,13 +209,12 @@ The first platform-expansion release additionally defines the distinct
 platform-neutral `SHA256SUMS` set; it is not the updater key and cannot be supplied to the secret-free Linux build or
 the promotion job.
 
-The protected Windows native-builder environment additionally defines
-`FITFREED_WINDOWS_CERTIFICATE_BASE64` and `FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as secrets, plus
-`FITFREED_WINDOWS_CERTIFICATE_SHA256` and `FITFREED_WINDOWS_TIMESTAMP_URL` as non-secret protected variables. The
-authority installer derives the certificate-store selector and absolute Windows SDK SignTool path at runtime, exports
-only the five signing-adapter values, and removes the PFX immediately. Its unconditional cleanup removes the exact
-current-user certificate and private key and clears those values. Neither the native input nor any retained evidence
-contains the certificate bundle, password, selector, or machine-local SignTool path.
+The protected Windows environment additionally defines `FITFREED_SIGNPATH_API_TOKEN` as a secret and
+`FITFREED_SIGNPATH_ORGANIZATION_ID` plus `FITFREED_WINDOWS_CERTIFICATE_SHA256` as non-secret protected variables.
+Stable SignPath project, policy, and artifact-configuration slugs are versioned rather than secret or dispatch input.
+The official pinned action submits GitHub-hosted build artifacts through SignPath's trusted connector, and the
+certificate private key never enters GitHub. Neither the native input nor retained evidence contains the API token,
+account identity, certificate selector, private key, or timestamp-service configuration.
 
 It defines these non-secret variables:
 
@@ -353,14 +352,14 @@ or deploy anything. Reopen the result independently with:
 npm run verify:complete-platform-release -- .artifacts/public-releases/<version>
 ```
 
-`.github/workflows/public-windows-expansion.yml` implements that production path but remains manually dispatched and
-inactive until every external gate is configured. Its secret-free preflight requires the immutable macOS-plus-Linux
-predecessor, active independent updater and checksum trust, all three protected environments, exact successful source
-checks, Pages, and the workflow policy. The certificate fingerprint comes only from the protected
-`public-windows-release` environment; a dispatcher cannot select it.
+`.github/workflows/public-windows-expansion.yml` remains manually dispatched and inactive while its previous
+local-certificate job is replaced by the SignPath topology in ADR 0049. The completed preflight will require the
+immutable macOS-plus-Linux predecessor, active independent updater and checksum trust, accepted SignPath project and
+GitHub integration, all three protected environments, exact successful source checks, Pages, and workflow policy. A
+dispatcher cannot select SignPath identifiers or the admitted certificate fingerprint.
 
-The protected `fitfreed-windows-11-builder` job creates and seals the native input, after which the Apple Silicon
-composer downloads and independently reopens every immutable predecessor Release through
+The GitHub-hosted Windows job will create the signed native input through two manually approved SignPath requests,
+after which the Apple Silicon composer downloads and independently reopens every immutable predecessor Release through
 `npm run download:complete-platform-predecessors -- <directory>`. The downloader stages each complete `release/` tree,
 rejects non-files and partial downloads, reopens every matrix-required recovery package through authenticated release
 evidence, and exposes the destination only after the entire set passes.

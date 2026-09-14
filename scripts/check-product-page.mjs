@@ -78,6 +78,11 @@ assert.doesNotMatch(
   /revolutionary|effortless|unleash|game-changing|ultimate|best-in-class|transform your life/iu,
   "product-page copy must stay factual",
 );
+assert.equal(
+  sourceDocument.querySelector('footer a[href="../CODE_SIGNING.md"]')?.textContent.trim(),
+  "Code signing policy",
+  "the product and release-download surface must expose the canonical code signing policy",
+);
 
 for (const localAsset of sourceDocument.querySelectorAll('img[src], link[rel="stylesheet"], link[rel="icon"]')) {
   const reference = localAsset.getAttribute("src") || localAsset.getAttribute("href");
@@ -130,6 +135,7 @@ async function validateLocalizedPage(output, expected) {
   assert.equal(document.querySelectorAll("script[src]").length, 1, "only the local locale runtime is allowed");
   assert.doesNotMatch(document.querySelector("script[src]").getAttribute("src"), /^(?:https?:)?\/\//u);
   assert.equal(document.querySelectorAll("[data-locale-choice]").length, 2);
+  assert.ok(document.querySelector('footer a[href="../CODE_SIGNING.md"]'));
 
   dom.window.eval(axe.source);
   const result = await dom.window.axe.run(document, {
@@ -198,6 +204,7 @@ for (const [outputFile, expected] of [
     /No supported download yet|no public Windows binary|before release-candidate acceptance|Todavía no hay una descarga con soporte|no existe ningún binario público para Windows/u,
   );
   assert.match(document.querySelector('details[data-status="active"]').textContent, /FitFreed 0\.3\.0/u);
+  assert.ok(document.querySelector('footer a[href="../CODE_SIGNING.md"]'));
 
   dom.window.eval(axe.source);
   const result = await dom.window.axe.run(document, {

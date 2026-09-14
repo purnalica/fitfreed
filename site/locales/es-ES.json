@@ -24,6 +24,7 @@
     "control.provenance.title": "Procedencia visible",
     "control.title": "Local de forma predeterminada. Inspeccionable por diseño. Exportable a propósito.",
     "footer.affiliation": "Sin afiliación ni respaldo de Polar Electro, Garmin, la Unión Europea ni ningún organismo regulador.",
+    "footer.codeSigning": "Política de firma de código",
     "footer.disclaimer": "Aviso legal",
     "footer.legal": "Software independiente de código abierto · GPL-3.0-or-later · Experimental y proporcionado sin garantía.",
     "footer.navigationLabel": "Información legal y del proyecto",

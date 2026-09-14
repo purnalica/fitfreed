@@ -385,30 +385,26 @@ command remains available for focused diagnosis. The Windows PowerShell 5.1 adap
 sort key through a `PSCustomObject` property before sorting; the JavaScript boundary independently verifies the
 resulting byte order. Neither command grants public Authenticode trust.
 
-`npm run verify:windows-authenticode-smoke` runs only on x86-64 Windows after the unsigned release executable exists.
-It discovers the x86-64 Windows SDK SignTool, creates a short-lived non-exportable self-signed code-signing certificate,
-trusts it in the disposable current-user stores, signs a temporary executable copy through the production signing
-adapter, and performs full independent trust, architecture, identity, version, and digest inspection. A `finally`
-boundary removes the personal certificate and private key, Root and TrustedPublisher copies, protected process values,
-and temporary directory after success or failure. The command emits only a closed Boolean result and cannot represent
-public trust because the synthetic profile forbids timestamp authority.
+`npm run verify:windows-authenticode-smoke` remains a synthetic test of the independent Windows trust inspector. Its
+short-lived self-signed identity cannot represent SignPath or public trust. The retained local signing adapter,
+`tauri.windows.public-signing.conf.json`, and PFX authority commands belong to the superseded production design and
+cannot create an accepted Windows input.
 
-The authority-free `tauri.windows.public-signing.conf.json` overlay contains only `node`, the reviewed adapter path,
-and Tauri's `%1` target placeholder. A protected public build must explicitly select that overlay and supply
-`FITFREED_WINDOWS_AUTHENTICODE_PROFILE=public`, an absolute Windows SDK SignTool path, the selected certificate's SHA-1
-store thumbprint, the independently established lowercase SHA-256 certificate fingerprint, and a credential-free HTTPS
-RFC 3161 endpoint. The adapter never accepts these values as command-line arguments, never prints native output, and
-immediately invokes the independent trust inspector. The ordinary package command never selects this overlay.
+The protected Windows build uses GitHub-hosted x86-64 Windows and the immutable official SignPath action. It first
+builds the unsigned application and exports the generated NSIS uninstaller through a versioned external-signing
+template. A closed GitHub artifact containing exactly those two PE files enters the first manually approved SignPath
+request. The workflow independently verifies the returned files, imports them without rebuilding into final NSIS
+compilation, and submits the exact setup through a second closed artifact and manually approved request. Project,
+policy, and artifact-configuration slugs are fixed workflow configuration; only the SignPath API token and
+organization identifier enter the protected action boundary.
 
-`npm run package:windows-expansion-input` is the only build entry point that selects the Authenticode overlay while
-embedding active recoverable `stable-v3` public update trust. It rejects updater private-key authority so the
-Authenticode builder and later complete-platform updater signer remain separate. Before deleting stale NSIS output it
-requires the public timestamped Authenticode profile. After the build it admits only the exact setup and independently
-verifies its final digest and identity. The public installation profile repeats independent inspection over the setup,
-installed executable, and uninstaller while their exact files exist, cross-checks the trust digests against
-package-inventory digests, then proves removal without removing application data. The compositor later signs the
-sealed setup bytes for the updater and binds that signature to stable metadata and provenance. These commands establish
-a fail-closed release boundary; only a protected native run can produce its evidence.
+`npm run package:windows-expansion-input` embeds active recoverable `stable-v3` public update trust while remaining
+separate from updater private-key authority. It accepts only the independently verified inner binaries returned by
+SignPath, imports them into the final installer, and admits only the exact setup returned by the second SignPath
+request. The public installation profile repeats independent inspection over the setup, installed executable, and
+uninstaller while their exact files exist, cross-checks trust digests against package-inventory digests, then proves
+removal without removing application data. The compositor later signs the sealed setup bytes for the updater and binds
+that signature to stable metadata and provenance.
 
 `npm run prepare:windows-expansion-input -- <version> <directory>` composes the dependency audit, clean source
 identity, protected package build, public-profile native installation and removal, complete inventory, and atomic
@@ -445,24 +441,15 @@ manifest, checksums, and release signature; and promotes only after the independ
 entire candidate. Missing authority, mixed identity, input drift, invalid signing output, or reopening failure removes
 the staging tree and cannot replace an existing destination.
 
-`npm run authority:windows-public-release -- install` is the sole protected Windows authority-materialization command.
-It accepts a base64 PFX and password only in the install process, verifies an independently supplied lowercase SHA-256
-fingerprint and credential-free HTTPS timestamp endpoint, imports exactly one non-exportable code-signing identity into
-the current-user personal store, deletes the PFX immediately, and exports only the five public or machine-local process
-values required by the authority-free signing adapter. `npm run authority:windows-public-release -- cleanup` removes
-that exact certificate and private key and clears all five values. Installation failure performs immediate cleanup;
-cleanup failure preserves only the private runner-local retry state and remains a failed gate. The inactive Windows
-expansion workflow invokes cleanup through an unconditional finalizer and never places certificate material in the
-checkout, command line, cache, artifact, transcript, or retained evidence.
-
 The public Windows expansion workflow is manual-only and statically checked as a closed trust topology. Secret-free
 preflight validates the immutable macOS-plus-Linux predecessor and both separately protected Windows environments.
-The protected disposable Windows 11 x86-64 builder seals the native input; an Apple Silicon composer downloads and
-reopens every complete predecessor Release before creating manifest version 7. Separate secret-free Ubuntu and exact
-Windows 11 admission jobs reopen the sealed candidate. The Windows host is admitted only when its edition identifier,
-display version, build, architecture, and current support date match the versioned reviewed policy. A distinct product
-acceptance environment precedes the separate publication approval. The workflow remains inactive until
-those external environments, runners, authorities, predecessor release, and accountable approvals exist.
+The protected GitHub-hosted x86-64 build performs the two manually approved SignPath requests and seals the native
+input; an Apple Silicon composer downloads and reopens every complete predecessor Release before creating manifest
+version 7. Separate secret-free Ubuntu and exact Windows 11 admission jobs reopen the sealed candidate. The Windows
+host is admitted only when its edition identifier, display version, build, architecture, and current support date match
+the versioned reviewed policy. A distinct product-acceptance environment precedes the separate publication approval.
+The workflow remains inactive until SignPath accepts the project and its external project, policy, artifact
+configurations, GitHub connector, protected environment, admission runner, and accountable approvals exist.
 
 The current executable entry points are `npm run doctor` for prerequisite diagnosis, `npm run test:fast` for the contributor loop, `npm run benchmark:import` for the release-mode 10,000-entry and 5-GiB import, exact-repeat, query, and memory budgets, `npm run benchmark:dense-history` for long supported-signal import, storage, discovery, overview, and exact-page budgets, `npm run benchmark:insights` for production activity, training, sleep, recovery, and integrated longitudinal read-model budgets, `npm run verify:windows-cold-launch` for the installed production NSIS startup boundary, `npm run verify:e2e` for the shared functional and in-WebView performance instrumented journey, `npm run verify:linux-e2e` and `npm run verify:windows-e2e` for that same campaign through isolated installed packages, `npm run verify:linux-update-e2e` and `npm run verify:windows-update-e2e` for native installed update recovery, `npm run verify:linux-filesystem-reliability` for the isolated Linux `ENOSPC` recovery boundary, `npm run verify:macos-public-candidate -- <candidate-directory> <version> <revision>` for exact initial macOS candidate admission, `npm run activate:public-update-key -- <key-id> <absolute-public-key-path>` for fail-closed initial public updater-trust activation, and `npm run authority:windows-public-release -- install` or `npm run authority:windows-public-release -- cleanup` for the protected Windows authority lifetime. `npm run verify:precommit` composes the broad portable source gate but deliberately excludes benchmarks, packaged E2E, update recovery, and packaging. `npm run verify:candidate` composes those expensive product gates when a dirty-tree candidate investigation genuinely needs them. `npm run verify:full` runs the complete chain plus source-bound cold-launch, production-bundle, and update-recovery-preparation evidence once from the exact clean candidate revision; it is not preceded by `verify:candidate` or an equivalent campaign. Release-workflow, release-policy, documentation, and semantic-version-only corrections use their focused contracts and protected exact-artifact pipeline instead. A clean-gate failure keeps the candidate local; it receives a focused causal correction before one new complete run. `npm run render:product-surfaces` projects the canonical public status into the README and product page; `npm run check:product-surfaces` rejects divergence, and `npm run check:site` verifies the static page contract and accessibility. `npm run check:presentation-inventory` follows the production import graph and rejects orphan modules, locale messages, CSS classes, automation scripts, and packaged-test files; dynamic typed dictionaries, generated class families, SVG-owned classes, and Leaflet-owned classes are explicit consumers rather than blanket exclusions. `npm run check:vendored-updater` verifies the exact updater source allowlist, checksums, dependency path, and frontend exclusion; `npm run test:vendor-updater` exercises its bounded-transfer refinement outside the FitFreed workspace package set. `npm run check:workflows` installs and executes checksum-pinned actionlint and ShellCheck binaries, while `npm run check:public-release-workflow`, `npm run check:public-macos-candidate-admission-workflow`, `npm run check:public-linux-expansion-workflow`, and `npm run check:public-windows-expansion-workflow` enforce the closed trigger, action-pin, native-input, environment, permission, secret, cleanup, admission, product-acceptance, and promotion topologies. `npm run check:docs` verifies links and the version, section, release-state, locale, support, operations, manual-evaluation, and release-note contracts of the public documentation set. These checks are part of the fast lane, while formatting and strict Clippy cover both Rust source trees. `npm run prepare:development-release -- <version>` requires a clean commit and creates private production artifacts, SBOMs, checksums, a manifest, and draft notes; `npm run verify:development-release` exercises integrity, installation, first launch, failure, relaunch, and removal boundaries. `npm run verify:update-recovery-preparation` uses the production `FitFreed.app`, a temporary synthetic library, and the real macOS copy adapter to prove the complete pre-replacement recovery pair without downloading or installing an update. `npm run verify:update-e2e` creates ephemeral signing and TLS authority, builds isolated instrumented 0.1.0 and 0.2.0 bundles, serves a schema-valid signed channel over loopback HTTPS, and proves native replacement, automatic application/library recovery, receipt-before-deletion terminal cleanup, localized outcome presentation, and explicit acknowledgement. Continuous integration invokes the same underlying versioned tasks as separate diagnosable steps and never uploads the unsigned package.
 

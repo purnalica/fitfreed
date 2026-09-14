@@ -1,6 +1,6 @@
 # ADR 0046: Separate Windows candidate build and admission hosts
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0049](0049-use-signpath-for-windows-authenticode.md)
 - **Date:** 2026-09-04
 - **Decision owners:** FitFreed maintainers
 - **Related requirements:** [Product requirements](../../requirements.md)

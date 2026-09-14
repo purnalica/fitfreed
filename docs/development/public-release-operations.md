@@ -40,14 +40,13 @@ Apply these boundaries:
 - Never place authority in repository secrets when the protected environment can own it, and never expose a private input to preflight, promotion, Pages, remote verification, caches, or retained artifacts.
 - Review access after a maintainer change, suspected compromise, Apple or GitHub policy change, and every planned key rotation.
 
-The Windows platform adds a fourth independent authority. The protected native builder selects one trusted code-signing
-certificate from the current-user certificate store and uses the Windows SDK SignTool plus a credential-free HTTPS
-RFC 3161 timestamp service. The protected process supplies `FITFREED_WINDOWS_AUTHENTICODE_PROFILE=public`, an absolute
-`FITFREED_WINDOWS_SIGNTOOL_PATH`, the certificate-store selector in `FITFREED_WINDOWS_CERTIFICATE_SHA1`, the
-independently derived lowercase public fingerprint in `FITFREED_WINDOWS_CERTIFICATE_SHA256`, and
-`FITFREED_WINDOWS_TIMESTAMP_URL`. These values are not workflow-dispatch inputs, source configuration, retained
-artifacts, or diagnostic output. The native builder never receives the updater or release-checksum private keys; the
-later composer never receives the Windows certificate or its store selector.
+The Windows platform adds a fourth independent authority through the SignPath Foundation open-source service. The
+protected `FITFREED_SIGNPATH_API_TOKEN` authorizes submission only; SignPath retains the certificate private key in its
+HSM and its GitHub connector verifies build origin. `FITFREED_SIGNPATH_ORGANIZATION_ID` and the independently admitted
+lowercase certificate fingerprint are protected non-secret variables. Stable project, policy, and artifact-configuration
+slugs are versioned in the workflow and cannot be dispatch inputs. Every production request requires manual approval
+in SignPath. The GitHub-hosted signing build never receives updater or release-checksum private keys, and the later
+composer receives neither the SignPath token nor Authenticode authority.
 
 The macOS ephemeral authority installer writes private material only under the hosted runner's temporary directory with
 private permissions, imports the exact certificate fingerprint into a temporary keychain, and restores the prior
@@ -61,14 +60,11 @@ DMG with the admitted Developer ID fingerprint and App Store Connect authority. 
 stable `org.fitfreed.desktop.dmg` identifier, an accepted issue-free notarization log, and a valid stapled ticket before
 objective trust inspection. The same finalizer is used by every public macOS-containing compositor.
 
-The Windows native-builder environment defines `FITFREED_WINDOWS_CERTIFICATE_BASE64` and
-`FITFREED_WINDOWS_CERTIFICATE_PASSWORD` as protected secrets. It defines the independently derived lowercase
-`FITFREED_WINDOWS_CERTIFICATE_SHA256` fingerprint and credential-free HTTPS
-`FITFREED_WINDOWS_TIMESTAMP_URL` as protected non-secret variables. The installer discovers the Windows SDK SignTool
-and certificate-store SHA-1 selector after importing the admitted PFX, so neither value is a long-lived GitHub input.
-It deletes the PFX immediately and leaves only minimal retry state in the runner's temporary directory until cleanup.
-A cleanup failure blocks acceptance and requires inspection of the affected ephemeral runner execution; it never
-justifies printing a secret or deleting the retry state.
+The `public-windows-release` environment defines `FITFREED_SIGNPATH_API_TOKEN` as a protected secret and
+`FITFREED_SIGNPATH_ORGANIZATION_ID` plus `FITFREED_WINDOWS_CERTIFICATE_SHA256` as protected non-secret variables. The
+official SignPath action receives them only after GitHub environment approval. Signed output, not a certificate bundle,
+returns to the workflow. A rejected, denied, timed-out, or structurally different response blocks the candidate and is
+never replaced with locally signed or unsigned bytes.
 
 ## Activate the public updater trust
 
@@ -139,15 +135,16 @@ An accountable maintainer configures these prerequisites before the first releas
 Before Windows expansion, create two additional environments with the same required-reviewer, initiator-approval,
 administrator-bypass, and `v*` tag policies:
 
-- `public-windows-release` owns only the ephemeral Authenticode builder authority and its reviewed public fingerprint;
+- `public-windows-release` owns only the SignPath submission token, organization identifier, and reviewed public
+  certificate fingerprint;
 - `public-windows-product-acceptance` records the distinct bounded product-experience verdict and owns no signing or
   publication authority.
 
-Provision separate disposable repository-scoped self-hosted Windows 11 x86-64 runners with only the
-`fitfreed-windows-11-builder` or `fitfreed-windows-11-admission` custom label. Never attach either role to a personal
-workstation or reuse one machine for both roles in a release run. Register each runner immediately before the bounded
-job, remove its repository registration and credentials after the job, and destroy the execution environment. The
-builder is protected by `public-windows-release`; the admission runner is secret-free and has no environment.
+The SignPath build runs on a standard GitHub-hosted x86-64 Windows runner because origin verification for the
+open-source service rejects a self-hosted signing lineage. Provision only the distinct disposable,
+repository-scoped `fitfreed-windows-11-admission` x86-64 runner. Never attach that role to a personal workstation.
+Register it immediately before the bounded admission job, remove its repository registration and credentials after
+the job, and destroy the execution environment. It is secret-free and has no protected environment.
 
 Do not infer successful configuration from a workflow file or environment name. The secret-free preflight reads the GitHub APIs and rejects a missing or weaker control before the first protected job starts.
 
@@ -211,28 +208,24 @@ preceding check keeps promotion blocked even when cleanup succeeds.
 ### Windows expansion input and authority
 
 Do not dispatch `.github/workflows/public-windows-expansion.yml` until an immutable macOS-plus-Linux predecessor
-exists, the next semantic version and target-aware upgrade matrix name that exact predecessor, the Windows readiness
-ledger admits the native hosts, and all three protected environments have been reviewed. The versioned workflow is
-implemented but inactive. Running an individual script manually does not create a candidate and must not be used to
-bypass those gates.
+exists, the next semantic version and target-aware upgrade matrix names that exact predecessor, SignPath Foundation
+has accepted FitFreed, the SignPath GitHub App and project policies are active, the Windows readiness ledger admits the
+native admission host, and all three protected environments have been reviewed. The earlier local-certificate workflow
+is inactive and must be replaced by the ADR 0049 topology before dispatch. Running an individual script manually does
+not create a candidate and must not be used to bypass those gates.
 
 Review `release/windows-candidate-admission.json` against its cited official lifecycle sources no more than 45 days
 before candidate issuance. Update the policy and its tests when supported editions, display versions, builds, or dates
 change; do not admit a host by weakening the exact match. The workflow dispatch accepts only the semantic version,
-public updater-key identifier, and public release-checksum-key identifier. The Authenticode fingerprint comes from the
-protected `FITFREED_WINDOWS_CERTIFICATE_SHA256` variable, never from the dispatcher.
+public updater-key identifier, and public release-checksum-key identifier. SignPath identifiers and the Authenticode
+fingerprint come from versioned or protected configuration, never from the dispatcher.
 
-The protected native job must use native x86-64 Windows PowerShell on a disposable supported Windows 11 builder. Its
-ephemeral authority setup imports only the selected Authenticode identity into the current-user certificate store,
-provides the five protected process values above, and records the independently established SHA-256 public
-fingerprint without retaining the selector or private key. From the exact clean tagged source it runs
-`npm run authority:windows-public-release -- install`, then
-`npm run prepare:windows-expansion-input -- <version> <directory>`, then
-`npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>`.
-The output is only the digest-bound three-file native input and its archive digest. A `finally` boundary removes the
-certificate, private key, protected process values, and temporary paths with
-`npm run authority:windows-public-release -- cleanup` after success or failure; incomplete cleanup blocks the run and
-retains only the state required for another cleanup attempt.
+The protected GitHub-hosted Windows job builds the unsigned application and exports the NSIS uninstaller. It uploads
+one closed two-file artifact before the pinned official SignPath action submits the inner-binary request. After manual
+approval, it verifies both returned files and imports them into final NSIS compilation without rebuilding. It uploads
+the exact setup for the second manually approved SignPath request, then independently verifies the returned setup and
+prepares the three-file native input through the existing installation, inventory, evidence, and transport contracts.
+No certificate, private key, local signer, or timestamp selection enters the job.
 
 The protected job publishes only that closed archive and its digest. The Apple Silicon composer reopens it with
 `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>`.
@@ -376,22 +369,22 @@ A withdrawn candidate is never offered for installation. An already installed wi
 Routine updater-key rotation overlaps trust: release at least one accepted application embedding both old and new public keys before signing a later channel statement with only the new key. Remove the old public key only after every supported upgrade baseline can authenticate the new authority.
 
 Windows Authenticode certificate rotation is independent of updater-key rotation. Before an expiry-driven change,
-admit the replacement chain and publisher identity, replace the protected current-user certificate import, selector,
-and independently derived SHA-256 fingerprint, then create a fresh timestamped Windows input and complete-platform
-candidate. The manifest, inventory, and build evidence must all name only the certificate that signed those exact
-bytes. Preserve the prior immutable Release and its timestamped signatures; do not re-sign or replace them. Treat
-publisher-name drift, an unavailable trusted timestamp, or a certificate that fails Windows application policy as a
-new-candidate blocker, not as a reason to weaken inspection.
+admit the replacement SignPath chain, publisher identity, and independently derived SHA-256 fingerprint, then update
+the protected fingerprint and create a fresh timestamped Windows input and complete-platform candidate. The manifest,
+inventory, and build evidence must all name only the certificate that signed those exact bytes. Preserve the prior
+immutable Release and its timestamped signatures; do not re-sign or replace them. Treat publisher-name drift, an
+unavailable trusted timestamp, or a certificate that fails Windows application policy as a new-candidate blocker, not
+as a reason to weaken inspection.
 
 If an updater private key may be compromised, stop protected runs, revoke its environment access, preserve audit evidence, and determine which application baselines trust only that key. Clients without a previously embedded recovery key cannot authenticate an automatic trust-root replacement; publish a Developer ID-signed corrective application through the verified download channel with explicit manual-install guidance.
 
 For a Developer ID or App Store Connect compromise, revoke or rotate the affected Apple authority, review notarization history, remove its GitHub access, and create a fresh candidate under the replacement identity. Apple trust rotation does not replace updater-key rotation, and updater trust does not compensate for invalid Apple code signing.
 
 For a Windows code-signing certificate compromise, stop Windows native builds, revoke the certificate through its
-issuer, remove it and its selector from the protected environment, audit every input and candidate signed by it, and
-block publication. A replacement certificate requires the complete rotation and exact-candidate path above. Updater
-signatures, checksums, prior reputation, or an unchanged source revision cannot compensate for invalid Authenticode
-trust.
+issuer with SignPath Foundation, remove its admitted fingerprint from the protected environment, audit every input and
+candidate signed by it, and block publication. A replacement certificate requires the complete rotation and
+exact-candidate path above. Updater signatures, checksums, prior reputation, or an unchanged source revision cannot
+compensate for invalid Authenticode trust.
 
 For a GitHub token or environment compromise, revoke access immediately, audit deployments, releases, attestations, environment reviews, and tag state, and keep publication blocked until repository controls are re-established. Immutable evidence that cannot be reconciled with the incident remains unaccepted even if its bytes appear functional.
 
