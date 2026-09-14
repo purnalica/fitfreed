@@ -40,9 +40,28 @@ export function validatePagesWorkflows({ pages, release }) {
   requirePattern(
     errors,
     pages,
-    /GH_TOKEN: \$\{\{ github\.token \}\}\n        run: npm run prepare:product-pages/u,
+    /id: composition\n        env:\n          GH_TOKEN: \$\{\{ github\.token \}\}\n        run: npm run prepare:product-pages/u,
     "Pages must preserve the authenticated public release before composition",
   );
+  requirePattern(
+    errors,
+    pages,
+    /id: composition/u,
+    "Pages composition must expose its deployment decision",
+  );
+  for (const stepName of [
+    "Refuse to erase an active update snapshot",
+    "Upload the complete Pages artifact",
+    "Deploy the complete Pages artifact",
+    "Verify the exact public site",
+  ]) {
+    requirePattern(
+      errors,
+      pages,
+      new RegExp(`- name: ${stepName}\\n        if: steps\\.composition\\.outputs\\.deploy == 'true'`, "u"),
+      "Pages must reserve an unreleased revision for exact release deployment",
+    );
+  }
   requirePattern(errors, pages, /npm run verify:pages:preflight/u, "Pages must run the update-preservation preflight");
   requirePattern(errors, pages, /npm run verify:pages:remote/u, "Pages must verify exact remote bytes");
 

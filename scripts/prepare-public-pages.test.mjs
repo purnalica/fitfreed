@@ -10,6 +10,7 @@ import test from "node:test";
 
 import { publicReleaseAssets } from "./public-release-publication.mjs";
 import { prepareCurrentPublicPages } from "./public-release-remote.mjs";
+import { productPagesDeploymentDecision } from "./prepare-public-pages.mjs";
 import { sha256File } from "./release-evidence.mjs";
 import { createPublicReleaseCandidateFixture } from "./test-support/public-release-candidate.mjs";
 
@@ -130,4 +131,38 @@ test("refuses to preserve a release that is not immutable", async () => {
     attempts: 1,
     wait: async () => {},
   }), /not immutable/u);
+});
+
+test("deploys product pages only from a revision whose version is already public", () => {
+  assert.deepEqual(
+    productPagesDeploymentDecision({
+      publicVersion: "0.1.12",
+      sourceVersion: "0.1.12",
+    }),
+    { deploy: true, reason: "source-version-is-public" },
+  );
+  assert.deepEqual(
+    productPagesDeploymentDecision({
+      publicVersion: "0.1.12",
+      sourceVersion: "0.1.13",
+    }),
+    { deploy: false, reason: "source-version-is-unreleased" },
+  );
+});
+
+test("rejects invalid product or public release versions before deployment", () => {
+  assert.throws(
+    () => productPagesDeploymentDecision({
+      publicVersion: "0.1.12",
+      sourceVersion: "next",
+    }),
+    /source version/u,
+  );
+  assert.throws(
+    () => productPagesDeploymentDecision({
+      publicVersion: "public",
+      sourceVersion: "0.1.12",
+    }),
+    /public version/u,
+  );
 });

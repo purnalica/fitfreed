@@ -69,24 +69,29 @@ jobs:
         run: npm run test:product-site
 
       - name: Preserve the verified public release and compose the complete Pages artifact
+        id: composition
         env:
           GH_TOKEN: ${{ github.token }}
         run: npm run prepare:product-pages
 
       - name: Refuse to erase an active update snapshot
+        if: steps.composition.outputs.deploy == 'true'
         run: npm run verify:pages:preflight
 
       - name: Upload the complete Pages artifact
+        if: steps.composition.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: .artifacts/pages
           retention-days: 1
 
       - name: Deploy the complete Pages artifact
+        if: steps.composition.outputs.deploy == 'true'
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
 
       - name: Verify the exact public site
+        if: steps.composition.outputs.deploy == 'true'
         env:
           FITFREED_PAGES_URL: ${{ steps.deployment.outputs.page_url }}
         run: npm run verify:pages:remote

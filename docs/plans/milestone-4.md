@@ -2,17 +2,12 @@
 
 ## Status
 
-Active as of 2026-09-14. FitFreed 0.1.7 is the immutable supported public macOS baseline. Immutable version 0.1.10
-confirmed complete protected composition and Ubuntu 26.04 admission before Ubuntu 24.04 exposed an independently
-variable Fluxbox-startup interval beyond the harness's five-second readiness bound. Focused run `34787849501`
-subsequently reopened the exact 0.1.10 candidate and passed on Ubuntu 24.04 with the corrected bounded allowance.
-Version 0.1.11 completed protected composition in workflow `34788907954`. Ubuntu 24.04 passed exact admission, while
-Ubuntu 26.04 installed and started the same Debian package but reached the painted-shell observer just beyond its
-fixed ten-second availability window. Read-only exact-byte diagnostic run `34827996617` subsequently passed on Ubuntu
-26.04 with the corrected thirty-second availability observation and attributed `8,821.798 ms` of the `9,338.862 ms`
-first launch to hosted desktop startup and setup. The separate p95 product-performance contract remains unchanged.
-Version 0.1.12 is assigned to the corrected source-bound candidate; its two-row exact admission and protected
-promotion remain the next gates.
+Active as of 2026-09-14. Workflow `34830250376` built the exact 0.1.12 macOS-plus-Linux candidate, passed protected
+composition and both supported Ubuntu admission rows, and published its immutable GitHub Release. Final remote
+verification rejected the still-live 0.1.7 Pages snapshot. The release and product workflows had submitted different
+complete Pages artifacts under the same source revision identity. M4.6 now requires a distinct public-version revision
+to deploy the authenticated 0.1.12 snapshot and the original workflow's failed verifier to accept every public byte.
+No package, candidate, Release asset, product E2E, or native admission is repeated.
 
 ## Objective
 
@@ -59,7 +54,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | Immutable 0.1.11 at `2172070c6210304bc70f8f46a5453b87cd6058f1` passed exact-source CI and safety, native Linux construction, and protected complete-platform signing, Apple notarization, reopening, and sealing in workflow `34788907954`. Ubuntu 24.04 passed exact installation, launch, p95 `906.854 ms` across 100 fresh processes, removal, and retained-library integrity. Ubuntu 26.04 installed and started the same exact Debian package, then timed out at ten seconds while its desktop services were activating. Read-only run `34827996617` reopened those exact bytes on Ubuntu 26.04 and passed with the corrected thirty-second availability observer, attributing `8,821.798 ms` of the `9,338.862 ms` launch to hosted desktop startup and setup. The separate p95 `2,500 ms` product-performance budget remains unchanged. Version 0.1.11 remains fixed and unpublished. Version 0.1.12 is assigned; exact-source controls, complete-platform composition, both native admission rows, and protected promotion remain. |
+| M4.6 | In progress | Exact 0.1.12 workflow [`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376) passed exact-source controls, native Linux construction, protected signing and notarization, both Ubuntu admission rows, protected promotion, provenance, and immutable Release publication. Its final verifier rejected the public origin because the preceding product workflow and release workflow had submitted distinct Pages artifacts under the same revision identity, leaving 0.1.7 live. ADR 0048 reserves unreleased revisions for exact release deployment. Deploy the authenticated 0.1.12 snapshot from a distinct public-version revision, then rerun only the original failed verifier. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,
@@ -236,7 +231,15 @@ publication, promoted.
 digests; the public download, update channel, GitHub Release, Pages links, signatures, provenance, and documentation
 converge on those exact bytes.
 
-### Current M4.6 iteration — Hosted first-launch diagnosis
+### Current M4.6 iteration — Candidate history and Pages recovery
+
+- **Current recovery boundary:** keep the immutable 0.1.12 Release and retained candidate unchanged. A focused
+  workflow correction makes the product-site deployment conditional on source version matching the latest immutable
+  public Release. The correction revision may therefore deploy the authenticated 0.1.12 snapshot under a distinct
+  Pages identity. After public bytes converge, rerun only `verify-publication` from workflow `34830250376`.
+- **No-repeat boundary:** exact CI, native Linux construction, Apple signing and notarization, candidate composition,
+  both Ubuntu admission rows, product E2E, package recovery, provenance, and immutable publication already passed for
+  0.1.12 and are not repeated.
 
 - **Acceptance boundary:** the exact sealed Debian member of candidate 0.1.9 at revision
   `909eccf477870f4c607f93b8240556d78aee8729` must install and report its first painted interactive shell on the

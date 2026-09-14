@@ -2,9 +2,9 @@
 
 ## Status and authority
 
-This is the maintainer runbook for the active FitFreed public macOS channel and each later complete-platform
-expansion. The macOS workflow published 0.1.7; version 0.1.12 is assigned to the gated Linux expansion, and the Windows
-expansion remains gated behind that immutable predecessor. A
+This is the maintainer runbook for the active FitFreed public channel and each complete-platform expansion. The macOS
+workflow published 0.1.7. The immutable macOS-plus-Linux 0.1.12 Release exists, while final Pages convergence and
+remote acceptance remain open; the Windows expansion remains gated behind accepted 0.1.12. A
 workflow becomes operative only after the applicable readiness ledger records its production trust roots,
 native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes
 one exact version, tag, and publication.
@@ -344,6 +344,7 @@ The run is accepted only when `verify-publication` succeeds. Record the immutabl
 | Attestation or draft validation | No accepted public Release; Pages is unchanged | Keep the draft unpublished. Diagnose the source, permission, or GitHub failure. Delete a divergent draft only with explicit authority, then create a fresh candidate. |
 | Immutable Release publication succeeds but Pages deployment fails | The download and evidence record is public; installed applications still see the previous complete Pages snapshot | Re-run only the failed Pages and downstream verification jobs from the same workflow run while its exact artifact is retained. Do not rebuild or replace immutable Release assets. |
 | Pages deploys but remote verification has not converged | Release and new snapshot may be public, but acceptance is open | Re-run only remote verification after diagnosing service state. Bounded propagation delay is acceptable; mismatched bytes are not. |
+| A product workflow and release workflow deployed distinct artifacts with the same revision identity | GitHub may report the release deployment successful while the public origin still serves the earlier complete snapshot | Commit the version-gated product workflow correction without changing the exact product-site source used by the candidate. Its new revision may deploy the authenticated current Release snapshot because source and public versions now match. Verify the public bytes, then re-run only the original release run's failed remote-verification job. Never rebuild or replace Release assets. |
 | Remote verification finds stable bytes different from the immutable Release | Release and update channel disagree | Stop promotion claims and incident-triage immediately. Preserve evidence. Restore a known deployment only as temporary containment and issue a new higher-sequence corrective release for durable recovery. |
 
 Re-running the entire workflow after immutable publication is not a recovery strategy: Apple timestamps and notarization can make a rebuilt candidate byte-distinct even from the same source. Recovery uses the sealed artifact retained by the original run and re-runs only failed downstream jobs.

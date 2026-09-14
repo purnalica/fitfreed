@@ -13,9 +13,11 @@ and its separately held password remain confined to the protected release enviro
 release-checksum, or Windows Authenticode authority is present in source or ordinary continuous integration.
 
 The `public-macos-release` environment admits `v*` tags under the bootstrap review policy. The `github-pages`
-environment admits both `main` product-site deployments and `v*` release deployments. The first 0.1.7 Pages attempt
-exposed the missing tag policy and stopped before runner allocation; adding the policy and re-running only failed jobs
-completed deployment and remote verification. Linux and Windows release authorities remain separate later gates.
+environment admits both `main` product-site deployments and `v*` release deployments. A `main` workflow always
+validates and composes the complete site, but deploys only when its source version equals the latest immutable public
+Release version. An unreleased revision is reserved for the protected exact-tag workflow under
+[ADR 0048](../architecture/decisions/0048-reserve-unreleased-pages-revisions.md). Linux release authority remains
+separate during acceptance, and Windows release authorities remain separate later gates.
 
 The first `v0.1.0` dispatch on 2026-09-10 stopped in the secret-free preflight before any protected environment or
 credential was admitted. The preflight expected a runner environment variable for repository visibility that GitHub
@@ -134,6 +136,16 @@ candidate on Ubuntu 26.04 and observed its interactive shell in `9,338.862 ms`; 
 accounted for `8,821.798 ms`, while the renderer locale and interactive signal required `297 ms`. This admits the
 corrected availability observer without weakening the separate product-performance contract. The public `v0.1.11`
 tag remains fixed and unpublished; source-bound provenance requires its corrected successor to be 0.1.12.
+
+The `v0.1.12` [dispatch `34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376) passed exact-source
+controls, secret-free Linux input creation, protected complete-platform composition, Developer ID signing, Apple
+notarization, both supported Ubuntu admission rows, protected promotion, provenance, and immutable GitHub Release
+publication. Final remote verification rejected the public Pages origin because it still served the 0.1.7 snapshot.
+The preceding product-site workflow and release workflow had deployed different complete artifacts under the same
+source revision identity; GitHub reported the latter successful without replacing the earlier public bytes. The
+immutable 0.1.12 Release and retained candidate remain authoritative. Acceptance stays open until a distinct
+public-version source revision deploys those authenticated bytes and the original run's failed remote-verification job
+passes without rebuilding or replacing any Release asset.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable

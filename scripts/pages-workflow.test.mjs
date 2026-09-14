@@ -24,6 +24,8 @@ test("rejects publication that can erase, race, or bypass verified product evide
     [(source) => source.replace("npm run check:site", "node -e true"), /source page/u],
     [(source) => source.replace("npm run test:product-site", "node -e true"), /publication automation/u],
     [(source) => source.replace("npm run prepare:product-pages", "npm run build:pages"), /authenticated public release/u],
+    [(source) => source.replace("id: composition", "id: unchecked-composition"), /deployment decision/u],
+    [(source) => source.replaceAll("if: steps.composition.outputs.deploy == 'true'", "if: always()"), /unreleased revision/u],
     [(source) => source.replace("npm run verify:pages:remote", "node -e true"), /remote/u],
     [(source) => source.replace("artifact-metadata: read", "artifact-metadata: write"), /permissions/u],
   ];
