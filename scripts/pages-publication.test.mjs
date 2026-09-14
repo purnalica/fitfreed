@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -29,6 +29,23 @@ function productArtifact() {
   const pagesDirectory = path.join(root, "pages");
   composePagesArtifact({ repositoryRoot, outputDirectory: pagesDirectory });
   return { pagesDirectory, root };
+}
+
+function stableEnvelope(sequence, version) {
+  const payloadBase64 = Buffer.from(JSON.stringify({
+    release: { version },
+    sequence,
+  })).toString("base64");
+  return Buffer.from(JSON.stringify({ fitfreed: { payloadBase64 } }));
+}
+
+function productArtifactWithUpdate(sequence, version) {
+  const artifact = productArtifact();
+  const updateDirectory = path.join(artifact.pagesDirectory, "updates");
+  mkdirSync(path.join(updateDirectory, version), { recursive: true });
+  writeFileSync(path.join(updateDirectory, "stable.json"), stableEnvelope(sequence, version));
+  writeFileSync(path.join(updateDirectory, version, `FitFreed_${version}.package`), "package");
+  return artifact;
 }
 
 test("permits the first product publication and verifies every public byte", async () => {
@@ -73,6 +90,60 @@ test("fails closed before a product-only deployment can erase an active update s
       fetchImpl: async (url) => response(url, 200, "active stable envelope"),
     }),
     /erase the active update snapshot/u,
+  );
+  rmSync(artifact.root, { recursive: true, force: true });
+});
+
+test("permits only a monotonic authenticated update-snapshot advance", async () => {
+  const artifact = productArtifactWithUpdate(12, "0.1.12");
+  const oldStable = stableEnvelope(8, "0.1.7");
+  assert.deepEqual(
+    await preflightPagesPublication({
+      baseUrl,
+      pagesDirectory: artifact.pagesDirectory,
+      fetchImpl: async (url) => response(url, 200, oldStable),
+    }),
+    {
+      localUpdateSnapshot: true,
+      remoteUpdateSnapshot: true,
+      updateAction: "advance",
+      localSequence: 12,
+      remoteSequence: 8,
+    },
+  );
+
+  for (const remoteStable of [
+    Buffer.concat([stableEnvelope(12, "0.1.12"), Buffer.from("\n")]),
+    stableEnvelope(13, "0.1.13"),
+  ]) {
+    await assert.rejects(
+      () => preflightPagesPublication({
+        baseUrl,
+        pagesDirectory: artifact.pagesDirectory,
+        fetchImpl: async (url) => response(url, 200, remoteStable),
+      }),
+      /replace or replay/u,
+    );
+  }
+  rmSync(artifact.root, { recursive: true, force: true });
+});
+
+test("preserves an identical active update snapshot byte for byte", async () => {
+  const artifact = productArtifactWithUpdate(12, "0.1.12");
+  assert.deepEqual(
+    await preflightPagesPublication({
+      baseUrl,
+      pagesDirectory: artifact.pagesDirectory,
+      fetchImpl: async (url) => {
+        const pathname = new URL(url).pathname.slice(1);
+        return response(url, 200, readFileSync(path.join(artifact.pagesDirectory, pathname)));
+      },
+    }),
+    {
+      localUpdateSnapshot: true,
+      remoteUpdateSnapshot: true,
+      updateAction: "preserve",
+    },
   );
   rmSync(artifact.root, { recursive: true, force: true });
 });

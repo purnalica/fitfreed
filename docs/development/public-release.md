@@ -147,6 +147,13 @@ immutable 0.1.12 Release and retained candidate remain authoritative. Acceptance
 public-version source revision deploys those authenticated bytes and the original run's failed remote-verification job
 passes without rebuilding or replacing any Release asset.
 
+The first distinct-revision product-site recovery
+[run `34844996541`](https://github.com/purnalica/fitfreed/actions/runs/34844996541) stopped before upload or deployment.
+It authenticated the current Release but then tried to reconstruct its update snapshot from the stale Pages origin.
+Current source instead stages current update bytes from that immutable Release and any declared recovery package from
+its exact immutable predecessor Release. The monotonic preflight preserves identical live bytes, admits the
+authenticated sequence 8 to 12 advance, and rejects erasure, replay, or same-sequence replacement.
+
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable
 certificate bundle and separately supplied password are stored there as protected secrets. The environment also holds

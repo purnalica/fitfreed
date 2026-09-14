@@ -1,37 +1,30 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
+  mkdirSync,
+  mkdtempSync,
   readFileSync,
+  rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
 import { publicReleaseAssets } from "./public-release-publication.mjs";
-import { prepareCurrentPublicPages } from "./public-release-remote.mjs";
+import {
+  prepareCurrentPublicPages,
+  stageReleaseUpdateSnapshot,
+} from "./public-release-remote.mjs";
 import { productPagesDeploymentDecision } from "./prepare-public-pages.mjs";
 import { sha256File } from "./release-evidence.mjs";
 import { createPublicReleaseCandidateFixture } from "./test-support/public-release-candidate.mjs";
 
-function response(url, bytes) {
-  return {
-    status: 200,
-    redirected: false,
-    url,
-    headers: new Headers({ "content-length": String(bytes.length) }),
-    arrayBuffer: async () => bytes,
-  };
-}
-
-function remotePagesFile(pagesDirectory, url) {
-  const pathname = new URL(url).pathname;
-  const relativePath = pathname === "/"
-    ? "index.html"
-    : pathname.endsWith("/")
-      ? `${pathname.slice(1)}index.html`
-      : pathname.slice(1);
-  return path.join(pagesDirectory, ...relativePath.split("/"));
+function sha256(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
 }
 
 function publicReleaseHarness(input, { immutable = true } = {}) {
@@ -83,17 +76,16 @@ function publicReleaseHarness(input, { immutable = true } = {}) {
   };
 }
 
-test("composes current product sources with the authenticated active update snapshot", async () => {
+test("composes current product sources from the authenticated immutable Release without reading Pages", async () => {
   const input = createPublicReleaseCandidateFixture();
   const harness = publicReleaseHarness(input);
   const pagesDirectory = path.join(input.root, "prepared-product-pages");
   const result = await prepareCurrentPublicPages({
     pagesDirectory,
     runCommand: harness.runCommand,
-    fetchImplementation: async (url) => response(
-      url,
-      readFileSync(remotePagesFile(input.pagesDirectory, url)),
-    ),
+    fetchImplementation: async () => {
+      throw new Error("mutable Pages must not supply the authoritative update snapshot");
+    },
     attempts: 1,
     wait: async () => {},
   });
@@ -131,6 +123,86 @@ test("refuses to preserve a release that is not immutable", async () => {
     attempts: 1,
     wait: async () => {},
   }), /not immutable/u);
+});
+
+test("sources a recovery package only from its exact immutable predecessor Release", (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), "fitfreed-release-pages-recovery-"));
+  t.after(() => rmSync(root, { force: true, recursive: true }));
+  const releaseDirectory = path.join(root, "release");
+  mkdirSync(releaseDirectory);
+  const currentName = "FitFreed_0.1.12_aarch64.app.tar.gz";
+  const recoveryName = "FitFreed_0.1.7_aarch64.app.tar.gz";
+  const currentBytes = Buffer.from("current package");
+  const recoveryBytes = Buffer.from("recovery package");
+  const recovery = {
+    target: "darwin-aarch64",
+    version: "0.1.7",
+    url: `https://fitfreed.org/updates/0.1.7/${recoveryName}`,
+    size: recoveryBytes.length,
+    sha256: sha256(recoveryBytes),
+    tauriSignature: "synthetic recovery signature",
+  };
+  const stableBytes = Buffer.from(JSON.stringify({
+    fitfreed: {
+      payloadBase64: Buffer.from(JSON.stringify({
+        release: { recoveryArtifacts: [recovery] },
+      })).toString("base64"),
+    },
+  }));
+  writeFileSync(path.join(releaseDirectory, currentName), currentBytes);
+  writeFileSync(path.join(releaseDirectory, "stable.json"), stableBytes);
+  const sourceRecovery = path.join(root, recoveryName);
+  writeFileSync(sourceRecovery, recoveryBytes);
+  const manifest = {
+    release: { version: "0.1.12" },
+    artifacts: [
+      {
+        kind: "stable-update-envelope",
+        path: "stable.json",
+        size: stableBytes.length,
+        sha256: sha256(stableBytes),
+      },
+      {
+        kind: "macos-updater-archive",
+        path: currentName,
+        size: currentBytes.length,
+        sha256: sha256(currentBytes),
+      },
+    ],
+  };
+  const runCommand = (command, args) => {
+    assert.equal(command, "gh");
+    if (args[0] === "release" && args[1] === "view") {
+      return { success: true, output: JSON.stringify({
+        tagName: "v0.1.7",
+        isDraft: false,
+        isPrerelease: false,
+        isImmutable: true,
+        assets: [{
+          name: recoveryName,
+          size: recoveryBytes.length,
+          digest: `sha256:${sha256(recoveryBytes)}`,
+          state: "uploaded",
+        }],
+      }) };
+    }
+    if (args[0] === "release" && args[1] === "download") {
+      copyFileSync(sourceRecovery, path.join(args[args.indexOf("--dir") + 1], recoveryName));
+      return { success: true, output: "" };
+    }
+    throw new Error("unexpected immutable Release operation");
+  };
+
+  const updateDirectory = stageReleaseUpdateSnapshot({
+    manifest,
+    releaseDirectory,
+    runCommand,
+    temporaryRoot: root,
+  });
+  assert.deepEqual(
+    readFileSync(path.join(updateDirectory, "0.1.7", recoveryName)),
+    recoveryBytes,
+  );
 });
 
 test("deploys product pages only from a revision whose version is already public", () => {

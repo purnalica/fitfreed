@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -233,13 +234,88 @@ function readRelease(runCommand, tag) {
   return JSON.parse(runCommand("gh", args).output);
 }
 
+function copyVerifiedUpdateFile(source, destination, expected) {
+  const bytes = readFileSync(source);
+  if (bytes.length !== expected.size || sha256Bytes(bytes) !== expected.sha256) {
+    throw new Error("immutable Release update asset does not match signed snapshot evidence");
+  }
+  mkdirSync(path.dirname(destination), { recursive: true });
+  copyFileSync(source, destination);
+}
+
+export function stageReleaseUpdateSnapshot({
+  manifest,
+  releaseDirectory,
+  runCommand,
+  temporaryRoot,
+}) {
+  const updateDirectory = path.join(temporaryRoot, "updates");
+  mkdirSync(updateDirectory);
+  const stable = manifest.artifacts.find(({ kind }) => kind === "stable-update-envelope");
+  const currentPackages = manifest.artifacts.filter(({ kind }) =>
+    ["macos-updater-archive", "linux-x86_64-deb", "windows-x86_64-nsis"].includes(kind));
+  if (!stable || currentPackages.length < 1) {
+    throw new Error("immutable Release update evidence is incomplete");
+  }
+
+  copyVerifiedUpdateFile(
+    path.join(releaseDirectory, stable.path),
+    path.join(updateDirectory, "stable.json"),
+    stable,
+  );
+  for (const artifact of currentPackages) {
+    copyVerifiedUpdateFile(
+      path.join(releaseDirectory, artifact.path),
+      path.join(updateDirectory, manifest.release.version, artifact.path),
+      artifact,
+    );
+  }
+
+  const envelope = JSON.parse(readFileSync(path.join(releaseDirectory, stable.path), "utf8"));
+  const payload = JSON.parse(
+    Buffer.from(envelope?.fitfreed?.payloadBase64 ?? "", "base64").toString("utf8"),
+  );
+  for (const [index, recovery] of (payload?.release?.recoveryArtifacts ?? []).entries()) {
+    const packageName = publicUpdatePackageName(recovery.version, recovery.target);
+    const tag = `v${recovery.version}`;
+    const release = readRelease(runCommand, tag);
+    const asset = release?.assets?.find(({ name }) => name === packageName);
+    if (
+      release?.tagName !== tag
+      || release?.isDraft !== false
+      || release?.isPrerelease !== false
+      || release?.isImmutable !== true
+      || asset?.state !== "uploaded"
+      || asset?.size !== recovery.size
+      || asset?.digest !== `sha256:${recovery.sha256}`
+    ) {
+      throw new Error("recovery package is not an exact immutable Release asset");
+    }
+    const downloadDirectory = path.join(temporaryRoot, `recovery-${index}`);
+    mkdirSync(downloadDirectory);
+    runCommand("gh", [
+      "release",
+      "download",
+      tag,
+      "--repo",
+      repositoryName,
+      "--dir",
+      downloadDirectory,
+      "--pattern",
+      packageName,
+    ]);
+    copyVerifiedUpdateFile(
+      path.join(downloadDirectory, packageName),
+      path.join(updateDirectory, recovery.version, packageName),
+      recovery,
+    );
+  }
+  return updateDirectory;
+}
+
 export async function prepareCurrentPublicPages({
   pagesDirectory,
   runCommand = defaultRun,
-  fetchImplementation = fetch,
-  attempts = 3,
-  intervalMilliseconds = 5_000,
-  wait,
 }) {
   const release = readRelease(runCommand);
   const tag = release?.tagName;
@@ -304,14 +380,17 @@ export async function prepareCurrentPublicPages({
       publicReleaseSignerWorkflow(manifest),
     );
     verifyGithubReleaseAssetLinks(runCommand, tag, assets);
-    const pagesEvidence = await downloadVerifiedPagesSnapshot({
-      pagesDirectory,
+    const updateDirectory = stageReleaseUpdateSnapshot({
       manifest,
-      fetchImplementation,
-      attempts,
-      intervalMilliseconds,
-      verifyDeployedProductPages: false,
-      ...(wait === undefined ? {} : { wait }),
+      releaseDirectory,
+      runCommand,
+      temporaryRoot,
+    });
+    composePagesArtifact({
+      repositoryRoot,
+      outputDirectory: pagesDirectory,
+      releaseManifest: manifest,
+      updateDirectory,
     });
     const pages = verifyPagesArtifact({
       repositoryRoot,
@@ -330,7 +409,7 @@ export async function prepareCurrentPublicPages({
       revision: manifest.release.revision,
       immutableRelease: releaseEvidence.immutable,
       attestedAssetCount: releaseEvidence.assetCount,
-      pagesFileCount: pagesEvidence.fileCount,
+      pagesFileCount: relativeFiles(pagesDirectory).filter((filename) => filename !== ".nojekyll").length,
       productFileCount: pages.productFileCount,
       updateFileCount: pages.updateFileCount,
     };

@@ -22,6 +22,11 @@ origin continued serving the first artifact. Final remote verification correctly
 Byte-preserving composition prevented either workflow from creating a partial tree, but it could not distinguish two
 different complete artifacts that shared one external deployment identity.
 
+The first distinct-revision recovery attempt then stopped safely before deployment because product composition still
+tried to obtain the expected update objects from the stale Pages origin. This established a second boundary: mutable
+delivery state cannot be the source used to repair itself. The immutable Releases and their verified assets are the
+authoritative reconstruction source.
+
 ## Decision drivers
 
 - One Git revision must identify at most one deployable Pages artifact.
@@ -52,15 +57,18 @@ revision identity available to the exact tagged release workflow. This is the se
 
 1. The ordinary product-site workflow always renders, validates, and composes the complete Pages artifact for every
    applicable source revision.
-2. After authenticating the latest immutable GitHub Release, it compares that Release version with the repository
-   package version. It uploads, deploys, and remotely verifies the artifact only when the versions are equal.
-3. When the repository version is newer, the workflow ends successfully after validation and composition without
+2. It sources the stable envelope and current packages from the latest authenticated immutable GitHub Release. Any
+   declared recovery package is sourced from its exact immutable predecessor Release and verified against its signed
+   size and digest. Mutable Pages bytes never supply composition authority.
+3. It compares the latest Release version with the repository package version. It uploads, deploys, and remotely
+   verifies the artifact only when the versions are equal.
+4. When the repository version is newer, the workflow ends successfully after validation and composition without
    creating a Pages deployment. The protected exact-tag release workflow is the sole deployment owner for that
    unreleased revision.
-4. A later source revision whose package version equals the public Release may deploy product-site changes together
+5. A later source revision whose package version equals the public Release may deploy product-site changes together
    with the authenticated active update snapshot. Its distinct revision provides a distinct Pages build identity.
-5. Release-before-Pages ordering, immutable Release bytes, complete-tree composition, serialized deployment,
-   preflight byte preservation, and final remote byte verification remain mandatory.
+6. Release-before-Pages ordering, immutable Release bytes, complete-tree composition, serialized deployment,
+   monotonic update-snapshot preflight, and final remote byte verification remain mandatory.
 
 ## Consequences
 
@@ -81,7 +89,8 @@ revision identity available to the exact tagged release workflow. This is the se
 
 ## Verification
 
-Unit tests cover matching, mismatching, and invalid versions. Workflow contract tests require the composition decision
-and require upload, deployment, preflight, and remote verification to share its guard. Acceptance still requires the
-public stable envelope, every current and recovery package, and every product-site object to match the exact expected
-bytes with redirects disabled.
+Unit tests cover matching, mismatching, and invalid versions; immutable Release sourcing; predecessor recovery-package
+sourcing; same-sequence byte preservation; monotonic advancement; and replay rejection. Workflow contract tests
+require the composition decision and require upload, deployment, preflight, and remote verification to share its
+guard. Acceptance still requires the public stable envelope, every current and recovery package, and every product-site
+object to match the exact expected bytes with redirects disabled.

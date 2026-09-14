@@ -6,6 +6,8 @@ import { relativeFiles } from "./pages-artifact.mjs";
 import { publicOrigin } from "./public-origin.mjs";
 
 const canonicalPagesUrl = publicOrigin;
+const semanticVersion =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 function publicUrl(baseUrl, relativePath) {
   return new URL(relativePath.split(path.sep).join("/"), baseUrl).toString();
@@ -34,6 +36,26 @@ function updateFiles(pagesDirectory) {
   return relativeFiles(pagesDirectory).filter((file) => file.startsWith(`updates${path.sep}`));
 }
 
+function stableIdentity(bytes, boundary) {
+  try {
+    const envelope = JSON.parse(bytes.toString("utf8"));
+    const payloadBase64 = envelope?.fitfreed?.payloadBase64;
+    if (typeof payloadBase64 !== "string" || Buffer.from(payloadBase64, "base64").toString("base64") !== payloadBase64) {
+      throw new Error("invalid payload");
+    }
+    const payload = JSON.parse(Buffer.from(payloadBase64, "base64").toString("utf8"));
+    if (!Number.isSafeInteger(payload?.sequence) || payload.sequence < 1) {
+      throw new Error("invalid sequence");
+    }
+    if (!semanticVersion.test(payload?.release?.version ?? "")) {
+      throw new Error("invalid version");
+    }
+    return { sequence: payload.sequence, version: payload.release.version };
+  } catch {
+    throw new Error(`${boundary} stable update identity is invalid`);
+  }
+}
+
 export async function preflightPagesPublication({
   baseUrl = canonicalPagesUrl,
   pagesDirectory,
@@ -53,20 +75,38 @@ export async function preflightPagesPublication({
     throw new Error("product publication would erase the active update snapshot");
   }
 
+  const localStableBytes = readFileSync(localStablePath);
+  const remoteStableBytes = Buffer.from(await remoteStable.arrayBuffer());
+  if (!remoteStableBytes.equals(localStableBytes)) {
+    const local = stableIdentity(localStableBytes, "local");
+    const remote = stableIdentity(remoteStableBytes, "remote");
+    if (local.sequence <= remote.sequence) {
+      throw new Error("product publication would replace or replay the active update snapshot");
+    }
+    return {
+      localUpdateSnapshot: true,
+      remoteUpdateSnapshot: true,
+      updateAction: "advance",
+      localSequence: local.sequence,
+      remoteSequence: remote.sequence,
+    };
+  }
+
   const localUpdateFiles = updateFiles(pagesDirectory);
   for (const relativePath of localUpdateFiles) {
     const url = publicUrl(baseUrl, relativePath);
     const expectedBytes = readFileSync(path.join(pagesDirectory, relativePath));
     if (relativePath.endsWith(path.join("updates", "stable.json"))) {
-      const actualBytes = Buffer.from(await remoteStable.arrayBuffer());
-      if (!actualBytes.equals(expectedBytes)) {
-        throw new Error("product publication would replace the active update snapshot");
-      }
+      if (!remoteStableBytes.equals(expectedBytes)) throw new Error("active update snapshot changed during preflight");
     } else {
       await exactRemoteBytes(fetchImpl, url, expectedBytes);
     }
   }
-  return { localUpdateSnapshot: true, remoteUpdateSnapshot: true };
+  return {
+    localUpdateSnapshot: true,
+    remoteUpdateSnapshot: true,
+    updateAction: "preserve",
+  };
 }
 
 async function verifyPublishedPagesOnce({ baseUrl, pagesDirectory, fetchImpl }) {

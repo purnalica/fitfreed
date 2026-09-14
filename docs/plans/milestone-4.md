@@ -235,8 +235,10 @@ converge on those exact bytes.
 
 - **Current recovery boundary:** keep the immutable 0.1.12 Release and retained candidate unchanged. A focused
   workflow correction makes the product-site deployment conditional on source version matching the latest immutable
-  public Release. The correction revision may therefore deploy the authenticated 0.1.12 snapshot under a distinct
-  Pages identity. After public bytes converge, rerun only `verify-publication` from workflow `34830250376`.
+  public Release and reconstructs the update snapshot exclusively from immutable Release assets. The first correction
+  run `34844996541` stopped before deployment because the older compositor still tried to source those bytes from the
+  stale Pages origin. The complete correction may deploy the authenticated 0.1.12 snapshot under a distinct Pages
+  identity. After public bytes converge, rerun only `verify-publication` from workflow `34830250376`.
 - **No-repeat boundary:** exact CI, native Linux construction, Apple signing and notarization, candidate composition,
   both Ubuntu admission rows, product E2E, package recovery, provenance, and immutable publication already passed for
   0.1.12 and are not repeated.
