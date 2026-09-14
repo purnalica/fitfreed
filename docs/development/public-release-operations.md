@@ -3,7 +3,7 @@
 ## Status and authority
 
 This is the maintainer runbook for the active FitFreed public macOS channel and each later complete-platform
-expansion. The macOS workflow published 0.1.7; version 0.1.11 is assigned to the gated Linux expansion, and the Windows
+expansion. The macOS workflow published 0.1.7; version 0.1.12 is assigned to the gated Linux expansion, and the Windows
 expansion remains gated behind that immutable predecessor. A
 workflow becomes operative only after the applicable readiness ledger records its production trust roots,
 native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes

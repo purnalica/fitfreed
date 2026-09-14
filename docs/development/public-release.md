@@ -6,7 +6,7 @@ FitFreed 0.1.7 is the first immutable public release. Protected workflow
 [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the exact admitted
 Developer ID-signed and Apple-notarized macOS candidate, source-bound evidence, localized product site, and signed
 stable update snapshot, then remotely verified every public byte and provenance boundary. The checked-in update
-configuration contains the active `stable.primary-1` trust key. The proposed 0.1.11 Linux expansion advances that
+configuration contains the active `stable.primary-1` trust key. The proposed 0.1.12 Linux expansion advances that
 configuration to recovery-capable stable-v3 and assigns the exact 0.1.7 macOS predecessor. Its independent
 `release.primary-1` release-checksum public trust is active after the external key ceremony; the private authority
 and its separately held password remain confined to the protected release environment. No private updater, Apple,
@@ -128,9 +128,12 @@ native Linux construction, protected signing and notarization, candidate reopeni
 24.04 admission. Its Ubuntu 26.04 row installed and started the exact Debian member, but the fixed ten-second
 installation smoke observer expired while the hosted desktop services were still activating. That observer checks
 bounded availability; the following 100-process p95 budget checks product performance. Current source gives the
-former thirty seconds while preserving the latter at p95 `2,500 ms` and ten seconds per measured process. A
-secret-free diagnostic can select Ubuntu 24.04 or 26.04 and reopen the exact retained candidate before any successor
-is prepared. The public `v0.1.11` tag remains fixed and unpublished.
+former thirty seconds while preserving the latter at p95 `2,500 ms` and ten seconds per measured process. Read-only
+diagnostic [run `34827996617`](https://github.com/purnalica/fitfreed/actions/runs/34827996617) reopened the exact retained
+candidate on Ubuntu 26.04 and observed its interactive shell in `9,338.862 ms`; hosted desktop startup and setup
+accounted for `8,821.798 ms`, while the renderer locale and interactive signal required `297 ms`. This admits the
+corrected availability observer without weakening the separate product-performance contract. The public `v0.1.11`
+tag remains fixed and unpublished; source-bound provenance requires its corrected successor to be 0.1.12.
 
 An externally held G2 Developer ID Application identity has a valid Apple trust chain. Its non-secret exact
 certificate fingerprint and expected Apple team identifier are configured in `public-macos-release`; its exportable

@@ -98,8 +98,8 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <details data-status="active" open>
 <summary><strong>Work in progress — Cross-platform MVP delivery</strong></summary>
 <ul>
-<li>FitFreed 0.1.7 is the supported public Apple Silicon macOS baseline; version 0.1.11 is assigned to the complete macOS-plus-Linux expansion</li>
-<li>The Ubuntu Desktop 24.04 and 26.04 x86-64 Debian package and production checksum authority are implemented; public 0.1.11 still requires exact-candidate admission</li>
+<li>FitFreed 0.1.7 is the supported public Apple Silicon macOS baseline; version 0.1.12 is assigned to the complete macOS-plus-Linux expansion</li>
+<li>The Ubuntu Desktop 24.04 and 26.04 x86-64 Debian package and production checksum authority are implemented; public 0.1.12 still requires exact-candidate admission</li>
 <li>Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists</li>
 </ul>
 <p><a href="docs/roadmap.md#milestone-map">Cross-platform delivery roadmap →</a></p>
