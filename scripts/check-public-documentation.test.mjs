@@ -45,9 +45,10 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
   candidate.documents[operationsPath] = candidate.documents[operationsPath]
     .replaceAll("GitHub-hosted x86-64 Windows", "a Windows host")
     .replaceAll("FITFREED_SIGNPATH_API_TOKEN", "WINDOWS_SIGNING_TOKEN")
+    .replaceAll("windows-inner-binaries", "inner-signing")
     .replaceAll("complete-platform manifest version 7", "the release manifest")
     .replaceAll("Windows Authenticode certificate rotation", "certificate maintenance")
-    .replace(/earlier local-certificate workflow\s+is inactive/gi, "legacy workflow is active");
+    .replace(/earlier local-certificate workflow\s+has been removed/gi, "legacy workflow is active");
   candidate.documents[architecturePath] = candidate.documents[architecturePath]
     .replaceAll("manifest version 7", "the complete manifest")
     .replaceAll("Windows Authenticode authority", "Windows build authority")
@@ -65,9 +66,10 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
     (error) => {
       assert.match(error.message, /operations does not document SignPath build-host boundary/);
       assert.match(error.message, /operations does not document SignPath submission authority/);
+      assert.match(error.message, /operations does not document SignPath artifact configurations/);
       assert.match(error.message, /operations does not document complete Windows candidate contract/);
       assert.match(error.message, /operations does not document Windows certificate rotation procedure/);
-      assert.match(error.message, /operations does not document inactive legacy Windows workflow boundary/);
+      assert.match(error.message, /operations does not document removed legacy Windows workflow boundary/);
       assert.match(error.message, /releaseArchitecture does not document complete Windows manifest/);
       assert.match(error.message, /releaseArchitecture does not document separate Windows signing authority/);
       assert.match(error.message, /releaseArchitecture does not document inactive Windows workflow boundary/);

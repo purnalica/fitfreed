@@ -53,12 +53,12 @@ export function validateWindowsPublicSigningOverlay(config) {
   if (commandFields.length > 0) {
     errors.push(`Windows public signing overlay has unexpected command fields: ${commandFields.join(", ")}`);
   }
-  const expectedArguments = ["../scripts/windows-authenticode-sign.mjs", "%1"];
+  const expectedArguments = ["../scripts/windows-signpath-nsis-bridge.mjs", "%1"];
   if (
     signCommand.cmd !== "node"
     || JSON.stringify(signCommand.args) !== JSON.stringify(expectedArguments)
   ) {
-    errors.push("Windows public signing overlay must use the exact signing command");
+    errors.push("Windows public signing overlay must use the exact SignPath packaging bridge");
   }
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return { arguments: expectedArguments, command: "node" };

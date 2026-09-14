@@ -5,15 +5,17 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  copyFileSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
 import {
+  prepareWindowsExpansionInput,
   stageWindowsExpansionInput,
+  validateWindowsSignPathSetup,
   verifyWindowsExpansionInput,
-  windowsExpansionNpmInvocation,
 } from "./prepare-windows-expansion-input.mjs";
 import { createWindowsExpansionInputFixture } from "./test-support/windows-expansion-input.mjs";
 
@@ -38,22 +40,156 @@ function verify(input, overrides = {}) {
   });
 }
 
-test("invokes Windows expansion build scripts without a command shim", () => {
-  assert.deepEqual(
-    windowsExpansionNpmInvocation(
-      ["run", "audit:dependencies"],
-      { npm_execpath: "C:\\toolchain\\npm-cli.js" },
-      "win32",
-      "C:\\toolchain\\node.exe",
-    ),
-    {
-      arguments: [
-        "C:\\toolchain\\npm-cli.js",
-        "run",
-        "audit:dependencies",
-      ],
-      program: "C:\\toolchain\\node.exe",
+function signedSetupTrust(input, overrides = {}) {
+  return {
+    architecture: "x86_64",
+    certificateSha256: input.authenticodeCertificateSha256,
+    fileDescription: "FitFreed",
+    fileSha256: input.packageSha256,
+    fileVersion: input.version,
+    productName: "FitFreed",
+    productVersion: input.version,
+    schemaVersion: 1,
+    status: "Valid",
+    timestamped: true,
+    ...overrides,
+  };
+}
+
+function prepareFixture(context) {
+  const input = createWindowsExpansionInputFixture();
+  context.after(() => rmSync(input.root, { force: true, recursive: true }));
+  const signedSetupDirectory = path.join(input.root, "signed-setup");
+  mkdirSync(signedSetupDirectory);
+  const signedSetupPath = path.join(signedSetupDirectory, input.packageName);
+  copyFileSync(input.packagePath, signedSetupPath);
+  const packageSha256 = input.packageSha256;
+  return { ...input, packageSha256, signedSetupDirectory, signedSetupPath };
+}
+
+test("admits only the exact timestamped setup returned by SignPath", (context) => {
+  const input = prepareFixture(context);
+  const calls = [];
+
+  assert.deepEqual(validateWindowsSignPathSetup({
+    certificateSha256: input.authenticodeCertificateSha256,
+    directory: input.signedSetupDirectory,
+    inspect: (options) => {
+      calls.push(options);
+      return signedSetupTrust(input);
     },
+    platform: "win32",
+    signToolPath: "C:\\Windows Kits\\signtool.exe",
+    version: input.version,
+  }), {
+    packageName: input.packageName,
+    packagePath: input.signedSetupPath,
+    packageSha256: input.packageSha256,
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].signatureOnly, false);
+  assert.equal(calls[0].requireTimestamp, true);
+
+  writeFileSync(path.join(input.signedSetupDirectory, "unexpected.txt"), "unexpected");
+  assert.throws(
+    () => validateWindowsSignPathSetup({
+      certificateSha256: input.authenticodeCertificateSha256,
+      directory: input.signedSetupDirectory,
+      inspect: () => signedSetupTrust(input),
+      platform: "win32",
+      signToolPath: "C:\\Windows Kits\\signtool.exe",
+      version: input.version,
+    }),
+    /must contain exactly/,
+  );
+  assert.throws(
+    () => validateWindowsSignPathSetup({
+      certificateSha256: "INVALID",
+      directory: input.signedSetupDirectory,
+      inspect: () => assert.fail("inspection must not start"),
+      platform: "win32",
+      signToolPath: "C:\\Windows Kits\\signtool.exe",
+      version: input.version,
+    }),
+    /lowercase SHA-256 certificate fingerprint/,
+  );
+});
+
+test("turns independently verified SignPath output into the exact native handoff", (context) => {
+  const input = prepareFixture(context);
+  const calls = [];
+  const result = prepareWindowsExpansionInput({
+    architecture: "x64",
+    assertSource: () => ({ revision: input.revision, sourceDateEpoch: "1788422400" }),
+    certificateSha256: input.authenticodeCertificateSha256,
+    environment: {},
+    generateInventory: (options) => {
+      calls.push(options);
+      const inventoryPath = path.join(
+        options.releaseDirectory,
+        `${input.packageName}.inventory.json`,
+      );
+      copyFileSync(input.inventoryPath, inventoryPath);
+      return { inventoryPath };
+    },
+    inspect: () => signedSetupTrust(input),
+    outputDirectory: input.outputDirectory,
+    platform: "win32",
+    readStorageSchema: () => 37,
+    signedSetupDirectory: input.signedSetupDirectory,
+    signToolPath: "C:\\Windows Kits\\signtool.exe",
+    updateConfiguration: input.updateConfiguration,
+    validateRelease: () => {},
+    version: input.version,
+  });
+
+  assert.deepEqual(verify(input), result);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].signatureProfile, "public-authenticode");
+  assert.equal(calls[0].certificateSha256, input.authenticodeCertificateSha256);
+  assert.equal(readdirSync(input.root).some((entry) => entry.includes(".inspection-")), false);
+});
+
+test("rejects invalid SignPath trust and overlapping output", (context) => {
+  const input = prepareFixture(context);
+  const options = {
+    architecture: "x64",
+    assertSource: () => ({ revision: input.revision, sourceDateEpoch: "1788422400" }),
+    certificateSha256: input.authenticodeCertificateSha256,
+    environment: {},
+    generateInventory: () => { throw new Error("must not inspect an untrusted setup"); },
+    outputDirectory: input.outputDirectory,
+    platform: "win32",
+    readStorageSchema: () => 37,
+    signedSetupDirectory: input.signedSetupDirectory,
+    signToolPath: "C:\\Windows Kits\\signtool.exe",
+    updateConfiguration: input.updateConfiguration,
+    validateRelease: () => {},
+    version: input.version,
+  };
+
+  assert.throws(
+    () => prepareWindowsExpansionInput({
+      ...options,
+      inspect: () => signedSetupTrust(input, { timestamped: false }),
+    }),
+    /trust does not bind/,
+  );
+  assert.throws(
+    () => prepareWindowsExpansionInput({
+      ...options,
+      inspect: () => signedSetupTrust(input),
+      outputDirectory: path.join(input.signedSetupDirectory, "nested"),
+    }),
+    /must not overlap/,
+  );
+  assert.throws(
+    () => prepareWindowsExpansionInput({
+      ...options,
+      inspect: () => signedSetupTrust(input),
+      signedSetupDirectory: undefined,
+    }),
+    /setup output directory is required/,
   );
 });
 

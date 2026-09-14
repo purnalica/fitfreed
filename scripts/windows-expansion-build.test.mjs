@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {
   existsSync,
-  linkSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -15,257 +15,202 @@ import test from "node:test";
 
 import {
   assertWindowsExpansionAuthoritySeparation,
-  buildWindowsExpansionInput,
-  verifyWindowsExpansionBuildOutput,
-  windowsExpansionInputBuildArguments,
+  prepareWindowsSignPathInner,
+  prepareWindowsSignPathSetup,
+  validateWindowsSignPathInner,
+  windowsSignPathBundleArguments,
 } from "./build-windows-expansion-input.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const packageJson = JSON.parse(readFileSync(path.join(repositoryRoot, "package.json"), "utf8"));
-const prepareSource = readFileSync(
-  path.join(repositoryRoot, "scripts/prepare-windows-expansion-input.mjs"),
-  "utf8",
-);
-
-const certificateSha1 = "1".repeat(40);
 const certificateSha256 = "2".repeat(64);
 const signToolPath = "C:\\Windows Kits\\10\\bin\\signtool.exe";
 
+function fixture(context) {
+  const root = mkdtempSync(path.join(tmpdir(), "fitfreed-windows-signpath-test-"));
+  context.after(() => rmSync(root, { force: true, recursive: true }));
+  const releaseExecutable = path.join(root, "release", "fitfreed.exe");
+  const releaseDirectory = path.join(root, "release", "bundle", "nsis");
+  const unsignedInner = path.join(root, "unsigned-inner");
+  const signedInner = path.join(root, "signed-inner");
+  const unsignedSetup = path.join(root, "unsigned-setup");
+  return {
+    releaseDirectory,
+    releaseExecutable,
+    root,
+    signedInner,
+    unsignedInner,
+    unsignedSetup,
+  };
+}
+
 function activeConfiguration() {
   return {
+    contract: "stable-v3",
     format: "org.fitfreed.public-update-configuration",
+    keys: [{ id: "stable-2026-1", publicKey: "A".repeat(44) }],
+    metadataEndpoint: "https://fitfreed.org/updates/stable.json",
     schemaVersion: 2,
     status: "active",
-    contract: "stable-v3",
-    metadataEndpoint: "https://fitfreed.org/updates/stable.json",
-    keys: [{ id: "stable-v3-primary", publicKey: "A".repeat(44) }],
   };
 }
 
-function publicEnvironment(overrides = {}) {
-  return {
-    FITFREED_WINDOWS_AUTHENTICODE_PROFILE: "public",
-    FITFREED_WINDOWS_CERTIFICATE_SHA1: certificateSha1,
-    FITFREED_WINDOWS_CERTIFICATE_SHA256: certificateSha256,
-    FITFREED_WINDOWS_SIGNTOOL_PATH: signToolPath,
-    FITFREED_WINDOWS_TIMESTAMP_URL: "https://timestamp.example.invalid/rfc3161",
-    ...overrides,
-  };
-}
-
-function fixture(context) {
-  const root = mkdtempSync(path.join(tmpdir(), "fitfreed-windows-expansion-test-"));
-  context.after(() => rmSync(root, { force: true, recursive: true }));
-  const setupName = "FitFreed_0.1.0_x64-setup.exe";
-  const setupPath = path.join(root, setupName);
-  writeFileSync(setupPath, "signed setup bytes");
-  return { root, setupName, setupPath };
-}
-
-test("uses public Authenticode without asking Tauri to create updater artifacts", () => {
+test("exposes separate commands for both SignPath packaging stages", () => {
   assert.equal(
-    packageJson.scripts["package:windows-expansion-input"],
-    "npm run icons && node scripts/build-windows-expansion-input.mjs",
+    packageJson.scripts["prepare:windows-signpath-inner"],
+    "npm run icons && node scripts/build-windows-expansion-input.mjs inner",
   );
   assert.equal(
-    packageJson.scripts["prepare:windows-expansion-input"],
-    "node scripts/prepare-windows-expansion-input.mjs",
+    packageJson.scripts["prepare:windows-signpath-setup"],
+    "node scripts/build-windows-expansion-input.mjs setup",
   );
-  assert.deepEqual(windowsExpansionInputBuildArguments([], "win32", "x64"), [
+  assert.deepEqual(windowsSignPathBundleArguments("win32", "x64"), [
     "--config",
     "src-tauri/tauri.windows.public-signing.conf.json",
     "--bundles",
     "nsis",
+    "--ci",
   ]);
-  assert.throws(
-    () => windowsExpansionInputBuildArguments([], "linux", "x64"),
-    /requires Windows/,
-  );
-  assert.throws(
-    () => windowsExpansionInputBuildArguments([], "win32", "arm64"),
-    /x86-64 Windows/,
-  );
-  assert.match(
-    prepareSource,
-    /runNpm\(\["run", "package:windows-expansion-input"\], environment\)/u,
-  );
-  assert.doesNotMatch(
-    prepareSource,
-    /runNpm\(\["run", "package:windows"\], environment\)/u,
-  );
+  assert.throws(() => windowsSignPathBundleArguments("linux", "x64"), /requires Windows/);
+  assert.throws(() => windowsSignPathBundleArguments("win32", "arm64"), /x86-64/);
 });
 
-test("builds with public channel trust and only the Authenticode authority", (context) => {
-  const releaseDirectory = path.join(
-    mkdtempSync(path.join(tmpdir(), "fitfreed-windows-expansion-build-test-")),
-    "nsis",
-  );
-  context.after(() => rmSync(path.dirname(releaseDirectory), { force: true, recursive: true }));
-  mkdirSync(releaseDirectory);
-  writeFileSync(path.join(releaseDirectory, "stale.exe"), "stale");
+test("builds one closed unsigned inner artifact and removes the disposable setup", (context) => {
+  const input = fixture(context);
   const calls = [];
-
-  const result = buildWindowsExpansionInput({
+  const result = prepareWindowsSignPathInner({
     architecture: "x64",
-    arguments_: ["--verbose"],
-    build: (options) => calls.push(options),
-    configuration: activeConfiguration(),
-    environment: publicEnvironment(),
-    isFile: () => true,
-    platform: "win32",
-    releaseDirectory,
-    verifyOutput: (options) => {
-      assert.equal(existsSync(path.join(releaseDirectory, "stale.exe")), false);
-      assert.equal(options.certificateSha256, certificateSha256);
-      assert.equal(options.signToolPath, signToolPath);
-      return { setupSha256: "a".repeat(64) };
+    assertSource: () => ({ revision: "a".repeat(40) }),
+    audit: () => calls.push("audit"),
+    build: (options) => {
+      calls.push({ build: options });
+      mkdirSync(path.dirname(input.releaseExecutable), { recursive: true });
+      writeFileSync(input.releaseExecutable, "unsigned application");
     },
+    bundle: (options) => {
+      calls.push({ bundle: options });
+      writeFileSync(
+        path.join(options.additionalEnvironment.FITFREED_SIGNPATH_INNER_DIRECTORY, "uninstall.exe"),
+        "unsigned uninstaller",
+      );
+      mkdirSync(input.releaseDirectory, { recursive: true });
+      writeFileSync(path.join(input.releaseDirectory, "discarded.exe"), "discarded setup");
+    },
+    configuration: activeConfiguration(),
+    outputDirectory: input.unsignedInner,
+    platform: "win32",
+    releaseDirectory: input.releaseDirectory,
+    releaseExecutable: input.releaseExecutable,
+    validateRelease: () => calls.push("release"),
+    version: "0.1.12",
   });
 
-  assert.deepEqual(result, { setupSha256: "a".repeat(64) });
-  assert.deepEqual(calls, [{
-    arguments_: [
-      "--config",
-      "src-tauri/tauri.windows.public-signing.conf.json",
-      "--bundles",
-      "nsis",
-      "--verbose",
-    ],
-    publicUpdateEnvironment: {
-      FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v3",
-      FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://fitfreed.org/updates/stable.json",
-      FITFREED_PUBLIC_UPDATE_TRUST: JSON.stringify({
-        "stable-v3-primary": "A".repeat(44),
-      }),
-    },
-  }]);
-});
-
-test("rejects inactive channel trust and any updater signing authority", () => {
-  assert.throws(
-    () => assertWindowsExpansionAuthoritySeparation({
-      TAURI_SIGNING_PRIVATE_KEY_PATH: "forbidden",
-    }),
-    /must not receive updater signing authority/,
-  );
-  assert.throws(
-    () => buildWindowsExpansionInput({
-      architecture: "x64",
-      build: () => assert.fail("build must not run"),
-      configuration: activeConfiguration(),
-      environment: publicEnvironment({ TAURI_SIGNING_PRIVATE_KEY: "forbidden" }),
-      isFile: () => true,
-      platform: "win32",
-    }),
-    /must not receive updater signing authority/,
-  );
-  assert.throws(
-    () => buildWindowsExpansionInput({
-      architecture: "x64",
-      build: () => assert.fail("build must not run"),
-      configuration: { ...activeConfiguration(), status: "inactive", keys: [] },
-      environment: publicEnvironment(),
-      isFile: () => true,
-      platform: "win32",
-    }),
-    /public update channel is inactive/,
+  assert.deepEqual(readdirSync(input.unsignedInner).sort(), ["fitfreed.exe", "uninstall.exe"]);
+  assert.equal(existsSync(input.releaseDirectory), false);
+  assert.equal(result.profile, "signpath-unsigned-inner");
+  assert.equal(calls[0], "release");
+  assert.equal(calls[1], "audit");
+  assert.deepEqual(calls[2].build.arguments_, ["--no-bundle", "--no-sign", "--ci"]);
+  assert.equal(
+    calls[3].bundle.additionalEnvironment.FITFREED_SIGNPATH_BRIDGE_MODE,
+    "capture-uninstaller",
   );
 });
 
-test("removes unverified output after a build or trust failure", (context) => {
-  const releaseDirectory = path.join(
-    mkdtempSync(path.join(tmpdir(), "fitfreed-windows-expansion-failure-test-")),
-    "nsis",
-  );
-  context.after(() => rmSync(path.dirname(releaseDirectory), { force: true, recursive: true }));
-
-  assert.throws(
-    () => buildWindowsExpansionInput({
-      architecture: "x64",
-      build: () => {
-        mkdirSync(releaseDirectory, { recursive: true });
-        writeFileSync(path.join(releaseDirectory, "partial.exe"), "partial");
-      },
-      configuration: activeConfiguration(),
-      environment: publicEnvironment(),
-      isFile: () => true,
-      platform: "win32",
-      releaseDirectory,
-      verifyOutput: () => { throw new Error("candidate trust failed"); },
-    }),
-    /candidate trust failed/,
-  );
-  assert.equal(existsSync(releaseDirectory), false);
-});
-
-test("admits only one exact final setup", (context) => {
-  const { root, setupName, setupPath } = fixture(context);
-  const setupSha256 = createHash("sha256").update(readFileSync(setupPath)).digest("hex");
+test("verifies returned inner signatures and builds one unsigned setup", (context) => {
+  const input = fixture(context);
+  mkdirSync(path.dirname(input.releaseExecutable), { recursive: true });
+  mkdirSync(input.unsignedInner);
+  mkdirSync(input.signedInner);
+  writeFileSync(input.releaseExecutable, "unsigned application");
+  writeFileSync(path.join(input.unsignedInner, "fitfreed.exe"), "unsigned application");
+  writeFileSync(path.join(input.unsignedInner, "uninstall.exe"), "unsigned uninstaller");
+  writeFileSync(path.join(input.signedInner, "fitfreed.exe"), "signed application");
+  writeFileSync(path.join(input.signedInner, "uninstall.exe"), "signed uninstaller");
   const inspections = [];
-  const result = verifyWindowsExpansionBuildOutput({
+
+  const result = prepareWindowsSignPathSetup({
     architecture: "x64",
+    assertSource: () => ({ revision: "a".repeat(40) }),
+    bundle: (options) => {
+      assert.equal(readFileSync(input.releaseExecutable, "utf8"), "signed application");
+      assert.equal(
+        options.additionalEnvironment.FITFREED_SIGNPATH_BRIDGE_MODE,
+        "inject-signed-inner",
+      );
+      mkdirSync(input.releaseDirectory, { recursive: true });
+      writeFileSync(
+        path.join(input.releaseDirectory, "FitFreed_0.1.12_x64-setup.exe"),
+        "unsigned setup with signed inner binaries",
+      );
+    },
     certificateSha256,
     inspect: (options) => {
       inspections.push(options);
-      return { fileSha256: setupSha256 };
+      return {
+        certificateSha256,
+        fileSha256: createHash("sha256")
+          .update(readFileSync(options.binaryPath))
+          .digest("hex"),
+        timestamped: true,
+      };
     },
+    outputDirectory: input.unsignedSetup,
     platform: "win32",
-    releaseDirectory: root,
+    releaseDirectory: input.releaseDirectory,
+    releaseExecutable: input.releaseExecutable,
+    signedInnerDirectory: input.signedInner,
     signToolPath,
-    version: "0.1.0",
+    unsignedInnerDirectory: input.unsignedInner,
+    validateRelease: () => {},
+    version: "0.1.12",
   });
 
-  assert.deepEqual(result, { setup: setupName, setupSha256 });
-  assert.equal(inspections[0].binaryPath, setupPath);
-  assert.equal(inspections[0].requireTimestamp, true);
+  assert.deepEqual(readdirSync(input.unsignedSetup), ["FitFreed_0.1.12_x64-setup.exe"]);
+  assert.equal(result.profile, "signpath-unsigned-setup");
+  assert.equal(inspections.length, 2);
   assert.equal(inspections[0].signatureOnly, false);
-
-  const externalLink = `${root}-linked.exe`;
-  linkSync(setupPath, externalLink);
-  try {
-    assert.throws(
-      () => verifyWindowsExpansionBuildOutput({
-        architecture: "x64",
-        certificateSha256,
-        inspect: () => ({ fileSha256: setupSha256 }),
-        platform: "win32",
-        releaseDirectory: root,
-        signToolPath,
-        version: "0.1.0",
-      }),
-      /singly linked/,
-    );
-  } finally {
-    rmSync(externalLink, { force: true });
-  }
+  assert.equal(inspections[1].signatureOnly, true);
 });
 
-test("rejects extra output and trust that does not bind the setup bytes", (context) => {
-  const { root } = fixture(context);
-  writeFileSync(path.join(root, "unexpected.sig"), "unexpected");
+test("rejects signing authority, incomplete artifacts, and untrusted SignPath output", (context) => {
   assert.throws(
-    () => verifyWindowsExpansionBuildOutput({
-      architecture: "x64",
-      certificateSha256,
-      inspect: () => ({ fileSha256: "f".repeat(64) }),
-      platform: "win32",
-      releaseDirectory: root,
-      signToolPath,
-      version: "0.1.0",
-    }),
-    /only the exact setup/,
+    () => assertWindowsExpansionAuthoritySeparation({ TAURI_SIGNING_PRIVATE_KEY: "forbidden" }),
+    /updater signing authority/,
   );
-  rmSync(path.join(root, "unexpected.sig"));
   assert.throws(
-    () => verifyWindowsExpansionBuildOutput({
-      architecture: "x64",
+    () => assertWindowsExpansionAuthoritySeparation({ FITFREED_WINDOWS_CERTIFICATE_BASE64: "forbidden" }),
+    /local Authenticode authority/,
+  );
+  assert.throws(
+    () => assertWindowsExpansionAuthoritySeparation({ FITFREED_SIGNPATH_API_TOKEN: "forbidden" }),
+    /SignPath request authority/,
+  );
+
+  const input = fixture(context);
+  mkdirSync(input.signedInner);
+  writeFileSync(path.join(input.signedInner, "fitfreed.exe"), "signed application");
+  assert.throws(
+    () => validateWindowsSignPathInner({
       certificateSha256,
-      inspect: () => ({ fileSha256: "f".repeat(64) }),
+      directory: input.signedInner,
+      inspect: () => assert.fail("inspection must not start"),
       platform: "win32",
-      releaseDirectory: root,
       signToolPath,
-      version: "0.1.0",
+      version: "0.1.12",
     }),
-    /digest/,
+    /exactly the application and uninstaller/,
+  );
+  writeFileSync(path.join(input.signedInner, "uninstall.exe"), "signed uninstaller");
+  assert.throws(
+    () => validateWindowsSignPathInner({
+      certificateSha256: "INVALID",
+      directory: input.signedInner,
+      inspect: () => assert.fail("inspection must not start"),
+      platform: "win32",
+      signToolPath,
+      version: "0.1.12",
+    }),
+    /lowercase SHA-256 certificate fingerprint/,
   );
 });

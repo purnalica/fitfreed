@@ -41,7 +41,7 @@ test("resolves JavaScript package binaries without platform-specific npm shims",
 test("runs npm through its JavaScript CLI on Windows without a command shim", () => {
   assert.deepEqual(
     npmCliInvocation(
-      ["run", "package:windows-expansion-input"],
+      ["run", "prepare:windows-signpath-inner"],
       "win32",
       "C:\\toolchain\\node_modules\\npm\\bin\\npm-cli.js",
       "C:\\toolchain\\node.exe",
@@ -50,7 +50,7 @@ test("runs npm through its JavaScript CLI on Windows without a command shim", ()
       arguments: [
         "C:\\toolchain\\node_modules\\npm\\bin\\npm-cli.js",
         "run",
-        "package:windows-expansion-input",
+        "prepare:windows-signpath-inner",
       ],
       program: "C:\\toolchain\\node.exe",
     },

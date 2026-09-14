@@ -115,15 +115,31 @@ export function buildProductionPackage({
   arguments_ = process.argv.slice(2),
   publicUpdateEnvironment = {},
 } = {}) {
+  runProductionTauri({
+    arguments_,
+    command: "build",
+    publicUpdateEnvironment,
+  });
+}
+
+function runProductionTauri({
+  additionalEnvironment = {},
+  arguments_,
+  command,
+  publicUpdateEnvironment,
+}) {
   const revision = git(["rev-parse", "HEAD"]);
   const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
   const identity = productionBuildIdentity(revision, status);
   execFileSync(
     process.execPath,
-    [nodePackageScriptPath("@tauri-apps/cli", "tauri"), "build", ...arguments_],
+    [nodePackageScriptPath("@tauri-apps/cli", "tauri"), command, ...arguments_],
     {
       cwd: repositoryRoot,
-      env: productionBuildEnvironment(process.env, identity, publicUpdateEnvironment),
+      env: {
+        ...productionBuildEnvironment(process.env, identity, publicUpdateEnvironment),
+        ...additionalEnvironment,
+      },
       stdio: "inherit",
     },
   );
@@ -133,6 +149,19 @@ export function buildProductionPackage({
   ) {
     throw new Error("source changed while the production package was being built");
   }
+}
+
+export function bundleProductionPackage({
+  additionalEnvironment,
+  arguments_ = process.argv.slice(2),
+  publicUpdateEnvironment = {},
+} = {}) {
+  runProductionTauri({
+    additionalEnvironment,
+    arguments_,
+    command: "bundle",
+    publicUpdateEnvironment,
+  });
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

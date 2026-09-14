@@ -11,7 +11,7 @@ disposable native runners, exact-candidate execution, bounded human acceptance, 
 | Field | Boundary |
 |---|---|
 | Acceptance outcome | Integrate SignPath as the production Authenticode authority for the exact Windows NSIS release input, then admit the returned setup and installed binaries through the existing trusted-chain, timestamp, digest, identity, installation, removal, and clean Windows 11 gates. |
-| Exact evidence | Hosted Windows package construction, installation, capability, update-recovery, performance, filesystem-recovery, and data-scale evidence is already accepted below. The repository already separates native Authenticode authority from updater signing and rejects any public Windows input that is not signed, timestamped, and bound to the admitted certificate. SignPath account, project, policy, and repository integration evidence does not yet exist. |
+| Exact evidence | Hosted Windows package construction, installation, capability, update-recovery, performance, filesystem-recovery, and data-scale evidence is already accepted below. The repository now implements the pinned two-request SignPath path, separates native Authenticode authority from updater signing, and rejects any public Windows input that is not signed, timestamped, and bound to the admitted certificate. SignPath acceptance, external project and policy configuration, exact hosted execution, and real signed-response evidence do not yet exist. |
 | Causal hypothesis | SignPath can replace local PFX handling at the authority boundary while leaving public-candidate composition and admission fail-closed. The integration must submit exact source-bound bytes, authenticate the returned bytes and signing policy, and prevent an untrusted workflow or branch from requesting a production signature. |
 | Smallest falsifying test | Repository contracts must reject any SignPath workflow that can sign from an untrusted trigger, mutable action, unreviewed project or policy identifier, or publication-capable job. Returned setup bytes must still fail unless the existing independent Authenticode inspector verifies the admitted certificate, RFC 3161 timestamp, exact digest, product identity, installed executable, and uninstaller. |
 | Allowed change | Update this plan and the Windows release-delivery documentation; add only the SignPath request/retrieval boundary, protected configuration contract, focused workflow checks, and operational documentation required to feed the existing Windows public-input and admission pipeline. Preserve application behavior, updater authority, accepted native and E2E evidence, performance budgets, platform claims, and release topology. Do not retain or publish a synthetic complete installer. |
@@ -35,11 +35,11 @@ disposable native runners, exact-candidate execution, bounded human acceptance, 
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | Complete | Exact source `ae59828` uses the package-only scope in [hosted run `34060294715`](https://github.com/purnalica/fitfreed/actions/runs/34060294715): it reuses accepted Windows host evidence, builds the release-shaped NSIS package, accepts the complete native install-inventory-remove lifecycle, records exact successful host evidence, and skips every packaged E2E campaign. The preceding rejected run `34059108525` and focused contracts establish the PowerShell 5.1 sort-key cause and correction without weakening byte-order validation. |
-| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, fail-closed Authenticode signer and inspector, synthetic authority-cleanup campaign, protected non-exportable public-authority lifecycle, authority-separated three-file Windows expansion input, digest-bound transport, version 7 three-platform release contract, authority-separated candidate composition, and independent complete-candidate reopening are implemented and verified at their applicable local or hosted engineering boundaries. Native package installation, inventory, removal, and data preservation pass in run `34060294715`; production Authenticode authority and exact Windows 11 trust remain open M5.6 gates. |
+| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source-build, dual-profile clean installation/removal and inventory, independent Authenticode inspector, two-stage SignPath packaging bridge, pinned GitHub request boundary, authority-separated three-file Windows expansion input, digest-bound transport, version 7 release contract, candidate composition, and complete-candidate reopening are implemented and verified at their applicable local or hosted engineering boundaries. Native package installation, inventory, removal, and data preservation pass in run `34060294715`; SignPath acceptance, one real dual-request execution, and exact Windows 11 trust remain open M5.6 gates. |
 | M5.2 Windows-native update recovery | Complete | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, distinguish installer failure from an invalid resulting native identity, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, confirmation requires the exact leased target installation and library, restoration atomically recovers the verified source pair with a closed three-attempt failure policy, and terminal maintenance validates the complete pair before durable receipt and cleanup. Exact source `fb802e6` propagates the authenticated installed target through runnable-fallback confirmation while retaining ordinary platform resolution. Focused [run `34296638466`](https://github.com/purnalica/fitfreed/actions/runs/34296638466) passes all six native prerequisites and all six release-shaped scenarios: successful replacement, installer failure, candidate failure, recovery retry, recovery exhaustion, and restart resumption. It preserves locale and library pairing, never contacts closed update transport, exposes bounded intervention only when required, reaches the expected installed version, and completes terminal acknowledgement and cleanup. This closes hosted Windows Server recovery engineering; exact signed Windows 11 candidate acceptance remains an M5.6 gate. |
 | M5.3 Packaged capability parity | In progress | Exact source `b94a8f4` builds and installs the isolated Linux and Windows packages and passes both exhaustive functional journeys, process restarts, adaptive session composition and restart, sport-catalogue recognition and restart, and Insights interaction and responsiveness budgets. The same source passes the complete packaged macOS campaign. The hosted engineering parity boundary is closed; exact Windows 11 candidate and human acceptance remain open. |
 | M5.4 Windows performance and reliability admission | Complete | Exact source `43b04ff` and [run `34315586139`](https://github.com/purnalica/fitfreed/actions/runs/34315586139) accept 100 installed fresh-data launches at p95 `2,175.046 ms` against `2,500 ms`. Exact descendant `23b0f1e` and [recovery-and-data run `34334118449`](https://github.com/purnalica/fitfreed/actions/runs/34334118449) reopen that package evidence, skip its build and cold-launch campaign, and pass native NTFS disk-exhaustion recovery plus every full-scale import, exact-repeat, reimport, dense-history, concurrent-navigation, Insights, report-export, memory, and database-size budget. This closes the hosted Windows Server 2025 engineering boundary without claiming the separate exact Windows 11 candidate gate in M5.6. |
-| M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the complete user lifecycle. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, destructive isolated gates, protected Authenticode input, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime; the exact packaged capability step in run `34031313078` exercises that platform-conditional help before its separate later update failure. One protected Apple Silicon command authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. Exact-candidate documentation evidence and download activation remain M5.6 gates. |
+| M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the complete user lifecycle. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, the two SignPath requests, exact external project configuration, destructive isolated gates, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime; the exact packaged capability step in run `34031313078` exercises that platform-conditional help before its separate later update failure. One protected Apple Silicon command authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. Exact-candidate documentation evidence and download activation remain M5.6 gates. |
 | M5.6 Exact candidate and promotion | In progress | The inactive manual Windows workflow, protected builder, complete-predecessor downloader, version 7 composition, exact Ubuntu and Windows 11 admission topology, distinct product-acceptance gate, separate promotion, immutable publication, and remote reconstruction are implemented and locally contract-tested. Bootstrap governance permits the same accountable maintainer to approve both protected decisions. Immutable public 0.1.12 satisfies the complete macOS-plus-Linux predecessor dependency. Production authorities and environments, disposable native runners, exact candidate execution, human acceptance, and publication remain open. |
 
 Exact descendant `8e0e67b` passes repository safety, product-site publication, the portable quality lane, and the
@@ -276,14 +276,10 @@ public trust contract.
 until a real candidate has a valid trusted chain, timestamp, expected publisher authority, matching version and target,
 and unchanged digest.
 
-The implemented signing boundary uses the authority-free
-`tauri.windows.public-signing.conf.json` overlay only when a protected candidate build explicitly selects it. The
-overlay contains the executable adapter and `%1` binary placeholder, not certificate or service identity. The adapter
-requires an explicit profile, absolute SignTool path, SHA-1 certificate-store selector, independently derived lowercase
-SHA-256 certificate fingerprint, and a credential-free HTTPS RFC 3161 endpoint for the public profile. It signs with
-SHA-256 and immediately invokes the independent Windows policy inspector. The inspector requires SignTool policy
-verification, a valid Windows Authenticode result, exact certificate fingerprint, timestamp when public, unchanged
-file digest, and—when inspecting a product binary—x86-64 PE architecture plus exact FitFreed name and version.
+The production signing boundary now uses two closed SignPath requests from GitHub-hosted Windows. The authority-free
+`tauri.windows.public-signing.conf.json` overlay contains only a local `%1` packaging bridge: it captures Tauri's
+generated NSIS uninstaller during the first build and substitutes the exact signed application and uninstaller during
+the final assembly. It contains no certificate, account, token, timestamp service, or signing implementation.
 
 The hosted synthetic campaign uses only the already built unsigned `fitfreed.exe`. It creates a non-exportable,
 short-lived self-signed certificate, trusts it only in the disposable current-user process boundary, signs and verifies
@@ -291,33 +287,27 @@ a temporary copy without a timestamp, proves the source binary is unchanged, and
 private key, environment values, and temporary directory before it can emit success. This proves orchestration and
 cleanup, not public publisher identity, timestamping, reputation, Windows 11 desktop behavior, or release authority.
 
-The protected public-authority lifecycle accepts one PFX and password only inside the x86-64 Windows install process,
-verifies its independently configured SHA-256 fingerprint and code-signing purpose, imports it without exportable key
-permission, discovers the x86-64 Windows SDK SignTool, and deletes the PFX immediately. It exposes only the five values
-required by the authority-free adapter. Cleanup removes the exact current-user certificate and private key and clears
-that process contract. Post-import validation failure cleans immediately; cleanup failure remains non-acceptable and
-preserves only its private runner-local retry state. This closes authority orchestration, not the external production
-certificate or exact supported-Windows-11 trust gate.
+The protected workflow uploads exactly `fitfreed.exe` and `uninstall.exe`, submits them through the immutable official
+SignPath GitHub action, and independently verifies the returned certificate, timestamp, identity, version, and digest.
+It then assembles exactly one unsigned NSIS setup from those verified binaries and submits that setup through a second
+artifact configuration. SignPath retains the private key; the GitHub job receives only the signed responses. Both
+requests require manual approval.
 
-[ADR 0045](../architecture/decisions/0045-separate-windows-native-and-updater-signing-authority.md) assigns
-`npm run package:windows-expansion-input` as the separate protected native-build entry point. It requires active
-recoverable `stable-v3` updater trust and the public timestamped Authenticode profile before removing stale NSIS
-output, but explicitly rejects updater private-key authority. It selects only the authority-free Authenticode overlay,
-embeds the public channel endpoint and trust set, builds only NSIS, rejects any output other than the exact setup, and
-independently reinspects the final setup bytes after packaging. The clean installation adapter then supports a public
-profile that inspects the setup and installed executable with full identity checks, inspects the installed uninstaller
-signature, binds all three trust results to their independently hashed bytes, and preserves the same removal and
-application-data boundary as the unsigned profile. A later protected complete-platform compositor signs those sealed
-setup bytes for the updater and binds them to stable metadata and provenance. This is implemented structure, not
-evidence that protected authority or a signed candidate exists.
+[ADR 0045](../architecture/decisions/0045-separate-windows-native-and-updater-signing-authority.md) continues to keep
+`stable-v3` updater authority outside native Authenticode signing. The three Windows entry points export the unsigned
+inner artifact, assemble the setup from verified signed inner files, and admit the setup returned by SignPath. Each
+rejects updater private keys, local Authenticode authority, and SignPath request authority outside the official action
+step. A later protected complete-platform compositor signs the unchanged sealed setup for the updater and binds it to
+stable metadata and provenance. This is implemented structure, not evidence that SignPath has accepted the project or
+that a production-signed candidate exists.
 
-The preparation boundary requires a clean source revision and composes dependency audit, protected native build,
-public-profile installation, complete installed-layout inventory, verified data-preserving removal, and atomic staging.
-Its closed handoff contains only the exact setup, inventory, and source-bound build evidence. The evidence binds their
-digests to version, revision, storage schema, Authenticode certificate fingerprint, and the ordered public updater trust
-identifiers embedded in the executable. It excludes all private authority and machine identity. Any unexpected file,
-link, digest, certificate, channel, version, revision, or schema mismatch rejects the handoff without replacing an
-existing directory.
+The final preparation boundary requires a clean source revision and a one-file SignPath response. It independently
+verifies the setup before composing the public-profile installation, complete installed-layout inventory, verified
+data-preserving removal, and atomic staging. Its closed handoff contains only the exact setup, inventory, and
+source-bound build evidence. The evidence binds their digests to version, revision, storage schema, Authenticode
+certificate fingerprint, and the ordered public updater trust identifiers embedded in the executable. It excludes all
+private authority and machine identity. Any unexpected file, link, digest, certificate, channel, version, revision, or
+schema mismatch rejects the handoff without replacing an existing directory.
 
 The transport commands reopen that input before packing, admit only its three exact archive entries, and expose one
 SHA-256 archive digest. Reopening validates the digest and archive layout before extraction, repeats every internal

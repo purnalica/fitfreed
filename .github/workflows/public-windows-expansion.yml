@@ -143,10 +143,10 @@ jobs:
           retention-days: 1
 
   build-windows-input:
-    name: Build and seal the native signed Windows input
+    name: Build, sign, and seal the native Windows input
     needs: preflight
-    runs-on: [self-hosted, Windows, X64, fitfreed-windows-11-builder]
-    timeout-minutes: 75
+    runs-on: windows-2025
+    timeout-minutes: 240
     environment: public-windows-release
     outputs:
       windows-input-sha256: ${{ steps.transport.outputs.windows_input_sha256 }}
@@ -154,6 +154,7 @@ jobs:
       windows-input-storage-schema: ${{ steps.prepare.outputs.windows_input_storage_schema }}
       windows-input-certificate-sha256: ${{ steps.prepare.outputs.windows_input_authenticode_certificate_sha256 }}
     permissions:
+      actions: read
       contents: read
 
     steps:
@@ -175,23 +176,91 @@ jobs:
       - name: Verify the Windows development environment
         run: npm run doctor
 
-      - name: Install ephemeral Windows Authenticode authority
+      - name: Build the exact unsigned inner binaries
         env:
-          FITFREED_WINDOWS_CERTIFICATE_BASE64: ${{ secrets.FITFREED_WINDOWS_CERTIFICATE_BASE64 }}
-          FITFREED_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.FITFREED_WINDOWS_CERTIFICATE_PASSWORD }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_SIGNPATH_UNSIGNED_INNER: .artifacts/windows-signpath/unsigned-inner
+        run: >-
+          npm run prepare:windows-signpath-inner --
+          "$env:FITFREED_VERSION"
+          "$env:FITFREED_SIGNPATH_UNSIGNED_INNER"
+
+      - name: Upload only the unsigned inner binaries
+        id: upload-unsigned-inner
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signpath-windows-inner-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/windows-signpath/unsigned-inner
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+      - name: Sign the application and uninstaller through SignPath
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2.3
+        with:
+          api-token: ${{ secrets.FITFREED_SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.FITFREED_SIGNPATH_ORGANIZATION_ID }}
+          project-slug: fitfreed
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: windows-inner-binaries
+          github-artifact-id: ${{ steps.upload-unsigned-inner.outputs.artifact-id }}
+          github-token: ${{ github.token }}
+          parameters: |
+            version: "${{ inputs.version }}"
+          wait-for-completion-timeout-in-seconds: "7200"
+          output-artifact-directory: .artifacts/windows-signpath/signed-inner
+
+      - name: Build the exact unsigned setup from signed inner binaries
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_SIGNPATH_UNSIGNED_INNER: .artifacts/windows-signpath/unsigned-inner
+          FITFREED_SIGNPATH_SIGNED_INNER: .artifacts/windows-signpath/signed-inner
+          FITFREED_SIGNPATH_UNSIGNED_SETUP: .artifacts/windows-signpath/unsigned-setup
           FITFREED_WINDOWS_CERTIFICATE_SHA256: ${{ vars.FITFREED_WINDOWS_CERTIFICATE_SHA256 }}
-          FITFREED_WINDOWS_TIMESTAMP_URL: ${{ vars.FITFREED_WINDOWS_TIMESTAMP_URL }}
-        run: npm run authority:windows-public-release -- install
+        run: >-
+          npm run prepare:windows-signpath-setup --
+          "$env:FITFREED_VERSION"
+          "$env:FITFREED_SIGNPATH_UNSIGNED_INNER"
+          "$env:FITFREED_SIGNPATH_SIGNED_INNER"
+          "$env:FITFREED_SIGNPATH_UNSIGNED_SETUP"
+
+      - name: Upload only the unsigned setup
+        id: upload-unsigned-setup
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signpath-windows-setup-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/windows-signpath/unsigned-setup
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+      - name: Sign the final setup through SignPath
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2.3
+        with:
+          api-token: ${{ secrets.FITFREED_SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.FITFREED_SIGNPATH_ORGANIZATION_ID }}
+          project-slug: fitfreed
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: windows-nsis-setup
+          github-artifact-id: ${{ steps.upload-unsigned-setup.outputs.artifact-id }}
+          github-token: ${{ github.token }}
+          parameters: |
+            version: "${{ inputs.version }}"
+          wait-for-completion-timeout-in-seconds: "7200"
+          output-artifact-directory: .artifacts/windows-signpath/signed-setup
 
       - name: Prepare the exact signed Windows input
         id: prepare
         env:
           FITFREED_VERSION: ${{ inputs.version }}
           FITFREED_WINDOWS_INPUT: .artifacts/windows-expansion/windows-input
+          FITFREED_SIGNPATH_SIGNED_SETUP: .artifacts/windows-signpath/signed-setup
+          FITFREED_WINDOWS_CERTIFICATE_SHA256: ${{ vars.FITFREED_WINDOWS_CERTIFICATE_SHA256 }}
         run: >-
           npm run prepare:windows-expansion-input --
           "$env:FITFREED_VERSION"
           "$env:FITFREED_WINDOWS_INPUT"
+          "$env:FITFREED_SIGNPATH_SIGNED_SETUP"
 
       - name: Seal the exact Windows input for protected composition
         id: transport
@@ -219,10 +288,6 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 1
-
-      - name: Remove ephemeral Windows Authenticode authority
-        if: always()
-        run: npm run authority:windows-public-release -- cleanup
 
   build-candidate:
     name: Compose the protected complete-platform candidate

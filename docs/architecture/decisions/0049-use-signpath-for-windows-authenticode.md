@@ -70,15 +70,17 @@ the SignPath Foundation open-source program.
   runner, and every input is uploaded as a GitHub workflow artifact before the pinned official SignPath action submits
   it.
 - The release workflow first builds the unsigned application and exports the NSIS uninstaller through a versioned
-  custom template. One exact archive containing only those two PE files is submitted to an artifact configuration
+  authority-free bridge connected to Tauri's standard uninstaller-signing hook. One exact archive containing only
+  those two PE files is submitted to an artifact configuration
   that enforces their names, FitFreed product metadata, and common version.
 - The returned archive is independently reopened. Both signed files must have the admitted certificate, RFC 3161
   timestamp, unchanged product identity, expected architecture where applicable, and exact requested version.
 - Final NSIS compilation imports the signed application and signed uninstaller without rebuilding either. The exact
   resulting setup is uploaded and submitted through a second, setup-specific artifact configuration.
-- The returned setup is independently inspected and installed on the separate supported Windows 11 admission host.
-  The setup, installed application, and installed uninstaller must all match their pre-install digests and the same
-  admitted certificate before the native input can be sealed.
+- The returned setup is independently inspected, installed, inventoried, and removed on the GitHub-hosted Windows
+  builder before the native input can be sealed. The setup, installed application, and installed uninstaller must all
+  match their pre-install digests and the same admitted certificate. The later complete candidate repeats native trust,
+  installation, removal, and launch admission on the separate supported Windows 11 host.
 - Each production SignPath request requires manual approval. The SignPath API token and organization identifier are
   protected environment inputs; stable project, policy, and artifact-configuration slugs are versioned workflow
   configuration and cannot be selected through dispatch.
@@ -105,7 +107,7 @@ the SignPath Foundation open-source program.
 - The Windows publisher shown by the operating system is SignPath Foundation rather than FitFreed or the project
   owner.
 - SignPath Foundation approval is external and may be delayed or refused.
-- The circular NSIS uninstaller dependency requires two signing requests and a versioned custom packaging sequence.
+- The circular NSIS uninstaller dependency requires two signing requests and a versioned packaging bridge.
 - Every production request needs manual approval, so a Windows release requires at least two SignPath approvals before
   FitFreed's separate candidate and publication approvals.
 - The existing Windows production workflow and PFX-oriented automation must be replaced rather than adapted in place.
@@ -116,8 +118,9 @@ the SignPath Foundation open-source program.
   substitute; macOS and Linux support continue independently.
 - A workflow could submit unrelated bytes. Origin verification, GitHub-hosted runner restrictions, exact artifact
   configurations, immutable action pins, protected identifiers, and independent digest inspection reject that path.
-- The exported and imported uninstallers could differ. The inner signing archive, returned-file digests, custom NSIS
-  template, installed layout inventory, and post-install comparison bind the same exact file across both stages.
+- The exported and imported uninstallers could differ. The inner signing archive, returned-file digests, standard
+  NSIS signing hook, packaging bridge, installed layout inventory, and post-install comparison bind the same exact file
+  across both stages.
 - A signed setup could hide unsigned inner code. Exact clean installation and independent signature inspection remain
   release blockers.
 - SignPath configuration could drift outside the repository. The workflow records only stable non-secret identifiers;

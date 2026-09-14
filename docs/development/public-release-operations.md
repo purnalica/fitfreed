@@ -148,6 +148,88 @@ the job, and destroy the execution environment. It is secret-free and has no pro
 
 Do not infer successful configuration from a workflow file or environment name. The secret-free preflight reads the GitHub APIs and rejects a missing or weaker control before the first protected job starts.
 
+## One-time SignPath configuration
+
+The external configuration is part of the release trust boundary. Apply through the
+[SignPath Foundation open-source program](https://signpath.org/apply.html), and do not enable the Windows workflow
+until the application has been accepted. After acceptance, configure the following exact identifiers; changing one
+requires a reviewed workflow and documentation change rather than a dispatch input:
+
+1. Add SignPath's predefined `GitHub.com` trusted build system to the organization, install the SignPath GitHub App
+   for `purnalica/fitfreed`, and link that trusted build system to the project.
+2. Create the project with name `FitFreed`, slug `fitfreed`, repository URL
+   `https://github.com/purnalica/fitfreed`, and the public code-signing policy from [`CODE_SIGNING.md`](../../CODE_SIGNING.md).
+3. Create a release-purpose signing policy with slug `release-signing`. Select the SignPath Foundation release
+   certificate, require the GitHub trusted build system and positive origin verification, and require one manual
+   approval. The bootstrap project owner is both the sole approver and the accountable release owner.
+4. Create a CI submitter restricted to that project and policy, then create its API token. Do not give the token
+   configuration, approval, certificate-management, or artifact-download authority beyond what request submission
+   requires.
+5. Create and activate the two artifact configurations below with the exact slugs shown. GitHub's artifact upload is
+   a ZIP, so both configurations deliberately use `zip-file` as their root. Review SignPath's generated graphical
+   representation before activation.
+
+Artifact configuration `windows-inner-binaries`:
+
+```xml
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="fitfreed.exe"
+             product-name="FitFreed"
+             product-version="${version}"
+             file-version="${version}">
+      <authenticode-sign hash-algorithm="sha256"
+                         description="FitFreed"
+                         description-url="https://fitfreed.org/" />
+    </pe-file>
+    <pe-file path="uninstall.exe">
+      <authenticode-sign hash-algorithm="sha256"
+                         description="FitFreed uninstaller"
+                         description-url="https://fitfreed.org/" />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
+```
+
+Artifact configuration `windows-nsis-setup`:
+
+```xml
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="FitFreed_${version}_x64-setup.exe"
+             product-name="FitFreed"
+             product-version="${version}"
+             file-version="${version}">
+      <authenticode-sign hash-algorithm="sha256"
+                         description="FitFreed installer"
+                         description-url="https://fitfreed.org/" />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
+```
+
+Record only the public organization identifier and the release certificate's independently checked SHA-256
+fingerprint. Normalize the fingerprint to lowercase hexadecimal without separators. In the GitHub
+`public-windows-release` environment, create:
+
+- secret `FITFREED_SIGNPATH_API_TOKEN` with the CI submitter token;
+- variable `FITFREED_SIGNPATH_ORGANIZATION_ID` with the public SignPath organization identifier; and
+- variable `FITFREED_WINDOWS_CERTIFICATE_SHA256` with the normalized public certificate fingerprint.
+
+The [official GitHub integration](https://docs.signpath.io/trusted-build-systems/github) requires each input to exist
+as a GitHub Actions artifact before submission and verifies that the contributing OSS jobs used GitHub-hosted runners.
+The [artifact-configuration contract](https://docs.signpath.io/artifact-configuration/) rejects additional or renamed
+files before signing. The first protected execution is configuration evidence: approve both requests separately in
+SignPath, compare their repository, workflow, ref, revision, artifact configuration, version, and digest to the GitHub
+run, then require the repository's independent Windows trust and installation checks to accept the returned bytes.
+Do not treat portal activation or a completed signature alone as release acceptance.
+
 ## Prepare the versioned source
 
 Before creating a release tag:
@@ -211,8 +293,8 @@ Do not dispatch `.github/workflows/public-windows-expansion.yml` until an immuta
 exists, the next semantic version and target-aware upgrade matrix names that exact predecessor, SignPath Foundation
 has accepted FitFreed, the SignPath GitHub App and project policies are active, the Windows readiness ledger admits the
 native admission host, and all three protected environments have been reviewed. The earlier local-certificate workflow
-is inactive and must be replaced by the ADR 0049 topology before dispatch. Running an individual script manually does
-not create a candidate and must not be used to bypass those gates.
+has been removed. Running an individual script manually does not create a candidate and must not be used to bypass the
+ADR 0049 gates.
 
 Review `release/windows-candidate-admission.json` against its cited official lifecycle sources no more than 45 days
 before candidate issuance. Update the policy and its tests when supported editions, display versions, builds, or dates

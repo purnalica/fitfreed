@@ -95,6 +95,7 @@ export function createWindowsExpansionInputFixture({
     outputDirectory,
     packageName,
     packagePath,
+    packageSha256: digest(packageBytes),
     revision,
     root,
     updateConfiguration: updateConfiguration ?? {

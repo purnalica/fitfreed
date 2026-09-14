@@ -22,12 +22,12 @@ test("accepts the exact three-platform Windows expansion topology", () => {
     "public-macos-release",
   ]);
   assert.deepEqual(result.windowsRunners, [
-    "fitfreed-windows-11-builder",
+    "windows-2025",
     "fitfreed-windows-11-admission",
   ]);
   assert.equal(result.nativeInputTarget, "windows-x86_64-nsis");
   assert.equal(result.publicationOrder, "technical-and-human-acceptance-before-release-before-pages");
-  assert.equal(result.actionReferenceCount, 32);
+  assert.equal(result.actionReferenceCount, 36);
   assert.doesNotMatch(workflow, /^      windows_certificate_sha256:/m);
   assert.match(
     workflow,
@@ -40,14 +40,14 @@ test("rejects automatic execution, moving actions, cancellation, or unreviewed r
     [(source) => source.replace("  workflow_dispatch:", "  push:\n  workflow_dispatch:"), /automatic/],
     [(source) => source.replace(/actions\/checkout@[0-9a-f]{40}/, "actions/checkout@main"), /unpinned/],
     [(source) => source.replace("cancel-in-progress: false", "cancel-in-progress: true"), /concurrency/],
-    [(source) => source.replace("fitfreed-windows-11-builder", "windows-2025"), /Windows input runner/],
+    [(source) => source.replace("runs-on: windows-2025", "runs-on: [self-hosted, Windows, X64]"), /Windows input build/],
     [(source) => source.replace("fitfreed-windows-11-admission", "windows-2025"), /Windows admission runner/],
   ]) {
     assert.throws(() => validatePublicWindowsExpansionWorkflow(mutate(workflow)), expected);
   }
 });
 
-test("rejects unsealed or authority-coupled native inputs", () => {
+test("rejects unsealed, mutable, or authority-coupled native inputs", () => {
   for (const [mutate, expected] of [
     [(source) => source.replace(
       "${{ needs.build-windows-input.outputs.windows-input-sha256 }}",
@@ -58,13 +58,37 @@ test("rejects unsealed or authority-coupled native inputs", () => {
       "    outputs:",
     ), /Windows release environment/],
     [(source) => source.replace(
-      "      - name: Remove ephemeral Windows Authenticode authority\n        if: always()",
-      "      - name: Remove ephemeral Windows Authenticode authority",
-    ), /Windows authority cleanup/],
+      "signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627",
+      "signpath/github-action-submit-signing-request@v2",
+    ), /unpinned/],
+    [(source) => source.replace(
+      "artifact-configuration-slug: windows-inner-binaries",
+      "artifact-configuration-slug: ${{ inputs.artifact_configuration }}",
+    ), /fixed workflow configuration/],
+    [(source) => source.replace(
+      "github-artifact-id: ${{ steps.upload-unsigned-inner.outputs.artifact-id }}",
+      "github-artifact-id: unbound",
+    ), /preceding GitHub artifact/],
+    [(source) => source.replace(
+      'version: "${{ inputs.version }}"',
+      'version: "0.0.0"',
+    ), /source version/],
+    [(source) => source.replace(
+      "output-artifact-directory: .artifacts/windows-signpath/signed-inner",
+      "output-artifact-directory: .artifacts/windows-signpath/unreviewed-inner",
+    ), /signed-inner boundary/],
+    [(source) => source.replace(
+      '"$env:FITFREED_SIGNPATH_SIGNED_SETUP"',
+      '".artifacts/windows-signpath/other-setup"',
+    ), /exact SignPath setup output/],
     [(source) => source.replace(
       "          FITFREED_VERSION: ${{ inputs.version }}\n          FITFREED_LINUX_INPUT: .artifacts/windows-expansion/linux-input",
       "          FITFREED_VERSION: ${{ secrets.VERSION }}\n          FITFREED_LINUX_INPUT: .artifacts/windows-expansion/linux-input",
     ), /Linux input cannot receive/],
+    [(source) => source.replace(
+      "          FITFREED_VERSION: ${{ inputs.version }}\n          FITFREED_SIGNPATH_UNSIGNED_INNER: .artifacts/windows-signpath/unsigned-inner",
+      "          FITFREED_VERSION: ${{ inputs.version }}\n          FITFREED_WINDOWS_CERTIFICATE_BASE64: ${{ secrets.LEGACY_PFX }}\n          FITFREED_SIGNPATH_UNSIGNED_INNER: .artifacts/windows-signpath/unsigned-inner",
+    ), /superseded local signing authority/],
   ]) {
     assert.throws(() => validatePublicWindowsExpansionWorkflow(mutate(workflow)), expected);
   }

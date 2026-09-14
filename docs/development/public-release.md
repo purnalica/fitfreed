@@ -352,13 +352,13 @@ or deploy anything. Reopen the result independently with:
 npm run verify:complete-platform-release -- .artifacts/public-releases/<version>
 ```
 
-`.github/workflows/public-windows-expansion.yml` remains manually dispatched and inactive while its previous
-local-certificate job is replaced by the SignPath topology in ADR 0049. The completed preflight will require the
+`.github/workflows/public-windows-expansion.yml` remains manually dispatched and inactive until its implemented
+SignPath topology in ADR 0049 has passed the external configuration and exact-candidate gates. Its preflight requires the
 immutable macOS-plus-Linux predecessor, active independent updater and checksum trust, accepted SignPath project and
 GitHub integration, all three protected environments, exact successful source checks, Pages, and workflow policy. A
 dispatcher cannot select SignPath identifiers or the admitted certificate fingerprint.
 
-The GitHub-hosted Windows job will create the signed native input through two manually approved SignPath requests,
+The GitHub-hosted Windows job creates the signed native input through two manually approved SignPath requests,
 after which the Apple Silicon composer downloads and independently reopens every immutable predecessor Release through
 `npm run download:complete-platform-predecessors -- <directory>`. The downloader stages each complete `release/` tree,
 rejects non-files and partial downloads, reopens every matrix-required recovery package through authenticated release

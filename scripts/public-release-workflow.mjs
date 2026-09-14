@@ -12,6 +12,7 @@ export const publicReleaseActionPins = new Map([
   ["actions/download-artifact", "70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3"],
   ["actions/upload-pages-artifact", "fc324d3547104276b827a68afc52ff2a11cc49c9"],
   ["actions/deploy-pages", "cd2ce8fcbc39b97be8ca5fce6e763baed58fa128"],
+  ["signpath/github-action-submit-signing-request", "c92b958760219087e01f8d67a1669ed57afe2627"],
 ]);
 
 export function workflowSection(source, name) {

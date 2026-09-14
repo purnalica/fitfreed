@@ -49,6 +49,9 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   if (/windows_certificate_sha256/.test(trigger)) {
     errors.push("Windows certificate authority cannot be selected through workflow dispatch");
   }
+  if (/signpath|signing_policy|artifact_configuration/i.test(trigger)) {
+    errors.push("SignPath policy cannot be selected through workflow dispatch");
+  }
   requireWorkflowMatch(
     errors,
     source,
@@ -81,13 +84,19 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   requireNoProtectedValues(errors, linuxInput, "Linux input");
 
   const windowsInput = workflowSection(source, "build-windows-input");
-  requireWorkflowPermissions(errors, windowsInput, 4, ["contents: read"], "Windows input build");
+  requireWorkflowPermissions(
+    errors,
+    windowsInput,
+    4,
+    ["actions: read", "contents: read"],
+    "Windows input build",
+  );
   requireWorkflowMatch(errors, windowsInput, /needs: preflight/, "Windows input must follow preflight");
   requireWorkflowMatch(
     errors,
     windowsInput,
-    /runs-on: \[self-hosted, Windows, X64, fitfreed-windows-11-builder\]/,
-    "Windows input runner must be the reviewed disposable Windows 11 builder",
+    /runs-on: windows-2025/,
+    "Windows input build must use GitHub-hosted Windows",
   );
   requireWorkflowMatch(
     errors,
@@ -107,19 +116,80 @@ export function validatePublicWindowsExpansionWorkflow(source) {
     /outputs:\n      windows-input-sha256:/,
     "Windows input must expose its sealed digest",
   );
+  requireWorkflowMatch(
+    errors,
+    windowsInput,
+    /signpath\/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627/g,
+    "Windows input must use the immutable reviewed SignPath action",
+  );
+  if ((windowsInput.match(/signpath\/github-action-submit-signing-request@/g) ?? []).length !== 2) {
+    errors.push("Windows input must contain exactly two SignPath requests");
+  }
+  for (const [pattern, message] of [
+    [/project-slug: fitfreed/g, "SignPath project slug is unavailable"],
+    [/signing-policy-slug: release-signing/g, "SignPath signing policy slug is unavailable"],
+    [/artifact-configuration-slug: windows-inner-binaries/, "inner-binary artifact configuration is unavailable"],
+    [/artifact-configuration-slug: windows-nsis-setup/, "setup artifact configuration is unavailable"],
+    [/api-token: \$\{\{ secrets\.FITFREED_SIGNPATH_API_TOKEN \}\}/g, "SignPath token is outside protected input"],
+    [/organization-id: \$\{\{ vars\.FITFREED_SIGNPATH_ORGANIZATION_ID \}\}/g, "SignPath organization is outside protected input"],
+  ]) {
+    const expectedCount = pattern.global ? 2 : 1;
+    if ((windowsInput.match(pattern) ?? []).length !== expectedCount) errors.push(message);
+  }
+  if (/project-slug:.*\$\{\{|signing-policy-slug:.*\$\{\{|artifact-configuration-slug:.*\$\{\{/u.test(windowsInput)) {
+    errors.push("SignPath identifiers must be fixed workflow configuration");
+  }
+  if (/FITFREED_WINDOWS_CERTIFICATE_BASE64|FITFREED_WINDOWS_CERTIFICATE_PASSWORD|FITFREED_WINDOWS_CERTIFICATE_SHA1|FITFREED_WINDOWS_TIMESTAMP_URL|authority:windows-public-release/u.test(windowsInput)) {
+    errors.push("Windows input retains superseded local signing authority");
+  }
   requireWorkflowOrder(errors, windowsInput, [
-    "Install ephemeral Windows Authenticode authority",
+    "Build the exact unsigned inner binaries",
+    "Upload only the unsigned inner binaries",
+    "Sign the application and uninstaller through SignPath",
+    "Build the exact unsigned setup from signed inner binaries",
+    "Upload only the unsigned setup",
+    "Sign the final setup through SignPath",
     "Prepare the exact signed Windows input",
     "Seal the exact Windows input for protected composition",
     "Retain only the sealed Windows input",
-    "Remove ephemeral Windows Authenticode authority",
   ]);
   requireWorkflowMatch(
     errors,
     windowsInput,
-    /- name: Remove ephemeral Windows Authenticode authority\n        if: always\(\)/,
-    "Windows authority cleanup must always execute",
+    /github-artifact-id: \$\{\{ steps\.upload-unsigned-inner\.outputs\.artifact-id \}\}/,
+    "inner signing request must bind the preceding GitHub artifact",
   );
+  requireWorkflowMatch(
+    errors,
+    windowsInput,
+    /github-artifact-id: \$\{\{ steps\.upload-unsigned-setup\.outputs\.artifact-id \}\}/,
+    "setup signing request must bind the preceding GitHub artifact",
+  );
+  if ((windowsInput.match(/parameters:\s*\|\n\s+version: "\$\{\{ inputs\.version \}\}"/g) ?? []).length !== 2) {
+    errors.push("each SignPath request must bind the dispatched source version");
+  }
+  requireWorkflowMatch(
+    errors,
+    windowsInput,
+    /output-artifact-directory: \.artifacts\/windows-signpath\/signed-inner/,
+    "inner signing output must use the reviewed signed-inner boundary",
+  );
+  requireWorkflowMatch(
+    errors,
+    windowsInput,
+    /output-artifact-directory: \.artifacts\/windows-signpath\/signed-setup/,
+    "setup signing output must use the reviewed signed-setup boundary",
+  );
+  requireWorkflowMatch(
+    errors,
+    windowsInput,
+    /npm run prepare:windows-expansion-input --[\s\S]*?"\$env:FITFREED_SIGNPATH_SIGNED_SETUP"/,
+    "native input preparation must consume the exact SignPath setup output",
+  );
+  const outsideWindowsInput = source.replace(windowsInput, "");
+  if (/FITFREED_SIGNPATH_API_TOKEN|FITFREED_SIGNPATH_ORGANIZATION_ID/u.test(outsideWindowsInput)) {
+    errors.push("SignPath authority must remain inside the protected Windows input job");
+  }
 
   const build = workflowSection(source, "build-candidate");
   requireWorkflowPermissions(
@@ -317,7 +387,7 @@ export function validatePublicWindowsExpansionWorkflow(source) {
     publicationOrder: "technical-and-human-acceptance-before-release-before-pages",
     trigger: "workflow_dispatch",
     windowsRunners: [
-      "fitfreed-windows-11-builder",
+      "windows-2025",
       "fitfreed-windows-11-admission",
     ],
     workflow: workflowPath,

@@ -181,9 +181,9 @@ recovery requires the NSIS installer to permit a deliberate older-version reinst
 predecessor verification, rather than the package version alone, grant that authority. The ordinary overlay contains
 no certificate selection, signer command, timestamp service, account identity, or protected path. SignPath signing is
 deliberately outside Tauri's synchronous signer command: the trusted GitHub workflow submits closed artifacts and
-later imports only independently verified signed bytes. The retained `tauri.windows.public-signing.conf.json` overlay
-and local authority adapters belong to the superseded PFX design and cannot produce an accepted public candidate
-while the SignPath transition is in progress.
+later imports only independently verified signed bytes. The separate `tauri.windows.public-signing.conf.json` overlay
+contains only the authority-free bridge that captures Tauri's generated uninstaller and later substitutes the exact
+signed inner binaries during NSIS assembly. It cannot request a signature or create an accepted public candidate.
 
 Under [ADR 0045](decisions/0045-separate-windows-native-and-updater-signing-authority.md) and
 [ADR 0049](decisions/0049-use-signpath-for-windows-authenticode.md), the Windows input is built on GitHub-hosted
@@ -200,9 +200,9 @@ This Authenticode topology retains active recoverable `stable-v3` public update 
 all updater private-key inputs. The later complete-platform compositor uses separate updater authority to sign the
 unchanged SignPath-returned setup and create stable channel metadata.
 
-`npm run prepare:windows-expansion-input -- <version> <directory>` admits one clean source revision and the verified
-SignPath-returned setup before running the public-profile native installation cycle. It hashes the complete installed
-layout, verifies data-preserving removal, and atomically stages only the setup, its
+`npm run prepare:windows-expansion-input -- <version> <directory> <signed-setup-directory>` admits one clean source
+revision and the verified SignPath-returned setup before running the public-profile native installation cycle. It
+hashes the complete installed layout, verifies data-preserving removal, and atomically stages only the setup, its
 [Windows package inventory](../data-formats/release/windows-package-inventory-v1.md), and the source-bound
 [Windows public build evidence](../data-formats/release/windows-public-build-evidence-v1.md). The
 closed evidence binds version, revision, storage schema, setup and inventory digests, certificate fingerprint, and the

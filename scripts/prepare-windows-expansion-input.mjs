@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import {
   appendFileSync,
   copyFileSync,
@@ -16,8 +15,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
-import { npmCliInvocation } from "./node-package-script.mjs";
-import { assertWindowsExpansionAuthoritySeparation } from "./build-windows-expansion-input.mjs";
+import {
+  assertWindowsExpansionAuthoritySeparation,
+  findWindowsSignTool,
+} from "./build-windows-expansion-input.mjs";
 import {
   assertCleanRevision,
   generatedAt,
@@ -27,8 +28,8 @@ import {
   loadPublicUpdateConfiguration,
   publicUpdateBuildEnvironment,
 } from "./public-update-configuration.mjs";
-import { inspectArtifact } from "./release-evidence.mjs";
-import { windowsAuthenticodeAuthority } from "./windows-authenticode-sign.mjs";
+import { inspectArtifact, sha256File } from "./release-evidence.mjs";
+import { inspectWindowsAuthenticode } from "./windows-authenticode-trust.mjs";
 import { expectedWindowsNsisArtifactName } from "./windows-package-contract.mjs";
 import {
   generateWindowsPackageInventory,
@@ -41,6 +42,7 @@ import {
 } from "./windows-public-build-evidence.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
+const certificateSha256Pattern = /^[0-9a-f]{64}$/;
 
 function byteOrder(left, right) {
   return Buffer.compare(Buffer.from(left), Buffer.from(right));
@@ -75,6 +77,70 @@ function requireRegularSinglyLinkedFile(filePath, message) {
   ) {
     throw new Error(message);
   }
+}
+
+function requireCertificateSha256(certificateSha256) {
+  if (!certificateSha256Pattern.test(certificateSha256 ?? "")) {
+    throw new Error("SignPath requires one lowercase SHA-256 certificate fingerprint");
+  }
+}
+
+function pathsOverlap(left, right) {
+  const relative = path.relative(path.resolve(left), path.resolve(right));
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+export function validateWindowsSignPathSetup({
+  certificateSha256,
+  directory,
+  inspect = inspectWindowsAuthenticode,
+  platform = process.platform,
+  signToolPath,
+  version,
+}) {
+  if (platform !== "win32") {
+    throw new Error("SignPath setup validation requires Windows");
+  }
+  requireCertificateSha256(certificateSha256);
+  const root = path.resolve(directory);
+  if (!existsSync(root)) throw new Error("SignPath setup output is unavailable");
+  const rootMetadata = lstatSync(root);
+  if (!rootMetadata.isDirectory() || rootMetadata.isSymbolicLink()) {
+    throw new Error("SignPath setup output must be one real directory");
+  }
+  const packageName = expectedWindowsNsisArtifactName(version);
+  const entries = readdirSync(root, { withFileTypes: true });
+  if (
+    entries.length !== 1
+    || entries[0].name !== packageName
+    || !entries[0].isFile()
+  ) {
+    throw new Error(`SignPath setup output must contain exactly ${packageName}`);
+  }
+  const packagePath = path.join(root, packageName);
+  requireRegularSinglyLinkedFile(
+    packagePath,
+    "SignPath setup must be a regular and singly linked file",
+  );
+  const trust = inspect({
+    binaryPath: packagePath,
+    certificateSha256,
+    platform,
+    requireTimestamp: true,
+    signatureOnly: false,
+    signToolPath,
+    version,
+  });
+  const packageSha256 = sha256File(packagePath);
+  if (
+    trust.fileSha256 !== packageSha256
+    || trust.certificateSha256 !== certificateSha256
+    || trust.status !== "Valid"
+    || trust.timestamped !== true
+  ) {
+    throw new Error("SignPath setup trust does not bind the returned bytes");
+  }
+  return { packageName, packagePath, packageSha256 };
 }
 
 export function verifyWindowsExpansionInput({
@@ -264,86 +330,113 @@ export function stageWindowsExpansionInput({
   }
 }
 
-export function windowsExpansionNpmInvocation(
-  arguments_,
-  environment = process.env,
-  platform = process.platform,
-  nodeExecutable = process.execPath,
-) {
-  return npmCliInvocation(
-    arguments_,
-    platform,
-    environment.npm_execpath,
-    nodeExecutable,
-  );
-}
-
-function runNpm(arguments_, environment) {
-  const invocation = windowsExpansionNpmInvocation(arguments_, environment);
-  execFileSync(invocation.program, invocation.arguments, {
-    cwd: repositoryRoot,
-    encoding: "utf8",
-    stdio: "inherit",
-  });
-}
-
 export function prepareWindowsExpansionInput({
   architecture = process.arch,
+  assertSource = assertCleanRevision,
+  certificateSha256,
   environment = process.env,
+  generateInventory = generateWindowsPackageInventory,
+  inspect = inspectWindowsAuthenticode,
   outputDirectory,
   platform = process.platform,
+  readStorageSchema = readStorageSchemaVersion,
+  signedSetupDirectory,
+  signToolPath,
+  updateConfiguration,
+  validateRelease = (releaseVersion) => inspectReleaseContracts(repositoryRoot, releaseVersion),
   version,
 }) {
   if (platform !== "win32" || architecture !== "x64") {
     throw new Error("Windows expansion input preparation requires x86-64 Windows");
   }
   assertWindowsExpansionAuthoritySeparation(environment);
-  inspectReleaseContracts(repositoryRoot, version);
-  const source = assertCleanRevision();
-  const updateConfiguration = loadPublicUpdateConfiguration(repositoryRoot);
-  trustedUpdateKeyIds(updateConfiguration);
-  const authority = windowsAuthenticodeAuthority({ environment, platform });
-  if (authority.profile !== "public" || !authority.requireTimestamp) {
-    throw new Error("Windows expansion input preparation requires public Authenticode authority");
-  }
-  runNpm(["run", "audit:dependencies"], environment);
-  runNpm(["run", "package:windows-expansion-input"], environment);
-  const releaseDirectory = path.join(
-    repositoryRoot,
-    "src-tauri/target/release/bundle/nsis",
-  );
-  const generatedInventory = generateWindowsPackageInventory({
+  validateRelease(version);
+  const source = assertSource();
+  const activeUpdateConfiguration = updateConfiguration
+    ?? loadPublicUpdateConfiguration(repositoryRoot);
+  trustedUpdateKeyIds(activeUpdateConfiguration);
+  const resolvedCertificateSha256 = certificateSha256
+    ?? environment.FITFREED_WINDOWS_CERTIFICATE_SHA256;
+  requireCertificateSha256(resolvedCertificateSha256);
+  const resolvedSignToolPath = signToolPath ?? findWindowsSignTool({
     architecture,
-    certificateSha256: authority.certificateSha256,
+    environment,
     platform,
-    releaseDirectory,
-    signatureProfile: "public-authenticode",
-    signToolPath: authority.signToolPath,
+  });
+  if (typeof signedSetupDirectory !== "string" || signedSetupDirectory.length === 0) {
+    throw new Error("SignPath setup output directory is required");
+  }
+  if (typeof outputDirectory !== "string" || outputDirectory.length === 0) {
+    throw new Error("Windows expansion output directory is required");
+  }
+  const resolvedSetupDirectory = path.resolve(signedSetupDirectory);
+  const resolvedOutputDirectory = path.resolve(outputDirectory);
+  if (
+    pathsOverlap(resolvedSetupDirectory, resolvedOutputDirectory)
+    || pathsOverlap(resolvedOutputDirectory, resolvedSetupDirectory)
+  ) {
+    throw new Error("SignPath setup and Windows expansion output must not overlap");
+  }
+  const signedSetup = validateWindowsSignPathSetup({
+    certificateSha256: resolvedCertificateSha256,
+    directory: resolvedSetupDirectory,
+    inspect,
+    platform,
+    signToolPath: resolvedSignToolPath,
     version,
   });
-  return stageWindowsExpansionInput({
-    authenticodeCertificateSha256: authority.certificateSha256,
-    generatedAt: generatedAt(source.sourceDateEpoch),
-    inventoryPath: generatedInventory.inventoryPath,
-    outputDirectory,
-    packagePath: path.join(releaseDirectory, expectedWindowsNsisArtifactName(version)),
-    revision: source.revision,
-    storageSchemaVersion: readStorageSchemaVersion(),
-    updateConfiguration,
-    version,
-  });
+  mkdirSync(path.dirname(resolvedOutputDirectory), { recursive: true });
+  const inspectionDirectory = mkdtempSync(
+    path.join(
+      path.dirname(resolvedOutputDirectory),
+      `.${path.basename(resolvedOutputDirectory)}.inspection-`,
+    ),
+  );
+  try {
+    const inspectedPackagePath = path.join(inspectionDirectory, signedSetup.packageName);
+    copyFileSync(signedSetup.packagePath, inspectedPackagePath);
+    if (sha256File(inspectedPackagePath) !== signedSetup.packageSha256) {
+      throw new Error("SignPath setup changed while entering native inspection");
+    }
+    const generatedInventory = generateInventory({
+      architecture,
+      certificateSha256: resolvedCertificateSha256,
+      platform,
+      releaseDirectory: inspectionDirectory,
+      signatureProfile: "public-authenticode",
+      signToolPath: resolvedSignToolPath,
+      version,
+    });
+    return stageWindowsExpansionInput({
+      authenticodeCertificateSha256: resolvedCertificateSha256,
+      generatedAt: generatedAt(source.sourceDateEpoch),
+      inventoryPath: generatedInventory.inventoryPath,
+      outputDirectory: resolvedOutputDirectory,
+      packagePath: inspectedPackagePath,
+      revision: source.revision,
+      storageSchemaVersion: readStorageSchema(),
+      updateConfiguration: activeUpdateConfiguration,
+      version,
+    });
+  } finally {
+    rmSync(inspectionDirectory, { force: true, recursive: true });
+  }
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   try {
-    const [version, outputDirectory] = process.argv.slice(2);
-    if (!version || !outputDirectory) {
+    const [version, outputDirectory, signedSetupDirectory] = process.argv.slice(2);
+    if (!version || !outputDirectory || !signedSetupDirectory) {
       throw new Error(
-        "usage: node scripts/prepare-windows-expansion-input.mjs <version> <output-directory>",
+        "usage: node scripts/prepare-windows-expansion-input.mjs <version> <output-directory> <signed-setup-directory>",
       );
     }
-    const result = prepareWindowsExpansionInput({ outputDirectory, version });
+    const result = prepareWindowsExpansionInput({
+      outputDirectory,
+      signedSetupDirectory,
+      version,
+    });
     if (process.env.GITHUB_OUTPUT) {
       appendFileSync(
         process.env.GITHUB_OUTPUT,

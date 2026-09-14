@@ -105,9 +105,9 @@ test("exposes a Windows-only production package command", () => {
   );
 });
 
-test("keeps the public signing overlay executable and authority free", () => {
+test("keeps the SignPath packaging bridge executable and authority free", () => {
   assert.deepEqual(validateWindowsPublicSigningOverlay(windowsPublicSigningConfig), {
-    arguments: ["../scripts/windows-authenticode-sign.mjs", "%1"],
+    arguments: ["../scripts/windows-signpath-nsis-bridge.mjs", "%1"],
     command: "node",
   });
 
@@ -119,7 +119,7 @@ test("keeps the public signing overlay executable and authority free", () => {
     () => validateWindowsPublicSigningOverlay(withAuthority),
     (error) => {
       assert.match(error.message, /unexpected Windows fields/);
-      assert.match(error.message, /exact signing command/);
+      assert.match(error.message, /exact SignPath packaging bridge/);
       return true;
     },
   );

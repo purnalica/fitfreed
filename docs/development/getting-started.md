@@ -150,7 +150,7 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Measure the installed production NSIS cold-launch boundary and remove it | `npm run verify:windows-cold-launch` |
 | Verify Windows library protection and disk-exhaustion recovery on an isolated NTFS volume | `npm run verify:windows-filesystem-reliability` |
 | Build the Authenticode-signed update-capable Windows input through SignPath | The protected Windows workflow after SignPath activation; no local command can create this evidence |
-| Build the exact authority-free Windows expansion handoff from verified SignPath output | `npm run prepare:windows-expansion-input -- <version> <directory>` |
+| Build the exact authority-free Windows expansion handoff from verified SignPath output | `npm run prepare:windows-expansion-input -- <version> <directory> <signed-setup-directory>` |
 | Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
 | Reopen a digest-bound Windows expansion input | `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>` |
 | Download and reopen every immutable predecessor required by a complete-platform candidate | `npm run download:complete-platform-predecessors -- <destination>` |
@@ -231,31 +231,26 @@ private key, trust entries, process values, and temporary directory before succe
 user or CI runner. Its untimestamped synthetic result is automation evidence, never a distributable or publicly trusted
 binary.
 
-`tauri.windows.public-signing.conf.json` is the reviewed authority-free overlay selected by the protected candidate
-builder.
-It contains only the signing command and Tauri binary placeholder. Production certificate selection, its independent
-SHA-256 fingerprint, the Windows SDK SignTool path, and the credential-free HTTPS RFC 3161 service enter only as
-protected process values; they must not be added to source, retained evidence, or ordinary CI. The signer
-requires SHA-256 for file and timestamp digests, and the inspector independently requires Windows application-policy
-trust, the admitted leaf certificate, timestamp, unchanged file digest, x86-64 architecture, and exact product name and
-version. Do not pass protected values through contributor-facing command arguments or logs. Public signing remains a
-release-operator boundary and is not a contributor setup step.
+`tauri.windows.public-signing.conf.json` is the reviewed authority-free overlay selected only by the protected
+SignPath packaging stages. It contains the Tauri binary placeholder and a local bridge that captures the generated
+NSIS uninstaller or substitutes the exact signed inner binaries. It contains no signer, certificate selector,
+timestamp service, account identifier, token, or protected path. Public signing remains a release-operator boundary
+and is not a contributor setup step.
 
-`npm run package:windows-expansion-input` is that protected native-builder entry point. It deliberately cannot run from
-the ordinary contributor environment: active `stable-v3` public update trust and the complete public Authenticode
-process profile must be present, while every updater private-key input is rejected. It selects the Authenticode overlay,
-embeds only public update trust, removes stale NSIS output, builds the exact setup, and reinspects its final bytes through
-the independent Windows trust adapter. Failure removes the unverified output directory. The later complete-platform
-composer signs the sealed setup for the updater under separate authority. Do not use this command to create an
-engineering package, and do not retain its protected process values in shell profiles, scripts, logs, or evidence.
+`npm run prepare:windows-signpath-inner -- <version> <directory>` and
+`npm run prepare:windows-signpath-setup -- <version> <unsigned-inner> <signed-inner> <directory>` are internal
+workflow entry points. They deliberately reject updater private keys, local Authenticode credentials, and SignPath API
+tokens. The first emits only the unsigned application and generated uninstaller; the second independently verifies the
+returned signatures before assembling one unsigned setup. The official pinned SignPath action is the only production
+signature-request boundary.
 
-`npm run prepare:windows-expansion-input -- <version> <directory>` requires the same protected Windows process and a
-clean source revision. It audits dependencies, builds and reinspects the setup, runs the public-profile installation
-and data-preserving removal cycle, and atomically stages exactly three files: the setup, its complete inventory, and
-source-bound build evidence. Existing output is never replaced. The retained evidence includes the public certificate
-fingerprint and embedded updater trust identifiers, but excludes certificate selectors, SignTool paths, private keys,
-machine paths, and updater or publication authority. This command prepares a native handoff; it neither creates a
-complete candidate nor authorizes a release.
+`npm run prepare:windows-expansion-input -- <version> <directory> <signed-setup-directory>` requires a clean source
+revision and the exact one-file response from the second SignPath request. It independently verifies the setup, runs
+the public-profile installation and data-preserving removal cycle, and atomically stages exactly three files: the
+setup, its complete inventory, and source-bound build evidence. Existing output is never replaced. The retained
+evidence includes the public certificate fingerprint and embedded updater trust identifiers, but excludes SignTool
+paths, private keys, machine paths, and updater or publication authority. This command prepares a native handoff; it
+neither creates a complete candidate nor authorizes a release.
 
 The paired Windows pack and unpack commands verify the three-file input on both sides of its compressed tar transport.
 The pack result exposes the public archive SHA-256 digest; the unpack command requires that digest together with the

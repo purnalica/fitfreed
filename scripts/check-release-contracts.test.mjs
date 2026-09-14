@@ -87,7 +87,7 @@ function validMetadata() {
         windows: {
           signCommand: {
             cmd: "node",
-            args: ["../scripts/windows-authenticode-sign.mjs", "%1"],
+            args: ["../scripts/windows-signpath-nsis-bridge.mjs", "%1"],
           },
         },
       },
@@ -133,7 +133,7 @@ test("accepts one consistent private development release identity", () => {
       webviewInstallMode: "offlineInstaller",
     },
     windowsPublicSigning: {
-      arguments: ["../scripts/windows-authenticode-sign.mjs", "%1"],
+      arguments: ["../scripts/windows-signpath-nsis-bridge.mjs", "%1"],
       command: "node",
     },
   });

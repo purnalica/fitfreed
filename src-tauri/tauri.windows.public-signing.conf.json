@@ -4,7 +4,7 @@
     "windows": {
       "signCommand": {
         "cmd": "node",
-        "args": ["../scripts/windows-authenticode-sign.mjs", "%1"]
+        "args": ["../scripts/windows-signpath-nsis-bridge.mjs", "%1"]
       }
     }
   }
