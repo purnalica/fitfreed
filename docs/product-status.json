@@ -1,12 +1,14 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-09-13",
+  "updated": "2026-09-14",
   "statuses": [
     {
       "key": "available",
       "label": "Implemented in source",
       "title": "Current capability",
       "items": [
+        { "key": "macosRelease", "text": "FitFreed 0.1.12 is available for Apple Silicon on macOS 15.0 or later" },
+        { "key": "linuxRelease", "text": "FitFreed 0.1.12 is available for x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through its native Debian package" },
         { "key": "polarFlowImport", "text": "Polar Flow ZIP validation and import" },
         { "key": "importCoverage", "text": "Explicit supported, ignored, and unrecognized coverage" },
         { "key": "safeReimport", "text": "Safe exact and cumulative reimport" },
@@ -44,10 +46,8 @@
     {
       "key": "active",
       "label": "Work in progress",
-      "title": "Cross-platform MVP delivery",
+      "title": "Windows MVP delivery",
       "items": [
-        { "key": "macosRelease", "text": "FitFreed 0.1.7 is the supported public Apple Silicon macOS baseline; version 0.1.12 is assigned to the complete macOS-plus-Linux expansion" },
-        { "key": "linuxParity", "text": "The Ubuntu Desktop 24.04 and 26.04 x86-64 Debian package and production checksum authority are implemented; public 0.1.12 still requires exact-candidate admission" },
         { "key": "windowsParity", "text": "Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists" }
       ],
       "source": {

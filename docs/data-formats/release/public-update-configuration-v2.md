@@ -7,9 +7,9 @@ public, non-secret inputs that select the recovery-capable stable update channel
 key rotation, build mapping, privacy, and failure behavior of closed [version 1](public-update-configuration-v1.md),
 changes `schemaVersion` to `2`, and changes `contract` to `stable-v3`.
 
-This contract does not create signing authority or publish an application. The checked-in instance first selects
-version 2 for the proposed 0.1.12 macOS-plus-Linux expansion, retaining the existing updater public key while adding
-recovery-capable stable channel version 3.
+This contract does not create signing authority or publish an application. The checked-in instance selects version 2
+for the public 0.1.12 macOS-plus-Linux release, retaining the existing updater public key while using recovery-capable
+stable channel version 3.
 
 ## Fields
 

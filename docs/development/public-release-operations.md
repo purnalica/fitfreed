@@ -2,9 +2,10 @@
 
 ## Status and authority
 
-This is the maintainer runbook for the active FitFreed public channel and each complete-platform expansion. The macOS
-workflow published 0.1.7. The immutable macOS-plus-Linux 0.1.12 Release exists, while final Pages convergence and
-remote acceptance remain open; the Windows expansion remains gated behind accepted 0.1.12. A
+This is the maintainer runbook for the active FitFreed public channel and each complete-platform expansion. Protected
+workflow [`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376), attempt 2, published and
+remotely accepted immutable macOS-plus-Linux version 0.1.12. The Windows expansion remains gated behind that accepted
+predecessor and its own trust, native admission, product acceptance, and publication boundaries. A
 workflow becomes operative only after the applicable readiness ledger records its production trust roots,
 native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes
 one exact version, tag, and publication.

@@ -27,7 +27,7 @@ const documentContracts = Object.freeze({
       "Safe support and security reports",
     ],
     evidence: (version) => [
-      [/operative version-matched guide/, "supported public-release status"],
+      [/operative version-matched macOS guide/, "supported public macOS release status"],
       [new RegExp("immutable `v" + escapeRegExp(version) + "`"), "exact immutable release tag"],
       [/Apple Silicon on macOS 15\.0 or later/, "supported platform boundary"],
       [/English \(United States\) and Spanish \(Spain\)/, "initial locale boundary"],
@@ -58,7 +58,7 @@ const documentContracts = Object.freeze({
       "Safe support and security reports",
     ],
     evidence: (version) => [
-      [/No public Linux binary is available while/, "inactive Linux release status"],
+      [/operative version-matched Linux guide/, "supported public Linux release status"],
       [new RegExp("immutable `v" + escapeRegExp(version) + "`"), "exact immutable release tag"],
       [/x86-64 Ubuntu Desktop 24\.04 and 26\.04 LTS/, "supported Linux boundary"],
       [new RegExp(`FitFreed_${escapeRegExp(version)}_amd64\\.deb`), "exact Debian package"],
@@ -217,12 +217,12 @@ const documentContracts = Object.freeze({
   },
   readiness: {
     path: () => "docs/testing/public-release-readiness.md",
-    title: () => "Public macOS Release Readiness",
+    title: () => "Public Release Readiness",
     headings: ["Decision status", "Readiness ledger", "Final acceptance rule"],
     evidence: () => [
       [
-        /first supported public release for Apple Silicon on macOS 15\.0 or later/,
-        "supported public macOS decision",
+        /supported public release for Apple Silicon on macOS 15\.0 or later[\s\S]*x86-64 Ubuntu Desktop/,
+        "supported public macOS and Linux decision",
       ],
       [/single current readiness ledger/, "single current readiness source"],
       [/Passed locally/, "local evidence state"],

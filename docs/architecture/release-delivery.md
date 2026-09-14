@@ -5,11 +5,10 @@
 [ADR 0020](decisions/0020-compose-product-and-update-pages.md) selects the public delivery topology, [ADR
 0023](decisions/0023-use-fitfreed-org-as-the-public-origin.md) assigns its canonical origin to
 `https://fitfreed.org/`, and [ADR 0024](decisions/0024-generate-localized-product-pages.md) defines its generated
-locale surfaces. FitFreed 0.1.7 is the first immutable public release: its Developer ID-signed and Apple-notarized
-macOS package, source-bound evidence, English fallback, deterministic Spanish surface, and signed stable update
-snapshot are live and remotely byte-verified. Linux and Windows remain later complete-platform expansions.
-Version 0.1.12 is assigned to the proposed macOS-plus-Linux expansion; its stable-v3 predecessor contract and
-independent checksum authority are active, while exact candidate admission and promotion remain open.
+locale surfaces. FitFreed 0.1.12 is the current immutable public release. Its Developer ID-signed and Apple-notarized
+macOS package, native Linux Debian package, source-bound evidence, English fallback, deterministic Spanish surface,
+and signed stable-v3 update snapshot are live and remotely byte-verified. It preserves 0.1.7 as the exact macOS
+recovery predecessor. Windows remains the final complete-platform MVP expansion.
 
 ## Stages and authority boundaries
 

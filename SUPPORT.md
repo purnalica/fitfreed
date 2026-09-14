@@ -2,16 +2,12 @@
 
 ## Current availability
 
-FitFreed 0.1.7 is the supported public release for Apple Silicon on macOS 15.0 or later. FitFreed 0.1.12 is the supported public release only after its inactive complete-platform guide and exact candidate become operative. Use the [public macOS
-0.1.7 guide](docs/user/public-macos-0.1.7.md) for download, verification, installation, update, recovery, privacy, and
-removal. The [public Linux 0.1.7 guide](docs/user/public-linux-0.1.7.md) remains inactive and historical; Linux will
-enter the proposed 0.1.12 complete-platform release only after the exact-candidate, native-admission, and promotion
-gates in the [Milestone 4 ledger](docs/plans/milestone-4.md) close.
-The proposed [macOS 0.1.12 guide](docs/user/public-macos-0.1.12.md) and [Linux 0.1.12
-guide](docs/user/public-linux-0.1.12.md) remain inactive until then. The [public Windows 0.1.12
-guide](docs/user/public-windows-0.1.12.md) is likewise inactive and does not assign a Windows release while the [Milestone 5
-ledger](docs/plans/milestone-5.md) closes Authenticode, exact-candidate, clean Windows 11, and Linux-publication gates
-for a later version.
+FitFreed 0.1.12 is the supported public release for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop
+24.04 and 26.04 LTS. Use the [macOS guide](docs/user/public-macos-0.1.12.md) or [Linux
+guide](docs/user/public-linux-0.1.12.md) for download, verification, installation, update, recovery, privacy, and
+removal. The [public Windows 0.1.12 guide](docs/user/public-windows-0.1.12.md) remains inactive and does not announce a
+Windows release; the [Milestone 5 ledger](docs/plans/milestone-5.md) owns its remaining Authenticode, exact-candidate,
+clean Windows 11, acceptance, and publication gates.
 
 ## Where requests belong
 

@@ -2,22 +2,22 @@
 
 ## Current boundary
 
-FitFreed 0.1.7 is the first immutable public release. Protected workflow
-[`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the exact admitted
-Developer ID-signed and Apple-notarized macOS candidate, source-bound evidence, localized product site, and signed
-stable update snapshot, then remotely verified every public byte and provenance boundary. The checked-in update
-configuration contains the active `stable.primary-1` trust key. The proposed 0.1.12 Linux expansion advances that
-configuration to recovery-capable stable-v3 and assigns the exact 0.1.7 macOS predecessor. Its independent
-`release.primary-1` release-checksum public trust is active after the external key ceremony; the private authority
-and its separately held password remain confined to the protected release environment. No private updater, Apple,
-release-checksum, or Windows Authenticode authority is present in source or ordinary continuous integration.
+FitFreed 0.1.12 is the current immutable public release. Protected workflow
+[`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376), attempt 2, published and remotely
+verified the exact admitted macOS-plus-Linux candidate from source
+`545b41cbd59a248e57e30c36a118ff41ff59aadd`. The Release contains the Developer ID-signed and Apple-notarized macOS
+package, native Linux Debian package, source-bound evidence, localized product site, and signed stable-v3 update
+snapshot. The checked-in update configuration contains the active `stable.primary-1` trust key and assigns immutable
+0.1.7 as the exact macOS recovery predecessor. Independent `release.primary-1` checksum trust authenticates the
+complete release inventory. Private updater, Apple, release-checksum, and future Windows Authenticode authority remain
+outside source and ordinary continuous integration.
 
 The `public-macos-release` environment admits `v*` tags under the bootstrap review policy. The `github-pages`
 environment admits both `main` product-site deployments and `v*` release deployments. A `main` workflow always
 validates and composes the complete site, but deploys only when its source version equals the latest immutable public
 Release version. An unreleased revision is reserved for the protected exact-tag workflow under
-[ADR 0048](../architecture/decisions/0048-reserve-unreleased-pages-revisions.md). Linux release authority remains
-separate during acceptance, and Windows release authorities remain separate later gates.
+[ADR 0048](../architecture/decisions/0048-reserve-unreleased-pages-revisions.md). Linux release authority was separate
+during 0.1.12 acceptance, and Windows release authorities remain separate later gates.
 
 The first `v0.1.0` dispatch on 2026-09-10 stopped in the secret-free preflight before any protected environment or
 credential was admitted. The preflight expected a runner environment variable for repository visibility that GitHub

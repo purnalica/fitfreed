@@ -2,12 +2,11 @@
 
 ## Status
 
-Active as of 2026-09-14. Workflow `34830250376` built the exact 0.1.12 macOS-plus-Linux candidate, passed protected
-composition and both supported Ubuntu admission rows, and published its immutable GitHub Release. Final remote
-verification rejected the still-live 0.1.7 Pages snapshot. The release and product workflows had submitted different
-complete Pages artifacts under the same source revision identity. M4.6 now requires a distinct public-version revision
-to deploy the authenticated 0.1.12 snapshot and the original workflow's failed verifier to accept every public byte.
-No package, candidate, Release asset, product E2E, or native admission is repeated.
+Complete as of 2026-09-14. Workflow [`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376),
+attempt 2, accepted the exact 0.1.12 macOS-plus-Linux candidate after protected composition, both supported Ubuntu
+admission rows, immutable GitHub Release publication, source-bound provenance, Pages convergence, stable-v3 update
+delivery, and remote verification of every public byte. The final correction reused the immutable candidate and
+reran only the failed remote verifier; no package, Release asset, product E2E, or native admission was repeated.
 
 ## Objective
 
@@ -33,9 +32,9 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 
 - The accepted product behavior is the source, application, domain, presentation, and data-contract baseline inherited
   from Milestones 1 and 2 plus the completed X7 corrective increments.
-- The immutable public macOS 0.1.7 Release satisfies the Linux publication dependency but does not prove Linux parity.
-- Linux public promotion remains blocked until a new exact Linux candidate passes its own gates. Immutable 0.1.10 is
-  rejected without publication and cannot be rebuilt or promoted.
+- The immutable public macOS 0.1.7 Release satisfied the Linux publication dependency but did not prove Linux parity.
+- The exact 0.1.12 candidate supplied independent Linux parity evidence and is now the current public release.
+  Immutable 0.1.10 remains rejected without publication and cannot be rebuilt or promoted.
 - The Linux expansion uses the next unreleased semantic version after that immutable macOS Release and contains newly
   built, exact-version macOS and Linux targets as required by
   [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md). The current repository version
@@ -54,7 +53,7 @@ RPM, Flatpak, Snap, AUR, ARM64, and other distributions are not implicitly suppo
 | M4.3 | Complete | The same exact-source run passed the installed Debian capability campaign without retries under WebKitGTK and Xvfb, including the shared functional, restart, sport-recognition, localization, accessibility, compact-layout, chart-interaction, export, and performance contracts. |
 | M4.4 | Complete | Exact hosted Ubuntu 24.04 run [`33735325172`](https://github.com/purnalica/fitfreed/actions/runs/33735325172) passed the installed-package cold-launch budget, production import and equivalent-reimport budgets, dense-history and Insights budgets, and the real isolated 32 MiB `tmpfs` `ENOSPC` recovery boundary. The shared Unix local-library adapter also has host evidence for user-only creation and repair, synchronization, symbolic- and multiple-link rejection, corrupt-library preservation, and competing-writer retry. Ubuntu 26.04 candidate admission remains an M4.6 gate rather than part of this 24.04 engineering baseline. |
 | M4.5 | Complete | Manifest version 6, a complete macOS-plus-Linux stable snapshot, neutral checksum signing, exact Linux native-input staging and digest-bound transport, protected composition, generic reopening/publication/remote verification, and the manual two-approval workflow are implemented with synthetic contract evidence. The contributor, operator, user, support, and architecture guidance describes the same pipeline. Complete changed-tree verification on 2026-09-03 passed static workflow policy, documentation and data contracts, repository-content and secret scans, dependency audit, the fast unit and integration suites, production packaging, import and Insights benchmarks, packaged product E2E, and packaged update replacement and recovery. Production authority and exact-candidate evidence remain M4.6 gates. |
-| M4.6 | In progress | Exact 0.1.12 workflow [`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376) passed exact-source controls, native Linux construction, protected signing and notarization, both Ubuntu admission rows, protected promotion, provenance, and immutable Release publication. Its final verifier rejected the public origin because the preceding product workflow and release workflow had submitted distinct Pages artifacts under the same revision identity, leaving 0.1.7 live. ADR 0048 reserves unreleased revisions for exact release deployment. Deploy the authenticated 0.1.12 snapshot from a distinct public-version revision, then rerun only the original failed verifier. |
+| M4.6 | Complete | Exact 0.1.12 workflow [`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376), attempt 2, passed exact-source controls, native Linux construction, protected signing and notarization, both Ubuntu admission rows, protected promotion, provenance, immutable Release publication, Pages convergence, and final remote verification. The first attempt exposed conflicting Pages artifacts under one source identity. ADR 0048 reserves unreleased revisions for exact release deployment, and immutable-Release reconstruction restored the authenticated 0.1.12 snapshot without rebuilding or replacing any package or Release asset. |
 
 Exact descendant `8e0e67b` reached the final Insights scenario of the installed Linux capability campaign in hosted run
 [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902) after every preceding functional,

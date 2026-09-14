@@ -2,11 +2,10 @@
 
 ## Status
 
-This pre-publication guide describes the macOS member of the proposed 0.1.12 macOS-plus-Linux release. It becomes the
-operative version-matched guide only if an immutable `v0.1.12` [FitFreed public Release](https://github.com/purnalica/fitfreed/releases)
-contains the exact admitted complete-platform candidate. Source archives, development packages, Actions artifacts,
-forks, and third-party packages are not that release. FitFreed 0.1.7 remains the supported public macOS version while
-the [Milestone 4 execution ledger](../plans/milestone-4.md) contains an open gate.
+This is the operative version-matched macOS guide for the immutable `v0.1.12` [FitFreed public
+Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.12). That Release contains the exact admitted
+macOS-plus-Linux candidate from source `545b41cbd59a248e57e30c36a118ff41ff59aadd`. Source archives, development
+packages, Actions artifacts, forks, and third-party packages are not that release.
 
 FitFreed 0.1.12 supports Apple Silicon on macOS 15.0 or later. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
 

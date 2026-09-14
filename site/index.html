@@ -60,8 +60,8 @@
           </div>
           <div data-release-slot>
             <div class="availability-note">
-              <strong data-i18n="hero.availabilityTitle">Public macOS release available</strong>
-              <span data-i18n="hero.availabilityBody">The supported Apple Silicon package is signed, notarized, and published from the canonical GitHub repository.</span>
+              <strong data-i18n="hero.availabilityTitle">Public macOS and Linux release available</strong>
+              <span data-i18n="hero.availabilityBody">The supported Apple Silicon macOS and x86-64 Ubuntu packages are published with their verification evidence in the canonical GitHub repository.</span>
             </div>
           </div>
         </div>
@@ -244,8 +244,8 @@
       <section class="status" id="status" aria-labelledby="status-heading">
         <div class="section-heading compact">
           <p class="eyebrow" data-i18n="status.eyebrow">Project status</p>
-          <h2 id="status-heading" data-i18n="status.title">Current source, pre-release hardening, and later scope.</h2>
-          <p data-i18n="status.disclaimer">The sections below separate existing source capability, the supported public macOS release, accepted work in progress, and later ideas.</p>
+          <h2 id="status-heading" data-i18n="status.title">Current source, supported release, and later scope.</h2>
+          <p data-i18n="status.disclaimer">The sections below separate existing source capability, supported public platforms, accepted work in progress, and later ideas.</p>
         </div>
         <div class="status-columns">
         <!-- product-status:start -->
@@ -256,6 +256,8 @@
             </summary>
             <div class="status-detail">
               <ul>
+              <li data-i18n="status.available.items.macosRelease">FitFreed 0.1.12 is available for Apple Silicon on macOS 15.0 or later</li>
+              <li data-i18n="status.available.items.linuxRelease">FitFreed 0.1.12 is available for x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through its native Debian package</li>
               <li data-i18n="status.available.items.polarFlowImport">Polar Flow ZIP validation and import</li>
               <li data-i18n="status.available.items.importCoverage">Explicit supported, ignored, and unrecognized coverage</li>
               <li data-i18n="status.available.items.safeReimport">Safe exact and cumulative reimport</li>
@@ -291,12 +293,10 @@
           <details data-status="active" open>
             <summary>
               <span data-i18n="status.active.label">Work in progress</span>
-              <h3 data-i18n="status.active.title">Cross-platform MVP delivery</h3>
+              <h3 data-i18n="status.active.title">Windows MVP delivery</h3>
             </summary>
             <div class="status-detail">
               <ul>
-              <li data-i18n="status.active.items.macosRelease">FitFreed 0.1.7 is the supported public Apple Silicon macOS baseline; version 0.1.12 is assigned to the complete macOS-plus-Linux expansion</li>
-              <li data-i18n="status.active.items.linuxParity">The Ubuntu Desktop 24.04 and 26.04 x86-64 Debian package and production checksum authority are implemented; public 0.1.12 still requires exact-candidate admission</li>
               <li data-i18n="status.active.items.windowsParity">Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists</li>
               </ul>
               <a href="../docs/roadmap.md#milestone-map" data-i18n="status.active.source">Cross-platform delivery roadmap →</a>
@@ -322,7 +322,7 @@
         <!-- product-status:end -->
         </div>
         <p class="status-footnote">
-          <span data-i18n="status.footnote">FitFreed 0.1.7 is available for supported Apple Silicon Macs. Linux and Windows remain behind their exact native candidate and publication gates.</span>
+          <span data-i18n="status.footnote">FitFreed 0.1.12 is available for supported Apple Silicon Macs and x86-64 Ubuntu Desktop 24.04 and 26.04 LTS systems. Windows remains behind its exact native candidate and publication gates.</span>
           <a href="../docs/roadmap.md#milestone-map" data-i18n="status.readiness">Read the release roadmap.</a>
         </p>
       </section>

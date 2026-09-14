@@ -2,17 +2,15 @@
 
 ## Status
 
-This inactive pre-publication guide is rendered against the assigned 0.1.12 expansion source so its exact names,
-commands, links, and documentation contracts can be verified. It does not announce a Linux release.
-No public Linux binary is available while the [Milestone 4 execution ledger](../plans/milestone-4.md) contains an open gate.
+This is the operative version-matched Linux guide for the immutable `v0.1.12` [FitFreed public
+Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.12). Under [ADR
+0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md), that Release contains newly built
+macOS and Linux targets from the same exact source revision, `545b41cbd59a248e57e30c36a118ff41ff59aadd`. Source
+archives, development packages, Actions artifacts, forks, and third-party packages are not that release.
 
-Under [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md), the operative guide and
-artifacts contain newly built macOS and Linux targets for the same exact version and revision. Release preparation
-regenerates every version-specific name and piece of evidence together. This guide becomes operative only for Linux
-assets in an immutable `v0.1.12` GitHub Release from `purnalica/fitfreed`; source archives, development packages,
-Actions artifacts, forks, and third-party packages are not that release.
-
-FitFreed 0.1.12 will support x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through one Debian package only after the exact candidate passes both clean-desktop matrices. It is experimental GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
+FitFreed 0.1.12 supports x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through one Debian package. It is experimental
+GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the [project
+disclaimer](../../DISCLAIMER.md) before installation.
 
 ## Preserve the source data first
 
@@ -53,7 +51,7 @@ The published release notes identify the exact source revision and explain the s
 ## Install and first launch
 
 1. Open the verified `FitFreed_0.1.12_amd64.deb` in Ubuntu App Center or the graphical software installer.
-2. Confirm the proposed application is named FitFreed, identifies version 0.1.12, and comes from the package just verified.
+2. Confirm the application is named FitFreed, identifies version 0.1.12, and comes from the package just verified.
 3. Choose **Install**. Ubuntu may request administrator authorization for this native package operation.
 4. Open FitFreed from the desktop application launcher.
 5. Confirm **Settings → Updates** identifies version 0.1.12 before importing anything.

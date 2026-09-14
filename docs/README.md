@@ -4,8 +4,8 @@
 
 ### Evaluating the current application
 
-FitFreed 0.1.7 is the supported public release for Apple Silicon on macOS 15.0 or later. Linux and Windows packages
-remain in the ordered complete-platform release path.
+FitFreed 0.1.12 is the supported public release for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop
+24.04 and 26.04 LTS. Windows remains in the ordered complete-platform release path.
 
 - Read the [development preview guide](user/development-preview.md) for the complete runnable journey.
 - Read [session reports](user/reports.md) for creation, durable editing, privacy review, stale-source handling, and local HTML export.
@@ -13,8 +13,8 @@ remain in the ordered complete-platform release path.
 - Read [personal session ranges](user/session-ranges.md) for exact timeline selection, durable editing, reimport review, and revision-coherent results.
 - Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
 - Read the [private alpha candidate guide](user/private-alpha-candidate.md) for the version-matched 0.1.0 user journey and the gates that keep it inactive.
-- Read the [public macOS 0.1.7 guide](user/public-macos-0.1.7.md) for verified download, installation, import, update, recovery, privacy, and removal.
-- Read the proposed [public macOS 0.1.12 guide](user/public-macos-0.1.12.md) and [public Linux 0.1.12 guide](user/public-linux-0.1.12.md) for the inactive complete-platform expansion boundary.
+- Read the [public macOS 0.1.12 guide](user/public-macos-0.1.12.md) and [public Linux 0.1.12 guide](user/public-linux-0.1.12.md) for verified download, installation, import, update, recovery, privacy, and removal.
+- Read the [public macOS 0.1.7 guide](user/public-macos-0.1.7.md) for the preceding macOS-only release.
 - Read the inactive [public Windows 0.1.12 guide](user/public-windows-0.1.12.md) for the future-platform documentation contract; it does not announce or assign a Windows release.
 - Check the [public-release readiness ledger](testing/public-release-readiness.md) for the exact passed, pending, open, and unauthorized boundaries.
 - Read the [user-documentation status](user/README.md) before opening any build.

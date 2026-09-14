@@ -2,14 +2,13 @@
 
 ## Status
 
-Milestones 1 through 3, Milestone 2's D0–E6 product-experience objective, and the public macOS release are complete.
-FitFreed 0.1.7 is available from its immutable [GitHub
-Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.7) for Apple Silicon on macOS 15.0 or later. Exact
-workflow [`34650206971`](https://github.com/purnalica/fitfreed/actions/runs/34650206971), attempt 2, published the
-admitted signed and notarized candidate and passed Pages, provenance, stable-channel, and remote-byte verification.
-Milestone 4 is now the active public Linux expansion; Milestone 5 follows for Windows. Platform acceptance and public
-promotion remain ordered macOS, Linux, then Windows. Version 0.1.12 is assigned to the complete macOS-plus-Linux
-release; its independent release-checksum authority is active, while exact candidate, native admission, and promotion remain open. D0
+Milestones 1 through 4 and Milestone 2's D0–E6 product-experience objective are complete. FitFreed 0.1.12 is available
+from its immutable [GitHub Release](https://github.com/purnalica/fitfreed/releases/tag/v0.1.12) for Apple Silicon on
+macOS 15.0 or later and x86-64 Ubuntu Desktop 24.04 and 26.04 LTS. Exact workflow
+[`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376), attempt 2, passed protected
+composition, Apple trust, both Ubuntu admissions, immutable publication, Pages convergence, provenance, stable-v3
+update-channel, and remote-byte verification. Milestone 5 is now the active Windows expansion. Platform acceptance and
+public promotion remain ordered macOS, Linux, then Windows. D0
 established the report, deep-session, segmentation, sport-classification, navigation, and public-communication
 capability boundaries; P1 published the truthful canonical product site; E1 through E5 and the previously planned E6
 corrections retain complete local and hosted engineering evidence. The subsequent [independent product-experience
@@ -201,7 +200,7 @@ verification of private alpha updates.
 
 ### Milestone 4 — Public Linux MVP parity
 
-**Status:** active.
+**Status:** complete with public version 0.1.12.
 
 **Outcome:** the accepted first-MVP capability baseline is available to Linux users through a native, documented,
 updateable, recoverable, and supportable public distribution path without changing product functionality.
@@ -219,6 +218,8 @@ clean-environment test matrix before Linux implementation begins.
 migration, interruption recovery, removal, accessibility, localization, and supported-environment verification.
 
 ### Milestone 5 — Public Windows MVP parity
+
+**Status:** active.
 
 **Outcome:** the same accepted first-MVP capability baseline is available to Windows users through a native,
 documented, updateable, recoverable, and supportable public distribution path without changing product functionality.

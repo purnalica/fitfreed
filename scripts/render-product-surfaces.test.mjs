@@ -77,7 +77,10 @@ test("rejects missing, reordered, or duplicated status contracts", () => {
   );
 });
 
-test("presents frozen cross-platform MVP delivery as active work", () => {
+test("presents released platforms as available and Windows delivery as active work", () => {
+  const availableKeys = currentModel.statuses
+    .find(({ key }) => key === "available")
+    .items.map(({ key }) => key);
   const activeKeys = currentModel.statuses
     .find(({ key }) => key === "active")
     .items.map(({ key }) => key);
@@ -85,6 +88,7 @@ test("presents frozen cross-platform MVP delivery as active work", () => {
     .find(({ key }) => key === "later")
     .items.map(({ key }) => key);
 
-  assert.deepEqual(activeKeys, ["macosRelease", "linuxParity", "windowsParity"]);
+  assert.deepEqual(availableKeys.slice(0, 2), ["macosRelease", "linuxRelease"]);
+  assert.deepEqual(activeKeys, ["windowsParity"]);
   assert.doesNotMatch(laterKeys.join(" "), /desktopPlatforms/u);
 });

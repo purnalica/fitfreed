@@ -160,7 +160,7 @@ export function validateCurrentDocumentation({
   requirePattern(
     errors,
     sources[paths.roadmap],
-    /Milestones 1 through 3, Milestone 2's D0[\u2013-]E6 product-experience objective,[\s\S]{0,120}are complete/,
+    /Milestones 1 through 4 and Milestone 2's D0[\u2013-]E6 product-experience objective are complete/,
     "roadmap does not record the completed product-experience objective",
   );
   requirePattern(
@@ -174,8 +174,8 @@ export function validateCurrentDocumentation({
   requirePattern(
     errors,
     readiness,
-    /first supported public release for Apple Silicon on macOS 15\.0 or later/,
-    "release readiness does not record public macOS availability",
+    /supported public release for Apple Silicon on macOS 15\.0 or later[\s\S]{0,120}x86-64 Ubuntu Desktop/,
+    "release readiness does not record public macOS and Linux availability",
   );
   rejectPattern(
     errors,

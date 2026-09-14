@@ -2,9 +2,9 @@
 
 ## Supported versions
 
-FitFreed 0.1.7 is the supported public version for Apple Silicon on macOS 15.0 or later. Its exact trust and
-publication evidence is recorded in the [public-release readiness ledger](docs/testing/public-release-readiness.md).
-Linux and Windows have no supported public version yet.
+FitFreed 0.1.12 is the supported public version for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop
+24.04 and 26.04 LTS. Its exact trust and publication evidence is recorded in the [public-release readiness
+ledger](docs/testing/public-release-readiness.md). Windows has no supported public version yet.
 
 ## Reporting a vulnerability
 

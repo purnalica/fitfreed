@@ -11,9 +11,10 @@ results outside the platform that recorded them.
 [Visit the product site](https://fitfreed.org/) · [Review the roadmap](docs/roadmap.md) ·
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
-> **FitFreed 0.1.7 is available for Apple Silicon on macOS 15.0 or later.** Its immutable public Release contains the
-> admitted Developer ID-signed and Apple-notarized package. Linux and Windows remain in the ordered
-> complete-platform release path. Follow only the version-matched public guide before importing personal data.
+> **FitFreed 0.1.12 is available for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop 24.04 and 26.04
+> LTS.** Its immutable public Release contains the admitted macOS and Linux packages and their verification evidence.
+> Windows remains in the ordered complete-platform release path. Follow only the version-matched public guide before
+> importing personal data.
 
 ## A downloaded archive is not practical freedom
 
@@ -63,6 +64,8 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <details data-status="available">
 <summary><strong>Implemented in source — Current capability</strong></summary>
 <ul>
+<li>FitFreed 0.1.12 is available for Apple Silicon on macOS 15.0 or later</li>
+<li>FitFreed 0.1.12 is available for x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through its native Debian package</li>
 <li>Polar Flow ZIP validation and import</li>
 <li>Explicit supported, ignored, and unrecognized coverage</li>
 <li>Safe exact and cumulative reimport</li>
@@ -96,10 +99,8 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 </details>
 
 <details data-status="active" open>
-<summary><strong>Work in progress — Cross-platform MVP delivery</strong></summary>
+<summary><strong>Work in progress — Windows MVP delivery</strong></summary>
 <ul>
-<li>FitFreed 0.1.7 is the supported public Apple Silicon macOS baseline; version 0.1.12 is assigned to the complete macOS-plus-Linux expansion</li>
-<li>The Ubuntu Desktop 24.04 and 26.04 x86-64 Debian package and production checksum authority are implemented; public 0.1.12 still requires exact-candidate admission</li>
 <li>Windows 11 x86-64 per-user installer parity follows the same frozen capability baseline; no public Windows binary exists</li>
 </ul>
 <p><a href="docs/roadmap.md#milestone-map">Cross-platform delivery roadmap →</a></p>
