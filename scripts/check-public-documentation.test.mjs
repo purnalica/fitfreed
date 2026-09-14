@@ -24,17 +24,17 @@ test("accepts the complete version-matched public documentation set", () => {
   });
 });
 
-test("rejects readiness copy that loses the public macOS availability decision", () => {
+test("rejects readiness copy that loses the public macOS and Linux availability decision", () => {
   const candidate = bundle();
   const readinessPath = "docs/testing/public-release-readiness.md";
   candidate.documents[readinessPath] = candidate.documents[readinessPath].replace(
-    "first supported public release for Apple Silicon on macOS 15.0 or later",
-    "accepted product baseline for macOS",
+    "supported public release for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop",
+    "accepted product baseline for desktop systems",
   );
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
-    /readiness does not document supported public macOS decision/,
+    /readiness does not document supported public macOS and Linux decision/,
   );
 });
 
@@ -177,13 +177,13 @@ test("rejects a macOS guide that loses its conditional operative boundary", () =
   const candidate = bundle();
   const guidePath = `docs/user/public-macos-${candidate.version}.md`;
   candidate.documents[guidePath] = candidate.documents[guidePath].replace(
-    "operative version-matched guide",
+    "operative version-matched macOS guide",
     "general guide",
   );
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
-    /userGuide does not document supported public-release status/,
+    /userGuide does not document supported public macOS release status/,
   );
 });
 
