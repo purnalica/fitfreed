@@ -122,7 +122,11 @@ test("rejects Windows guidance that weakens trust, installation, and support bou
   const guidePath = `docs/user/public-windows-${candidate.version}.md`;
   candidate.documents[guidePath] = candidate.documents[guidePath]
     .replace("x86-64 editions of Windows 11", "Windows computers")
+    .replace("GitHub-hosted `windows-2025`", "an unspecified Windows host")
     .replaceAll(`FitFreed_${candidate.version}_x64-setup.exe`, "FitFreed.msi")
+    .replace('"NotSigned"', '"Valid"')
+    .replace("unknown publisher", "verified publisher")
+    .replace("Do not disable system-wide protections", "Disable system-wide protections")
     .replace("current-user installation", "system-wide installation")
     .replace("A SmartScreen reputation warning is not a trust result", "Choose Run anyway");
 
@@ -130,7 +134,11 @@ test("rejects Windows guidance that weakens trust, installation, and support bou
     () => validatePublicDocumentationBundle(candidate),
     (error) => {
       assert.match(error.message, /windowsUserGuide does not document supported Windows boundary/);
+      assert.match(error.message, /windowsUserGuide does not document hosted admission limitation/);
       assert.match(error.message, /windowsUserGuide does not document exact NSIS setup/);
+      assert.match(error.message, /windowsUserGuide does not document declared absent Authenticode identity/);
+      assert.match(error.message, /windowsUserGuide does not document unknown-publisher warning/);
+      assert.match(error.message, /windowsUserGuide does not document native-protection boundary/);
       assert.match(error.message, /windowsUserGuide does not document current-user installation/);
       assert.match(error.message, /windowsUserGuide does not document SmartScreen interpretation/);
       return true;
@@ -250,7 +258,9 @@ test("rejects a candidate procedure that transfers deterministic verification to
     );
   candidate.documents[windowsEvaluationPath] = candidate.documents[windowsEvaluationPath]
     .replace("product owner is not a manual QA operator", "product owner is the manual QA operator")
-    .replace("exact sealed complete-platform candidate", "similar complete-platform candidate");
+    .replace("exact sealed complete-platform candidate", "similar complete-platform candidate")
+    .replace("GitHub-hosted `windows-2025`", "an unspecified Windows host")
+    .replace("does not require a second product-owner evaluation", "requires repeated manual evaluation");
 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
@@ -259,6 +269,8 @@ test("rejects a candidate procedure that transfers deterministic verification to
       assert.match(error.message, /manualEvaluation does not document automated functional responsibility/);
       assert.match(error.message, /windowsManualEvaluation does not document product-owner scope boundary/);
       assert.match(error.message, /windowsManualEvaluation does not document exact candidate boundary/);
+      assert.match(error.message, /windowsManualEvaluation does not document hosted native boundary/);
+      assert.match(error.message, /windowsManualEvaluation does not document unchanged product-experience boundary/);
       return true;
     },
   );

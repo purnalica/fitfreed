@@ -9,33 +9,29 @@ the product owner is not a manual QA operator.
 
 The supplement applies only to the exact sealed complete-platform candidate after every automated macOS, Linux, and
 Windows admission job has passed. It does not activate the workflow, authorize publication, or substitute a rebuilt
-or instrumented application for the exact signed candidate.
+or instrumented application for the exact candidate.
 
 ## Windows entry conditions
 
-Before the protected `public-windows-product-acceptance` gate is requested, automation must establish that:
+Before the protected publication gate is requested, automation must establish that:
 
-- the candidate archive and manifest version 7 identity match the workflow's recorded digest, version, revision, and
+- the candidate archive and manifest version 8 identity match the workflow's recorded digest, version, revision, and
   storage schema;
-- the secret-free admission runner matches the reviewed Windows 11 x86-64 policy at candidate issuance;
-- the exact setup and installed application pass Authenticode trust, current-user installation, cold launch, removal,
-  and application-data preservation;
-- the source-matched isolated instrumented package passes the exhaustive capability, localization, accessibility,
-  update, recovery, filesystem, and performance campaign; and
-- no unresolved critical or major machine-audit finding remains.
+- the GitHub-hosted `windows-2025` runner installs, cold-launches, removes, and preserves application data for the
+  exact setup while explicitly recording that this does not establish exact Windows 11 client admission;
+- the setup, manifest, and public guidance consistently declare the absent Authenticode publisher identity; and
+- the accepted source-matched product evidence remains applicable because the executable behavior did not change.
 
 The production package intentionally contains no WebDriver instrumentation. Exact-package native evidence and the
-source-matched automated behavior campaign must both pass and cannot substitute for one another.
+accepted source-matched automated behavior evidence have different purposes and cannot substitute for one another.
 
 ## Product-owner handoff
 
-Provide the installed exact candidate with no technical checklist or coaching beyond how to start it. Apply the five
-canonical experience tasks and acceptance rule. A functional failure encountered incidentally is a test-gap defect:
-record it once, stop the affected journey, and return the candidate to engineering without asking for repeated manual
-reproduction.
+The Windows preview changes distribution trust and package availability, not the accepted application experience. It
+therefore does not require a second product-owner evaluation. A future Windows-specific product change reopens the
+canonical five experience tasks; a functional failure encountered incidentally remains a test-gap defect and must not
+be turned into repeated manual QA.
 
-Record only the candidate label, accepted or rejected product-experience outcome, and concise privacy-safe findings.
-The environment approval records that verdict; it does not grant signing or publication authority. A separate later
-`public-macos-release` approval remains the irreversible publication decision. During bootstrap governance, the same
-accountable project owner may record both approvals under
-[ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md).
+The later `public-macos-release` approval remains the irreversible publication decision. It approves only the exact
+candidate after all native admission jobs pass and does not reinterpret hosted Windows evidence as exact Windows 11,
+Smart App Control, enterprise-policy, or Authenticode compatibility.

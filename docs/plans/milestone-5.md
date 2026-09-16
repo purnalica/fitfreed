@@ -3,17 +3,18 @@
 ## Status
 
 In progress as of 2026-09-16. Autonomous hosted Windows engineering is complete under ADR 0039. Public 0.1.12 now
-satisfies the immutable macOS-plus-Linux predecessor dependency. Windows production Authenticode authority,
-disposable native runners, exact-candidate execution, bounded human acceptance, and public promotion remain open.
+satisfies the immutable macOS-plus-Linux predecessor dependency.
 The SignPath Foundation application submitted on 2026-09-14 was declined, as reported by the project owner on
 2026-09-16. The stated reason is insufficient external public trust and visibility, not an assessment of product
 quality. On 2026-09-16 the project owner closed SignPath as a delivery option and reopened evaluation of European
 signing authorities. ADR 0051 now selects a transparent unsigned Windows preview so real demand can be observed
 without claiming native-trust parity. HARICA Code Signing IV is the deferred authority to activate before stable
-Windows promotion, or earlier if feedback shows that unsigned installation blocks adoption. Public Windows promotion
-remains blocked until the new preview profile and exact candidate pass their hosted preview gates. The implemented SignPath
-integration remains historical engineering evidence until its complete content and incoming dependencies are
-inventoried under the repository archival policy.
+Windows promotion, or earlier if feedback shows that unsigned installation blocks adoption. The manifest version 8
+preview profile, secret-free hosted Windows build and admission, protected composition, localized disclosure, and
+remote verification pipeline are implemented and pass their local contracts. Version 0.1.13 source preparation,
+exact-source CI, immutable tag, protected approvals, native candidate admission, publication, and remote acceptance
+remain. The implemented SignPath integration remains historical engineering evidence until its complete content and
+incoming dependencies are inventoried under the repository archival policy.
 
 ## Windows distribution evaluation
 
@@ -59,10 +60,10 @@ separate protected promotion decision.
 | Field | Boundary |
 |---|---|
 | Acceptance outcome | Publish one explicitly unsigned Windows preview through the complete release pipeline, then remotely verify the exact immutable package, update channel, platform disclosures, and feedback route without changing stable macOS or Linux claims. |
-| Exact evidence | Hosted Windows package construction, installation, capability, update recovery, performance, filesystem recovery, and data-scale evidence is accepted below. ADR 0050 retires SignPath; ADR 0051 selects the unsigned public profile and HARICA IV as the deferred authority. The existing release schemas, composition, admission, user guide, and publication workflow still require Authenticode and must be changed coherently before an exact preview candidate can exist. |
+| Exact evidence | Hosted Windows package construction, installation, capability, update recovery, performance, filesystem recovery, and data-scale evidence is accepted below. ADR 0050 retires SignPath; ADR 0051 selects the unsigned public profile and HARICA IV as the deferred authority. Release manifest version 8, unsigned package evidence, composition, admission, user guidance, localized site disclosure, and publication workflow now encode that profile coherently. |
 | Causal hypothesis | A clearly labelled unsigned preview can test whether real Windows demand exists without sacrificing cryptographic release and update integrity, provided every contract models missing Authenticode explicitly and the product does not claim universal installability or stable trust parity. |
 | Smallest falsifying test | The route fails if the exact package cannot install, launch, retain its update authority, preserve data, restart, and remove cleanly on the pinned hosted Windows environment; if setup, application, and uninstaller signature state is not explicitly `NotSigned`; if the missing exact Windows 11 evidence is hidden; or if any public surface can confuse preview trust with stable signed trust. |
-| Allowed change | Add the unsigned public trust profile to Windows package evidence, complete-platform manifests, candidate composition and verification, protected workflow, localized site and user guidance, release notes, and exact admission. Remove or archive SignPath-specific material only after the mandatory full dependency inventory. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, and stable macOS-plus-Linux claims. |
+| Allowed change | Prepare, verify, tag, and publish version 0.1.13 through the implemented unsigned public trust profile. Remove or archive SignPath-specific material only after the mandatory full dependency inventory. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, and stable macOS-plus-Linux claims. |
 | Evidence retained | All accepted hosted engineering evidence recorded below remains valid. No product E2E, update-recovery, performance, full-scale import, or data-recovery campaign is repeated because this revision changes release verification only. |
 | Exit or stop | Stop only at a documented human gate that cannot be supplied from the repository: protected candidate approval or final promotion approval. Do not purchase HARICA, represent hosted evidence as exact Windows 11 evidence, or repeat accepted product campaigns. |
 
@@ -83,12 +84,12 @@ separate protected promotion decision.
 | Increment | Status | Current evidence boundary |
 |---|---|---|
 | M5.0 Native portability admission | Complete | Exact source `ae59828` uses the package-only scope in [hosted run `34060294715`](https://github.com/purnalica/fitfreed/actions/runs/34060294715): it reuses accepted Windows host evidence, builds the release-shaped NSIS package, accepts the complete native install-inventory-remove lifecycle, records exact successful host evidence, and skips every packaged E2E campaign. The preceding rejected run `34059108525` and focused contracts establish the PowerShell 5.1 sort-key cause and correction without weakening byte-order validation. |
-| M5.1 Windows package identity and trust | In progress | The closed unsigned NSIS source build, dual-profile clean installation/removal and inventory, independent Authenticode inspector, authority-separated three-file Windows expansion input, digest-bound transport, version 7 release contract, candidate composition, and complete-candidate reopening are implemented and verified at their applicable local or hosted engineering boundaries. Native package installation, inventory, removal, and data preservation pass in run `34060294715`. ADR 0050 retires the implemented two-stage SignPath bridge and pinned request boundary; they remain historical evidence pending dependency inventory. Selection and implementation of either HARICA-backed Authenticode or the unsigned-preview trust profile remain open M5.6 gates. |
+| M5.1 Windows package identity and trust | Complete for preview | The package contract, clean installation/removal, inventory, authority-free input, digest-bound transport, explicit `public-unsigned-preview` profile, manifest version 8, composition, and complete-candidate reopening are implemented. Native package installation, inventory, removal, and data preservation pass in run `34060294715`. ADR 0050 retires SignPath; ADR 0051 selects the preview profile and defers HARICA IV until stable Windows or observed demand justifies earlier activation. |
 | M5.2 Windows-native update recovery | Complete | Native adapters derive current-user NSIS identity, invoke only recovery-owned silent installers, distinguish installer failure from an invalid resulting native identity, bind process control to creation time plus canonical executable path, preserve digest- and PE-identity-checked packages with a bounded complete runnable predecessor tree, and verify recovered critical files against that image. The closed version 3 state contract and Rust preparation atomically bind and reopen both packages, the runnable tree, matching library, manifest, lock files, and active authority. Serialized lifecycle mutation admits only legal transitions and binds `launching` to exact Windows process evidence; exclusive watchdog and candidate leases revalidate their distinct authorities, confirmation requires the exact leased target installation and library, restoration atomically recovers the verified source pair with a closed three-attempt failure policy, and terminal maintenance validates the complete pair before durable receipt and cleanup. Exact source `fb802e6` propagates the authenticated installed target through runnable-fallback confirmation while retaining ordinary platform resolution. Focused [run `34296638466`](https://github.com/purnalica/fitfreed/actions/runs/34296638466) passes all six native prerequisites and all six release-shaped scenarios: successful replacement, installer failure, candidate failure, recovery retry, recovery exhaustion, and restart resumption. It preserves locale and library pairing, never contacts closed update transport, exposes bounded intervention only when required, reaches the expected installed version, and completes terminal acknowledgement and cleanup. This closes hosted Windows Server recovery engineering; exact signed Windows 11 candidate acceptance remains an M5.6 gate. |
-| M5.3 Packaged capability parity | In progress | Exact source `b94a8f4` builds and installs the isolated Linux and Windows packages and passes both exhaustive functional journeys, process restarts, adaptive session composition and restart, sport-catalogue recognition and restart, and Insights interaction and responsiveness budgets. The same source passes the complete packaged macOS campaign. The hosted engineering parity boundary is closed; exact Windows 11 candidate and human acceptance remain open. |
+| M5.3 Packaged capability parity | Complete | Exact source `b94a8f4` builds and installs the isolated Linux and Windows packages and passes both exhaustive functional journeys, process restarts, adaptive session composition and restart, sport-catalogue recognition and restart, and Insights interaction and responsiveness budgets. The same source passes the complete packaged macOS campaign. Release-only descendants retain this evidence rather than repeating unchanged product campaigns. |
 | M5.4 Windows performance and reliability admission | Complete | Exact source `43b04ff` and [run `34315586139`](https://github.com/purnalica/fitfreed/actions/runs/34315586139) accept 100 installed fresh-data launches at p95 `2,175.046 ms` against `2,500 ms`. Exact descendant `23b0f1e` and [recovery-and-data run `34334118449`](https://github.com/purnalica/fitfreed/actions/runs/34334118449) reopen that package evidence, skip its build and cold-launch campaign, and pass native NTFS disk-exhaustion recovery plus every full-scale import, exact-repeat, reimport, dense-history, concurrent-navigation, Insights, report-export, memory, and database-size budget. This closes the hosted Windows Server 2025 engineering boundary without claiming the separate exact Windows 11 candidate gate in M5.6. |
-| M5.5 Installation, operations, and documentation | In progress | The version-matched inactive Windows user guide covers the signed lifecycle that existed when it was written. Native PowerShell contributor scopes and the maintainer runbook distinguish ordinary packaging, authority-free transport, version 7 composition, privacy-safe diagnostics, reproducibility, certificate rotation, and compromise; SignPath-specific instructions are now marked inactive under ADR 0050. The application exposes offline `en-US` and `es-ES` Windows lifecycle help only on a Windows runtime; the exact packaged capability step in run `34031313078` exercises that platform-conditional help before its separate later update failure. One protected Apple Silicon command authenticates both native inputs and complete predecessor distributions before generating and independently reopening an exact manifest version 7 candidate. Candidate Pages derive their localized exact-platform installer links from manifest versions 3, 6, or 7 while the ordinary site remains inactive. The selected trust route must update user guidance and exact-candidate documentation before download activation. |
-| M5.6 Exact candidate and promotion | In progress | The current manual Windows workflow, protected builder, complete-predecessor downloader, version 7 composition, exact Ubuntu and Windows 11 admission topology, distinct product-acceptance gate, separate promotion, immutable publication, and remote reconstruction are implemented and locally contract-tested around the now-retired SignPath profile. Bootstrap governance permits the same accountable maintainer to approve both protected decisions. Immutable public 0.1.12 satisfies the complete macOS-plus-Linux predecessor dependency. A later ADR must select and replace the Windows trust profile before disposable native admission, exact candidate execution, human acceptance, and publication can proceed. |
+| M5.5 Installation, operations, and documentation | Complete for preview | The version-matched Windows guide, support and security entry points, installed `en-US` and `es-ES` help, contributor scopes, maintainer runbook, manifest version 8 contracts, product-site warning, HARICA deferral, withdrawal, recovery, and incident boundaries describe one explicit unsigned preview. SignPath commands are historical compatibility code and no protected Windows signing environment remains. |
+| M5.6 Exact candidate and promotion | In progress | The manual Windows workflow now builds and seals the unsigned native input on `windows-2025`, composes one protected complete-platform candidate, admits its exact Linux and Windows packages before promotion, and publishes only after a second protected approval. Immutable public 0.1.12 satisfies the predecessor dependency. Version 0.1.13 source preparation and exact-source local contracts are complete; synchronization, exact-source CI, immutable tag, protected approvals, candidate execution, immutable publication, Pages convergence, and remote verification remain. |
 
 Exact descendant `8e0e67b` passes repository safety, product-site publication, the portable quality lane, and the
 complete Linux host in run [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902). The Windows
@@ -255,13 +256,15 @@ boundary requires one exact hosted execution.
 
 ## Objective
 
-Deliver the unchanged first-MVP capability baseline on supported x86-64 Windows 11 editions through one current-user
-NSIS setup executable with complete capability, installation, update, recovery, accessibility, localization,
-performance, documentation, trust, support, and release evidence.
+Deliver the unchanged first-MVP capability baseline as an explicitly unsigned x86-64 Windows preview through one
+current-user NSIS setup executable with complete capability, installation, update, recovery, accessibility,
+localization, performance, documentation, release-integrity, support, and hosted native evidence.
 
-The milestone is not complete when a Windows executable compiles, an NSIS file exists, or hosted Server automation
-passes. One exact Authenticode-signed candidate must pass every automated and Windows 11 desktop gate, and Linux must
-already be publicly available before promotion.
+The preview milestone is not complete when a Windows executable compiles or an NSIS file exists. One exact sealed
+candidate must pass hosted native installation, launch, data-preservation, removal, complete distribution reopening,
+immutable publication, Pages convergence, and remote verification. The result must remain labelled as a preview and
+must not claim exact Windows 11 client, Smart App Control, managed-policy, or Authenticode admission. Stable Windows
+remains a later HARICA-backed gate.
 
 ## Scope protection
 
@@ -280,8 +283,9 @@ Windows 10 are outside this release.
 - Shared cross-platform recovery contracts from Milestone 4 are inputs only after their lifecycle semantics pass; the
   Windows installation, locking, process, and durability adapters remain independently verified.
 - Windows engineering may proceed while macOS or Linux human and publication gates remain open.
-- Public Windows promotion requires an already published Linux release plus Windows signing, exact-candidate, clean
-  Windows 11, human, and publication authority.
+- Public Windows preview promotion requires an already published Linux release, explicit absent-Authenticode evidence,
+  hosted exact-candidate admission, and protected publication authority. Stable Windows separately requires native
+  signing and an exact supported-client evidence policy.
 - The Windows expansion uses the next unreleased semantic version after that immutable Linux Release and contains
   newly built macOS, Linux, and Windows targets under
   [ADR 0044](../architecture/decisions/0044-publish-expanding-complete-platform-sets.md).
@@ -580,24 +584,24 @@ without private knowledge.
 
 1. Add localized user guidance for setup verification, SmartScreen interpretation, current-user installation, first
    launch, updates, recovery, offline use, removal, and separate library deletion.
-2. Document the supported Windows 11 lifecycle rule and the truthful behavior on Windows 10, ARM64, managed MSI, or
-   per-machine environments.
+2. Document the intended Windows 11 lifecycle, hosted admission limit, unknown-publisher behavior, and truthful
+   behavior on Windows 10, ARM64, Smart App Control, managed MSI, or per-machine environments.
 3. Extend contributor setup, PowerShell-safe commands, packaging, E2E, performance, signing, release, incident,
    certificate rotation, withdrawal, and reproducibility guidance.
 4. Generate the version-matched expanding macOS-plus-Linux-plus-Windows manifest, notes, checksums, signatures, SBOMs,
    provenance, known limitations, and support links from one release input.
-5. Expose a Windows product-site download only after exact-candidate acceptance.
+5. Expose a visibly unsigned Windows preview download only after hosted exact-candidate acceptance.
 
 **Acceptance evidence:** documentation, PowerShell clean-room setup, localized content, installed help, artifact
 reopening, and support-link checks pass for the exact candidate.
 
-The first documentation slice adds the inactive version-matched Windows guide and indexes it from user and support
-entry points without activating a download. Its automated contract rejects drift in the exact NSIS name, supported
-Windows family, current-user mode, Authenticode verification, SmartScreen interpretation, offline dependency,
-localized application behavior, local-data lifecycle, unsupported deployment modes, and private reporting boundary.
-The second slice closes ordinary contributor and protected release-operator guidance without inventing a public
-workflow: its contract rejects drift in native PowerShell execution, Authenticode authority separation, version 7
-composition, reproducibility, rotation, compromise, and the inactive Windows-publication boundary. The third slice adds Windows-only installed help:
+The current documentation activates a version-matched preview guide only when its immutable Release exists. Its
+automated contract rejects drift in the exact NSIS name, intended Windows family, hosted-admission limitation,
+current-user mode, intentionally absent Authenticode identity, unknown publisher, SmartScreen and Smart App Control
+boundaries, offline dependency, localized behavior, local-data lifecycle, unsupported deployment modes, and private
+reporting boundary. Contributor and operator guidance rejects drift in native PowerShell execution, authority-free
+transport, manifest version 8 composition, reproducibility, HARICA deferral, withdrawal, compromise, and immutable
+publication. Windows-only installed help remains available on the Windows runtime:
 the browser-evidence adapter detects the runtime platform, Settings exposes no irrelevant category elsewhere, and the
 bundled locale catalogs cover verification and SmartScreen, current-user setup, updates and recovery, offline use,
 removal versus explicit library deletion, unsupported setups, and private support evidence. Unit and application tests
@@ -605,11 +609,11 @@ pass locally; the platform-conditional packaged E2E assertion still requires the
 adds the protected complete-platform preparation entry point. It rejects unsupported hosts, inactive or shared trust,
 changed native inputs, certificate drift, and loose predecessor packages before composition. Matrix-declared Linux and
 Windows recovery bytes enter only after the complete predecessor Release evidence reopens under manifest
-version 6 or 7. Generation creates one exact ignored version directory, reopens it independently, and removes partial
+version 6, 7, or 8. Generation creates one exact ignored version directory, reopens it independently, and removes partial
 output after failure; it does not grant publication authority. Public-site activation remains a separate later slice.
 The fifth slice closes release-site integration without activating the current public site. Ordinary source and
 product-only builds retain no download links. A sealed candidate instead derives the exact localized macOS, Linux, and
-Windows installer surface from manifest version 3, 6, or 7, and candidate, distribution, and remote verifiers
+Windows installer surface from manifest version 3, 6, 7, or 8, and candidate, distribution, and remote verifiers
 reconstruct those bytes. The links become public only after the matching immutable GitHub Release exists and promotion
 deploys the exact accepted Pages artifact.
 
@@ -620,18 +624,19 @@ only after Linux publication.
 
 **Work:**
 
-1. Build the exact tagged target in each protected native environment with ephemeral platform and updater authority,
-   then compose only their same-version, same-revision evidence and remove all authority.
+1. Build Linux and the unsigned Windows input on secret-free hosted native environments, then compose their
+   same-version, same-revision evidence with protected macOS, updater, and release-checksum authority before removing
+   all authority.
 2. Seal the candidate before separate exact-candidate evaluation and preserve exact bytes across promotion.
-3. Run the complete matrix on a clean supported Windows 11 x86-64 desktop, including trust UI, installation, first
-   launch, update, recovery, migration, removal, accessibility, localization, and product experience.
+3. Reopen the exact candidate on hosted Ubuntu and `windows-2025`; install, cold-launch, remove, and verify retained
+   application data without claiming exact Windows 11 client or Smart App Control acceptance.
 4. Attest and publish only the accepted complete expanding target set, atomically update versioned downloads and
    channel data, and verify every remote digest and endpoint.
 5. Keep promotion blocked until the public Linux dependency is objectively satisfied.
 
-**Acceptance evidence:** every Windows readiness row passes for one revision and the complete target-set digests;
-setup, installed signatures, GitHub Release, product site, update channel, release notes, provenance, and documentation
-all name and deliver that same candidate.
+**Acceptance evidence:** every preview readiness row passes for one revision and the complete target-set digests;
+setup, declared absent publisher identity, GitHub Release, product site, update channel, release notes, provenance, and
+documentation all name and deliver that same candidate.
 
 The first M5.6 slice extended the shared authority-free boundaries. The generic verifier dispatches manifest version 7
 to complete-platform candidate or distribution reopening; transport retains all three ordered targets; publication
@@ -639,27 +644,23 @@ derives every exact asset and the Windows workflow provenance identity; and remo
 macOS, Linux, and Windows packages plus every declared native recovery package before reconstructing Pages. Synthetic
 end-to-end tests cover the full remote distribution.
 
-The second M5.6 slice adds the manual-only, inactive Windows expansion workflow and its exact host-admission boundary.
-Secret-free preflight verifies the immutable predecessor, independent trust, and all protected environments. A
-protected disposable Windows 11 x86-64 builder seals the Authenticode-signed native input; the Apple Silicon composer
-downloads and reopens every complete predecessor Release before creating manifest version 7. Separate Ubuntu and
-secret-free Windows 11 jobs reopen the exact candidate. The native host must match the versioned reviewed edition,
-display-version, build, architecture, and lifecycle policy. Exact-package trust, install, removal, and cold launch stay
-separate from the source-matched instrumented capability campaign. A distinct protected product-experience verdict
-precedes the separate publication approval. During bootstrap governance, one accountable maintainer may approve both
-protected decisions under [ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md).
+ADR 0051 replaces the superseded signed topology for the preview. Secret-free preflight verifies the immutable
+predecessor and independent public trust. GitHub-hosted Linux and Windows builders seal authority-free native inputs;
+the protected Apple Silicon composer reopens every predecessor before creating manifest version 8. Separate Ubuntu
+and hosted Windows jobs reopen the exact candidate before the protected publication decision. Exact-package install,
+removal, cold launch, and data preservation stay separate from retained source-matched capability evidence. No second
+product-owner evaluation is required because executable behavior is unchanged.
 
-The workflow, policy schema, static topology checks, predecessor downloader, and portable admission contracts pass
-locally. Production Authenticode and release authority, repository-scoped disposable Windows 11 runners, the immutable
-macOS-plus-Linux predecessor, exact native execution, bounded human product acceptance, tag creation, and publication
-remain open external gates. No public Windows candidate or release exists.
+The workflow, policy schema, static topology checks, predecessor downloader, preview evidence, and hosted admission
+contracts pass locally. Exact-source CI, immutable tag creation, protected composition and promotion approvals, exact
+native candidate execution, immutable publication, and remote acceptance remain.
 
 ## Human intervention boundary
 
-Engineering and hosted evidence proceed autonomously. Final acceptance requires accountable Authenticode signing
-authority, protected release configuration, a clean supported Windows 11 x86-64 evidence environment, the bounded
-product-owner usability verdict, explicit tag and publication authority, and the public Linux dependency. A hosted
-Windows Server run or unsigned NSIS file cannot substitute for those gates.
+Engineering and hosted evidence proceed autonomously. The preview requires the public Linux dependency, immutable
+tag, protected composition approval, successful hosted native admission, and protected publication approval. It has
+no Authenticode or separate product-owner gate. HARICA custody and exact supported-client admission are deliberately
+deferred to stable Windows and cannot be inferred from the preview.
 
 Approval identity follows the bootstrap policy in [governance](../../GOVERNANCE.md); a second maintainer is not a
 prerequisite while that policy remains active.

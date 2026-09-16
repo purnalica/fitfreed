@@ -196,21 +196,21 @@ The [private development package guide](private-development-packages.md) explain
 
 The [private macOS alpha candidate guide](private-alpha-candidate.md) is the version-matched 0.1.0 installation, import, exploration, data, update, removal, diagnostics, and limitations draft. It becomes operative only when its listed release and human-authority gates close.
 
-The [public macOS 0.1.12 guide](public-macos-0.1.12.md) and [public Linux 0.1.12
-guide](public-linux-0.1.12.md) are the operative download, verification, installation, import, exploration, update,
-recovery, removal, and support guides.
+The [public macOS 0.1.13 guide](public-macos-0.1.13.md), [public Linux 0.1.13 guide](public-linux-0.1.13.md), and
+[public Windows 0.1.13 preview guide](public-windows-0.1.13.md) are the version-matched download, verification,
+installation, import, exploration, update, recovery, removal, and support guides once immutable Release `v0.1.13`
+exists. Until then, the 0.1.12 macOS and Linux guides remain operative.
 
 The [public macOS 0.1.7 guide](public-macos-0.1.7.md) documents the preceding macOS-only release.
 
 The [public Linux 0.1.7 guide](public-linux-0.1.7.md) is retained as historical preparation. Version 0.1.7 never
 published a Linux binary.
 
-The [public Windows 0.1.12 guide](public-windows-0.1.12.md) is inactive preparation tied to the repository version. It
-does not assign or announce a Windows release; a later version will replace it before any Windows binary is published.
+The [public Windows 0.1.12 guide](public-windows-0.1.12.md) is retained as inactive historical preparation and never
+activated a Windows package.
 
-The [public-release readiness ledger](../testing/public-release-readiness.md) and [Milestone 4 Linux execution
-ledger](../plans/milestone-4.md) record the accepted macOS-plus-Linux evidence. The [Milestone 5 Windows execution
-ledger](../plans/milestone-5.md) records the gates that still prevent the Windows guide from becoming operative.
+The [public-release readiness ledger](../testing/public-release-readiness.md) records accepted release evidence. The
+[Milestone 5 Windows execution ledger](../plans/milestone-5.md) records the exact preview-publication state.
 
 ## Safety boundary
 

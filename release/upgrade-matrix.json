@@ -2,13 +2,13 @@
   "format": "org.fitfreed.upgrade-matrix",
   "schemaVersion": 2,
   "release": {
-    "version": "0.1.12",
+    "version": "0.1.13",
     "librarySchemaVersion": 37
   },
   "supportedApplicationBaselines": [
     {
-      "version": "0.1.7",
-      "targets": ["darwin-aarch64"],
+      "version": "0.1.12",
+      "targets": ["darwin-aarch64", "linux-x86_64-deb"],
       "librarySchemaVersions": [37]
     }
   ],

@@ -2,12 +2,11 @@
 
 ## Current availability
 
-FitFreed 0.1.12 is the supported public release for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop
-24.04 and 26.04 LTS. Use the [macOS guide](docs/user/public-macos-0.1.12.md) or [Linux
-guide](docs/user/public-linux-0.1.12.md) for download, verification, installation, update, recovery, privacy, and
-removal. The [public Windows 0.1.12 guide](docs/user/public-windows-0.1.12.md) remains inactive and does not announce a
-Windows release; the [Milestone 5 ledger](docs/plans/milestone-5.md) owns its remaining Authenticode, exact-candidate,
-clean Windows 11, acceptance, and publication gates.
+Once immutable GitHub Release `v0.1.13` exists, FitFreed 0.1.13 is the supported public release for Apple Silicon on
+macOS 15.0 or later and x86-64 Ubuntu Desktop 24.04 and 26.04 LTS, with an explicitly unsigned x86-64 Windows preview.
+Use the [macOS guide](docs/user/public-macos-0.1.13.md), [Linux guide](docs/user/public-linux-0.1.13.md), or
+[Windows preview guide](docs/user/public-windows-0.1.13.md) for download, verification, installation, update,
+recovery, privacy, and removal. Before that immutable Release exists, 0.1.12 remains the supported public version.
 
 ## Where requests belong
 
