@@ -160,9 +160,10 @@ function operations(candidate, events) {
       writeFileSync(path.join(evidenceDirectory, "npm.cdx.json"), "{}\n");
       return "npm.cdx.json";
     },
-    discoverRecoveryPackages({ evidenceDirectory }) {
+    discoverRecoveryPackages({ evidenceDirectory, upgradeMatrix }) {
       events.push("recovery");
       assert.equal(evidenceDirectory, candidate.input.predecessorEvidenceDirectory);
+      assert.equal(upgradeMatrix, candidate.upgradeMatrix);
       return {
         recoveryPackages: [{
           librarySchemaVersions: [36, 37],
@@ -187,12 +188,26 @@ function operations(candidate, events) {
       events.push("contracts");
       return { releaseNotesSource: `release/notes/${candidate.input.version}.md` };
     },
-    inspectUpgradeMatrix() {
+    loadUpgradeMatrix() {
       events.push("matrix");
-      return candidate.upgradeMatrix;
+      return {
+        document: candidate.upgradeMatrix,
+        summary: {
+          releaseVersion: candidate.upgradeMatrix.release.version,
+          applicationVersions: candidate.upgradeMatrix.supportedApplicationBaselines
+            .map(({ version }) => version),
+        },
+      };
     },
-    loadReleasePolicy() {
+    loadReleasePolicy(repositoryPath, version, upgradeMatrix) {
       events.push("policy");
+      assert.equal(repositoryPath, candidate.repositoryPath);
+      assert.equal(version, candidate.input.version);
+      assert.deepEqual(upgradeMatrix, {
+        releaseVersion: candidate.upgradeMatrix.release.version,
+        applicationVersions: candidate.upgradeMatrix.supportedApplicationBaselines
+          .map(({ version: baselineVersion }) => baselineVersion),
+      });
       return {
         update: {
           minimumSupportedVersion: "0.2.0",

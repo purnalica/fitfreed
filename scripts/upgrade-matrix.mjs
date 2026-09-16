@@ -170,7 +170,7 @@ export function validateUpgradeMatrix(matrix, repository) {
   };
 }
 
-export function inspectUpgradeMatrix(repositoryRoot) {
+export function loadUpgradeMatrix(repositoryRoot) {
   const matrix = JSON.parse(
     readFileSync(path.join(repositoryRoot, "release/upgrade-matrix.json"), "utf8"),
   );
@@ -188,11 +188,16 @@ export function inspectUpgradeMatrix(repositoryRoot) {
     .filter(Boolean)
     .map((match) => Number(match[1]))
     .sort(numericOrder);
-  return validateUpgradeMatrix(matrix, {
+  const summary = validateUpgradeMatrix(matrix, {
     releaseVersion,
     currentLibrarySchemaVersion: Number(schemaVersionMatch[1]),
     migrationVersions,
   });
+  return { document: matrix, summary };
+}
+
+export function inspectUpgradeMatrix(repositoryRoot) {
+  return loadUpgradeMatrix(repositoryRoot).summary;
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

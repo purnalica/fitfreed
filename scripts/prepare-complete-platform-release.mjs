@@ -38,7 +38,7 @@ import {
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { decodeTauriSignatureText } from "./release-signature.mjs";
 import { signBytesWithTauri } from "./tauri-detached-signature.mjs";
-import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
+import { loadUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const windowsCertificateSha256Pattern = /^[0-9a-f]{64}$/;
@@ -105,7 +105,7 @@ const defaultOperations = Object.freeze({
   generatorVersions,
   inspectMacosTrust: inspectPublicMacosTrust,
   inspectReleaseContracts,
-  inspectUpgradeMatrix,
+  loadUpgradeMatrix,
   loadReleasePolicy: loadPublicReleasePolicy,
   loadReleaseSigningConfiguration: loadPublicReleaseSigningConfiguration,
   loadUpdateConfiguration: loadPublicUpdateConfiguration,
@@ -174,8 +174,12 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
   if (!["public-authenticode", "public-unsigned-preview"].includes(windowsTrustProfile)) {
     throw new Error("unsupported Windows public trust profile");
   }
-  const upgradeMatrix = operations.inspectUpgradeMatrix(repositoryPath);
-  const policyDocument = operations.loadReleasePolicy(repositoryPath, version, upgradeMatrix);
+  const upgradeMatrix = operations.loadUpgradeMatrix(repositoryPath);
+  const policyDocument = operations.loadReleasePolicy(
+    repositoryPath,
+    version,
+    upgradeMatrix.summary,
+  );
   const updateConfiguration = operations.loadUpdateConfiguration(repositoryPath);
   if (
     updateConfiguration.schemaVersion !== 2
@@ -217,7 +221,7 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
     evidenceDirectory: predecessorEvidenceDirectory,
     publicReleaseSigningConfiguration: releaseSigningConfiguration,
     publicUpdateConfiguration: updateConfiguration,
-    upgradeMatrix,
+    upgradeMatrix: upgradeMatrix.document,
   });
   const evidenceDirectory = path.join(
     repositoryPath,

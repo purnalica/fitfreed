@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 
-import { validateUpgradeMatrix } from "./upgrade-matrix.mjs";
+import {
+  inspectUpgradeMatrix,
+  loadUpgradeMatrix,
+  validateUpgradeMatrix,
+} from "./upgrade-matrix.mjs";
 
 function validMatrix() {
   return {
@@ -27,6 +34,61 @@ const expectedRepository = {
   currentLibrarySchemaVersion: 3,
   migrationVersions: [1, 2, 3],
 };
+
+function repositoryFixture(context) {
+  const repositoryRoot = mkdtempSync(path.join(tmpdir(), "fitfreed-upgrade-matrix-"));
+  context.after(() => rmSync(repositoryRoot, { force: true, recursive: true }));
+  mkdirSync(path.join(repositoryRoot, "release"));
+  mkdirSync(path.join(repositoryRoot, "src-tauri", "migrations"), { recursive: true });
+  mkdirSync(path.join(repositoryRoot, "src-tauri", "src"), { recursive: true });
+  const matrix = validMatrix();
+  writeFileSync(
+    path.join(repositoryRoot, "release", "upgrade-matrix.json"),
+    `${JSON.stringify(matrix)}\n`,
+  );
+  writeFileSync(
+    path.join(repositoryRoot, "package.json"),
+    `${JSON.stringify({ version: matrix.release.version })}\n`,
+  );
+  writeFileSync(
+    path.join(repositoryRoot, "src-tauri", "src", "infrastructure.rs"),
+    "const SCHEMA_VERSION: i64 = 3;\n",
+  );
+  for (const version of matrix.supportedLibrarySchemaVersions) {
+    writeFileSync(
+      path.join(
+        repositoryRoot,
+        "src-tauri",
+        "migrations",
+        `${String(version).padStart(4, "0")}_synthetic.sql`,
+      ),
+      "-- synthetic\n",
+    );
+  }
+  return { matrix, repositoryRoot };
+}
+
+test("loads the validated document without changing the inspection summary contract", (context) => {
+  const { matrix, repositoryRoot } = repositoryFixture(context);
+
+  assert.deepEqual(loadUpgradeMatrix(repositoryRoot), {
+    document: matrix,
+    summary: {
+      releaseVersion: "0.2.0",
+      currentLibrarySchemaVersion: 3,
+      applicationBaselineCount: 1,
+      applicationVersions: ["0.1.0"],
+      librarySchemaVersions: [1, 2, 3],
+    },
+  });
+  assert.deepEqual(inspectUpgradeMatrix(repositoryRoot), {
+    releaseVersion: "0.2.0",
+    currentLibrarySchemaVersion: 3,
+    applicationBaselineCount: 1,
+    applicationVersions: ["0.1.0"],
+    librarySchemaVersions: [1, 2, 3],
+  });
+});
 
 test("accepts distinct application and library support dimensions", () => {
   assert.deepEqual(validateUpgradeMatrix(validMatrix(), expectedRepository), {
