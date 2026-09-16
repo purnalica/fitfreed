@@ -4,11 +4,11 @@
 
 FitFreed uses native platform trust in addition to its independent update and release-integrity signatures. The
 current public macOS package is signed with Apple Developer ID and notarized by Apple. Windows Authenticode signing
-has selected the SignPath open-source service but remains inactive until SignPath Foundation accepts the project and
-the exact Windows candidate passes every release gate. No public Windows package exists yet.
-
-Free code signing provided by [SignPath.io](https://signpath.io/), certificate by
-[SignPath Foundation](https://signpath.org/).
+remains inactive. The SignPath Foundation application was declined; see the
+[current delivery status](docs/plans/milestone-5.md#status). FitFreed has no Foundation certificate or active free
+signing sponsorship. No public Windows package exists yet. The Windows controls below describe the prepared
+integration as historical evidence; [ADR 0050](docs/architecture/decisions/0050-retire-signpath-as-windows-signing-authority.md)
+retired SignPath and no replacement route is selected.
 
 ## Product and source boundary
 
@@ -31,22 +31,25 @@ The current bootstrap roles follow the public [governance model](GOVERNANCE.md):
 - **Authors:** [`@matutet`](https://github.com/matutet), the current project owner and maintainer, may modify the
   repository directly.
 - **Reviewers:** [`@matutet`](https://github.com/matutet) reviews contributions from people without commit access.
-- **Approvers:** [`@matutet`](https://github.com/matutet) approves each SignPath release-signing request and the
-  separate FitFreed publication gate.
+- **Approvers:** [`@matutet`](https://github.com/matutet) approves the separate candidate-construction and FitFreed
+  publication gates. No Windows production-signing request is currently authorized.
 
 Role membership will move to public GitHub teams when additional maintainers are appointed. Every team member with
-repository or SignPath access must use multi-factor authentication.
+repository or protected release access must use multi-factor authentication.
 
-## Windows signing controls
+## Retired SignPath integration
 
-- The SignPath GitHub connector is the only accepted submission route. It binds the signing request to GitHub-provided
+The following controls describe the inactive integration retained pending a complete dependency inventory. They are
+not an available signing procedure and cannot produce an authorized public Windows package.
+
+- The retired SignPath GitHub connector bound signing requests to GitHub-provided
   repository, workflow, revision, and build metadata.
-- Every job that contributes bytes to a SignPath request runs on a GitHub-hosted runner. Signing inputs are uploaded as
+- Every job that contributed bytes to a SignPath request ran on a GitHub-hosted runner. Signing inputs were uploaded as
   GitHub workflow artifacts before submission.
-- The SignPath GitHub Action is pinned to a reviewed immutable commit. Project, signing-policy, and artifact-configuration
+- The SignPath GitHub Action remains pinned to a reviewed immutable commit. Project, signing-policy, and artifact-configuration
   identifiers are protected configuration, not workflow-dispatch inputs.
-- Every production signing request requires manual approval in SignPath. The certificate private key remains in
-  SignPath's hardware security module and is never exported to GitHub or a maintainer machine.
+- Every production signing request required manual approval in SignPath. The intended certificate private key would
+  have remained in SignPath's hardware security module rather than being exported to GitHub or a maintainer machine.
 - Artifact configurations restrict exact filenames and enforce the FitFreed product name and one consistent version.
 - The executable and externally generated NSIS uninstaller are signed before final packaging. The resulting setup is
   signed in a separate request, then installed on a clean supported Windows 11 system so independent verification can
@@ -61,8 +64,8 @@ The current implementation and release gates are documented in the
 ## Privacy and network behavior
 
 FitFreed has no account, analytics, telemetry, advertising, or synchronization service. Imported fitness history,
-routes, reports, provenance, and preferences remain in the local library and are not sent to SignPath, GitHub, or any
-other service.
+routes, reports, provenance, and preferences remain in the local library and are not sent to a signing provider,
+GitHub, or any other service.
 
 The application contacts the fixed public FitFreed update endpoint after a ready startup, when the user requests an
 update check, and no more than once every 24 hours while it remains open. These requests send no imported facts,
@@ -70,9 +73,8 @@ provider data, locale, library schema, installation identifier, or usage data. O
 project link contacts that destination only after the user activates the link. Core import, exploration, reporting,
 and export remain available offline.
 
-SignPath receives only release binaries and GitHub-provided build-origin metadata during an authorized signing
-request. Synthetic test data is used by automated verification; personal exports and local libraries never enter the
-release workflow.
+No Windows signing provider currently receives release binaries. Synthetic test data is used by automated
+verification; personal exports and local libraries never enter the release workflow.
 
 ## Installation and removal
 

@@ -1,6 +1,6 @@
 # ADR 0049: Use SignPath for Windows Authenticode
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0050](0050-retire-signpath-as-windows-signing-authority.md) on 2026-09-16
 - **Date:** 2026-09-14
 - **Decision owners:** FitFreed project owner
 - **Related requirements:** [Product requirements](../../requirements.md)

@@ -19,6 +19,10 @@ Release version. An unreleased revision is reserved for the protected exact-tag 
 [ADR 0048](../architecture/decisions/0048-reserve-unreleased-pages-revisions.md). Linux release authority was separate
 during 0.1.12 acceptance, and Windows release authorities remain separate later gates.
 
+[ADR 0050](../architecture/decisions/0050-retire-signpath-as-windows-signing-authority.md) retires the previously
+selected SignPath authority. SignPath-specific topology later in this document is inactive historical implementation,
+not a current release route. No replacement Authenticode authority or unsigned public profile is selected.
+
 The first `v0.1.0` dispatch on 2026-09-10 stopped in the secret-free preflight before any protected environment or
 credential was admitted. The preflight expected a runner environment variable for repository visibility that GitHub
 does not provide. Current source obtains the canonical repository identity and live visibility from GitHub's read-only

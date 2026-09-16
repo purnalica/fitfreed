@@ -172,6 +172,12 @@ installer includes the offline WebView2 runtime and both initial locales. Public
 trusted Authenticode signatures in addition to updater signing, checksums, SBOM, and source-bound provenance. MSI,
 Microsoft Store, WinGet, per-machine installation, Windows on ARM, and Windows 10 remain separate future contracts.
 
+[ADR 0050](decisions/0050-retire-signpath-as-windows-signing-authority.md) retires SignPath after the Foundation
+application was declined and the project owner closed that provider. No replacement Authenticode authority or
+unsigned public trust profile is selected. The current Windows publication contract therefore remains fail-closed.
+The SignPath topology described below is inactive historical engineering retained only until its complete artifacts
+and incoming dependencies are inventoried; it is not an operational release route.
+
 The versioned `tauri.windows.conf.json` overlay and `npm run package:windows` command form the only ordinary Windows
 package entry point. The overlay closes the target to NSIS, the host to x86-64 Windows, installation to the current
 user, installer resources to English and Spanish with operating-system locale selection, and WebView2 acquisition to
@@ -179,14 +185,16 @@ the silent bundled offline installer. It retains the visible `FitFreed` identity
 GPL license, and vendor-neutral descriptions without claiming the generic ZIP association. Authenticated predecessor
 recovery requires the NSIS installer to permit a deliberate older-version reinstall; update metadata and exact
 predecessor verification, rather than the package version alone, grant that authority. The ordinary overlay contains
-no certificate selection, signer command, timestamp service, account identity, or protected path. SignPath signing is
-deliberately outside Tauri's synchronous signer command: the trusted GitHub workflow submits closed artifacts and
-later imports only independently verified signed bytes. The separate `tauri.windows.public-signing.conf.json` overlay
+no certificate selection, signer command, timestamp service, account identity, or protected path. The retired
+SignPath design placed signing outside Tauri's synchronous signer command: its trusted GitHub workflow submitted
+closed artifacts and later imported only independently verified signed bytes. The separate
+`tauri.windows.public-signing.conf.json` overlay
 contains only the authority-free bridge that captures Tauri's generated uninstaller and later substitutes the exact
 signed inner binaries during NSIS assembly. It cannot request a signature or create an accepted public candidate.
 
 Under [ADR 0045](decisions/0045-separate-windows-native-and-updater-signing-authority.md) and
-[ADR 0049](decisions/0049-use-signpath-for-windows-authenticode.md), the Windows input is built on GitHub-hosted
+[the superseded ADR 0049](decisions/0049-use-signpath-for-windows-authenticode.md), the inactive Windows input was
+designed to be built on GitHub-hosted
 x86-64 Windows and submitted to SignPath through its trusted GitHub connector. The build first emits the unsigned
 application and exports the generated NSIS uninstaller. One closed GitHub artifact carries only those two PE files to
 an inner-binary signing request. Independent verification admits the returned certificate, timestamp, product
@@ -247,16 +255,17 @@ Temporary installed-file records are `PSCustomObject` values so the deliberately
 runtime can observe their hexadecimal UTF-8 sort keys. The inventory validator remains the independent authority for
 unique byte-ordered paths; native enumeration order is never evidence.
 
-SignPath owns signing and RFC 3161 timestamping in its HSM-backed service. FitFreed independently reopens every returned
-file and runs Windows application policy over its signature, compares the observed SHA-256 leaf-certificate
+The retired design assigned signing and RFC 3161 timestamping to SignPath's HSM-backed service. FitFreed independently
+reopens every returned file and runs Windows application policy over its signature, compares the observed SHA-256 leaf-certificate
 fingerprint with the admitted public value, verifies that inspection does not change the file digest, and closes
 product-binary evidence to x86-64 plus the expected name and version. Certificate-store selectors, private keys,
 service credentials, account identity, and timestamp-service details never enter retained evidence.
 
 The ordinary hosted Windows lane remains unsigned engineering evidence. It can prove package construction,
-installation, removal, and inspector failure behavior, but it cannot represent SignPath trust. Public admission still
-requires exact SignPath-returned bytes and all three installed trust surfaces to pass the trusted-chain, timestamp,
-digest, identity, package-inventory, and clean supported-Windows-11 gates.
+installation, removal, and inspector failure behavior, but it cannot represent public native trust. The dormant
+public profile still requires exact SignPath-returned bytes and all three installed trust surfaces to pass the
+trusted-chain, timestamp, digest, identity, package-inventory, and clean supported-Windows-11 gates; consequently it
+cannot produce a candidate after ADR 0050. A later decision must replace that profile before Windows publication.
 
 Linux and Windows use the authenticated predecessor recovery architecture in
 [ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and

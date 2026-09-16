@@ -10,6 +10,11 @@ workflow becomes operative only after the applicable readiness ledger records it
 native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes
 one exact version, tag, and publication.
 
+[ADR 0050](../architecture/decisions/0050-retire-signpath-as-windows-signing-authority.md) retires SignPath as a
+delivery option. SignPath-specific sections below document an inactive implementation pending dependency inventory;
+they must not be configured or executed. The [Milestone 5 evaluation](../plans/milestone-5.md#windows-distribution-evaluation)
+owns the unselected replacement boundary.
+
 Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
 
 The roles are capabilities, not named people:

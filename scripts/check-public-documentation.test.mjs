@@ -82,7 +82,7 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
 test("rejects an incomplete code signing policy", () => {
   const candidate = bundle();
   candidate.documents["CODE_SIGNING.md"] = candidate.documents["CODE_SIGNING.md"]
-    .replace("Every production signing request requires manual approval", "Release signing can be automatic")
+    .replace("Every production signing request required manual approval", "Release signing could be automatic")
     .replace("the installed `uninstall.exe`", "no installed uninstaller")
     .replace("no more than once every 24 hours", "periodically");
 
