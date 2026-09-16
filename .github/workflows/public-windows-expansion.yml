@@ -186,8 +186,7 @@ jobs:
           FITFREED_VERSION: ${{ inputs.version }}
           FITFREED_WINDOWS_INPUT: .artifacts/windows-expansion/windows-input
         run: >-
-          npm run prepare:windows-expansion-input --
-          --unsigned-preview
+          npm run prepare:windows-unsigned-preview-input --
           "$env:FITFREED_VERSION"
           "$env:FITFREED_WINDOWS_INPUT"
 

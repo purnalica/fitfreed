@@ -149,7 +149,7 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Verify production-identity NSIS replacement, candidate rollback, and restart resumption | `npm run verify:windows-update-e2e` |
 | Measure the installed production NSIS cold-launch boundary and remove it | `npm run verify:windows-cold-launch` |
 | Verify Windows library protection and disk-exhaustion recovery on an isolated NTFS volume | `npm run verify:windows-filesystem-reliability` |
-| Build the exact unsigned Windows preview handoff | `npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` |
+| Build the exact unsigned Windows preview handoff | `npm run prepare:windows-unsigned-preview-input -- <version> <directory>` |
 | Seal an unsigned Windows preview input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> public-unsigned-preview` |
 | Reopen a digest-bound Windows preview input | `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> public-unsigned-preview` |
 | Download and reopen every immutable predecessor required by a complete-platform candidate | `npm run download:complete-platform-predecessors -- <destination>` |
@@ -230,7 +230,7 @@ private key, trust entries, process values, and temporary directory before succe
 user or CI runner. Its untimestamped synthetic result is automation evidence, never a distributable or publicly trusted
 binary.
 
-`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` requires a clean source
+`npm run prepare:windows-unsigned-preview-input -- <version> <directory>` requires a clean source
 revision and active public updater trust. It builds and independently verifies the setup, requires `NotSigned` for all
 three native trust surfaces, runs the public-preview installation and data-preserving removal cycle, and atomically
 stages exactly three files: the setup, its version 2 complete inventory, and version 2 source-bound build evidence.

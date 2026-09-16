@@ -1,12 +1,12 @@
-# Public Linux 0.1.13 Guide
+# Public Linux 0.1.14 Guide
 
 ## Status
 
-This is the operative version-matched Linux guide for FitFreed 0.1.13 once immutable `v0.1.13` GitHub Release exists
-in the [canonical repository](https://github.com/purnalica/fitfreed/releases/tag/v0.1.13). Before that exact Release
+This is the operative version-matched Linux guide for FitFreed 0.1.14 once immutable `v0.1.14` GitHub Release exists
+in the [canonical repository](https://github.com/purnalica/fitfreed/releases/tag/v0.1.14). Before that exact Release
 exists, this document describes a candidate and is not permission to install another build.
 
-FitFreed 0.1.13 supports x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through a Debian package. It is experimental
+FitFreed 0.1.14 supports x86-64 Ubuntu Desktop 24.04 and 26.04 LTS through a Debian package. It is experimental
 GPL-3.0-or-later software provided without warranty and at the user's own risk. Read the
 [project disclaimer](../../DISCLAIMER.md) before installation.
 
@@ -19,16 +19,16 @@ legal advice.
 
 ## Download and verify
 
-Download only `FitFreed_0.1.13_amd64.deb` from immutable Release `v0.1.13`. The same Release must contain its updater
+Download only `FitFreed_0.1.14_amd64.deb` from immutable Release `v0.1.14`. The same Release must contain its updater
 signature, inventory, `release-manifest.json`, `supported-upgrades.json`, `RELEASE_NOTES.md`, `SHA256SUMS`,
 `SHA256SUMS.minisig`, and the inventories named in the manifest. Verify `SHA256SUMS.minisig`, then verify the Debian
-package digest and GitHub release provenance. Every check must identify version 0.1.13 and the exact package name.
+package digest and GitHub release provenance. Every check must identify version 0.1.14 and the exact package name.
 
 ## Install and first launch
 
-Open the verified `FitFreed_0.1.13_amd64.deb` in Ubuntu App Center or another native graphical Debian installer and
+Open the verified `FitFreed_0.1.14_amd64.deb` in Ubuntu App Center or another native graphical Debian installer and
 approve the ordinary administrator authorization required by package management. Launch FitFreed from the desktop
-application menu and confirm version 0.1.13 before importing data. Do not extract the package, copy files manually,
+application menu and confirm version 0.1.14 before importing data. Do not extract the package, copy files manually,
 or substitute a third-party package.
 
 ## Language and first run

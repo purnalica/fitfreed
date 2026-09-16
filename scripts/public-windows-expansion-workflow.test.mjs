@@ -11,6 +11,10 @@ const workflow = readFileSync(
   new URL("../.github/workflows/public-windows-expansion.yml", import.meta.url),
   "utf8",
 );
+const packageManifest = JSON.parse(readFileSync(
+  new URL("../package.json", import.meta.url),
+  "utf8",
+));
 
 test("accepts the exact three-platform unsigned Windows preview topology", () => {
   const result = inspectPublicWindowsExpansionWorkflow();
@@ -24,6 +28,11 @@ test("accepts the exact three-platform unsigned Windows preview topology", () =>
   assert.equal(result.windowsTrustProfile, "public-unsigned-preview");
   assert.equal(result.publicationOrder, "native-admission-before-release-before-pages");
   assert.equal(result.actionReferenceCount, 29);
+  assert.equal(
+    packageManifest.scripts["prepare:windows-unsigned-preview-input"],
+    "node scripts/prepare-windows-expansion-input.mjs --unsigned-preview",
+  );
+  assert.match(workflow, /npm run prepare:windows-unsigned-preview-input --/);
   assert.doesNotMatch(workflow, /SignPath|FITFREED_WINDOWS_CERTIFICATE|self-hosted/i);
   assert.doesNotMatch(workflow, /public-windows-release|public-windows-product-acceptance/);
 });
@@ -45,7 +54,10 @@ test("rejects signing authority, hidden trust selection, or unsealed native inpu
       "      windows-input-trust-profile: ${{ steps.prepare.outputs.windows_input_trust_profile }}\n",
       "",
     ), /digest and trust profile/],
-    [(source) => source.replace("--unsigned-preview", "--signed-preview"), /unsigned preview profile/],
+    [(source) => source.replace(
+      "prepare:windows-unsigned-preview-input",
+      "prepare:windows-expansion-input",
+    ), /unsigned preview profile/],
     [(source) => source.replaceAll("public-unsigned-preview", "public-authenticode"), /unsigned preview profile/],
     [(source) => source.replace(
       "    outputs:\n      windows-input-sha256:",

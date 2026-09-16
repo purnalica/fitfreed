@@ -389,7 +389,7 @@ resulting byte order. Neither command grants public Authenticode trust.
 short-lived self-signed identity cannot represent HARICA or public trust. The local signing adapter remains test-only,
 and the retired SignPath packaging stages are historical implementation rather than an available release route.
 
-`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` is the public Windows input
+`npm run prepare:windows-unsigned-preview-input -- <version> <directory>` is the public Windows input
 entry point. On pinned GitHub-hosted x86-64 Windows it builds the release-shaped NSIS package with active `stable-v3`
 public update trust, requires the setup, installed application, and installed uninstaller to report `NotSigned`, runs
 one installation, identity, inventory, data-preserving removal cycle, and atomically stages only the exact setup,
@@ -429,7 +429,7 @@ environment and cannot begin before hosted Windows admission succeeds.
 
 The current executable entry points include `npm run doctor` for prerequisite diagnosis, `npm run test:fast` for the
 contributor loop, and the dedicated `benchmark:*` and `verify:*` commands for release-shaped evidence. The public
-Windows stage is `prepare:windows-expansion-input -- --unsigned-preview`; it grants no Authenticode or publication
+Windows stage is `prepare:windows-unsigned-preview-input`; it grants no Authenticode or publication
 authority. `npm run verify:precommit` composes the broad
 portable source gate but deliberately excludes benchmarks, packaged E2E, update recovery, and packaging.
 

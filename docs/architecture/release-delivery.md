@@ -220,7 +220,7 @@ This Authenticode topology retains active recoverable `stable-v3` public update 
 all updater private-key inputs. The later complete-platform compositor uses separate updater authority to sign the
 unchanged SignPath-returned setup and create stable channel metadata.
 
-`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` builds one clean source revision
+`npm run prepare:windows-unsigned-preview-input -- <version> <directory>` builds one clean source revision
 with active public updater trust before running the unsigned-preview native installation cycle. It
 hashes the complete installed layout, verifies data-preserving removal, and atomically stages only the setup, its
 [Windows package inventory version 2](../data-formats/release/windows-package-inventory-v2.md), and the source-bound

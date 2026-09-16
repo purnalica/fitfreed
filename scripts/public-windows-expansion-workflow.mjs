@@ -98,7 +98,7 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   requireWorkflowMatch(
     errors,
     windowsInput,
-    /prepare:windows-expansion-input --[\s\S]*--unsigned-preview/,
+    /prepare:windows-unsigned-preview-input --/,
     "Windows input must use the explicit unsigned preview profile",
   );
   requireWorkflowMatch(

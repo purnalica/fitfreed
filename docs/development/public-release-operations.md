@@ -205,7 +205,7 @@ declare that exact predecessor and the unsigned Windows preview. The workflow di
 version, public updater-key identifier, and public release-checksum-key identifier. It has no Windows trust selector.
 
 The secret-free GitHub-hosted Windows builder runs the dependency audit and
-`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>`. That command embeds only public
+`npm run prepare:windows-unsigned-preview-input -- <version> <directory>`. That command embeds only public
 `stable-v3` trust, builds one current-user NSIS setup, requires the setup, installed application, and installed
 uninstaller to report `NotSigned`, performs one installation, inventory, data-preserving removal cycle, and stages the
 closed version 2 inventory and build evidence. It receives no protected environment or private authority.

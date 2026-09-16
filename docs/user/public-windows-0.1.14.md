@@ -1,9 +1,9 @@
-# Public Windows 0.1.13 Guide
+# Public Windows 0.1.14 Guide
 
 ## Status
 
-This is the operative version-matched guide for the public unsigned Windows preview in FitFreed 0.1.13 once immutable `v0.1.13` GitHub Release exists in the
-[canonical repository](https://github.com/purnalica/fitfreed/releases/tag/v0.1.13). Before that exact Release exists,
+This is the operative version-matched guide for the public unsigned Windows preview in FitFreed 0.1.14 once immutable `v0.1.14` GitHub Release exists in the
+[canonical repository](https://github.com/purnalica/fitfreed/releases/tag/v0.1.14). Before that exact Release exists,
 this document describes a candidate and is not permission to install another build.
 
 The preview is intended for x86-64 editions of Windows 11 that remain in Microsoft support. Its exact setup is built,
@@ -24,10 +24,10 @@ legal advice.
 
 ## Download and verify
 
-Download only `FitFreed_0.1.13_x64-setup.exe` from immutable Release `v0.1.13`. The same Release must contain:
+Download only `FitFreed_0.1.14_x64-setup.exe` from immutable Release `v0.1.14`. The same Release must contain:
 
-- `FitFreed_0.1.13_x64-setup.exe.sig`;
-- `FitFreed_0.1.13_x64-setup.exe.inventory.json` and `FitFreed_0.1.13_x64-setup.exe.build.json`;
+- `FitFreed_0.1.14_x64-setup.exe.sig`;
+- `FitFreed_0.1.14_x64-setup.exe.inventory.json` and `FitFreed_0.1.14_x64-setup.exe.build.json`;
 - `release-manifest.json`, `stable.json`, and `supported-upgrades.json`;
 - `RELEASE_NOTES.md`, `SHA256SUMS`, and `SHA256SUMS.minisig`; and
 - the npm and Cargo CycloneDX inventories named in the manifest.
@@ -36,7 +36,7 @@ Authenticate `SHA256SUMS.minisig` with the FitFreed release key and exact Minisi
 Then verify the setup digest from PowerShell:
 
 ```powershell
-$package = "FitFreed_0.1.13_x64-setup.exe"
+$package = "FitFreed_0.1.14_x64-setup.exe"
 $entries = @(Get-Content -LiteralPath ".\SHA256SUMS" |
   Where-Object { $_.EndsWith("  $package", [StringComparison]::Ordinal) })
 if ($entries.Count -ne 1 -or $entries[0] -notmatch '^([0-9a-f]{64})  (.+)$') {
@@ -49,17 +49,17 @@ if ($actual -ne $expected) { throw "The setup digest does not match SHA256SUMS."
 ```
 
 The command must print one `OK` line. The manifest, inventory, build evidence, checksums, release notes, filename, and
-tag must all identify 0.1.13. GitHub CLI users can additionally run:
+tag must all identify 0.1.14. GitHub CLI users can additionally run:
 
 ```powershell
-gh release verify v0.1.13 --repo purnalica/fitfreed
-gh release verify-asset v0.1.13 FitFreed_0.1.13_x64-setup.exe --repo purnalica/fitfreed
+gh release verify v0.1.14 --repo purnalica/fitfreed
+gh release verify-asset v0.1.14 FitFreed_0.1.14_x64-setup.exe --repo purnalica/fitfreed
 ```
 
 The absence of Authenticode is intentional and must be confirmed rather than mistaken for a valid publisher:
 
 ```powershell
-$signature = Get-AuthenticodeSignature -LiteralPath ".\FitFreed_0.1.13_x64-setup.exe"
+$signature = Get-AuthenticodeSignature -LiteralPath ".\FitFreed_0.1.14_x64-setup.exe"
 if ($signature.Status -ne "NotSigned") {
   throw "This preview does not match its declared unsigned trust profile."
 }
@@ -74,7 +74,7 @@ A different signature state, digest mismatch, missing evidence, mutable Release,
 2. If Windows offers a per-file SmartScreen continuation, inspect the exact application and filename before deciding
    whether to use **More info** and **Run anyway**.
 3. Complete the current-user installation; it must not request a system-wide destination or administrator authority.
-4. Launch FitFreed from the Start menu and confirm version 0.1.13 before importing data.
+4. Launch FitFreed from the Start menu and confirm version 0.1.14 before importing data.
 5. Open **Settings → Windows help** to retain the offline lifecycle guidance.
 
 The setup installs beneath `%LOCALAPPDATA%\FitFreed` and registers FitFreed in **Apps → Installed apps**. It includes
