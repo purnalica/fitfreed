@@ -141,6 +141,37 @@ test("accepts only complete public Authenticode signature claims", (context) => 
   );
 });
 
+test("creates an explicit public unsigned preview inventory", (context) => {
+  const { packagePath } = fixture(context);
+  const inventory = createWindowsPackageInventory({
+    facts: installationFacts("public-unsigned-preview"),
+    packagePath,
+    signatureProfile: "public-unsigned-preview",
+    version: "0.1.0",
+  });
+
+  assert.equal(validateWindowsPackageInventory(inventory), inventory);
+  assert.equal(inventory.schemaVersion, 2);
+  assert.equal(inventory.signatures.profile, "public-unsigned-preview");
+  for (const signatureClaim of [
+    inventory.signatures.setup,
+    inventory.signatures.executable,
+    inventory.signatures.uninstaller,
+  ]) {
+    assert.deepEqual(signatureClaim, {
+      status: "NotSigned",
+      certificateSha256: null,
+      timestamped: false,
+    });
+  }
+
+  inventory.signatures.profile = "unsigned-engineering";
+  assert.throws(
+    () => validateWindowsPackageInventory(inventory),
+    /schema violation.*profile/s,
+  );
+});
+
 test("rejects identity drift, unsafe or unordered files, and undeclared fields", (context) => {
   const { packagePath } = fixture(context);
   const inventory = createWindowsPackageInventory({
@@ -270,4 +301,12 @@ test("keeps the schema and normative package-inventory documentation discoverabl
     assert.match(document, new RegExp(value.replaceAll(".", "\\.")));
   }
   assert.match(index, /release\/windows-package-inventory-v1\.md/);
+  const previewDocument = readFileSync(
+    new URL("../docs/data-formats/release/windows-package-inventory-v2.md", import.meta.url),
+    "utf8",
+  );
+  for (const value of ["public-unsigned-preview", "NotSigned", "schemaVersion: 2"]) {
+    assert.match(previewDocument, new RegExp(value));
+  }
+  assert.match(index, /release\/windows-package-inventory-v2\.md/);
 });

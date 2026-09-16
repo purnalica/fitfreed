@@ -105,10 +105,15 @@ export function packWindowsExpansionInput({
   revision,
   runCommand = defaultRun,
   storageSchemaVersion,
+  trustProfile = "public-authenticode",
   updateConfiguration,
   version,
 }) {
-  requireCertificateFingerprint(authenticodeCertificateSha256);
+  if (trustProfile === "public-authenticode") {
+    requireCertificateFingerprint(authenticodeCertificateSha256);
+  } else if (trustProfile !== "public-unsigned-preview") {
+    throw new Error("Windows expansion trust profile is invalid");
+  }
   const input = path.resolve(inputDirectory);
   const archive = path.resolve(archivePath);
   if (existsSync(archive)) throw new Error("Windows expansion transport archive already exists");
@@ -117,6 +122,7 @@ export function packWindowsExpansionInput({
     directory: input,
     revision,
     storageSchemaVersion,
+    trustProfile,
     updateConfiguration,
     version,
   });
@@ -160,10 +166,15 @@ export function unpackWindowsExpansionInput({
   revision,
   runCommand = defaultRun,
   storageSchemaVersion,
+  trustProfile = "public-authenticode",
   updateConfiguration,
   version,
 }) {
-  requireCertificateFingerprint(authenticodeCertificateSha256);
+  if (trustProfile === "public-authenticode") {
+    requireCertificateFingerprint(authenticodeCertificateSha256);
+  } else if (trustProfile !== "public-unsigned-preview") {
+    throw new Error("Windows expansion trust profile is invalid");
+  }
   const archive = path.resolve(archivePath);
   const output = path.resolve(outputDirectory);
   if (!sha256Pattern.test(expectedSha256 ?? "")) {
@@ -190,6 +201,7 @@ export function unpackWindowsExpansionInput({
       directory: staging,
       revision,
       storageSchemaVersion,
+      trustProfile,
       updateConfiguration,
       version,
     });
@@ -200,6 +212,7 @@ export function unpackWindowsExpansionInput({
       directory: output,
       revision,
       storageSchemaVersion,
+      trustProfile,
       updateConfiguration,
       version,
     });
@@ -236,14 +249,20 @@ function main() {
       version,
       revision,
       schemaVersion,
-      authenticodeCertificateSha256,
+      trustInput,
     ] = arguments_;
+    const trustProfile = trustInput === "public-unsigned-preview"
+      ? trustInput
+      : "public-authenticode";
     emitResult(packWindowsExpansionInput({
       archivePath,
-      authenticodeCertificateSha256,
+      authenticodeCertificateSha256: trustProfile === "public-authenticode"
+        ? trustInput
+        : undefined,
       inputDirectory,
       revision,
       storageSchemaVersion: parseSchemaVersion(schemaVersion),
+      trustProfile,
       updateConfiguration,
       version,
     }));
@@ -257,22 +276,28 @@ function main() {
       version,
       revision,
       schemaVersion,
-      authenticodeCertificateSha256,
+      trustInput,
     ] = arguments_;
+    const trustProfile = trustInput === "public-unsigned-preview"
+      ? trustInput
+      : "public-authenticode";
     emitResult(unpackWindowsExpansionInput({
       archivePath,
-      authenticodeCertificateSha256,
+      authenticodeCertificateSha256: trustProfile === "public-authenticode"
+        ? trustInput
+        : undefined,
       expectedSha256,
       outputDirectory,
       revision,
       storageSchemaVersion: parseSchemaVersion(schemaVersion),
+      trustProfile,
       updateConfiguration,
       version,
     }));
     return;
   }
   throw new Error(
-    "usage: node scripts/windows-expansion-input-transport.mjs <pack input archive version revision schema certificate-sha256|unpack archive sha256 output version revision schema certificate-sha256>",
+    "usage: node scripts/windows-expansion-input-transport.mjs <pack input archive version revision schema certificate-sha256|public-unsigned-preview|unpack archive sha256 output version revision schema certificate-sha256|public-unsigned-preview>",
   );
 }
 

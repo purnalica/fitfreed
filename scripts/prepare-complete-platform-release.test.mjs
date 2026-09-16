@@ -127,7 +127,12 @@ function operations(candidate, events) {
     },
     composeCompletePlatformCandidate(input) {
       events.push("compose");
-      assert.equal(input.windowsTrust.certificateSha256, "c".repeat(64));
+      const expectedProfile = candidate.input.windowsTrustProfile ?? "public-authenticode";
+      assert.equal(input.windowsTrust.profile, expectedProfile);
+      assert.equal(
+        input.windowsTrust.certificateSha256,
+        expectedProfile === "public-authenticode" ? "c".repeat(64) : undefined,
+      );
       assert.equal(input.recoveryPackages.length, 1);
       assert.equal(input.recoveryPackages[0].target, "linux-x86_64-deb");
       assert.equal(typeof input.signLinuxPackage, "function");
@@ -229,9 +234,14 @@ function operations(candidate, events) {
     verifyLinuxInput() {
       events.push("verify-linux");
     },
-    verifyWindowsInput({ authenticodeCertificateSha256 }) {
+    verifyWindowsInput({ authenticodeCertificateSha256, trustProfile }) {
       events.push("verify-windows");
-      assert.equal(authenticodeCertificateSha256, "c".repeat(64));
+      const expectedProfile = candidate.input.windowsTrustProfile ?? "public-authenticode";
+      assert.equal(trustProfile, expectedProfile);
+      assert.equal(
+        authenticodeCertificateSha256,
+        expectedProfile === "public-authenticode" ? "c".repeat(64) : undefined,
+      );
     },
   };
 }
@@ -304,6 +314,19 @@ test("authenticates both native inputs and predecessor bytes before composition"
     existsSync(path.join(candidate.repositoryPath, ".artifacts", "complete-release-evidence")),
     false,
   );
+});
+
+test("prepares an unsigned Windows preview without Authenticode authority", (context) => {
+  const candidate = fixture(context);
+  candidate.input.windowsCertificateSha256 = undefined;
+  candidate.input.windowsTrustProfile = "public-unsigned-preview";
+  const events = [];
+
+  const result = prepareCompletePlatformRelease(candidate.input, operations(candidate, events));
+
+  assert.equal(result.revision, "a".repeat(40));
+  assert.ok(events.includes("verify-windows"));
+  assert.ok(events.includes("compose"));
 });
 
 test("removes owned output after post-composition admission failure", (context) => {

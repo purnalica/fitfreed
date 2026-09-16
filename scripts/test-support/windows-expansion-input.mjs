@@ -13,8 +13,13 @@ function digest(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function signature(certificateSha256, fileSha256) {
-  return {
+function signature(certificateSha256, fileSha256, trustProfile) {
+  return trustProfile === "public-unsigned-preview" ? {
+    certificateSha256: null,
+    fileSha256,
+    status: "NotSigned",
+    timestamped: false,
+  } : {
     certificateSha256,
     fileSha256,
     status: "Valid",
@@ -25,6 +30,7 @@ function signature(certificateSha256, fileSha256) {
 export function createWindowsExpansionInputFixture({
   certificateSha256 = "c".repeat(64),
   revision = "a".repeat(40),
+  trustProfile = "public-authenticode",
   updateConfiguration,
   version = "0.2.0",
 } = {}) {
@@ -34,13 +40,15 @@ export function createWindowsExpansionInputFixture({
   mkdirSync(buildDirectory);
   const packageName = `FitFreed_${version}_x64-setup.exe`;
   const packagePath = path.join(buildDirectory, packageName);
-  const packageBytes = "exact synthetic Authenticode-signed NSIS package bytes";
+  const packageBytes = trustProfile === "public-unsigned-preview"
+    ? "exact synthetic unsigned NSIS preview package bytes"
+    : "exact synthetic Authenticode-signed NSIS package bytes";
   writeFileSync(packagePath, packageBytes);
   const executableSha256 = digest("synthetic installed executable bytes");
   const uninstallerSha256 = digest("synthetic installed uninstaller bytes");
   const facts = {
     schemaVersion: 2,
-    signatureProfile: "public-authenticode",
+    signatureProfile: trustProfile,
     platform: "windows",
     architecture: "x86_64",
     packageFormat: "nsis",
@@ -51,7 +59,7 @@ export function createWindowsExpansionInputFixture({
       fileDescription: "FitFreed",
       fileVersion: version,
       productVersion: version,
-      signature: signature(certificateSha256, digest(packageBytes)),
+      signature: signature(certificateSha256, digest(packageBytes), trustProfile),
     },
     installation: {
       applicationDataDirectory: "%APPDATA%\\org.fitfreed.desktop",
@@ -65,8 +73,8 @@ export function createWindowsExpansionInputFixture({
       startMenuShortcut:
         "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\FitFreed.lnk",
       desktopShortcut: "%USERPROFILE%\\Desktop\\FitFreed.lnk",
-      executableSignature: signature(certificateSha256, executableSha256),
-      uninstallerSignature: signature(certificateSha256, uninstallerSha256),
+      executableSignature: signature(certificateSha256, executableSha256, trustProfile),
+      uninstallerSignature: signature(certificateSha256, uninstallerSha256, trustProfile),
       installedEntries: [
         { path: "fitfreed.exe", size: 8192, sha256: executableSha256 },
         { path: "uninstall.exe", size: 4096, sha256: uninstallerSha256 },
@@ -81,10 +89,10 @@ export function createWindowsExpansionInputFixture({
     },
   };
   const inventory = createWindowsPackageInventory({
-    certificateSha256,
+    certificateSha256: trustProfile === "public-authenticode" ? certificateSha256 : undefined,
     facts,
     packagePath,
-    signatureProfile: "public-authenticode",
+    signatureProfile: trustProfile,
     version,
   });
   const inventoryPath = path.join(buildDirectory, `${packageName}.inventory.json`);
@@ -98,6 +106,7 @@ export function createWindowsExpansionInputFixture({
     packageSha256: digest(packageBytes),
     revision,
     root,
+    trustProfile,
     updateConfiguration: updateConfiguration ?? {
       format: "org.fitfreed.public-update-configuration",
       schemaVersion: 2,

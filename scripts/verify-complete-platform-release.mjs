@@ -57,6 +57,7 @@ function verifyWindowsEvidence(releaseDirectory, manifest, updateConfiguration) 
   const windowsPlatform = manifest.platforms.find(
     ({ target }) => target === "windows-x86_64-nsis",
   );
+  const unsignedPreview = manifest.schemaVersion === 8;
   const expectedCertificate = windowsPlatform.trust.authenticode.certificateSha256;
 
   const inventory = validateWindowsPackageInventory(JSON.parse(
@@ -77,7 +78,16 @@ function verifyWindowsEvidence(releaseDirectory, manifest, updateConfiguration) 
     inventory.signatures.executable,
     inventory.signatures.uninstaller,
   ];
-  if (
+  if (unsignedPreview) {
+    if (
+      inventory.schemaVersion !== 2
+      || inventory.signatures.profile !== "public-unsigned-preview"
+      || signatures.some(({ certificateSha256, status, timestamped }) =>
+        certificateSha256 !== null || status !== "NotSigned" || timestamped !== false)
+    ) {
+      throw new Error("Windows unsigned preview trust does not match the complete-platform manifest");
+    }
+  } else if (
     inventory.signatures.profile !== "public-authenticode"
     || signatures.some(({ certificateSha256, status, timestamped }) =>
       certificateSha256 !== expectedCertificate || status !== "Valid" || timestamped !== true)
@@ -100,7 +110,16 @@ function verifyWindowsEvidence(releaseDirectory, manifest, updateConfiguration) 
   ) {
     throw new Error("Windows build evidence storage schema does not match the complete-platform manifest");
   }
-  if (buildEvidence.trust.authenticodeCertificateSha256 !== expectedCertificate) {
+  if (unsignedPreview) {
+    if (
+      buildEvidence.schemaVersion !== 2
+      || buildEvidence.trust?.profile !== "public-unsigned-preview"
+      || buildEvidence.trust?.authenticode?.status !== "not-provided"
+      || buildEvidence.limitations?.exactWindows11Admission !== false
+    ) {
+      throw new Error("Windows unsigned preview trust does not match build evidence");
+    }
+  } else if (buildEvidence.trust.authenticodeCertificateSha256 !== expectedCertificate) {
     throw new Error("Windows Authenticode trust does not match the complete-platform build evidence");
   }
   for (const [name, expected] of [
@@ -143,9 +162,14 @@ function verifyCompletePlatformRelease(
         ({ target }) => target === "windows-x86_64-nsis",
       );
       return {
-        windowsCertificateSha256:
-          windowsPlatform.trust.authenticode.certificateSha256,
+        ...(manifest.schemaVersion === 7 ? {
+          windowsCertificateSha256:
+            windowsPlatform.trust.authenticode.certificateSha256,
+        } : {}),
         windowsPackage: path.join(releaseDirectory, windowsArtifact.path),
+        windowsTrustProfile: manifest.schemaVersion === 8
+          ? "public-unsigned-preview"
+          : "public-authenticode",
       };
     },
     targetKinds: completeTargetKinds,
@@ -201,9 +225,14 @@ export function verifyCompletePlatformReleaseEvidenceDirectory(
         ({ target }) => target === "windows-x86_64-nsis",
       );
       return {
-        windowsCertificateSha256:
-          windowsPlatform.trust.authenticode.certificateSha256,
+        ...(manifest.schemaVersion === 7 ? {
+          windowsCertificateSha256:
+            windowsPlatform.trust.authenticode.certificateSha256,
+        } : {}),
         windowsPackage: path.join(resolvedReleaseDirectory, windowsArtifact.path),
+        windowsTrustProfile: manifest.schemaVersion === 8
+          ? "public-unsigned-preview"
+          : "public-authenticode",
       };
     },
     targetKinds: completeTargetKinds,

@@ -168,7 +168,7 @@ await validateLocalizedPage(pages["es/index.html"], {
 });
 
 const completeRelease = createProductReleaseDownloads({
-  schemaVersion: 7,
+  schemaVersion: 8,
   release: { channel: "public-stable", version: "0.3.0" },
   update: {
     targets: [
@@ -198,6 +198,16 @@ for (const [outputFile, expected] of [
   assert.equal(
     document.querySelector('[data-release-download="windows-x86_64-nsis"]')?.href,
     "https://github.com/purnalica/fitfreed/releases/download/v0.3.0/FitFreed_0.3.0_x64-setup.exe",
+  );
+  const windowsDownload = document.querySelector(
+    '[data-release-download="windows-x86_64-nsis"]',
+  );
+  assert.equal(windowsDownload?.dataset.releaseAvailability, "preview-unsigned");
+  assert.match(
+    windowsDownload?.textContent ?? "",
+    outputFile === "index.html"
+      ? /preview — unsigned.*Unknown publisher.*Smart App Control/isu
+      : /versión preliminar.*sin firma.*Editor desconocido.*Smart App Control/isu,
   );
   assert.doesNotMatch(
     document.body.textContent,

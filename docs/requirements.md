@@ -61,13 +61,15 @@ The project will remain legally precise: it will not claim that the GDPR require
 - The repository is owned by the `purnalica` GitHub organization from its creation; the superseded plan to begin under a personal account was never adopted.
 - Supported platforms will receive straightforward native installation packages and an in-application update path.
 - The private evaluation MVP candidate remains macOS-first. The first public MVP capability baseline will be supported
-  on macOS, Linux, and Windows.
+  on macOS and Linux and made available on Windows as an explicitly unsigned preview. Stable Windows support remains
+  gated by Authenticode publisher identity and exact supported-client admission.
 - Cross-platform parity engineering and automated evidence may proceed before the preceding platform is accepted or
   published when that work does not depend on a still-open human gate. Acceptance and public promotion remain separate
   per-platform gates, and public availability will still proceed in the order macOS, Linux, then Windows.
 - The accepted first-MVP capability set will remain functionally frozen while that same product baseline is
-  published for macOS, Linux, and Windows in that order. Post-MVP capability growth begins only after the first
-  supported public release exists on all three platforms.
+  published for macOS, Linux, and Windows in that order. Post-MVP capability growth begins only after the baseline is
+  publicly available on all three platforms; Windows preview availability satisfies sequencing but does not imply
+  stable Windows support.
 - Defect correction, security remediation, platform integration, installation and update work, accessibility and
   localization parity, compatibility maintenance, and documentation required to publish or support that baseline do
   not constitute functional scope growth and remain mandatory throughout the cross-platform sequence.
@@ -302,7 +304,7 @@ The following decisions define FitFreed across features and releases. They are f
 - `https://fitfreed.org/` will be the canonical public product entrance under [ADR 0023](architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md). It will turn interest into an honest next action through product evaluation, documentation, support, security, contribution, or a readiness-gated download.
 - The public product entrance will provide complete `en-US` and `es-ES` experiences from one canonical English source and separate translation resources. On a first visit it will select `es-ES` when the browser preferences contain supported Spanish and will otherwise use `en-US`; an absent, unreadable, or unsupported preference must never displace the English fallback.
 - A visible language control will let a visitor override automatic selection at any time. The selected public-site locale will persist locally without an account, remain reversible, and never affect the language-neutral `/updates/` protocol surface.
-- Supported download actions will resolve to the immutable GitHub Release and its evidence. The product site will not duplicate release ownership or present an unsigned or unaccepted package as supported.
+- Supported download actions will resolve to the immutable GitHub Release and its evidence. The product site will not duplicate release ownership or present an unsigned or unaccepted package as supported. An accepted unsigned Windows package may appear only as an explicitly labelled preview whose download surface explains its missing publisher identity, possible platform blocking, evidence boundary, and direct feedback route.
 - Returning visits will surface supported paths through the evolving history without relying on coercive streaks, rankings, mystery scores, or notification pressure.
 
 ## Confirmed architectural constraints

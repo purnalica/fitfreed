@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "messages": {
-    "release.eyebrow": "Supported public release",
+    "release.eyebrow": "Public release",
     "release.title": "Download FitFreed {version}",
     "release.body": "Choose the installer for this device. Each link opens the exact asset in the immutable GitHub Release.",
     "release.platform.macos.action": "Download for macOS",
@@ -10,6 +10,8 @@
     "release.platform.linux.detail": "Ubuntu Desktop 24.04 or 26.04 LTS · x86-64 Debian package",
     "release.platform.windows.action": "Download for Windows",
     "release.platform.windows.detail": "Windows 11 · x86-64 · per-user installer",
+    "release.platform.windows.previewAction": "Download Windows preview — unsigned",
+    "release.platform.windows.previewWarning": "Unknown publisher. SmartScreen may require a per-file continuation; managed policy or Smart App Control may block installation. Do not disable system-wide protections.",
     "release.evidence": "Release notes and verification files",
     "release.trust": "Installation, verification, update, recovery, and removal guidance is included with the release.",
     "release.demonstration.label": "FitFreed {version} experience — illustrative data, not a screenshot",
@@ -19,14 +21,15 @@
     "release.product.stateAlpha": "Included in FitFreed {version} · Alpha interaction",
     "release.status.availableLabel": "Included in this release",
     "release.status.availableTitle": "Current capability",
-    "release.status.heading": "Current capability, supported release, and later scope.",
+    "release.status.heading": "Current capability, public release, and later scope.",
     "release.status.disclaimer": "The current source capabilities and the supported packages in FitFreed {version} are stated separately from later ideas.",
-    "release.status.label": "Supported release",
+    "release.status.label": "Public release",
     "release.status.title": "FitFreed {version}",
     "release.status.item.macos": "Apple Silicon on macOS 15 or later",
     "release.status.item.linux": "Ubuntu Desktop 24.04 and 26.04 LTS on x86-64",
     "release.status.item.windows": "Windows 11 on x86-64 with a per-user installer",
+    "release.status.item.windowsPreview": "Unsigned x86-64 Windows preview, verified on hosted Windows; exact Windows 11 client admission remains open",
     "release.status.source": "Release notes and verification files →",
-    "release.status.footnote": "FitFreed {version} is the current supported public release. Its installers, checksums, signatures, evidence, and limitations are published together in one immutable GitHub Release."
+    "release.status.footnote": "FitFreed {version} is the current public release. Each platform's support or preview status, installers, checksums, signatures, evidence, and limitations are published together in one immutable GitHub Release."
   }
 }

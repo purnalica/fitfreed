@@ -227,14 +227,17 @@ Directories are created with their first real contract; empty specifications are
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Release manifest version 2](release/release-manifest-v2.md)
 - [Public release manifest version 3](release/release-manifest-v3.md)
-- [Complete macOS, Linux, and Windows public release manifest version 7](release/release-manifest-v7.md)
+- [Complete stable platforms and public unsigned Windows preview manifest version 8](release/release-manifest-v8.md)
+- [Complete macOS, Linux, and Windows public release manifest version 7](release/release-manifest-v7.md) — preceding contract
 - [Expanding macOS and Linux public release manifest version 6](release/release-manifest-v6.md) — preceding contract
 - [Recoverable public Linux release manifest version 5](release/release-manifest-v5.md) — preceding contract
 - [Public Linux release manifest version 4](release/release-manifest-v4.md) — preceding contract
 - [Linux public build evidence version 1](release/linux-public-build-evidence-v1.md)
 - [Linux package inventory version 1](release/linux-package-inventory-v1.md)
 - [Windows package inventory version 1](release/windows-package-inventory-v1.md)
+- [Windows package inventory version 2](release/windows-package-inventory-v2.md)
 - [Windows public build evidence version 1](release/windows-public-build-evidence-v1.md)
+- [Windows public build evidence version 2](release/windows-public-build-evidence-v2.md)
 - [Windows candidate admission policy version 1](release/windows-candidate-admission-policy-v1.md)
 - [Upgrade matrix version 2](release/upgrade-matrix-v2.md)
 - [Upgrade matrix version 1](release/upgrade-matrix-v1.md) — preceding contract

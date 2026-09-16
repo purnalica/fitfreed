@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v2.schema.json",
+  "title": "FitFreed public unsigned Windows preview package inventory version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "target",
+    "artifact",
+    "identity",
+    "installation",
+    "signatures",
+    "entries",
+    "removal"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.windows-package-inventory" },
+    "schemaVersion": { "const": 2 },
+    "target": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/properties/target"
+    },
+    "artifact": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/properties/artifact"
+    },
+    "identity": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/properties/identity"
+    },
+    "installation": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/properties/installation"
+    },
+    "signatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "setup", "executable", "uninstaller"],
+      "properties": {
+        "profile": { "const": "public-unsigned-preview" },
+        "setup": {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/$defs/unsignedSignature"
+        },
+        "executable": {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/$defs/unsignedSignature"
+        },
+        "uninstaller": {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/$defs/unsignedSignature"
+        }
+      }
+    },
+    "entries": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/properties/entries"
+    },
+    "removal": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-package-inventory-v1.schema.json#/properties/removal"
+    }
+  }
+}

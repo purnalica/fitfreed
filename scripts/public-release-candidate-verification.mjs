@@ -23,7 +23,9 @@ import {
 export function validateSupportedPublicReleaseManifest(manifest) {
   if (manifest?.schemaVersion === 3) return validatePublicReleaseManifest(manifest);
   if (manifest?.schemaVersion === 6) return validateExpandingPublicReleaseManifest(manifest);
-  if (manifest?.schemaVersion === 7) return validateCompletePlatformReleaseManifest(manifest);
+  if ([7, 8].includes(manifest?.schemaVersion)) {
+    return validateCompletePlatformReleaseManifest(manifest);
+  }
   throw new Error("unsupported public release manifest schema version");
 }
 
@@ -44,7 +46,7 @@ export function verifySupportedPublicReleaseDistribution({
   if (!publicReleaseSigningConfiguration) {
     throw new Error("platform-expansion release-signing trust is unavailable");
   }
-  if (manifest.schemaVersion === 7) {
+  if ([7, 8].includes(manifest.schemaVersion)) {
     return verifyCompletePlatformReleaseDistribution(
       releaseDirectory,
       pagesDirectory,
@@ -85,7 +87,7 @@ export function verifySupportedPublicReleaseCandidate({
   if (!publicReleaseSigningConfiguration) {
     throw new Error("platform-expansion release-signing trust is unavailable");
   }
-  if (manifest.schemaVersion === 7) {
+  if ([7, 8].includes(manifest.schemaVersion)) {
     return {
       manifest,
       verified: verifyCompletePlatformReleaseCandidate(

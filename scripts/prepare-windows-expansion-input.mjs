@@ -15,6 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
+import { buildProductionPackage } from "./build-production.mjs";
 import {
   assertWindowsExpansionAuthoritySeparation,
   findWindowsSignTool,
@@ -43,6 +44,14 @@ import {
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const certificateSha256Pattern = /^[0-9a-f]{64}$/;
+const defaultWindowsReleaseDirectory = path.join(
+  repositoryRoot,
+  "src-tauri",
+  "target",
+  "release",
+  "bundle",
+  "nsis",
+);
 
 function byteOrder(left, right) {
   return Buffer.compare(Buffer.from(left), Buffer.from(right));
@@ -148,6 +157,7 @@ export function verifyWindowsExpansionInput({
   directory,
   revision,
   storageSchemaVersion,
+  trustProfile = "public-authenticode",
   updateConfiguration,
   version,
 }) {
@@ -195,12 +205,23 @@ export function verifyWindowsExpansionInput({
     inventory.signatures.executable,
     inventory.signatures.uninstaller,
   ];
-  if (
-    inventory.signatures.profile !== "public-authenticode"
-    || signatures.some(({ certificateSha256 }) =>
-      certificateSha256 !== authenticodeCertificateSha256)
+  if (trustProfile === "public-authenticode") {
+    if (
+      inventory.signatures.profile !== trustProfile
+      || signatures.some(({ certificateSha256, status, timestamped }) =>
+        certificateSha256 !== authenticodeCertificateSha256
+        || status !== "Valid"
+        || timestamped !== true)
+    ) {
+      throw new Error("Windows expansion inventory Authenticode trust does not match");
+    }
+  } else if (
+    trustProfile !== "public-unsigned-preview"
+    || inventory.signatures.profile !== trustProfile
+    || signatures.some(({ certificateSha256, status, timestamped }) =>
+      certificateSha256 !== null || status !== "NotSigned" || timestamped !== false)
   ) {
-    throw new Error("Windows expansion inventory Authenticode trust does not match");
+    throw new Error("Windows expansion inventory unsigned preview trust does not match");
   }
 
   const evidence = validateWindowsPublicBuildEvidence(JSON.parse(
@@ -215,8 +236,17 @@ export function verifyWindowsExpansionInput({
   if (evidence.application.storageSchemaVersion !== storageSchemaVersion) {
     throw new Error("Windows expansion input storage schema does not match");
   }
-  if (evidence.trust.authenticodeCertificateSha256 !== authenticodeCertificateSha256) {
-    throw new Error("Windows expansion build evidence Authenticode trust does not match");
+  if (trustProfile === "public-authenticode") {
+    if (evidence.trust.authenticodeCertificateSha256 !== authenticodeCertificateSha256) {
+      throw new Error("Windows expansion build evidence Authenticode trust does not match");
+    }
+  } else if (
+    evidence.schemaVersion !== 2
+    || evidence.trust?.profile !== "public-unsigned-preview"
+    || evidence.trust?.authenticode?.status !== "not-provided"
+    || evidence.limitations?.exactWindows11Admission !== false
+  ) {
+    throw new Error("Windows expansion build evidence unsigned preview trust does not match");
   }
   for (const [key, expected] of [
     ["package", packageArtifact],
@@ -235,12 +265,13 @@ export function verifyWindowsExpansionInput({
     throw new Error("Windows expansion input update trust does not match");
   }
   return {
-    authenticodeCertificateSha256,
+    ...(trustProfile === "public-authenticode" ? { authenticodeCertificateSha256 } : {}),
     buildEvidenceName: names.buildEvidenceName,
     inventoryName: names.inventoryName,
     packageName: names.packageName,
     revision,
     storageSchemaVersion,
+    trustProfile,
     version,
   };
 }
@@ -253,6 +284,7 @@ export function stageWindowsExpansionInput({
   packagePath,
   revision,
   storageSchemaVersion,
+  trustProfile = "public-authenticode",
   updateConfiguration,
   version,
 }) {
@@ -298,6 +330,7 @@ export function stageWindowsExpansionInput({
       packageArtifact,
       revision,
       storageSchemaVersion,
+      trustProfile,
       updateTrustedKeyIds,
       version,
     });
@@ -310,6 +343,7 @@ export function stageWindowsExpansionInput({
       directory: staging,
       revision,
       storageSchemaVersion,
+      trustProfile,
       updateConfiguration,
       version,
     });
@@ -320,6 +354,7 @@ export function stageWindowsExpansionInput({
       directory: destination,
       revision,
       storageSchemaVersion,
+      trustProfile,
       updateConfiguration,
       version,
     });
@@ -415,6 +450,7 @@ export function prepareWindowsExpansionInput({
       packagePath: inspectedPackagePath,
       revision: source.revision,
       storageSchemaVersion: readStorageSchema(),
+      trustProfile: "public-authenticode",
       updateConfiguration: activeUpdateConfiguration,
       version,
     });
@@ -423,27 +459,94 @@ export function prepareWindowsExpansionInput({
   }
 }
 
+export function prepareWindowsUnsignedPreviewInput({
+  architecture = process.arch,
+  assertSource = assertCleanRevision,
+  build = buildProductionPackage,
+  environment = process.env,
+  generateInventory = generateWindowsPackageInventory,
+  outputDirectory,
+  platform = process.platform,
+  readStorageSchema = readStorageSchemaVersion,
+  releaseDirectory = defaultWindowsReleaseDirectory,
+  updateConfiguration,
+  validateRelease = (releaseVersion) => inspectReleaseContracts(repositoryRoot, releaseVersion),
+  version,
+}) {
+  if (platform !== "win32" || architecture !== "x64") {
+    throw new Error("Windows unsigned preview input preparation requires x86-64 Windows");
+  }
+  assertWindowsExpansionAuthoritySeparation(environment);
+  validateRelease(version);
+  const source = assertSource();
+  const activeUpdateConfiguration = updateConfiguration
+    ?? loadPublicUpdateConfiguration(repositoryRoot);
+  const updateEnvironment = publicUpdateBuildEnvironment(activeUpdateConfiguration, true);
+  trustedUpdateKeyIds(activeUpdateConfiguration);
+  if (typeof outputDirectory !== "string" || outputDirectory.length === 0) {
+    throw new Error("Windows expansion output directory is required");
+  }
+  const destination = path.resolve(outputDirectory);
+  if (existsSync(destination)) throw new Error("Windows expansion input already exists");
+  const packagePath = path.join(
+    path.resolve(releaseDirectory),
+    expectedWindowsNsisArtifactName(version),
+  );
+  rmSync(releaseDirectory, { force: true, recursive: true });
+  build({
+    arguments_: ["--bundles", "nsis", "--ci"],
+    publicUpdateEnvironment: updateEnvironment,
+  });
+  requireRegularSinglyLinkedFile(
+    packagePath,
+    "unsigned Windows preview setup is unavailable",
+  );
+  const generatedInventory = generateInventory({
+    architecture,
+    platform,
+    releaseDirectory,
+    signatureProfile: "public-unsigned-preview",
+    version,
+  });
+  return stageWindowsExpansionInput({
+    generatedAt: generatedAt(source.sourceDateEpoch),
+    inventoryPath: generatedInventory.inventoryPath,
+    outputDirectory: destination,
+    packagePath,
+    revision: source.revision,
+    storageSchemaVersion: readStorageSchema(),
+    trustProfile: "public-unsigned-preview",
+    updateConfiguration: activeUpdateConfiguration,
+    version,
+  });
+}
+
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   try {
-    const [version, outputDirectory, signedSetupDirectory] = process.argv.slice(2);
-    if (!version || !outputDirectory || !signedSetupDirectory) {
+    const [version, outputDirectory, modeOrSignedSetupDirectory] = process.argv.slice(2);
+    if (!version || !outputDirectory || !modeOrSignedSetupDirectory) {
       throw new Error(
-        "usage: node scripts/prepare-windows-expansion-input.mjs <version> <output-directory> <signed-setup-directory>",
+        "usage: node scripts/prepare-windows-expansion-input.mjs <version> <output-directory> <--unsigned-preview|signed-setup-directory>",
       );
     }
-    const result = prepareWindowsExpansionInput({
-      outputDirectory,
-      signedSetupDirectory,
-      version,
-    });
+    const result = modeOrSignedSetupDirectory === "--unsigned-preview"
+      ? prepareWindowsUnsignedPreviewInput({ outputDirectory, version })
+      : prepareWindowsExpansionInput({
+        outputDirectory,
+        signedSetupDirectory: modeOrSignedSetupDirectory,
+        version,
+      });
     if (process.env.GITHUB_OUTPUT) {
       appendFileSync(
         process.env.GITHUB_OUTPUT,
         [
           `windows_input_revision=${result.revision}`,
           `windows_input_storage_schema=${result.storageSchemaVersion}`,
-          `windows_input_authenticode_certificate_sha256=${result.authenticodeCertificateSha256}`,
+          `windows_input_trust_profile=${result.trustProfile}`,
+          ...(result.authenticodeCertificateSha256
+            ? [`windows_input_authenticode_certificate_sha256=${result.authenticodeCertificateSha256}`]
+            : []),
         ].join("\n") + "\n",
       );
     }

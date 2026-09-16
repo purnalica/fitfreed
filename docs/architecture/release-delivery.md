@@ -8,7 +8,9 @@
 locale surfaces. FitFreed 0.1.12 is the current immutable public release. Its Developer ID-signed and Apple-notarized
 macOS package, native Linux Debian package, source-bound evidence, English fallback, deterministic Spanish surface,
 and signed stable-v3 update snapshot are live and remotely byte-verified. It preserves 0.1.7 as the exact macOS
-recovery predecessor. Windows remains the final complete-platform MVP expansion.
+recovery predecessor. Windows remains the final complete-platform MVP expansion. Its first public availability is the
+explicitly unsigned preview selected by [ADR 0051](decisions/0051-publish-an-unsigned-windows-preview.md); macOS and
+Linux remain the stable platforms.
 
 ## Stages and authority boundaries
 
@@ -113,6 +115,13 @@ Authenticode certificate fingerprint, Windows support family, and third stable t
 and the release-signing boundary. Stable-channel staging derives the setup name from the Windows package contract and
 accepts Windows only when both existing macOS and Linux targets are present.
 
+[Complete-platform release manifest version 8](../data-formats/release/release-manifest-v8.md) reuses the same closed
+three-platform release topology for the unsigned Windows preview. It replaces the Authenticode assertion with an
+explicit `public-unsigned-preview` trust profile, requires `NotSigned` observations for the setup, installed
+application, and installed uninstaller, labels Windows availability as preview, and records that hosted admission is
+not exact Windows 11 admission. It retains the updater signatures, release-checksum signature, SBOMs, provenance,
+recovery packages, immutable origin, and exact Pages copies required by version 7.
+
 Complete-platform reopening validates the closed version 7 shape before trusting any evidence, then independently
 binds the Windows package inventory and native build statement to the manifest's version, revision, storage schema,
 package bytes, certificate fingerprint, and active updater trust. The shared release verifier subsequently authenticates
@@ -120,17 +129,19 @@ all three updater packages, the stable metadata, checksums, release signature, r
 copies. Candidate reopening requires the unpacked macOS application; distribution reopening admits its documented
 absence while retaining every published byte and trust check.
 
-The platform-neutral transport, publication, and remote-acceptance boundaries dispatch manifest versions 3, 6, and 7
-to their exact verifier without translating one contract into another. Version 7 transport returns all three ordered
+The platform-neutral transport, publication, and remote-acceptance boundaries dispatch manifest versions 3, 6, 7,
+and 8 to their exact verifier without translating one contract into another. Versions 7 and 8 transport all three ordered
 targets, publication derives every Release asset and the Windows expansion provenance workflow from that manifest, and
 remote acceptance downloads the three current packages plus every declared Linux or Windows recovery package before
 reconstructing the exact localized Pages tree. The versioned Windows expansion workflow and exact native admission
-matrix now exist as an inactive delivery boundary. They grant no authority until their protected environments,
-disposable Windows 11 x86-64 runners, production trust, predecessor release, and accountable approvals exist.
+matrix remain distinct delivery boundaries. Version 8 grants no Authenticode or exact Windows 11 claim; it admits the
+explicit unsigned preview only after the pinned hosted Windows lifecycle, predecessor release, and accountable
+approvals exist.
 
 Complete-platform composition accepts the closed Linux and Windows native inputs only when both state the candidate's
-exact version, revision, and storage schema. Windows must additionally state the selected Authenticode certificate and
-the compositor's active updater trust. The compositor copies the already Authenticode-signed setup without mutation,
+exact version, revision, and storage schema. Windows must additionally state either the version 7 Authenticode
+certificate profile or the version 8 unsigned-preview profile and the compositor's active updater trust. The
+compositor copies the already admitted setup without mutation,
 adds its detached updater signature, composes the three-target stable channel and Pages snapshot, writes manifest,
 checksums, and release signature, then invokes independent reopening before one atomic destination promotion. Any
 failure removes the private staging tree and leaves an existing destination untouched.
@@ -166,15 +177,16 @@ package identity, and native purge must remove every FitFreed package-owned path
 input boundary. It does not substitute for the later sealed-candidate matrix, which owns graphical launch and the
 exact-package check on both supported Ubuntu versions.
 
-[ADR 0041](decisions/0041-support-windows-11-with-per-user-nsis.md) defines the first Windows release as one x86-64
+[ADR 0041](decisions/0041-support-windows-11-with-per-user-nsis.md) defines the Windows package as one x86-64
 current-user NSIS setup executable for Windows 11 editions still in Microsoft support at candidate issuance. The
-installer includes the offline WebView2 runtime and both initial locales. Public setup and installed binaries require
+installer includes the offline WebView2 runtime and both initial locales. ADR 0051 supersedes its initial-publication
+trust requirement only: the first Windows artifact is an unsigned preview, while promotion to stable still requires
 trusted Authenticode signatures in addition to updater signing, checksums, SBOM, and source-bound provenance. MSI,
 Microsoft Store, WinGet, per-machine installation, Windows on ARM, and Windows 10 remain separate future contracts.
 
 [ADR 0050](decisions/0050-retire-signpath-as-windows-signing-authority.md) retires SignPath after the Foundation
-application was declined and the project owner closed that provider. No replacement Authenticode authority or
-unsigned public trust profile is selected. The current Windows publication contract therefore remains fail-closed.
+application was declined and the project owner closed that provider. ADR 0051 subsequently selects an explicit
+unsigned public preview and defers HARICA Code Signing IV as the authority to revalidate before stable Windows.
 The SignPath topology described below is inactive historical engineering retained only until its complete artifacts
 and incoming dependencies are inventoried; it is not an operational release route.
 
@@ -208,24 +220,24 @@ This Authenticode topology retains active recoverable `stable-v3` public update 
 all updater private-key inputs. The later complete-platform compositor uses separate updater authority to sign the
 unchanged SignPath-returned setup and create stable channel metadata.
 
-`npm run prepare:windows-expansion-input -- <version> <directory> <signed-setup-directory>` admits one clean source
-revision and the verified SignPath-returned setup before running the public-profile native installation cycle. It
+`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` builds one clean source revision
+with active public updater trust before running the unsigned-preview native installation cycle. It
 hashes the complete installed layout, verifies data-preserving removal, and atomically stages only the setup, its
-[Windows package inventory](../data-formats/release/windows-package-inventory-v1.md), and the source-bound
-[Windows public build evidence](../data-formats/release/windows-public-build-evidence-v1.md). The
-closed evidence binds version, revision, storage schema, setup and inventory digests, certificate fingerprint, and the
+[Windows package inventory version 2](../data-formats/release/windows-package-inventory-v2.md), and the source-bound
+[Windows public build evidence version 2](../data-formats/release/windows-public-build-evidence-v2.md). The
+closed evidence binds version, revision, storage schema, setup and inventory digests, explicit unsigned trust, and the
 ordered public updater trust identifiers embedded by the build. It contains no updater signature, private key,
 certificate selector, SignTool path, machine identity, or publication authority. Every file must be regular, non-empty,
 singly linked, and named by the versioned contract; any mismatch removes the temporary staging directory without
 replacing an existing input.
 
-`npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>`
+`npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> public-unsigned-preview`
 reopens that complete three-file input before creating a temporary compressed tar archive beside its requested
 destination. The portable `ustar` header uses neutral ownership through an explicitly admitted GNU tar or bsdtar
 dialect rather than retaining the native account. An unknown archive implementation fails closed. The
 command admits the archive only when its entry listing is exactly the closed input set, atomically moves the archive
 into place, and exposes its SHA-256 transport digest. The matching
-`npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>`
+`npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> public-unsigned-preview`
 validates the digest and listing before extraction, reopens every internal artifact, trust, source, schema, and channel
 binding in a temporary sibling directory, and makes the result visible atomically. Mutation, an unsafe or additional
 entry, existing destination, or verification failure leaves no accepted output.
@@ -261,11 +273,11 @@ fingerprint with the admitted public value, verifies that inspection does not ch
 product-binary evidence to x86-64 plus the expected name and version. Certificate-store selectors, private keys,
 service credentials, account identity, and timestamp-service details never enter retained evidence.
 
-The ordinary hosted Windows lane remains unsigned engineering evidence. It can prove package construction,
-installation, removal, and inspector failure behavior, but it cannot represent public native trust. The dormant
-public profile still requires exact SignPath-returned bytes and all three installed trust surfaces to pass the
-trusted-chain, timestamp, digest, identity, package-inventory, and clean supported-Windows-11 gates; consequently it
-cannot produce a candidate after ADR 0050. A later decision must replace that profile before Windows publication.
+The hosted Windows lane can produce the unsigned preview input only when the setup, application, and uninstaller all
+report `NotSigned` and the exact package passes installation, identity, removal, and data-preservation checks. The
+sealed candidate is reopened on the pinned hosted Windows environment before promotion. This is public-preview
+package evidence, not Authenticode trust or exact Windows 11 support. The dormant version 7 profile remains unavailable
+without a future admitted Authenticode authority.
 
 Linux and Windows use the authenticated predecessor recovery architecture in
 [ADR 0042](decisions/0042-recover-packaged-updates-from-authenticated-predecessors.md). Their release manifests and

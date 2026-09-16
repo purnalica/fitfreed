@@ -23,7 +23,11 @@ const trustScript = path.join(
   "scripts",
   "windows-authenticode-trust.ps1",
 );
-const signatureProfiles = new Set(["public-authenticode", "unsigned-engineering"]);
+const signatureProfiles = new Set([
+  "public-authenticode",
+  "public-unsigned-preview",
+  "unsigned-engineering",
+]);
 
 export const windowsInstallationDiagnosticPhases = Object.freeze([
   "precondition-inputs",

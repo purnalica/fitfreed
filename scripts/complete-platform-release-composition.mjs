@@ -206,6 +206,7 @@ export function composeCompletePlatformCandidate({
   const signRelease = requireFunction(signReleaseChecksums);
   const signUpdate = requireFunction(signUpdatePayload);
   const copyApplication = requireFunction(copyMacosApplication);
+  const windowsTrustProfile = windowsTrust.profile ?? "public-authenticode";
   const destination = path.resolve(candidateDirectory);
   if (existsSync(destination)) throw new Error("complete-platform public candidate already exists");
 
@@ -220,6 +221,7 @@ export function composeCompletePlatformCandidate({
     directory: windowsInputDirectory,
     revision,
     storageSchemaVersion,
+    trustProfile: windowsTrustProfile,
     updateConfiguration,
     version,
   });
@@ -403,6 +405,7 @@ export function composeCompletePlatformCandidate({
       updateSequence,
       version,
       windowsCertificateSha256: windowsTrust.certificateSha256,
+      windowsTrustProfile,
     });
     writeFileSync(
       path.join(releaseDirectory, "release-manifest.json"),

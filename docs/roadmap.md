@@ -222,7 +222,8 @@ migration, interruption recovery, removal, accessibility, localization, and supp
 **Status:** active.
 
 **Outcome:** the same accepted first-MVP capability baseline is available to Windows users through a native,
-documented, updateable, recoverable, and supportable public distribution path without changing product functionality.
+documented, updateable, and recoverable public preview without changing product functionality. Stable support and
+native publisher trust remain a later promotion gate.
 
 **Engineering dependency:** the first-MVP capability baseline is functionally frozen. Windows investigation,
 implementation, packaging, and automated evidence may proceed independently of an open macOS or Linux acceptance gate
@@ -233,8 +234,11 @@ plan](plans/milestone-5.md) and [Windows platform decision](architecture/decisio
 define the supported Windows versions, architecture, package and signing model, update mechanism, recovery design, and
 clean-environment test matrix before Windows implementation begins.
 
-**Exit criteria:** the selected Windows package passes capability-parity, clean installation, first launch, update,
-migration, interruption recovery, removal, accessibility, localization, and supported-environment verification.
+**Exit criteria:** the selected unsigned Windows package explicitly reports its missing Authenticode identity, passes
+the pinned hosted-Windows preview lifecycle, reuses still-valid capability, recovery, accessibility, localization,
+performance, and data-scale evidence, and remains byte-identical through immutable publication and remote
+verification. Every public surface distinguishes that evidence from exact Windows 11 support. HARICA IV remains the
+deferred authority required before stable Windows promotion.
 
 **Cross-platform scope lock:** no post-MVP capability enters implementation between Milestones 3 and 5. Defect,
 security, compatibility, platform-integration, distribution, accessibility-parity, localization-parity, and required
@@ -271,7 +275,7 @@ absent.
 1. Private unsigned macOS MVP alpha.
 2. Signed and notarized public macOS release.
 3. Linux support.
-4. Windows support.
+4. Windows public preview, followed by signed stable support when demand justifies HARICA activation.
 
 Minimum operating-system versions, architectures, packaging, signing, and update mechanisms will be decided per platform before its implementation milestone.
 

@@ -24,6 +24,19 @@ function stagedFixture(context) {
   return input;
 }
 
+function stagedPreviewFixture(context) {
+  const input = createWindowsExpansionInputFixture({
+    trustProfile: "public-unsigned-preview",
+  });
+  context.after(() => rmSync(input.root, { force: true, recursive: true }));
+  stageWindowsExpansionInput({
+    ...input,
+    generatedAt: "2026-09-16T08:00:00.000Z",
+    storageSchemaVersion: 37,
+  });
+  return input;
+}
+
 function identity(input) {
   return {
     authenticodeCertificateSha256: input.authenticodeCertificateSha256,
@@ -53,6 +66,34 @@ test("seals and reopens the exact Windows native input", (context) => {
 
   assert.deepEqual(reopened, packed);
   assert.ok(existsSync(path.join(reopenedDirectory, input.packageName)));
+});
+
+test("seals and reopens an unsigned public preview without certificate input", (context) => {
+  const input = stagedPreviewFixture(context);
+  const archivePath = path.join(input.root, "windows-preview-input.tar.gz");
+  const reopenedDirectory = path.join(input.root, "reopened-preview");
+  const previewIdentity = {
+    revision: input.revision,
+    storageSchemaVersion: 37,
+    trustProfile: "public-unsigned-preview",
+    updateConfiguration: input.updateConfiguration,
+    version: input.version,
+  };
+
+  const packed = packWindowsExpansionInput({
+    archivePath,
+    inputDirectory: input.outputDirectory,
+    ...previewIdentity,
+  });
+  const reopened = unpackWindowsExpansionInput({
+    archivePath,
+    expectedSha256: packed.archiveSha256,
+    outputDirectory: reopenedDirectory,
+    ...previewIdentity,
+  });
+
+  assert.deepEqual(reopened, packed);
+  assert.equal(reopened.trustProfile, "public-unsigned-preview");
 });
 
 test("rejects mutated transport bytes without creating an input", (context) => {

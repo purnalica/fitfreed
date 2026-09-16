@@ -81,6 +81,38 @@ test("rejects an inventory outside the exact package and unordered update trust"
   );
 });
 
+test("records the public unsigned preview trust boundary explicitly", () => {
+  const previewInput = input();
+  delete previewInput.authenticodeCertificateSha256;
+  previewInput.trustProfile = "public-unsigned-preview";
+  const evidence = createWindowsPublicBuildEvidence(previewInput);
+
+  assert.equal(validateWindowsPublicBuildEvidence(evidence), evidence);
+  assert.equal(evidence.schemaVersion, 2);
+  assert.deepEqual(evidence.trust, {
+    profile: "public-unsigned-preview",
+    authenticode: {
+      status: "not-provided",
+      publisherIdentity: "unknown",
+      reason: "unsigned-preview",
+    },
+  });
+  assert.deepEqual(evidence.limitations, {
+    exactWindows11Admission: false,
+    smartAppControlMayBlock: true,
+    smartScreenContinuationMayBeRequired: true,
+    managedPolicyMayBlock: true,
+  });
+  assert.deepEqual(evidence.verification.map(({ id }) => id), [
+    "windows-package-contract",
+    "windows-unsigned-setup",
+    "windows-current-user-installation",
+    "windows-installed-binaries-unsigned",
+    "windows-package-inventory",
+    "windows-clean-removal",
+  ]);
+});
+
 test("documents and indexes the Windows public build evidence contract", () => {
   const document = readFileSync(
     new URL("../docs/data-formats/release/windows-public-build-evidence-v1.md", import.meta.url),
@@ -96,4 +128,12 @@ test("documents and indexes the Windows public build evidence contract", () => {
     assert.match(document, new RegExp(value.replaceAll(".", "\\.")));
   }
   assert.match(index, /release\/windows-public-build-evidence-v1\.md/);
+  const previewDocument = readFileSync(
+    new URL("../docs/data-formats/release/windows-public-build-evidence-v2.md", import.meta.url),
+    "utf8",
+  );
+  for (const value of ["public-unsigned-preview", "exactWindows11Admission", "Smart App Control"] ) {
+    assert.match(previewDocument, new RegExp(value));
+  }
+  assert.match(index, /release\/windows-public-build-evidence-v2\.md/);
 });

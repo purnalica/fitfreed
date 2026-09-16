@@ -56,7 +56,9 @@ function copyExpansionInput(inputDirectory, releaseDirectory, names) {
   }
 }
 
-export function createCompletePlatformReleaseCandidateFixture() {
+export function createCompletePlatformReleaseCandidateFixture({
+  windowsTrustProfile = "public-authenticode",
+} = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-complete-platform-candidate-"));
   const releaseDirectory = path.join(root, "release");
   const pagesDirectory = path.join(root, "pages");
@@ -91,18 +93,22 @@ export function createCompletePlatformReleaseCandidateFixture() {
   const windows = createWindowsExpansionInputFixture({
     certificateSha256: windowsCertificateSha256,
     revision,
+    trustProfile: windowsTrustProfile,
     updateConfiguration: completePlatformUpdateConfiguration,
     version,
   });
   const windowsInputDirectory = path.join(inputsDirectory, "windows");
   const windowsNames = stageWindowsExpansionInput({
-    authenticodeCertificateSha256: windowsCertificateSha256,
+    authenticodeCertificateSha256: windowsTrustProfile === "public-authenticode"
+      ? windowsCertificateSha256
+      : undefined,
     generatedAt,
     inventoryPath: windows.inventoryPath,
     outputDirectory: windowsInputDirectory,
     packagePath: windows.packagePath,
     revision,
     storageSchemaVersion,
+    trustProfile: windowsTrustProfile,
     updateConfiguration: completePlatformUpdateConfiguration,
     version,
   });
@@ -335,8 +341,8 @@ export function createCompletePlatformReleaseCandidateFixture() {
       linuxPackageInventory: "1",
       npmCycloneDx: "6.0.1",
       tauri: "2.11.4",
-      windowsBuildEvidence: "1",
-      windowsPackageInventory: "1",
+      windowsBuildEvidence: windowsTrustProfile === "public-unsigned-preview" ? "2" : "1",
+      windowsPackageInventory: windowsTrustProfile === "public-unsigned-preview" ? "2" : "1",
     },
     macosCertificateSha256: "d".repeat(64),
     macosTeamIdentifier: "A1B2C3D4E5",
@@ -346,7 +352,10 @@ export function createCompletePlatformReleaseCandidateFixture() {
     updateKeyId: "complete.synthetic-1",
     updateSequence: 3,
     version,
-    windowsCertificateSha256,
+    windowsCertificateSha256: windowsTrustProfile === "public-authenticode"
+      ? windowsCertificateSha256
+      : undefined,
+    windowsTrustProfile,
   });
   writeJson(path.join(releaseDirectory, "release-manifest.json"), manifest);
   const checksumPath = path.join(releaseDirectory, "SHA256SUMS");
@@ -384,7 +393,10 @@ export function createCompletePlatformReleaseCandidateFixture() {
     root,
     version,
     windowsBuildEvidenceName: windowsNames.buildEvidenceName,
-    windowsCertificateSha256,
+    windowsCertificateSha256: windowsTrustProfile === "public-authenticode"
+      ? windowsCertificateSha256
+      : undefined,
+    windowsTrustProfile,
     windowsInventoryName: windowsNames.inventoryName,
     windowsPackageName: windowsNames.packageName,
   };

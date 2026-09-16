@@ -60,13 +60,20 @@ const targetsByKind = new Map([
 const predecessorSchema = JSON.parse(
   readFileSync(new URL("../schemas/release-manifest-v6.schema.json", import.meta.url), "utf8"),
 );
-const schema = JSON.parse(
+const schemaV7 = JSON.parse(
   readFileSync(new URL("../schemas/release-manifest-v7.schema.json", import.meta.url), "utf8"),
+);
+const schemaV8 = JSON.parse(
+  readFileSync(new URL("../schemas/release-manifest-v8.schema.json", import.meta.url), "utf8"),
 );
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 ajv.addSchema(predecessorSchema);
-const validateSchema = ajv.compile(schema);
+ajv.addSchema(schemaV7);
+const schemaValidators = new Map([
+  [7, ajv.getSchema(schemaV7.$id)],
+  [8, ajv.compile(schemaV8)],
+]);
 
 function invalidPath(candidate) {
   return (
@@ -173,15 +180,17 @@ export function createCompletePlatformReleaseManifest({
   macosCertificateSha256,
   macosTeamIdentifier,
   windowsCertificateSha256,
+  windowsTrustProfile = "public-authenticode",
   generators,
   artifacts,
 }) {
+  const unsignedWindowsPreview = windowsTrustProfile === "public-unsigned-preview";
   const sortedArtifacts = [...artifacts].sort((left, right) =>
     left.path.localeCompare(right.path, "en"),
   );
   const manifest = {
     format: "org.fitfreed.release-manifest",
-    schemaVersion: 7,
+    schemaVersion: unsignedWindowsPreview ? 8 : 7,
     release: {
       version,
       revision: sourceRevision,
@@ -237,17 +246,31 @@ export function createCompletePlatformReleaseManifest({
         os: "windows",
         architecture: "x86_64",
         operatingSystemFamily: "windows-11",
-        supportPolicy: "supported-editions-at-candidate-issuance",
+        supportPolicy: unsignedWindowsPreview
+          ? "preview-feedback"
+          : "supported-editions-at-candidate-issuance",
         packageFormat: "nsis",
         installMode: "currentUser",
         webviewInstallMode: "offlineInstaller",
-        trust: {
-          authenticode: {
-            status: "valid",
-            digestAlgorithm: "sha256",
-            certificateSha256: windowsCertificateSha256,
-            rfc3161Timestamp: true,
+        ...(unsignedWindowsPreview ? {
+          availability: {
+            tier: "preview",
+            exactWindows11Admission: false,
           },
+        } : {}),
+        trust: {
+          authenticode: unsignedWindowsPreview
+            ? {
+              status: "not-provided",
+              publisherIdentity: "unknown",
+              reason: "unsigned-preview",
+            }
+            : {
+              status: "valid",
+              digestAlgorithm: "sha256",
+              certificateSha256: windowsCertificateSha256,
+              rfc3161Timestamp: true,
+            },
         },
       },
     ],
@@ -288,8 +311,15 @@ export function renderCompletePlatformReleaseNotes({
   revision: sourceRevision,
   storageSchemaVersion,
   version,
+  windowsTrustProfile = "public-authenticode",
 }, reviewedNotes) {
   const validatedNotes = validateReviewedReleaseNotes(reviewedNotes);
+  const windowsTrustStatement = windowsTrustProfile === "public-unsigned-preview"
+    ? `The Windows package is a **Windows preview — unsigned**. Windows identifies its publisher as \`Unknown publisher\`;
+SmartScreen may require a per-file continuation, and managed policy or Smart App Control may block it.
+Do not disable system-wide protections. The package is verified on GitHub-hosted Windows but has not passed exact
+Windows 11 client admission; report direct experience through the public support route.`
+    : "The Windows NSIS setup is Authenticode signed and timestamped.";
   return `# FitFreed ${version}
 
 Source revision: \`${sourceRevision}\`
@@ -298,8 +328,8 @@ Storage schema: ${storageSchemaVersion}
 Compatibility matrix: \`supported-upgrades.json\`
 Update channel: authenticated \`stable-v3\`
 
-The macOS application and disk image are Developer ID signed and Apple notarized. The Windows NSIS setup is
-Authenticode signed and timestamped. The Linux Debian package has no selected platform-native signature. Verify
+The macOS application and disk image are Developer ID signed and Apple notarized. ${windowsTrustStatement} The Linux
+Debian package has no selected platform-native signature. Verify
 \`SHA256SUMS\`, \`SHA256SUMS.minisig\`, and the GitHub artifact attestations before installation. FitFreed is
 distributed without warranty under the project disclaimer.
 
@@ -308,16 +338,16 @@ ${validatedNotes}`;
 
 export function validateCompletePlatformReleaseManifest(manifest) {
   const errors = [];
-  if (!validateSchema(manifest)) {
+  const validateSchema = schemaValidators.get(manifest?.schemaVersion);
+  if (!validateSchema) {
+    errors.push("unsupported complete-platform manifest schema version");
+  } else if (!validateSchema(manifest)) {
     errors.push(
       ...validateSchema.errors.map(
         ({ instancePath, message }) =>
           `complete-platform manifest schema violation at ${instancePath || "/"}: ${message}`,
       ),
     );
-  }
-  if (manifest?.schemaVersion !== 7) {
-    errors.push("unsupported complete-platform manifest schema version");
   }
   if (!semanticVersion.test(manifest?.release?.version ?? "")) {
     errors.push("invalid complete-platform release version");

@@ -33,6 +33,11 @@ const manifestTargets = Object.freeze({
     "linux-x86_64-deb",
     "windows-x86_64-nsis",
   ]),
+  8: Object.freeze([
+    "darwin-aarch64",
+    "linux-x86_64-deb",
+    "windows-x86_64-nsis",
+  ]),
 });
 
 function releaseAssetUrl(version, filename) {
@@ -85,6 +90,9 @@ export function createProductReleaseDownloads(manifest) {
     const artifact = onlyArtifact(manifest, contract, version);
     return {
       artifact: artifact.path,
+      availability: manifest.schemaVersion === 8 && target === "windows-x86_64-nsis"
+        ? "preview-unsigned"
+        : "stable",
       key: contract.key,
       target,
       url: releaseAssetUrl(version, artifact.path),

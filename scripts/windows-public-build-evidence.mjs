@@ -7,21 +7,39 @@ import { publicUpdateEndpoint } from "./public-origin.mjs";
 import { expectedWindowsNsisArtifactName } from "./windows-package-contract.mjs";
 import { windowsPackageInventoryName } from "./windows-package-inventory.mjs";
 
-const schema = JSON.parse(
+const schemaV1 = JSON.parse(
   readFileSync(
     new URL("../schemas/windows-public-build-evidence-v1.schema.json", import.meta.url),
     "utf8",
   ),
 );
+const schemaV2 = JSON.parse(
+  readFileSync(
+    new URL("../schemas/windows-public-build-evidence-v2.schema.json", import.meta.url),
+    "utf8",
+  ),
+);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
-const validateSchema = ajv.compile(schema);
+ajv.addSchema(schemaV1);
+const schemaValidators = new Map([
+  [1, ajv.getSchema(schemaV1.$id)],
+  [2, ajv.compile(schemaV2)],
+]);
 
-const verification = Object.freeze([
+const authenticodeVerification = Object.freeze([
   Object.freeze({ id: "windows-package-contract", result: "passed" }),
   Object.freeze({ id: "windows-public-setup-trust", result: "passed" }),
   Object.freeze({ id: "windows-current-user-installation", result: "passed" }),
   Object.freeze({ id: "windows-installed-authenticode", result: "passed" }),
+  Object.freeze({ id: "windows-package-inventory", result: "passed" }),
+  Object.freeze({ id: "windows-clean-removal", result: "passed" }),
+]);
+const unsignedPreviewVerification = Object.freeze([
+  Object.freeze({ id: "windows-package-contract", result: "passed" }),
+  Object.freeze({ id: "windows-unsigned-setup", result: "passed" }),
+  Object.freeze({ id: "windows-current-user-installation", result: "passed" }),
+  Object.freeze({ id: "windows-installed-binaries-unsigned", result: "passed" }),
   Object.freeze({ id: "windows-package-inventory", result: "passed" }),
   Object.freeze({ id: "windows-clean-removal", result: "passed" }),
 ]);
@@ -37,12 +55,17 @@ export function createWindowsPublicBuildEvidence({
   packageArtifact,
   revision,
   storageSchemaVersion,
+  trustProfile = "public-authenticode",
   updateTrustedKeyIds,
   version,
 }) {
+  const unsignedPreview = trustProfile === "public-unsigned-preview";
+  const verification = unsignedPreview
+    ? unsignedPreviewVerification
+    : authenticodeVerification;
   const evidence = {
     format: "org.fitfreed.windows-public-build-evidence",
-    schemaVersion: 1,
+    schemaVersion: unsignedPreview ? 2 : 1,
     release: { version, revision, generatedAt },
     target: {
       id: "windows-x86_64-nsis",
@@ -61,7 +84,24 @@ export function createWindowsPublicBuildEvidence({
       package: packageArtifact,
       inventory: inventoryArtifact,
     },
-    trust: { authenticodeCertificateSha256 },
+    trust: unsignedPreview
+      ? {
+        profile: "public-unsigned-preview",
+        authenticode: {
+          status: "not-provided",
+          publisherIdentity: "unknown",
+          reason: "unsigned-preview",
+        },
+      }
+      : { authenticodeCertificateSha256 },
+    ...(unsignedPreview ? {
+      limitations: {
+        exactWindows11Admission: false,
+        smartAppControlMayBlock: true,
+        smartScreenContinuationMayBeRequired: true,
+        managedPolicyMayBlock: true,
+      },
+    } : {}),
     update: {
       contract: "stable-v3",
       metadataEndpoint: publicUpdateEndpoint,
@@ -75,7 +115,10 @@ export function createWindowsPublicBuildEvidence({
 
 export function validateWindowsPublicBuildEvidence(evidence) {
   const errors = [];
-  if (!validateSchema(evidence)) {
+  const validateSchema = schemaValidators.get(evidence?.schemaVersion);
+  if (!validateSchema) {
+    errors.push("unsupported Windows public build evidence schema version");
+  } else if (!validateSchema(evidence)) {
     errors.push(
       ...validateSchema.errors.map(
         ({ instancePath, message }) =>
@@ -101,7 +144,10 @@ export function validateWindowsPublicBuildEvidence(evidence) {
       }
     }
   }
-  if (JSON.stringify(evidence?.verification) !== JSON.stringify(verification)) {
+  const expectedVerification = evidence?.schemaVersion === 2
+    ? unsignedPreviewVerification
+    : authenticodeVerification;
+  if (JSON.stringify(evidence?.verification) !== JSON.stringify(expectedVerification)) {
     errors.push("Windows public build verification set is incomplete or reordered");
   }
   const trustedKeyIds = evidence?.update?.trustedKeyIds ?? [];

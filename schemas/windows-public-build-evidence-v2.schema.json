@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-public-build-evidence-v2.schema.json",
+  "title": "FitFreed public unsigned Windows preview build evidence version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "release",
+    "target",
+    "application",
+    "artifacts",
+    "trust",
+    "limitations",
+    "update",
+    "verification"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.windows-public-build-evidence" },
+    "schemaVersion": { "const": 2 },
+    "release": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-public-build-evidence-v1.schema.json#/properties/release"
+    },
+    "target": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-public-build-evidence-v1.schema.json#/properties/target"
+    },
+    "application": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-public-build-evidence-v1.schema.json#/properties/application"
+    },
+    "artifacts": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-public-build-evidence-v1.schema.json#/properties/artifacts"
+    },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "authenticode"],
+      "properties": {
+        "profile": { "const": "public-unsigned-preview" },
+        "authenticode": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "publisherIdentity", "reason"],
+          "properties": {
+            "status": { "const": "not-provided" },
+            "publisherIdentity": { "const": "unknown" },
+            "reason": { "const": "unsigned-preview" }
+          }
+        }
+      }
+    },
+    "limitations": {
+      "const": {
+        "exactWindows11Admission": false,
+        "smartAppControlMayBlock": true,
+        "smartScreenContinuationMayBeRequired": true,
+        "managedPolicyMayBlock": true
+      }
+    },
+    "update": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/windows-public-build-evidence-v1.schema.json#/properties/update"
+    },
+    "verification": {
+      "const": [
+        { "id": "windows-package-contract", "result": "passed" },
+        { "id": "windows-unsigned-setup", "result": "passed" },
+        { "id": "windows-current-user-installation", "result": "passed" },
+        { "id": "windows-installed-binaries-unsigned", "result": "passed" },
+        { "id": "windows-package-inventory", "result": "passed" },
+        { "id": "windows-clean-removal", "result": "passed" }
+      ]
+    }
+  }
+}

@@ -77,7 +77,7 @@ export function publicReleaseAssets(releaseDirectory, manifest) {
 
 export function publicReleaseSignerWorkflow(manifest) {
   validateSupportedPublicReleaseManifest(manifest);
-  if (manifest.schemaVersion === 7) return windowsExpansionSignerWorkflow;
+  if ([7, 8].includes(manifest.schemaVersion)) return windowsExpansionSignerWorkflow;
   if (manifest.schemaVersion === 6) return linuxExpansionSignerWorkflow;
   return macosSignerWorkflow;
 }

@@ -153,6 +153,7 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
     version,
     windowsCertificateSha256: certificateInput,
     windowsInputDirectory,
+    windowsTrustProfile = "public-authenticode",
   } = input;
   if (runtime.platform !== "darwin" || runtime.arch !== "arm64") {
     throw new Error("complete-platform release preparation requires Apple Silicon macOS");
@@ -167,7 +168,12 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
   if (existsSync(resolvedOutputDirectory)) {
     throw new Error("complete-platform public candidate already exists");
   }
-  const windowsCertificateSha256 = assertCompletePlatformCertificateSha256(certificateInput);
+  const windowsCertificateSha256 = windowsTrustProfile === "public-authenticode"
+    ? assertCompletePlatformCertificateSha256(certificateInput)
+    : undefined;
+  if (!["public-authenticode", "public-unsigned-preview"].includes(windowsTrustProfile)) {
+    throw new Error("unsupported Windows public trust profile");
+  }
   const upgradeMatrix = operations.inspectUpgradeMatrix(repositoryPath);
   const policyDocument = operations.loadReleasePolicy(repositoryPath, version, upgradeMatrix);
   const updateConfiguration = operations.loadUpdateConfiguration(repositoryPath);
@@ -203,6 +209,7 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
     directory: windowsInputDirectory,
     revision: source.revision,
     storageSchemaVersion,
+    trustProfile: windowsTrustProfile,
     updateConfiguration,
     version,
   });
@@ -248,6 +255,7 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
         revision: source.revision,
         storageSchemaVersion,
         version,
+        windowsTrustProfile,
       }, readFileSync(
         path.join(repositoryPath, releaseContracts.releaseNotesSource),
         "utf8",
@@ -263,8 +271,8 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
         ...operations.generatorVersions(),
         linuxBuildEvidence: "1",
         linuxPackageInventory: "1",
-        windowsBuildEvidence: "1",
-        windowsPackageInventory: "1",
+        windowsBuildEvidence: windowsTrustProfile === "public-unsigned-preview" ? "2" : "1",
+        windowsPackageInventory: windowsTrustProfile === "public-unsigned-preview" ? "2" : "1",
       },
       linuxInputDirectory,
       macos,
@@ -312,7 +320,10 @@ export function prepareCompletePlatformRelease(input, operations = defaultOperat
       upgradeMatrixPath: path.join(evidenceDirectory, matrixName),
       version,
       windowsInputDirectory,
-      windowsTrust: { certificateSha256: windowsCertificateSha256 },
+      windowsTrust: {
+        ...(windowsCertificateSha256 ? { certificateSha256: windowsCertificateSha256 } : {}),
+        profile: windowsTrustProfile,
+      },
     });
     candidateCreated = true;
     operations.scanStagedEvidence(resolvedOutputDirectory);
@@ -335,7 +346,7 @@ function main() {
     issuedAt,
     linuxInputDirectory,
     windowsInputDirectory,
-    windowsCertificateSha256,
+    windowsTrustInput,
     predecessorEvidenceDirectory,
   ] = process.argv.slice(2);
   if (
@@ -345,10 +356,10 @@ function main() {
     || !issuedAt
     || !linuxInputDirectory
     || !windowsInputDirectory
-    || !windowsCertificateSha256
+    || !windowsTrustInput
   ) {
     throw new Error(
-      "usage: node scripts/prepare-complete-platform-release.mjs <version> <update-key-id> <release-key-id> <issued-at> <linux-input-directory> <windows-input-directory> <windows-certificate-sha256> [predecessor-evidence-directory]",
+      "usage: node scripts/prepare-complete-platform-release.mjs <version> <update-key-id> <release-key-id> <issued-at> <linux-input-directory> <windows-input-directory> <windows-certificate-sha256|public-unsigned-preview> [predecessor-evidence-directory]",
     );
   }
   const outputDirectory = path.join(repositoryRoot, ".artifacts/public-releases", version);
@@ -361,8 +372,13 @@ function main() {
     releaseKeyId,
     updateKeyId,
     version,
-    windowsCertificateSha256,
+    windowsCertificateSha256: windowsTrustInput === "public-unsigned-preview"
+      ? undefined
+      : windowsTrustInput,
     windowsInputDirectory,
+    windowsTrustProfile: windowsTrustInput === "public-unsigned-preview"
+      ? windowsTrustInput
+      : "public-authenticode",
   }))}\n`);
 }
 

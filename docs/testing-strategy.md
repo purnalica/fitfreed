@@ -249,34 +249,32 @@ Local and continuous-integration workflows will invoke the same underlying comma
   deliberately unsigned engineering signatures. It rejects reparse points, hashes every installed file under a safe
   relative path, validates the complete versioned inventory, and writes it atomically beside the exact setup. Real
   removal must erase package-owned state while retaining canonical application data. This evidence does not claim
-  public trust. SignPath workflow tests require GitHub-hosted build ancestry, immutable action pins, closed uploaded
-  artifacts, fixed project and policy identifiers, protected request authority, and two separately approved signing
-  stages. Package tests prove deterministic NSIS uninstaller export and signed-file import without rebuilding either
-  inner binary. The protected expansion-input contract requires independently verified SignPath output, rejects
-  updater private-key authority, embeds only active public updater trust, rejects stale or extra NSIS output, and
-  reinspects the final setup after signing. Preparation then proves the public-profile native installation and
-  data-preserving removal, atomically stages only the exact setup, inventory, and source-bound build evidence, and
-  rejects extra entries, links, identity or digest drift, mismatched certificate trust, and changed updater trust. The
-  later compositor independently signs those sealed bytes for the updater. Transport tests use the real compressed-tar adapter to prove the closed three-entry
+  public trust. Unsigned-preview workflow tests require GitHub-hosted build ancestry, immutable action pins, no
+  Authenticode or SignPath authority, and a closed three-file input. The expansion-input contract embeds only active
+  public updater trust, rejects stale or extra NSIS output, requires `NotSigned` for the setup, installed application,
+  and installed uninstaller, and proves data-preserving removal. It atomically stages only the exact setup, inventory
+  version 2, and source-bound build evidence version 2, and rejects extra entries, links, identity or digest drift,
+  mixed trust profiles, and changed updater trust. The later compositor independently signs those sealed bytes for
+  the updater. Transport tests use the real compressed-tar adapter to prove the closed three-entry
   set, native line-ending handling, exact digest reopening, atomic visibility, mutation rejection, and cleanup after a
   certificate mismatch.
-  Release-contract tests require manifest version 7 to contain newly built macOS, Linux, and Windows targets in order;
-  bind the NSIS package, inventory, build evidence, Authenticode declaration, updater signature, checksums, and
-  provenance; and reject a narrowed earlier-platform set. Stable-channel tests likewise reject Windows without both
+  Release-contract tests require manifest version 8 to contain newly built macOS, Linux, and Windows targets in order;
+  bind the NSIS package, inventory, build evidence, explicit unsigned-preview declaration, updater signature,
+  checksums, and provenance; and reject a narrowed earlier-platform set. Stable-channel tests likewise reject Windows without both
   existing targets and prove its exact version-derived setup URL and bytes in the atomic Pages snapshot.
   Complete-candidate reopening tests independently construct the release and reject Windows package, inventory, native
   build, source revision, storage schema, Authenticode certificate, updater signature, checksum, release signature,
   recovery, file-set, and Pages drift. The same tests preserve version 6 behavior through the shared reopening kernel.
-  Composition tests prove exact Authenticode-admitted setup bytes reach the updater signer, all three current packages
+  Composition tests prove exact admitted setup bytes reach the updater signer, all three current packages
   and both native predecessor packages reach Pages, mixed Windows trust is rejected before staging, every detached
   signer is mandatory, failed staging is removed, and an existing candidate destination is never replaced.
   Public installation evidence is accepted only when the setup and installed executable pass full identity inspection,
   the uninstaller passes signature-policy inspection, and all three observed trust digests equal their independently
   recorded package or installed-file digests before a verified data-preserving removal.
-  SignPath-boundary tests require strict organization and certificate-fingerprint inputs, reject those values outside
-  the protected request jobs, and prove that certificate material, local SignTool selectors, and timestamp authority
-  never enter the workflow. Portable contracts cannot claim external SignPath approval or Windows trust; one real
-  returned artifact and native Windows inspection remain authoritative for those outcomes.
+  Workflow-boundary tests reject SignPath identifiers, certificate fingerprints, protected Windows signing secrets,
+  local SignTool selectors, timestamp authority, and exact Windows 11 claims. Portable contracts cannot claim
+  Authenticode or Windows 11 support; native hosted inspection remains authoritative only for the declared preview
+  lifecycle.
 - Windows recovery-adapter unit tests run on the portable Rust test path with synthetic native ports. They require the
   fixed current-user NSIS registration and critical-file identity, fixed recovery-owned candidate and predecessor
   package paths, silent installer invocation, and distinct failures for an installer that fails and an installer that
@@ -395,26 +393,26 @@ Local and continuous-integration workflows will invoke the same underlying comma
   immutable manifest version 6 or 7 Release evidence, accepts only matrix-declared versions and Linux or Windows
   package/signature pairs, and rejects changed bytes, stale directories, partial evidence, or unsupported contracts.
   The preparation boundary is Apple-Silicon-only, requires distinct updater and checksum trust, confines output to the
-  exact ignored version directory, and removes incomplete candidates. Independent manifest version 7 composition and
-  reopening tests then bind all three current packages, recovery packages, signatures, inventories, checksums, SBOMs,
-  notes, provenance subjects, and Pages bytes before local promotion.
-- The manual Windows-expansion workflow preserves three independent evidence boundaries. Static tests reject trigger,
-  permission, action-pin, runner-label, protected-environment, secret, cleanup, digest, admission, product-acceptance,
-  or publication-order drift. The disposable protected builder produces the exact Authenticode-signed input; the
-  separate secret-free admission runner must match a schema-validated, source-cited Windows 11 x86-64 lifecycle row
-  reviewed within 45 days of candidate issuance. That host verifies exact-candidate trust, current-user installation,
-  data-preserving removal, and cold launch. The source-matched isolated instrumented package retains responsibility for
-  exhaustive behavior because production packages contain no WebDriver instrumentation. Neither evidence class can
-  substitute for the other, and the distinct bounded product-owner verdict precedes publication approval.
+  exact ignored version directory, and removes incomplete candidates. Independent manifest versions 7 and 8
+  composition and reopening tests then bind all three current packages, recovery packages, signatures, inventories,
+  checksums, SBOMs, notes, provenance subjects, and Pages bytes before local promotion.
+- The manual Windows-expansion workflow preserves native input, protected composition, exact-candidate hosted
+  admission, and publication boundaries. Static tests reject trigger, permission, action-pin, runner-label, secret,
+  cleanup, digest, admission, or publication-order drift. The secret-free builder produces the exact unsigned-preview
+  input; the separate secret-free hosted Windows job reopens the sealed candidate and verifies the exact package trust
+  state, current-user installation, data-preserving removal, and package identity. Accepted product E2E,
+  update-recovery, data-scale, and performance evidence is not repeated when the executable inputs are unchanged.
+  Hosted Windows admission does not claim exact Windows 11 behavior, Smart App Control compatibility, enterprise-policy
+  compatibility, or Authenticode trust.
 - Product-site release tests keep the ordinary source and product-only artifact inactive, then derive exact installer
   sets from synthetic manifest versions 3, 6, and 7. English and Spanish surfaces must expose only the manifest's
   macOS, Linux, and Windows targets, use immutable versioned GitHub Release URLs, remove stale pre-release claims, and
   retain accessible names and structure. Candidate, distribution, and remote verifiers reconstruct the same bytes and
   reject missing, additional, renamed, cross-version, or cross-target links rather than trusting rendered HTML.
-- Generic release transport tests seal and reopen candidate manifests 3, 6, and 7 without losing their ordered target
-  sets. Publication tests derive the complete version 7 asset inventory and its exact Windows workflow provenance
+- Generic release transport tests seal and reopen candidate manifests 3, 6, 7, and 8 without losing their ordered target
+  sets. Publication tests derive the complete version 8 asset inventory and its exact Windows workflow provenance
   identity. Remote tests download all three current packages and every declared Linux or Windows predecessor, compare
-  every product-site byte, reopen the distributed version 7 evidence without an unpacked application, and reject any
+  every product-site byte, reopen the distributed version 8 evidence without an unpacked application, and reject any
   unsupported manifest instead of falling back to an earlier platform verifier.
 - The explicit Linux performance admission workflow builds and verifies the source-bound production Debian package,
   installs it, measures 100 fresh interactive-shell processes under Xvfb, and always purges it before running the

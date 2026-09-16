@@ -8,11 +8,12 @@ disposable native runners, exact-candidate execution, bounded human acceptance, 
 The SignPath Foundation application submitted on 2026-09-14 was declined, as reported by the project owner on
 2026-09-16. The stated reason is insufficient external public trust and visibility, not an assessment of product
 quality. On 2026-09-16 the project owner closed SignPath as a delivery option and reopened evaluation of European
-signing authorities. The owner also reopened the release boundary for explicit evaluation of a transparent unsigned
-Windows distribution until real Windows demand justifies native signing. Neither route is selected yet. Production
-signing and public Windows promotion therefore remain blocked while the alternatives and their user impact are
-evaluated. The implemented SignPath integration remains historical engineering evidence until its complete content
-and incoming dependencies are inventoried under the repository archival policy.
+signing authorities. ADR 0051 now selects a transparent unsigned Windows preview so real demand can be observed
+without claiming native-trust parity. HARICA Code Signing IV is the deferred authority to activate before stable
+Windows promotion, or earlier if feedback shows that unsigned installation blocks adoption. Public Windows promotion
+remains blocked until the new preview profile and exact candidate pass their hosted preview gates. The implemented SignPath
+integration remains historical engineering evidence until its complete content and incoming dependencies are
+inventoried under the repository archival policy.
 
 ## Windows distribution evaluation
 
@@ -35,9 +36,10 @@ later ADR and must meet all of these conditions:
 1. The product site and GitHub Release label the artifact `Windows preview — unsigned`, state that Windows will show
    `Unknown publisher`, and explain that some managed or Smart App Control systems cannot run it. Guidance must never
    ask users to disable system-wide security controls.
-2. The exact unsigned setup passes clean Windows 11 installation, launch, import, signed-update, interruption
-   recovery, data preservation, removal, and restart evidence. Existing Windows Server engineering evidence is
-   retained but does not replace this supported-client check.
+2. The exact unsigned setup passes native installation, launch, update-authority, data-preservation, removal, and
+   restart evidence on the pinned GitHub-hosted Windows environment. Existing application capability, update-recovery,
+   filesystem-recovery, performance, and data-scale evidence is retained. These combined gates admit a preview; they
+   do not claim exact Windows 11 support, and the public surfaces request direct Windows 11 feedback.
 3. The download remains bound to the immutable official Release, checksum signature, source provenance, SBOM,
    package inventory, and cryptographically verified updater metadata. `Unsigned` describes missing Authenticode
    publisher identity; it must not mean unauthenticated release bytes.
@@ -48,20 +50,21 @@ later ADR and must meet all of these conditions:
    demonstrates that installation friction is blocking adoption. HARICA IV is the first certificate candidate to
    revalidate; Certum follows if its open-source product is orderable and operationally suitable.
 
-This evaluation is not publication authority. Until the project owner explicitly selects it, the current release
-contracts continue to reject unsigned public Windows artifacts.
+ADR 0051 accepts this recommendation. Publication still requires implementation of the explicit preview profile,
+exact hosted-Windows candidate admission, truthful disclosure of the remaining Windows 11 evidence gap, and the
+separate protected promotion decision.
 
 ## Current iteration
 
 | Field | Boundary |
 |---|---|
-| Acceptance outcome | Select either a European individual-validation Authenticode route or a deliberately unsigned Windows preview, then define the corresponding exact-candidate, Windows 11 installation, disclosure, update, recovery, and promotion boundary. |
-| Exact evidence | Hosted Windows package construction, installation, capability, update recovery, performance, filesystem recovery, and data-scale evidence is accepted below. ADR 0050 retires SignPath without selecting a replacement. Current platform guidance proves the unsigned installation restrictions, and current European provider documentation proves only purchase eligibility and custody models; neither route yet has exact release evidence. |
-| Causal hypothesis | A clearly labelled unsigned preview can test whether real Windows demand exists without sacrificing cryptographic release and update integrity, provided the product does not claim Authenticode identity or universal installability. If that user boundary is unacceptable, HARICA IV is the most credible currently orderable European certificate route, but its token custody and release automation must be proven before purchase. |
-| Smallest falsifying test | The unsigned route fails if a clean supported Windows 11 host cannot install, launch, update, recover, remove, and preserve data without disabling system-wide protections, or if public presentation can confuse preview trust with stable signed trust. A certificate route fails if the owner cannot complete Spanish individual validation or the protected release cannot sign all three NSIS trust surfaces without exporting private authority. |
-| Allowed change | Record the provider and unsigned-preview evaluation and keep SignPath inactive. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, public macOS-plus-Linux claims, and the current fail-closed Windows publication contract until the owner selects a route. Do not tag, publish, buy a certificate, or remove the retired integration during this evaluation. |
+| Acceptance outcome | Publish one explicitly unsigned Windows preview through the complete release pipeline, then remotely verify the exact immutable package, update channel, platform disclosures, and feedback route without changing stable macOS or Linux claims. |
+| Exact evidence | Hosted Windows package construction, installation, capability, update recovery, performance, filesystem recovery, and data-scale evidence is accepted below. ADR 0050 retires SignPath; ADR 0051 selects the unsigned public profile and HARICA IV as the deferred authority. The existing release schemas, composition, admission, user guide, and publication workflow still require Authenticode and must be changed coherently before an exact preview candidate can exist. |
+| Causal hypothesis | A clearly labelled unsigned preview can test whether real Windows demand exists without sacrificing cryptographic release and update integrity, provided every contract models missing Authenticode explicitly and the product does not claim universal installability or stable trust parity. |
+| Smallest falsifying test | The route fails if the exact package cannot install, launch, retain its update authority, preserve data, restart, and remove cleanly on the pinned hosted Windows environment; if setup, application, and uninstaller signature state is not explicitly `NotSigned`; if the missing exact Windows 11 evidence is hidden; or if any public surface can confuse preview trust with stable signed trust. |
+| Allowed change | Add the unsigned public trust profile to Windows package evidence, complete-platform manifests, candidate composition and verification, protected workflow, localized site and user guidance, release notes, and exact admission. Remove or archive SignPath-specific material only after the mandatory full dependency inventory. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, and stable macOS-plus-Linux claims. |
 | Evidence retained | All accepted hosted engineering evidence recorded below remains valid. No product E2E, update-recovery, performance, full-scale import, or data-recovery campaign is repeated because this revision changes release verification only. |
-| Exit or stop | Stop at the project-owner choice between HARICA-backed Authenticode and the documented unsigned-preview boundary. After selection, record a separate ADR and implement only the chosen release path. Do not tag, publish, purchase, or repeat accepted product campaigns before that decision. |
+| Exit or stop | Stop only at a documented human gate that cannot be supplied from the repository: protected candidate approval or final promotion approval. Do not purchase HARICA, represent hosted evidence as exact Windows 11 evidence, or repeat accepted product campaigns. |
 
 ## Accepted hosted engineering iteration
 

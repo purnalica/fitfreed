@@ -30,6 +30,18 @@ function manifest(schemaVersion = 7) {
         "windows-x86_64-nsis",
       ],
     },
+    8: {
+      artifacts: [
+        ["macos-disk-image", "FitFreed_0.3.0_aarch64.dmg"],
+        ["linux-x86_64-deb", "FitFreed_0.3.0_amd64.deb"],
+        ["windows-x86_64-nsis", "FitFreed_0.3.0_x64-setup.exe"],
+      ],
+      targets: [
+        "darwin-aarch64",
+        "linux-x86_64-deb",
+        "windows-x86_64-nsis",
+      ],
+    },
   };
   const configuration = configurations[schemaVersion];
   return {
@@ -48,6 +60,7 @@ test("derives immutable human downloads from each supported public manifest", ()
     [3, ["darwin-aarch64"]],
     [6, ["darwin-aarch64", "linux-x86_64-deb"]],
     [7, ["darwin-aarch64", "linux-x86_64-deb", "windows-x86_64-nsis"]],
+    [8, ["darwin-aarch64", "linux-x86_64-deb", "windows-x86_64-nsis"]],
   ]) {
     const result = createProductReleaseDownloads(manifest(schemaVersion));
     assert.equal(result.version, "0.3.0");
@@ -63,11 +76,17 @@ test("derives immutable human downloads from each supported public manifest", ()
       );
     }
   }
+  const preview = createProductReleaseDownloads(manifest(8));
+  assert.deepEqual(preview.platforms.map(({ availability }) => availability), [
+    "stable",
+    "stable",
+    "preview-unsigned",
+  ]);
 });
 
 test("rejects unsupported, incomplete, and misleading download evidence", () => {
   const unsupported = manifest();
-  unsupported.schemaVersion = 8;
+  unsupported.schemaVersion = 9;
   const wrongChannel = manifest();
   wrongChannel.release.channel = "development";
   const missingWindows = manifest();

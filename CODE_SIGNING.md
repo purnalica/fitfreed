@@ -4,11 +4,11 @@
 
 FitFreed uses native platform trust in addition to its independent update and release-integrity signatures. The
 current public macOS package is signed with Apple Developer ID and notarized by Apple. Windows Authenticode signing
-remains inactive. The SignPath Foundation application was declined; see the
-[current delivery status](docs/plans/milestone-5.md#status). FitFreed has no Foundation certificate or active free
-signing sponsorship. No public Windows package exists yet. The Windows controls below describe the prepared
-integration as historical evidence; [ADR 0050](docs/architecture/decisions/0050-retire-signpath-as-windows-signing-authority.md)
-retired SignPath and no replacement route is selected.
+remains inactive. The SignPath Foundation application was declined and SignPath was retired by
+[ADR 0050](docs/architecture/decisions/0050-retire-signpath-as-windows-signing-authority.md). FitFreed has no Foundation
+certificate or active free signing sponsorship. [ADR 0051](docs/architecture/decisions/0051-publish-an-unsigned-windows-preview.md)
+authorizes an explicitly unsigned Windows preview while deferring HARICA Code Signing IV for revalidation before
+Windows becomes stable or when observed demand justifies earlier activation.
 
 ## Product and source boundary
 
@@ -16,9 +16,11 @@ Only binaries built from the public [`purnalica/fitfreed`](https://github.com/pu
 signed as FitFreed. The repository and the complete signed product are licensed under GPL-3.0-or-later. Upstream
 binaries are never re-signed as FitFreed.
 
-The Windows release contract covers the version-matched x86-64 per-user NSIS setup, the installed `fitfreed.exe`, and
-the installed `uninstall.exe`. All three must carry valid, timestamped Authenticode signatures from the same admitted
-certificate. A signed outer setup alone is not a valid FitFreed Windows release.
+The Windows package contract covers the version-matched x86-64 per-user NSIS setup, the installed `fitfreed.exe`, and
+the installed `uninstall.exe`. The unsigned preview requires all three to report `NotSigned`; a partial or ambiguous
+trust state is rejected. A future stable Windows release requires all three to carry valid, timestamped Authenticode
+signatures from the same admitted certificate. A signed outer setup alone is never a valid stable FitFreed Windows
+release.
 
 Official downloads are published only through an immutable
 [GitHub Release](https://github.com/purnalica/fitfreed/releases) linked from <https://fitfreed.org/>. A signature does
@@ -60,6 +62,19 @@ not an available signing procedure and cannot produce an authorized public Windo
 The current implementation and release gates are documented in the
 [release-delivery architecture](docs/architecture/release-delivery.md) and the
 [public-release operations runbook](docs/development/public-release-operations.md).
+
+## Unsigned Windows preview
+
+The Windows preview has no Authenticode publisher identity. Windows therefore displays an unknown publisher,
+Microsoft Defender SmartScreen normally requires an explicit per-file continuation, enterprise policy may prevent
+installation, and Smart App Control may block it. FitFreed documentation must never instruct users to disable
+system-wide protections.
+
+The preview remains authenticated by its immutable official GitHub Release origin, updater signatures, independently
+signed checksum inventory, source-bound provenance, and SBOMs. Those controls detect substituted bytes and bind the
+package to its public source, but they do not create a Windows publisher identity or make the package equivalent to an
+Authenticode-signed executable. The download surface labels Windows as preview and states that automated admission is
+performed on the pinned hosted Windows environment rather than claiming exact Windows 11 coverage.
 
 ## Privacy and network behavior
 

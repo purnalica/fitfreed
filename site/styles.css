@@ -319,6 +319,16 @@ textarea {
   line-height: 1.45;
 }
 
+.release-download-card .release-download-warning {
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.release-download-card[data-release-availability="preview-unsigned"] {
+  border-color: var(--warm);
+}
+
 .release-download-evidence {
   display: flex;
   align-items: baseline;

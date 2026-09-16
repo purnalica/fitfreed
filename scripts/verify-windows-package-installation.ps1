@@ -6,7 +6,7 @@ param(
   [Parameter(Mandatory = $true)][string]$ExpectedHomepage,
   [Parameter(Mandatory = $true)][string]$ExpectedExecutable,
   [Parameter(Mandatory = $true)][string]$ExpectedIdentifier,
-  [Parameter(Mandatory = $true)][ValidateSet("unsigned-engineering", "public-authenticode")][string]$SignatureProfile,
+  [Parameter(Mandatory = $true)][ValidateSet("unsigned-engineering", "public-unsigned-preview", "public-authenticode")][string]$SignatureProfile,
   [string]$ExpectedCertificateSha256,
   [string]$SignToolPath,
   [string]$TrustScriptPath

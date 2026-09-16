@@ -24,11 +24,18 @@ import {
 } from "./verify-windows-package-installation.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
-const schema = JSON.parse(
+const schemaV1 = JSON.parse(
   readFileSync(new URL("../schemas/windows-package-inventory-v1.schema.json", import.meta.url)),
 );
+const schemaV2 = JSON.parse(
+  readFileSync(new URL("../schemas/windows-package-inventory-v2.schema.json", import.meta.url)),
+);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
-const validateSchema = ajv.compile(schema);
+ajv.addSchema(schemaV1);
+const schemaValidators = new Map([
+  [1, ajv.getSchema(schemaV1.$id)],
+  [2, ajv.compile(schemaV2)],
+]);
 const sha256Pattern = /^[0-9a-f]{64}$/;
 const nativeInstallationFailurePattern =
   /^Windows package installation failed during (?<phase>[a-z]+(?:-[a-z]+)*)$/;
@@ -52,7 +59,10 @@ function signatureClaim(signature) {
 
 export function validateWindowsPackageInventory(inventory) {
   const errors = [];
-  if (!validateSchema(inventory)) {
+  const validateSchema = schemaValidators.get(inventory?.schemaVersion);
+  if (!validateSchema) {
+    errors.push("unsupported Windows package inventory schema version");
+  } else if (!validateSchema(inventory)) {
     errors.push(
       ...validateSchema.errors.map(
         ({ instancePath, message }) =>
@@ -118,7 +128,7 @@ export function createWindowsPackageInventory({
   });
   const inventory = {
     format: "org.fitfreed.windows-package-inventory",
-    schemaVersion: 1,
+    schemaVersion: signatureProfile === "public-unsigned-preview" ? 2 : 1,
     target: {
       platform: "windows",
       architecture: windowsPackageContract.architecture,

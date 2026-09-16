@@ -13,6 +13,7 @@ import test from "node:test";
 
 import {
   prepareWindowsExpansionInput,
+  prepareWindowsUnsignedPreviewInput,
   stageWindowsExpansionInput,
   validateWindowsSignPathSetup,
   verifyWindowsExpansionInput,
@@ -213,6 +214,58 @@ test("stages one exact authority-free Windows input for protected composition", 
     JSON.stringify(evidence),
     /privateKey|signToolPath|certificateSubject|runner|hostname|workflow|[A-Z]:\\/i,
   );
+});
+
+test("builds and stages one public unsigned Windows preview input", (context) => {
+  const input = createWindowsExpansionInputFixture({
+    trustProfile: "public-unsigned-preview",
+  });
+  context.after(() => rmSync(input.root, { force: true, recursive: true }));
+  const releaseDirectory = path.dirname(input.packagePath);
+  rmSync(input.packagePath);
+  rmSync(input.inventoryPath);
+  const buildCalls = [];
+  const inventoryCalls = [];
+
+  const result = prepareWindowsUnsignedPreviewInput({
+    architecture: "x64",
+    assertSource: () => ({ revision: input.revision, sourceDateEpoch: "1788422400" }),
+    build: (options) => {
+      buildCalls.push(options);
+      mkdirSync(releaseDirectory, { recursive: true });
+      writeFileSync(input.packagePath, "exact synthetic unsigned NSIS preview package bytes");
+    },
+    environment: {},
+    generateInventory: (options) => {
+      inventoryCalls.push(options);
+      const preview = createWindowsExpansionInputFixture({
+        trustProfile: "public-unsigned-preview",
+        version: input.version,
+      });
+      copyFileSync(preview.inventoryPath, input.inventoryPath);
+      rmSync(preview.root, { force: true, recursive: true });
+      return { inventoryPath: input.inventoryPath };
+    },
+    outputDirectory: input.outputDirectory,
+    platform: "win32",
+    readStorageSchema: () => 37,
+    releaseDirectory,
+    updateConfiguration: input.updateConfiguration,
+    validateRelease: () => {},
+    version: input.version,
+  });
+
+  assert.equal(result.trustProfile, "public-unsigned-preview");
+  assert.equal(buildCalls.length, 1);
+  assert.deepEqual(buildCalls[0].arguments_, ["--bundles", "nsis", "--ci"]);
+  assert.equal(inventoryCalls.length, 1);
+  assert.equal(inventoryCalls[0].signatureProfile, "public-unsigned-preview");
+  const evidence = JSON.parse(readFileSync(
+    path.join(input.outputDirectory, `${input.packageName}.build.json`),
+    "utf8",
+  ));
+  assert.equal(evidence.schemaVersion, 2);
+  assert.equal(evidence.trust.profile, "public-unsigned-preview");
 });
 
 test("rejects stale source, storage, update trust, and unexpected input", (context) => {

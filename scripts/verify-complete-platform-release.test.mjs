@@ -43,6 +43,24 @@ test("verifies one complete macOS, Linux, and Windows release candidate", (conte
   assert.equal(result.attestationSubjectCount, 21);
 });
 
+test("verifies a complete release with an unsigned Windows preview", (context) => {
+  const buildCandidate = createCompletePlatformReleaseCandidateFixture({
+    windowsTrustProfile: "public-unsigned-preview",
+  });
+  context.after(() => rmSync(buildCandidate.root, { force: true, recursive: true }));
+
+  const result = verifyCompletePlatformReleaseCandidate(
+    buildCandidate.root,
+    completePlatformUpdateConfiguration,
+    completePlatformReleaseSigningConfiguration,
+  );
+
+  assert.equal(result.version, buildCandidate.version);
+  assert.equal(result.windowsTrustProfile, "public-unsigned-preview");
+  assert.equal(Object.hasOwn(result, "windowsCertificateSha256"), false);
+  assert.equal(buildCandidate.manifest.schemaVersion, 8);
+});
+
 test("reopens the exact distributed set without the candidate-only application", (context) => {
   const candidate = createCompletePlatformReleaseCandidateFixture();
   context.after(() => rmSync(candidate.root, { force: true, recursive: true }));

@@ -98,7 +98,7 @@ Node.js executable; a `.cmd` shim is never treated as a directly executable prog
 
 Public release remains an explicit authorized action even when every preparation and verification step is automated.
 
-Unsigned macOS MVP alpha artifacts remain in restricted evaluation workflows. Public macOS release automation must use protected Developer ID credentials, complete notarization, verify the stapled ticket and Gatekeeper result, and refuse promotion when any trust check fails. Linux release automation must bind the exact Debian artifact to checksums, detached release signing, updater signing, SBOM, provenance, installation, recovery, and both supported Ubuntu environments. Windows release automation must additionally use protected Authenticode authority and inspect the signed setup and installed binaries on a supported Windows 11 desktop. Public promotion remains serial even while those engineering lanes advance independently.
+Unsigned macOS MVP alpha artifacts remain in restricted evaluation workflows. Public macOS release automation must use protected Developer ID credentials, complete notarization, verify the stapled ticket and Gatekeeper result, and refuse promotion when any trust check fails. Linux release automation must bind the exact Debian artifact to checksums, detached release signing, updater signing, SBOM, provenance, installation, recovery, and both supported Ubuntu environments. The first public Windows automation produces an explicitly unsigned preview: it must prove that all three native trust surfaces are `NotSigned`, retain every independent release-integrity control, and expose the preview limitation on every download surface. Authenticode and exact Windows 11 support remain unavailable until separately admitted. Public promotion remains serial even while those engineering lanes advance independently.
 
 Linux package automation uses `npm run package:linux`, which refuses non-Linux hosts and invokes the shared
 source-bound production wrapper for only Tauri's `deb` target. Platform metadata remains in
@@ -386,36 +386,16 @@ sort key through a `PSCustomObject` property before sorting; the JavaScript boun
 resulting byte order. Neither command grants public Authenticode trust.
 
 `npm run verify:windows-authenticode-smoke` remains a synthetic test of the independent Windows trust inspector. Its
-short-lived self-signed identity cannot represent SignPath or public trust. The local signing adapter remains
-test-only, and the PFX authority commands from the superseded production design have been removed. The
-`tauri.windows.public-signing.conf.json` overlay now contains only the authority-free SignPath packaging bridge; it
-captures or substitutes exact inner binaries but cannot sign them.
+short-lived self-signed identity cannot represent HARICA or public trust. The local signing adapter remains test-only,
+and the retired SignPath packaging stages are historical implementation rather than an available release route.
 
-The protected Windows build uses GitHub-hosted x86-64 Windows and the immutable official SignPath action. It first
-builds the unsigned application and exports the generated NSIS uninstaller through the versioned packaging bridge. A
-closed GitHub artifact containing exactly those two PE files enters the first manually approved SignPath
-request. The workflow independently verifies the returned files, imports them without rebuilding into final NSIS
-compilation, and submits the exact setup through a second closed artifact and manually approved request. Project,
-policy, and artifact-configuration slugs are fixed workflow configuration; only the SignPath API token and
-organization identifier enter the protected action boundary.
-
-`npm run prepare:windows-signpath-inner -- <version> <directory>` embeds active recoverable `stable-v3` public update
-trust while remaining separate from updater private-key authority and exports exactly the unsigned application and
-generated uninstaller. After the first request,
-`npm run prepare:windows-signpath-setup -- <version> <unsigned-inner> <signed-inner> <directory>` independently
-verifies both returned binaries and imports them into the final installer without rebuilding either. The second
-SignPath request signs that exact setup.
-
-`npm run prepare:windows-expansion-input -- <version> <directory> <signed-setup-directory>` admits only the exact
-one-file setup returned by the second request. The public installation profile repeats independent inspection over
-the setup, installed executable, and uninstaller while their exact files exist, cross-checks trust digests against
-package-inventory digests, then proves removal without removing application data. It composes the clean source
-identity, complete inventory, and atomic three-file staging boundary. Its build evidence binds the exact setup and
-inventory digests to the source revision,
-storage schema, admitted Authenticode certificate fingerprint, and source-controlled public updater trust identifiers.
-The staging verifier rejects extra or multiply linked files, artifact or identity drift, a different certificate, and
-channel-trust drift. Protected Authenticode process values and machine paths never enter the retained evidence; updater
-and publication authority remain absent.
+`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` is the public Windows input
+entry point. On pinned GitHub-hosted x86-64 Windows it builds the release-shaped NSIS package with active `stable-v3`
+public update trust, requires the setup, installed application, and installed uninstaller to report `NotSigned`, runs
+one installation, identity, inventory, data-preserving removal cycle, and atomically stages only the exact setup,
+inventory version 2, and source-bound build evidence version 2. The evidence declares the preview trust profile and
+the absence of exact Windows 11 admission; it contains no updater private key, Authenticode authority, protected
+environment, machine path, or publication authority.
 
 The paired `pack:windows-expansion-input` and `unpack:windows-expansion-input` commands carry only that closed input
 between protected jobs. Packing admits only GNU tar or bsdtar, uses that implementation's explicit neutral-ownership
@@ -423,41 +403,34 @@ arguments, verifies the source input and archive entry set before atomically exp
 and its SHA-256 digest. Reopening authenticates the transport digest before extraction, validates native line endings
 without weakening entry identity, extracts into a private sibling directory, repeats the complete input verification,
 and promotes it atomically. An existing destination, partial archive, path escape, duplicated or additional entry,
-certificate mismatch, or any internal evidence drift fails closed and removes temporary output.
+trust-profile mismatch, or any internal evidence drift fails closed and removes temporary output.
 
-The complete-platform manifest version 7 generator and validator own the exact macOS, Linux, and Windows target set,
-Windows Authenticode declaration, version-derived NSIS names, target-specific updater signature, checksum subjects,
-and provenance subjects. Stable-channel staging resolves the NSIS setup through the same package contract and admits
-Windows only after the macOS and Linux targets are both present. Manifest validation cannot sign, publish, or satisfy
-the independent Windows 11 candidate gate.
-
-The version 7 candidate verifier reuses the established platform-expansion reopening kernel without reinterpreting
-the immutable version 6 contract. It adds Windows-specific inventory, native build, Authenticode, update-trust, stable
-metadata, checksum, release-signature, recovery, and Pages checks. It accepts neither a Windows package whose native
-evidence belongs to another source nor a published copy that differs from the Authenticode-signed and updater-signed
-setup admitted by the manifest.
+The complete-platform manifest version 8 generator and validator own the exact macOS, Linux, and Windows target set,
+explicit unsigned-preview declaration, version-derived NSIS names, target-specific updater signature, checksum
+subjects, and provenance subjects. Stable-channel staging resolves the NSIS setup through the same package contract
+and admits Windows only after the macOS and Linux targets are both present. Manifest validation cannot sign, publish,
+claim Authenticode, or satisfy an exact Windows 11 gate. Immutable version 7 remains the signed-Windows contract.
 
 The complete-platform compositor has updater and release-checksum authority but no Authenticode authority. It admits
 the closed native Linux and Windows inputs for one version, revision, and storage schema; adds target-specific updater
 signatures without changing either package; derives the stable recovery set from the upgrade matrix; composes Pages,
-manifest, checksums, and release signature; and promotes only after the independent version 7 verifier reopens the
+manifest, checksums, and release signature; and promotes only after the independent version 8 verifier reopens the
 entire candidate. Missing authority, mixed identity, input drift, invalid signing output, or reopening failure removes
 the staging tree and cannot replace an existing destination.
 
 The public Windows expansion workflow is manual-only and statically checked as a closed trust topology. Secret-free
-preflight validates the immutable macOS-plus-Linux predecessor and both separately protected Windows environments.
-The protected GitHub-hosted x86-64 build performs the two manually approved SignPath requests and seals the native
-input; an Apple Silicon composer downloads and reopens every complete predecessor Release before creating manifest
-version 7. Separate secret-free Ubuntu and exact Windows 11 admission jobs reopen the sealed candidate. The Windows
-host is admitted only when its edition identifier, display version, build, architecture, and current support date match
-the versioned reviewed policy. A distinct product-acceptance environment precedes the separate publication approval.
-The workflow remains inactive until SignPath accepts the project and its external project, policy, artifact
-configurations, GitHub connector, protected environment, admission runner, and accountable approvals exist.
+preflight validates the immutable macOS-plus-Linux predecessor and public selectors. A secret-free pinned hosted
+Windows job creates and seals the unsigned-preview native input. The protected Apple Silicon composer reopens every
+complete predecessor Release, applies updater and checksum authority, and creates manifest version 8. A separate
+secret-free pinned hosted Windows job reopens the exact sealed candidate and repeats only the candidate package
+lifecycle invalidated by transport and composition. It does not repeat accepted product E2E, update-recovery,
+performance, data-scale, or subjective evaluation campaigns. Promotion uses the existing protected release
+environment and cannot begin before hosted Windows admission succeeds.
 
 The current executable entry points include `npm run doctor` for prerequisite diagnosis, `npm run test:fast` for the
-contributor loop, and the dedicated `benchmark:*` and `verify:*` commands for release-shaped evidence. The SignPath
-Windows stages are `prepare:windows-signpath-inner`, `prepare:windows-signpath-setup`, and
-`prepare:windows-expansion-input`; none grants local signing authority. `npm run verify:precommit` composes the broad
+contributor loop, and the dedicated `benchmark:*` and `verify:*` commands for release-shaped evidence. The public
+Windows stage is `prepare:windows-expansion-input -- --unsigned-preview`; it grants no Authenticode or publication
+authority. `npm run verify:precommit` composes the broad
 portable source gate but deliberately excludes benchmarks, packaged E2E, update recovery, and packaging.
 
 `npm run verify:candidate` composes expensive product gates only when a dirty-tree candidate investigation genuinely

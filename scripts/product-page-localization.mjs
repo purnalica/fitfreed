@@ -246,15 +246,19 @@ function renderReleaseDownloads(document, release, messages) {
   const grid = document.createElement("div");
   grid.className = "release-download-grid";
   for (const platform of release.platforms) {
+    const unsignedPreview = platform.availability === "preview-unsigned";
     const link = document.createElement("a");
     link.className = "release-download-card";
     link.dataset.releaseDownload = platform.target;
+    link.dataset.releaseAvailability = platform.availability;
     link.href = platform.url;
     appendTextElement(
       document,
       link,
       "strong",
-      message(`release.platform.${platform.key}.action`),
+      message(unsignedPreview
+        ? `release.platform.${platform.key}.previewAction`
+        : `release.platform.${platform.key}.action`),
     );
     appendTextElement(
       document,
@@ -262,6 +266,15 @@ function renderReleaseDownloads(document, release, messages) {
       "span",
       message(`release.platform.${platform.key}.detail`),
     );
+    if (unsignedPreview) {
+      appendTextElement(
+        document,
+        link,
+        "span",
+        message(`release.platform.${platform.key}.previewWarning`),
+        "release-download-warning",
+      );
+    }
     grid.append(link);
   }
   section.append(grid);
@@ -305,7 +318,11 @@ function renderReleaseDownloads(document, release, messages) {
   const items = releaseStatus.querySelector("ul");
   items.replaceChildren(...release.platforms.map((platform) => {
     const item = document.createElement("li");
-    item.textContent = message(`release.status.item.${platform.key}`);
+    item.textContent = message(
+      platform.availability === "preview-unsigned"
+        ? `release.status.item.${platform.key}Preview`
+        : `release.status.item.${platform.key}`,
+    );
     return item;
   }));
   const source = releaseStatus.querySelector("a");

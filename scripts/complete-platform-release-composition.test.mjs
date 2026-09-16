@@ -24,7 +24,7 @@ function writeJson(filename, value) {
   writeFileSync(filename, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function fixture(context) {
+function fixture(context, { windowsTrustProfile = "public-authenticode" } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-complete-composition-"));
   context.after(() => rmSync(root, { force: true, recursive: true }));
   const version = "0.3.0";
@@ -92,18 +92,22 @@ function fixture(context) {
   const windows = createWindowsExpansionInputFixture({
     certificateSha256: windowsCertificateSha256,
     revision,
+    trustProfile: windowsTrustProfile,
     updateConfiguration,
     version,
   });
   context.after(() => rmSync(windows.root, { force: true, recursive: true }));
   stageWindowsExpansionInput({
-    authenticodeCertificateSha256: windowsCertificateSha256,
+    authenticodeCertificateSha256: windowsTrustProfile === "public-authenticode"
+      ? windowsCertificateSha256
+      : undefined,
     generatedAt,
     inventoryPath: windows.inventoryPath,
     outputDirectory: windowsInputDirectory,
     packagePath: windows.packagePath,
     revision,
     storageSchemaVersion,
+    trustProfile: windowsTrustProfile,
     updateConfiguration,
     version,
   });
@@ -162,8 +166,8 @@ function fixture(context) {
       linuxPackageInventory: "1",
       npmCycloneDx: "6.0.1",
       tauri: "2.11.4",
-      windowsBuildEvidence: "1",
-      windowsPackageInventory: "1",
+      windowsBuildEvidence: windowsTrustProfile === "public-unsigned-preview" ? "2" : "1",
+      windowsPackageInventory: windowsTrustProfile === "public-unsigned-preview" ? "2" : "1",
     },
     linuxInputDirectory,
     macos,
@@ -201,7 +205,12 @@ function fixture(context) {
     upgradeMatrixPath,
     version,
     windowsInputDirectory,
-    windowsTrust: { certificateSha256: windowsCertificateSha256 },
+    windowsTrust: {
+      ...(windowsTrustProfile === "public-authenticode"
+        ? { certificateSha256: windowsCertificateSha256 }
+        : {}),
+      profile: windowsTrustProfile,
+    },
   };
 }
 
@@ -236,6 +245,21 @@ test("composes and reopens one complete macOS, Linux, and Windows candidate", (c
     readdirSync(path.join(input.candidateDirectory, "pages", "updates", "0.2.0")).sort(),
     ["FitFreed_0.2.0_amd64.deb", "FitFreed_0.2.0_x64-setup.exe"],
   );
+});
+
+test("composes and reopens the public unsigned Windows preview", (context) => {
+  const input = fixture(context, { windowsTrustProfile: "public-unsigned-preview" });
+
+  const result = composeCompletePlatformCandidate(input);
+  const manifest = JSON.parse(readFileSync(
+    path.join(input.candidateDirectory, "release", "release-manifest.json"),
+    "utf8",
+  ));
+
+  assert.equal(result.windowsTrustProfile, "public-unsigned-preview");
+  assert.equal(manifest.schemaVersion, 8);
+  assert.equal(manifest.platforms[2].availability.tier, "preview");
+  assert.equal(manifest.platforms[2].trust.authenticode.status, "not-provided");
 });
 
 test("signs the exact Authenticode-admitted setup bytes for updates", (context) => {

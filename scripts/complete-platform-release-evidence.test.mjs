@@ -110,6 +110,15 @@ function createManifest() {
   return createCompletePlatformReleaseManifest(manifestInput());
 }
 
+function createPreviewManifest() {
+  const input = manifestInput();
+  delete input.windowsCertificateSha256;
+  input.windowsTrustProfile = "public-unsigned-preview";
+  input.generators.windowsBuildEvidence = "2";
+  input.generators.windowsPackageInventory = "2";
+  return createCompletePlatformReleaseManifest(input);
+}
+
 test("creates one exact macOS, Linux, and Windows public release manifest", () => {
   const manifest = createManifest();
 
@@ -169,6 +178,58 @@ Use the public support routes.
   assert.match(notes, /Authenticode signed/);
   assert.match(notes, /authenticated `stable-v3`/);
   assert.match(notes, /Windows joins the existing macOS and Linux applications/);
+});
+
+test("creates a complete release with an explicitly unsigned Windows preview", () => {
+  const manifest = createPreviewManifest();
+
+  assert.equal(validateCompletePlatformReleaseManifest(manifest), manifest);
+  assert.equal(manifest.schemaVersion, 8);
+  assert.deepEqual(manifest.platforms[2].availability, {
+    tier: "preview",
+    exactWindows11Admission: false,
+  });
+  assert.deepEqual(manifest.platforms[2].trust.authenticode, {
+    status: "not-provided",
+    publisherIdentity: "unknown",
+    reason: "unsigned-preview",
+  });
+  assert.equal(manifest.generators.windowsBuildEvidence, "2");
+  assert.equal(manifest.generators.windowsPackageInventory, "2");
+
+  const notes = renderCompletePlatformReleaseNotes({
+    revision: "a".repeat(40),
+    storageSchemaVersion: 37,
+    version: "0.3.0",
+    windowsTrustProfile: "public-unsigned-preview",
+  }, `## Highlights
+
+Windows preview.
+
+## Compatibility
+
+See each platform guide.
+
+## Privacy and data
+
+Local first.
+
+## Known limitations
+
+Preview limitations apply.
+
+## Installation and recovery
+
+Use the platform guide.
+
+## Support
+
+Use the public routes.
+`);
+  assert.match(notes, /Windows preview — unsigned/);
+  assert.match(notes, /Unknown publisher/);
+  assert.match(notes, /Smart App Control/);
+  assert.doesNotMatch(notes, /Windows package is Authenticode signed/);
 });
 
 test("rejects a Windows expansion that omits or narrows an existing target", () => {
@@ -236,4 +297,12 @@ test("documents and indexes the immutable complete-platform release contract", (
     assert.match(document, new RegExp(value.replaceAll(".", "\\.")));
   }
   assert.match(index, /release\/release-manifest-v7\.md/);
+  const previewDocument = readFileSync(
+    new URL("../docs/data-formats/release/release-manifest-v8.md", import.meta.url),
+    "utf8",
+  );
+  for (const value of ["public unsigned Windows preview", "not-provided", "exactWindows11Admission"]) {
+    assert.match(previewDocument, new RegExp(value));
+  }
+  assert.match(index, /release\/release-manifest-v8\.md/);
 });
