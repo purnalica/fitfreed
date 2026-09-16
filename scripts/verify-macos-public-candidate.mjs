@@ -15,7 +15,9 @@ import { fileURLToPath } from "node:url";
 
 import { inspectPublicMacosTrust } from "./macos-public-trust.mjs";
 import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
-import { verifySupportedPublicReleaseCandidate } from "./public-release-candidate-verification.mjs";
+import {
+  verifySupportedPublicReleaseDistributionDirectory,
+} from "./public-release-candidate-verification.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { inspectArtifact, sha256File } from "./release-evidence.mjs";
 import { measureFreshProcess } from "./run-cold-launch-benchmark.mjs";
@@ -231,7 +233,7 @@ function libraryFacts(libraryPath) {
 }
 
 function exactCandidate(candidateDirectory, version, revision) {
-  const candidate = verifySupportedPublicReleaseCandidate({
+  const candidate = verifySupportedPublicReleaseDistributionDirectory({
     candidateDirectory,
     publicReleaseSigningConfiguration:
       loadPublicReleaseSigningConfiguration(repositoryRoot),

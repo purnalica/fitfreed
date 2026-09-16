@@ -97,9 +97,10 @@ build evidence, verifies clean native installation, then seals those three files
 protected Apple Silicon
 composer reopens that digest and complete identity before receiving any private key. It builds current-version macOS
 bytes, signs the already verified Linux package, and emits one manifest version 6 set whose Release assets, checksums,
-stable-v3 targets, recovery packages, and Pages paths must be identical. The complete candidate is sealed again before
-the separate promotion approval. A secret-free hosted matrix reopens that sealed candidate by its transport digest
-on x86-64 Ubuntu 24.04 and 26.04, validates the complete manifest version 6 set, installs the exact manifest-declared
+stable-v3 targets, recovery packages, and Pages paths must be identical. The composer verifies the unpacked macOS
+application locally, then seals only the portable public distribution: regular Release assets and the Pages snapshot,
+without the non-published `FitFreed.app` directory. A secret-free hosted matrix reopens that distribution by its
+transport digest on x86-64 Ubuntu 24.04 and 26.04, validates the complete manifest version 6 set, installs the exact manifest-declared
 Debian artifact, verifies native identity and dynamic linking, performs a graphical first launch into an isolated
 private library whose schema matches the manifest, and applies the production cold-launch budget. The graphical gates
 use a bounded Xvfb display with a D-Bus session bus, a ready Fluxbox window manager, the Ubuntu accessibility service,

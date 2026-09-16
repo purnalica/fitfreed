@@ -7,7 +7,7 @@ import { resolveRemoteTagRevision } from "./public-release-preflight.mjs";
 import {
   readSupportedPublicReleaseManifest,
   validateSupportedPublicReleaseManifest,
-  verifySupportedPublicReleaseCandidate,
+  verifySupportedPublicReleaseDistributionDirectory,
 } from "./public-release-candidate-verification.mjs";
 import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
@@ -257,7 +257,7 @@ export function publishVerifiedRelease({
 export function publishPublicRelease(candidateDirectory, runCommand = defaultRun) {
   const configuration = loadPublicUpdateConfiguration(repositoryRoot);
   const releaseSigningConfiguration = loadPublicReleaseSigningConfiguration(repositoryRoot);
-  const { manifest, verified } = verifySupportedPublicReleaseCandidate({
+  const { manifest, verified } = verifySupportedPublicReleaseDistributionDirectory({
     candidateDirectory,
     publicReleaseSigningConfiguration: releaseSigningConfiguration,
     publicUpdateConfiguration: configuration,

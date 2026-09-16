@@ -62,6 +62,25 @@ export function verifySupportedPublicReleaseDistribution({
   );
 }
 
+export function verifySupportedPublicReleaseDistributionDirectory({
+  candidateDirectory,
+  publicReleaseSigningConfiguration,
+  publicUpdateConfiguration,
+}) {
+  const root = path.resolve(candidateDirectory);
+  const releaseDirectory = path.join(root, "release");
+  const manifest = readSupportedPublicReleaseManifest(releaseDirectory);
+  return {
+    manifest,
+    verified: verifySupportedPublicReleaseDistribution({
+      pagesDirectory: path.join(root, "pages"),
+      publicReleaseSigningConfiguration,
+      publicUpdateConfiguration,
+      releaseDirectory,
+    }),
+  };
+}
+
 export function readSupportedPublicReleaseManifest(releaseDirectory) {
   return validateSupportedPublicReleaseManifest(JSON.parse(
     readFileSync(path.join(releaseDirectory, "release-manifest.json"), "utf8"),

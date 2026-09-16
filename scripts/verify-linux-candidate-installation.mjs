@@ -13,7 +13,9 @@ import { fileURLToPath } from "node:url";
 
 import { linuxPackageContract } from "./linux-package-contract.mjs";
 import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
-import { verifySupportedPublicReleaseCandidate } from "./public-release-candidate-verification.mjs";
+import {
+  verifySupportedPublicReleaseDistributionDirectory,
+} from "./public-release-candidate-verification.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { measureFreshProcess } from "./run-cold-launch-benchmark.mjs";
 
@@ -126,16 +128,20 @@ export function validateRemovedLinuxCandidate(facts) {
 
 export function validateExactLinuxCandidate(candidate, expectedVersion, expectedRevision) {
   const { manifest, verified } = candidate ?? {};
+  const expectedTargets = manifest?.schemaVersion === 6
+    ? ["darwin-aarch64", "linux-x86_64-deb"]
+    : [7, 8].includes(manifest?.schemaVersion)
+      ? ["darwin-aarch64", "linux-x86_64-deb", "windows-x86_64-nsis"]
+      : undefined;
   if (
-    manifest?.schemaVersion !== 6
+    !expectedTargets
     || manifest?.release?.version !== expectedVersion
     || manifest?.release?.revision !== expectedRevision
     || verified?.version !== expectedVersion
     || verified?.revision !== expectedRevision
     || verified?.storageSchemaVersion !== manifest?.application?.storageSchemaVersion
     || !path.isAbsolute(verified?.debianPackage ?? "")
-    || JSON.stringify(verified?.targets)
-      !== JSON.stringify(["darwin-aarch64", "linux-x86_64-deb"])
+    || JSON.stringify(verified?.targets) !== JSON.stringify(expectedTargets)
   ) {
     throw new Error("Linux candidate admission requires the exact expanding Linux candidate");
   }
@@ -245,7 +251,7 @@ function verifiedCandidate(candidateDirectory, version, revision) {
   if (!semanticVersion.test(version ?? "") || !revisionPattern.test(revision ?? "")) {
     throw new Error("Linux candidate verification requires an exact version and revision");
   }
-  const candidate = verifySupportedPublicReleaseCandidate({
+  const candidate = verifySupportedPublicReleaseDistributionDirectory({
     candidateDirectory,
     publicReleaseSigningConfiguration:
       loadPublicReleaseSigningConfiguration(repositoryRoot),

@@ -221,8 +221,9 @@ no Windows Authenticode authority, adds platform-specific updater signatures to 
 creates the complete-platform manifest version 8 candidate. A successful native input build means only “input
 available for composition.”
 
-The exact sealed candidate next passes the supported Ubuntu matrix and a separate secret-free `windows-2025` job. The
-Windows job reopens the candidate by transport digest, repeats its complete release verifier, then installs, cold
+The exact sealed portable distribution next passes the supported Ubuntu matrix and a separate secret-free
+`windows-2025` job. The Windows job reopens the distribution by transport digest, verifies its complete release
+evidence, then installs, cold
 launches, verifies retained application data, and removes the exact manifest-declared setup. It does not repeat
 accepted capability E2E, update-recovery, filesystem, performance, or data-scale campaigns when executable inputs are
 unchanged. This admits a hosted Windows preview package; it does not claim exact Windows 11, Smart App Control,
@@ -248,8 +249,9 @@ Release as immutable and then deploys the exact candidate Pages artifact.
 
 The generic candidate transport, Release asset inventory, publication verifier, and remote verifier accept manifest
 versions 7 and 8. They preserve the ordered three-target identity, require provenance from the Windows expansion workflow,
-download every current and declared recovery package, and reopen the distributed candidate without its unpacked
-application. Do not invoke Windows promotion until every documented admission and authority gate is objectively
+download every current and declared recovery package, and reopen the portable distribution without its unpacked
+application. The composer verifies that application before sealing; the macOS updater archive and disk image remain
+inside the authenticated distribution. Do not invoke Windows promotion until every documented admission and authority gate is objectively
 satisfied.
 
 PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,
@@ -264,7 +266,7 @@ bytes.
 
 The first protected approval admits `build-candidate` to the Apple, updater, and limited administrative read authority. The job repeats preflight with only its job-scoped read-only GitHub token, verifies immutable-release configuration, creates an ephemeral keychain, builds and notarizes the application, independently notarizes and staples the final DMG, inspects both distributable forms, generates the update snapshot and evidence, and verifies the complete candidate.
 
-It then creates `candidate.tar.gz`, records its SHA-256 digest as a job output, uploads one Actions artifact named `public-macos-candidate-<version>-<revision>`, and removes all release authority. The artifact contains only the public-shaped `release/` and `pages/` trees. It is retained for seven days and is not a GitHub Release or update-channel deployment.
+It then creates `candidate.tar.gz`, records its SHA-256 digest as a job output, uploads one Actions artifact named `public-macos-candidate-<version>-<revision>`, and removes all release authority. The artifact contains only the public-shaped `release/` and `pages/` trees and excludes the unpacked, non-published `release/FitFreed.app` directory after local candidate verification. It is retained for seven days and is not a GitHub Release or update-channel deployment.
 
 The build job has read-only repository permission and cannot publish a Release or Pages snapshot. A successful build therefore means “candidate available for evaluation,” not “release accepted.”
 
@@ -274,7 +276,7 @@ While `publish-candidate` waits at the second `public-macos-release` environment
 
 1. Download the candidate artifact from that exact workflow run.
 2. Confirm its name, version, source revision, and recorded transport digest.
-3. From the exact tagged source, run `npm run unpack:public-release -- <archive> <sha256> <candidate-directory>`. This validates the transport digest, rejects unsafe archive entries, extracts into a new isolated directory, and reopens the complete candidate. A separate `npm run verify:public-release -- <candidate-directory>` may repeat the evidence check but cannot replace the digest-bound extraction.
+3. From the exact tagged source, run `npm run unpack:public-release -- <archive> <sha256> <candidate-directory>`. This validates the transport digest, rejects unsafe archive entries including an unpacked application bundle, extracts into a new isolated directory, and reopens the complete portable distribution. The digest-bound extraction already performs the distribution verifier; repeating the same verifier immediately is not an additional gate.
 4. Run `npm run verify:macos-public-candidate -- <candidate-directory> <version> <revision>` on a supported Apple Silicon Mac. The secret-free command requires manifest version 3 and the exact version and revision, verifies the application copied from the DMG against the sealed application digest, repeats Developer ID, notarization, stapling, and Gatekeeper inspection after installation, and uses two short production-process launches against an isolated home to prove first launch, restart, private SQLite initialization, removal, and retained library integrity. It removes only its temporary installation and never reads an existing FitFreed library.
 5. Preserve the fingerprint-bound functional, import, exploration, accessibility, update-recovery, and performance evidence when executable inputs are unchanged. The first public release has no supported application-version predecessor, so no exact candidate update path exists; the signed update payload and embedded trust are nevertheless authenticated during complete-candidate reopening. A later release must exercise every predecessor declared by its upgrade matrix.
 6. Prefer the secret-free **Public macOS candidate admission** workflow for the durable native record. Dispatch it from `main` with the exact release-run ID, Actions artifact ID, transport SHA-256, version, and revision. It authenticates the artifact's originating protected build and requires the promotion job to remain waiting before downloading and admitting those same bytes. The workflow has read-only repository and Actions permissions, receives no environment or secret, and cannot publish.

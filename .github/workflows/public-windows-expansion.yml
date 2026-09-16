@@ -445,11 +445,6 @@ jobs:
           "$FITFREED_CANDIDATE_SHA256"
           "$FITFREED_CANDIDATE"
 
-      - name: Reopen the complete candidate before native installation
-        env:
-          FITFREED_CANDIDATE: .artifacts/linux-candidate/${{ inputs.version }}
-        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
-
       - name: Install and launch the exact Debian candidate
         env:
           FITFREED_CANDIDATE: .artifacts/linux-candidate/${{ inputs.version }}
@@ -531,11 +526,6 @@ jobs:
           "$env:FITFREED_CANDIDATE_SHA256"
           "$env:FITFREED_CANDIDATE"
 
-      - name: Reopen the complete candidate before native admission
-        env:
-          FITFREED_CANDIDATE: .artifacts/windows-candidate/${{ inputs.version }}
-        run: npm run verify:public-release -- "$env:FITFREED_CANDIDATE"
-
       - name: Install, cold launch, preserve data, and remove the exact preview package
         env:
           FITFREED_PACKAGE: .artifacts/windows-candidate/${{ inputs.version }}/release/FitFreed_${{ inputs.version }}_x64-setup.exe
@@ -598,11 +588,6 @@ jobs:
           "$FITFREED_TRANSPORT"
           "$FITFREED_CANDIDATE_SHA256"
           "$FITFREED_CANDIDATE"
-
-      - name: Reopen the complete admitted candidate
-        env:
-          FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
-        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
 
       - name: Attest every checksum-bound public asset
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1

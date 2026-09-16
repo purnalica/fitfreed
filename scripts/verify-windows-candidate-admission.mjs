@@ -6,7 +6,9 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 
 import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
-import { verifySupportedPublicReleaseCandidate } from "./public-release-candidate-verification.mjs";
+import {
+  verifySupportedPublicReleaseDistributionDirectory,
+} from "./public-release-candidate-verification.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { verifyWindowsColdLaunch } from "./verify-windows-cold-launch.mjs";
 import { verifyWindowsPackageInstallation } from "./verify-windows-package-installation.mjs";
@@ -268,7 +270,7 @@ function exactCandidate(candidateDirectory, version, certificateSha256) {
   if (dirty !== "") {
     throw new Error("Windows candidate admission requires the exact clean tagged source");
   }
-  const candidate = verifySupportedPublicReleaseCandidate({
+  const candidate = verifySupportedPublicReleaseDistributionDirectory({
     candidateDirectory,
     publicReleaseSigningConfiguration:
       loadPublicReleaseSigningConfiguration(repositoryRoot),

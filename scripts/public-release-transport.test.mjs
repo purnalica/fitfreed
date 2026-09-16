@@ -99,6 +99,10 @@ test("moves one complete three-platform set across the approval boundary", () =>
     "linux-x86_64-deb",
     "windows-x86_64-nsis",
   ]);
+  assert.equal(
+    existsSync(path.join(acceptedDirectory, "release", "FitFreed.app")),
+    false,
+  );
 });
 
 test("rejects mutated transport bytes without creating an accepted candidate", () => {
@@ -130,6 +134,7 @@ test("rejects entries outside the closed release and Pages roots", () => {
     "release/\npages/\n/absolute",
     "release/\npages/\nunexpected/file",
     "release/\npages/\npages\\escaped",
+    "release/\nrelease/FitFreed.app/\npages/",
   ]) {
     assert.throws(() => validatePublicCandidateArchiveEntries(entries), /unsafe/);
   }

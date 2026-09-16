@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { loadPublicReleaseSigningConfiguration } from "./public-release-signing-configuration.mjs";
-import { verifySupportedPublicReleaseCandidate } from "./public-release-candidate-verification.mjs";
+import {
+  verifySupportedPublicReleaseCandidate,
+  verifySupportedPublicReleaseDistributionDirectory,
+} from "./public-release-candidate-verification.mjs";
 import { sha256File } from "./release-evidence.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -32,6 +35,8 @@ export function validatePublicCandidateArchiveEntries(output) {
       || normalized.includes("\\")
       || components.includes("..")
       || !["release", "pages"].includes(components[0])
+      || normalized === "release/FitFreed.app"
+      || normalized.startsWith("release/FitFreed.app/")
     ) {
       errors.push(`unsafe public candidate transport entry: ${entry}`);
     }
@@ -63,7 +68,15 @@ export function packPublicReleaseCandidate({
   });
   mkdirSync(path.dirname(archive), { recursive: true });
   try {
-    runCommand("tar", ["-czf", archive, "-C", candidate, "release", "pages"]);
+    runCommand("tar", [
+      "-czf",
+      archive,
+      "--exclude=release/FitFreed.app",
+      "-C",
+      candidate,
+      "release",
+      "pages",
+    ]);
     validatePublicCandidateArchiveEntries(runCommand("tar", ["-tzf", archive], { capture: true }));
     const archiveSha256 = sha256File(archive);
     return {
@@ -99,7 +112,7 @@ export function unpackPublicReleaseCandidate({
   mkdirSync(candidate, { recursive: true });
   try {
     runCommand("tar", ["-xzf", archive, "-C", candidate]);
-    const { verified } = verifySupportedPublicReleaseCandidate({
+    const { verified } = verifySupportedPublicReleaseDistributionDirectory({
       candidateDirectory: candidate,
       publicReleaseSigningConfiguration,
       publicUpdateConfiguration,

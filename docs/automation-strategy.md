@@ -421,8 +421,9 @@ the staging tree and cannot replace an existing destination.
 The public Windows expansion workflow is manual-only and statically checked as a closed trust topology. Secret-free
 preflight validates the immutable macOS-plus-Linux predecessor and public selectors. A secret-free pinned hosted
 Windows job creates and seals the unsigned-preview native input. The protected Apple Silicon composer reopens every
-complete predecessor Release, applies updater and checksum authority, and creates manifest version 8. A separate
-secret-free pinned hosted Windows job reopens the exact sealed candidate and repeats only the candidate package
+complete predecessor Release, applies updater and checksum authority, verifies the full manifest version 8 candidate,
+and seals a portable public distribution without the non-published unpacked macOS application directory. A separate
+secret-free pinned hosted Windows job reopens that exact distribution and repeats only the candidate package
 lifecycle invalidated by transport and composition. It does not repeat accepted product E2E, update-recovery,
 performance, data-scale, or subjective evaluation campaigns. Promotion uses the existing protected release
 environment and cannot begin before hosted Windows admission succeeds.

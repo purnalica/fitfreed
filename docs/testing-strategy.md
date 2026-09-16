@@ -372,7 +372,7 @@ Local and continuous-integration workflows will invoke the same underlying comma
   Server execution is native capability evidence but does not replace the later exact Windows 11 desktop gate.
 - The manual Linux-expansion publication workflow independently admits the already sealed manifest version 6
   candidate on hosted x86-64 Ubuntu 24.04 and 26.04 before promotion can reach its second approval. Each secret-free
-  row verifies the transport digest and complete candidate, installs only the manifest-declared Debian artifact,
+  row verifies the transport digest and complete portable distribution, installs only the manifest-declared Debian artifact,
   verifies package identity, executable and resource paths, dynamic linking, graphical first launch into an isolated
   `0700`/`0600` library with the manifest-declared schema, and the production cold-launch budget. The immediate
   post-install smoke has a thirty-second availability observation; the independent performance distribution remains
@@ -409,7 +409,8 @@ Local and continuous-integration workflows will invoke the same underlying comma
   macOS, Linux, and Windows targets, use immutable versioned GitHub Release URLs, remove stale pre-release claims, and
   retain accessible names and structure. Candidate, distribution, and remote verifiers reconstruct the same bytes and
   reject missing, additional, renamed, cross-version, or cross-target links rather than trusting rendered HTML.
-- Generic release transport tests seal and reopen candidate manifests 3, 6, 7, and 8 without losing their ordered target
+- Generic release transport tests verify candidate manifests 3, 6, 7, and 8 before sealing, exclude the unpacked
+  non-published macOS application directory, and reopen the portable distribution without losing its ordered target
   sets. Publication tests derive the complete version 8 asset inventory and its exact Windows workflow provenance
   identity. Remote tests download all three current packages and every declared Linux or Windows predecessor, compare
   every product-site byte, reopen the distributed version 8 evidence without an unpacked application, and reject any

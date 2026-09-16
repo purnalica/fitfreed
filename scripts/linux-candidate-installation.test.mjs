@@ -76,7 +76,7 @@ test("admits only the declared x86-64 Ubuntu candidate host", () => {
   }
 });
 
-test("requires one verified expanding candidate with its exact Debian artifact", () => {
+test("requires one verified multi-platform candidate with its exact Debian artifact", () => {
   const candidate = {
     manifest: {
       release: {
@@ -98,6 +98,24 @@ test("requires one verified expanding candidate with its exact Debian artifact",
     validateExactLinuxCandidate(candidate, "0.2.0", "a".repeat(40)),
     candidate.verified,
   );
+  const completeCandidate = {
+    manifest: {
+      ...candidate.manifest,
+      schemaVersion: 8,
+    },
+    verified: {
+      ...candidate.verified,
+      targets: [
+        "darwin-aarch64",
+        "linux-x86_64-deb",
+        "windows-x86_64-nsis",
+      ],
+    },
+  };
+  assert.deepEqual(
+    validateExactLinuxCandidate(completeCandidate, "0.2.0", "a".repeat(40)),
+    completeCandidate.verified,
+  );
   for (const mutate of [
     (value) => ({ ...value, manifest: { ...value.manifest, schemaVersion: 5 } }),
     (value) => ({ ...value, verified: { ...value.verified, debianPackage: undefined } }),
@@ -110,6 +128,16 @@ test("requires one verified expanding candidate with its exact Debian artifact",
       /exact expanding Linux candidate/,
     );
   }
+  assert.throws(
+    () => validateExactLinuxCandidate({
+      ...completeCandidate,
+      verified: {
+        ...completeCandidate.verified,
+        targets: ["darwin-aarch64", "linux-x86_64-deb"],
+      },
+    }, "0.2.0", "a".repeat(40)),
+    /exact expanding Linux candidate/,
+  );
 });
 
 test("requires the exact installed Debian identity and native files", () => {

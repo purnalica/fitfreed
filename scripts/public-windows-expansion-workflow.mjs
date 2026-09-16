@@ -201,7 +201,6 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   requireWorkflowOrder(errors, windowsAdmission, [
     "Download only the sealed complete candidate from this workflow run",
     "Verify and reopen the exact complete candidate",
-    "Reopen the complete candidate before native admission",
     "Install, cold launch, preserve data, and remove the exact preview package",
     "Remove residual Windows candidate state after admission",
   ]);
@@ -241,7 +240,6 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   requireWorkflowOrder(errors, publish, [
     "Download only the admitted sealed complete candidate",
     "Verify and reopen the independently admitted complete candidate",
-    "Reopen the complete admitted candidate",
     "Attest every checksum-bound public asset",
     "Attest the final checksum inventory",
     "Attest the detached checksum signature",
