@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 
 import {
   inspectPublicReleasePreflight,
-  readProtectedReleaseEnvironment,
 } from "./public-release-preflight.mjs";
 import { inspectPublicWindowsExpansionWorkflow } from "./public-windows-expansion-workflow.mjs";
 import {
@@ -19,34 +18,6 @@ import { validateUpgradeMatrixDocument } from "./upgrade-matrix.mjs";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryName = "purnalica/fitfreed";
 const predecessorTargets = ["darwin-aarch64", "linux-x86_64-deb"];
-const productAcceptanceEnvironmentName = "public-windows-product-acceptance";
-const windowsReleaseEnvironmentName = "public-windows-release";
-
-function isProtectedEnvironment(value, expectedName) {
-  return value?.environment === expectedName
-    && Number.isSafeInteger(value.requiredReviewerCount)
-    && value.requiredReviewerCount >= 1
-    && value.selfReview === true
-    && value.administratorBypass === false
-    && value.tagPolicy === "v*";
-}
-
-export function validateWindowsExpansionProtectedEnvironments({
-  productAcceptanceEnvironment,
-  windowsReleaseEnvironment,
-}) {
-  if (
-    !isProtectedEnvironment(windowsReleaseEnvironment, windowsReleaseEnvironmentName)
-    || !isProtectedEnvironment(productAcceptanceEnvironment, productAcceptanceEnvironmentName)
-    || windowsReleaseEnvironment.environment === productAcceptanceEnvironment.environment
-  ) {
-    throw new Error("protected Windows expansion environments are unavailable or invalid");
-  }
-  return {
-    productAcceptanceEnvironment: productAcceptanceEnvironmentName,
-    windowsReleaseEnvironment: windowsReleaseEnvironmentName,
-  };
-}
 
 export function validateWindowsExpansionPrerequisites({
   predecessorRelease,
@@ -125,7 +96,6 @@ function readPredecessorRelease(version) {
 export function inspectPublicWindowsExpansionPreflight({
   environment = process.env,
   inspectWorkflow = inspectPublicWindowsExpansionWorkflow,
-  readEnvironment = readProtectedReleaseEnvironment,
   releaseKeyId,
   updateKeyId,
   version,
@@ -162,11 +132,11 @@ export function inspectPublicWindowsExpansionPreflight({
     updateKeyId,
     version,
   });
-  const windowsEnvironments = validateWindowsExpansionProtectedEnvironments({
-    productAcceptanceEnvironment: readEnvironment(productAcceptanceEnvironmentName),
-    windowsReleaseEnvironment: readEnvironment(windowsReleaseEnvironmentName),
-  });
-  return { ...base, ...prerequisites, ...windowsEnvironments };
+  return {
+    ...base,
+    ...prerequisites,
+    windowsTrustProfile: "public-unsigned-preview",
+  };
 }
 
 function main() {

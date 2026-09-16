@@ -524,13 +524,19 @@ export function prepareWindowsUnsignedPreviewInput({
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   try {
-    const [version, outputDirectory, modeOrSignedSetupDirectory] = process.argv.slice(2);
+    const arguments_ = process.argv.slice(2);
+    const unsignedPreview = arguments_[0] === "--unsigned-preview";
+    const [version, outputDirectory, modeOrSignedSetupDirectory] = unsignedPreview
+      ? arguments_.slice(1)
+      : arguments_;
     if (!version || !outputDirectory || !modeOrSignedSetupDirectory) {
-      throw new Error(
-        "usage: node scripts/prepare-windows-expansion-input.mjs <version> <output-directory> <--unsigned-preview|signed-setup-directory>",
-      );
+      if (!(unsignedPreview && version && outputDirectory && !modeOrSignedSetupDirectory)) {
+        throw new Error(
+          "usage: node scripts/prepare-windows-expansion-input.mjs <--unsigned-preview version output-directory|version output-directory signed-setup-directory>",
+        );
+      }
     }
-    const result = modeOrSignedSetupDirectory === "--unsigned-preview"
+    const result = unsignedPreview
       ? prepareWindowsUnsignedPreviewInput({ outputDirectory, version })
       : prepareWindowsExpansionInput({
         outputDirectory,

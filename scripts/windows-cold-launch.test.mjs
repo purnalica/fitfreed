@@ -4,7 +4,25 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { verifyWindowsColdLaunch } from "./verify-windows-cold-launch.mjs";
+import {
+  resolveWindowsColdLaunchInputs,
+  verifyWindowsColdLaunch,
+} from "./verify-windows-cold-launch.mjs";
+
+test("resolves an exact sealed-candidate package for native admission", () => {
+  const packagePath = path.join("candidate", "release", "FitFreed_0.2.0_x64-setup.exe");
+  assert.deepEqual(resolveWindowsColdLaunchInputs({
+    packagePathInput: packagePath,
+    versionInput: "0.2.0",
+  }), {
+    packagePath: path.resolve(packagePath),
+    version: "0.2.0",
+  });
+  assert.throws(
+    () => resolveWindowsColdLaunchInputs({ packagePathInput: packagePath }),
+    /provided together/,
+  );
+});
 
 test("installs, measures, and removes the exact production package", (context) => {
   const directory = mkdtempSync(path.join(tmpdir(), "fitfreed-windows-cold-launch-"));

@@ -65,10 +65,22 @@ export function verifyWindowsColdLaunch({
   return { package: path.basename(packagePath), result: "passed" };
 }
 
-function resolveDefaultInputs() {
+export function resolveWindowsColdLaunchInputs({
+  packagePathInput,
+  versionInput,
+} = {}) {
   const version = JSON.parse(
     readFileSync(path.join(repositoryRoot, "package.json"), "utf8"),
   ).version;
+  if ((packagePathInput && !versionInput) || (!packagePathInput && versionInput)) {
+    throw new Error("the package path and version must be provided together");
+  }
+  if (packagePathInput) {
+    return {
+      packagePath: path.resolve(packagePathInput),
+      version: versionInput,
+    };
+  }
   const packagePath = findWindowsNsisPackage(
     path.join(repositoryRoot, "src-tauri/target/release/bundle/nsis"),
     version,
@@ -79,7 +91,10 @@ function resolveDefaultInputs() {
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   try {
-    process.stdout.write(`${JSON.stringify(verifyWindowsColdLaunch(resolveDefaultInputs()))}\n`);
+    const [packagePathInput, versionInput] = process.argv.slice(2);
+    process.stdout.write(`${JSON.stringify(verifyWindowsColdLaunch(
+      resolveWindowsColdLaunchInputs({ packagePathInput, versionInput }),
+    ))}\n`);
   } catch (error) {
     process.stderr.write(`Windows cold-launch admission failed: ${error.message}\n`);
     process.exitCode = 1;

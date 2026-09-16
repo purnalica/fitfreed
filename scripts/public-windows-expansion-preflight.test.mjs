@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
   validateWindowsExpansionPrerequisites,
-  validateWindowsExpansionProtectedEnvironments,
 } from "./public-windows-expansion-preflight.mjs";
 import { createSyntheticMinisignAuthority } from "./test-support/minisign.mjs";
 
@@ -78,42 +77,5 @@ test("rejects invalid or coupled trust selectors", () => {
     const input = prerequisites();
     mutate(input);
     assert.throws(() => validateWindowsExpansionPrerequisites(input), expected);
-  }
-});
-
-test("requires distinct protected Windows build and product-acceptance environments", () => {
-  const environments = {
-    productAcceptanceEnvironment: {
-      administratorBypass: false,
-      environment: "public-windows-product-acceptance",
-      requiredReviewerCount: 1,
-      selfReview: true,
-      tagPolicy: "v*",
-    },
-    windowsReleaseEnvironment: {
-      administratorBypass: false,
-      environment: "public-windows-release",
-      requiredReviewerCount: 1,
-      selfReview: true,
-      tagPolicy: "v*",
-    },
-  };
-  assert.deepEqual(validateWindowsExpansionProtectedEnvironments(environments), {
-    productAcceptanceEnvironment: "public-windows-product-acceptance",
-    windowsReleaseEnvironment: "public-windows-release",
-  });
-
-  for (const mutate of [
-    (value) => { value.productAcceptanceEnvironment.selfReview = false; },
-    (value) => { value.windowsReleaseEnvironment.administratorBypass = true; },
-    (value) => { value.windowsReleaseEnvironment.environment = "public-macos-release"; },
-    (value) => { value.productAcceptanceEnvironment.tagPolicy = "main"; },
-  ]) {
-    const invalid = structuredClone(environments);
-    mutate(invalid);
-    assert.throws(
-      () => validateWindowsExpansionProtectedEnvironments(invalid),
-      /protected Windows expansion environments/,
-    );
   }
 });

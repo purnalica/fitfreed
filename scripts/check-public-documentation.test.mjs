@@ -43,19 +43,22 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
   const operationsPath = "docs/development/public-release-operations.md";
   const architecturePath = "docs/development/public-release.md";
   candidate.documents[operationsPath] = candidate.documents[operationsPath]
-    .replaceAll("GitHub-hosted x86-64 Windows", "a Windows host")
-    .replaceAll("FITFREED_SIGNPATH_API_TOKEN", "WINDOWS_SIGNING_TOKEN")
-    .replaceAll("windows-inner-binaries", "inner-signing")
-    .replaceAll("complete-platform manifest version 7", "the release manifest")
-    .replaceAll("Windows Authenticode certificate rotation", "certificate maintenance")
-    .replace(/earlier local-certificate workflow\s+has been removed/gi, "legacy workflow is active");
-  candidate.documents[architecturePath] = candidate.documents[architecturePath]
-    .replaceAll("manifest version 7", "the complete manifest")
-    .replaceAll("Windows Authenticode authority", "Windows build authority")
-    .replaceAll(
-      "Windows release authorities remain separate later gates",
-      "Windows release authority is active",
+    .replaceAll("GitHub-hosted `windows-2025`", "an unspecified Windows host")
+    .replace(
+      /needs no additional protected environment,[\s\S]*?without protected values\./i,
+      "requires an Authenticode environment and protected values.",
     )
+    .replaceAll("public-unsigned-preview", "windows-preview")
+    .replaceAll("complete-platform manifest version 8", "the release manifest")
+    .replace("HARICA activation requires a later ADR", "HARICA activation is automatic")
+    .replace(
+      "Retired SignPath commands are historical compatibility code",
+      "SignPath commands remain an active release route",
+    );
+  candidate.documents[architecturePath] = candidate.documents[architecturePath]
+    .replaceAll("manifest version 8", "the complete manifest")
+    .replaceAll("no additional signing authority", "a Windows signing authority")
+    .replace(/does not claim exact[\s\S]*?compatibility\./i, "claims exact Windows 11 compatibility.")
     .replace(
       /never\s+rebuilt as a substitute for the sealed bytes/i,
       "rebuilt when downstream work fails",
@@ -64,15 +67,15 @@ test("rejects incomplete Windows contributor and release-operator guidance", () 
   assert.throws(
     () => validatePublicDocumentationBundle(candidate),
     (error) => {
-      assert.match(error.message, /operations does not document SignPath build-host boundary/);
-      assert.match(error.message, /operations does not document SignPath submission authority/);
-      assert.match(error.message, /operations does not document SignPath artifact configurations/);
-      assert.match(error.message, /operations does not document complete Windows candidate contract/);
-      assert.match(error.message, /operations does not document Windows certificate rotation procedure/);
-      assert.match(error.message, /operations does not document removed legacy Windows workflow boundary/);
-      assert.match(error.message, /releaseArchitecture does not document complete Windows manifest/);
-      assert.match(error.message, /releaseArchitecture does not document separate Windows signing authority/);
-      assert.match(error.message, /releaseArchitecture does not document inactive Windows workflow boundary/);
+      assert.match(error.message, /operations does not document hosted Windows preview boundary/);
+      assert.match(error.message, /operations does not document authority-free Windows builder/);
+      assert.match(error.message, /operations does not document explicit Windows preview trust/);
+      assert.match(error.message, /operations does not document complete Windows preview candidate contract/);
+      assert.match(error.message, /operations does not document deferred Windows signing authority/);
+      assert.match(error.message, /operations does not document retired SignPath boundary/);
+      assert.match(error.message, /releaseArchitecture does not document complete Windows preview manifest/);
+      assert.match(error.message, /releaseArchitecture does not document authority-free Windows preview/);
+      assert.match(error.message, /releaseArchitecture does not document hosted Windows limitation/);
       assert.match(error.message, /releaseArchitecture does not document exact Windows candidate preservation/);
       return true;
     },

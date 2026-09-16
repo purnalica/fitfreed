@@ -144,17 +144,16 @@ selector, private key, or unreviewed `.artifacts` directory. The Windows rows in
 | Verify NSIS identity, current-user installation, removal, and retained application data | `npm run verify:windows-installation` |
 | Perform one native cycle and write the exact Windows package inventory | `npm run inventory:windows-package` |
 | Verify synthetic Authenticode signing, independent inspection, and complete authority cleanup | `npm run verify:windows-authenticode-smoke` |
-| Review the selected Windows signing authority and its inactive external gate | [`CODE_SIGNING.md`](../../CODE_SIGNING.md) and [public release operations](public-release-operations.md#windows-expansion-input-and-authority) |
+| Review the unsigned Windows preview and deferred HARICA boundary | [`CODE_SIGNING.md`](../../CODE_SIGNING.md) and [public release operations](public-release-operations.md#windows-expansion-input-and-authority) |
 | Build, install, drive, and remove the isolated NSIS capability-test package | `npm run verify:windows-e2e` |
 | Verify production-identity NSIS replacement, candidate rollback, and restart resumption | `npm run verify:windows-update-e2e` |
 | Measure the installed production NSIS cold-launch boundary and remove it | `npm run verify:windows-cold-launch` |
 | Verify Windows library protection and disk-exhaustion recovery on an isolated NTFS volume | `npm run verify:windows-filesystem-reliability` |
-| Build the Authenticode-signed update-capable Windows input through SignPath | The protected Windows workflow after SignPath activation; no local command can create this evidence |
-| Build the exact authority-free Windows expansion handoff from verified SignPath output | `npm run prepare:windows-expansion-input -- <version> <directory> <signed-setup-directory>` |
-| Seal an exact Windows expansion input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> <certificate-sha256>` |
-| Reopen a digest-bound Windows expansion input | `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>` |
+| Build the exact unsigned Windows preview handoff | `npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` |
+| Seal an unsigned Windows preview input | `npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> public-unsigned-preview` |
+| Reopen a digest-bound Windows preview input | `npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> public-unsigned-preview` |
 | Download and reopen every immutable predecessor required by a complete-platform candidate | `npm run download:complete-platform-predecessors -- <destination>` |
-| Verify the reviewed Windows 11 host and exact candidate | `npm run verify:windows-candidate-admission -- <candidate> <version> <issued-at> <certificate-sha256>` |
+| Install, cold launch, preserve data, and remove an exact sealed Windows setup | `npm run verify:windows-cold-launch -- <setup-path> <version>` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -219,8 +218,8 @@ registry, Start Menu, Add or Remove Programs, WebView2, Authenticode, update, or
 `npm run inventory:windows-package` performs one real install-inspect-inventory-remove cycle and writes the
 schema-validated digest-bound evidence beside the setup. The synthetic Authenticode, packaged capability, update,
 recovery, cold-launch, and filesystem-reliability gates are separate commands because each proves a different native
-boundary. The inactive public Windows workflow is implemented; protected public Authenticode authority and
-exact-candidate acceptance remain open Milestone 5 gates. Do not add certificate selection, signer commands,
+boundary. The public workflow admits this package only through the explicit unsigned-preview profile and labels it as
+preview on every download surface. Do not add certificate selection, signer commands,
 timestamps, account identities, or
 machine-local protected paths to `tauri.windows.conf.json`.
 
@@ -231,31 +230,18 @@ private key, trust entries, process values, and temporary directory before succe
 user or CI runner. Its untimestamped synthetic result is automation evidence, never a distributable or publicly trusted
 binary.
 
-`tauri.windows.public-signing.conf.json` is the reviewed authority-free overlay selected only by the protected
-SignPath packaging stages. It contains the Tauri binary placeholder and a local bridge that captures the generated
-NSIS uninstaller or substitutes the exact signed inner binaries. It contains no signer, certificate selector,
-timestamp service, account identifier, token, or protected path. Public signing remains a release-operator boundary
-and is not a contributor setup step.
-
-`npm run prepare:windows-signpath-inner -- <version> <directory>` and
-`npm run prepare:windows-signpath-setup -- <version> <unsigned-inner> <signed-inner> <directory>` are internal
-workflow entry points. They deliberately reject updater private keys, local Authenticode credentials, and SignPath API
-tokens. The first emits only the unsigned application and generated uninstaller; the second independently verifies the
-returned signatures before assembling one unsigned setup. The official pinned SignPath action is the only production
-signature-request boundary.
-
-`npm run prepare:windows-expansion-input -- <version> <directory> <signed-setup-directory>` requires a clean source
-revision and the exact one-file response from the second SignPath request. It independently verifies the setup, runs
-the public-profile installation and data-preserving removal cycle, and atomically stages exactly three files: the
-setup, its complete inventory, and source-bound build evidence. Existing output is never replaced. The retained
-evidence includes the public certificate fingerprint and embedded updater trust identifiers, but excludes SignTool
-paths, private keys, machine paths, and updater or publication authority. This command prepares a native handoff; it
-neither creates a complete candidate nor authorizes a release.
+`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>` requires a clean source
+revision and active public updater trust. It builds and independently verifies the setup, requires `NotSigned` for all
+three native trust surfaces, runs the public-preview installation and data-preserving removal cycle, and atomically
+stages exactly three files: the setup, its version 2 complete inventory, and version 2 source-bound build evidence.
+Existing output is never replaced. The retained evidence includes the explicit preview profile and embedded updater
+trust identifiers, but excludes SignTool paths, private keys, machine paths, and updater or publication authority.
+This command prepares a native handoff; it neither creates a complete candidate nor authorizes a release.
 
 The paired Windows pack and unpack commands verify the three-file input on both sides of its compressed tar transport.
 The pack result exposes the public archive SHA-256 digest; the unpack command requires that digest together with the
-expected source, schema, and public Authenticode fingerprint. Archive entries, internal digests, package identity,
-certificate trust, and updater trust must all agree before an atomically prepared output becomes visible. These are
+expected source, schema, and `public-unsigned-preview` trust profile. Archive entries, internal digests, package identity,
+unsigned trust, and updater trust must all agree before an atomically prepared output becomes visible. These are
 release-automation handoff commands, not routine contributor packaging steps.
 
 `npm run package:linux-expansion-input` is reserved for the first complete-platform workflow. It retains the same

@@ -46,11 +46,8 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   if (/^  (push|pull_request|pull_request_target|release|schedule):/m.test(trigger)) {
     errors.push("Windows expansion workflow has an automatic or untrusted trigger");
   }
-  if (/windows_certificate_sha256/.test(trigger)) {
-    errors.push("Windows certificate authority cannot be selected through workflow dispatch");
-  }
-  if (/signpath|signing_policy|artifact_configuration/i.test(trigger)) {
-    errors.push("SignPath policy cannot be selected through workflow dispatch");
+  if (/certificate|signpath|signing_policy|artifact_configuration/i.test(trigger)) {
+    errors.push("Windows native trust cannot be selected through workflow dispatch");
   }
   requireWorkflowMatch(
     errors,
@@ -59,8 +56,11 @@ export function validatePublicWindowsExpansionWorkflow(source) {
     "Windows expansion concurrency must serialize publication without cancellation",
   );
   requireWorkflowPermissions(errors, source, 0, ["contents: read"], "workflow default");
-  if (/continue-on-error:|pull_request_target/.test(source)) {
-    errors.push("Windows expansion workflow contains a forbidden failure boundary");
+  if (/continue-on-error:|pull_request_target|self-hosted/.test(source)) {
+    errors.push("Windows expansion workflow contains a forbidden failure or runner boundary");
+  }
+  if (/signpath|FITFREED_WINDOWS_CERTIFICATE|public-windows-release|public-windows-product-acceptance/i.test(source)) {
+    errors.push("Windows preview workflow retains retired signing or protected Windows authority");
   }
   const actionReferenceCount = validatePinnedActions(source, errors);
 
@@ -80,115 +80,42 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   requireWorkflowPermissions(errors, linuxInput, 4, ["contents: read"], "Linux input build");
   requireWorkflowMatch(errors, linuxInput, /needs: preflight/, "Linux input must follow preflight");
   requireWorkflowMatch(errors, linuxInput, /runs-on: ubuntu-24\.04/, "Linux input must use Ubuntu 24.04");
+  requireWorkflowMatch(errors, linuxInput, /npm run audit:dependencies/, "Linux input must audit production dependencies");
   requireWorkflowMatch(errors, linuxInput, /pack:linux-expansion-input/, "Linux input transport command is unavailable");
   requireNoProtectedValues(errors, linuxInput, "Linux input");
 
   const windowsInput = workflowSection(source, "build-windows-input");
-  requireWorkflowPermissions(
-    errors,
-    windowsInput,
-    4,
-    ["actions: read", "contents: read"],
-    "Windows input build",
-  );
+  requireWorkflowPermissions(errors, windowsInput, 4, ["contents: read"], "Windows input build");
   requireWorkflowMatch(errors, windowsInput, /needs: preflight/, "Windows input must follow preflight");
+  requireWorkflowMatch(errors, windowsInput, /runs-on: windows-2025/, "Windows input must use hosted Windows");
   requireWorkflowMatch(
     errors,
     windowsInput,
-    /runs-on: windows-2025/,
-    "Windows input build must use GitHub-hosted Windows",
+    /outputs:[\s\S]*windows-input-sha256:[\s\S]*windows-input-trust-profile:/,
+    "Windows input must expose its sealed digest and trust profile",
+  );
+  requireWorkflowMatch(errors, windowsInput, /npm run audit:dependencies/, "Windows input must audit production dependencies");
+  requireWorkflowMatch(
+    errors,
+    windowsInput,
+    /prepare:windows-expansion-input --[\s\S]*--unsigned-preview/,
+    "Windows input must use the explicit unsigned preview profile",
   );
   requireWorkflowMatch(
     errors,
     windowsInput,
-    /environment: public-windows-release/,
-    "Windows input must use the protected Windows release environment",
+    /pack:windows-expansion-input --[\s\S]*public-unsigned-preview/,
+    "Windows input transport must bind the unsigned preview profile",
   );
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /FITFREED_WINDOWS_CERTIFICATE_SHA256: \$\{\{ vars\.FITFREED_WINDOWS_CERTIFICATE_SHA256 \}\}/,
-    "Windows input must use the protected certificate fingerprint",
-  );
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /outputs:\n      windows-input-sha256:/,
-    "Windows input must expose its sealed digest",
-  );
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /signpath\/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627/g,
-    "Windows input must use the immutable reviewed SignPath action",
-  );
-  if ((windowsInput.match(/signpath\/github-action-submit-signing-request@/g) ?? []).length !== 2) {
-    errors.push("Windows input must contain exactly two SignPath requests");
-  }
-  for (const [pattern, message] of [
-    [/project-slug: fitfreed/g, "SignPath project slug is unavailable"],
-    [/signing-policy-slug: release-signing/g, "SignPath signing policy slug is unavailable"],
-    [/artifact-configuration-slug: windows-inner-binaries/, "inner-binary artifact configuration is unavailable"],
-    [/artifact-configuration-slug: windows-nsis-setup/, "setup artifact configuration is unavailable"],
-    [/api-token: \$\{\{ secrets\.FITFREED_SIGNPATH_API_TOKEN \}\}/g, "SignPath token is outside protected input"],
-    [/organization-id: \$\{\{ vars\.FITFREED_SIGNPATH_ORGANIZATION_ID \}\}/g, "SignPath organization is outside protected input"],
-  ]) {
-    const expectedCount = pattern.global ? 2 : 1;
-    if ((windowsInput.match(pattern) ?? []).length !== expectedCount) errors.push(message);
-  }
-  if (/project-slug:.*\$\{\{|signing-policy-slug:.*\$\{\{|artifact-configuration-slug:.*\$\{\{/u.test(windowsInput)) {
-    errors.push("SignPath identifiers must be fixed workflow configuration");
-  }
-  if (/FITFREED_WINDOWS_CERTIFICATE_BASE64|FITFREED_WINDOWS_CERTIFICATE_PASSWORD|FITFREED_WINDOWS_CERTIFICATE_SHA1|FITFREED_WINDOWS_TIMESTAMP_URL|authority:windows-public-release/u.test(windowsInput)) {
-    errors.push("Windows input retains superseded local signing authority");
-  }
   requireWorkflowOrder(errors, windowsInput, [
-    "Build the exact unsigned inner binaries",
-    "Upload only the unsigned inner binaries",
-    "Sign the application and uninstaller through SignPath",
-    "Build the exact unsigned setup from signed inner binaries",
-    "Upload only the unsigned setup",
-    "Sign the final setup through SignPath",
-    "Prepare the exact signed Windows input",
+    "Audit production dependencies",
+    "Prepare the exact unsigned Windows preview input",
     "Seal the exact Windows input for protected composition",
-    "Retain only the sealed Windows input",
+    "Retain only the sealed Windows preview input",
   ]);
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /github-artifact-id: \$\{\{ steps\.upload-unsigned-inner\.outputs\.artifact-id \}\}/,
-    "inner signing request must bind the preceding GitHub artifact",
-  );
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /github-artifact-id: \$\{\{ steps\.upload-unsigned-setup\.outputs\.artifact-id \}\}/,
-    "setup signing request must bind the preceding GitHub artifact",
-  );
-  if ((windowsInput.match(/parameters:\s*\|\n\s+version: "\$\{\{ inputs\.version \}\}"/g) ?? []).length !== 2) {
-    errors.push("each SignPath request must bind the dispatched source version");
-  }
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /output-artifact-directory: \.artifacts\/windows-signpath\/signed-inner/,
-    "inner signing output must use the reviewed signed-inner boundary",
-  );
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /output-artifact-directory: \.artifacts\/windows-signpath\/signed-setup/,
-    "setup signing output must use the reviewed signed-setup boundary",
-  );
-  requireWorkflowMatch(
-    errors,
-    windowsInput,
-    /npm run prepare:windows-expansion-input --[\s\S]*?"\$env:FITFREED_SIGNPATH_SIGNED_SETUP"/,
-    "native input preparation must consume the exact SignPath setup output",
-  );
-  const outsideWindowsInput = source.replace(windowsInput, "");
-  if (/FITFREED_SIGNPATH_API_TOKEN|FITFREED_SIGNPATH_ORGANIZATION_ID/u.test(outsideWindowsInput)) {
-    errors.push("SignPath authority must remain inside the protected Windows input job");
+  requireNoProtectedValues(errors, windowsInput, "Windows input");
+  if (/^    environment:/m.test(windowsInput)) {
+    errors.push("unsigned Windows input cannot use a protected signing environment");
   }
 
   const build = workflowSection(source, "build-candidate");
@@ -206,35 +133,34 @@ export function validatePublicWindowsExpansionWorkflow(source) {
     "complete-platform composition must depend on both native inputs",
   );
   requireWorkflowMatch(errors, build, /runs-on: macos-15/, "complete-platform composition must use macOS");
-  requireWorkflowMatch(errors, build, /environment: public-macos-release/, "complete-platform composition must use the macOS release environment");
+  requireWorkflowMatch(errors, build, /environment: public-macos-release/, "complete-platform composition must use protected release authority");
+  requireWorkflowMatch(errors, build, /needs\.build-windows-input\.outputs\.windows-input-sha256/, "composition must verify the Windows input digest");
+  requireWorkflowMatch(errors, build, /needs\.build-linux-input\.outputs\.linux-input-sha256/, "composition must verify the Linux input digest");
   requireWorkflowMatch(
     errors,
     build,
-    /needs\.build-windows-input\.outputs\.windows-input-sha256/,
-    "complete-platform composition must verify the Windows input digest",
+    /unpack:windows-expansion-input --[\s\S]*public-unsigned-preview/,
+    "composition must reopen the unsigned Windows input profile",
   );
   requireWorkflowMatch(
     errors,
     build,
-    /needs\.build-linux-input\.outputs\.linux-input-sha256/,
-    "complete-platform composition must verify the Linux input digest",
+    /prepare:complete-platform-release --[\s\S]*public-unsigned-preview/,
+    "composition must create manifest version 8 through the unsigned preview profile",
   );
   requireWorkflowOrder(errors, build, [
     "Repeat the secret-free Windows expansion preflight after approval",
     "Require immutable GitHub Releases",
     "Download the authenticated predecessor release evidence",
-    "Download only the sealed native Linux input",
     "Verify and reopen the exact native Linux input",
-    "Download only the sealed native Windows input",
-    "Verify and reopen the exact native Windows input",
+    "Verify and reopen the exact native Windows preview input",
     "Install ephemeral Apple, updater, and checksum release authority",
     "Build and verify the signed complete-platform candidate",
     "Reopen the complete local candidate",
-    "Seal the complete candidate for independent evaluation and promotion",
-    "Retain the sealed complete-platform candidate for evaluation",
+    "Seal the complete candidate for independent admission and promotion",
+    "Retain the sealed complete-platform candidate for admission",
     "Remove ephemeral release authority",
   ]);
-  requireWorkflowMatch(errors, build, /prepare:complete-platform-release/, "complete-platform preparation command is unavailable");
   requireWorkflowMatch(
     errors,
     build,
@@ -258,6 +184,7 @@ export function validatePublicWindowsExpansionWorkflow(source) {
     /matrix:\n        ubuntu-version:\n          - "24\.04"\n          - "26\.04"\n    runs-on:/,
     "Linux admission must use Ubuntu 24.04 and 26.04",
   );
+  requireWorkflowMatch(errors, linuxAdmission, /verify:linux-candidate-installation/, "Linux admission must install the exact candidate");
   requireNoProtectedValues(errors, linuxAdmission, "Linux admission");
 
   const windowsAdmission = workflowSection(source, "admit-windows-candidate");
@@ -266,74 +193,33 @@ export function validatePublicWindowsExpansionWorkflow(source) {
     windowsAdmission,
     4,
     ["actions: read", "contents: read"],
-    "exact Windows candidate admission",
+    "hosted Windows candidate admission",
   );
   requireWorkflowMatch(errors, windowsAdmission, /needs: build-candidate/, "Windows admission must follow composition");
-  requireWorkflowMatch(
-    errors,
-    windowsAdmission,
-    /runs-on: \[self-hosted, Windows, X64, fitfreed-windows-11-admission\]/,
-    "Windows admission runner must be the reviewed clean Windows 11 host",
-  );
-  requireWorkflowMatch(
-    errors,
-    windowsAdmission,
-    /needs\.build-candidate\.outputs\.candidate-sha256/,
-    "Windows admission must verify the sealed candidate digest",
-  );
-  requireWorkflowMatch(
-    errors,
-    windowsAdmission,
-    /needs\.build-candidate\.outputs\.windows-certificate-sha256/,
-    "Windows admission must use the certificate fingerprint bound by the native input",
-  );
+  requireWorkflowMatch(errors, windowsAdmission, /runs-on: windows-2025/, "Windows admission must use hosted Windows");
+  requireWorkflowMatch(errors, windowsAdmission, /needs\.build-candidate\.outputs\.candidate-sha256/, "Windows admission must verify the sealed candidate digest");
   requireWorkflowOrder(errors, windowsAdmission, [
     "Download only the sealed complete candidate from this workflow run",
     "Verify and reopen the exact complete candidate",
     "Reopen the complete candidate before native admission",
-    "Verify exact Windows candidate installation and cold launch",
-    "Verify packaged Windows capability and accessibility",
-    "Verify native Windows update recovery",
-    "Verify Windows filesystem recovery",
-    "Verify Windows data performance budgets",
+    "Install, cold launch, preserve data, and remove the exact preview package",
     "Remove residual Windows candidate state after admission",
   ]);
-  requireWorkflowMatch(errors, windowsAdmission, /verify:windows-candidate-admission/, "exact Windows candidate admission command is unavailable");
-  requireWorkflowMatch(errors, windowsAdmission, /verify:windows-update-e2e/, "Windows admission lacks update recovery");
-  requireWorkflowMatch(errors, windowsAdmission, /verify:windows-filesystem-reliability/, "Windows admission lacks filesystem recovery");
+  requireWorkflowMatch(errors, windowsAdmission, /verify:windows-cold-launch/, "Windows admission must launch the exact candidate package");
   requireWorkflowMatch(
     errors,
     windowsAdmission,
     /- name: Remove residual Windows candidate state after admission\n        if: always\(\)/,
     "Windows candidate cleanup must always execute",
   );
-  requireWorkflowMatch(
-    errors,
-    windowsAdmission,
-    /-File scripts\/run-installed-windows-package\.ps1\n          -Action remove/,
-    "Windows candidate cleanup must remove only the owned candidate state",
-  );
+  requireWorkflowMatch(errors, windowsAdmission, /-Action remove/, "Windows cleanup must remove only owned package state");
   requireNoProtectedValues(errors, windowsAdmission, "Windows admission");
   if (/^    environment:/m.test(windowsAdmission)) {
     errors.push("Windows admission cannot use a protected release environment");
   }
-
-  const acceptance = workflowSection(source, "accept-product-experience");
-  requireWorkflowPermissions(errors, acceptance, 4, ["actions: read", "contents: read"], "product-owner acceptance");
-  requireWorkflowMatch(
-    errors,
-    acceptance,
-    /needs: \[build-candidate, admit-linux-candidate, admit-windows-candidate\]/,
-    "product-owner gate must follow every technical admission",
-  );
-  requireWorkflowMatch(
-    errors,
-    acceptance,
-    /environment: public-windows-product-acceptance/,
-    "product-owner gate must use its distinct protected product-owner environment",
-  );
-  requireWorkflowMatch(errors, acceptance, /verify:public-release/, "product-owner gate must reopen the exact candidate");
-  requireNoProtectedValues(errors, acceptance, "product-owner acceptance");
+  if (/verify:windows-e2e|verify:windows-update-e2e|verify:windows-filesystem-reliability|benchmark:(import|dense-history|insights)/.test(windowsAdmission)) {
+    errors.push("Windows candidate admission repeats unrelated accepted product campaigns");
+  }
 
   const publish = workflowSection(source, "publish-candidate");
   requireWorkflowPermissions(errors, publish, 4, [
@@ -347,15 +233,15 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   requireWorkflowMatch(
     errors,
     publish,
-    /needs: \[build-candidate, accept-product-experience\]/,
-    "candidate promotion must follow technical and product-owner acceptance",
+    /needs: \[build-candidate, admit-linux-candidate, admit-windows-candidate\]/,
+    "candidate promotion must follow every native admission",
   );
-  requireWorkflowMatch(errors, publish, /environment: public-macos-release/, "candidate promotion must require a separate release approval");
+  requireWorkflowMatch(errors, publish, /environment: public-macos-release/, "candidate promotion must require protected release approval");
   requireNoProtectedValues(errors, publish, "candidate promotion");
   requireWorkflowOrder(errors, publish, [
-    "Download only the accepted sealed complete candidate",
-    "Verify and reopen the independently accepted complete candidate",
-    "Reopen the complete accepted candidate",
+    "Download only the admitted sealed complete candidate",
+    "Verify and reopen the independently admitted complete candidate",
+    "Reopen the complete admitted candidate",
     "Attest every checksum-bound public asset",
     "Attest the final checksum inventory",
     "Attest the detached checksum signature",
@@ -378,18 +264,11 @@ export function validatePublicWindowsExpansionWorkflow(source) {
   return {
     actionReferenceCount,
     nativeInputTarget: "windows-x86_64-nsis",
-    protectedEnvironments: [
-      "public-windows-release",
-      "public-macos-release",
-      "public-windows-product-acceptance",
-      "public-macos-release",
-    ],
-    publicationOrder: "technical-and-human-acceptance-before-release-before-pages",
+    protectedEnvironments: ["public-macos-release", "public-macos-release"],
+    publicationOrder: "native-admission-before-release-before-pages",
     trigger: "workflow_dispatch",
-    windowsRunners: [
-      "windows-2025",
-      "fitfreed-windows-11-admission",
-    ],
+    windowsRunners: ["windows-2025"],
+    windowsTrustProfile: "public-unsigned-preview",
     workflow: workflowPath,
   };
 }

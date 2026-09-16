@@ -397,7 +397,7 @@ test("exposes and documents the complete-platform preparation and reopening comm
   for (const required of [
     "prepare:complete-platform-release",
     "predecessor evidence",
-    "manifest version 7",
+    "manifest version 8",
     "does not publish",
   ]) assert.match(guide, new RegExp(required));
 });

@@ -5,15 +5,15 @@
 This is the maintainer runbook for the active FitFreed public channel and each complete-platform expansion. Protected
 workflow [`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/34830250376), attempt 2, published and
 remotely accepted immutable macOS-plus-Linux version 0.1.12. The Windows expansion remains gated behind that accepted
-predecessor and its own trust, native admission, product acceptance, and publication boundaries. A
+predecessor, its explicit unsigned-preview trust profile, hosted native admission, and publication boundaries. A
 workflow becomes operative only after the applicable readiness ledger records its production trust roots,
 native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes
 one exact version, tag, and publication.
 
 [ADR 0050](../architecture/decisions/0050-retire-signpath-as-windows-signing-authority.md) retires SignPath as a
-delivery option. SignPath-specific sections below document an inactive implementation pending dependency inventory;
-they must not be configured or executed. The [Milestone 5 evaluation](../plans/milestone-5.md#windows-distribution-evaluation)
-owns the unselected replacement boundary.
+delivery option. [ADR 0051](../architecture/decisions/0051-publish-an-unsigned-windows-preview.md) selects the current
+Windows route and defers HARICA Code Signing IV until Windows becomes stable or observed demand justifies earlier
+activation. Retired SignPath commands are historical compatibility code and must not be configured or executed.
 
 Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
 
@@ -21,13 +21,13 @@ The roles are capabilities, not named people:
 
 - the **release owner** authorizes the version, exact tag, and public promotion;
 - a **release builder approver** admits the protected build to production signing and notarization authority;
-- a **candidate evaluator** completes the versioned manual procedure against the sealed bytes; and
+- native **candidate admission** reopens and exercises the sealed bytes on the declared hosted platforms; and
 - a **promotion approver** admits those exact accepted bytes to publication.
 
 Under the bootstrap governance model, the only active maintainer may hold all four roles. The release environments
 therefore require that maintainer as a reviewer but leave GitHub's `prevent_self_review` rule disabled. Candidate build
 and promotion remain two separate approvals, and the second may occur only after the exact sealed candidate has passed
-the required admission and evaluation. [ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md)
+the required automated native admission. [ADR 0047](../architecture/decisions/0047-permit-bootstrap-solo-release-approval.md)
 
 ## Trust and credential inventory
 
@@ -45,13 +45,9 @@ Apply these boundaries:
 - Never place authority in repository secrets when the protected environment can own it, and never expose a private input to preflight, promotion, Pages, remote verification, caches, or retained artifacts.
 - Review access after a maintainer change, suspected compromise, Apple or GitHub policy change, and every planned key rotation.
 
-The Windows platform adds a fourth independent authority through the SignPath Foundation open-source service. The
-protected `FITFREED_SIGNPATH_API_TOKEN` authorizes submission only; SignPath retains the certificate private key in its
-HSM and its GitHub connector verifies build origin. `FITFREED_SIGNPATH_ORGANIZATION_ID` and the independently admitted
-lowercase certificate fingerprint are protected non-secret variables. Stable project, policy, and artifact-configuration
-slugs are versioned in the workflow and cannot be dispatch inputs. Every production request requires manual approval
-in SignPath. The GitHub-hosted signing build never receives updater or release-checksum private keys, and the later
-composer receives neither the SignPath token nor Authenticode authority.
+The unsigned Windows preview adds no signing credential or protected Windows environment. Its secret-free hosted
+builder receives neither Apple, updater, release-checksum, nor Authenticode authority. The protected composer signs
+the unchanged Windows setup for the updater and release inventory but cannot add an Authenticode publisher identity.
 
 The macOS ephemeral authority installer writes private material only under the hosted runner's temporary directory with
 private permissions, imports the exact certificate fingerprint into a temporary keychain, and restores the prior
@@ -64,12 +60,6 @@ After Tauri finalizes the application and creates the DMG, preparation independe
 DMG with the admitted Developer ID fingerprint and App Store Connect authority. It requires a secure timestamp, the
 stable `org.fitfreed.desktop.dmg` identifier, an accepted issue-free notarization log, and a valid stapled ticket before
 objective trust inspection. The same finalizer is used by every public macOS-containing compositor.
-
-The `public-windows-release` environment defines `FITFREED_SIGNPATH_API_TOKEN` as a protected secret and
-`FITFREED_SIGNPATH_ORGANIZATION_ID` plus `FITFREED_WINDOWS_CERTIFICATE_SHA256` as protected non-secret variables. The
-official SignPath action receives them only after GitHub environment approval. Signed output, not a certificate bundle,
-returns to the workflow. A rejected, denied, timed-out, or structurally different response blocks the candidate and is
-never replaced with locally signed or unsigned bytes.
 
 ## Activate the public updater trust
 
@@ -137,103 +127,18 @@ An accountable maintainer configures these prerequisites before the first releas
 6. Add the exact protected secrets and non-secret variables documented in [public release preparation](public-release.md).
 7. Confirm private vulnerability reporting, Issues, and the documented support routes are available.
 
-Before Windows expansion, create two additional environments with the same required-reviewer, initiator-approval,
-administrator-bypass, and `v*` tag policies:
-
-- `public-windows-release` owns only the SignPath submission token, organization identifier, and reviewed public
-  certificate fingerprint;
-- `public-windows-product-acceptance` records the distinct bounded product-experience verdict and owns no signing or
-  publication authority.
-
-The SignPath build runs on a standard GitHub-hosted x86-64 Windows runner because origin verification for the
-open-source service rejects a self-hosted signing lineage. Provision only the distinct disposable,
-repository-scoped `fitfreed-windows-11-admission` x86-64 runner. Never attach that role to a personal workstation.
-Register it immediately before the bounded admission job, remove its repository registration and credentials after
-the job, and destroy the execution environment. It is secret-free and has no protected environment.
+The unsigned Windows preview needs no additional protected environment, Authenticode secret, certificate variable,
+or self-hosted runner. Both Windows jobs use the pinned GitHub-hosted `windows-2025` image without protected values.
 
 Do not infer successful configuration from a workflow file or environment name. The secret-free preflight reads the GitHub APIs and rejects a missing or weaker control before the first protected job starts.
 
-## One-time SignPath configuration
+## Deferred HARICA activation
 
-The external configuration is part of the release trust boundary. Apply through the
-[SignPath Foundation open-source program](https://signpath.org/apply.html), and do not enable the Windows workflow
-until the application has been accepted. After acceptance, configure the following exact identifiers; changing one
-requires a reviewed workflow and documentation change rather than a dispatch input:
-
-1. Add SignPath's predefined `GitHub.com` trusted build system to the organization, install the SignPath GitHub App
-   for `purnalica/fitfreed`, and link that trusted build system to the project.
-2. Create the project with name `FitFreed`, slug `fitfreed`, repository URL
-   `https://github.com/purnalica/fitfreed`, and the public code-signing policy from [`CODE_SIGNING.md`](../../CODE_SIGNING.md).
-3. Create a release-purpose signing policy with slug `release-signing`. Select the SignPath Foundation release
-   certificate, require the GitHub trusted build system and positive origin verification, and require one manual
-   approval. The bootstrap project owner is both the sole approver and the accountable release owner.
-4. Create a CI submitter restricted to that project and policy, then create its API token. Do not give the token
-   configuration, approval, certificate-management, or artifact-download authority beyond what request submission
-   requires.
-5. Create and activate the two artifact configurations below with the exact slugs shown. GitHub's artifact upload is
-   a ZIP, so both configurations deliberately use `zip-file` as their root. Review SignPath's generated graphical
-   representation before activation.
-
-Artifact configuration `windows-inner-binaries`:
-
-```xml
-<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
-  <parameters>
-    <parameter name="version" required="true" />
-  </parameters>
-  <zip-file>
-    <pe-file path="fitfreed.exe"
-             product-name="FitFreed"
-             product-version="${version}"
-             file-version="${version}">
-      <authenticode-sign hash-algorithm="sha256"
-                         description="FitFreed"
-                         description-url="https://fitfreed.org/" />
-    </pe-file>
-    <pe-file path="uninstall.exe">
-      <authenticode-sign hash-algorithm="sha256"
-                         description="FitFreed uninstaller"
-                         description-url="https://fitfreed.org/" />
-    </pe-file>
-  </zip-file>
-</artifact-configuration>
-```
-
-Artifact configuration `windows-nsis-setup`:
-
-```xml
-<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
-  <parameters>
-    <parameter name="version" required="true" />
-  </parameters>
-  <zip-file>
-    <pe-file path="FitFreed_${version}_x64-setup.exe"
-             product-name="FitFreed"
-             product-version="${version}"
-             file-version="${version}">
-      <authenticode-sign hash-algorithm="sha256"
-                         description="FitFreed installer"
-                         description-url="https://fitfreed.org/" />
-    </pe-file>
-  </zip-file>
-</artifact-configuration>
-```
-
-Record only the public organization identifier and the release certificate's independently checked SHA-256
-fingerprint. Normalize the fingerprint to lowercase hexadecimal without separators. In the GitHub
-`public-windows-release` environment, create:
-
-- secret `FITFREED_SIGNPATH_API_TOKEN` with the CI submitter token;
-- variable `FITFREED_SIGNPATH_ORGANIZATION_ID` with the public SignPath organization identifier; and
-- variable `FITFREED_WINDOWS_CERTIFICATE_SHA256` with the normalized public certificate fingerprint.
-
-The [official GitHub integration](https://docs.signpath.io/trusted-build-systems/github) requires each input to exist
-as a GitHub Actions artifact before submission and verifies that the contributing OSS jobs used GitHub-hosted runners.
-The [artifact-configuration contract](https://docs.signpath.io/artifact-configuration/) rejects additional or renamed
-files before signing. The first protected execution is configuration evidence: approve both requests separately in
-SignPath, compare their repository, workflow, ref, revision, artifact configuration, version, and digest to the GitHub
-run, then require the repository's independent Windows trust and installation checks to accept the returned bytes.
-Do not treat portal activation or a completed signature alone as release acceptance.
+Do not purchase or configure HARICA for the unsigned preview. Before Windows is promoted to stable, or earlier when
+real feedback proves that unsigned installation friction blocks adoption, revalidate HARICA Code Signing IV pricing,
+Spanish individual validation, supplied-token middleware, certificate lifetime, timestamp behavior, and automation
+support. A later ADR must define custody and prove timestamped Authenticode trust on the setup, installed application,
+and installed uninstaller before any stable Windows claim.
 
 ## Prepare the versioned source
 
@@ -295,75 +200,65 @@ preceding check keeps promotion blocked even when cleanup succeeds.
 ### Windows expansion input and authority
 
 Do not dispatch `.github/workflows/public-windows-expansion.yml` until an immutable macOS-plus-Linux predecessor
-exists, the next semantic version and target-aware upgrade matrix names that exact predecessor, SignPath Foundation
-has accepted FitFreed, the SignPath GitHub App and project policies are active, the Windows readiness ledger admits the
-native admission host, and all three protected environments have been reviewed. The earlier local-certificate workflow
-has been removed. Running an individual script manually does not create a candidate and must not be used to bypass the
-ADR 0049 gates.
+exists and the next semantic version, release policy, release notes, target-aware upgrade matrix, and user guidance all
+declare that exact predecessor and the unsigned Windows preview. The workflow dispatch accepts only the semantic
+version, public updater-key identifier, and public release-checksum-key identifier. It has no Windows trust selector.
 
-Review `release/windows-candidate-admission.json` against its cited official lifecycle sources no more than 45 days
-before candidate issuance. Update the policy and its tests when supported editions, display versions, builds, or dates
-change; do not admit a host by weakening the exact match. The workflow dispatch accepts only the semantic version,
-public updater-key identifier, and public release-checksum-key identifier. SignPath identifiers and the Authenticode
-fingerprint come from versioned or protected configuration, never from the dispatcher.
+The secret-free GitHub-hosted Windows builder runs the dependency audit and
+`npm run prepare:windows-expansion-input -- --unsigned-preview <version> <directory>`. That command embeds only public
+`stable-v3` trust, builds one current-user NSIS setup, requires the setup, installed application, and installed
+uninstaller to report `NotSigned`, performs one installation, inventory, data-preserving removal cycle, and stages the
+closed version 2 inventory and build evidence. It receives no protected environment or private authority.
 
-The protected GitHub-hosted Windows job builds the unsigned application and exports the NSIS uninstaller. It uploads
-one closed two-file artifact before the pinned official SignPath action submits the inner-binary request. After manual
-approval, it verifies both returned files and imports them into final NSIS compilation without rebuilding. It uploads
-the exact setup for the second manually approved SignPath request, then independently verifies the returned setup and
-prepares the three-file native input through the existing installation, inventory, evidence, and transport contracts.
-No certificate, private key, local signer, or timestamp selection enters the job.
-
-The protected job publishes only that closed archive and its digest. The Apple Silicon composer reopens it with
-`npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> <certificate-sha256>`.
+The job seals only that closed input with
+`npm run pack:windows-expansion-input -- <input> <archive> <version> <revision> <schema> public-unsigned-preview`.
+The Apple Silicon composer reopens it with
+`npm run unpack:windows-expansion-input -- <archive> <sha256> <output> <version> <revision> <schema> public-unsigned-preview`.
 Before receiving private composition authority, it runs
 `npm run download:complete-platform-predecessors -- <destination>` to download, stage, and independently
 reopen every upgrade-matrix predecessor as its complete immutable Release evidence. It receives both native inputs but
 no Windows Authenticode authority, adds platform-specific updater signatures to the unchanged native packages, and
-creates the complete-platform manifest version 7 candidate. A successful native input build means only “input
+creates the complete-platform manifest version 8 candidate. A successful native input build means only “input
 available for composition.”
 
-The exact sealed candidate next passes the supported Ubuntu matrix and the distinct secret-free
-`fitfreed-windows-11-admission` runner. The admission job runs
-`npm run verify:windows-candidate-admission -- <candidate> <version> <issued-at> <certificate-sha256>` and
-requires the host to match the reviewed edition identifier, display version, build, x86-64 architecture, and active
-support date. It verifies the exact signed setup's Authenticode trust, current-user install, data-preserving removal,
-and cold launch. The same source then builds an isolated instrumented package for exhaustive capability,
-localization, accessibility, update, recovery, filesystem, and performance behavior because the production package
-intentionally contains no WebDriver instrumentation. That instrumented package is evidence for the same source, not a
-replacement for the exact candidate.
+The exact sealed candidate next passes the supported Ubuntu matrix and a separate secret-free `windows-2025` job. The
+Windows job reopens the candidate by transport digest, repeats its complete release verifier, then installs, cold
+launches, verifies retained application data, and removes the exact manifest-declared setup. It does not repeat
+accepted capability E2E, update-recovery, filesystem, performance, or data-scale campaigns when executable inputs are
+unchanged. This admits a hosted Windows preview package; it does not claim exact Windows 11, Smart App Control,
+enterprise-policy, or Authenticode compatibility.
 
-Only after every technical admission job passes may the `public-windows-product-acceptance` environment record the
-bounded product-owner verdict defined by the [Windows supplement](../testing/windows-candidate-manual-evaluation.md).
-The later `public-macos-release` approval is the separate irreversible publication decision. A rejected or expired
-candidate is never rebuilt inside a downstream job; correct the cause and create a new source and candidate.
+Only after every technical admission job passes may the later `public-macos-release` approval authorize irreversible
+publication. A rejected or expired candidate is never rebuilt inside a downstream job; correct the cause and create a
+new source and candidate.
 
 On Apple Silicon, `npm run prepare:complete-platform-release -- <version> <update-key-id> <release-key-id>
-<issued-at> <linux-input-directory> <windows-input-directory> <windows-certificate-sha256>
+<issued-at> <linux-input-directory> <windows-input-directory> public-unsigned-preview
 <predecessor-evidence-directory>` is the sole production composition entry point. Before protected work, it checks
-both native inputs and reopens every required predecessor as complete signed manifest version 6 or 7 Release evidence.
+both native inputs and reopens every required predecessor as complete signed manifest version 6, 7, or 8 Release evidence.
 It then builds fresh macOS bytes, signs the unchanged Linux and Windows packages for updates, and emits
 one atomic candidate. `npm run verify:complete-platform-release -- <candidate-directory>` repeats the complete local
 reopening. Neither command grants promotion authority.
 
 The candidate's private Pages tree already contains the localized direct installer links derived from its exact
-manifest: macOS for version 3, macOS and Linux for version 6, and all three supported platforms for version 7. Do not
+manifest: macOS for version 3, macOS and Linux for version 6, and all three platforms for versions 7 and 8. Version 8
+labels Windows as an unsigned preview. Do not
 edit or activate those links independently. They become reachable only when promotion publishes the matching GitHub
 Release as immutable and then deploys the exact candidate Pages artifact.
 
 The generic candidate transport, Release asset inventory, publication verifier, and remote verifier accept manifest
-version 7. They preserve the ordered three-target identity, require provenance from the Windows expansion workflow,
+versions 7 and 8. They preserve the ordered three-target identity, require provenance from the Windows expansion workflow,
 download every current and declared recovery package, and reopen the distributed candidate without its unpacked
-application. This machinery is reachable only through the inactive versioned workflow. Do not invoke Windows
-promotion until every documented admission and authority gate is objectively satisfied.
+application. Do not invoke Windows promotion until every documented admission and authority gate is objectively
+satisfied.
 
 PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,
-storage schema, package digest, public certificate SHA-256 fingerprint, and Boolean phase results. They must not
-contain a certificate private key, store selector, protected environment value, local account name, machine path,
+storage schema, package digest, explicit unsigned trust profile, and Boolean phase results. They must not contain a
+certificate private key, store selector, protected environment value, local account name, machine path,
 personal export, library, route, health value, or other user data. Reproduction of an ordinary unsigned engineering
 package uses `npm ci`, `npm run doctor`, `npm run package:windows`, and `npm run inventory:windows-package` on the exact
-revision. A timestamped public setup is not reproduced by rebuilding it: downstream diagnosis reopens the retained
-digest-bound input or candidate, because a new timestamp can produce different bytes from unchanged source.
+revision. Downstream diagnosis reopens the retained digest-bound input or candidate rather than substituting rebuilt
+bytes.
 
 ## Build approval and sealed candidate
 
@@ -455,22 +350,18 @@ A withdrawn candidate is never offered for installation. An already installed wi
 
 Routine updater-key rotation overlaps trust: release at least one accepted application embedding both old and new public keys before signing a later channel statement with only the new key. Remove the old public key only after every supported upgrade baseline can authenticate the new authority.
 
-Windows Authenticode certificate rotation is independent of updater-key rotation. Before an expiry-driven change,
-admit the replacement SignPath chain, publisher identity, and independently derived SHA-256 fingerprint, then update
-the protected fingerprint and create a fresh timestamped Windows input and complete-platform candidate. The manifest,
-inventory, and build evidence must all name only the certificate that signed those exact bytes. Preserve the prior
-immutable Release and its timestamped signatures; do not re-sign or replace them. Treat publisher-name drift, an
-unavailable trusted timestamp, or a certificate that fails Windows application policy as a new-candidate blocker, not
-as a reason to weaken inspection.
+The unsigned Windows preview has no Authenticode credential to rotate. HARICA activation requires a later ADR and a
+fresh candidate under the newly admitted publisher identity; it cannot retroactively sign or replace an immutable
+preview Release. After activation, Authenticode rotation remains independent of updater-key rotation and must preserve
+the certificate identity, timestamp, and all three native trust-surface checks in the applicable manifest.
 
 If an updater private key may be compromised, stop protected runs, revoke its environment access, preserve audit evidence, and determine which application baselines trust only that key. Clients without a previously embedded recovery key cannot authenticate an automatic trust-root replacement; publish a Developer ID-signed corrective application through the verified download channel with explicit manual-install guidance.
 
 For a Developer ID or App Store Connect compromise, revoke or rotate the affected Apple authority, review notarization history, remove its GitHub access, and create a fresh candidate under the replacement identity. Apple trust rotation does not replace updater-key rotation, and updater trust does not compensate for invalid Apple code signing.
 
-For a Windows code-signing certificate compromise, stop Windows native builds, revoke the certificate through its
-issuer with SignPath Foundation, remove its admitted fingerprint from the protected environment, audit every input and
-candidate signed by it, and block publication. A replacement certificate requires the complete rotation and
-exact-candidate path above. Updater signatures, checksums, prior reputation, or an unchanged source revision cannot
+If a future Windows code-signing certificate is compromised, stop signed Windows native builds, revoke it through its
+issuer, remove its admitted identity from protected configuration, audit every input and candidate signed by it, and
+block signed publication. Updater signatures, checksums, prior reputation, or an unchanged source revision cannot
 compensate for invalid Authenticode trust.
 
 For a GitHub token or environment compromise, revoke access immediately, audit deployments, releases, attestations, environment reviews, and tag state, and keep publication blocked until repository controls are re-established. Immutable evidence that cannot be reconciled with the incident remains unaccepted even if its bytes appear functional.
