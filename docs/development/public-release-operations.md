@@ -197,6 +197,9 @@ ten-second failure bound. Neither row receives a protected environment, secret, 
 permission. The unconditional package finalizer is cleanup, not acceptance evidence; a failed
 preceding check keeps promotion blocked even when cleanup succeeds.
 
+The Windows expansion reuses that same bounded Linux desktop session for its manifest version 8 admission rows. It
+must not replace the D-Bus, AT-SPI, Fluxbox, Xvfb, and software-rendering boundary with a bare virtual display.
+
 ### Windows expansion input and authority
 
 Do not dispatch `.github/workflows/public-windows-expansion.yml` until an immutable macOS-plus-Linux predecessor
@@ -251,7 +254,9 @@ The generic candidate transport, Release asset inventory, publication verifier, 
 versions 7 and 8. They preserve the ordered three-target identity, require provenance from the Windows expansion workflow,
 download every current and declared recovery package, and reopen the portable distribution without its unpacked
 application. The composer verifies that application before sealing; the macOS updater archive and disk image remain
-inside the authenticated distribution. Do not invoke Windows promotion until every documented admission and authority gate is objectively
+inside the authenticated distribution. Published Pages inventories always use slash-separated paths, independently
+of the host that reopens them, because signed update metadata and public URLs use the same canonical path grammar.
+Do not invoke Windows promotion until every documented admission and authority gate is objectively
 satisfied.
 
 PowerShell transcripts and retained diagnostics may contain the command name, public version, source revision,

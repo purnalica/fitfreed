@@ -426,7 +426,9 @@ and seals a portable public distribution without the non-published unpacked macO
 secret-free pinned hosted Windows job reopens that exact distribution and repeats only the candidate package
 lifecycle invalidated by transport and composition. It does not repeat accepted product E2E, update-recovery,
 performance, data-scale, or subjective evaluation campaigns. Promotion uses the existing protected release
-environment and cannot begin before hosted Windows admission succeeds.
+environment and cannot begin before hosted Windows admission succeeds. The two Linux admission rows reuse the
+accepted bounded D-Bus, AT-SPI, Fluxbox, Xvfb, and software-rendering session. Every transported Pages inventory uses
+slash-separated public paths on macOS, Linux, and Windows.
 
 The current executable entry points include `npm run doctor` for prerequisite diagnosis, `npm run test:fast` for the
 contributor loop, and the dedicated `benchmark:*` and `verify:*` commands for release-shaped evidence. The public

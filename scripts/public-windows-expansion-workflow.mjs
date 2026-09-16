@@ -184,6 +184,18 @@ export function validatePublicWindowsExpansionWorkflow(source) {
     /matrix:\n        ubuntu-version:\n          - "24\.04"\n          - "26\.04"\n    runs-on:/,
     "Linux admission must use Ubuntu 24.04 and 26.04",
   );
+  requireWorkflowMatch(
+    errors,
+    linuxAdmission,
+    /at-spi2-core \\\n            dbus-daemon \\\n            fluxbox \\\n            sqlite3 \\\n            x11-utils \\\n            xauth \\\n            xvfb/,
+    "Linux admission must install the bounded Ubuntu Desktop session tools",
+  );
+  if ([...linuxAdmission.matchAll(/WEBKIT_DISABLE_COMPOSITING_MODE: "1"/g)].length !== 2) {
+    errors.push("both graphical Linux admission gates must use the hosted software-rendering boundary");
+  }
+  if ([...linuxAdmission.matchAll(/xvfb-run -a dbus-run-session --\n          scripts\/run-linux-desktop-session\.sh/g)].length !== 2) {
+    errors.push("both graphical Linux admission gates must establish a bounded desktop session");
+  }
   requireWorkflowMatch(errors, linuxAdmission, /verify:linux-candidate-installation/, "Linux admission must install the exact candidate");
   requireNoProtectedValues(errors, linuxAdmission, "Linux admission");
 

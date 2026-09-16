@@ -426,7 +426,14 @@ jobs:
       - name: Install candidate-admission runtime tools
         run: |
           sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends sqlite3 xauth xvfb
+          sudo apt-get install --yes --no-install-recommends \
+            at-spi2-core \
+            dbus-daemon \
+            fluxbox \
+            sqlite3 \
+            x11-utils \
+            xauth \
+            xvfb
 
       - name: Download only the sealed complete candidate from this workflow run
         uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
@@ -450,15 +457,23 @@ jobs:
           FITFREED_CANDIDATE: .artifacts/linux-candidate/${{ inputs.version }}
           FITFREED_VERSION: ${{ inputs.version }}
           FITFREED_UBUNTU_VERSION: ${{ matrix.ubuntu-version }}
+          WEBKIT_DISABLE_COMPOSITING_MODE: "1"
         run: >-
-          xvfb-run -a npm run verify:linux-candidate-installation --
+          xvfb-run -a dbus-run-session --
+          scripts/run-linux-desktop-session.sh
+          npm run verify:linux-candidate-installation --
           install
           "$FITFREED_CANDIDATE"
           "$FITFREED_VERSION"
           "$FITFREED_UBUNTU_VERSION"
 
       - name: Verify the installed exact-candidate cold-launch budget
-        run: xvfb-run -a npm run benchmark:cold-launch
+        env:
+          WEBKIT_DISABLE_COMPOSITING_MODE: "1"
+        run: >-
+          xvfb-run -a dbus-run-session --
+          scripts/run-linux-desktop-session.sh
+          npm run benchmark:cold-launch
 
       - name: Remove the exact candidate and retain its local library
         env:

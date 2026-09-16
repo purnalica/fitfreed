@@ -93,17 +93,16 @@ async function fetchExactBytes(url, expected, fetchImplementation) {
 }
 
 function publicPageUrl(relativePath) {
-  const deployedPath = relativePath.split(path.sep).join("/");
-  if (deployedPath === "index.html") return publicOrigin;
-  if (deployedPath.endsWith("/index.html")) {
-    return new URL(`${path.posix.dirname(deployedPath)}/`, publicOrigin).toString();
+  if (relativePath === "index.html") return publicOrigin;
+  if (relativePath.endsWith("/index.html")) {
+    return new URL(`${path.posix.dirname(relativePath)}/`, publicOrigin).toString();
   }
-  return new URL(deployedPath, publicOrigin).toString();
+  return new URL(relativePath, publicOrigin).toString();
 }
 
 async function verifyProductPages(pagesDirectory, fetchImplementation) {
   const productFiles = relativeFiles(pagesDirectory).filter(
-    (filename) => filename !== ".nojekyll" && !filename.startsWith(`updates${path.sep}`),
+    (filename) => filename !== ".nojekyll" && !filename.startsWith("updates/"),
   );
   await Promise.all(productFiles.map(async (filename) => {
     const expectedBytes = readFileSync(path.join(pagesDirectory, filename));
@@ -200,7 +199,7 @@ export async function downloadVerifiedPagesSnapshot({
           ? await verifyProductPages(pagesDirectory, fetchImplementation)
           : relativeFiles(pagesDirectory).filter(
             (filename) => filename !== ".nojekyll"
-              && !filename.startsWith(`updates${path.sep}`),
+              && !filename.startsWith("updates/"),
           ).length;
         return {
           attempts: attempt,

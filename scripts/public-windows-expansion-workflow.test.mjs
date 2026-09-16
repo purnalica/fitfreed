@@ -97,6 +97,34 @@ test("rejects bypassed candidate admission and repeated product campaigns", () =
   }
 });
 
+test("requires the accepted bounded Linux desktop session for both graphical gates", () => {
+  assert.match(
+    workflow,
+    /at-spi2-core \\\n            dbus-daemon \\\n            fluxbox \\\n            sqlite3 \\\n            x11-utils \\\n            xauth \\\n            xvfb/u,
+  );
+  assert.equal([...workflow.matchAll(/WEBKIT_DISABLE_COMPOSITING_MODE: "1"/gu)].length, 2);
+  assert.equal(
+    [...workflow.matchAll(/xvfb-run -a dbus-run-session --\n          scripts\/run-linux-desktop-session\.sh/gu)].length,
+    2,
+  );
+  for (const [mutate, expected] of [
+    [
+      (source) => source.replace("            at-spi2-core \\\n", ""),
+      /bounded Ubuntu Desktop session tools/u,
+    ],
+    [
+      (source) => source.replace("          WEBKIT_DISABLE_COMPOSITING_MODE: \"1\"\n", ""),
+      /software-rendering boundary/u,
+    ],
+    [
+      (source) => source.replace("xvfb-run -a dbus-run-session --\n", "xvfb-run -a "),
+      /bounded desktop session/u,
+    ],
+  ]) {
+    assert.throws(() => validatePublicWindowsExpansionWorkflow(mutate(workflow)), expected);
+  }
+});
+
 test("rejects publication authority outside the protected release jobs", () => {
   for (const [mutate, expected] of [
     [(source) => source.replace(

@@ -37,13 +37,19 @@ function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+export function portableRelativePath(relativePath, separator = path.sep) {
+  return relativePath.split(separator).join(path.posix.sep);
+}
+
 export function relativeFiles(root) {
   const files = [];
   const visit = (directory) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const entryPath = path.join(directory, entry.name);
       if (entry.isDirectory()) visit(entryPath);
-      else if (entry.isFile()) files.push(path.relative(root, entryPath));
+      else if (entry.isFile()) {
+        files.push(portableRelativePath(path.relative(root, entryPath)));
+      }
       else throw new Error(`unsupported Pages artifact entry: ${entry.name}`);
     }
   };
@@ -227,7 +233,7 @@ export function verifyPagesArtifact({ repositoryRoot, pagesDirectory, releaseMan
     const expectedProductFiles = relativeFiles(expectedProductDirectory);
     const actualFiles = relativeFiles(resolvedPages);
     const actualProductFiles = actualFiles.filter(
-      (entry) => !entry.startsWith(`updates${path.sep}`),
+      (entry) => !entry.startsWith("updates/"),
     );
     if (JSON.stringify(actualProductFiles) !== JSON.stringify(expectedProductFiles)) {
       throw new Error("Pages product file set does not match the canonical site");
@@ -242,9 +248,9 @@ export function verifyPagesArtifact({ repositoryRoot, pagesDirectory, releaseMan
     const updateDirectory = path.join(resolvedPages, "updates");
     const updateSnapshot = validateUpdateSnapshot(updateDirectory);
     const expectedUpdateFiles = relativeFiles(updateDirectory)
-      .map((entry) => path.join("updates", entry));
+      .map((entry) => path.posix.join("updates", entry));
     const actualUpdateFiles = actualFiles.filter(
-      (entry) => entry.startsWith(`updates${path.sep}`),
+      (entry) => entry.startsWith("updates/"),
     );
     if (JSON.stringify(actualUpdateFiles) !== JSON.stringify(expectedUpdateFiles)) {
       throw new Error("Pages update file set is incomplete");

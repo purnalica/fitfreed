@@ -383,6 +383,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   failures but cannot convert a failed row into acceptance. These exact-candidate checks complement, rather than
   replace, the same-revision instrumented
   capability, update/recovery, accessibility, localization, and data-performance evidence.
+- The Windows-expansion publication workflow applies the identical bounded desktop-session contract to both Linux
+  admission rows. Static workflow tests reject a missing AT-SPI or D-Bus service, window manager, software-rendering
+  boundary, or session wrapper. Portable Pages tests additionally require slash-separated file inventories on every
+  host so Windows reopening compares the same path identities carried by signed update metadata.
 - A separate manual Linux launch-diagnostic workflow may reuse one failed, already sealed candidate on a single
   Ubuntu 24.04 runner. It verifies both artifact transport layers and the signed manifest, installs the exact Debian
   member, and observes one launch in the same bounded hosted desktop session with path-redacted process streams. It has no secret, protected

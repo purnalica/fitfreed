@@ -14,6 +14,7 @@ import test from "node:test";
 
 import {
   composePagesArtifact,
+  portableRelativePath,
   relativeFiles,
   verifyPagesArtifact,
 } from "./pages-artifact.mjs";
@@ -21,6 +22,17 @@ import { repositoryRootFromScriptUrl } from "./module-path.mjs";
 import { publicUpdateUrl } from "./public-origin.mjs";
 
 const repositoryRoot = repositoryRootFromScriptUrl(import.meta.url);
+
+test("canonicalizes published file inventories across host path separators", () => {
+  assert.equal(
+    portableRelativePath(String.raw`updates\0.1.18\FitFreed_0.1.18_x64-setup.exe`, "\\"),
+    "updates/0.1.18/FitFreed_0.1.18_x64-setup.exe",
+  );
+  assert.equal(
+    portableRelativePath("updates/0.1.18/FitFreed_0.1.18_amd64.deb", "/"),
+    "updates/0.1.18/FitFreed_0.1.18_amd64.deb",
+  );
+});
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -245,7 +257,7 @@ test("preserves every current and recovery package in a platform expansion", () 
 
   assert.equal(result.updateSnapshot, "0.2.0");
   assert.deepEqual(
-    relativeFiles(outputDirectory).filter((entry) => entry.startsWith(`updates${path.sep}`)),
+    relativeFiles(outputDirectory).filter((entry) => entry.startsWith("updates/")),
     [
       "updates/0.1.0/FitFreed_0.1.0_amd64.deb",
       "updates/0.2.0/FitFreed_0.2.0_aarch64.app.tar.gz",

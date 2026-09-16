@@ -10,7 +10,7 @@ const semanticVersion =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 function publicUrl(baseUrl, relativePath) {
-  return new URL(relativePath.split(path.sep).join("/"), baseUrl).toString();
+  return new URL(relativePath, baseUrl).toString();
 }
 
 async function fetchResponse(fetchImpl, url) {
@@ -33,7 +33,7 @@ async function exactRemoteBytes(fetchImpl, url, expectedBytes) {
 }
 
 function updateFiles(pagesDirectory) {
-  return relativeFiles(pagesDirectory).filter((file) => file.startsWith(`updates${path.sep}`));
+  return relativeFiles(pagesDirectory).filter((file) => file.startsWith("updates/"));
 }
 
 function stableIdentity(bytes, boundary) {
@@ -96,7 +96,7 @@ export async function preflightPagesPublication({
   for (const relativePath of localUpdateFiles) {
     const url = publicUrl(baseUrl, relativePath);
     const expectedBytes = readFileSync(path.join(pagesDirectory, relativePath));
-    if (relativePath.endsWith(path.join("updates", "stable.json"))) {
+    if (relativePath === "updates/stable.json") {
       if (!remoteStableBytes.equals(expectedBytes)) throw new Error("active update snapshot changed during preflight");
     } else {
       await exactRemoteBytes(fetchImpl, url, expectedBytes);
@@ -114,8 +114,8 @@ async function verifyPublishedPagesOnce({ baseUrl, pagesDirectory, fetchImpl }) 
   for (const relativePath of files) {
     const remotePath = relativePath === "index.html"
       ? ""
-      : relativePath.endsWith(`${path.sep}index.html`)
-        ? `${path.dirname(relativePath).split(path.sep).join("/")}/`
+      : relativePath.endsWith("/index.html")
+        ? `${path.posix.dirname(relativePath)}/`
         : relativePath;
     await exactRemoteBytes(
       fetchImpl,

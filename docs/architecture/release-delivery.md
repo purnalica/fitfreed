@@ -134,7 +134,8 @@ The platform-neutral transport, publication, and remote-acceptance boundaries di
 and 8 to their exact verifier without translating one contract into another. Versions 7 and 8 transport all three ordered
 targets, publication derives every Release asset and the Windows expansion provenance workflow from that manifest, and
 remote acceptance downloads the three current packages plus every declared Linux or Windows recovery package before
-reconstructing the exact localized Pages tree. The versioned Windows expansion workflow and exact native admission
+reconstructing the exact localized Pages tree. Pages file identities are slash-separated on every build and admission
+host, matching the signed update paths and public URL grammar rather than a host filesystem separator. The versioned Windows expansion workflow and exact native admission
 matrix remain distinct delivery boundaries. Version 8 grants no Authenticode or exact Windows 11 claim; it admits the
 explicit unsigned preview only after the pinned hosted Windows lifecycle, predecessor release, and accountable
 approvals exist.
