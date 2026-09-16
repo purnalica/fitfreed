@@ -206,7 +206,7 @@ version, public updater-key identifier, and public release-checksum-key identifi
 
 The secret-free GitHub-hosted Windows builder runs the dependency audit and
 `npm run prepare:windows-unsigned-preview-input -- <version> <directory>`. That command embeds only public
-`stable-v3` trust, builds one current-user NSIS setup, requires the setup, installed application, and installed
+`stable-v3` trust, derives the platform icon from the canonical SVG, builds one current-user NSIS setup, requires the setup, installed application, and installed
 uninstaller to report `NotSigned`, performs one installation, inventory, data-preserving removal cycle, and stages the
 closed version 2 inventory and build evidence. It receives no protected environment or private authority.
 

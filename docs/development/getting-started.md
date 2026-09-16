@@ -231,7 +231,7 @@ user or CI runner. Its untimestamped synthetic result is automation evidence, ne
 binary.
 
 `npm run prepare:windows-unsigned-preview-input -- <version> <directory>` requires a clean source
-revision and active public updater trust. It builds and independently verifies the setup, requires `NotSigned` for all
+revision and active public updater trust. It generates the Tauri icons from the canonical SVG, builds and independently verifies the setup, requires `NotSigned` for all
 three native trust surfaces, runs the public-preview installation and data-preserving removal cycle, and atomically
 stages exactly three files: the setup, its version 2 complete inventory, and version 2 source-bound build evidence.
 Existing output is never replaced. The retained evidence includes the explicit preview profile and embedded updater

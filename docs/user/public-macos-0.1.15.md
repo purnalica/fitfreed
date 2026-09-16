@@ -1,12 +1,12 @@
-# Public macOS 0.1.14 Guide
+# Public macOS 0.1.15 Guide
 
 ## Status
 
-This is the operative version-matched macOS guide for FitFreed 0.1.14 once immutable `v0.1.14` GitHub Release
-exists in the [canonical repository](https://github.com/purnalica/fitfreed/releases/tag/v0.1.14). Before that exact
+This is the operative version-matched macOS guide for FitFreed 0.1.15 once immutable `v0.1.15` GitHub Release
+exists in the [canonical repository](https://github.com/purnalica/fitfreed/releases/tag/v0.1.15). Before that exact
 Release exists, this document describes a candidate and is not permission to install another build.
 
-FitFreed 0.1.14 supports Apple Silicon on macOS 15.0 or later. It is experimental GPL-3.0-or-later software provided
+FitFreed 0.1.15 supports Apple Silicon on macOS 15.0 or later. It is experimental GPL-3.0-or-later software provided
 without warranty and at the user's own risk. Read the [project disclaimer](../../DISCLAIMER.md) before installation.
 
 ## Preserve the source data first
@@ -18,7 +18,7 @@ legal advice.
 
 ## Download and verify
 
-Download only `FitFreed_0.1.14_aarch64.dmg` from immutable Release `v0.1.14`. The same Release must contain the updater
+Download only `FitFreed_0.1.15_aarch64.dmg` from immutable Release `v0.1.15`. The same Release must contain the updater
 archive and signature, `release-manifest.json`, `supported-upgrades.json`, `RELEASE_NOTES.md`, `SHA256SUMS`,
 `SHA256SUMS.minisig`, and the inventories named in the manifest. Verify the signed checksum inventory, the DMG digest,
 and GitHub release provenance before opening it. A missing asset, mismatched version, mutable Release, or renamed file
@@ -28,7 +28,7 @@ is a hard stop.
 
 Open the verified DMG, drag FitFreed to Applications, eject the image, and launch that installed copy. macOS must
 identify the expected Developer ID publisher and accept the notarized application through Gatekeeper. Do not bypass a
-damaged, unidentified, differently signed, or quarantined package. Confirm FitFreed reports version 0.1.14 before
+damaged, unidentified, differently signed, or quarantined package. Confirm FitFreed reports version 0.1.15 before
 importing data.
 
 ## Language and first run

@@ -390,7 +390,7 @@ short-lived self-signed identity cannot represent HARICA or public trust. The lo
 and the retired SignPath packaging stages are historical implementation rather than an available release route.
 
 `npm run prepare:windows-unsigned-preview-input -- <version> <directory>` is the public Windows input
-entry point. On pinned GitHub-hosted x86-64 Windows it builds the release-shaped NSIS package with active `stable-v3`
+entry point. On pinned GitHub-hosted x86-64 Windows it generates the Tauri icons from the canonical SVG, builds the release-shaped NSIS package with active `stable-v3`
 public update trust, requires the setup, installed application, and installed uninstaller to report `NotSigned`, runs
 one installation, identity, inventory, data-preserving removal cycle, and atomically stages only the exact setup,
 inventory version 2, and source-bound build evidence version 2. The evidence declares the preview trust profile and

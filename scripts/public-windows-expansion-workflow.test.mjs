@@ -30,7 +30,7 @@ test("accepts the exact three-platform unsigned Windows preview topology", () =>
   assert.equal(result.actionReferenceCount, 29);
   assert.equal(
     packageManifest.scripts["prepare:windows-unsigned-preview-input"],
-    "node scripts/prepare-windows-expansion-input.mjs --unsigned-preview",
+    "npm run icons && node scripts/prepare-windows-expansion-input.mjs --unsigned-preview",
   );
   assert.match(workflow, /npm run prepare:windows-unsigned-preview-input --/);
   assert.doesNotMatch(workflow, /SignPath|FITFREED_WINDOWS_CERTIFICATE|self-hosted/i);

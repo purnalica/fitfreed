@@ -1,7 +1,7 @@
 {
   "name": "fitfreed",
   "private": true,
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "A local-first open-source fitness data explorer",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -107,7 +107,7 @@
     "prepare:complete-platform-release": "node scripts/prepare-complete-platform-release.mjs",
     "prepare:linux-expansion-input": "node scripts/prepare-linux-expansion-input.mjs",
     "prepare:windows-expansion-input": "node scripts/prepare-windows-expansion-input.mjs",
-    "prepare:windows-unsigned-preview-input": "node scripts/prepare-windows-expansion-input.mjs --unsigned-preview",
+    "prepare:windows-unsigned-preview-input": "npm run icons && node scripts/prepare-windows-expansion-input.mjs --unsigned-preview",
     "prepare:linux-expansion-release": "node scripts/prepare-expanding-public-release.mjs",
     "prepare:product-pages": "node scripts/prepare-public-pages.mjs .artifacts/pages",
     "prepare:public-release": "node scripts/prepare-public-release.mjs",
