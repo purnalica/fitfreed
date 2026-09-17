@@ -2,7 +2,7 @@
   "format": "org.fitfreed.upgrade-matrix",
   "schemaVersion": 2,
   "release": {
-    "version": "0.1.22",
+    "version": "0.1.23",
     "librarySchemaVersion": 37
   },
   "supportedApplicationBaselines": [

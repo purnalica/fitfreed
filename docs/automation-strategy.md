@@ -272,13 +272,14 @@ passes only an unguessable lowercase 256-bit pipe identity, and the host accepts
 shape. Pipe setup precedes timing; the host connects during process startup and retains that connection until the
 painted-shell signal. Connection, painting, and the privacy-safe signal transport remain measured, and a timeout
 distinguishes a host that never connected from a connected host whose renderer never reported a painted shell. The
-  harness establishes one bounded `WScript.Shell` process before campaign timing. Each measured launch sends only its
-  exact spawned PID, verifies every matching activation response, and reasserts that exact-PID activation at a bounded
-  cadence until the painted-shell signal arrives. It does not search by product name or turn activation failure into
-  a retry; any failed or mismatched activation rejects the sample. After each sample, the harness
-  closes the complete child tree rooted at that exact PID through bounded native Windows termination before another
-  sample can start; failure to close the tree rejects the campaign. This prevents WebView2 descendants from one
-  sample becoming hidden inputs to later samples. After the
+same harness establishes a fresh bounded `WScript.Shell` process before each sample's timing and closes it after that
+sample, preventing foreground-automation state from crossing sample boundaries. Each measured launch sends only its
+exact spawned PID, verifies every matching activation response, and reasserts that exact-PID activation at a bounded
+cadence until the painted-shell signal arrives. It does not search by product name or turn activation failure into a
+retry; any failed or mismatched activation rejects the sample. After each sample, the harness closes the complete
+child tree rooted at that exact PID through bounded native Windows termination before another sample can start;
+failure to close the tree rejects the campaign. This prevents WebView2 descendants from one sample becoming hidden
+inputs to later samples. After the
 installed launch, the workflow verifies that the non-empty production library resides under the exact native
 `%APPDATA%` root with no reparse descendants and the protected current-user, LocalSystem, and Builtin Administrators
 ACL defined by the version 2 filesystem contract. The same workflow creates an isolated 64 MiB NTFS VHD on its

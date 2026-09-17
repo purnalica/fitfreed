@@ -446,9 +446,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   host admits only that closed pipe-name shape. The host connects during process startup and retains its writer until
   the renderer reports the painted shell; channel setup precedes timing while connection and transport remain
   measured, and timeout diagnostics distinguish the two stages. Direct repeated process creation does not guarantee
-  foreground activation on Windows, so the harness establishes one bounded shell-automation process before the
-  campaign and sends only the exact spawned PID during each measured launch. It verifies every matching activation
-  response and maintains that exact-PID activation at a bounded cadence until the painted-shell signal arrives.
+  foreground activation on Windows, so the harness establishes a fresh bounded shell-automation process before each
+  sample's timer and closes it after that sample. This prevents activation state from crossing sample boundaries while
+  excluding auxiliary process creation from product timing. The measured launch sends only the exact spawned PID,
+  verifies every matching activation response, and maintains that exact-PID activation at a bounded cadence until the
+  painted-shell signal arrives.
   Auxiliary process creation is outside product timing; all exact-PID requests and responses remain measured. A
   failed activation rejects the sample immediately, while repeated successful activation only preserves the
   foreground precondition and never retries a quality result.

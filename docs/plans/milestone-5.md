@@ -40,10 +40,14 @@ Version 0.1.21 contained that correction, passed both native input builds, prote
 notarization, and both Ubuntu admissions, but reproduced the same connected-host-without-painted-shell failure on
 Windows. Complete tree termination therefore does not explain the missing frame. The remaining changed boundary is
 the persistent activator introduced after 0.1.19: it verifies `AppActivate` once, although Windows does not guarantee
-that focus remains with the window after a successful activation. The next candidate keeps the persistent helper and
-tree isolation but reasserts the exact PID at a bounded cadence until the painted-shell signal or unchanged timeout.
-Version 0.1.22 contains that correction, and its exact source passed continuous integration. Immutable tag, protected
-approvals, native admission, publication, and remote acceptance remain.
+that focus remains with the window after a successful activation. Version 0.1.22 kept that persistent helper and tree
+isolation while reasserting the exact PID at a bounded cadence until the painted-shell signal or unchanged timeout.
+It passed composition and both Ubuntu admissions but reproduced the missing painted-shell failure on Windows. This
+falsifies loss of focus after one activation and isolates the shared automation session as the remaining lifecycle
+difference from 0.1.19, which painted all 100 processes. Version 0.1.23 creates a fresh helper before every sample's
+timer and closes it afterward, without changing product code or the measured activation, process, paint, signal,
+sample-count, timeout, percentile, or budget boundaries. Exact-source CI, immutable tag, protected approvals, native
+admission, publication, and remote acceptance remain.
 The implemented
 SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
@@ -121,7 +125,7 @@ separate protected promotion decision.
 | M5.3 Packaged capability parity | Complete | Exact source `b94a8f4` builds and installs the isolated Linux and Windows packages and passes both exhaustive functional journeys, process restarts, adaptive session composition and restart, sport-catalogue recognition and restart, and Insights interaction and responsiveness budgets. The same source passes the complete packaged macOS campaign. Release-only descendants retain this evidence rather than repeating unchanged product campaigns. |
 | M5.4 Windows performance and reliability admission | Complete | Exact source `43b04ff` and [run `34315586139`](https://github.com/purnalica/fitfreed/actions/runs/34315586139) accept 100 installed fresh-data launches at p95 `2,175.046 ms` against `2,500 ms`. Exact descendant `23b0f1e` and [recovery-and-data run `34334118449`](https://github.com/purnalica/fitfreed/actions/runs/34334118449) reopen that package evidence, skip its build and cold-launch campaign, and pass native NTFS disk-exhaustion recovery plus every full-scale import, exact-repeat, reimport, dense-history, concurrent-navigation, Insights, report-export, memory, and database-size budget. This closes the hosted Windows Server 2025 engineering boundary without claiming the separate exact Windows 11 candidate gate in M5.6. |
 | M5.5 Installation, operations, and documentation | Complete for preview | The version-matched Windows guide, support and security entry points, installed `en-US` and `es-ES` help, contributor scopes, maintainer runbook, manifest version 8 contracts, product-site warning, HARICA deferral, withdrawal, recovery, and incident boundaries describe one explicit unsigned preview. SignPath commands are historical compatibility code and no protected Windows signing environment remains. |
-| M5.6 Exact candidate and promotion | In progress for 0.1.22 | The manual Windows workflow builds and seals the unsigned native input on `windows-2025`, composes one protected complete-platform candidate, admits its exact Linux and Windows packages before promotion, and publishes only after a second protected approval. Immutable public 0.1.12 satisfies the predecessor dependency. Workflows `35102076630` through `35235387258` rejected immutable 0.1.13 through 0.1.21 at progressively later authority-safe boundaries without publishing a Release or Pages snapshot. Version 0.1.21 passed both native inputs, protected Apple signing and notarization, portable sealing, and both Ubuntu admissions; its Windows admission proved that complete process-tree termination does not correct the intermittent loss of painted-shell evidence after a successful one-shot activation. Version 0.1.22 maintains exact-PID foreground activation until the signal without changing the timeout, sample count, p95 budget, package, or product behavior, and its exact source passed continuous integration. Immutable tag, protected approvals, candidate execution, immutable publication, Pages convergence, and remote verification remain. |
+| M5.6 Exact candidate and promotion | In progress for 0.1.23 after rejected 0.1.22 | The manual Windows workflow builds and seals the unsigned native input on `windows-2025`, composes one protected complete-platform candidate, admits its exact Linux and Windows packages before promotion, and publishes only after a second protected approval. Immutable public 0.1.12 satisfies the predecessor dependency. Workflows `35102076630` through `35270281675` rejected immutable 0.1.13 through 0.1.22 at progressively later authority-safe boundaries without publishing a Release or Pages snapshot. Version 0.1.22 passed both native inputs, protected Apple signing and notarization, portable sealing, and both Ubuntu admissions; its Windows admission proved that repeated exact-PID activation through a campaign-long helper does not correct the intermittent loss of painted-shell evidence. Version 0.1.23 uses one fresh pre-timing activation helper per sample while retaining exact-PID activation until the signal, complete process-tree cleanup, the timeout, sample count, p95 budget, package, and product behavior. Exact-source CI, immutable tag, protected approvals, candidate execution, immutable publication, Pages convergence, and remote verification remain. |
 
 Exact descendant `8e0e67b` passes repository safety, product-site publication, the portable quality lane, and the
 complete Linux host in run [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902). The Windows
@@ -734,6 +738,18 @@ not guarantee that Windows retains foreground focus until WebView2 paints. Promo
 Pages deployment began. The next candidate reuses that one pre-established helper to reassert only the exact spawned
 PID every 250 milliseconds until the signal, while retaining complete tree cleanup, 100 samples, the ten-second
 per-process bound, the p95 calculation, and the `2,500 ms` budget.
+
+Immutable `v0.1.22` at `6124af1fc38c43a5c18d3406e36afa9eb729f4b8` passed exact-source CI, both authority-free
+native input jobs, protected complete-platform composition, Apple signing and notarization, portable sealing, and
+both Ubuntu admission rows in workflow
+[`35270281675`](https://github.com/purnalica/fitfreed/actions/runs/35270281675). Its Windows admission repeatedly
+reasserted activation for every exact PID through the same campaign-long `WScript.Shell` helper and still observed one
+connected host without painted-shell evidence inside ten seconds. This falsifies focus loss after a single activation
+as the explanation for 0.1.21. Version 0.1.19 painted all 100 samples while using a fresh helper per launch, making the
+shared automation session the remaining lifecycle difference introduced immediately before the failures began.
+Promotion was skipped and no Release or Pages deployment began. The next candidate creates a fresh helper before each
+sample's timer, retains measured exact-PID activation until paint, and closes the complete product tree and helper
+after that sample. The sample count, observation timeout, p95 calculation, and `2,500 ms` budget remain unchanged.
 
 ## Human intervention boundary
 

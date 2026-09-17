@@ -797,7 +797,7 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
   };
   let channelClosed = false;
   let applicationDataPrepared = false;
-  const activated = [];
+  const activatorLifecycle = [];
   const terminated = [];
 
   const measurement = await measureFreshProcess(
@@ -806,8 +806,16 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
     { applicationVersion: "0.1.0", sourceRevision: revision },
     {
       architecture: "x64",
-      async activateApplication(processIdentifier, platform) {
-        activated.push([processIdentifier, platform]);
+      async createApplicationActivator(platform) {
+        activatorLifecycle.push(["create", platform]);
+        return {
+          async activate(processIdentifier) {
+            activatorLifecycle.push(["activate", processIdentifier]);
+          },
+          async close() {
+            activatorLifecycle.push(["close"]);
+          },
+        };
       },
       async createWindowsSignalChannel() {
         return {
@@ -832,6 +840,7 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
       },
       spawnApplication(_binary, _arguments, options) {
         assert.equal(applicationDataPrepared, true);
+        assert.deepEqual(activatorLifecycle, [["create", "win32"]]);
         assert.deepEqual(options.stdio, ["ignore", "ignore", "pipe"]);
         assert.equal(
           options.env.FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE,
@@ -860,7 +869,11 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
   );
 
   assert.ok(measurement.totalMilliseconds >= 0);
-  assert.deepEqual(activated, [[8_765, "win32"]]);
+  assert.deepEqual(activatorLifecycle, [
+    ["create", "win32"],
+    ["activate", 8_765],
+    ["close"],
+  ]);
   assert.deepEqual(terminated, [[8_765, "win32"]]);
   assert.equal(channelClosed, true);
 });
@@ -1050,6 +1063,12 @@ test("rejects a Windows startup channel that closes before the painted-shell sig
       { applicationVersion: "0.1.0", sourceRevision: revision },
       {
         architecture: "x64",
+        async createApplicationActivator() {
+          return {
+            async activate() {},
+            async close() {},
+          };
+        },
         async createWindowsSignalChannel() {
           return {
             pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "ef".repeat(32),
@@ -1092,6 +1111,12 @@ test("closes the Windows startup channel when process creation fails synchronous
       { applicationVersion: "0.1.0", sourceRevision: revision },
       {
         architecture: "x64",
+        async createApplicationActivator() {
+          return {
+            async activate() {},
+            async close() {},
+          };
+        },
         async createWindowsSignalChannel() {
           return {
             pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "12".repeat(32),
@@ -1116,6 +1141,44 @@ test("closes the Windows startup channel when process creation fails synchronous
       },
     ),
     /application process could not be started/,
+  );
+  assert.equal(channelClosed, true);
+});
+
+test("closes the Windows startup channel when fresh activation setup fails", async () => {
+  let channelClosed = false;
+
+  await assert.rejects(
+    measureFreshProcess(
+      "C:\\FitFreed\\fitfreed.exe",
+      "C:\\unused-home",
+      { applicationVersion: "0.1.0", sourceRevision: revision },
+      {
+        architecture: "x64",
+        async createApplicationActivator() {
+          throw new Error("synthetic activation setup failure");
+        },
+        async createWindowsSignalChannel() {
+          return {
+            pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "34".repeat(32),
+            output: new PassThrough(),
+            isConnected() {
+              return false;
+            },
+            async close() {
+              channelClosed = true;
+            },
+          };
+        },
+        inheritedEnvironment: {
+          LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+          PATH: "C:\\Windows\\System32",
+        },
+        platform: "win32",
+        prepareApplicationData() {},
+      },
+    ),
+    /synthetic activation setup failure/,
   );
   assert.equal(channelClosed, true);
 });

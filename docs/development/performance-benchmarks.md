@@ -72,11 +72,12 @@ after that exact process and its identifier is never retained as evidence.
 The production build wrapper binds the exact Git revision and clean-tree state into the host. The benchmark rejects a dirty checkout, an application built from another revision, an instrumented package, an unexpected signal field, invalid or unordered timing values, or a build that was not clean. It starts the timer immediately before creating each application process. After locale initialization, React waits for the next animation frame and reports the interactive shell through a one-shot host command. The host emits a closed privacy-safe JSON signal containing the event contract, application version, source revision, clean-tree state, and monotonic durations for host setup, host signal receipt, renderer locale readiness, and renderer signal invocation. These durations contain no wall-clock timestamp, path, host identity, or user data. WebDriver, driver creation, WebView reloads, and timers started after process creation are outside this boundary and cannot satisfy it.
 
 On Windows, repeated direct process creation does not guarantee foreground activation and a background WebView2
-window may not receive the paint frame that defines the measured boundary. The benchmark establishes one bounded
-`WScript.Shell` activator before the campaign so auxiliary process creation cannot contaminate product timing. After
-each exact child process exists, its measured interval sends that PID to `AppActivate`, verifies the matching
-response, and reasserts the same exact-PID activation at a bounded 250-millisecond cadence until the painted-shell
-signal arrives. Microsoft documents that focus can move away after a successful
+window may not receive the paint frame that defines the measured boundary. Before each measured process, the benchmark
+establishes a fresh bounded `WScript.Shell` activator so auxiliary process creation cannot contaminate product timing
+or carry foreground-automation state between samples. After the exact child process exists, its measured interval
+sends that PID to `AppActivate`, verifies the matching response, and reasserts the same exact-PID activation at a
+bounded 250-millisecond cadence until the painted-shell signal arrives. Microsoft documents that focus can move away
+after a successful
 [`AppActivate`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualbasic.interaction.appactivate), so a
 single successful response is not evidence that the window remains foreground long enough to paint. The harness
 never searches by process or product name, and every activation remains inside the unchanged ten-second observation

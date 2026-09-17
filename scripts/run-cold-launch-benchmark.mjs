@@ -766,8 +766,9 @@ export async function measureFreshProcess(
     architecture = process.arch,
     inheritedEnvironment = process.env,
     platform = process.platform,
-    activateApplication = activateDesktopApplication,
+    activateApplication = null,
     cancelReactivation = clearTimeout,
+    createApplicationActivator = createDesktopApplicationActivator,
     createWindowsSignalChannel = createWindowsStartupSignalChannel,
     cancelTimeout = clearTimeout,
     observationTimeoutMilliseconds = launchTimeoutMilliseconds,
@@ -795,6 +796,17 @@ export async function measureFreshProcess(
   if (windowsSignalChannel) {
     environment[windowsStartupSignalEnvironmentVariable] = windowsSignalChannel.pipeName;
   }
+  let ownedApplicationActivator = null;
+  let effectiveActivateApplication = activateApplication;
+  if (effectiveActivateApplication === null) {
+    try {
+      ownedApplicationActivator = await createApplicationActivator(platform);
+      effectiveActivateApplication = ownedApplicationActivator.activate;
+    } catch (error) {
+      await windowsSignalChannel?.close();
+      throw error;
+    }
+  }
   const startedAt = performance.now();
   let child;
   try {
@@ -805,7 +817,11 @@ export async function measureFreshProcess(
         : ["ignore", "pipe", "pipe"],
     });
   } catch {
-    await windowsSignalChannel?.close();
+    try {
+      await windowsSignalChannel?.close();
+    } finally {
+      await ownedApplicationActivator?.close();
+    }
     throw new Error("application process could not be started");
   }
   let standardOutput = "";
@@ -870,7 +886,7 @@ export async function measureFreshProcess(
       if (!["darwin", "win32"].includes(platform) || settled) return;
       const activate = () => {
         if (settled || signalReceived) return;
-        activation = Promise.resolve(activateApplication(child.pid, platform));
+        activation = Promise.resolve(effectiveActivateApplication(child.pid, platform));
         void activation.then(() => {
           if (platform !== "win32" || settled || signalReceived) return;
           reactivationTimer = scheduleReactivation(() => {
@@ -939,7 +955,11 @@ export async function measureFreshProcess(
     try {
       await terminateApplication(child, platform);
     } finally {
-      await windowsSignalChannel?.close();
+      try {
+        await windowsSignalChannel?.close();
+      } finally {
+        await ownedApplicationActivator?.close();
+      }
     }
   }
 }
@@ -953,16 +973,13 @@ async function executeColdLaunchBenchmark() {
   const { applicationBinary, applicationVersion, boundary } =
     resolveColdLaunchApplication();
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-"));
-  let applicationActivator;
   try {
-    applicationActivator = await createDesktopApplicationActivator(process.platform);
     const runs = [];
     for (let index = 0; index < measuredFreshProcesses; index += 1) {
       runs.push(await measureFreshProcess(
         applicationBinary,
         path.join(temporaryDirectory, `home-${index}`),
         { applicationVersion, sourceRevision },
-        { activateApplication: applicationActivator.activate },
       ));
     }
     const measurement = evaluateColdLaunchRuns(runs);
@@ -993,11 +1010,7 @@ async function executeColdLaunchBenchmark() {
     process.stdout.write(`${JSON.stringify(evidence)}\n`);
     if (!evidence.passed) throw new Error("cold launch performance budget failed");
   } finally {
-    try {
-      await applicationActivator?.close();
-    } finally {
-      rmSync(temporaryDirectory, { recursive: true, force: true });
-    }
+    rmSync(temporaryDirectory, { recursive: true, force: true });
   }
 }
 
