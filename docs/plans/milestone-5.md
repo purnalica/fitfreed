@@ -36,7 +36,8 @@ notarization, and both Ubuntu admissions. Its hosted Windows campaign later conn
 did not receive a renderer signal from one sample. The campaign terminated only each direct Tauri host, so WebView2
 descendants could survive between samples and make a later launch depend on retained processes. The next candidate
 terminates the complete child tree rooted at every exact spawned Windows PID before starting another sample.
-Exact-source CI, immutable tag, protected approvals, native admission, publication, and remote acceptance remain.
+Version 0.1.21 contains that correction. Exact-source CI, immutable tag, protected approvals, native admission,
+publication, and remote acceptance remain.
 The implemented
 SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
