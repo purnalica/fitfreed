@@ -437,6 +437,8 @@ export async function terminateDesktopApplication(
 
 function windowsApplicationActivatorCommand() {
   return [
+    "$nativeWindowSource = 'using System; using System.Runtime.InteropServices; public static class ExactProcessWindowActivation { [DllImport(\"user32.dll\")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); [DllImport(\"user32.dll\")] public static extern bool IsWindowVisible(IntPtr hWnd); [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd); }';",
+    "Add-Type -TypeDefinition $nativeWindowSource;",
     "$shell = New-Object -ComObject WScript.Shell;",
     '[Console]::Out.WriteLine("ready");',
     "[Console]::Out.Flush();",
@@ -446,7 +448,15 @@ function windowsApplicationActivatorCommand() {
     "$activated = $false;",
     "if ($parsed -and $targetProcessId -gt 0) {",
     "for ($attempt = 0; $attempt -lt 40; $attempt += 1) {",
-    "if ($shell.AppActivate($targetProcessId)) { $activated = $true; break }",
+    "$process = [System.Diagnostics.Process]::GetProcessById($targetProcessId);",
+    "$process.Refresh();",
+    "$handle = $process.MainWindowHandle;",
+    "if ($handle -ne [IntPtr]::Zero) {",
+    "[void][ExactProcessWindowActivation]::ShowWindowAsync($handle, 9);",
+    "[void][ExactProcessWindowActivation]::SetForegroundWindow($handle);",
+    "$matched = $shell.AppActivate($targetProcessId);",
+    "if ($matched -and [ExactProcessWindowActivation]::IsWindowVisible($handle)) { $activated = $true; break }",
+    "}",
     "Start-Sleep -Milliseconds 25",
     "}",
     "}",

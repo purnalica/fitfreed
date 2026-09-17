@@ -514,6 +514,11 @@ test("reuses one bounded Windows shell for exact process activation", async () =
   ]);
   assert.match(calls[0].arguments_.at(-1), /AppActivate\(\$targetProcessId\)/);
   assert.match(calls[0].arguments_.at(-1), /ReadLine/);
+  assert.match(calls[0].arguments_.at(-1), /Process\]::GetProcessById\(\$targetProcessId\)/);
+  assert.match(calls[0].arguments_.at(-1), /\.Refresh\(\)/);
+  assert.match(calls[0].arguments_.at(-1), /\.MainWindowHandle/);
+  assert.match(calls[0].arguments_.at(-1), /ShowWindowAsync\(\$handle, 9\)/);
+  assert.match(calls[0].arguments_.at(-1), /IsWindowVisible\(\$handle\)/);
   assert.doesNotMatch(calls[0].arguments_.at(-1), /FitFreed|Get-Process/);
   assert.deepEqual(calls[0].options, {
     stdio: ["pipe", "pipe", "pipe"],

@@ -274,9 +274,11 @@ painted-shell signal. Connection, painting, and the privacy-safe signal transpor
 distinguishes a host that never connected from a connected host whose renderer never reported a painted shell. The
 same harness establishes a fresh bounded `WScript.Shell` process before each sample's timing and closes it after that
 sample, preventing foreground-automation state from crossing sample boundaries. Each measured launch sends only its
-exact spawned PID, verifies every matching activation response, and reasserts that exact-PID activation at a bounded
-cadence until the painted-shell signal arrives. It does not search by product name or turn activation failure into a
-retry; any failed or mismatched activation rejects the sample. After each sample, the harness closes the complete
+exact spawned PID, resolves and refreshes only that process's native main-window handle, restores the window, verifies
+that it is visible, and reasserts exact-PID activation at a bounded cadence until the painted-shell signal arrives.
+This distinguishes a window found by `AppActivate` from a window actually placed in a paintable state. It does not
+search by product name or turn activation failure into a retry; any missing handle, invisible window, failed
+activation, or mismatched response rejects the sample. After each sample, the harness closes the complete
 child tree rooted at that exact PID through bounded native Windows termination before another sample can start;
 failure to close the tree rejects the campaign. This prevents WebView2 descendants from one sample becoming hidden
 inputs to later samples. After the

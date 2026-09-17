@@ -75,11 +75,13 @@ On Windows, repeated direct process creation does not guarantee foreground activ
 window may not receive the paint frame that defines the measured boundary. Before each measured process, the benchmark
 establishes a fresh bounded `WScript.Shell` activator so auxiliary process creation cannot contaminate product timing
 or carry foreground-automation state between samples. After the exact child process exists, its measured interval
-sends that PID to `AppActivate`, verifies the matching response, and reasserts the same exact-PID activation at a
-bounded 250-millisecond cadence until the painted-shell signal arrives. Microsoft documents that focus can move away
-after a successful
-[`AppActivate`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualbasic.interaction.appactivate), so a
-single successful response is not evidence that the window remains foreground long enough to paint. The harness
+sends that PID to the activator, refreshes only that process's `MainWindowHandle`, restores the native window through
+`ShowWindowAsync`, verifies native visibility, invokes `AppActivate`, and repeats that exact sequence at a bounded
+250-millisecond cadence until the painted-shell signal arrives. Microsoft documents that `MainWindowHandle` must be
+refreshed for a newly created window and that
+[`AppActivate`](https://learn.microsoft.com/en-us/office/vba/language/reference/user-interface-help/appactivate-statement)
+does not change whether a window is minimized or maximized. A successful response is therefore not evidence that the
+window is visible and remains foreground long enough to paint. The harness
 never searches by process or product name, and every activation remains inside the unchanged ten-second observation
 and p95 measurement boundaries. A missing window, mismatched PID, or failed activation rejects the run immediately;
 reasserting a successful activation is focus maintenance rather than a quality-result retry.

@@ -751,6 +751,18 @@ Promotion was skipped and no Release or Pages deployment began. The next candida
 sample's timer, retains measured exact-PID activation until paint, and closes the complete product tree and helper
 after that sample. The sample count, observation timeout, p95 calculation, and `2,500 ms` budget remain unchanged.
 
+Immutable `v0.1.23` at `434324cb74829549a5d95f9566d52d0e46e3e852` passed exact-source CI, both authority-free
+native input jobs, protected complete-platform composition, Apple signing and notarization, portable sealing, and
+both Ubuntu admission rows in workflow
+[`35276195537`](https://github.com/purnalica/fitfreed/actions/runs/35276195537). Its Windows admission used a fresh
+helper for every sample and still observed one connected host without painted-shell evidence inside ten seconds.
+This falsifies shared helper state while preserving the earlier evidence that all complete product process trees are
+closed. `AppActivate` reports that it found the exact PID, but it does not restore a minimized window and is not proof
+that the native window is visible. The next candidate refreshes the exact process's `MainWindowHandle`, restores that
+window through the native Windows API, verifies its visible state, and only then accepts the matching `AppActivate`
+response. Fresh helper isolation, repeated activation, complete tree cleanup, 100 samples, the ten-second observation,
+p95 calculation, and the `2,500 ms` budget remain unchanged.
+
 ## Human intervention boundary
 
 Engineering and hosted evidence proceed autonomously. The preview requires the public Linux dependency, immutable
