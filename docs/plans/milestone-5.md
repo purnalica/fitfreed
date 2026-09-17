@@ -27,9 +27,12 @@ later workflow contracts: the Windows expansion had not inherited the already ac
 and the Pages file inventory used host separators while its signed URLs and payload paths are canonical POSIX paths.
 Version 0.1.18 restored both contracts, passed protected composition and both Ubuntu admissions, then one of its 100
 directly created Windows processes connected the diagnostic channel without receiving the foreground paint required
-inside ten seconds. Version 0.1.19 activates each exact Windows PID within the unchanged measured boundary.
-Exact-source CI, immutable tag, protected approvals, native admission, publication, and remote acceptance remain. The
-implemented SignPath integration remains historical engineering evidence until its complete content and
+inside ten seconds. Version 0.1.19 activated each exact Windows PID within the unchanged measured boundary, passed
+composition and both Ubuntu admissions, and then missed the Windows cold-launch p95 budget by `19.107 ms`. The
+per-launch activation process was part of the measurement harness rather than the product. The next candidate uses
+one pre-established bounded activator while retaining exact-PID activation inside every measured launch. Exact-source
+CI, immutable tag, protected approvals, native admission, publication, and remote acceptance remain. The implemented
+SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
 
 ## Windows distribution evaluation
@@ -681,6 +684,19 @@ skipped, and no Release or Pages deployment began. The source correction for 0.1
 line with the existing macOS model: activate the exact spawned PID once inside the measured boundary, accept no shell
 signal until activation succeeds, and retain the same 100 samples, ten-second observation, p95 calculation, and
 2.5-second budget.
+
+Immutable `v0.1.19` at `a6b696596d87fd98020032b78f905bdf2710a9b4` passed exact-source CI, both authority-free
+native input jobs, protected complete-platform composition, Apple signing and notarization, portable sealing, and
+both Ubuntu admission rows in workflow
+[`35208241135`](https://github.com/purnalica/fitfreed/actions/runs/35208241135). Hosted Windows installed the exact
+unsigned setup, observed a painted shell for all 100 fresh processes, and reported median `2,089.344 ms`, p95
+`2,519.107 ms`, and maximum `7,217.317 ms`. The unchanged p95 budget is `2,500 ms`, so native admission correctly
+rejected the candidate by `19.107 ms`; promotion was skipped and no Release or Pages deployment began. The diagnostic
+phases locate most time in host setup and renderer startup, while the harness also starts a new PowerShell process
+inside every measured launch solely to activate the exact PID. The next candidate pre-establishes one bounded
+`WScript.Shell` activator before the campaign, then sends and verifies the exact PID inside each measured interval.
+This removes harness process creation from product timing without changing the sample count, observation timeout,
+percentile, budget, activation attempts, or painted-shell boundary.
 
 ## Human intervention boundary
 

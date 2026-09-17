@@ -446,9 +446,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   host admits only that closed pipe-name shape. The host connects during process startup and retains its writer until
   the renderer reports the painted shell; channel setup precedes timing while connection and transport remain
   measured, and timeout diagnostics distinguish the two stages. Direct repeated process creation does not guarantee
-  foreground activation on Windows, so the harness activates only the exact spawned PID through one bounded shell
-  automation call and refuses to accept its painted-shell signal until that call succeeds. The activation remains
-  measured and never becomes a quality-gate retry. The campaign then runs the same full-scale
+  foreground activation on Windows, so the harness establishes one bounded shell-automation process before the
+  campaign and sends only the exact spawned PID during each measured launch. It verifies the matching activation
+  response and refuses to accept the painted-shell signal until activation succeeds. Auxiliary process creation is
+  outside product timing; the exact-PID request and response remain measured and never become a quality-gate retry.
+  The campaign then runs the same full-scale
   import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights, report-resolution, and export
   read-model campaigns. Windows benchmark binaries use the native `.exe` suffix, and the Rust process peak working
   set is normalized to mebibytes before entering the unchanged shared memory budget. No push, pull-request, schedule,

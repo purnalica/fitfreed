@@ -12,11 +12,11 @@ import {
 } from "./build-production.mjs";
 import {
   activateMacosApplication,
-  activateWindowsApplication,
   coldLaunchEnvironment,
   coldLaunchFailureMessage,
   coldLaunchTimeoutMessage,
   coldLaunchTransportClosedMessage,
+  createWindowsApplicationActivator,
   createWindowsStartupSignalChannel,
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
@@ -464,15 +464,43 @@ test("bounds macOS activation and rejects an unavailable process", async () => {
   );
 });
 
-test("activates the exact Windows process by identifier through one bounded shell call", async () => {
+test("reuses one bounded Windows shell for exact process activation", async () => {
   const calls = [];
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+  let input = "";
+  child.stdin.on("data", (chunk) => {
+    input += chunk.toString("utf8");
+    const lines = input.split("\n");
+    input = lines.pop() ?? "";
+    for (const line of lines) {
+      if (line) child.stdout.write(`${line}\ttrue\n`);
+    }
+  });
+  child.stdin.once("end", () => {
+    child.exitCode = 0;
+    queueMicrotask(() => child.emit("exit", 0, null));
+  });
 
-  await activateWindowsApplication(4_321, {
-    async execute(file, arguments_, options) {
+  const activatorPromise = createWindowsApplicationActivator({
+    spawnHelper(file, arguments_, options) {
       calls.push({ file, arguments_, options });
-      return { stdout: "true\n" };
+      queueMicrotask(() => child.stdout.write("ready\n"));
+      return child;
     },
   });
+  const activator = await activatorPromise;
+  await activator.activate(4_321);
+  await activator.activate(7_654);
+  await activator.close();
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].file, "powershell.exe");
@@ -483,30 +511,68 @@ test("activates the exact Windows process by identifier through one bounded shel
     "-ExecutionPolicy",
     "Bypass",
   ]);
-  assert.match(calls[0].arguments_.at(-1), /AppActivate\(4321\)/);
+  assert.match(calls[0].arguments_.at(-1), /AppActivate\(\$targetProcessId\)/);
+  assert.match(calls[0].arguments_.at(-1), /ReadLine/);
   assert.doesNotMatch(calls[0].arguments_.at(-1), /FitFreed|Get-Process/);
   assert.deepEqual(calls[0].options, {
-    encoding: "utf8",
-    killSignal: "SIGKILL",
-    maxBuffer: 4_096,
-    timeout: 2_000,
+    stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
   });
 });
 
-test("rejects an unavailable Windows process after the bounded activation call", async () => {
+test("rejects unavailable and mismatched Windows process activations", async () => {
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+  child.stdin.on("data", (chunk) => {
+    const processIdentifier = chunk.toString("utf8").trim();
+    child.stdout.write(`${processIdentifier === "4321" ? "9999" : processIdentifier}\tfalse\n`);
+  });
+  child.stdin.once("end", () => {
+    child.exitCode = 0;
+    queueMicrotask(() => child.emit("exit", 0, null));
+  });
+  const activatorPromise = createWindowsApplicationActivator({
+    spawnHelper() {
+      queueMicrotask(() => child.stdout.write("ready\n"));
+      return child;
+    },
+  });
+  const activator = await activatorPromise;
+  await assert.rejects(activator.activate(4_321), /unexpected process identifier/);
+  await assert.rejects(activator.activate(0), /requires a process identifier/);
+  await activator.close();
+});
+
+test("terminates a Windows activation helper that fails its startup handshake", async () => {
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+
   await assert.rejects(
-    activateWindowsApplication(4_321, {
-      async execute() {
-        return { stdout: "false\n" };
+    createWindowsApplicationActivator({
+      spawnHelper() {
+        queueMicrotask(() => child.stdout.write("unexpected\n"));
+        return child;
       },
     }),
-    /could not be activated/,
+    /invalid startup response/,
   );
-  await assert.rejects(
-    activateWindowsApplication(0),
-    /requires a process identifier/,
-  );
+  assert.equal(child.signalCode, "SIGKILL");
 });
 
 test("activates the spawned macOS process before accepting its painted shell", async () => {

@@ -398,6 +398,176 @@ function awaitExit(child) {
   });
 }
 
+function windowsApplicationActivatorCommand() {
+  return [
+    "$shell = New-Object -ComObject WScript.Shell;",
+    '[Console]::Out.WriteLine("ready");',
+    "[Console]::Out.Flush();",
+    "while (($line = [Console]::In.ReadLine()) -ne $null) {",
+    "$targetProcessId = 0;",
+    "$parsed = [int]::TryParse($line, [ref]$targetProcessId);",
+    "$activated = $false;",
+    "if ($parsed -and $targetProcessId -gt 0) {",
+    "for ($attempt = 0; $attempt -lt 40; $attempt += 1) {",
+    "if ($shell.AppActivate($targetProcessId)) { $activated = $true; break }",
+    "Start-Sleep -Milliseconds 25",
+    "}",
+    "}",
+    '[Console]::Out.WriteLine("$targetProcessId`t$($activated.ToString().ToLowerInvariant())");',
+    "[Console]::Out.Flush();",
+    "}",
+  ].join(" ");
+}
+
+function boundedActivatorLineReader(child) {
+  const lines = [];
+  const waiters = [];
+  let buffer = "";
+  let outputBytes = 0;
+  let failure = null;
+
+  const fail = (error) => {
+    if (failure) return;
+    failure = error;
+    for (const waiter of waiters.splice(0)) waiter.reject(error);
+  };
+  child.stdout.on("data", (chunk) => {
+    outputBytes += chunk.length;
+    if (outputBytes > maximumOutputBytes) {
+      fail(new Error("Windows application activator output exceeded its bound"));
+      return;
+    }
+    buffer += chunk.toString("utf8");
+    const complete = buffer.split("\n");
+    buffer = complete.pop() ?? "";
+    for (const rawLine of complete) {
+      const line = rawLine.replace(/\r$/u, "");
+      const waiter = waiters.shift();
+      if (waiter) waiter.resolve(line);
+      else lines.push(line);
+    }
+  });
+  child.stdout.once("error", () => {
+    fail(new Error("Windows application activator output failed"));
+  });
+  child.stdout.once("end", () => {
+    fail(new Error("Windows application activator closed its output"));
+  });
+  child.once("error", () => {
+    fail(new Error("Windows application activator could not start"));
+  });
+  child.once("exit", (code, signal) => {
+    fail(new Error(`Windows application activator exited (${code ?? signal ?? "unknown"})`));
+  });
+
+  return async function readLine(description) {
+    if (lines.length > 0) return lines.shift();
+    if (failure) throw failure;
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        const index = waiters.indexOf(waiter);
+        if (index >= 0) waiters.splice(index, 1);
+        reject(new Error(`${description} exceeded its bound`));
+      }, windowsActivationTimeoutMilliseconds);
+      const waiter = {
+        reject(error) {
+          clearTimeout(timeout);
+          reject(error);
+        },
+        resolve(line) {
+          clearTimeout(timeout);
+          resolve(line);
+        },
+      };
+      waiters.push(waiter);
+    });
+  };
+}
+
+function writeActivatorRequest(input, processIdentifier) {
+  return new Promise((resolve, reject) => {
+    input.write(`${processIdentifier}\n`, "utf8", (error) => {
+      if (error) {
+        reject(new Error("Windows application activator input failed"));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+export async function createWindowsApplicationActivator({ spawnHelper = spawn } = {}) {
+  const child = spawnHelper(
+    "powershell.exe",
+    [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      windowsApplicationActivatorCommand(),
+    ],
+    {
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
+    },
+  );
+  const terminate = async () => {
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    await awaitExit(child);
+  };
+  if (!child.stdin || !child.stdout || !child.stderr) {
+    await terminate();
+    throw new Error("Windows application activator requires bounded process streams");
+  }
+  let standardErrorBytes = 0;
+  child.stderr.on("data", (chunk) => {
+    standardErrorBytes += chunk.length;
+    if (standardErrorBytes > maximumOutputBytes) child.kill("SIGKILL");
+  });
+  const readLine = boundedActivatorLineReader(child);
+  try {
+    if (await readLine("Windows application activator startup") !== "ready") {
+      throw new Error("Windows application activator emitted an invalid startup response");
+    }
+  } catch (error) {
+    await terminate();
+    throw error;
+  }
+  let activationInFlight = false;
+  let closed = false;
+  return {
+    async activate(processIdentifier) {
+      if (!Number.isSafeInteger(processIdentifier) || processIdentifier <= 0) {
+        throw new Error("Windows application activation requires a process identifier");
+      }
+      if (closed) throw new Error("Windows application activator is closed");
+      if (activationInFlight) throw new Error("Windows application activator is already active");
+      activationInFlight = true;
+      try {
+        await writeActivatorRequest(child.stdin, processIdentifier);
+        const response = await readLine("Windows application activation");
+        const match = /^(\d+)\t(true|false)$/u.exec(response);
+        if (!match || Number(match[1]) !== processIdentifier) {
+          throw new Error("Windows application activator returned an unexpected process identifier");
+        }
+        if (match[2] !== "true") {
+          throw new Error("the exact Windows application process could not be activated");
+        }
+      } finally {
+        activationInFlight = false;
+      }
+    },
+    async close() {
+      if (closed) return;
+      closed = true;
+      child.stdin.end();
+      await awaitExit(child);
+    },
+  };
+}
+
 export function coldLaunchEnvironment(
   home,
   inheritedEnvironment = process.env,
@@ -469,55 +639,27 @@ export async function activateMacosApplication(
   throw new Error("the exact macOS application process could not be activated");
 }
 
-export async function activateWindowsApplication(
-  processIdentifier,
-  { execute = executeFile } = {},
-) {
-  if (!Number.isSafeInteger(processIdentifier) || processIdentifier <= 0) {
-    throw new Error("Windows application activation requires a process identifier");
-  }
-  const expression = [
-    "$shell = New-Object -ComObject WScript.Shell;",
-    "$activated = $false;",
-    "for ($attempt = 0; $attempt -lt 40; $attempt += 1) {",
-    `if ($shell.AppActivate(${processIdentifier})) { $activated = $true; break }`,
-    "Start-Sleep -Milliseconds 25",
-    "};",
-    "[Console]::Out.WriteLine($activated.ToString().ToLowerInvariant())",
-  ].join(" ");
-  try {
-    const result = await execute(
-      "powershell.exe",
-      [
-        "-NoLogo",
-        "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        expression,
-      ],
-      {
-        encoding: "utf8",
-        killSignal: "SIGKILL",
-        maxBuffer: 4_096,
-        timeout: windowsActivationTimeoutMilliseconds,
-        windowsHide: true,
-      },
-    );
-    if (result.stdout.trim() === "true") return;
-  } catch {
-    throw new Error("the exact Windows application process could not be activated");
-  }
-  throw new Error("the exact Windows application process could not be activated");
-}
-
 async function activateDesktopApplication(processIdentifier, platform) {
   if (platform === "darwin") {
     await activateMacosApplication(processIdentifier);
   } else if (platform === "win32") {
-    await activateWindowsApplication(processIdentifier);
+    const activator = await createWindowsApplicationActivator();
+    try {
+      await activator.activate(processIdentifier);
+    } finally {
+      await activator.close();
+    }
   }
+}
+
+async function createDesktopApplicationActivator(platform) {
+  if (platform === "win32") return createWindowsApplicationActivator();
+  return {
+    activate(processIdentifier) {
+      return activateDesktopApplication(processIdentifier, platform);
+    },
+    async close() {},
+  };
 }
 
 export function windowsStartupSignalPipeName(entropy = randomBytes) {
@@ -750,13 +892,16 @@ async function executeColdLaunchBenchmark() {
   const { applicationBinary, applicationVersion, boundary } =
     resolveColdLaunchApplication();
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-"));
+  let applicationActivator;
   try {
+    applicationActivator = await createDesktopApplicationActivator(process.platform);
     const runs = [];
     for (let index = 0; index < measuredFreshProcesses; index += 1) {
       runs.push(await measureFreshProcess(
         applicationBinary,
         path.join(temporaryDirectory, `home-${index}`),
         { applicationVersion, sourceRevision },
+        { activateApplication: applicationActivator.activate },
       ));
     }
     const measurement = evaluateColdLaunchRuns(runs);
@@ -787,7 +932,11 @@ async function executeColdLaunchBenchmark() {
     process.stdout.write(`${JSON.stringify(evidence)}\n`);
     if (!evidence.passed) throw new Error("cold launch performance budget failed");
   } finally {
-    rmSync(temporaryDirectory, { recursive: true, force: true });
+    try {
+      await applicationActivator?.close();
+    } finally {
+      rmSync(temporaryDirectory, { recursive: true, force: true });
+    }
   }
 }
 
