@@ -2,10 +2,10 @@
 
 ## Current availability
 
-Once immutable GitHub Release `v0.1.19` exists, FitFreed 0.1.19 is the supported public release for Apple Silicon on
+Once immutable GitHub Release `v0.1.20` exists, FitFreed 0.1.20 is the supported public release for Apple Silicon on
 macOS 15.0 or later and x86-64 Ubuntu Desktop 24.04 and 26.04 LTS, with an explicitly unsigned x86-64 Windows preview.
-Use the [macOS guide](docs/user/public-macos-0.1.19.md), [Linux guide](docs/user/public-linux-0.1.19.md), or
-[Windows preview guide](docs/user/public-windows-0.1.19.md) for download, verification, installation, update,
+Use the [macOS guide](docs/user/public-macos-0.1.20.md), [Linux guide](docs/user/public-linux-0.1.20.md), or
+[Windows preview guide](docs/user/public-windows-0.1.20.md) for download, verification, installation, update,
 recovery, privacy, and removal. Before that immutable Release exists, 0.1.12 remains the supported public version.
 
 ## Where requests belong

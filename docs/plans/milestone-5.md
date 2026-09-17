@@ -30,8 +30,9 @@ directly created Windows processes connected the diagnostic channel without rece
 inside ten seconds. Version 0.1.19 activated each exact Windows PID within the unchanged measured boundary, passed
 composition and both Ubuntu admissions, and then missed the Windows cold-launch p95 budget by `19.107 ms`. The
 per-launch activation process was part of the measurement harness rather than the product. The next candidate uses
-one pre-established bounded activator while retaining exact-PID activation inside every measured launch. Exact-source
-CI, immutable tag, protected approvals, native admission, publication, and remote acceptance remain. The implemented
+one pre-established bounded activator while retaining exact-PID activation inside every measured launch. Version
+0.1.20 contains that correction. Exact-source CI, immutable tag, protected approvals, native admission, publication,
+and remote acceptance remain. The implemented
 SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
 
