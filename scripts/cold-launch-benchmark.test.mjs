@@ -945,6 +945,91 @@ test("accepts a Windows painted-shell signal only after exact process activation
   assert.ok((await measurementPromise).totalMilliseconds >= 0);
 });
 
+test("maintains exact Windows process activation until the painted shell arrives", async () => {
+  const signalOutput = new PassThrough();
+  const child = new EventEmitter();
+  child.pid = 8_767;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+  const activations = [];
+  const cancelled = [];
+  let scheduledReactivation;
+  const timer = Symbol("reactivation");
+
+  const measurementPromise = measureFreshProcess(
+    "C:\\FitFreed\\fitfreed.exe",
+    "C:\\unused-home",
+    { applicationVersion: "0.1.0", sourceRevision: revision },
+    {
+      architecture: "x64",
+      async activateApplication(processIdentifier, platform) {
+        activations.push([processIdentifier, platform]);
+      },
+      cancelReactivation(received) {
+        cancelled.push(received);
+      },
+      async createWindowsSignalChannel() {
+        return {
+          pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "56".repeat(32),
+          output: signalOutput,
+          isConnected() {
+            return true;
+          },
+          async close() {},
+        };
+      },
+      inheritedEnvironment: {
+        LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+        PATH: "C:\\Windows\\System32",
+      },
+      platform: "win32",
+      prepareApplicationData() {},
+      scheduleReactivation(callback, delay) {
+        assert.equal(delay, 250);
+        scheduledReactivation = callback;
+        return timer;
+      },
+      spawnApplication() {
+        queueMicrotask(() => child.emit("spawn"));
+        return child;
+      },
+      async terminateApplication(process) {
+        process.kill("SIGTERM");
+      },
+    },
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(activations, [[8_767, "win32"]]);
+  assert.equal(typeof scheduledReactivation, "function");
+  scheduledReactivation();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(activations, [
+    [8_767, "win32"],
+    [8_767, "win32"],
+  ]);
+
+  signalOutput.write(`${JSON.stringify({
+    format: "org.fitfreed.startup-signal",
+    schemaVersion: 2,
+    event: "interactive-shell",
+    applicationVersion: "0.1.0",
+    sourceRevision: revision,
+    sourceTreeClean: true,
+    hostStartupMilliseconds: { setupComplete: 0, signal: 0 },
+    rendererStartupMilliseconds: { localeReady: 0, signal: 0 },
+  })}\n`);
+
+  assert.ok((await measurementPromise).totalMilliseconds >= 0);
+  assert.deepEqual(cancelled, [timer]);
+});
+
 test("rejects a Windows startup channel that closes before the painted-shell signal", async () => {
   const signalOutput = new PassThrough();
   const child = new EventEmitter();

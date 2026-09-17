@@ -447,9 +447,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
   the renderer reports the painted shell; channel setup precedes timing while connection and transport remain
   measured, and timeout diagnostics distinguish the two stages. Direct repeated process creation does not guarantee
   foreground activation on Windows, so the harness establishes one bounded shell-automation process before the
-  campaign and sends only the exact spawned PID during each measured launch. It verifies the matching activation
-  response and refuses to accept the painted-shell signal until activation succeeds. Auxiliary process creation is
-  outside product timing; the exact-PID request and response remain measured and never become a quality-gate retry.
+  campaign and sends only the exact spawned PID during each measured launch. It verifies every matching activation
+  response and maintains that exact-PID activation at a bounded cadence until the painted-shell signal arrives.
+  Auxiliary process creation is outside product timing; all exact-PID requests and responses remain measured. A
+  failed activation rejects the sample immediately, while repeated successful activation only preserves the
+  foreground precondition and never retries a quality result.
   The campaign then runs the same full-scale
   import, exact and equivalent reimport, dense-history, concurrent-navigation, Insights, report-resolution, and export
   read-model campaigns. Windows benchmark binaries use the native `.exe` suffix, and the Rust process peak working

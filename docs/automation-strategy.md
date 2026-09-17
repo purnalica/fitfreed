@@ -273,8 +273,9 @@ shape. Pipe setup precedes timing; the host connects during process startup and 
 painted-shell signal. Connection, painting, and the privacy-safe signal transport remain measured, and a timeout
 distinguishes a host that never connected from a connected host whose renderer never reported a painted shell. The
   harness establishes one bounded `WScript.Shell` process before campaign timing. Each measured launch sends only its
-  exact spawned PID, verifies the matching activation response, and accepts no painted-shell signal before activation
-  succeeds. It does not search by product name or turn activation failure into a retry. After each sample, the harness
+  exact spawned PID, verifies every matching activation response, and reasserts that exact-PID activation at a bounded
+  cadence until the painted-shell signal arrives. It does not search by product name or turn activation failure into
+  a retry; any failed or mismatched activation rejects the sample. After each sample, the harness
   closes the complete child tree rooted at that exact PID through bounded native Windows termination before another
   sample can start; failure to close the tree rejects the campaign. This prevents WebView2 descendants from one
   sample becoming hidden inputs to later samples. After the

@@ -74,10 +74,14 @@ The production build wrapper binds the exact Git revision and clean-tree state i
 On Windows, repeated direct process creation does not guarantee foreground activation and a background WebView2
 window may not receive the paint frame that defines the measured boundary. The benchmark establishes one bounded
 `WScript.Shell` activator before the campaign so auxiliary process creation cannot contaminate product timing. After
-each exact child process exists, its measured interval sends that PID to `AppActivate` and verifies the matching
-response before accepting the painted-shell signal. It never searches by process or product name, and activation
-remains inside the unchanged ten-second observation and p95 measurement boundaries. A missing window, mismatched PID,
-or failed activation rejects the run; it is not retried as a quality result.
+each exact child process exists, its measured interval sends that PID to `AppActivate`, verifies the matching
+response, and reasserts the same exact-PID activation at a bounded 250-millisecond cadence until the painted-shell
+signal arrives. Microsoft documents that focus can move away after a successful
+[`AppActivate`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualbasic.interaction.appactivate), so a
+single successful response is not evidence that the window remains foreground long enough to paint. The harness
+never searches by process or product name, and every activation remains inside the unchanged ten-second observation
+and p95 measurement boundaries. A missing window, mismatched PID, or failed activation rejects the run immediately;
+reasserting a successful activation is focus maintenance rather than a quality-result retry.
 
 On macOS, direct process creation does not represent the LaunchServices activation that accompanies a normal user
 launch and an inactive application may not receive a paint frame. After the exact child process exists, the benchmark

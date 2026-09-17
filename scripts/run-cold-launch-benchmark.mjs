@@ -38,6 +38,7 @@ const macosActivationAttempts = 20;
 const macosActivationRetryMilliseconds = 25;
 const macosActivationTimeoutMilliseconds = 250;
 const windowsActivationTimeoutMilliseconds = 2_000;
+const windowsReactivationIntervalMilliseconds = 250;
 const windowsStartupSignalEnvironmentVariable = "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
 const windowsStartupSignalPipePrefix = "\\\\.\\pipe\\fitfreed-startup-";
 const maximumDiagnosticTailBytes = 4 * 1_024;
@@ -766,10 +767,12 @@ export async function measureFreshProcess(
     inheritedEnvironment = process.env,
     platform = process.platform,
     activateApplication = activateDesktopApplication,
+    cancelReactivation = clearTimeout,
     createWindowsSignalChannel = createWindowsStartupSignalChannel,
     cancelTimeout = clearTimeout,
     observationTimeoutMilliseconds = launchTimeoutMilliseconds,
     prepareApplicationData = resetInstalledWindowsApplicationData,
+    scheduleReactivation = setTimeout,
     scheduleTimeout = setTimeout,
     spawnApplication = spawn,
     terminateApplication = terminateDesktopApplication,
@@ -812,12 +815,19 @@ export async function measureFreshProcess(
   let standardErrorBytes = 0;
   let settled = false;
   let activation = Promise.resolve();
+  let reactivationTimer = null;
   let signalReceived = false;
 
   const observation = new Promise((resolve, reject) => {
+    const cancelPendingReactivation = () => {
+      if (reactivationTimer === null) return;
+      cancelReactivation(reactivationTimer);
+      reactivationTimer = null;
+    };
     const fail = (message) => {
       if (settled) return;
       settled = true;
+      cancelPendingReactivation();
       reject(new Error(coldLaunchFailureMessage(message, {
         home,
         platform,
@@ -836,6 +846,7 @@ export async function measureFreshProcess(
     const succeed = (signal) => {
       if (settled || signalReceived) return;
       signalReceived = true;
+      cancelPendingReactivation();
       void activation.then(() => {
         if (settled) return;
         cancelTimeout(timeout);
@@ -857,10 +868,20 @@ export async function measureFreshProcess(
     });
     child.once("spawn", () => {
       if (!["darwin", "win32"].includes(platform) || settled) return;
-      activation = Promise.resolve(activateApplication(child.pid, platform));
-      void activation.catch(() => {
-        fail(`the exact ${platform === "darwin" ? "macOS" : "Windows"} application process could not be activated`);
-      });
+      const activate = () => {
+        if (settled || signalReceived) return;
+        activation = Promise.resolve(activateApplication(child.pid, platform));
+        void activation.then(() => {
+          if (platform !== "win32" || settled || signalReceived) return;
+          reactivationTimer = scheduleReactivation(() => {
+            reactivationTimer = null;
+            activate();
+          }, windowsReactivationIntervalMilliseconds);
+        }).catch(() => {
+          fail(`the exact ${platform === "darwin" ? "macOS" : "Windows"} application process could not be activated`);
+        });
+      };
+      activate();
     });
     child.once("exit", (code, signal) => {
       cancelTimeout(timeout);
@@ -914,6 +935,7 @@ export async function measureFreshProcess(
   try {
     return await observation;
   } finally {
+    if (reactivationTimer !== null) cancelReactivation(reactivationTimer);
     try {
       await terminateApplication(child, platform);
     } finally {
