@@ -763,6 +763,12 @@ window through the native Windows API, verifies its visible state, and only then
 response. Fresh helper isolation, repeated activation, complete tree cleanup, 100 samples, the ten-second observation,
 p95 calculation, and the `2,500 ms` budget remain unchanged.
 
+Exact source `3a2b3ec4f0846b2375f8cbff85a0c897161bda5c` then passed all 100 production-package cold launches in focused
+[Windows run `35282887511`](https://github.com/purnalica/fitfreed/actions/runs/35282887511). The run was deliberately
+cancelled after that previously failing step passed, before repeating the already accepted filesystem and data-scale
+campaigns. This admits the native-window restoration correction for one new complete-platform candidate without
+using unrelated repeated work as additional quality evidence.
+
 ## Human intervention boundary
 
 Engineering and hosted evidence proceed autonomously. The preview requires the public Linux dependency, immutable

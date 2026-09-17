@@ -1,0 +1,14 @@
+{
+  "format": "org.fitfreed.public-release-policy",
+  "schemaVersion": 1,
+  "releaseVersion": "0.1.24",
+  "update": {
+    "sequence": 24,
+    "minimumSupportedVersion": "0.1.12",
+    "releaseNotes": {
+      "en-US": "Provides an explicitly unsigned x86-64 Windows preview alongside the supported macOS and Linux packages, without changing the accepted MVP feature set.",
+      "es-ES": "Proporciona una vista previa de Windows x86-64 explícitamente sin firma junto a los paquetes compatibles de macOS y Linux, sin cambiar el conjunto de funciones aceptado para el MVP."
+    },
+    "withdrawnVersions": []
+  }
+}

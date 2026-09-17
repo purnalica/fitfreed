@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Once immutable GitHub Release `v0.1.23` exists, FitFreed 0.1.23 is the supported public version for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop 24.04 and 26.04 LTS, with an explicitly unsigned x86-64 Windows preview.
+Once immutable GitHub Release `v0.1.24` exists, FitFreed 0.1.24 is the supported public version for Apple Silicon on macOS 15.0 or later and x86-64 Ubuntu Desktop 24.04 and 26.04 LTS, with an explicitly unsigned x86-64 Windows preview.
 Its exact trust and publication evidence is recorded in the [public-release readiness
 ledger](docs/testing/public-release-readiness.md). Before that immutable Release exists, 0.1.12 remains supported.
 
