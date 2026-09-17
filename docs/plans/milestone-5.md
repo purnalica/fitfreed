@@ -31,8 +31,13 @@ inside ten seconds. Version 0.1.19 activated each exact Windows PID within the u
 composition and both Ubuntu admissions, and then missed the Windows cold-launch p95 budget by `19.107 ms`. The
 per-launch activation process was part of the measurement harness rather than the product. The next candidate uses
 one pre-established bounded activator while retaining exact-PID activation inside every measured launch. Version
-0.1.20 contains that correction. Exact-source CI, immutable tag, protected approvals, native admission, publication,
-and remote acceptance remain. The implemented
+0.1.20 contained that correction, passed both native input builds, protected composition, Apple signing and
+notarization, and both Ubuntu admissions. Its hosted Windows campaign later connected the native startup channel but
+did not receive a renderer signal from one sample. The campaign terminated only each direct Tauri host, so WebView2
+descendants could survive between samples and make a later launch depend on retained processes. The next candidate
+terminates the complete child tree rooted at every exact spawned Windows PID before starting another sample.
+Exact-source CI, immutable tag, protected approvals, native admission, publication, and remote acceptance remain.
+The implemented
 SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
 
@@ -698,6 +703,18 @@ inside every measured launch solely to activate the exact PID. The next candidat
 `WScript.Shell` activator before the campaign, then sends and verifies the exact PID inside each measured interval.
 This removes harness process creation from product timing without changing the sample count, observation timeout,
 percentile, budget, activation attempts, or painted-shell boundary.
+
+Immutable `v0.1.20` at `8187844d124b4d42bbad8a281b9daae3e427b51a` passed exact-source CI, both authority-free
+native input jobs, protected complete-platform composition, Apple signing and notarization, portable sealing, and
+both Ubuntu admission rows in workflow
+[`35223007782`](https://github.com/purnalica/fitfreed/actions/runs/35223007782). Hosted Windows installed the exact
+unsigned setup and ran the 100-process cold-launch campaign with one pre-established exact-PID activator. After the
+campaign had run for more than six minutes, one Tauri host connected its private startup channel but its WebView2
+renderer did not report a painted shell within ten seconds. The harness closed only each direct host process; it did
+not close the host's complete descendant tree before starting the next sample. Promotion was skipped and no Release
+or Pages deployment began. The next candidate terminates the complete tree rooted at every exact spawned PID outside
+the measured interval and fails closed if that bounded native cleanup does not succeed. Sample count, observation
+timeout, percentile, budget, exact-PID activation, and painted-shell evidence remain unchanged.
 
 ## Human intervention boundary
 

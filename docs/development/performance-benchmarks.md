@@ -43,6 +43,12 @@ alongside a real FitFreed library. The explicit
 `.github/workflows/windows-performance.yml` workflow owns the hosted Windows Server 2025 run; it does not replace the
 exact Windows 11 candidate gate.
 
+After every measured Windows sample, the harness terminates the complete child tree of the exact spawned PID with
+the native bounded `taskkill /T /F` boundary before starting another sample. Directly terminating only the Tauri host
+can leave its WebView2 descendants alive and make later measurements depend on processes retained by earlier
+samples. A missing PID or failed tree termination fails the campaign; it is never converted into a successful sample
+or hidden by clearing application data.
+
 Select the default `complete` scope when package or cold-launch inputs changed. Select `recovery-and-data` only to
 continue gates that a later failure prevented, and provide the completed predecessor run identifier. The resume
 preflight reads that run's job steps, verifies that package construction and all 100 launches succeeded before the

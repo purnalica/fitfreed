@@ -398,6 +398,42 @@ function awaitExit(child) {
   });
 }
 
+export async function terminateDesktopApplication(
+  child,
+  platform,
+  { execute = executeFile } = {},
+) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  if (platform !== "win32") {
+    child.kill("SIGTERM");
+    await awaitExit(child);
+    return;
+  }
+  if (!Number.isSafeInteger(child.pid) || child.pid <= 0) {
+    child.kill("SIGKILL");
+    await awaitExit(child);
+    throw new Error("Windows application process tree has no valid root identifier");
+  }
+  try {
+    await execute(
+      "taskkill.exe",
+      ["/PID", String(child.pid), "/T", "/F"],
+      {
+        encoding: "utf8",
+        killSignal: "SIGKILL",
+        maxBuffer: maximumOutputBytes,
+        timeout: terminationTimeoutMilliseconds,
+        windowsHide: true,
+      },
+    );
+  } catch {
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    await awaitExit(child);
+    throw new Error("Windows application process tree could not be terminated");
+  }
+  await awaitExit(child);
+}
+
 function windowsApplicationActivatorCommand() {
   return [
     "$shell = New-Object -ComObject WScript.Shell;",
@@ -736,6 +772,7 @@ export async function measureFreshProcess(
     prepareApplicationData = resetInstalledWindowsApplicationData,
     scheduleTimeout = setTimeout,
     spawnApplication = spawn,
+    terminateApplication = terminateDesktopApplication,
   } = {},
 ) {
   if (
@@ -877,9 +914,11 @@ export async function measureFreshProcess(
   try {
     return await observation;
   } finally {
-    if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-    await awaitExit(child);
-    await windowsSignalChannel?.close();
+    try {
+      await terminateApplication(child, platform);
+    } finally {
+      await windowsSignalChannel?.close();
+    }
   }
 }
 

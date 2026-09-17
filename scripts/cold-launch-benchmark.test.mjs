@@ -23,6 +23,7 @@ import {
   measureFreshProcess,
   resetInstalledWindowsApplicationData,
   resolveColdLaunchApplication,
+  terminateDesktopApplication,
   validateInteractiveShellSignal,
   windowsStartupSignalPipeName,
 } from "./run-cold-launch-benchmark.mjs";
@@ -575,6 +576,62 @@ test("terminates a Windows activation helper that fails its startup handshake", 
   assert.equal(child.signalCode, "SIGKILL");
 });
 
+test("terminates the exact Windows application process tree after every sample", async () => {
+  const calls = [];
+  const signals = [];
+  const child = new EventEmitter();
+  child.pid = 8_765;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.kill = (signal) => {
+    signals.push(signal);
+  };
+
+  await terminateDesktopApplication(child, "win32", {
+    async execute(file, arguments_, options) {
+      calls.push({ file, arguments_, options });
+      child.exitCode = 1;
+      queueMicrotask(() => child.emit("exit", 1, null));
+    },
+  });
+
+  assert.deepEqual(signals, []);
+  assert.deepEqual(calls, [{
+    file: "taskkill.exe",
+    arguments_: ["/PID", "8765", "/T", "/F"],
+    options: {
+      encoding: "utf8",
+      killSignal: "SIGKILL",
+      maxBuffer: 64 * 1_024,
+      timeout: 3_000,
+      windowsHide: true,
+    },
+  }]);
+});
+
+test("fails closed when the exact Windows application tree cannot be terminated", async () => {
+  const signals = [];
+  const child = new EventEmitter();
+  child.pid = 8_766;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.kill = (signal) => {
+    signals.push(signal);
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+
+  await assert.rejects(
+    terminateDesktopApplication(child, "win32", {
+      async execute() {
+        throw new Error("synthetic taskkill failure");
+      },
+    }),
+    /process tree could not be terminated/,
+  );
+  assert.deepEqual(signals, ["SIGKILL"]);
+});
+
 test("activates the spawned macOS process before accepting its painted shell", async () => {
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-test-"));
   const activated = [];
@@ -741,6 +798,7 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
   let channelClosed = false;
   let applicationDataPrepared = false;
   const activated = [];
+  const terminated = [];
 
   const measurement = await measureFreshProcess(
     "C:\\FitFreed\\fitfreed.exe",
@@ -794,11 +852,16 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
         });
         return child;
       },
+      async terminateApplication(process) {
+        terminated.push([process.pid, "win32"]);
+        process.kill("SIGTERM");
+      },
     },
   );
 
   assert.ok(measurement.totalMilliseconds >= 0);
   assert.deepEqual(activated, [[8_765, "win32"]]);
+  assert.deepEqual(terminated, [[8_765, "win32"]]);
   assert.equal(channelClosed, true);
 });
 
@@ -866,6 +929,9 @@ test("accepts a Windows painted-shell signal only after exact process activation
         });
         return child;
       },
+      async terminateApplication(process) {
+        process.kill("SIGTERM");
+      },
     },
   );
   void measurementPromise.then(() => {
@@ -921,6 +987,9 @@ test("rejects a Windows startup channel that closes before the painted-shell sig
             signalOutput.end();
           });
           return child;
+        },
+        async terminateApplication(process) {
+          process.kill("SIGTERM");
         },
       },
     ),
