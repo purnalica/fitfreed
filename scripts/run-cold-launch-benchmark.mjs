@@ -37,6 +37,7 @@ const executeFile = promisify(execFile);
 const macosActivationAttempts = 20;
 const macosActivationRetryMilliseconds = 25;
 const macosActivationTimeoutMilliseconds = 250;
+const windowsActivationTimeoutMilliseconds = 2_000;
 const windowsStartupSignalEnvironmentVariable = "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
 const windowsStartupSignalPipePrefix = "\\\\.\\pipe\\fitfreed-startup-";
 const maximumDiagnosticTailBytes = 4 * 1_024;
@@ -468,6 +469,57 @@ export async function activateMacosApplication(
   throw new Error("the exact macOS application process could not be activated");
 }
 
+export async function activateWindowsApplication(
+  processIdentifier,
+  { execute = executeFile } = {},
+) {
+  if (!Number.isSafeInteger(processIdentifier) || processIdentifier <= 0) {
+    throw new Error("Windows application activation requires a process identifier");
+  }
+  const expression = [
+    "$shell = New-Object -ComObject WScript.Shell;",
+    "$activated = $false;",
+    "for ($attempt = 0; $attempt -lt 40; $attempt += 1) {",
+    `if ($shell.AppActivate(${processIdentifier})) { $activated = $true; break }`,
+    "Start-Sleep -Milliseconds 25",
+    "};",
+    "[Console]::Out.WriteLine($activated.ToString().ToLowerInvariant())",
+  ].join(" ");
+  try {
+    const result = await execute(
+      "powershell.exe",
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        expression,
+      ],
+      {
+        encoding: "utf8",
+        killSignal: "SIGKILL",
+        maxBuffer: 4_096,
+        timeout: windowsActivationTimeoutMilliseconds,
+        windowsHide: true,
+      },
+    );
+    if (result.stdout.trim() === "true") return;
+  } catch {
+    throw new Error("the exact Windows application process could not be activated");
+  }
+  throw new Error("the exact Windows application process could not be activated");
+}
+
+async function activateDesktopApplication(processIdentifier, platform) {
+  if (platform === "darwin") {
+    await activateMacosApplication(processIdentifier);
+  } else if (platform === "win32") {
+    await activateWindowsApplication(processIdentifier);
+  }
+}
+
 export function windowsStartupSignalPipeName(entropy = randomBytes) {
   const identity = entropy(32);
   if (!(identity instanceof Uint8Array) || identity.byteLength !== 32) {
@@ -535,7 +587,7 @@ export async function measureFreshProcess(
     architecture = process.arch,
     inheritedEnvironment = process.env,
     platform = process.platform,
-    activateApplication = activateMacosApplication,
+    activateApplication = activateDesktopApplication,
     createWindowsSignalChannel = createWindowsStartupSignalChannel,
     cancelTimeout = clearTimeout,
     observationTimeoutMilliseconds = launchTimeoutMilliseconds,
@@ -580,6 +632,8 @@ export async function measureFreshProcess(
   let standardError = "";
   let standardErrorBytes = 0;
   let settled = false;
+  let activation = Promise.resolve();
+  let signalReceived = false;
 
   const observation = new Promise((resolve, reject) => {
     const fail = (message) => {
@@ -601,15 +655,21 @@ export async function measureFreshProcess(
       observationTimeoutMilliseconds,
     );
     const succeed = (signal) => {
-      if (settled) return;
-      cancelTimeout(timeout);
-      settled = true;
-      try {
-        validateInteractiveShellSignal(signal, expected);
-        resolve(deriveColdLaunchRun(performance.now() - startedAt, signal));
-      } catch (error) {
-        reject(error);
-      }
+      if (settled || signalReceived) return;
+      signalReceived = true;
+      void activation.then(() => {
+        if (settled) return;
+        cancelTimeout(timeout);
+        settled = true;
+        try {
+          validateInteractiveShellSignal(signal, expected);
+          resolve(deriveColdLaunchRun(performance.now() - startedAt, signal));
+        } catch (error) {
+          reject(error);
+        }
+      }).catch(() => {
+        fail(`the exact ${platform === "darwin" ? "macOS" : "Windows"} application process could not be activated`);
+      });
     };
 
     child.once("error", () => {
@@ -617,9 +677,10 @@ export async function measureFreshProcess(
       fail("application process could not be started");
     });
     child.once("spawn", () => {
-      if (platform !== "darwin" || settled) return;
-      void activateApplication(child.pid).catch(() => {
-        fail("the exact macOS application process could not be activated");
+      if (!["darwin", "win32"].includes(platform) || settled) return;
+      activation = Promise.resolve(activateApplication(child.pid, platform));
+      void activation.catch(() => {
+        fail(`the exact ${platform === "darwin" ? "macOS" : "Windows"} application process could not be activated`);
       });
     });
     child.once("exit", (code, signal) => {

@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress as of 2026-09-16. Autonomous hosted Windows engineering is complete under ADR 0039. Public 0.1.12 now
+In progress as of 2026-09-17. Autonomous hosted Windows engineering is complete under ADR 0039. Public 0.1.12 now
 satisfies the immutable macOS-plus-Linux predecessor dependency.
 The SignPath Foundation application submitted on 2026-09-14 was declined, as reported by the project owner on
 2026-09-16. The stated reason is insufficient external public trust and visibility, not an assessment of product
@@ -25,7 +25,9 @@ sealed boundary the portable public distribution, admitted manifest versions 6 t
 native input builds plus protected signing, notarization, verification, and sealing. Its native admission exposed two
 later workflow contracts: the Windows expansion had not inherited the already accepted bounded Linux desktop session,
 and the Pages file inventory used host separators while its signed URLs and payload paths are canonical POSIX paths.
-Version 0.1.18 restores the accepted Linux session boundary and makes the Pages inventory platform-independent.
+Version 0.1.18 restored both contracts, passed protected composition and both Ubuntu admissions, then one of its 100
+directly created Windows processes connected the diagnostic channel without receiving the foreground paint required
+inside ten seconds. Version 0.1.19 activates each exact Windows PID within the unchanged measured boundary.
 Exact-source CI, immutable tag, protected approvals, native admission, publication, and remote acceptance remain. The
 implemented SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
@@ -77,7 +79,7 @@ separate protected promotion decision.
 | Exact evidence | Hosted Windows package construction, installation, capability, update recovery, performance, filesystem recovery, and data-scale evidence is accepted below. ADR 0050 retires SignPath; ADR 0051 selects the unsigned public profile and HARICA IV as the deferred authority. Release manifest version 8, unsigned package evidence, composition, admission, user guidance, localized site disclosure, and publication workflow now encode that profile coherently. |
 | Causal hypothesis | A clearly labelled unsigned preview can test whether real Windows demand exists without sacrificing cryptographic release and update integrity, provided every contract models missing Authenticode explicitly and the product does not claim universal installability or stable trust parity. |
 | Smallest falsifying test | The route fails if the exact package cannot install, launch, retain its update authority, preserve data, restart, and remove cleanly on the pinned hosted Windows environment; if setup, application, and uninstaller signature state is not explicitly `NotSigned`; if the missing exact Windows 11 evidence is hidden; or if any public surface can confuse preview trust with stable signed trust. |
-| Allowed change | Prepare, verify, tag, and publish version 0.1.18 through the implemented unsigned public trust profile. Keep rejected 0.1.13 through 0.1.17 immutable and unpublished. Remove or archive SignPath-specific material only after the mandatory full dependency inventory. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, and stable macOS-plus-Linux claims. |
+| Allowed change | Prepare, verify, tag, and publish version 0.1.19 through the implemented unsigned public trust profile. Keep rejected 0.1.13 through 0.1.18 immutable and unpublished. Remove or archive SignPath-specific material only after the mandatory full dependency inventory. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, and stable macOS-plus-Linux claims. |
 | Evidence retained | All accepted hosted engineering evidence recorded below remains valid. No product E2E, update-recovery, performance, full-scale import, or data-recovery campaign is repeated because this revision changes release verification only. |
 | Exit or stop | Stop only at a documented human gate that cannot be supplied from the repository: protected candidate approval or final promotion approval. Do not purchase HARICA, represent hosted evidence as exact Windows 11 evidence, or repeat accepted product campaigns. |
 
@@ -103,7 +105,7 @@ separate protected promotion decision.
 | M5.3 Packaged capability parity | Complete | Exact source `b94a8f4` builds and installs the isolated Linux and Windows packages and passes both exhaustive functional journeys, process restarts, adaptive session composition and restart, sport-catalogue recognition and restart, and Insights interaction and responsiveness budgets. The same source passes the complete packaged macOS campaign. Release-only descendants retain this evidence rather than repeating unchanged product campaigns. |
 | M5.4 Windows performance and reliability admission | Complete | Exact source `43b04ff` and [run `34315586139`](https://github.com/purnalica/fitfreed/actions/runs/34315586139) accept 100 installed fresh-data launches at p95 `2,175.046 ms` against `2,500 ms`. Exact descendant `23b0f1e` and [recovery-and-data run `34334118449`](https://github.com/purnalica/fitfreed/actions/runs/34334118449) reopen that package evidence, skip its build and cold-launch campaign, and pass native NTFS disk-exhaustion recovery plus every full-scale import, exact-repeat, reimport, dense-history, concurrent-navigation, Insights, report-export, memory, and database-size budget. This closes the hosted Windows Server 2025 engineering boundary without claiming the separate exact Windows 11 candidate gate in M5.6. |
 | M5.5 Installation, operations, and documentation | Complete for preview | The version-matched Windows guide, support and security entry points, installed `en-US` and `es-ES` help, contributor scopes, maintainer runbook, manifest version 8 contracts, product-site warning, HARICA deferral, withdrawal, recovery, and incident boundaries describe one explicit unsigned preview. SignPath commands are historical compatibility code and no protected Windows signing environment remains. |
-| M5.6 Exact candidate and promotion | In progress | The manual Windows workflow builds and seals the unsigned native input on `windows-2025`, composes one protected complete-platform candidate, admits its exact Linux and Windows packages before promotion, and publishes only after a second protected approval. Immutable public 0.1.12 satisfies the predecessor dependency. Workflows `35102076630`, `35107772122`, and `35111727698` rejected immutable 0.1.13 through 0.1.15 at successively later authority-safe boundaries. Workflow `35117711323` proved that 0.1.16 corrected composition: it passed both native inputs, protected signing and notarization, complete reopening, and sealing. Native admission then rejected a Linux validator fixed to manifest version 6 and a Windows extraction of the non-published macOS application directory. Workflow `35129116056` proved that 0.1.17 corrected both boundaries: every input and the protected composition passed, both Ubuntu rows installed the exact package, and Windows reopened the portable archive. Admission then exposed a missing bounded Linux desktop session in the Windows expansion workflow and a host-separator mismatch in the otherwise canonical Pages inventory. Version 0.1.18 corrects those two cross-platform contracts; exact-source CI, immutable tag, protected approvals, candidate execution, immutable publication, Pages convergence, and remote verification remain. |
+| M5.6 Exact candidate and promotion | In progress | The manual Windows workflow builds and seals the unsigned native input on `windows-2025`, composes one protected complete-platform candidate, admits its exact Linux and Windows packages before promotion, and publishes only after a second protected approval. Immutable public 0.1.12 satisfies the predecessor dependency. Workflows `35102076630`, `35107772122`, and `35111727698` rejected immutable 0.1.13 through 0.1.15 at successively later authority-safe boundaries. Workflow `35117711323` proved that 0.1.16 corrected composition: it passed both native inputs, protected signing and notarization, complete reopening, and sealing. Native admission then rejected a Linux validator fixed to manifest version 6 and a Windows extraction of the non-published macOS application directory. Workflow `35129116056` proved that 0.1.17 corrected both boundaries and then exposed the missing bounded Linux desktop session plus a host-separator mismatch in the Pages inventory. Workflow `35192349518` proved that 0.1.18 corrected both: protected composition and both Ubuntu admissions passed. Its 100-process Windows admission then exposed that direct process creation does not guarantee the foreground activation needed for paint evidence. Version 0.1.19 activates the exact PID without changing any performance threshold; exact-source CI, immutable tag, protected approvals, candidate execution, immutable publication, Pages convergence, and remote verification remain. |
 
 Exact descendant `8e0e67b` passes repository safety, product-site publication, the portable quality lane, and the
 complete Linux host in run [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902). The Windows
@@ -668,6 +670,17 @@ product-owner evaluation is required because executable behavior is unchanged.
 The workflow, policy schema, static topology checks, predecessor downloader, preview evidence, and hosted admission
 contracts pass locally. Exact-source CI, immutable tag creation, protected composition and promotion approvals, exact
 native candidate execution, immutable publication, and remote acceptance remain.
+
+Immutable `v0.1.18` at `5ad76586e1cf21f3d9db96d551fad419a844b151` passed exact-source CI, both authority-free
+native input jobs, protected complete-platform composition, Apple signing and notarization, portable sealing, and
+both Ubuntu admission rows in workflow
+[`35192349518`](https://github.com/purnalica/fitfreed/actions/runs/35192349518). Hosted Windows installed the exact
+unsigned setup and entered the unchanged 100-process cold-launch campaign. One directly created process connected its
+private startup channel but did not report a painted shell within ten seconds. The package was removed, promotion was
+skipped, and no Release or Pages deployment began. The source correction for 0.1.19 brings the Windows measurement in
+line with the existing macOS model: activate the exact spawned PID once inside the measured boundary, accept no shell
+signal until activation succeeds, and retain the same 100 samples, ten-second observation, p95 calculation, and
+2.5-second budget.
 
 ## Human intervention boundary
 

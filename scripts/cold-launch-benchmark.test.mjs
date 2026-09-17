@@ -12,6 +12,7 @@ import {
 } from "./build-production.mjs";
 import {
   activateMacosApplication,
+  activateWindowsApplication,
   coldLaunchEnvironment,
   coldLaunchFailureMessage,
   coldLaunchTimeoutMessage,
@@ -463,6 +464,51 @@ test("bounds macOS activation and rejects an unavailable process", async () => {
   );
 });
 
+test("activates the exact Windows process by identifier through one bounded shell call", async () => {
+  const calls = [];
+
+  await activateWindowsApplication(4_321, {
+    async execute(file, arguments_, options) {
+      calls.push({ file, arguments_, options });
+      return { stdout: "true\n" };
+    },
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].file, "powershell.exe");
+  assert.deepEqual(calls[0].arguments_.slice(0, 5), [
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-ExecutionPolicy",
+    "Bypass",
+  ]);
+  assert.match(calls[0].arguments_.at(-1), /AppActivate\(4321\)/);
+  assert.doesNotMatch(calls[0].arguments_.at(-1), /FitFreed|Get-Process/);
+  assert.deepEqual(calls[0].options, {
+    encoding: "utf8",
+    killSignal: "SIGKILL",
+    maxBuffer: 4_096,
+    timeout: 2_000,
+    windowsHide: true,
+  });
+});
+
+test("rejects an unavailable Windows process after the bounded activation call", async () => {
+  await assert.rejects(
+    activateWindowsApplication(4_321, {
+      async execute() {
+        return { stdout: "false\n" };
+      },
+    }),
+    /could not be activated/,
+  );
+  await assert.rejects(
+    activateWindowsApplication(0),
+    /requires a process identifier/,
+  );
+});
+
 test("activates the spawned macOS process before accepting its painted shell", async () => {
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-test-"));
   const activated = [];
@@ -628,6 +674,7 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
   };
   let channelClosed = false;
   let applicationDataPrepared = false;
+  const activated = [];
 
   const measurement = await measureFreshProcess(
     "C:\\FitFreed\\fitfreed.exe",
@@ -635,6 +682,9 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
     { applicationVersion: "0.1.0", sourceRevision: revision },
     {
       architecture: "x64",
+      async activateApplication(processIdentifier, platform) {
+        activated.push([processIdentifier, platform]);
+      },
       async createWindowsSignalChannel() {
         return {
           pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "cd".repeat(32),
@@ -682,7 +732,85 @@ test("uses the one-shot Windows channel instead of GUI-subsystem stdout", async 
   );
 
   assert.ok(measurement.totalMilliseconds >= 0);
+  assert.deepEqual(activated, [[8_765, "win32"]]);
   assert.equal(channelClosed, true);
+});
+
+test("accepts a Windows painted-shell signal only after exact process activation", async () => {
+  const signalOutput = new PassThrough();
+  const child = new EventEmitter();
+  child.pid = 8_766;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+  let completeActivation;
+  const activation = new Promise((resolve) => {
+    completeActivation = resolve;
+  });
+  let signalWritten;
+  const written = new Promise((resolve) => {
+    signalWritten = resolve;
+  });
+  let settled = false;
+
+  const measurementPromise = measureFreshProcess(
+    "C:\\FitFreed\\fitfreed.exe",
+    "C:\\unused-home",
+    { applicationVersion: "0.1.0", sourceRevision: revision },
+    {
+      architecture: "x64",
+      activateApplication() {
+        return activation;
+      },
+      async createWindowsSignalChannel() {
+        return {
+          pipeName: "\\\\.\\pipe\\fitfreed-startup-" + "34".repeat(32),
+          output: signalOutput,
+          isConnected() {
+            return true;
+          },
+          async close() {},
+        };
+      },
+      inheritedEnvironment: {
+        LOCALAPPDATA: "C:\\Users\\runner\\AppData\\Local",
+        PATH: "C:\\Windows\\System32",
+      },
+      platform: "win32",
+      prepareApplicationData() {},
+      spawnApplication() {
+        queueMicrotask(() => {
+          child.emit("spawn");
+          signalOutput.write(`${JSON.stringify({
+            format: "org.fitfreed.startup-signal",
+            schemaVersion: 2,
+            event: "interactive-shell",
+            applicationVersion: "0.1.0",
+            sourceRevision: revision,
+            sourceTreeClean: true,
+            hostStartupMilliseconds: { setupComplete: 0, signal: 0 },
+            rendererStartupMilliseconds: { localeReady: 0, signal: 0 },
+          })}\n`);
+          signalWritten();
+        });
+        return child;
+      },
+    },
+  );
+  void measurementPromise.then(() => {
+    settled = true;
+  });
+
+  await written;
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(settled, false);
+  completeActivation();
+  assert.ok((await measurementPromise).totalMilliseconds >= 0);
 });
 
 test("rejects a Windows startup channel that closes before the painted-shell signal", async () => {

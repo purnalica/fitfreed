@@ -271,7 +271,10 @@ subsystem has no application-owned reliable standard-output transport. The harne
 passes only an unguessable lowercase 256-bit pipe identity, and the host accepts only its exact closed namespace and
 shape. Pipe setup precedes timing; the host connects during process startup and retains that connection until the
 painted-shell signal. Connection, painting, and the privacy-safe signal transport remain measured, and a timeout
-distinguishes a host that never connected from a connected host whose renderer never reported a painted shell. After the
+distinguishes a host that never connected from a connected host whose renderer never reported a painted shell. The
+same measurement activates only the exact spawned PID through one bounded `WScript.Shell` call and accepts no
+painted-shell signal before that activation succeeds. It does not search by product name or turn activation failure
+into a retry. After the
 installed launch, the workflow verifies that the non-empty production library resides under the exact native
 `%APPDATA%` root with no reparse descendants and the protected current-user, LocalSystem, and Builtin Administrators
 ACL defined by the version 2 filesystem contract. The same workflow creates an isolated 64 MiB NTFS VHD on its

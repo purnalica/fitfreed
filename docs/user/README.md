@@ -196,9 +196,9 @@ The [private development package guide](private-development-packages.md) explain
 
 The [private macOS alpha candidate guide](private-alpha-candidate.md) is the version-matched 0.1.0 installation, import, exploration, data, update, removal, diagnostics, and limitations draft. It becomes operative only when its listed release and human-authority gates close.
 
-The [public macOS 0.1.18 guide](public-macos-0.1.18.md), [public Linux 0.1.18 guide](public-linux-0.1.18.md), and
-[public Windows 0.1.18 preview guide](public-windows-0.1.18.md) are the version-matched download, verification,
-installation, import, exploration, update, recovery, removal, and support guides once immutable Release `v0.1.18`
+The [public macOS 0.1.19 guide](public-macos-0.1.19.md), [public Linux 0.1.19 guide](public-linux-0.1.19.md), and
+[public Windows 0.1.19 preview guide](public-windows-0.1.19.md) are the version-matched download, verification,
+installation, import, exploration, update, recovery, removal, and support guides once immutable Release `v0.1.19`
 exists. Until then, the 0.1.12 macOS and Linux guides remain operative.
 
 The [public macOS 0.1.7 guide](public-macos-0.1.7.md) documents the preceding macOS-only release.
