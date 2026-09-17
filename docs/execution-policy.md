@@ -4,7 +4,8 @@
 
 Implementation proceeds autonomously through the agreed roadmap. Human interruption is reserved for decisions or actions that require product ownership, credentials, legal authority, external account control, or acceptance of material irreversible risk.
 
-Autonomy does not change product scope, lower quality, or grant authority for public, destructive, or credentialed actions.
+Autonomy does not change product scope or lower quality. Public, destructive, and credentialed actions remain bounded
+by the standing authorities and explicit exclusions documented below.
 
 ## Continue without interruption
 
@@ -119,7 +120,7 @@ the next task; repeatedly paying for an undifferentiated campaign is not an acce
 Execution pauses only for:
 
 1. **Product authority:** changing confirmed scope, priorities, acceptance criteria, supported platforms, licensing, governance, or another product decision with materially different outcomes.
-2. **External publication beyond the standing push authority:** creating or changing a public repository, pushing to another remote or branch, force-pushing, publishing packages or releases, withdrawing a release, or communicating externally as the project owner.
+2. **External publication beyond the standing release authority:** creating or changing a public repository, pushing to another remote or branch, force-pushing, moving or reusing a published tag, replacing published assets, withdrawing a release, changing a release channel or repository setting, or communicating externally as the project owner.
 3. **Credentials and legal identity:** GitHub identity, Apple Developer membership, signing keys, notarization credentials, translation-platform accounts, domains, or acceptance of third-party legal terms.
 4. **Destructive or irreversible action:** deleting or irreversibly migrating user data, rewriting shared history, replacing published artifacts, or removing external resources.
 5. **Security or privacy exception:** weakening a confirmed control, exposing personal data, granting broad access, or accepting a known supply-chain risk.
@@ -169,8 +170,15 @@ A necessary pause reports:
   clean-revision gate requires a focused causal correction followed by one new complete run; it does not authorize a
   dirty-tree rehearsal of that same campaign.
 - The project owner has authorized a normal push to `origin/main` after every verified commit. The complete outgoing range must pass content, secret, and identity checks immediately before each push.
-- Creating tags, force-pushing, pushing another target, publishing releases or packages, or changing remote settings remains a separate action that requires explicit authority. The project owner authorized the GitHub Pages product-site setting and deployment on 2026-08-18; this does not authorize an application release or update channel.
-- Creating or changing external repositories, packages, releases, update channels, or public communications requires explicit authority for the exact target and action.
+- On 2026-09-17, the project owner granted standing authority to create and push the next immutable semantic-version
+  tags and to initiate and publish their GitHub Releases through FitFreed's approved evidence-driven release pipeline
+  without requesting per-tag or per-release confirmation. This authority applies only after the versioned release
+  contracts and exact-source checks pass. It never permits moving or reusing a tag, force-pushing, replacing immutable
+  assets, weakening or bypassing a protected approval, withdrawing a release, changing repository settings or release
+  channels, or publishing through another target.
+- The project owner authorized the GitHub Pages product-site setting and deployment on 2026-08-18. The standing
+  release authority covers Pages deployment performed by the approved release pipeline. Unrelated external
+  repositories, channels, packages, communications, and settings still require explicit authority.
 - Credentials, signing identities, notarization access, and destructive personal-data operations remain separate human gates.
 
 Repository content classification and the pre-publication gate are defined in `repository-content-policy.md`.

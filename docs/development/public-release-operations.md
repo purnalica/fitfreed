@@ -7,15 +7,18 @@ workflow [`34830250376`](https://github.com/purnalica/fitfreed/actions/runs/3483
 remotely accepted immutable macOS-plus-Linux version 0.1.12. The Windows expansion remains gated behind that accepted
 predecessor, its explicit unsigned-preview trust profile, hosted native admission, and publication boundaries. A
 workflow becomes operative only after the applicable readiness ledger records its production trust roots,
-native-platform evidence, predecessor dependency, and GitHub controls, and an accountable release owner authorizes
-one exact version, tag, and publication.
+native-platform evidence, predecessor dependency, and GitHub controls. On 2026-09-17, the project owner granted
+standing authority for the next immutable semantic-version tags and GitHub Releases produced through this approved
+pipeline, without separate authorization for each tag or release.
 
 [ADR 0050](../architecture/decisions/0050-retire-signpath-as-windows-signing-authority.md) retires SignPath as a
 delivery option. [ADR 0051](../architecture/decisions/0051-publish-an-unsigned-windows-preview.md) selects the current
 Windows route and defers HARICA Code Signing IV until Windows becomes stable or observed demand justifies earlier
 activation. Retired SignPath commands are historical compatibility code and must not be configured or executed.
 
-Normal commit and push authority does not authorize a tag, protected-environment approval, GitHub Release, Pages deployment, release withdrawal, credential change, or external incident communication.
+The standing release authority does not authorize moving or reusing a tag, replacing immutable assets, weakening or
+bypassing protected-environment approval, release withdrawal, credential or repository-setting changes, or external
+incident communication.
 
 The roles are capabilities, not named people:
 
@@ -151,7 +154,8 @@ Before creating a release tag:
 5. Run the impact-mapped local gates required by the [execution policy](../execution-policy.md), reuse unchanged product
    evidence, and wait for successful `push` runs of both `ci.yml` and `repository-safety.yml` on the exact source
    revision. Do not precede release-only corrections with unchanged E2E or performance campaigns.
-6. Create and push the exact `v<version>` tag only with separate authorization and public-safe Git metadata. Do not move or reuse a published release tag.
+6. Create and push the exact `v<version>` tag under the standing release authority only after every preceding gate
+   passes and Git metadata is public-safe. Do not move or reuse a published release tag.
 
 The workflow must be dispatched while the selected GitHub ref is that tag. The initial macOS workflow inputs are only
 the semantic version and active public updater-key identifier. A complete-platform expansion additionally supplies the
