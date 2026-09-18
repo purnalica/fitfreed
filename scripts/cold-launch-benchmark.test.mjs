@@ -13,6 +13,7 @@ import {
 import {
   activateMacosApplication,
   coldLaunchEnvironment,
+  coldLaunchSettlingMilliseconds,
   coldLaunchFailureMessage,
   coldLaunchTimeoutMessage,
   coldLaunchTransportClosedMessage,
@@ -340,6 +341,12 @@ test("separates fresh cold-launch samples from preceding desktop teardown", asyn
     { totalMilliseconds: 2 },
     { totalMilliseconds: 3 },
   ]);
+});
+
+test("allows Windows desktop services to settle without extending other platforms", () => {
+  assert.equal(coldLaunchSettlingMilliseconds("win32"), 2_000);
+  assert.equal(coldLaunchSettlingMilliseconds("darwin"), 500);
+  assert.equal(coldLaunchSettlingMilliseconds("linux"), 500);
 });
 
 test("resolves an exact installed Debian application without weakening source identity", () => {

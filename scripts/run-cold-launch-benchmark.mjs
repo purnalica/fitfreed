@@ -40,7 +40,8 @@ const macosActivationTimeoutMilliseconds = 250;
 const windowsActivationTimeoutMilliseconds = launchTimeoutMilliseconds;
 const windowsActivatorStartupTimeoutMilliseconds = 10_000;
 const windowsReactivationIntervalMilliseconds = 250;
-const interSampleSettlingMilliseconds = 500;
+const defaultInterSampleSettlingMilliseconds = 500;
+const windowsInterSampleSettlingMilliseconds = 2_000;
 const windowsStartupSignalEnvironmentVariable = "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
 const windowsStartupSignalPipePrefix = "\\\\.\\pipe\\fitfreed-startup-";
 const maximumDiagnosticTailBytes = 4 * 1_024;
@@ -994,7 +995,7 @@ export async function measureColdLaunchCampaign({
   measure = measureFreshProcess,
   pause = wait,
   sampleCount = measuredFreshProcesses,
-  settlingMilliseconds = interSampleSettlingMilliseconds,
+  settlingMilliseconds = defaultInterSampleSettlingMilliseconds,
   temporaryDirectory,
 }) {
   if (!Number.isSafeInteger(sampleCount) || sampleCount <= 0) {
@@ -1015,6 +1016,12 @@ export async function measureColdLaunchCampaign({
   return runs;
 }
 
+export function coldLaunchSettlingMilliseconds(platform = process.platform) {
+  return platform === "win32"
+    ? windowsInterSampleSettlingMilliseconds
+    : defaultInterSampleSettlingMilliseconds;
+}
+
 async function executeColdLaunchBenchmark() {
   const sourceRevision = run("git", ["rev-parse", "HEAD"], repositoryRoot);
   if (!revisionPattern.test(sourceRevision)) throw new Error("current Git revision is invalid");
@@ -1024,10 +1031,12 @@ async function executeColdLaunchBenchmark() {
   const { applicationBinary, applicationVersion, boundary } =
     resolveColdLaunchApplication();
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-"));
+  const settlingMilliseconds = coldLaunchSettlingMilliseconds();
   try {
     const runs = await measureColdLaunchCampaign({
       applicationBinary,
       expected: { applicationVersion, sourceRevision },
+      settlingMilliseconds,
       temporaryDirectory,
     });
     const measurement = evaluateColdLaunchRuns(runs);
@@ -1050,7 +1059,7 @@ async function executeColdLaunchBenchmark() {
         phaseDiagnostics:
           "aggregate residual process/evidence transport, host setup, renderer startup/command transport, locale initialization, and painted-shell signaling",
         warmUpProcesses: 0,
-        interSampleSettlingMilliseconds,
+        interSampleSettlingMilliseconds: settlingMilliseconds,
         percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
       },
       measurement,

@@ -60,6 +60,10 @@ Focused run `35354188815` then built source `67e5f8f48d644039966ccb44ca8953f8dc6
 the campaign until one exact process did not expose an activatable native window inside the helper's shorter
 one-second polling loop. Exact-PID activation now uses the existing measured ten-second product-observation boundary;
 the p95 budget, sample count, paint evidence, and independent-sample settling remain unchanged.
+Focused run `35356064597` proved that exact-PID activation reached the native window, then one later WebView2 process
+connected its private startup channel without painting inside ten seconds. The Windows-only unmeasured settling
+interval is two seconds so asynchronous desktop cleanup from the preceding forced process-tree teardown completes
+before the next independent sample; the product timeout, p95 budget, sample count, and paint evidence remain unchanged.
 The implemented
 SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
