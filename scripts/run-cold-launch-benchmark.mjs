@@ -39,6 +39,7 @@ const macosActivationRetryMilliseconds = 25;
 const macosActivationTimeoutMilliseconds = 250;
 const windowsActivationTimeoutMilliseconds = 2_000;
 const windowsReactivationIntervalMilliseconds = 250;
+const interSampleSettlingMilliseconds = 500;
 const windowsStartupSignalEnvironmentVariable = "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
 const windowsStartupSignalPipePrefix = "\\\\.\\pipe\\fitfreed-startup-";
 const maximumDiagnosticTailBytes = 4 * 1_024;
@@ -974,6 +975,33 @@ export async function measureFreshProcess(
   }
 }
 
+export async function measureColdLaunchCampaign({
+  applicationBinary,
+  expected,
+  measure = measureFreshProcess,
+  pause = wait,
+  sampleCount = measuredFreshProcesses,
+  settlingMilliseconds = interSampleSettlingMilliseconds,
+  temporaryDirectory,
+}) {
+  if (!Number.isSafeInteger(sampleCount) || sampleCount <= 0) {
+    throw new Error("cold launch campaign requires a positive integer sample count");
+  }
+  if (!Number.isSafeInteger(settlingMilliseconds) || settlingMilliseconds < 0) {
+    throw new Error("cold launch campaign requires a non-negative integer settling interval");
+  }
+  const runs = [];
+  for (let index = 0; index < sampleCount; index += 1) {
+    if (index > 0) await pause(settlingMilliseconds);
+    runs.push(await measure(
+      applicationBinary,
+      path.join(temporaryDirectory, `home-${index}`),
+      expected,
+    ));
+  }
+  return runs;
+}
+
 async function executeColdLaunchBenchmark() {
   const sourceRevision = run("git", ["rev-parse", "HEAD"], repositoryRoot);
   if (!revisionPattern.test(sourceRevision)) throw new Error("current Git revision is invalid");
@@ -984,14 +1012,11 @@ async function executeColdLaunchBenchmark() {
     resolveColdLaunchApplication();
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-"));
   try {
-    const runs = [];
-    for (let index = 0; index < measuredFreshProcesses; index += 1) {
-      runs.push(await measureFreshProcess(
-        applicationBinary,
-        path.join(temporaryDirectory, `home-${index}`),
-        { applicationVersion, sourceRevision },
-      ));
-    }
+    const runs = await measureColdLaunchCampaign({
+      applicationBinary,
+      expected: { applicationVersion, sourceRevision },
+      temporaryDirectory,
+    });
     const measurement = evaluateColdLaunchRuns(runs);
     const evidence = {
       schemaVersion: 2,
@@ -1012,6 +1037,7 @@ async function executeColdLaunchBenchmark() {
         phaseDiagnostics:
           "aggregate residual process/evidence transport, host setup, renderer startup/command transport, locale initialization, and painted-shell signaling",
         warmUpProcesses: 0,
+        interSampleSettlingMilliseconds,
         percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
       },
       measurement,

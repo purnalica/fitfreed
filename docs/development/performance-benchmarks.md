@@ -49,6 +49,13 @@ can leave its WebView2 descendants alive and make later measurements depend on p
 samples. A missing PID or failed tree termination fails the campaign; it is never converted into a successful sample
 or hidden by clearing application data.
 
+Every platform waits 500 milliseconds after the preceding process and its owned descendants have terminated before
+preparing the next sample. The interval is outside both measurements. It does not warm an application process, omit
+an observation, retry a result, or relax the unchanged p95 budget. It separates the measured user cold-launch
+boundary from operating-system cleanup caused solely by the artificial back-to-back benchmark lifecycle, so each of
+the 100 observations remains an independent fresh-process sample rather than a desktop teardown stress sequence.
+The machine-readable method records the interval explicitly.
+
 Select the default `complete` scope when package or cold-launch inputs changed. Select `recovery-and-data` only to
 continue gates that a later failure prevented, and provide the completed predecessor run identifier. The resume
 preflight reads that run's job steps, verifies that package construction and all 100 launches succeeded before the
@@ -94,7 +101,8 @@ and it does not use the accessibility service. Process creation, native activati
 remain inside the measured interval. An activation failure rejects the run rather than accepting process lifetime as
 interactive evidence.
 
-The campaign runs exactly 100 fresh production processes with no warm-up. macOS and Linux give each process a
+The campaign runs exactly 100 fresh production processes with no warm-up and a recorded 500-millisecond unmeasured
+settling interval between completed samples. macOS and Linux give each process a
 distinct empty temporary home; Windows clears the exact fixed native application-data roots before starting each
 process because changing environment variables does not redirect Tauri's Windows known-folder resolution. That
 preparation completes before the timer starts. One hundred measurements prevent the p95 estimator from collapsing

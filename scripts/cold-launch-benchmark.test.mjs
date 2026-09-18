@@ -20,6 +20,7 @@ import {
   createWindowsStartupSignalChannel,
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
+  measureColdLaunchCampaign,
   measureFreshProcess,
   resetInstalledWindowsApplicationData,
   resolveColdLaunchApplication,
@@ -306,6 +307,39 @@ test("enforces the cold-launch p95 budget across one hundred fresh processes", (
     ]),
     /non-negative finite duration/,
   );
+});
+
+test("separates fresh cold-launch samples from preceding desktop teardown", async () => {
+  const measuredHomes = [];
+  const pauses = [];
+
+  const runs = await measureColdLaunchCampaign({
+    applicationBinary: "/synthetic/FitFreed",
+    expected: {
+      applicationVersion: "0.1.0",
+      sourceRevision: revision,
+    },
+    measure: async (_applicationBinary, home) => {
+      measuredHomes.push(home);
+      return { totalMilliseconds: measuredHomes.length };
+    },
+    pause: async (milliseconds) => pauses.push(milliseconds),
+    sampleCount: 3,
+    settlingMilliseconds: 500,
+    temporaryDirectory: "/synthetic/cold-launch",
+  });
+
+  assert.deepEqual(measuredHomes, [
+    "/synthetic/cold-launch/home-0",
+    "/synthetic/cold-launch/home-1",
+    "/synthetic/cold-launch/home-2",
+  ]);
+  assert.deepEqual(pauses, [500, 500]);
+  assert.deepEqual(runs, [
+    { totalMilliseconds: 1 },
+    { totalMilliseconds: 2 },
+    { totalMilliseconds: 3 },
+  ]);
 });
 
 test("resolves an exact installed Debian application without weakening source identity", () => {
