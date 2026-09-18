@@ -37,7 +37,7 @@ const executeFile = promisify(execFile);
 const macosActivationAttempts = 20;
 const macosActivationRetryMilliseconds = 25;
 const macosActivationTimeoutMilliseconds = 250;
-const windowsActivationTimeoutMilliseconds = 2_000;
+const windowsActivationTimeoutMilliseconds = launchTimeoutMilliseconds;
 const windowsActivatorStartupTimeoutMilliseconds = 10_000;
 const windowsReactivationIntervalMilliseconds = 250;
 const interSampleSettlingMilliseconds = 500;
@@ -449,7 +449,7 @@ function windowsApplicationActivatorCommand() {
     "$parsed = [int]::TryParse($line, [ref]$targetProcessId);",
     "$activated = $false;",
     "if ($parsed -and $targetProcessId -gt 0) {",
-    "for ($attempt = 0; $attempt -lt 40; $attempt += 1) {",
+    "for ($attempt = 0; $attempt -lt 400; $attempt += 1) {",
     "$process = [System.Diagnostics.Process]::GetProcessById($targetProcessId);",
     "$process.Refresh();",
     "$handle = $process.MainWindowHandle;",
