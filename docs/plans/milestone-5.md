@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress as of 2026-09-17. Autonomous hosted Windows engineering is complete under ADR 0039. Public 0.1.12 now
+Closed without a three-platform publication as of 2026-09-18. Autonomous hosted Windows engineering is complete under ADR 0039. Public 0.1.12 now
 satisfies the immutable macOS-plus-Linux predecessor dependency.
 The SignPath Foundation application submitted on 2026-09-14 was declined, as reported by the project owner on
 2026-09-16. The stated reason is insufficient external public trust and visibility, not an assessment of product
@@ -68,6 +68,35 @@ The implemented
 SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
 
+## Execution outcome and accountability
+
+The project owner closed this execution after reporting at least five days of near-continuous, 24-hour AI-led work
+without obtaining one public macOS, Linux, and Windows release. The attempt consumed 13 immutable but unpublished
+candidate tags from `v0.1.13` through `v0.1.25`. It repeatedly changed release automation and its custom Windows
+launch harness in response to individual hosted-run failures, but did not converge on a releasable candidate.
+
+**The absence of a three-platform release is an execution failure, not a diagnosed FitFreed product defect.** The
+responsible AI agent did not demonstrate the release-engineering proficiency or execution discipline required to
+finish this distribution task. In particular, it failed to establish a reliable Windows admission method before
+consuming immutable versions, repeated expensive candidate campaigns, and spent disproportionate effort on release
+formalism without delivering the requested installers.
+
+The available evidence supports that attribution:
+
+- exact-source continuous integration and repository safety passed for the final source;
+- the final workflow built and sealed both native inputs, signed and notarized macOS, and admitted the exact Debian
+  package on Ubuntu 24.04 and 26.04;
+- a focused Windows run completed 100 installed production-package launches with median `1,777.918 ms` and p95
+  `2,551.299 ms`, showing that the application could build, install, launch, and paint on the hosted environment; and
+- the final candidate rejection occurred in the custom repeated-launch admission boundary after the Windows host
+  connected its private startup channel but one WebView2 instance did not deliver the harness's painted-shell signal
+  inside ten seconds. No user-facing FitFreed capability defect was identified from that result.
+
+This attribution does not convert missing evidence into a Windows support claim. Exact Windows release readiness
+remains unproven, no `v0.1.25` GitHub Release or Pages snapshot exists, and public 0.1.12 remains the supported
+macOS-plus-Linux release. Any future release attempt must begin with an independent audit of the release system and
+must prove its Windows admission strategy before creating another immutable candidate tag.
+
 ## Windows distribution evaluation
 
 The 2026-09-16 screening uses current first-party product and platform documentation. It separates certificate
@@ -107,17 +136,17 @@ ADR 0051 accepts this recommendation. Publication still requires implementation 
 exact hosted-Windows candidate admission, truthful disclosure of the remaining Windows 11 evidence gap, and the
 separate protected promotion decision.
 
-## Current iteration
+## Closed publication iteration
 
 | Field | Boundary |
 |---|---|
-| Acceptance outcome | Publish one explicitly unsigned Windows preview through the complete release pipeline, then remotely verify the exact immutable package, update channel, platform disclosures, and feedback route without changing stable macOS or Linux claims. |
-| Exact evidence | Hosted Windows package construction, installation, capability, update recovery, performance, filesystem recovery, and data-scale evidence is accepted below. ADR 0050 retires SignPath; ADR 0051 selects the unsigned public profile and HARICA IV as the deferred authority. Release manifest version 8, unsigned package evidence, composition, admission, user guidance, localized site disclosure, and publication workflow now encode that profile coherently. |
+| Acceptance outcome | Not achieved. The intended outcome was one explicitly unsigned Windows preview through the complete release pipeline, followed by remote verification of the exact immutable package, update channel, platform disclosures, and feedback route without changing stable macOS or Linux claims. |
+| Exact evidence | Hosted Windows package construction, installation, capability, update recovery, performance, filesystem recovery, and data-scale evidence is accepted below. ADR 0050 retires SignPath; ADR 0051 selects the unsigned public profile and HARICA IV as the deferred authority. Release manifest version 8, unsigned package evidence, composition, admission, user guidance, localized site disclosure, and publication workflow encode that profile coherently. Final workflow [`35371341978`](https://github.com/purnalica/fitfreed/actions/runs/35371341978) passed native inputs, protected composition, Apple signing and notarization, and both Ubuntu admissions, but rejected Windows admission before promotion. |
 | Causal hypothesis | A clearly labelled unsigned preview can test whether real Windows demand exists without sacrificing cryptographic release and update integrity, provided every contract models missing Authenticode explicitly and the product does not claim universal installability or stable trust parity. |
 | Smallest falsifying test | The route fails if the exact package cannot install, launch, retain its update authority, preserve data, restart, and remove cleanly on the pinned hosted Windows environment; if setup, application, and uninstaller signature state is not explicitly `NotSigned`; if the missing exact Windows 11 evidence is hidden; or if any public surface can confuse preview trust with stable signed trust. |
-| Allowed change | Prepare, verify, tag, and publish version 0.1.19 through the implemented unsigned public trust profile. Keep rejected 0.1.13 through 0.1.18 immutable and unpublished. Remove or archive SignPath-specific material only after the mandatory full dependency inventory. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, and stable macOS-plus-Linux claims. |
+| Allowed change | None in this closed iteration. Keep rejected 0.1.13 through 0.1.25 immutable and unpublished. Any later attempt requires an independently reviewed release plan before another immutable candidate tag is created. Remove or archive SignPath-specific material only after the mandatory full dependency inventory. Preserve application behavior, updater and release-checksum authority, accepted native and E2E evidence, performance budgets, and stable macOS-plus-Linux claims. |
 | Evidence retained | All accepted hosted engineering evidence recorded below remains valid. No product E2E, update-recovery, performance, full-scale import, or data-recovery campaign is repeated because this revision changes release verification only. |
-| Exit or stop | Stop only at a documented human gate that cannot be supplied from the repository: protected candidate approval or final promotion approval. Do not purchase HARICA, represent hosted evidence as exact Windows 11 evidence, or repeat accepted product campaigns. |
+| Exit or stop | The project owner stopped this iteration after the final exact candidate failed Windows admission and no three-platform publication was produced. Do not purchase HARICA, represent hosted evidence as exact Windows 11 evidence, repeat accepted product campaigns, or resume candidate publication without a new approved plan. |
 
 ## Accepted hosted engineering iteration
 
@@ -141,7 +170,7 @@ separate protected promotion decision.
 | M5.3 Packaged capability parity | Complete | Exact source `b94a8f4` builds and installs the isolated Linux and Windows packages and passes both exhaustive functional journeys, process restarts, adaptive session composition and restart, sport-catalogue recognition and restart, and Insights interaction and responsiveness budgets. The same source passes the complete packaged macOS campaign. Release-only descendants retain this evidence rather than repeating unchanged product campaigns. |
 | M5.4 Windows performance and reliability admission | Complete | Exact source `43b04ff` and [run `34315586139`](https://github.com/purnalica/fitfreed/actions/runs/34315586139) accept 100 installed fresh-data launches at p95 `2,175.046 ms` against `2,500 ms`. Exact descendant `23b0f1e` and [recovery-and-data run `34334118449`](https://github.com/purnalica/fitfreed/actions/runs/34334118449) reopen that package evidence, skip its build and cold-launch campaign, and pass native NTFS disk-exhaustion recovery plus every full-scale import, exact-repeat, reimport, dense-history, concurrent-navigation, Insights, report-export, memory, and database-size budget. This closes the hosted Windows Server 2025 engineering boundary without claiming the separate exact Windows 11 candidate gate in M5.6. |
 | M5.5 Installation, operations, and documentation | Complete for preview | The version-matched Windows guide, support and security entry points, installed `en-US` and `es-ES` help, contributor scopes, maintainer runbook, manifest version 8 contracts, product-site warning, HARICA deferral, withdrawal, recovery, and incident boundaries describe one explicit unsigned preview. SignPath commands are historical compatibility code and no protected Windows signing environment remains. |
-| M5.6 Exact candidate and promotion | In progress for 0.1.25 after rejected 0.1.24 | The manual Windows workflow builds and seals the unsigned native input on `windows-2025`, composes one protected complete-platform candidate, admits its exact Linux and Windows packages before promotion, and publishes only after a second protected approval. Immutable public 0.1.12 satisfies the predecessor dependency. Workflows `35102076630` through `35286342861` rejected immutable 0.1.13 through 0.1.24 at progressively later authority-safe boundaries without publishing a Release or Pages snapshot. Version 0.1.24 passed both native inputs, protected Apple signing and notarization, portable sealing, and both Ubuntu admissions. Windows observed all 100 painted shells but reported p95 `2,649.555 ms` after the same boundary passed at `2,107.398 ms` one hour earlier. Version 0.1.25 separates independent samples from the preceding forced desktop teardown without changing any measured process, sample count, timeout, percentile, budget, package, or product behavior. Exact-source CI, immutable tag, protected approvals, candidate execution, immutable publication, Pages convergence, and remote verification remain. |
+| M5.6 Exact candidate and promotion | Closed incomplete after rejected 0.1.25 | The manual Windows workflow builds and seals the unsigned native input on `windows-2025`, composes one protected complete-platform candidate, admits its exact Linux and Windows packages before promotion, and publishes only after a second protected approval. Immutable public 0.1.12 satisfies the predecessor dependency. Workflows `35102076630` through `35371341978` rejected immutable 0.1.13 through 0.1.25 at progressively later authority-safe boundaries without publishing a Release or Pages snapshot. Version 0.1.25 passed both native inputs, protected composition, Apple signing and notarization, portable sealing, and both Ubuntu admissions. Hosted Windows installed the exact unsigned package, but one sample connected its startup channel without reporting the painted shell inside ten seconds. Promotion, immutable publication, Pages convergence, and remote verification did not run. |
 
 Exact descendant `8e0e67b` passes repository safety, product-site publication, the portable quality lane, and the
 complete Linux host in run [`33973541902`](https://github.com/purnalica/fitfreed/actions/runs/33973541902). The Windows
@@ -784,6 +813,25 @@ Exact source `3a2b3ec4f0846b2375f8cbff85a0c897161bda5c` then passed all 100 prod
 cancelled after that previously failing step passed, before repeating the already accepted filesystem and data-scale
 campaigns. This admits the native-window restoration correction for one new complete-platform candidate without
 using unrelated repeated work as additional quality evidence.
+
+Immutable `v0.1.24` at `08eebdcc08d54f179ca735f00c4d53d2357520e0` passed exact-source CI, both authority-free
+native input jobs, protected complete-platform composition, Apple signing and notarization, portable sealing, and
+both Ubuntu admission rows in workflow
+[`35286342861`](https://github.com/purnalica/fitfreed/actions/runs/35286342861). Hosted Windows installed the exact
+unsigned setup and observed painted shells for all 100 fresh processes, but reported p95 `2,649.555 ms` against the
+unchanged p95 budget of `2,500 ms`. Promotion was skipped and
+no Release or Pages deployment began. The focused run above had passed the same product boundary at p95
+`2,107.398 ms`; neither run identified a user-facing product capability defect.
+
+Immutable `v0.1.25` at `c317bd5fabd9183058071d140f7ddabe7655b9fe` passed exact-source CI, both authority-free
+native input jobs, protected complete-platform composition, Apple signing and notarization, portable sealing, and
+both Ubuntu admission rows in workflow
+[`35371341978`](https://github.com/purnalica/fitfreed/actions/runs/35371341978). Hosted Windows installed the exact
+unsigned setup, then one process connected its private startup channel without reporting a painted shell inside ten
+seconds. Focused run [`35357958601`](https://github.com/purnalica/fitfreed/actions/runs/35357958601) had completed all
+100 installed production-package launches with median `1,777.918 ms`, p95 `2,551.299 ms`, and maximum
+`5,935.625 ms`; it missed the unchanged p95 budget by `51.299 ms` and does not replace exact-candidate admission.
+Promotion was skipped, no GitHub Release or Pages snapshot was created, and the project owner closed the iteration.
 
 ## Human intervention boundary
 
