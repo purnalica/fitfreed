@@ -615,6 +615,30 @@ test("terminates a Windows activation helper that fails its startup handshake", 
   assert.equal(child.signalCode, "SIGKILL");
 });
 
+test("bounds pre-measurement Windows activator startup independently", async () => {
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = (signal) => {
+    child.signalCode = signal;
+    queueMicrotask(() => child.emit("exit", null, signal));
+  };
+
+  await assert.rejects(
+    createWindowsApplicationActivator({
+      spawnHelper() {
+        return child;
+      },
+      startupTimeoutMilliseconds: 1,
+    }),
+    /startup exceeded its bound/,
+  );
+  assert.equal(child.signalCode, "SIGKILL");
+});
+
 test("terminates the exact Windows application process tree after every sample", async () => {
   const calls = [];
   const signals = [];

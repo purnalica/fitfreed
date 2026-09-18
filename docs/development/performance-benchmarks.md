@@ -92,6 +92,10 @@ window is visible and remains foreground long enough to paint. The harness
 never searches by process or product name, and every activation remains inside the unchanged ten-second observation
 and p95 measurement boundaries. A missing window, mismatched PID, or failed activation rejects the run immediately;
 reasserting a successful activation is focus maintenance rather than a quality-result retry.
+The helper must complete its exact `ready` handshake within ten seconds before the product timer starts. This
+separate bound admits hosted PowerShell process-creation variance without accepting an unavailable helper or adding
+automation startup to the user cold-launch measurement; each activation response retains its two-second bound inside
+the measured interval.
 
 On macOS, direct process creation does not represent the LaunchServices activation that accompanies a normal user
 launch and an inactive application may not receive a paint frame. After the exact child process exists, the benchmark

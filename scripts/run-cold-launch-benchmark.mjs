@@ -38,6 +38,7 @@ const macosActivationAttempts = 20;
 const macosActivationRetryMilliseconds = 25;
 const macosActivationTimeoutMilliseconds = 250;
 const windowsActivationTimeoutMilliseconds = 2_000;
+const windowsActivatorStartupTimeoutMilliseconds = 10_000;
 const windowsReactivationIntervalMilliseconds = 250;
 const interSampleSettlingMilliseconds = 500;
 const windowsStartupSignalEnvironmentVariable = "FITFREED_WINDOWS_STARTUP_SIGNAL_PIPE";
@@ -508,7 +509,10 @@ function boundedActivatorLineReader(child) {
     fail(new Error(`Windows application activator exited (${code ?? signal ?? "unknown"})`));
   });
 
-  return async function readLine(description) {
+  return async function readLine(
+    description,
+    timeoutMilliseconds = windowsActivationTimeoutMilliseconds,
+  ) {
     if (lines.length > 0) return lines.shift();
     if (failure) throw failure;
     return new Promise((resolve, reject) => {
@@ -516,7 +520,7 @@ function boundedActivatorLineReader(child) {
         const index = waiters.indexOf(waiter);
         if (index >= 0) waiters.splice(index, 1);
         reject(new Error(`${description} exceeded its bound`));
-      }, windowsActivationTimeoutMilliseconds);
+      }, timeoutMilliseconds);
       const waiter = {
         reject(error) {
           clearTimeout(timeout);
@@ -544,7 +548,13 @@ function writeActivatorRequest(input, processIdentifier) {
   });
 }
 
-export async function createWindowsApplicationActivator({ spawnHelper = spawn } = {}) {
+export async function createWindowsApplicationActivator({
+  spawnHelper = spawn,
+  startupTimeoutMilliseconds = windowsActivatorStartupTimeoutMilliseconds,
+} = {}) {
+  if (!Number.isSafeInteger(startupTimeoutMilliseconds) || startupTimeoutMilliseconds <= 0) {
+    throw new Error("Windows application activator requires a positive startup timeout");
+  }
   const child = spawnHelper(
     "powershell.exe",
     [
@@ -576,7 +586,10 @@ export async function createWindowsApplicationActivator({ spawnHelper = spawn } 
   });
   const readLine = boundedActivatorLineReader(child);
   try {
-    if (await readLine("Windows application activator startup") !== "ready") {
+    if (await readLine(
+      "Windows application activator startup",
+      startupTimeoutMilliseconds,
+    ) !== "ready") {
       throw new Error("Windows application activator emitted an invalid startup response");
     }
   } catch (error) {

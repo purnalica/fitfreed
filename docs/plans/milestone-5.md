@@ -52,8 +52,11 @@ protected, and Ubuntu gate. Both campaigns observed every painted shell and loca
 startup. Immediate repeated forced teardown and restart is a benchmark-created desktop stress sequence rather than
 100 independent user cold launches. Version 0.1.25 retains the same processes, activation, paint evidence, timeout,
 percentile, and `2,500 ms` budget while placing a recorded unmeasured 500-millisecond desktop-settling interval
-between completed samples. Exact-source CI, immutable tag, protected approvals, native admission, publication, and
-remote acceptance remain.
+between completed samples. Focused run `35352419118` built source `aa4fd5f3ef2cd6c1375c9563c089bec613fecb28`
+and stopped before a later measurement because its fresh PowerShell helper did not complete the pre-timing handshake
+inside the response-oriented two-second bound. The corrected harness retains the two-second measured activation
+response and allows only the outside-timer helper process startup ten seconds. Exact-source CI, immutable tag,
+protected approvals, native admission, publication, and remote acceptance remain.
 The implemented
 SignPath integration remains historical engineering evidence until its complete content and
 incoming dependencies are inventoried under the repository archival policy.
